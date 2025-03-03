@@ -83,9 +83,9 @@ const hasUnsavedChanges = {
 window.currentCharacter = currentCharacter;
 
 // Initialize the application
-function initializeCharacterApp() {
+async function initializeCharacterApp() {
     // Load existing characters
-    loadCharacters();
+    await loadCharacters();
 
     // Event Listeners
     const newCharacterBtn = document.getElementById('newCharacterBtn');
@@ -143,9 +143,9 @@ function setupFormListeners() {
 }
 
 // Initialize build page
-function initializeBuildPage() {
-    populateSelects();
-    calculateBonusesAndProficiencies();
+async function initializeBuildPage() {
+    await populateSelects();
+    await calculateBonusesAndProficiencies();
     setupAbilityScores();
     setupProficiencies();
 
@@ -157,19 +157,19 @@ function initializeBuildPage() {
         const newElement = oldElement.cloneNode(true);
         oldElement.parentNode.replaceChild(newElement, oldElement);
 
-        newElement.addEventListener('change', function () {
+        newElement.addEventListener('change', async function () {
             const selectedRace = this.value;
             currentCharacter.race = selectedRace;
             currentCharacter.subrace = ''; // Reset subrace when race changes
 
             // Update the subrace dropdown
-            populateSubraces(selectedRace);
+            await populateSubraces(selectedRace);
 
             // Update race details
-            updateRaceDetails(selectedRace, currentCharacter.subrace);
+            await updateRaceDetails(selectedRace, currentCharacter.subrace);
 
             // Recalculate bonuses and update displays
-            calculateBonusesAndProficiencies();
+            await calculateBonusesAndProficiencies();
             setupAbilityScores();
             setupProficiencies();
 
@@ -184,19 +184,19 @@ function initializeBuildPage() {
     // Add direct event listener for class select
     const classSelect = document.getElementById('classSelect');
     if (classSelect) {
-        classSelect.addEventListener('change', function () {
+        classSelect.addEventListener('change', async function () {
             const selectedClass = this.value;
             currentCharacter.class = selectedClass;
             currentCharacter.subclass = ''; // Reset subclass when class changes
 
             // Update the subclass dropdown
-            populateSubclasses(selectedClass);
+            await populateSubclasses(selectedClass);
 
             // Update class details
-            updateClassDetails(selectedClass, '');
+            await updateClassDetails(selectedClass, '');
 
             // Recalculate optional proficiencies and update proficiency display
-            calculateOptionalProficiencies();
+            await calculateOptionalProficiencies();
             setupProficiencies();
 
             // Show unsaved changes indicator
@@ -207,15 +207,15 @@ function initializeBuildPage() {
     // Add direct event listener for subclass select
     const subclassSelect = document.getElementById('subclassSelect');
     if (subclassSelect) {
-        subclassSelect.addEventListener('change', function () {
+        subclassSelect.addEventListener('change', async function () {
             const selectedSubclass = this.value;
             currentCharacter.subclass = selectedSubclass;
 
             // Update class details with subclass
-            updateClassDetails(currentCharacter.class, selectedSubclass);
+            await updateClassDetails(currentCharacter.class, selectedSubclass);
 
             // Recalculate bonuses and update displays
-            calculateBonusesAndProficiencies();
+            await calculateBonusesAndProficiencies();
             setupAbilityScores();
             setupProficiencies();
 
@@ -227,15 +227,15 @@ function initializeBuildPage() {
     // Add direct event listener for background select
     const backgroundSelect = document.getElementById('backgroundSelect');
     if (backgroundSelect) {
-        backgroundSelect.addEventListener('change', function () {
+        backgroundSelect.addEventListener('change', async function () {
             const selectedBackground = this.value;
             currentCharacter.background = selectedBackground;
 
             // Update background details
-            updateBackgroundDetails(selectedBackground);
+            await updateBackgroundDetails(selectedBackground);
 
             // Recalculate optional proficiencies and update proficiency display
-            calculateOptionalProficiencies();
+            await calculateOptionalProficiencies();
             setupProficiencies();
 
             // Do not save automatically
@@ -243,57 +243,89 @@ function initializeBuildPage() {
     }
 
     if (currentCharacter.id) {
-        populateForm(currentCharacter);
+        await populateForm(currentCharacter);
     } else {
         // Initialize with empty race details to ensure consistent layout
-        updateRaceDetails('', '');
+        await updateRaceDetails('', '');
         // Initialize with empty class details to ensure consistent layout
-        updateClassDetails('', '');
+        await updateClassDetails('', '');
         // Initialize with empty background details to ensure consistent layout
-        updateBackgroundDetails('');
+        await updateBackgroundDetails('');
     }
 }
 
 // Initialize equipment page
-function initializeEquipmentPage() {
+async function initializeEquipmentPage() {
     const weaponsList = document.getElementById('weaponsList');
     const armorList = document.getElementById('armorList');
 
     if (weaponsList && armorList) {
-        // Populate weapons list
-        weaponsList.innerHTML = Object.entries(dndData.weapons).map(([key, weapon]) => `
-            <div class="equipment-item" data-type="weapons" data-item-id="${key}">
-                <div>
-                    <strong>${weapon.name}</strong>
-                    <div class="text-muted small">Damage: ${weapon.damage} ${weapon.damageType}</div>
-                </div>
-                <button class="btn btn-sm btn-outline-primary toggle-equipment" data-type="weapons" data-item-id="${key}">
-                    ${currentCharacter.equipment.weapons.includes(key) ? 'Remove' : 'Add'}
-                </button>
-            </div>
-        `).join('');
+        try {
+            // Load items data
+            const itemsData = await window.dndDataLoader.loadItems();
 
-        // Populate armor list
-        armorList.innerHTML = Object.entries(dndData.armor).map(([key, armor]) => `
-            <div class="equipment-item" data-type="armor" data-item-id="${key}">
-                <div>
-                    <strong>${armor.name}</strong>
-                    <div class="text-muted small">AC: ${armor.ac}</div>
-                </div>
-                <button class="btn btn-sm btn-outline-primary toggle-equipment" data-type="armor" data-item-id="${key}">
-                    ${currentCharacter.equipment.armor.includes(key) ? 'Remove' : 'Add'}
-                </button>
-            </div>
-        `).join('');
+            // Get weapons and armor from the items data
+            const weapons = Object.values(itemsData.base.item || {})
+                .filter(item => item.type === 'M' || item.type === 'R') // Melee or Ranged weapons
+                .map(weapon => ({
+                    id: weapon.name.toLowerCase().replace(/\s+/g, '-'),
+                    name: weapon.name,
+                    damage: weapon.dmg1 || '—',
+                    damageType: weapon.dmgType || '—',
+                    properties: weapon.property || []
+                }));
 
-        // Add event listeners for equipment toggle buttons
-        const toggleButtons = document.querySelectorAll('.toggle-equipment');
-        for (const button of toggleButtons) {
-            button.addEventListener('click', function () {
-                const type = this.getAttribute('data-type');
-                const itemId = this.getAttribute('data-item-id');
-                toggleEquipment(type, itemId);
-            });
+            const armors = Object.values(itemsData.base.item || {})
+                .filter(item => item.type === 'LA' || item.type === 'MA' || item.type === 'HA' || item.type === 'S') // Light, Medium, Heavy Armor or Shield
+                .map(armor => ({
+                    id: armor.name.toLowerCase().replace(/\s+/g, '-'),
+                    name: armor.name,
+                    ac: armor.ac ? (armor.type === 'S' ? `+${armor.ac}` : armor.ac.toString()) : '—',
+                    type: armor.type === 'LA' ? 'Light' :
+                        armor.type === 'MA' ? 'Medium' :
+                            armor.type === 'HA' ? 'Heavy' :
+                                armor.type === 'S' ? 'Shield' : '—'
+                }));
+
+            // Populate weapons list
+            weaponsList.innerHTML = weapons.map(weapon => `
+                <div class="equipment-item" data-type="weapons" data-item-id="${weapon.id}">
+                    <div>
+                        <strong>${weapon.name}</strong>
+                        <div class="text-muted small">Damage: ${weapon.damage} ${weapon.damageType}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary toggle-equipment" data-type="weapons" data-item-id="${weapon.id}">
+                        ${currentCharacter.equipment.weapons.includes(weapon.id) ? 'Remove' : 'Add'}
+                    </button>
+                </div>
+            `).join('');
+
+            // Populate armor list
+            armorList.innerHTML = armors.map(armor => `
+                <div class="equipment-item" data-type="armor" data-item-id="${armor.id}">
+                    <div>
+                        <strong>${armor.name}</strong>
+                        <div class="text-muted small">AC: ${armor.ac} (${armor.type})</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary toggle-equipment" data-type="armor" data-item-id="${armor.id}">
+                        ${currentCharacter.equipment.armor.includes(armor.id) ? 'Remove' : 'Add'}
+                    </button>
+                </div>
+            `).join('');
+
+            // Add event listeners for equipment toggle buttons
+            const toggleButtons = document.querySelectorAll('.toggle-equipment');
+            for (const button of toggleButtons) {
+                button.addEventListener('click', function () {
+                    const type = this.getAttribute('data-type');
+                    const itemId = this.getAttribute('data-item-id');
+                    toggleEquipment(type, itemId);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading equipment data:', error);
+            weaponsList.innerHTML = '<div class="alert alert-danger">Error loading weapons data</div>';
+            armorList.innerHTML = '<div class="alert alert-danger">Error loading armor data</div>';
         }
     }
 }
@@ -323,12 +355,17 @@ function initializePreviewPage() {
 }
 
 // Populate select elements with D&D data
-function populateSelects() {
+async function populateSelects() {
+    // Load race, class, and background data
+    const races = await window.dndDataLoader.getRaces();
+    const classes = await window.dndDataLoader.getClasses();
+    const backgrounds = await window.dndDataLoader.getBackgrounds();
+
     // Populate race select
     const raceSelect = document.getElementById('raceSelect');
     if (raceSelect) {
-        raceSelect.innerHTML = `<option value="">Select Race</option>${Object.entries(dndData.races).map(([key, race]) =>
-            `<option value="${key}" ${currentCharacter.race === key ? 'selected' : ''}>${race.name}</option>`
+        raceSelect.innerHTML = `<option value="">Select Race</option>${races.map(race =>
+            `<option value="${race.id}" ${currentCharacter.race === race.id ? 'selected' : ''}>${race.name}</option>`
         ).join('')
             }`;
     }
@@ -341,8 +378,8 @@ function populateSelects() {
     // Populate class select
     const classSelect = document.getElementById('classSelect');
     if (classSelect) {
-        classSelect.innerHTML = `<option value="">Select Class</option>${Object.entries(dndData.classes).map(([key, characterClass]) =>
-            `<option value="${key}" ${currentCharacter.class === key ? 'selected' : ''}>${characterClass.name}</option>`
+        classSelect.innerHTML = `<option value="">Select Class</option>${classes.map(characterClass =>
+            `<option value="${characterClass.id}" ${currentCharacter.class === characterClass.id ? 'selected' : ''}>${characterClass.name}</option>`
         ).join('')
             }`;
     }
@@ -350,25 +387,29 @@ function populateSelects() {
     // Populate background select
     const backgroundSelect = document.getElementById('backgroundSelect');
     if (backgroundSelect) {
-        backgroundSelect.innerHTML = `<option value="">Select Background</option>${Object.entries(dndData.backgrounds).map(([key, background]) =>
-            `<option value="${key}" ${currentCharacter.background === key ? 'selected' : ''}>${background.name}</option>`
+        backgroundSelect.innerHTML = `<option value="">Select Background</option>${backgrounds.map(background =>
+            `<option value="${background.id}" ${currentCharacter.background === background.id ? 'selected' : ''}>${background.name}</option>`
         ).join('')
             }`;
     }
 }
 
 // Populate subraces based on selected race
-function populateSubraces(race) {
+async function populateSubraces(race) {
     const subraceSelect = document.getElementById('subraceSelect');
     if (subraceSelect) {
         subraceSelect.innerHTML = '';
 
-        if (race && dndData.races[race] && dndData.races[race].subraces) {
+        // Get race data
+        const races = await window.dndDataLoader.getRaces();
+        const raceData = races.find(r => r.id === race);
+
+        if (race && raceData && raceData.subraces && raceData.subraces.length > 0) {
             // Enable the subrace select
             subraceSelect.disabled = false;
 
             // Add subrace options
-            const subraces = Object.keys(dndData.races[race].subraces);
+            const subraces = raceData.subraces;
 
             // If there are subraces, add them to the dropdown
             if (subraces.length > 0) {
@@ -376,12 +417,12 @@ function populateSubraces(race) {
 
                 for (const subrace of subraces) {
                     const option = document.createElement('option');
-                    option.value = subrace;
-                    option.textContent = dndData.races[race].subraces[subrace].name;
+                    option.value = subrace.id;
+                    option.textContent = subrace.name;
                     subraceSelect.appendChild(option);
 
                     if (!firstOption) {
-                        firstOption = subrace;
+                        firstOption = subrace.id;
                     }
                 }
 
@@ -432,17 +473,21 @@ function populateSubraces(race) {
 }
 
 // Populate subclasses based on selected class
-function populateSubclasses(characterClass) {
+async function populateSubclasses(characterClass) {
     const subclassSelect = document.getElementById('subclassSelect');
     if (subclassSelect) {
         subclassSelect.innerHTML = '';
 
-        if (characterClass && dndData.classes[characterClass] && dndData.classes[characterClass].subclasses) {
+        // Get class data
+        const classes = await window.dndDataLoader.getClasses();
+        const classData = classes.find(c => c.id === characterClass);
+
+        if (characterClass && classData && classData.subclasses && classData.subclasses.length > 0) {
             // Enable the subclass select
             subclassSelect.disabled = false;
 
             // Add subclass options
-            const subclasses = Object.keys(dndData.classes[characterClass].subclasses);
+            const subclasses = classData.subclasses;
 
             // If there are subclasses, add them to the dropdown
             if (subclasses.length > 0) {
@@ -450,12 +495,12 @@ function populateSubclasses(characterClass) {
 
                 for (const subclass of subclasses) {
                     const option = document.createElement('option');
-                    option.value = subclass;
-                    option.textContent = dndData.classes[characterClass].subclasses[subclass].name;
+                    option.value = subclass.id;
+                    option.textContent = subclass.name;
                     subclassSelect.appendChild(option);
 
                     if (!firstOption) {
-                        firstOption = subclass;
+                        firstOption = subclass.id;
                     }
                 }
 
@@ -493,7 +538,7 @@ function populateSubclasses(characterClass) {
 }
 
 // Calculate ability score bonuses and proficiencies from race, class, and background
-function calculateBonusesAndProficiencies() {
+async function calculateBonusesAndProficiencies() {
     // Reset bonuses and proficiencies
     currentCharacter.abilityBonuses = {
         strength: 0,
@@ -544,156 +589,196 @@ function calculateBonusesAndProficiencies() {
         currentCharacter.features.spells = [];
     }
 
+    // Load data
+    const races = await window.dndDataLoader.getRaces();
+    const classes = await window.dndDataLoader.getClasses();
+    const backgrounds = await window.dndDataLoader.getBackgrounds();
+
     // Process race bonuses and proficiencies
-    if (currentCharacter.race && dndData.races[currentCharacter.race]) {
-        const raceData = dndData.races[currentCharacter.race];
-        const isHuman = currentCharacter.race === 'human';
-        const hasSubrace = currentCharacter.subrace && raceData.subraces && raceData.subraces[currentCharacter.subrace];
+    if (currentCharacter.race) {
+        const raceData = races.find(r => r.id === currentCharacter.race);
+        if (raceData) {
+            const isHuman = currentCharacter.race === 'human';
+            const hasSubrace = currentCharacter.subrace && raceData.subraces && raceData.subraces.some(sr => sr.id === currentCharacter.subrace);
+            const subraceData = hasSubrace ? raceData.subraces.find(sr => sr.id === currentCharacter.subrace) : null;
 
-        // For humans, we'll handle ability score increases differently based on subrace
-        if (!isHuman && raceData.abilityScoreIncrease) {
-            // For non-humans, process race ability score increases normally
-            processAbilityScoreIncrease(raceData.abilityScoreIncrease, `${raceData.name} race`);
-        }
-
-        // Process languages
-        if (raceData.languages && raceData.languages.length > 0) {
-            for (const language of raceData.languages) {
-                addProficiency('languages', language, `${raceData.name} race`);
-            }
-        }
-
-        // Process base race traits
-        if (raceData.traits && raceData.traits.length > 0) {
-            for (const trait of raceData.traits) {
-                // Add to racial traits list
-                currentCharacter.racialTraits.push({
-                    name: trait.name,
-                    description: trait.description,
-                    source: `${raceData.name} race`
-                });
-
-                // Process special traits
-                processSpecialTrait(trait, raceData.name);
-            }
-        }
-
-        // Set base movement speed
-        if (raceData.speed) {
-            currentCharacter.features.speed = raceData.speed;
-        }
-
-        // Process subrace bonuses if applicable
-        if (hasSubrace) {
-            const subraceData = raceData.subraces[currentCharacter.subrace];
-
-            // For humans, explicitly process the subrace ability score increases
-            if (isHuman && subraceData.abilityScoreIncrease) {
-                processAbilityScoreIncrease(subraceData.abilityScoreIncrease, `${subraceData.name} subrace`);
-            } else if (subraceData.abilityScoreIncrease) {
-                // For non-humans, process as normal
-                processAbilityScoreIncrease(subraceData.abilityScoreIncrease, `${subraceData.name} subrace`);
+            // For humans, we'll handle ability score increases differently based on subrace
+            if (!isHuman && raceData.ability) {
+                // Process race ability score increases
+                for (const [ability, value] of Object.entries(raceData.ability)) {
+                    if (ability && value) {
+                        const abilityKey = ability.toLowerCase();
+                        if (Object.prototype.hasOwnProperty.call(currentCharacter.abilityBonuses, abilityKey)) {
+                            currentCharacter.abilityBonuses[abilityKey] += value;
+                            currentCharacter.bonusSources.push({
+                                ability: abilityKey,
+                                bonus: value,
+                                source: `${raceData.name} race`
+                            });
+                        }
+                    }
+                }
             }
 
-            // Process subrace traits
-            if (subraceData.traits && subraceData.traits.length > 0) {
-                for (const trait of subraceData.traits) {
+            // Process languages
+            if (raceData.languages && raceData.languages.length > 0) {
+                for (const language of raceData.languages) {
+                    addProficiency('languages', language, `${raceData.name} race`);
+                }
+            }
+
+            // Process base race traits
+            if (raceData.traits && raceData.traits.length > 0) {
+                for (const trait of raceData.traits) {
                     // Add to racial traits list
                     currentCharacter.racialTraits.push({
                         name: trait.name,
                         description: trait.description,
-                        source: `${subraceData.name} subrace`
+                        source: `${raceData.name} race`
                     });
 
                     // Process special traits
-                    processSpecialTrait(trait, subraceData.name);
+                    processSpecialTrait(trait, raceData.name);
                 }
             }
 
-            // Override speed if subrace has a specific speed
-            if (subraceData.speed) {
-                currentCharacter.features.speed = subraceData.speed;
+            // Set base movement speed
+            if (raceData.speed) {
+                currentCharacter.features.speed = raceData.speed;
             }
 
-            // Process spells
-            if (subraceData.spells && subraceData.spells.length > 0) {
-                for (const spell of subraceData.spells) {
-                    currentCharacter.features.spells.push({
-                        name: spell.name,
-                        level: spell.level,
-                        description: spell.description,
-                        availableAtLevel: spell.availableAtLevel || 1,
-                        source: `${subraceData.name} subrace`
-                    });
+            // Process subrace bonuses if applicable
+            if (subraceData) {
+                // For humans, explicitly process the subrace ability score increases
+                if (isHuman && subraceData.ability) {
+                    for (const [ability, value] of Object.entries(subraceData.ability)) {
+                        if (ability && value) {
+                            const abilityKey = ability.toLowerCase();
+                            if (Object.prototype.hasOwnProperty.call(currentCharacter.abilityBonuses, abilityKey)) {
+                                currentCharacter.abilityBonuses[abilityKey] += value;
+                                currentCharacter.bonusSources.push({
+                                    ability: abilityKey,
+                                    bonus: value,
+                                    source: `${subraceData.name} subrace`
+                                });
+                            }
+                        }
+                    }
+                } else if (subraceData.ability) {
+                    // For non-humans, process as normal
+                    for (const [ability, value] of Object.entries(subraceData.ability)) {
+                        if (ability && value) {
+                            const abilityKey = ability.toLowerCase();
+                            if (Object.prototype.hasOwnProperty.call(currentCharacter.abilityBonuses, abilityKey)) {
+                                currentCharacter.abilityBonuses[abilityKey] += value;
+                                currentCharacter.bonusSources.push({
+                                    ability: abilityKey,
+                                    bonus: value,
+                                    source: `${subraceData.name} subrace`
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Process subrace traits
+                if (subraceData.traits && subraceData.traits.length > 0) {
+                    for (const trait of subraceData.traits) {
+                        // Add to racial traits list
+                        currentCharacter.racialTraits.push({
+                            name: trait.name,
+                            description: trait.description,
+                            source: `${subraceData.name} subrace`
+                        });
+
+                        // Process special traits
+                        processSpecialTrait(trait, subraceData.name);
+                    }
+                }
+
+                // Override speed if subrace has a specific speed
+                if (subraceData.speed) {
+                    currentCharacter.features.speed = subraceData.speed;
                 }
             }
         }
     }
 
     // Process class proficiencies
-    if (currentCharacter.class && dndData.classes[currentCharacter.class]) {
-        const classData = dndData.classes[currentCharacter.class];
-        const className = classData.name;
+    if (currentCharacter.class) {
+        const classData = classes.find(c => c.id === currentCharacter.class);
+        if (classData) {
+            const className = classData.name;
 
-        // Saving throws
-        if (classData.savingThrows && classData.savingThrows.length > 0) {
-            for (const save of classData.savingThrows) {
-                addProficiency('savingThrows', save, `${className} class`);
+            // Saving throws
+            if (classData.proficiencies?.savingThrows?.length > 0) {
+                for (const save of classData.proficiencies.savingThrows) {
+                    addProficiency('savingThrows', save, `${className} class`);
+                }
             }
-        }
 
-        // Armor proficiencies
-        if (classData.armorProficiencies && classData.armorProficiencies.length > 0) {
-            for (const armor of classData.armorProficiencies) {
-                addProficiency('armor', armor, `${className} class`);
+            // Armor proficiencies
+            if (classData.proficiencies?.armor?.length > 0) {
+                for (const armor of classData.proficiencies.armor) {
+                    addProficiency('armor', armor, `${className} class`);
+                }
             }
-        }
 
-        // Weapon proficiencies
-        if (classData.weaponProficiencies && classData.weaponProficiencies.length > 0) {
-            for (const weapon of classData.weaponProficiencies) {
-                addProficiency('weapons', weapon, `${className} class`);
+            // Weapon proficiencies
+            if (classData.proficiencies?.weapons?.length > 0) {
+                for (const weapon of classData.proficiencies.weapons) {
+                    addProficiency('weapons', weapon, `${className} class`);
+                }
             }
-        }
 
-        // Skill proficiencies
-        if (classData.skillProficiencies && classData.skillProficiencies.length > 0) {
-            for (const skill of classData.skillProficiencies) {
-                addProficiency('skills', skill, `${className} class`);
+            // Skill proficiencies
+            if (classData.proficiencies?.skills?.length > 0) {
+                for (const skill of classData.proficiencies.skills) {
+                    if (typeof skill === 'string') {
+                        addProficiency('skills', skill, `${className} class`);
+                    } else if (skill.choose) {
+                        // Handle skill choices
+                        currentCharacter.optionalProficiencies.skills.allowed = skill.choose;
+                        currentCharacter.optionalProficiencies.skills.from = skill.from;
+                    }
+                }
             }
-        }
 
-        // Process subclass bonuses if applicable
-        if (currentCharacter.subclass && classData.subclasses && classData.subclasses[currentCharacter.subclass]) {
-            const subclassData = classData.subclasses[currentCharacter.subclass];
-
-            // Add any subclass-specific proficiencies here if needed
+            // Process subclass bonuses if applicable
+            if (currentCharacter.subclass) {
+                const subclassData = classData.subclasses.find(sc => sc.id === currentCharacter.subclass);
+                if (subclassData) {
+                    // Add any subclass-specific proficiencies here if needed
+                }
+            }
         }
     }
 
     // Process background proficiencies
-    if (currentCharacter.background && dndData.backgrounds[currentCharacter.background]) {
-        const bgData = dndData.backgrounds[currentCharacter.background];
-        const bgName = bgData.name;
+    if (currentCharacter.background) {
+        const backgroundData = backgrounds.find(bg => bg.id === currentCharacter.background);
+        if (backgroundData) {
+            const bgName = backgroundData.name;
 
-        // Skill proficiencies
-        if (bgData.skillProficiencies && bgData.skillProficiencies.length > 0) {
-            for (const skill of bgData.skillProficiencies) {
-                addProficiency('skills', skill, `${bgName} background`);
+            // Skill proficiencies
+            if (backgroundData.skillProficiencies && backgroundData.skillProficiencies.length > 0) {
+                for (const skill of backgroundData.skillProficiencies) {
+                    addProficiency('skills', skill, `${bgName} background`);
+                }
             }
-        }
 
-        // Tool proficiencies
-        if (bgData.toolProficiencies && bgData.toolProficiencies.length > 0) {
-            for (const tool of bgData.toolProficiencies) {
-                addProficiency('tools', tool, `${bgName} background`);
+            // Tool proficiencies
+            if (backgroundData.toolProficiencies && backgroundData.toolProficiencies.length > 0) {
+                for (const tool of backgroundData.toolProficiencies) {
+                    addProficiency('tools', tool, `${bgName} background`);
+                }
             }
-        }
 
-        // Languages
-        if (bgData.languages && bgData.languages.length > 0) {
-            for (const language of bgData.languages) {
-                addProficiency('languages', language, `${bgName} background`);
+            // Languages
+            if (backgroundData.languages && backgroundData.languages.length > 0) {
+                for (const language of backgroundData.languages) {
+                    addProficiency('languages', language, `${bgName} background`);
+                }
             }
         }
     }
@@ -1513,60 +1598,66 @@ function setupProficiencies() {
     }
 }
 
-// Calculate optional proficiencies allowed from race, class, and background
-function calculateOptionalProficiencies() {
+// Calculate optional proficiencies
+async function calculateOptionalProficiencies() {
     // Reset optional proficiencies
     currentCharacter.optionalProficiencies = {
-        skills: { allowed: 0, selected: [] },
-        languages: { allowed: 0, selected: [] },
-        tools: { allowed: 0, selected: [] },
-        armor: { allowed: 0, selected: [] },
-        weapons: { allowed: 0, selected: [] }
+        skills: { allowed: 0, selected: [], from: [] },
+        languages: { allowed: 0, selected: [], from: [] },
+        tools: { allowed: 0, selected: [], from: [] },
+        armor: { allowed: 0, selected: [], from: [] },
+        weapons: { allowed: 0, selected: [], from: [] }
     };
 
-    // For demonstration purposes, add some test data
-    // In a real implementation, this would check the actual race, class, and background data
+    // Load data
+    const races = await window.dndDataLoader.getRaces();
+    const classes = await window.dndDataLoader.getClasses();
+    const backgrounds = await window.dndDataLoader.getBackgrounds();
 
-    // Example: If race is "elf", allow selecting 1 language
-    if (currentCharacter.race === 'elf') {
-        currentCharacter.optionalProficiencies.languages.allowed += 1;
+    // Process race optional proficiencies
+    if (currentCharacter.race) {
+        const raceData = races.find(r => r.id === currentCharacter.race);
+        if (raceData) {
+            // Process optional proficiencies from race
+            // This is a placeholder for future implementation
+        }
     }
 
-    // Example: If class is "rogue", allow selecting 4 skills
-    if (currentCharacter.class === 'rogue') {
-        currentCharacter.optionalProficiencies.skills.allowed += 4;
-    }
-
-    // Example: If background is "acolyte", allow selecting 2 languages
-    if (currentCharacter.background === 'acolyte') {
-        currentCharacter.optionalProficiencies.languages.allowed += 2;
-    }
-
-    // Example: If background is "criminal", allow selecting 2 tools
-    if (currentCharacter.background === 'criminal') {
-        currentCharacter.optionalProficiencies.tools.allowed += 2;
-    }
-
-    // Fighter class handling - no optional weapon proficiencies needed
-    if (currentCharacter.class === 'fighter') {
-        // Fighter gets fighting style options, not weapon proficiencies
-        currentCharacter.optionalProficiencies.weapons.allowed = 0;
-    }
-
-    // Restore previously selected optional proficiencies if they exist in character data
-    if (currentCharacter.savedOptionalProficiencies) {
-        // Only restore the selections, not the allowed counts (which we just recalculated)
-        for (const type in currentCharacter.savedOptionalProficiencies) {
-            if (currentCharacter.savedOptionalProficiencies[type].selected) {
-                // Only keep selections that don't exceed the current allowed count
-                const allowed = currentCharacter.optionalProficiencies[type].allowed;
-                const selected = currentCharacter.savedOptionalProficiencies[type].selected;
-
-                currentCharacter.optionalProficiencies[type].selected =
-                    selected.slice(0, allowed);
+    // Process class optional proficiencies
+    if (currentCharacter.class) {
+        const classData = classes.find(c => c.id === currentCharacter.class);
+        if (classData?.proficiencies?.skills) {
+            // Process skill choices
+            for (const skill of classData.proficiencies.skills) {
+                if (typeof skill === 'object' && skill.choose) {
+                    currentCharacter.optionalProficiencies.skills.allowed = skill.choose;
+                    currentCharacter.optionalProficiencies.skills.from = skill.from || [];
+                }
             }
         }
     }
+
+    // Process background optional proficiencies
+    if (currentCharacter.background) {
+        const backgroundData = backgrounds.find(bg => bg.id === currentCharacter.background);
+        if (backgroundData) {
+            // Process optional proficiencies from background
+            // This is a placeholder for future implementation
+        }
+    }
+
+    // Restore any previously selected optional proficiencies
+    if (currentCharacter.savedOptionalProficiencies) {
+        for (const type in currentCharacter.savedOptionalProficiencies) {
+            if (currentCharacter.optionalProficiencies[type]) {
+                currentCharacter.optionalProficiencies[type].selected =
+                    currentCharacter.savedOptionalProficiencies[type].selected || [];
+            }
+        }
+    }
+
+    // Update the UI with the new optional proficiencies
+    setupOptionalProficiencies();
 }
 
 // Toggle optional proficiency selection
@@ -1678,21 +1769,31 @@ async function loadCharacters() {
             row.className = 'row';
             characterList.appendChild(row);
 
-            // Add all characters from .ffp files
-            for (const character of characters) {
+            // Create all character cards in parallel
+            const characterCardPromises = characters.map(async character => {
                 // Ensure character has required properties
                 if (!character.lastModified) {
                     character.lastModified = new Date().toISOString();
                 }
 
-                const characterCard = createCharacterCard(character);
-                row.appendChild(characterCard);
+                return {
+                    character,
+                    card: await createCharacterCard(character)
+                };
+            });
+
+            // Wait for all character cards to be created
+            const characterCards = await Promise.all(characterCardPromises);
+
+            // Add all character cards to the row
+            for (const { character, card } of characterCards) {
+                row.appendChild(card);
 
                 // If this character is the currently selected one, mark it as selected
                 if (currentCharacter && currentCharacter.id === character.id) {
-                    const card = characterCard.querySelector('.character-card');
-                    if (card) {
-                        card.classList.add('selected');
+                    const cardElement = card.querySelector('.character-card');
+                    if (cardElement) {
+                        cardElement.classList.add('selected');
                     }
                 }
             }
@@ -1950,20 +2051,44 @@ async function createCharacterFromModal() {
 }
 
 // Create character card element
-function createCharacterCard(character) {
+async function createCharacterCard(character) {
     const col = document.createElement('div');
     col.className = 'col-md-4 mb-4';
 
     // Get race and subrace names
-    let raceName = character.race ? dndData.races[character.race]?.name || 'Unknown' : 'Not selected';
-    if (character.subrace && character.race && dndData.races[character.race]?.subraces?.[character.subrace]) {
-        raceName += ` (${dndData.races[character.race].subraces[character.subrace].name})`;
-    }
+    let raceName = 'Not selected';
+    let className = 'Not selected';
 
-    // Get class and subclass names
-    let className = character.class ? dndData.classes[character.class]?.name || 'Unknown' : 'Not selected';
-    if (character.subclass && character.class && dndData.classes[character.class]?.subclasses?.[character.subclass]) {
-        className += ` (${dndData.classes[character.class].subclasses[character.subclass].name})`;
+    try {
+        // Load race data
+        if (character.race) {
+            const races = await window.dndDataLoader.getRaces();
+            const race = races.find(r => r.index === character.race);
+            raceName = race ? race.name : 'Unknown';
+
+            if (character.subrace && race && race.subraces) {
+                const subrace = race.subraces.find(sr => sr.index === character.subrace);
+                if (subrace) {
+                    raceName += ` (${subrace.name})`;
+                }
+            }
+        }
+
+        // Load class data
+        if (character.class) {
+            const classes = await window.dndDataLoader.getClasses();
+            const classData = classes.find(c => c.index === character.class);
+            className = classData ? classData.name : 'Unknown';
+
+            if (character.subclass && classData && classData.subclasses) {
+                const subclass = classData.subclasses.find(sc => sc.index === character.subclass);
+                if (subclass) {
+                    className += ` (${subclass.name})`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading race/class data for character card:', error);
     }
 
     // Format last modified date if available
@@ -2195,61 +2320,93 @@ async function generateCharacterSheet() {
 }
 
 // Populate form with character data
-function populateForm(character) {
-    console.log('Populating form with character data:', character);
+async function populateForm(character) {
+    // Set basic fields
+    const characterNameField = document.getElementById('characterName');
+    const playerNameField = document.getElementById('playerName');
+    const heightField = document.getElementById('height');
+    const weightField = document.getElementById('weight');
+    const genderField = document.getElementById('gender');
+    const backstoryField = document.getElementById('backstory');
 
-    // Populate basic character information fields
-    const fields = ['characterName', 'playerName', 'height', 'weight', 'gender', 'backstory'];
-    for (const field of fields) {
-        const element = document.getElementById(field);
-        if (element) {
-            // For characterName field, use character.name property
-            if (field === 'characterName' && character.name) {
-                element.value = character.name;
-            } else {
-                element.value = character[field] || '';
-            }
+    if (characterNameField) characterNameField.value = character.name || '';
+    if (playerNameField) playerNameField.value = character.playerName || '';
+    if (heightField) heightField.value = character.height || '';
+    if (weightField) weightField.value = character.weight || '';
+    if (genderField) genderField.value = character.gender || '';
+    if (backstoryField) backstoryField.value = character.backstory || '';
+
+    // Set race, subrace, class, subclass, and background
+    const raceSelect = document.getElementById('raceSelect');
+    const subraceSelect = document.getElementById('subraceSelect');
+    const classSelect = document.getElementById('classSelect');
+    const subclassSelect = document.getElementById('subclassSelect');
+    const backgroundSelect = document.getElementById('backgroundSelect');
+
+    // Populate selects first
+    await populateSelects();
+
+    // Set selected values
+    if (raceSelect && character.race) {
+        raceSelect.value = character.race;
+        await populateSubraces(character.race);
+    }
+
+    if (subraceSelect && character.subrace) {
+        subraceSelect.value = character.subrace;
+    }
+
+    if (classSelect && character.class) {
+        classSelect.value = character.class;
+        await populateSubclasses(character.class);
+    }
+
+    if (subclassSelect && character.subclass) {
+        subclassSelect.value = character.subclass;
+    }
+
+    if (backgroundSelect && character.background) {
+        backgroundSelect.value = character.background;
+    }
+
+    // Update details
+    if (character.race) {
+        await updateRaceDetails(character.race, character.subrace);
+    }
+
+    if (character.class) {
+        await updateClassDetails(character.class, character.subclass);
+    }
+
+    if (character.background) {
+        await updateBackgroundDetails(character.background);
+    }
+
+    // Set ability scores
+    for (const ability in character.abilityScores) {
+        const abilityInput = document.getElementById(`${ability}Score`);
+        if (abilityInput) {
+            abilityInput.value = character.abilityScores[ability];
         }
     }
 
-    const selects = [
-        { id: 'raceSelect', value: character.race, updateFn: (race) => updateRaceDetails(race, character.subrace) },
-        { id: 'classSelect', value: character.class, updateFn: (characterClass) => updateClassDetails(characterClass, character.subclass) },
-        { id: 'backgroundSelect', value: character.background, updateFn: updateBackgroundDetails }
-    ];
+    // Restore saved optional proficiencies
+    currentCharacter.savedOptionalProficiencies = character.optionalProficiencies;
 
-    for (const { id, value, updateFn } of selects) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.value = value || '';
-            // Always call updateRaceDetails to ensure consistent layout
-            if (id === 'raceSelect') {
-                if (value) {
-                    populateSubraces(value);
-                    const subraceSelect = document.getElementById('subraceSelect');
-                    if (subraceSelect) {
-                        subraceSelect.value = character.subrace || '';
-                    }
-                }
-                updateFn(value);
-            } else if (id === 'classSelect') {
-                if (value) {
-                    populateSubclasses(value);
-                    const subclassSelect = document.getElementById('subclassSelect');
-                    if (subclassSelect) {
-                        subclassSelect.value = character.subclass || '';
-                    }
-                }
-                updateFn(value);
-            } else if (value) {
-                updateFn(value);
-            }
-        }
+    // Calculate bonuses and proficiencies
+    await calculateBonusesAndProficiencies();
+    await calculateOptionalProficiencies();
+    setupAbilityScores();
+    setupProficiencies();
+
+    // Update equipment
+    if (character.equipment) {
+        currentCharacter.equipment = character.equipment;
     }
 }
 
 // Update details functions
-function updateRaceDetails(race, subrace) {
+async function updateRaceDetails(race, subrace) {
     console.log('updateRaceDetails called with race:', race, 'subrace:', subrace);
 
     const raceDetails = document.getElementById('raceDetails');
@@ -2261,443 +2418,306 @@ function updateRaceDetails(race, subrace) {
         return;
     }
 
-    // Initialize description HTML without the header
-    let descriptionHTML = '';
-
-    if (race && dndData.races[race]) {
-        const raceData = dndData.races[race];
-        console.log('Race data found:', raceData);
-
-        // Get subrace data if available
-        let subraceData = null;
-        if (subrace && raceData.subraces && raceData.subraces[subrace]) {
-            subraceData = raceData.subraces[subrace];
-            console.log('Subrace data found:', subraceData);
-        }
-
-        // Update race image
-        if (raceData.imageUrl) {
-            console.log('Setting race image from URL:', raceData.imageUrl);
-            // Create the image element without inline event handlers
-            raceImage.innerHTML = `<img src="${raceData.imageUrl}" alt="${raceData.name}" class="race-image-element">`;
-
-            // Add error handler after the image is added to the DOM
-            const imgElement = raceImage.querySelector('.race-image-element');
-            if (imgElement) {
-                imgElement.addEventListener('error', function () {
-                    this.style.display = 'none';
-                    raceImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-                });
-            }
-        } else {
-            console.log('No image URL found, using placeholder');
-            raceImage.innerHTML = `<i class="fas fa-user-circle placeholder-icon"></i>`;
-        }
-
-        // Update quick description - without the header
-        descriptionHTML += `<div>${subraceData ? subraceData.description || raceData.quickDesc : raceData.quickDesc}</div>`;
-        raceQuickDesc.innerHTML = descriptionHTML;
-
-        // Combine traits from race and subrace
-        let traits = [...raceData.traits];
-        let abilityScoreIncrease = '';
-
-        if (race === 'human') {
-            // For humans, only show the subrace ability score increase
-            if (subrace && raceData.subraces && raceData.subraces[subrace]) {
-                abilityScoreIncrease = raceData.subraces[subrace].abilityScoreIncrease;
-            }
-        } else {
-            // For non-humans, show race ability score increase
-            abilityScoreIncrease = raceData.abilityScoreIncrease;
-
-            // Add subrace ability score increase if applicable
-            if (subraceData?.abilityScoreIncrease) {
-                abilityScoreIncrease = `${abilityScoreIncrease}, ${subraceData.abilityScoreIncrease}`;
-            }
-        }
-
-        if (subraceData) {
-            if (subraceData.traits) {
-                traits = [...traits, ...subraceData.traits];
-            }
-        }
-
-        // Update detailed information
-        raceDetails.innerHTML = `
-            <div class="race-details-grid">
-                <div class="detail-section">
-                    <h6>Ability Score Increase</h6>
-                    <p>${abilityScoreIncrease}</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Age</h6>
-                    <p>${raceData.age}</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Size</h6>
-                    <p>${raceData.size}</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Speed</h6>
-                    <p>${raceData.speed}</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Languages</h6>
-                    <ul class="mb-0">
-                        ${raceData.languages.map(lang => `<li>${lang}</li>`).join('')}
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Traits</h6>
-                    <ul class="mb-0">
-                        ${traits.map(trait => {
-            // Check if trait is an object with name and description
-            if (trait && typeof trait === 'object' && trait.name) {
-                return `<li title="${trait.description || ''}">${trait.name}</li>`;
-            }
-            // Fallback for old format traits
-            return `<li>${trait}</li>`;
-        }).join('')}
-                    </ul>
-                </div>
-            </div>
-        `;
-
-        // Recalculate bonuses and proficiencies
-        calculateBonusesAndProficiencies();
-        setupAbilityScores();
-        setupProficiencies();
-    } else {
-        console.log('No race data found, showing default content');
-        // Set placeholder image
-        raceImage.innerHTML = `<i class="fas fa-user-circle placeholder-icon"></i>`;
-
-        // Set placeholder description without header
-        descriptionHTML += '<div>Choose a race to view its abilities, traits, and other characteristics.</div>';
-        raceQuickDesc.innerHTML = descriptionHTML;
-
-        // Set placeholder details with empty values but same structure
-        raceDetails.innerHTML = `
-            <div class="race-details-grid">
-                <div class="detail-section">
-                    <h6>Ability Score Increase</h6>
-                    <p>—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Age</h6>
-                    <p>—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Size</h6>
-                    <p>—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Speed</h6>
-                    <p>—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Languages</h6>
-                    <ul class="mb-0">
-                        <li>—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Traits</h6>
-                    <ul class="mb-0">
-                        <li>—</li>
-                    </ul>
-                </div>
-            </div>
-        `;
+    if (!race) {
+        console.log('No race selected, showing default content');
+        // Set placeholder image and content
+        setRacePlaceholderContent(raceImage, raceQuickDesc, raceDetails);
+        return;
     }
-}
 
-function updateClassDetails(characterClass, subclass) {
-    const classDetails = document.getElementById('classDetails');
-    const classQuickDesc = document.getElementById('classQuickDesc');
-    const classImage = document.getElementById('classImage');
+    // Get race data
+    const races = await window.dndDataLoader.getRaces();
+    const raceData = races.find(r => r.id === race);
 
-    if (classDetails && characterClass && dndData.classes[characterClass]) {
-        const classData = dndData.classes[characterClass];
+    if (!raceData) {
+        console.log('No race data found, showing default content');
+        // Set placeholder image and content
+        setRacePlaceholderContent(raceImage, raceQuickDesc, raceDetails);
+        return;
+    }
 
-        // Update class image
-        if (classImage) {
-            if (classData.imageUrl) {
-                // Create the image element without inline event handlers
-                classImage.innerHTML = `<img src="${classData.imageUrl}" alt="${classData.name}" class="class-image-element">`;
+    console.log('Race data found:', raceData);
 
-                // Add error handler after the image is added to the DOM
-                const imgElement = classImage.querySelector('.class-image-element');
-                if (imgElement) {
-                    imgElement.addEventListener('error', function () {
-                        this.style.display = 'none';
-                        classImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-                    });
-                }
-            } else {
-                classImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-            }
+    // Get subrace data if available
+    let subraceData = null;
+    if (subrace && raceData.subraces) {
+        subraceData = raceData.subraces.find(sr => sr.id === subrace);
+        console.log('Subrace data found:', subraceData);
+    }
+
+    // Update race image
+    if (raceData.imageUrl) {
+        console.log('Setting race image from URL:', raceData.imageUrl);
+        // Create the image element without inline event handlers
+        raceImage.innerHTML = `<img src="${raceData.imageUrl}" alt="${raceData.name}" class="race-image-element">`;
+
+        // Add error handler after the image is added to the DOM
+        const imgElement = raceImage.querySelector('.race-image-element');
+        if (imgElement) {
+            imgElement.addEventListener('error', function () {
+                this.style.display = 'none';
+                raceImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+            });
+        }
+    } else {
+        console.log('No image URL found, using placeholder');
+        raceImage.innerHTML = `<i class="fas fa-user-circle placeholder-icon"></i>`;
+    }
+
+    // Update quick description - without the header
+    const descriptionHTML = `<div>${subraceData ? subraceData.description || raceData.quickDesc : raceData.quickDesc}</div>`;
+    raceQuickDesc.innerHTML = descriptionHTML;
+
+    // Combine traits from race and subrace
+    let traits = [...(raceData.traits || [])];
+    let abilityScoreIncrease = '';
+
+    if (race === 'human') {
+        // For humans, only show the subrace ability score increase
+        if (subraceData?.ability) {
+            abilityScoreIncrease = formatAbilityScoreIncrease(subraceData.ability);
+        }
+    } else {
+        // For non-humans, show race ability score increase
+        if (raceData.ability) {
+            abilityScoreIncrease = formatAbilityScoreIncrease(raceData.ability);
         }
 
-        // Update quick description without header
-        if (classQuickDesc) {
-            let quickDescHTML = '';
-
-            // Add subclass description if available, otherwise use class description
-            if (subclass && classData.subclasses && classData.subclasses[subclass]) {
-                quickDescHTML += `<div>${classData.subclasses[subclass].description}</div>`;
-            } else {
-                quickDescHTML += `<div>${classData.quickDesc || classData.description}</div>`;
-            }
-
-            classQuickDesc.innerHTML = quickDescHTML;
+        // Add subrace ability score increase if applicable
+        if (subraceData?.ability) {
+            const subraceAbilityText = formatAbilityScoreIncrease(subraceData.ability);
+            abilityScoreIncrease = abilityScoreIncrease ?
+                `${abilityScoreIncrease}, ${subraceAbilityText}` :
+                subraceAbilityText;
         }
+    }
 
-        // Build detailed class information
-        let detailsHTML = '<div class="race-details-grid">';
+    if (subraceData?.traits) {
+        traits = [...traits, ...subraceData.traits];
+    }
 
-        // Basic class info
-        detailsHTML += `
+    // Update detailed information
+    raceDetails.innerHTML = `
+        <div class="race-details-grid">
             <div class="detail-section">
-                <h6>Hit Die</h6>
-                <p>${classData.hitDie}</p>
+                <h6>Ability Score Increase</h6>
+                <p>${abilityScoreIncrease || '—'}</p>
             </div>
             <div class="detail-section">
-                <h6>Primary Ability</h6>
-                <p>${classData.primaryAbility}</p>
+                <h6>Age</h6>
+                <p>${raceData.age || '—'}</p>
             </div>
-        `;
-
-        // Saving throws
-        detailsHTML += `
             <div class="detail-section">
-                <h6>Saving Throws</h6>
-                <ul>
-                    ${classData.savingThrows.map(save => `<li>${save}</li>`).join('')}
+                <h6>Size</h6>
+                <p>${raceData.size || '—'}</p>
+            </div>
+            <div class="detail-section">
+                <h6>Speed</h6>
+                <p>${raceData.speed || '—'}</p>
+            </div>
+            <div class="detail-section">
+                <h6>Languages</h6>
+                <ul class="mb-0">
+                    ${raceData.languages?.length > 0 ?
+            raceData.languages.map(lang => `<li>${lang}</li>`).join('') :
+            '<li>—</li>'}
                 </ul>
             </div>
-        `;
-
-        // Armor proficiencies
-        if (classData.armorProficiencies && classData.armorProficiencies.length > 0) {
-            detailsHTML += `
-                <div class="detail-section">
-                    <h6>Armor Proficiencies</h6>
-                    <ul>
-                        ${classData.armorProficiencies.map(armor => `<li>${armor}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-
-        // Weapon proficiencies
-        if (classData.weaponProficiencies && classData.weaponProficiencies.length > 0) {
-            detailsHTML += `
-                <div class="detail-section">
-                    <h6>Weapon Proficiencies</h6>
-                    <ul>
-                        ${classData.weaponProficiencies.map(weapon => `<li>${weapon}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-
-        // Class features
-        detailsHTML += `
             <div class="detail-section">
-                <h6>Class Features</h6>
-                ${Object.entries(classData.features).map(([level, features]) => `
-                    <p><strong>Level ${level}:</strong> ${features.join(', ')}</p>
-                `).join('')}
+                <h6>Traits</h6>
+                <ul class="mb-0">
+                    ${traits.length > 0 ?
+            traits.map(trait => {
+                // Check if trait is an object with name and description
+                if (trait && typeof trait === 'object' && trait.name) {
+                    return `<li title="${trait.description || ''}">${trait.name}</li>`;
+                }
+                // Fallback for old format traits
+                return `<li>${trait}</li>`;
+            }).join('') :
+            '<li>—</li>'}
+                </ul>
             </div>
-        `;
+        </div>
+    `;
 
-        // Subclass features if a subclass is selected
-        if (subclass && classData.subclasses && classData.subclasses[subclass]) {
-            const subclassData = classData.subclasses[subclass];
-
-            detailsHTML += `
-                <div class="detail-section">
-                    <h6>${subclassData.name} Features</h6>
-                    <ul>
-                        ${subclassData.features.map(feature => `<li>${feature}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-
-        detailsHTML += '</div>';
-        classDetails.innerHTML = detailsHTML;
-
-        // Recalculate bonuses and proficiencies
-        calculateBonusesAndProficiencies();
-        setupAbilityScores();
-        setupProficiencies();
-    } else if (classDetails) {
-        // Set placeholder content if no class is selected
-        if (classQuickDesc) {
-            classQuickDesc.innerHTML = '<div>Choose a class to view its abilities, features, and other characteristics.</div>';
-        }
-
-        if (classImage) {
-            classImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-        }
-
-        // Set placeholder details with empty values but same structure
-        classDetails.innerHTML = `
-            <div class="race-details-grid">
-                <div class="detail-section">
-                    <h6>Hit Die</h6>
-                    <p>—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Primary Ability</h6>
-                    <p>—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Saving Throws</h6>
-                    <ul class="mb-0">
-                        <li>—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Armor Proficiencies</h6>
-                    <ul class="mb-0">
-                        <li>—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Weapon Proficiencies</h6>
-                    <ul class="mb-0">
-                        <li>—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Class Features</h6>
-                    <p>—</p>
-                </div>
-            </div>
-        `;
-    }
+    // Recalculate bonuses and proficiencies
+    calculateBonusesAndProficiencies();
+    setupAbilityScores();
+    setupProficiencies();
 }
 
-function updateBackgroundDetails(background) {
+async function updateBackgroundDetails(background) {
     const backgroundDetails = document.getElementById('backgroundDetails');
     const backgroundQuickDesc = document.getElementById('backgroundQuickDesc');
     const backgroundImage = document.getElementById('backgroundImage');
 
-    if (backgroundDetails && backgroundQuickDesc && backgroundImage) {
-        if (background && dndData.backgrounds[background]) {
-            const bgData = dndData.backgrounds[background];
+    if (!backgroundDetails) {
+        console.error('Background details element not found');
+        return;
+    }
 
-            // Update background image
-            if (bgData.imageUrl) {
-                // Create the image element without inline event handlers
-                backgroundImage.innerHTML = `<img src="${bgData.imageUrl}" alt="${bgData.name}" class="background-image-element">`;
+    if (!background) {
+        // Set placeholder content
+        setBackgroundPlaceholderContent(backgroundImage, backgroundQuickDesc, backgroundDetails);
+        return;
+    }
 
-                // Add error handler after the image is added to the DOM
-                const imgElement = backgroundImage.querySelector('.background-image-element');
-                if (imgElement) {
-                    imgElement.addEventListener('error', function () {
-                        this.style.display = 'none';
-                        backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-                    });
-                }
-            } else {
-                backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+    // Get background data
+    const backgrounds = await window.dndDataLoader.getBackgrounds();
+    const backgroundData = backgrounds.find(bg => bg.id === background);
+
+    if (!backgroundData) {
+        // Set placeholder content
+        setBackgroundPlaceholderContent(backgroundImage, backgroundQuickDesc, backgroundDetails);
+        return;
+    }
+
+    // Update background image
+    if (backgroundImage) {
+        if (backgroundData.imageUrl) {
+            // Create the image element without inline event handlers
+            backgroundImage.innerHTML = `<img src="${backgroundData.imageUrl}" alt="${backgroundData.name}" class="background-image-element">`;
+
+            // Add error handler after the image is added to the DOM
+            const imgElement = backgroundImage.querySelector('.background-image-element');
+            if (imgElement) {
+                imgElement.addEventListener('error', function () {
+                    this.style.display = 'none';
+                    backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+                });
             }
-
-            // Update quick description without header
-            let quickDescHTML = '';
-            quickDescHTML += `<div>${bgData.quickDesc || bgData.description}</div>`;
-            backgroundQuickDesc.innerHTML = quickDescHTML;
-
-            // Build detailed background information
-            backgroundDetails.innerHTML = `
-                <div class="race-details-grid">
-                    <div class="detail-section">
-                        <h6>Skill Proficiencies</h6>
-                        <ul class="mb-0">
-                            ${bgData.skillProficiencies.map(skill => `<li>${skill}</li>`).join('')}
-                        </ul>
-                    </div>
-                    ${bgData.toolProficiencies ? `
-                        <div class="detail-section">
-                            <h6>Tool Proficiencies</h6>
-                            <ul class="mb-0">
-                                ${bgData.toolProficiencies.map(tool => `<li>${tool}</li>`).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
-                    ${bgData.languages ? `
-                        <div class="detail-section">
-                            <h6>Languages</h6>
-                            <ul class="mb-0">
-                                ${bgData.languages.map(lang => `<li>${lang}</li>`).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
-                    <div class="detail-section">
-                        <h6>Equipment</h6>
-                        <ul class="mb-0">
-                            ${bgData.equipment.map(item => `<li>${item}</li>`).join('')}
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Feature</h6>
-                        <p>${bgData.feature}</p>
-                    </div>
-                </div>
-            `;
-
-            // Recalculate bonuses and proficiencies
-            calculateBonusesAndProficiencies();
-            setupAbilityScores();
-            setupProficiencies();
         } else {
-            // Set placeholder content if no background is selected
             backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-
-            // Set placeholder description without header
-            backgroundQuickDesc.innerHTML = '<div>Choose a background to view its skills, proficiencies, and other characteristics.</div>';
-
-            // Set placeholder details with empty values but same structure
-            backgroundDetails.innerHTML = `
-                <div class="race-details-grid">
-                    <div class="detail-section">
-                        <h6>Skill Proficiencies</h6>
-                        <ul class="mb-0">
-                            <li>—</li>
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Tool Proficiencies</h6>
-                        <ul class="mb-0">
-                            <li>—</li>
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Languages</h6>
-                        <ul class="mb-0">
-                            <li>—</li>
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Equipment</h6>
-                        <ul class="mb-0">
-                            <li>—</li>
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Feature</h6>
-                        <p>—</p>
-                    </div>
-                </div>
-            `;
         }
     }
+
+    // Update quick description
+    if (backgroundQuickDesc) {
+        backgroundQuickDesc.innerHTML = `<div>${backgroundData.description || ''}</div>`;
+    }
+
+    // Build detailed background information
+    let detailsHTML = '<div class="race-details-grid">';
+
+    // Skill proficiencies
+    detailsHTML += `
+        <div class="detail-section">
+            <h6>Skill Proficiencies</h6>
+            <ul>
+                ${backgroundData.skillProficiencies?.length > 0 ?
+            backgroundData.skillProficiencies.map(skill => `<li>${skill}</li>`).join('') :
+            '<li>—</li>'}
+            </ul>
+        </div>
+    `;
+
+    // Tool proficiencies
+    detailsHTML += `
+        <div class="detail-section">
+            <h6>Tool Proficiencies</h6>
+            <ul>
+                ${backgroundData.toolProficiencies?.length > 0 ?
+            backgroundData.toolProficiencies.map(tool => `<li>${tool}</li>`).join('') :
+            '<li>—</li>'}
+            </ul>
+        </div>
+    `;
+
+    // Languages
+    detailsHTML += `
+        <div class="detail-section">
+            <h6>Languages</h6>
+            <ul>
+                ${backgroundData.languages?.length > 0 ?
+            backgroundData.languages.map(language => `<li>${language}</li>`).join('') :
+            '<li>—</li>'}
+            </ul>
+        </div>
+    `;
+
+    // Equipment
+    detailsHTML += `
+        <div class="detail-section">
+            <h6>Equipment</h6>
+            <ul>
+                ${backgroundData.equipment?.length > 0 ?
+            backgroundData.equipment.map(item => `<li>${item}</li>`).join('') :
+            '<li>—</li>'}
+            </ul>
+        </div>
+    `;
+
+    // Features
+    detailsHTML += `
+        <div class="detail-section">
+            <h6>Features</h6>
+            <ul>
+                ${backgroundData.features?.length > 0 ?
+            backgroundData.features.map(feature => `<li title="${feature.description || ''}">${feature.name}</li>`).join('') :
+            '<li>—</li>'}
+            </ul>
+        </div>
+    `;
+
+    // Close the grid
+    detailsHTML += '</div>';
+
+    // Set the HTML
+    backgroundDetails.innerHTML = detailsHTML;
 }
+
+// Helper function to set placeholder content for background details
+function setBackgroundPlaceholderContent(backgroundImage, backgroundQuickDesc, backgroundDetails) {
+    // Set placeholder image
+    if (backgroundImage) {
+        backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+    }
+
+    // Set placeholder description
+    if (backgroundQuickDesc) {
+        backgroundQuickDesc.innerHTML = '<div>Choose a background to view its features, proficiencies, and other characteristics.</div>';
+    }
+
+    // Set placeholder details
+    if (backgroundDetails) {
+        backgroundDetails.innerHTML = `
+            <div class="race-details-grid">
+                <div class="detail-section">
+                    <h6>Skill Proficiencies</h6>
+                    <ul>
+                        <li>—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Tool Proficiencies</h6>
+                    <ul>
+                        <li>—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Languages</h6>
+                    <ul>
+                        <li>—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Equipment</h6>
+                    <ul>
+                        <li>—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Features</h6>
+                    <ul>
+                        <li>—</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+}
+
 // Export character to file
 async function exportCharacter(id) {
     try {
@@ -2840,4 +2860,11 @@ function updateAbilityBonuses(selectedAbilities, source, bonusValue = 1) {
     } else if (source.includes('class') || source.includes('subclass')) {
         updateClassDetails(currentCharacter.class, currentCharacter.subclass);
     }
+}
+
+// Setup optional proficiencies UI
+function setupOptionalProficiencies() {
+    // This function would update the UI to show optional proficiency choices
+    // For now, it's a placeholder for future implementation
+    console.log('Optional proficiencies updated:', currentCharacter.optionalProficiencies);
 }
