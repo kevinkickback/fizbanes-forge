@@ -1,0 +1,438 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>D&D Character Creator</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+    <link rel="stylesheet" href="css/main.css" />
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Notification Container -->
+        <div id="notificationContainer" class="notification-container"></div>
+
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="h4 mb-0">D&D Character Creator</h1>
+            </div>
+            <ul class="sidebar-nav">
+                <li class="nav-item">
+                    <button class="nav-link active" data-page="home">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-page="build">
+                        <i class="fas fa-hammer"></i>
+                        <span>Character Build</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-page="equipment">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Equipment</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-page="details">
+                        <i class="fas fa-user"></i>
+                        <span>Details</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-page="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container-fluid">
+                <!-- Page Content -->
+                <div id="pageContent">
+                    <!-- Content will be dynamically loaded here -->
+                </div>
+            </div>
+            <!-- Floating Action Buttons -->
+            <div class="floating-actions" id="characterActions">
+                <div class="d-flex align-items-center">
+                    <span id="unsavedChangesIndicator" class="text-warning me-2" style="display: none;">
+                        <i class="fas fa-exclamation-circle"></i> Unsaved changes
+                    </span>
+                    <button class="btn btn-primary me-2" id="saveCharacter">
+                        <i class="fas fa-save"></i>
+                        <span>Save</span>
+                    </button>
+                </div>
+                <button class="btn btn-primary" id="previewCharacter">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Preview</span>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Page Templates -->
+    <template id="homePage">
+        <div class="row mb-4">
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" id="newCharacterBtn">
+                    <i class="fas fa-plus"></i> New Character
+                </button>
+                <button class="btn btn-secondary" id="importCharacterBtn">
+                    <i class="fas fa-file-import"></i> Import Character
+                </button>
+            </div>
+        </div>
+        <div class="row" id="characterList">
+            <!-- Character cards will be dynamically inserted here -->
+        </div>
+    </template>
+
+    <template id="buildPage">
+        <div class="row">
+            <!-- Race Selection -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Race</h5>
+                    </div>
+                    <div class="card-body race-card-body">
+                        <div class="mb-3">
+                            <div class="race-selection-controls">
+                                <div class="race-selectors">
+                                    <div class="race-select-container">
+                                        <select class="form-select" id="raceSelect">
+                                            <!-- Options will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                    <div class="race-select-container">
+                                        <select class="form-select" id="subraceSelect" disabled>
+                                            <option value="">Select Race First</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="race-content-container">
+                                    <div class="race-quick-desc" id="raceQuickDesc">
+                                        <!-- Quick description will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="race-image-container">
+                                <div class="race-image" id="raceImage">
+                                    <!-- Race image will be set dynamically -->
+                                    <i class="fas fa-user-circle placeholder-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="race-content-container">
+                            <div id="raceDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Selection -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Class</h5>
+                    </div>
+                    <div class="card-body class-card-body">
+                        <div class="mb-3">
+                            <div class="class-selection-controls">
+                                <div class="class-selectors">
+                                    <div class="class-select-container">
+                                        <select class="form-select" id="classSelect">
+                                            <!-- Options will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                    <div class="class-select-container">
+                                        <select class="form-select" id="subclassSelect" disabled>
+                                            <option value="">Select Class First</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="class-content-container">
+                                    <div class="class-quick-desc" id="classQuickDesc">
+                                        <!-- Quick description will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="class-image-container">
+                                <div class="class-image" id="classImage">
+                                    <!-- Class image will be set dynamically -->
+                                    <i class="fas fa-user-circle placeholder-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="class-content-container">
+                            <div id="classDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Background -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Background</h5>
+                    </div>
+                    <div class="card-body background-card-body">
+                        <div class="mb-3">
+                            <div class="background-selection-controls">
+                                <div class="background-selectors">
+                                    <div class="background-select-container">
+                                        <select class="form-select" id="backgroundSelect">
+                                            <!-- Options will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="background-content-container">
+                                    <div class="background-quick-desc" id="backgroundQuickDesc">
+                                        <!-- Quick description will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="background-image-container">
+                                <div class="background-image" id="backgroundImage">
+                                    <!-- Background image will be set dynamically -->
+                                    <i class="fas fa-user-circle placeholder-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="background-content-container">
+                            <div id="backgroundDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ability Scores -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Ability Scores</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="ability-score-container">
+                            <!-- Ability scores will be populated dynamically -->
+                        </div>
+                        <div class="ability-bonuses-container mt-3" id="abilityBonusesNotes">
+                            <!-- Ability score bonuses notes will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proficiencies -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Proficiencies</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="proficiency-container">
+                            <!-- Proficiencies will be populated dynamically -->
+                        </div>
+                        <div class="proficiency-notes-container mt-3" id="proficiencyNotes">
+                            <!-- Proficiency notes will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="equipmentPage">
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Weapons</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="equipment-list" id="weaponsList">
+                            <!-- Weapons will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Armor</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="equipment-list" id="armorList">
+                            <!-- Armor will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="detailsPage">
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Character Information</h5>
+                    </div>
+                    <div class="card-body character-info-card-body">
+                        <div class="character-info-container">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Character Name</label>
+                                    <input type="text" class="form-control" id="characterName">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Player Name</label>
+                                    <input type="text" class="form-control" id="playerName">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Height</label>
+                                    <input type="text" class="form-control" id="height">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Weight</label>
+                                    <input type="text" class="form-control" id="weight">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender</label>
+                                    <input type="text" class="form-control" id="gender">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Background Story</h5>
+                    </div>
+                    <div class="card-body character-info-card-body">
+                        <div class="character-info-container">
+                            <div class="form-row" style="height: 100%;">
+                                <div class="form-group">
+                                    <textarea class="form-control" id="backstory"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="previewPage">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Character Sheet Preview</h5>
+                <button class="btn btn-primary" id="downloadPDF">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="pdf-preview" id="pdfPreview">
+                    <!-- PDF preview will be shown here -->
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="settingsPage">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <label class="form-label">Character Save Location</label>
+                    <div class="save-location-container mb-3" id="saveLocationDisplay">
+                        <span id="currentSaveLocation">Loading...</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" id="chooseFolderBtn">
+                            <i class="fas fa-folder-open"></i>
+                            <span>Change Folder</span>
+                        </button>
+                        <button class="btn btn-secondary" id="resetFolderBtn" title="Reset to default location">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- New Character Modal -->
+    <div class="modal fade" id="newCharacterModal" tabindex="-1" aria-labelledby="newCharacterModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newCharacterModalLabel">Create New Character</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newCharacterForm">
+                        <div class="mb-3">
+                            <label for="newCharacterName" class="form-label">Character Name</label>
+                            <input type="text" class="form-control" id="newCharacterName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Source Books</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="5e-2014" id="source5e2014"
+                                    checked>
+                                <label class="form-check-label" for="source5e2014">
+                                    5e (2014)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="5e-2024" id="source5e2024">
+                                <label class="form-check-label" for="source5e2024">
+                                    5e (2024)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="homebrew" id="sourceHomebrew">
+                                <label class="form-check-label" for="sourceHomebrew">
+                                    Homebrew
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="createCharacterBtn">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/dnd-data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/pdf-preview.js"></script>
+</body>
+
+</html>

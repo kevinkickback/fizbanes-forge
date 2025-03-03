@@ -1,0 +1,58 @@
+{
+	"name": "fizbanes-forge",
+	"productName": "Fizbane's Forge",
+	"version": "1.0.0",
+	"description": "Fizbane's Forge - A comprehensive Dungeons & Dragons character creator application",
+	"main": "./app/main.js",
+	"scripts": {
+		"start": "electron .",
+		"pack": "electron-builder --dir",
+		"dist": "electron-builder",
+		"postinstall": "electron-builder install-app-deps"
+	},
+	"build": {
+		"appId": "fizbanes.forge",
+		"mac": {
+			"icon": "./app/img/icon.icns",
+			"category": "public.app-category.utilities",
+			"target": "dmg"
+		},
+		"win": {
+			"icon": "./app/img/icon.ico",
+			"target": "portable"
+		},
+		"linux": {
+			"icon": "./app/img/icon.png",
+			"target": "appImage"
+		},
+		"nsis": {
+			"oneClick": false,
+			"installerIcon": "./app/img/icon.ico",
+			"uninstallerIcon": "./app/img/icon.ico",
+			"uninstallDisplayName": "Fizbane's Forge",
+			"license": "license.txt",
+			"allowToChangeInstallationDirectory": true
+		},
+		"portable": {
+			"splashImage": "./app/img/splash.bmp"
+		},
+		"appImage": {
+			"license": "license.txt"
+		}
+	},
+	"author": "Author",
+	"license": "MIT",
+	"devDependencies": {
+		"electron": "latest",
+		"electron-builder": "latest",
+		"electronmon": "latest"
+	},
+	"dependencies": {
+		"@electron/remote": "^2.1.2",
+		"@fortawesome/fontawesome-free": "^6.5.1",
+		"bootstrap": "^5.3.2",
+		"jspdf": "^2.5.1",
+		"pdf-lib": "^1.17.1",
+		"uuid": "^9.0.1"
+	}
+}
