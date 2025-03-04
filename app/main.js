@@ -657,6 +657,33 @@ ipcMain.handle("set-save-path", async (event, pathToSet) => {
   }
 });
 
+// Read JSON file from app directory
+ipcMain.handle('read-json-file', async (event, filePath) => {
+  try {
+    console.log(`Reading JSON file: ${filePath}`);
+
+    // Ensure the path is relative to the app directory
+    const fullPath = path.join(__dirname, filePath);
+    console.log(`Full path: ${fullPath}`);
+
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      console.error(`File not found: ${fullPath}`);
+      throw new Error(`File not found: ${filePath}`);
+    }
+
+    // Read and parse the file
+    const fileContent = fs.readFileSync(fullPath, 'utf8');
+    const jsonData = JSON.parse(fileContent);
+    console.log(`Successfully read JSON file: ${filePath}`);
+
+    return jsonData;
+  } catch (error) {
+    console.error(`Error reading JSON file ${filePath}:`, error);
+    throw error;
+  }
+});
+
 // Create the main window and handle app activation when ready
 app.whenReady().then(() => {
   mainWindow = createMainWindow();
