@@ -3,6 +3,93 @@
 ## Overview
 Enhance race data loading and processing to work with the existing infrastructure and reference system.
 
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing race templates
+- **Files Affected**: `index.html`
+  - Keep: Basic race selection form
+  - Keep: Race variant handling
+  - Modify: Race details section to use EntityCard
+  - Remove: Duplicate race templates
+  - Add: Subrace selection components
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Basic race state management
+  - Keep: Race selection event handlers
+  - Modify: Race update functions to use new system
+  - Remove: Old race card creation
+  - Add: New race management class after character state
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Race-related helper functions
+  - Keep: Race validation functions
+  - Modify: Race data processing to use unified system
+  - Add: New race-specific reference functions
+  - Add: Race tooltip enhancements
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Basic race card styles
+  - Keep: Race selection form styles
+  - Modify: Race details to use unified system
+  - Remove: Duplicate race-specific styles
+  - Add: New race EntityCard styles
+  - Add: Subrace-specific styles
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic race loading
+  - Keep: Race cache management
+  - Modify: Race processing to use unified system
+  - Add: Subrace data processing
+  - Add: Race-specific tooltip data
+
+## Specific Integration Points
+
+### Race Management System
+```javascript
+class RaceManager {
+    // New unified race management system
+}
+```
+
+### Race Data Processing
+```javascript
+// Enhances existing processRace function in utils.js
+// Adds new functionality while maintaining existing processing
+async function processRaceData(race, fluff) {
+    // New race processing system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing race event setup in utils.js
+function setupRaceEventHandlers() {
+    // Enhanced race event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing race styles in main.css */
+.race-card {
+    /* New unified race styles */
+}
+
+/* Adds new subrace styles */
+.subrace-section {
+    /* New subrace styles */
+}
+```
+
 ## Implementation Steps
 
 ### 1. Enhance Race Data Loading
@@ -23,7 +110,7 @@ async function loadRaces() {
         // Process each race
         const processedRaces = await Promise.all((raceData.race || []).map(async race => {
             // Get fluff data for this race
-            const fluff = fluffData.raceFluff?.find(f => 
+        const fluff = fluffData.raceFluff?.find(f => 
                 f.name === race.name && f.source === race.source
             );
             
@@ -55,8 +142,8 @@ async function processRaceData(race, fluff = null) {
         languages: processLanguages(race.languageProficiencies),
         proficiencies: processProficiencies(race),
         features: {
-            darkvision: race.darkvision || 0,
-            resistances: race.resist || [],
+        darkvision: race.darkvision || 0,
+        resistances: race.resist || [],
             additionalSpells: processSpells(race.additionalSpells)
         }
     };

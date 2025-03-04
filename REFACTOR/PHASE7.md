@@ -3,6 +3,108 @@
 ## Overview
 Enhance feat and optional feature handling using the unified data processing system.
 
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing feat templates
+- **Files Affected**: `index.html` (lines 700-800)
+  - Keep: Basic feat selection interface
+  - Keep: Prerequisite display
+  - Modify: Feat details to use EntityCard
+  - Remove: Duplicate feat templates
+  - Add: Optional feature selection UI
+  - Add: Feat progression tracking
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Basic feat state (lines 600-650)
+  - Keep: Feature tracking (lines 700-750)
+  - Modify: Feat update functions to use new system
+  - Remove: Old feat card creation
+  - Add: New feat management class
+  - Add: Optional feature integration
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Feat-related helper functions
+  - Keep: Prerequisite validation utilities
+  - Modify: Feat data processing to use unified system
+  - Add: New feat-specific reference functions
+  - Add: Feat tooltip enhancements
+  - Add: Optional feature utilities
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Basic feat card styles
+  - Keep: Prerequisite display styles
+  - Modify: Feat details to use unified system
+  - Remove: Duplicate feat-specific styles
+  - Add: New feat EntityCard styles
+  - Add: Optional feature styles
+  - Add: Feat progression styles
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic feat loading
+  - Keep: Feat cache management
+  - Modify: Feat processing to use unified system
+  - Add: Optional feature data processing
+  - Add: Prerequisite validation
+  - Add: Feature integration
+
+## Specific Integration Points
+
+### Feat Management System
+```javascript
+// Replaces these existing functions in character.js:
+// - updateFeats (lines 650-700)
+// - updateOptionalFeatures (lines 750-800)
+// - displayFeatDetails (lines 800-850)
+
+class FeatManager {
+    // New unified feat management system
+}
+```
+
+### Feat Data Processing
+```javascript
+// Enhances existing processFeat function in utils.js
+// Adds new functionality while maintaining existing processing
+async function processFeatData(feat, fluff) {
+    // New feat processing system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing feat event setup in utils.js
+function setupFeatEventHandlers() {
+    // Enhanced feat event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing feat styles in main.css */
+.feat-card {
+    /* New unified feat styles */
+}
+
+/* Adds new optional feature styles */
+.optional-feature {
+    /* New optional feature styles */
+}
+
+/* Adds feat progression styles */
+.feat-progression {
+    /* New feat progression styles */
+}
+```
+
 ## Implementation Steps
 
 ### 1. Update Feat Data Loading

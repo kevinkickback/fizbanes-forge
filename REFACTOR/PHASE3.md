@@ -3,6 +3,103 @@
 ## Overview
 Enhance class data loading and processing to work with the existing infrastructure and reference system.
 
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing class templates
+- **Files Affected**: `index.html`
+  - Keep: Basic class selection form
+  - Keep: Level selection
+  - Modify: Class details section to use EntityCard
+  - Remove: Duplicate class templates
+  - Add: Subclass selection components
+  - Add: Feature progression display
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Basic class state management
+  - Keep: Level progression handling
+  - Modify: Class update functions to use new system
+  - Remove: Old class card creation
+  - Add: New class management class after character state
+  - Add: Spellcasting management integration
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Class-related helper functions
+  - Keep: Level calculation utilities
+  - Modify: Class data processing to use unified system
+  - Add: New class-specific reference functions
+  - Add: Class tooltip enhancements
+  - Add: Spellcasting utilities
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Basic class card styles
+  - Keep: Level progression styles
+  - Modify: Class details to use unified system
+  - Remove: Duplicate class-specific styles
+  - Add: New class EntityCard styles
+  - Add: Subclass-specific styles
+  - Add: Feature progression styles
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic class loading
+  - Keep: Class cache management
+  - Modify: Class processing to use unified system
+  - Add: Subclass data processing
+  - Add: Feature progression handling
+  - Add: Spellcasting data integration
+
+## Specific Integration Points
+
+### Class Management System
+```javascript
+class ClassManager {
+    // New unified class management system
+}
+```
+
+### Class Data Processing
+```javascript
+// Enhances existing processClass function in utils.js
+// Adds new functionality while maintaining existing processing
+async function processClassData(classData, fluff) {
+    // New class processing system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing class event setup in utils.js
+function setupClassEventHandlers() {
+    // Enhanced class event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing class styles in main.css */
+.class-card {
+    /* New unified class styles */
+}
+
+/* Adds new subclass styles */
+.subclass-section {
+    /* New subclass styles */
+}
+
+/* Adds feature progression styles */
+.feature-progression {
+    /* New feature progression styles */
+}
+```
+
 ## Implementation Steps
 
 ### 1. Enhance Class Data Loading
@@ -154,7 +251,6 @@ async function processSubclassData(subclass, fluff = null) {
         })))
     };
 }
-```
 
 ### 2. Update Character Class Management
 Enhance the existing class management in character.js:
@@ -269,7 +365,6 @@ function updateSpellcasting(spellcasting, level) {
     // Update spell slots based on progression type
     updateSpellSlots(spellcasting.progression, level);
 }
-```
 
 ### 3. Update Class UI
 Enhance the existing class UI components:
@@ -293,26 +388,26 @@ async function displayClassDetails(className, level = 1, subclassName = null) {
 
     // Create HTML
     let html = `
-        <div class="class-details-grid">
-            <div class="detail-section">
+            <div class="class-details-grid">
+                <div class="detail-section">
                 <h6>Description</h6>
                 <p>${await processText(classData.description)}</p>
-            </div>
+                </div>
             
-            <div class="detail-section">
+                <div class="detail-section">
                 <h6>Hit Points</h6>
                 <p>Hit Dice: ${classData.hitDice}</p>
-            </div>
+                </div>
 
-            <div class="detail-section">
+                <div class="detail-section">
                 <h6>Proficiencies</h6>
                 ${displayProficiencies(classData.proficiencies)}
-            </div>
+                </div>
 
-            <div class="detail-section">
+                <div class="detail-section">
                 <h6>Features</h6>
                 ${await displayFeatures(classData.features, level)}
-            </div>
+                </div>
 
             ${classData.spellcasting ? `
                 <div class="detail-section">
@@ -328,9 +423,9 @@ async function displayClassDetails(className, level = 1, subclassName = null) {
                     ${await displayFeatures(subclassData.features, level)}
                 </div>
             ` : ''}
-        </div>
-    `;
-
+            </div>
+        `;
+        
     container.innerHTML = html;
 }
 

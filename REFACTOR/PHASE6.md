@@ -3,6 +3,108 @@
 ## Overview
 Enhance background and proficiency handling using the unified data processing system.
 
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing background templates
+- **Files Affected**: `index.html`
+  - Keep: Basic background selection form
+  - Keep: Characteristic selection
+  - Modify: Background details to use EntityCard
+  - Remove: Duplicate background templates
+  - Add: Proficiency visualization
+  - Add: Background feature display
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Basic background state
+  - Keep: Proficiency tracking
+  - Modify: Background update functions to use new system
+  - Remove: Old background card creation
+  - Add: New background management class
+  - Add: Proficiency system integration
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Background-related helper functions
+  - Keep: Proficiency calculation utilities
+  - Modify: Background data processing to use unified system
+  - Add: New background-specific reference functions
+  - Add: Background tooltip enhancements
+  - Add: Proficiency utilities
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Basic background card styles
+  - Keep: Characteristic selection styles
+  - Modify: Background details to use unified system
+  - Remove: Duplicate background-specific styles
+  - Add: New background EntityCard styles
+  - Add: Proficiency visualization styles
+  - Add: Feature display styles
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic background loading
+  - Keep: Background cache management
+  - Modify: Background processing to use unified system
+  - Add: Proficiency data processing
+  - Add: Feature handling
+  - Add: Characteristic integration
+
+## Specific Integration Points
+
+### Background Management System
+```javascript
+// Replaces these existing functions in character.js:
+// - updateBackground
+// - updateProficiencies
+// - displayBackgroundDetails
+
+class BackgroundManager {
+    // New unified background management system
+}
+```
+
+### Background Data Processing
+```javascript
+// Enhances existing processBackground function in utils.js
+// Adds new functionality while maintaining existing processing
+async function processBackgroundData(background, fluff) {
+    // New background processing system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing background event setup in utils.js
+function setupBackgroundEventHandlers() {
+    // Enhanced background event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing background styles in main.css */
+.background-card {
+    /* New unified background styles */
+}
+
+/* Adds new proficiency styles */
+.proficiency-section {
+    /* New proficiency styles */
+}
+
+/* Adds feature display styles */
+.feature-display {
+    /* New feature display styles */
+}
+```
+
 ## Implementation Steps
 
 ### 1. Update Background Data Loading

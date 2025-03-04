@@ -3,6 +3,108 @@
 ## Overview
 Enhance equipment data loading and processing to work with the existing infrastructure and reference system, utilizing the 5e.tools item data format.
 
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing equipment templates
+- **Files Affected**: `index.html`
+  - Keep: Basic inventory display
+  - Keep: Equipment filtering system
+  - Modify: Equipment details to use EntityCard
+  - Remove: Duplicate equipment templates
+  - Add: Magic item attunement UI
+  - Add: Equipment slot visualization
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Basic inventory state
+  - Keep: Equipment slot tracking
+  - Modify: Equipment update functions to use new system
+  - Remove: Old equipment card creation
+  - Add: New equipment management class
+  - Add: Attunement system integration
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Equipment-related helper functions
+  - Keep: Weight calculation utilities
+  - Modify: Equipment data processing to use unified system
+  - Add: New equipment-specific reference functions
+  - Add: Equipment tooltip enhancements
+  - Add: Magic item utilities
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Basic equipment card styles
+  - Keep: Inventory grid system
+  - Modify: Equipment details to use unified system
+  - Remove: Duplicate equipment-specific styles
+  - Add: New equipment EntityCard styles
+  - Add: Magic item-specific styles
+  - Add: Equipment slot visualization styles
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic item loading
+  - Keep: Equipment cache management
+  - Modify: Equipment processing to use unified system
+  - Add: Magic variant processing
+  - Add: Equipment pack handling
+  - Add: Magic item data integration
+
+## Specific Integration Points
+
+### Equipment Management System
+```javascript
+// Replaces these existing functions in character.js:
+// - updateInventory
+// - updateEquippedItems
+// - displayEquipmentDetails
+
+class EquipmentManager {
+    // New unified equipment management system
+}
+```
+
+### Equipment Data Processing
+```javascript
+// Enhances existing processItem function in utils.js
+// Adds new functionality while maintaining existing processing
+async function processItemData(item, fluff) {
+    // New equipment processing system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing equipment event setup in utils.js
+function setupEquipmentEventHandlers() {
+    // Enhanced equipment event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing equipment styles in main.css */
+.equipment-card {
+    /* New unified equipment styles */
+}
+
+/* Adds new magic item styles */
+.magic-item {
+    /* New magic item styles */
+}
+
+/* Adds equipment slot styles */
+.equipment-slot {
+    /* New equipment slot styles */
+}
+```
+
 ## Implementation Steps
 
 ### 1. Enhance Equipment Data Loading

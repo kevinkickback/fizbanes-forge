@@ -3,6 +3,108 @@
 ## Overview
 Enhance equipment pack and starting equipment handling using the unified data processing system.
 
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing equipment pack templates
+- **Files Affected**: `index.html`
+  - Keep: Basic pack display structure
+  - Keep: Starting equipment selection
+  - Modify: Pack details to use EntityCard
+  - Remove: Duplicate pack templates
+  - Add: Pack contents visualization
+  - Add: Starting equipment choice UI
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Basic pack handling
+  - Keep: Starting equipment tracking
+  - Modify: Pack management to use new system
+  - Remove: Old pack card creation
+  - Add: New pack management class
+  - Add: Starting equipment integration
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Pack-related helper functions
+  - Keep: Equipment choice utilities
+  - Modify: Pack data processing to use unified system
+  - Add: New pack-specific reference functions
+  - Add: Pack tooltip enhancements
+  - Add: Starting equipment utilities
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Basic pack card styles
+  - Keep: Equipment choice grid
+  - Modify: Pack details to use unified system
+  - Remove: Duplicate pack-specific styles
+  - Add: New pack EntityCard styles
+  - Add: Starting equipment choice styles
+  - Add: Pack contents visualization styles
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic pack loading
+  - Keep: Pack cache management
+  - Modify: Pack processing to use unified system
+  - Add: Starting equipment data processing
+  - Add: Equipment choice handling
+  - Add: Pack contents integration
+
+## Specific Integration Points
+
+### Pack Management System
+```javascript
+// Replaces these existing functions in character.js:
+// - updatePacks 
+// - updateStartingEquipment
+// - displayPackDetails
+
+class PackManager {
+    // New unified pack management system
+}
+```
+
+### Pack Data Processing
+```javascript
+// Enhances existing processPack function in utils.js
+// Adds new functionality while maintaining existing processing
+async function processPackData(pack, fluff) {
+    // New pack processing system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing pack event setup in utils.js
+function setupPackEventHandlers() {
+    // Enhanced pack event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing pack styles in main.css */
+.pack-card {
+    /* New unified pack styles */
+}
+
+/* Adds new starting equipment styles */
+.starting-equipment {
+    /* New starting equipment styles */
+}
+
+/* Adds pack contents styles */
+.pack-contents {
+    /* New pack contents styles */
+}
+```
+
 ## Implementation Steps
 
 ### 1. Update Equipment Pack Loading

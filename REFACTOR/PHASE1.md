@@ -1,4 +1,108 @@
-### Phase 1: Enhanced Reference System
+# Phase 1: Enhanced Reference System
+
+## Integration Notes
+
+### 1. HTML Template Integration (index.html)
+- **Action**: Modify existing templates
+- **Files Affected**: `index.html`
+  - Keep: Basic card structure in `buildPage` template
+  - Keep: Form layout in `detailsPage` template
+  - Modify: Race/Class/Background sections to use new EntityCard system
+  - Remove: Duplicate card templates
+  - Add: New tooltip container div in body
+
+### 2. Character Management (character.js)
+- **Action**: Hybrid approach - merge and enhance
+- **Files Affected**: `character.js`
+  - Keep: Character state management
+  - Keep: Save/Load functionality
+  - Keep: Event handling setup
+  - Modify: `updateCharacterField` to use new reference system
+  - Remove: Individual card creation functions
+  - Add: New EntityCard system after existing character management code
+
+### 3. Utility Functions (utils.js)
+- **Action**: Enhance existing utilities
+- **Files Affected**: `utils.js`
+  - Keep: Basic utility functions
+  - Keep: Notification system
+  - Modify: Event handling to support tooltips
+  - Add: New reference resolution functions after existing utilities
+  - Add: New tooltip management system at end of file
+
+### 4. CSS Integration (main.css)
+- **Action**: Merge styles strategically
+- **Files Affected**: `main.css`
+  - Keep: Core variables and base styles
+  - Keep: Layout and grid system
+  - Keep: Basic card styles
+  - Modify: Card variations to use new unified system
+  - Remove: Duplicate card styles
+  - Add: New EntityCard styles after existing card styles
+  - Add: Tooltip styles at end of file
+
+### 5. Data Loading System
+- **Action**: Enhance existing system
+- **Files Affected**: `data-loader.js`
+  - Keep: Basic file loading functions
+  - Keep: Cache management
+  - Modify: Entity processing to use new unified system
+  - Add: New reference resolution system
+  - Add: New tooltip data processing
+
+## Specific Integration Points
+
+### EntityCard System
+```javascript
+// Replaces these existing functions in character.js:
+// - createCharacterCard
+// - createRaceCard
+// - createClassCard
+// - createBackgroundCard
+
+class EntityCard {
+    // New unified card system
+}
+```
+
+### Reference Resolution
+```javascript
+// Enhances existing processText function in utils.js
+// Adds new functionality while maintaining existing text processing
+async function resolveJsonRef(ref) {
+    // New reference resolution system
+}
+```
+
+### Event Handling
+```javascript
+// Modifies existing event setup in utils.js
+function setupEventHandlers() {
+    // Enhanced event handling
+}
+```
+
+### CSS Structure
+```css
+/* Merges with existing card styles in main.css */
+.entity-card {
+    /* New unified card styles */
+}
+
+/* Adds new tooltip styles */
+.tooltip {
+    /* New tooltip styles */
+}
+```
+
+## Implementation Order
+1. Add core data processing functions
+2. Add unified UI components
+3. Add unified CSS
+4. Update reference resolution
+5. Add tooltip system
+6. Test core functionality
+7. Test integration points
 
 ## Overview
 Enhance the existing reference handling system in data-loader.js to better support 5e.tools references and tooltips, with unified data processing.
@@ -252,13 +356,13 @@ async function resolveJsonRef(ref) {
         let tooltipData = null;
 
         // Load and process entity
-        switch (tag) {
+    switch (tag) {
             case 'item':
             case 'equipment':
             case 'pack': {
                 const items = await window.dndDataLoader.loadItems();
                 entity = items.find(i => i.name.toLowerCase() === name.toLowerCase());
-                break;
+            break;
             }
             case 'background': {
                 const backgrounds = await window.dndDataLoader.loadBackgrounds();
@@ -313,7 +417,7 @@ async function resolveJsonRef(ref) {
 
             // Add type-specific tooltip data
             switch (entity.type) {
-                case 'item':
+        case 'item':
                 case 'equipment':
                     tooltipData.properties = entity.properties;
                     tooltipData.value = entity.value;
@@ -328,24 +432,24 @@ async function resolveJsonRef(ref) {
                 case 'optfeature':
                     tooltipData.featureType = entity.featureType;
                     tooltipData.prerequisite = entity.prerequisite;
-                    break;
-                case 'class':
+            break;
+        case 'class':
                     tooltipData.hitDice = entity.hitDice;
                     tooltipData.spellcasting = entity.spellcasting?.ability;
                     break;
                 case 'subclass':
                     tooltipData.parentClass = entity.parentClass;
                     tooltipData.spellcasting = entity.spellcasting?.ability;
-                    break;
-                case 'race':
+            break;
+        case 'race':
                     tooltipData.size = entity.size;
                     tooltipData.speed = entity.speed;
                     tooltipData.ability = entity.ability;
-                    break;
+            break;
                 case 'subrace':
                     tooltipData.parentRace = entity.parentRace;
                     tooltipData.ability = entity.ability;
-                    break;
+            break;
             }
         }
 
@@ -356,7 +460,7 @@ async function resolveJsonRef(ref) {
 
         // Cache and return
         dataCache.itemRefs.set(cacheKey, result);
-        return result;
+    return result;
     } catch (error) {
         console.warn(`Error resolving reference ${fullMatch}:`, error);
         return name;
