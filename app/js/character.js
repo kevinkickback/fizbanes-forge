@@ -506,36 +506,18 @@ async function populateSubraces(race) {
         // Enable the subrace select
         subraceSelect.disabled = false;
 
-        // Group variants by type
-        const variantsByType = raceData.subraces.reduce((acc, variant) => {
-            if (!acc[variant.type]) {
-                acc[variant.type] = [];
-            }
-            acc[variant.type].push(variant);
-            return acc;
-        }, {});
-
         // Add a "Base Race" option
         const baseOption = document.createElement('option');
         baseOption.value = race;
         baseOption.textContent = `Base ${raceData.name}`;
         subraceSelect.appendChild(baseOption);
 
-        // Add variant options, grouped by type
-        for (const [type, variants] of Object.entries(variantsByType)) {
-            // Add group header
-            const group = document.createElement('optgroup');
-            group.label = `${type}s`;
-
-            // Add variants to group
-            for (const variant of variants) {
-                const option = document.createElement('option');
-                option.value = variant.id;
-                option.textContent = variant.name;
-                group.appendChild(option);
-            }
-
-            subraceSelect.appendChild(group);
+        // Add all variants directly to the select
+        for (const variant of raceData.subraces) {
+            const option = document.createElement('option');
+            option.value = variant.id;
+            option.textContent = variant.name;
+            subraceSelect.appendChild(option);
         }
 
         // Select the first option by default if no subrace is currently selected

@@ -39,6 +39,19 @@ function createMainWindow() {
     }
   });
 
+  // Enable DevTools in non-production environments
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+
+    // Add keyboard shortcut to toggle DevTools (Ctrl+Shift+I or Cmd+Option+I)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+    });
+  }
+
   // Show and focus mainWindow after loading
   mainWindow.webContents.on("did-finish-load", () => {
     mainWindow.show();

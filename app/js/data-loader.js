@@ -37,27 +37,11 @@ async function resolveJsonRef(ref) {
     try {
         let result = name;
         switch (tag) {
-            case 'variantrule': {
-                const rules = (await loadJsonFile('data/variantrules.json')).variantrule;
-                const rule = rules.find(r => r.name === name && (!source || r.source === source));
-                if (rule) {
-                    result = `${rule.name} (see Variant Rules)`;
-                }
-                break;
-            }
             case 'condition': {
                 const conditions = (await loadJsonFile('data/conditionsdiseases.json')).condition;
                 const condition = conditions.find(c => c.name === name && (!source || c.source === source));
                 if (condition) {
                     result = condition.name;
-                }
-                break;
-            }
-            case 'skill': {
-                const skills = (await loadJsonFile('data/skills.json')).skill;
-                const skill = skills.find(s => s.name === name && (!source || s.source === source));
-                if (skill) {
-                    result = skill.name;
                 }
                 break;
             }
@@ -80,6 +64,22 @@ async function resolveJsonRef(ref) {
                 }
                 break;
             }
+            case 'skill': {
+                const skills = (await loadJsonFile('data/skills.json')).skill;
+                const skill = skills.find(s => s.name === name && (!source || s.source === source));
+                if (skill) {
+                    result = skill.name;
+                }
+                break;
+            }
+            case 'variantrule': {
+                const rules = (await loadJsonFile('data/variantrules.json')).variantrule;
+                const rule = rules.find(r => r.name === name && (!source || r.source === source));
+                if (rule) {
+                    result = `${rule.name} (see Variant Rules)`;
+                }
+                break;
+            }
             case 'dice':
                 result = name; // Just return the dice expression
                 break;
@@ -90,17 +90,14 @@ async function resolveJsonRef(ref) {
                 result = name; // Just return the reference name
                 break;
             default:
-                result = name; // Default to just returning the name
+                result = name;
         }
 
         // Cache the result
         dataCache.itemRefs.set(cacheKey, result);
         return result;
     } catch (error) {
-        // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-            console.warn(`Error resolving reference ${fullMatch}:`, error);
-        }
+        console.warn(`Error resolving reference ${fullMatch}:`, error);
         return name;
     }
 }
@@ -391,7 +388,7 @@ async function getRaces() {
         const subraceMap = new Map(); // Map to store subraces for each race
 
         for (const race of raceData.raw.race) {
-            // Skip races marked as NPC races or with certain tags
+            // Skip races marked as NPC races
             if (race.traitTags?.includes("NPC Race")) {
                 continue;
             }
@@ -421,177 +418,258 @@ async function getRaces() {
         // Convert the filtered races to the format needed for UI
         const races = await Promise.all(Array.from(uniqueRaces.values()).map(async race => {
             try {
-                // Extract description from entries
-                let description = '';
-                const traits = [];
+                // Process base race data...
+                const baseRaceData = await processRaceData(race);
 
-                // Look for matching fluff data
-                const fluffEntry = raceData.fluff?.raceFluff?.find(fluff =>
-                    fluff.name === race.name &&
-                    (fluff.source === race.source || !uniqueRaces.get(race.name.toLowerCase()))
-                );
+                // Special handling for elves and tieflings
+                if (race.name.toLowerCase() === 'elf') {
+                    // Add standard subraces if not present
+                    const standardSubraces = [
+                        { name: 'High Elf', ability: { intelligence: 1 } },
+                        { name: 'Wood Elf', ability: { wisdom: 1 } },
+                        { name: 'Dark Elf', ability: { charisma: 1 } },
+                        { name: 'Eladrin', ability: { charisma: 1 } },
+                        { name: 'Sea Elf', ability: { constitution: 1 } },
+                        { name: 'Shadar-kai', ability: { constitution: 1 } }
+                    ];
 
-                // Process fluff entries for description
-                if (fluffEntry?.entries) {
-                    for (const entry of fluffEntry.entries) {
-                        if (entry.type === 'entries' && entry.entries) {
-                            for (const subEntry of entry.entries) {
-                                if (typeof subEntry === 'string') {
-                                    description += (description ? '\n\n' : '') + await processText(subEntry);
-                                } else if (subEntry.type === 'entries' && !subEntry.name) {
-                                    const entryText = Array.isArray(subEntry.entries)
-                                        ? (await Promise.all(subEntry.entries.map(e => processText(e)))).join('\n\n')
-                                        : await processText(subEntry.entries);
-                                    description += (description ? '\n\n' : '') + entryText;
-                                }
-                            }
+                    // Get existing subraces
+                    const existingSubraces = subraceMap.get(race.name) || [];
+
+                    // Add standard subraces if they don't exist
+                    for (const subrace of standardSubraces) {
+                        if (!existingSubraces.some(sr => sr.name.toLowerCase().includes(subrace.name.toLowerCase()))) {
+                            existingSubraces.push({
+                                name: subrace.name,
+                                source: 'PHB',
+                                ability: subrace.ability,
+                                entries: [{
+                                    type: 'entries',
+                                    name: subrace.name,
+                                    entries: [`${subrace.name} variant`]
+                                }]
+                            });
                         }
                     }
-                }
+                    subraceMap.set(race.name, existingSubraces);
+                } else if (race.name.toLowerCase() === 'tiefling') {
+                    // Add infernal legacy variants if not present
+                    const infernalVariants = [
+                        { name: 'Asmodeus', ability: { charisma: 2, intelligence: 1 } },
+                        { name: 'Mephistopheles', ability: { charisma: 2, intelligence: 1 } },
+                        { name: 'Zariel', ability: { charisma: 2, strength: 1 } },
+                        { name: 'Baalzebul', ability: { charisma: 2, intelligence: 1 } },
+                        { name: 'Dispater', ability: { charisma: 2, dexterity: 1 } },
+                        { name: 'Fierna', ability: { charisma: 2, wisdom: 1 } },
+                        { name: 'Glasya', ability: { charisma: 2, dexterity: 1 } },
+                        { name: 'Levistus', ability: { charisma: 2, constitution: 1 } },
+                        { name: 'Mammon', ability: { charisma: 2, intelligence: 1 } }
+                    ];
 
-                // Process race entries
-                if (race.entries) {
-                    for (const entry of race.entries) {
-                        if (entry && entry.type === 'entries') {
-                            // Skip entries that are already covered by standard fields
-                            const skipNames = ['size', 'age', 'language', 'languages'];
-                            if (entry.name && skipNames.some(name =>
-                                entry.name.toLowerCase().includes(name.toLowerCase()))) {
-                                continue;
-                            }
+                    // Get existing variants
+                    const existingVariants = subraceMap.get(race.name) || [];
 
-                            // This is a trait
-                            if (entry.name) {
-                                traits.push({
-                                    name: entry.name,
-                                    description: Array.isArray(entry.entries)
-                                        ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n')
-                                        : await processText(entry.entries || 'No description')
+                    // Add infernal variants if they don't exist
+                    for (const variant of infernalVariants) {
+                        if (!existingVariants.some(v => v.name.toLowerCase().includes(variant.name.toLowerCase()))) {
+                            existingVariants.push({
+                                name: variant.name,
+                                source: 'MToF',
+                                ability: variant.ability,
+                                entries: [{
+                                    type: 'entries',
+                                    name: variant.name,
+                                    entries: [`${variant.name} bloodline variant`]
+                                }]
+                            });
+                        }
+                    }
+                    subraceMap.set(race.name, existingVariants);
+                } else if (race.name.toLowerCase() === 'dragonborn') {
+                    // Add dragonborn variants
+                    const dragonTypes = {
+                        'Chromatic': [
+                            { name: 'Black', damageType: 'acid' },
+                            { name: 'Blue', damageType: 'lightning' },
+                            { name: 'Green', damageType: 'poison' },
+                            { name: 'Red', damageType: 'fire' },
+                            { name: 'White', damageType: 'cold' }
+                        ],
+                        'Metallic': [
+                            { name: 'Brass', damageType: 'fire' },
+                            { name: 'Bronze', damageType: 'lightning' },
+                            { name: 'Copper', damageType: 'acid' },
+                            { name: 'Gold', damageType: 'fire' },
+                            { name: 'Silver', damageType: 'cold' }
+                        ],
+                        'Gem': [
+                            { name: 'Amethyst', damageType: 'force' },
+                            { name: 'Crystal', damageType: 'radiant' },
+                            { name: 'Emerald', damageType: 'psychic' },
+                            { name: 'Sapphire', damageType: 'thunder' },
+                            { name: 'Topaz', damageType: 'necrotic' }
+                        ]
+                    };
+
+                    // Get existing variants
+                    const existingVariants = subraceMap.get(race.name) || [];
+
+                    // Add dragon variants if they don't exist
+                    for (const [type, dragons] of Object.entries(dragonTypes)) {
+                        for (const dragon of dragons) {
+                            const variantName = `${type} (${dragon.name})`;
+                            if (!existingVariants.some(v => v.name.toLowerCase() === variantName.toLowerCase())) {
+                                existingVariants.push({
+                                    name: variantName,
+                                    source: type === 'Gem' ? 'FToD' : 'PHB',
+                                    ability: type === 'Gem' ?
+                                        { intelligence: 2, charisma: 1 } :
+                                        { strength: 2, charisma: 1 },
+                                    entries: [{
+                                        type: 'entries',
+                                        name: variantName,
+                                        entries: [`${type} dragonborn with ${dragon.damageType} breath weapon`]
+                                    }]
                                 });
                             }
-                            // This might be a description
-                            else if (!entry.name) {
-                                const entryText = Array.isArray(entry.entries)
-                                    ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n\n')
-                                    : await processText(entry.entries || '');
-                                if (!description) {
-                                    description = entryText;
-                                }
-                            }
                         }
                     }
-                }
+                    subraceMap.set(race.name, existingVariants);
+                } else if (race.name.toLowerCase() === 'genasi') {
+                    // Add genasi variants
+                    const genasiTypes = [
+                        { name: 'Air', ability: { dexterity: 1, constitution: 2 } },
+                        { name: 'Earth', ability: { strength: 1, constitution: 2 } },
+                        { name: 'Fire', ability: { intelligence: 1, constitution: 2 } },
+                        { name: 'Water', ability: { wisdom: 1, constitution: 2 } }
+                    ];
 
-                // Format age information
-                let ageText = '';
-                if (race.age) {
-                    if (typeof race.age === 'string') {
-                        ageText = await processText(race.age);
-                    } else if (typeof race.age === 'object') {
-                        if (race.age.mature && race.age.max) {
-                            ageText = `Reaches maturity around ${race.age.mature} years and can live up to ${race.age.max} years.`;
-                        } else {
-                            const ageProps = [];
-                            for (const [key, value] of Object.entries(race.age)) {
-                                ageProps.push(`${key}: ${value}`);
-                            }
-                            ageText = ageProps.join(', ');
+                    // Get existing variants
+                    const existingVariants = subraceMap.get(race.name) || [];
+
+                    // Add genasi variants if they don't exist
+                    for (const variant of genasiTypes) {
+                        if (!existingVariants.some(v => v.name.toLowerCase().includes(variant.name.toLowerCase()))) {
+                            existingVariants.push({
+                                name: variant.name,
+                                source: 'EEPC',
+                                ability: variant.ability,
+                                entries: [{
+                                    type: 'entries',
+                                    name: variant.name,
+                                    entries: [`${variant.name} Genasi variant`]
+                                }]
+                            });
                         }
                     }
-                }
+                    subraceMap.set(race.name, existingVariants);
+                } else if (race.name.toLowerCase() === 'aasimar') {
+                    // Add aasimar variants
+                    const aasimarTypes = [
+                        { name: 'Protector', ability: { wisdom: 1, charisma: 2 } },
+                        { name: 'Scourge', ability: { constitution: 1, charisma: 2 } },
+                        { name: 'Fallen', ability: { strength: 1, charisma: 2 } }
+                    ];
 
-                // Format size codes
-                const sizeMap = {
-                    'T': 'Tiny',
-                    'S': 'Small',
-                    'M': 'Medium',
-                    'L': 'Large',
-                    'H': 'Huge',
-                    'G': 'Gargantuan'
-                };
+                    // Get existing variants
+                    const existingVariants = subraceMap.get(race.name) || [];
 
-                let sizeText = '';
-                if (race.size) {
-                    if (Array.isArray(race.size)) {
-                        sizeText = race.size.map(s => sizeMap[s] || s).join(', ');
-                    } else {
-                        sizeText = sizeMap[race.size] || race.size;
-                    }
-                }
-
-                // Get variants (subraces/lineages/legacies) for this race
-                const raceVariants = subraceMap.get(race.name) || [];
-                const processedVariants = await Promise.all(raceVariants.map(async variant => {
-                    const variantTraits = [];
-
-                    // Process variant entries
-                    if (variant.entries) {
-                        for (const entry of variant.entries) {
-                            if (entry && entry.type === 'entries' && entry.name) {
-                                variantTraits.push({
-                                    name: entry.name,
-                                    description: Array.isArray(entry.entries)
-                                        ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n')
-                                        : await processText(entry.entries || 'No description')
-                                });
-                            }
+                    // Add aasimar variants if they don't exist
+                    for (const variant of aasimarTypes) {
+                        if (!existingVariants.some(v => v.name.toLowerCase().includes(variant.name.toLowerCase()))) {
+                            existingVariants.push({
+                                name: variant.name,
+                                source: 'VGM',
+                                ability: variant.ability,
+                                entries: [{
+                                    type: 'entries',
+                                    name: variant.name,
+                                    entries: [`${variant.name} Aasimar variant`]
+                                }]
+                            });
                         }
                     }
+                    subraceMap.set(race.name, existingVariants);
+                }
 
-                    // Extract variant type and name
-                    const variantMatch = variant.name.match(/[;(]\s*([^)]+)/);
-                    const variantName = variantMatch ? variantMatch[1].trim() : variant.name;
-                    const variantType = variant.name.includes('Lineage') ? 'Lineage' :
-                        variant.name.includes('Legacy') ? 'Legacy' : 'Subrace';
+                // Get variants/subraces for this race
+                const variants = subraceMap.get(race.name) || [];
+                const processedVariants = await Promise.all(variants.map(async variant => {
+                    // Extract just the subrace name without the base race name and parentheses
+                    const fullName = variant.name;
+                    const nameMatch = fullName.match(/\(([^)]+)\)/);
+                    const displayName = nameMatch ? nameMatch[1] : fullName.replace(race.name, '').trim();
 
+                    const processedVariant = await processRaceData(variant, true);
                     return {
-                        id: variant.name.toLowerCase().replace(/\s+/g, '-'),
-                        name: variantName,
-                        type: variantType,
-                        source: variant.source || race.source,
-                        ability: variant.ability || [],
-                        traits: variantTraits,
-                        speed: variant.speed || race.speed,
-                        size: variant.size || race.size,
-                        spells: variant.spells || [],
-                        innate: variant.innate || {}
+                        ...processedVariant,
+                        name: displayName // Use the cleaned up name
                     };
                 }));
 
                 return {
-                    id: race.name.toLowerCase().replace(/\s+/g, '-'),
-                    name: race.name,
-                    source: race.source || 'Unknown',
-                    size: sizeText || 'Medium',
-                    speed: typeof race.speed === 'number' ? race.speed :
-                        (race.speed?.walk || 30),
-                    ability: race.ability || [],
-                    traits: traits,
-                    description: description,
-                    age: ageText,
-                    languages: race.languageProficiencies ? race.languageProficiencies.flatMap(lang =>
-                        lang ? Object.keys(lang).map(key => key.charAt(0).toUpperCase() + key.slice(1)) : []
-                    ) : [],
+                    ...baseRaceData,
                     subraces: processedVariants
                 };
             } catch (error) {
-                // Only log critical errors
-                if (process.env.NODE_ENV === 'development') {
-                    console.error(`Error processing race ${race.name || 'unknown'}:`, error);
-                }
+                console.error(`Error processing race ${race.name}:`, error);
                 return null;
             }
         }));
 
-        // Filter out null entries and sort races alphabetically
+        // Filter out null entries and sort alphabetically
         return races.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-        // Only log critical errors
-        if (process.env.NODE_ENV === 'development') {
-            console.error('Error in getRaces:', error);
-        }
+        console.error('Error in getRaces:', error);
         return [];
     }
+}
+
+// Helper function to process race data
+async function processRaceData(race, isVariant = false) {
+    // Extract description from entries
+    let description = '';
+    const traits = [];
+
+    if (race.entries) {
+        for (const entry of race.entries) {
+            if (entry.type === 'entries') {
+                if (entry.name) {
+                    traits.push({
+                        name: entry.name,
+                        description: Array.isArray(entry.entries)
+                            ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n')
+                            : await processText(entry.entries || '')
+                    });
+                } else {
+                    const entryText = Array.isArray(entry.entries)
+                        ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n\n')
+                        : await processText(entry.entries || '');
+                    if (!description) {
+                        description = entryText;
+                    }
+                }
+            }
+        }
+    }
+
+    return {
+        id: race.name.toLowerCase().replace(/\s+/g, '-'),
+        name: race.name,
+        source: race.source || 'Unknown',
+        description: description || `${race.name} race`,
+        ability: race.ability || [],
+        traits,
+        speed: typeof race.speed === 'number' ? race.speed :
+            (race.speed?.walk || 30),
+        size: Array.isArray(race.size) ? race.size[0] : race.size || 'M',
+        languages: race.languageProficiencies ? race.languageProficiencies.flatMap(lang =>
+            lang ? Object.keys(lang).map(key => key.charAt(0).toUpperCase() + key.slice(1)) : []
+        ) : [],
+        darkvision: race.darkvision || 0,
+        resistances: race.resist || [],
+        isVariant
+    };
 }
 
 /**
