@@ -45,6 +45,9 @@ window.app = {
         case 'settings':
           if (window.initializeSettingsPage) window.initializeSettingsPage();
           break;
+        case 'tests':
+          if (window.tests?.initialize) window.tests.initialize();
+          break;
       }
 
       // Update current page
@@ -348,6 +351,27 @@ function validateRequiredFields(fields) {
   }
   return true;
 }
+
+// Tooltip system has been moved to core/ui/TooltipManager.js
+// The following functions have been removed:
+// - setupTooltips
+// - handleTooltipMouseOver
+// - handleTooltipMouseOut
+// - handleTooltipMouseMove
+// - positionTooltip
+
+// Initialize tooltips when DOM is ready
+document.addEventListener('DOMContentLoaded', setupTooltips);
+
+// Make tooltip functions available globally
+window.utils = window.utils || {};
+Object.assign(window.utils, {
+  setupTooltips,
+  handleTooltipMouseOver,
+  handleTooltipMouseOut,
+  handleTooltipMouseMove,
+  positionTooltip
+});
 
 // Export utilities
 window.utils = {

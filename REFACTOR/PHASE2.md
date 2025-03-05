@@ -90,6 +90,61 @@ function setupRaceEventHandlers() {
 }
 ```
 
+## Parallel Structure Strategy
+
+### Directory Structure
+For this phase, implement the following directory structure alongside the existing files:
+```
+app/
+├── js/
+│   ├── core/
+│   │   ├── managers/           # Manager classes
+│   │   │   ├── RaceManager.js
+│   │   │   └── AbilityManager.js
+│   │   ├── models/            # Data models
+│   │   │   ├── Race.js
+│   │   │   └── Subrace.js
+│   │   └── services/          # Business logic
+│   │       └── RaceService.js
+│   └── character.js           # Existing file (will gradually migrate)
+```
+
+### Migration Steps
+1. Create the race-specific directory structure
+2. Move race management to `core/managers/RaceManager.js`
+3. Move ability score management to `core/managers/AbilityManager.js`
+4. Create race models in `core/models/`
+5. Move race-specific business logic to `core/services/RaceService.js`
+
+### Compatibility Layer
+In `character.js`, add forwarding functions to maintain backward compatibility:
+```javascript
+// Import new modules
+import { RaceManager } from './core/managers/RaceManager.js';
+import { AbilityManager } from './core/managers/AbilityManager.js';
+// ... other imports
+
+// Initialize managers
+const raceManager = new RaceManager(currentCharacter);
+const abilityManager = new AbilityManager(currentCharacter);
+
+// Forward existing functions to new implementations
+async function updateRaceDetails(race, subrace) {
+    return await raceManager.setRace(race, subrace);
+}
+
+function checkRaceAbilityChoices() {
+    return raceManager.checkPendingChoices();
+}
+// ... other forwarding functions
+```
+
+### Testing Strategy
+1. Write tests for new race management modules
+2. Ensure existing race functionality works through compatibility layer
+3. Add new tests for enhanced race features
+4. Verify no regressions in existing race functionality
+
 ## Implementation Steps
 
 ### 1. Enhance Race Data Loading

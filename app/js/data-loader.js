@@ -15,6 +15,20 @@ const dataCache = {
     itemRefs: new Map() // Add cache for item references
 };
 
+// Import race service
+import { RaceService } from './core/services/RaceService.js';
+
+// Initialize race service
+const raceService = new RaceService();
+
+// Import class service
+import { ClassService } from './core/services/ClassService.js';
+import { SpellcastingService } from './core/services/SpellcastingService.js';
+
+// Initialize services
+const classService = new ClassService();
+const spellcastingService = new SpellcastingService();
+
 /**
  * Resolve a JSON reference like {@tag name|source}
  * @param {string} ref - The reference string
@@ -26,7 +40,7 @@ async function resolveJsonRef(ref) {
     if (!match) return ref;
 
     const [fullMatch, tag, content] = match;
-    const [name, source = 'phb', ...rest] = content.split('|');
+    const [name, source = 'PHB', ...rest] = content.split('|');
 
     // Check cache first for item references
     const cacheKey = `${tag}:${name}:${source}`;
@@ -35,71 +49,294 @@ async function resolveJsonRef(ref) {
     }
 
     try {
-        let result = name;
+        let entity = null;
+        let tooltipData = null;
+
+        // Load and process entity
         switch (tag) {
-            case 'condition': {
-                const conditions = (await loadJsonFile('data/conditionsdiseases.json')).condition;
-                const condition = conditions.find(c => c.name === name && (!source || c.source === source));
-                if (condition) {
-                    result = condition.name;
+            case 'item':
+            case 'equipment':
+            case 'pack': {
+                const items = await loadItems();
+                entity = items.find(i => i.name.toLowerCase() === name.toLowerCase());
+                break;
+            }
+            case 'background': {
+                const backgrounds = await loadBackgrounds();
+                entity = backgrounds.find(b => b.name.toLowerCase() === name.toLowerCase());
+                break;
+            }
+            case 'feat': {
+                const feats = await loadFeats();
+                entity = feats.find(f => f.name.toLowerCase() === name.toLowerCase());
+                break;
+            }
+            case 'optfeature': {
+                const features = await loadOptionalFeatures();
+                entity = features.find(f => f.name.toLowerCase() === name.toLowerCase());
+                break;
+            }
+            case 'class': {
+                const classes = await loadAllClasses();
+                for (const classData of Object.values(classes)) {
+                    if (classData.raw.name.toLowerCase() === name.toLowerCase()) {
+                        entity = classData.raw;
+                        break;
+                    }
                 }
                 break;
             }
-            case 'item': {
-                if (!dataCache.items) {
-                    await loadItems();
+            case 'subclass': {
+                const classes = await loadAllClasses();
+                for (const classData of Object.values(classes)) {
+                    entity = classData.raw.subclasses?.find(sc =>
+                        sc.name.toLowerCase() === name.toLowerCase()
+                    );
+                    if (entity) break;
                 }
-                const items = dataCache.items?.base?.item || [];
-                const item = items.find(i => i.name.toLowerCase() === name.toLowerCase());
-                if (item) {
-                    result = item.name;
+                break;
+            }
+            case 'race': {
+                const races = await loadRaces();
+                entity = races.raw.race.find(r => r.name.toLowerCase() === name.toLowerCase());
+                break;
+            }
+            case 'subrace': {
+                const races = await loadRaces();
+                for (const race of races.raw.race) {
+                    entity = race.subraces?.find(sr =>
+                        sr.name.toLowerCase() === name.toLowerCase()
+                    );
+                    if (entity) break;
                 }
                 break;
             }
             case 'spell': {
-                const spells = (await loadJsonFile(`data/spells/spells-${(source || 'phb').toLowerCase()}.json`)).spell;
-                const spell = spells.find(s => s.name === name);
-                if (spell) {
-                    result = spell.name;
-                }
+                const spells = await loadSpells(source.toLowerCase());
+                entity = spells.find(s => s.name.toLowerCase() === name.toLowerCase());
+                break;
+            }
+            case 'condition': {
+                const conditions = await loadJsonFile('data/conditionsdiseases.json');
+                entity = conditions.condition.find(c =>
+                    c.name.toLowerCase() === name.toLowerCase() &&
+                    (!source || c.source.toLowerCase() === source.toLowerCase())
+                );
                 break;
             }
             case 'skill': {
-                const skills = (await loadJsonFile('data/skills.json')).skill;
-                const skill = skills.find(s => s.name === name && (!source || s.source === source));
-                if (skill) {
-                    result = skill.name;
-                }
+                const skills = await loadJsonFile('data/skills.json');
+                entity = skills.skill.find(s =>
+                    s.name.toLowerCase() === name.toLowerCase() &&
+                    (!source || s.source.toLowerCase() === source.toLowerCase())
+                );
                 break;
             }
             case 'variantrule': {
-                const rules = (await loadJsonFile('data/variantrules.json')).variantrule;
-                const rule = rules.find(r => r.name === name && (!source || r.source === source));
-                if (rule) {
-                    result = `${rule.name} (see Variant Rules)`;
-                }
+                const rules = await loadJsonFile('data/variantrules.json');
+                entity = rules.variantrule.find(r =>
+                    r.name.toLowerCase() === name.toLowerCase() &&
+                    (!source || r.source.toLowerCase() === source.toLowerCase())
+                );
                 break;
             }
             case 'dice':
-                result = name; // Just return the dice expression
-                break;
             case 'damage':
-                result = name; // Just return the damage expression
-                break;
             case 'quickref':
-                result = name; // Just return the reference name
-                break;
-            default:
-                result = name;
+                return name;
         }
 
-        // Cache the result
+        // Create tooltip if entity found
+        if (entity) {
+            tooltipData = {
+                title: entity.name,
+                source: `${source}, page ${entity.page || '??'}`
+            };
+
+            // Add type-specific tooltip data
+            switch (tag) {
+                case 'item':
+                case 'equipment':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.properties = entity.property;
+                    tooltipData.value = entity.value;
+                    tooltipData.weight = entity.weight;
+                    tooltipData.attunement = entity.reqAttune;
+                    break;
+                case 'pack':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.contents = entity.items;
+                    break;
+                case 'feat':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.prerequisite = entity.prerequisite;
+                    tooltipData.ability = entity.ability;
+                    break;
+                case 'optfeature':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.featureType = entity.featureType;
+                    tooltipData.prerequisite = entity.prerequisite;
+                    break;
+                case 'class':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.hitDice = `${entity.hd.number}d${entity.hd.faces}`;
+                    tooltipData.spellcasting = entity.spellcasting?.ability;
+                    break;
+                case 'subclass':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.parentClass = entity.className;
+                    tooltipData.spellcasting = entity.spellcasting?.ability;
+                    break;
+                case 'race':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.size = entity.size;
+                    tooltipData.speed = entity.speed;
+                    tooltipData.ability = entity.ability;
+                    break;
+                case 'subrace':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.parentRace = entity.raceName;
+                    tooltipData.ability = entity.ability;
+                    break;
+                case 'spell':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    tooltipData.level = entity.level;
+                    tooltipData.school = entity.school;
+                    tooltipData.time = `${entity.time?.[0]?.number} ${entity.time?.[0]?.unit}`;
+                    tooltipData.range = `${entity.range?.distance?.amount} ${entity.range?.distance?.type}`;
+                    tooltipData.duration = entity.duration?.[0]?.type === 'timed' ?
+                        `${entity.duration[0].duration.amount} ${entity.duration[0].duration.type}` :
+                        entity.duration?.[0]?.type;
+                    break;
+                case 'condition':
+                case 'skill':
+                case 'variantrule':
+                    tooltipData.description = await processText(entity.entries?.[0] || '');
+                    break;
+            }
+        }
+
+        // Create tooltip element
+        const result = tooltipData ?
+            createTooltipElement(tag, name, tooltipData) :
+            name;
+
+        // Cache and return
         dataCache.itemRefs.set(cacheKey, result);
         return result;
     } catch (error) {
         console.warn(`Error resolving reference ${fullMatch}:`, error);
         return name;
     }
+}
+
+/**
+ * Create a tooltip element
+ * @param {string} type - The type of entity
+ * @param {string} text - The text to display
+ * @param {Object} data - The tooltip data
+ * @returns {string} - HTML string for the tooltip element
+ */
+function createTooltipElement(type, text, data) {
+    let tooltipContent = `
+        <div class="tooltip-title">${data.title}</div>
+        ${data.description ? `<div class="tooltip-content">${data.description}</div>` : ''}
+    `;
+
+    // Add type-specific content
+    switch (type) {
+        case 'item':
+        case 'equipment':
+            if (data.properties?.length) {
+                tooltipContent += `<div class="tooltip-content">Properties: ${data.properties.join(', ')}</div>`;
+            }
+            if (data.value) {
+                tooltipContent += `<div class="tooltip-content">Value: ${data.value} gp</div>`;
+            }
+            if (data.weight) {
+                tooltipContent += `<div class="tooltip-content">Weight: ${data.weight} lb.</div>`;
+            }
+            if (data.attunement) {
+                tooltipContent += `<div class="tooltip-content">Requires Attunement</div>`;
+            }
+            break;
+        case 'pack':
+            if (data.contents?.length) {
+                tooltipContent += `
+                    <div class="tooltip-content">
+                        Contents:<br>
+                        ${data.contents.map(item =>
+                    `• ${item.quantity || 1}× ${item.name}`
+                ).join('<br>')}
+                    </div>
+                `;
+            }
+            break;
+        case 'feat':
+            if (data.prerequisite) {
+                tooltipContent += `<div class="tooltip-content">Prerequisites: ${data.prerequisite}</div>`;
+            }
+            if (data.ability) {
+                tooltipContent += `<div class="tooltip-content">Ability Score Improvement: ${data.ability}</div>`;
+            }
+            break;
+        case 'optfeature':
+            if (data.featureType) {
+                tooltipContent += `<div class="tooltip-content">Type: ${data.featureType}</div>`;
+            }
+            if (data.prerequisite) {
+                tooltipContent += `<div class="tooltip-content">Prerequisites: ${data.prerequisite}</div>`;
+            }
+            break;
+        case 'class':
+            tooltipContent += `<div class="tooltip-content">Hit Dice: ${data.hitDice}</div>`;
+            if (data.spellcasting) {
+                tooltipContent += `<div class="tooltip-content">Spellcasting Ability: ${data.spellcasting}</div>`;
+            }
+            break;
+        case 'subclass':
+            if (data.parentClass) {
+                tooltipContent += `<div class="tooltip-content">Class: ${data.parentClass}</div>`;
+            }
+            if (data.spellcasting) {
+                tooltipContent += `<div class="tooltip-content">Spellcasting Ability: ${data.spellcasting}</div>`;
+            }
+            break;
+        case 'race':
+            tooltipContent += `<div class="tooltip-content">Size: ${data.size}</div>`;
+            if (data.speed) {
+                tooltipContent += `<div class="tooltip-content">Speed: ${data.speed} feet</div>`;
+            }
+            if (data.ability) {
+                tooltipContent += `<div class="tooltip-content">Ability Score Increase: ${data.ability}</div>`;
+            }
+            break;
+        case 'subrace':
+            if (data.parentRace) {
+                tooltipContent += `<div class="tooltip-content">Race: ${data.parentRace}</div>`;
+            }
+            if (data.ability) {
+                tooltipContent += `<div class="tooltip-content">Ability Score Increase: ${data.ability}</div>`;
+            }
+            break;
+        case 'spell':
+            tooltipContent += `
+                <div class="tooltip-content">
+                    Level ${data.level} ${data.school}<br>
+                    Casting Time: ${data.time}<br>
+                    Range: ${data.range}<br>
+                    Duration: ${data.duration}
+                </div>
+            `;
+            break;
+    }
+
+    // Add source
+    if (data.source) {
+        tooltipContent += `<div class="tooltip-source">${data.source}</div>`;
+    }
+
+    return `<span class="reference-link ${type}-reference" data-tooltip="${encodeURIComponent(tooltipContent)}">${text}</span>`;
 }
 
 /**
@@ -124,6 +361,364 @@ async function processText(text) {
     }
 
     return result;
+}
+
+/**
+ * Process an entity and its fluff data into a standardized format
+ * @param {Object} entity - The entity data to process
+ * @param {string} type - The type of entity (race, class, item, etc.)
+ * @param {Object} fluff - Optional fluff data for the entity
+ * @returns {Promise<Object>} - The processed entity data
+ */
+async function processEntityData(entity, type, fluff = null) {
+    const processed = {
+        id: entity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name: entity.name,
+        source: entity.source || 'PHB',
+        page: entity.page,
+        description: await processText(fluff?.entries?.[0] || ''),
+        type: type
+    };
+
+    // Add type-specific processing
+    switch (type) {
+        case 'item':
+            Object.assign(processed, {
+                value: processValue(entity.value),
+                weight: entity.weight || 0,
+                properties: processProperties(entity.property),
+                attunement: processAttunement(entity.reqAttune)
+            });
+            break;
+        case 'pack':
+            processed.contents = await processPackContents(entity.items);
+            break;
+        case 'background':
+            processed.proficiencies = processProficiencies(entity);
+            processed.characteristics = await processCharacteristics(entity);
+            break;
+        case 'feat':
+            processed.prerequisite = entity.prerequisite ? await processText(entity.prerequisite) : null;
+            processed.ability = processAbilityScoreIncrease(entity.ability);
+            processed.repeatable = entity.repeatable || false;
+            break;
+        case 'optfeature':
+            processed.prerequisite = entity.prerequisite ? await processText(entity.prerequisite) : null;
+            processed.featureType = entity.featureType || 'Unknown';
+            processed.className = entity.className || null;
+            processed.level = entity.level || null;
+            break;
+        case 'class':
+            Object.assign(processed, {
+                hitDice: entity.hd?.number && entity.hd?.faces ?
+                    `${entity.hd.number}d${entity.hd.faces}` : 'd10',
+                proficiencies: processProficiencies(entity),
+                startingEquipment: processStartingEquipment(entity.startingEquipment),
+                features: await processFeatures(entity.classFeatures),
+                spellcasting: processSpellcasting(entity.spellcasting),
+                subclasses: await Promise.all((entity.subclasses || []).map(async sc =>
+                    processEntityData(sc, 'subclass', fluff?.subclasses?.find(f =>
+                        f.name === sc.name && f.source === sc.source
+                    ))
+                ))
+            });
+            break;
+        case 'subclass':
+            Object.assign(processed, {
+                features: await processFeatures(entity.subclassFeatures),
+                spellcasting: processSpellcasting(entity.spellcasting)
+            });
+            break;
+        case 'race':
+            Object.assign(processed, {
+                size: Array.isArray(entity.size) ? entity.size[0] : entity.size || 'M',
+                speed: processSpeed(entity.speed),
+                ability: processAbilityScoreIncrease(entity.ability),
+                proficiencies: processProficiencies(entity),
+                traits: await processTraits(entity.traits),
+                features: {
+                    darkvision: entity.darkvision || 0,
+                    resistances: entity.resist || [],
+                    additionalSpells: processSpells(entity.additionalSpells)
+                },
+                subraces: await Promise.all((entity.subraces || []).map(async sr =>
+                    processEntityData(sr, 'subrace', fluff?.subraces?.find(f =>
+                        f.name === sr.name && f.source === sr.source
+                    ))
+                ))
+            });
+            break;
+        case 'subrace':
+            Object.assign(processed, {
+                parentRace: entity.parentRace,
+                ability: processAbilityScoreIncrease(entity.ability),
+                proficiencies: processProficiencies(entity),
+                traits: await processTraits(entity.traits)
+            });
+            break;
+    }
+
+    return processed;
+}
+
+/**
+ * Process proficiencies from an entity
+ * @param {Object} entity - The entity containing proficiency data
+ * @returns {Object} - Processed proficiency data
+ */
+function processProficiencies(entity) {
+    return {
+        skills: processSkillProficiencies(entity.skillProficiencies),
+        tools: processToolProficiencies(entity.toolProficiencies),
+        languages: processLanguageProficiencies(entity.languageProficiencies),
+        weapons: entity.weaponProficiencies || [],
+        armor: entity.armorProficiencies || []
+    };
+}
+
+/**
+ * Process skill proficiencies
+ * @param {Object|Array} proficiencies - The skill proficiency data
+ * @returns {Object} - Processed skill proficiency data
+ */
+function processSkillProficiencies(proficiencies) {
+    if (!proficiencies) return { fixed: [], choices: [] };
+
+    return {
+        fixed: Array.isArray(proficiencies) ? proficiencies : [],
+        choices: proficiencies?.choose ? [{
+            count: proficiencies.choose.count || 1,
+            from: proficiencies.choose.from || []
+        }] : []
+    };
+}
+
+/**
+ * Process tool proficiencies
+ * @param {Object|Array} proficiencies - The tool proficiency data
+ * @returns {Object} - Processed tool proficiency data
+ */
+function processToolProficiencies(proficiencies) {
+    if (!proficiencies) return { fixed: [], choices: [] };
+
+    return {
+        fixed: Array.isArray(proficiencies) ? proficiencies : [],
+        choices: proficiencies?.choose ? [{
+            count: proficiencies.choose.count || 1,
+            from: proficiencies.choose.from || []
+        }] : []
+    };
+}
+
+/**
+ * Process language proficiencies
+ * @param {Object|Array} proficiencies - The language proficiency data
+ * @returns {Object} - Processed language proficiency data
+ */
+function processLanguageProficiencies(proficiencies) {
+    if (!proficiencies) return { fixed: [], choices: [] };
+
+    return {
+        fixed: Array.isArray(proficiencies) ? proficiencies : [],
+        choices: proficiencies?.choose ? [{
+            count: proficiencies.choose.count || 1,
+            from: proficiencies.choose.from || []
+        }] : []
+    };
+}
+
+/**
+ * Process value data
+ * @param {number|string} value - The value to process
+ * @returns {Object} - Processed value data
+ */
+function processValue(value) {
+    if (!value) return { amount: 0, coin: 'gp' };
+    if (typeof value === 'number') return { amount: value, coin: 'gp' };
+
+    const match = String(value).match(/(\d+)\s*([a-z]{2})/i);
+    return match ? {
+        amount: Number.parseInt(match[1]),
+        coin: match[2].toLowerCase()
+    } : { amount: 0, coin: 'gp' };
+}
+
+/**
+ * Process properties data
+ * @param {Array|Object} properties - The properties to process
+ * @returns {Array} - Processed properties
+ */
+function processProperties(properties) {
+    if (!properties) return [];
+    return Array.isArray(properties) ? properties : [properties];
+}
+
+/**
+ * Process attunement requirements
+ * @param {boolean|string} reqAttune - The attunement requirement
+ * @returns {Object} - Processed attunement data
+ */
+function processAttunement(reqAttune) {
+    if (!reqAttune) return false;
+    if (reqAttune === true) return true;
+    return {
+        required: true,
+        by: typeof reqAttune === 'string' ? reqAttune : null
+    };
+}
+
+/**
+ * Process ability score increases
+ * @param {Object} ability - The ability score data
+ * @returns {Object} - Processed ability score data
+ */
+function processAbilityScoreIncrease(ability) {
+    if (!ability) return null;
+
+    return ability.map(a => ({
+        scores: a.improve?.map(i => i.abilityScore) || [],
+        amount: a.improve?.[0]?.amount || 1,
+        mode: a.mode || 'fixed'
+    }));
+}
+
+/**
+ * Process speed data
+ * @param {Object|number} speed - The speed data
+ * @returns {Object} - Processed speed data
+ */
+function processSpeed(speed) {
+    if (typeof speed === 'number') return { walk: speed };
+    if (!speed) return { walk: 30 };
+
+    return Object.entries(speed).reduce((acc, [type, value]) => {
+        acc[type] = value === true ? 30 : value;
+        return acc;
+    }, {});
+}
+
+/**
+ * Process features data
+ * @param {Array} features - The features data
+ * @returns {Promise<Array>} - Processed features data
+ */
+async function processFeatures(features) {
+    if (!features) return [];
+
+    return Promise.all(features.map(async level => ({
+        level: level.level,
+        features: await Promise.all(level.features.map(async feature => ({
+            name: feature.name,
+            description: await processText(feature.entries)
+        })))
+    })));
+}
+
+/**
+ * Process spellcasting data
+ * @param {Object} spellcasting - The spellcasting data
+ * @returns {Object} - Processed spellcasting data
+ */
+function processSpellcasting(spellcasting) {
+    if (!spellcasting) return null;
+
+    return {
+        ability: spellcasting.ability,
+        progression: spellcasting.progression || 'full',
+        cantripProgression: spellcasting.cantripProgression || [0, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        spellsKnownProgression: spellcasting.spellsKnownProgression || null,
+        spellsKnownProgressionFixed: spellcasting.spellsKnownProgressionFixed || false,
+        spellsKnownProgressionType: spellcasting.spellsKnownProgressionType || null
+    };
+}
+
+/**
+ * Process traits data
+ * @param {Array} traits - The traits data
+ * @returns {Promise<Array>} - Processed traits data
+ */
+async function processTraits(traits) {
+    if (!traits) return [];
+
+    return Promise.all(traits.map(async trait => ({
+        name: trait.name,
+        description: await processText(trait.entries)
+    })));
+}
+
+/**
+ * Process spells data
+ * @param {Array} spells - The spells data
+ * @returns {Array} - Processed spells data
+ */
+function processSpells(spells) {
+    if (!spells) return [];
+
+    return spells.map(spell => ({
+        ability: spell.ability,
+        innate: Object.entries(spell.innate || {}).flatMap(([level, spellData]) => {
+            if (typeof spellData === 'object') {
+                return Object.entries(spellData).map(([uses, spellList]) => ({
+                    level: Number.parseInt(level),
+                    uses: uses === 'will' ? -1 : Number.parseInt(uses),
+                    spells: spellList
+                }));
+            }
+            return {
+                level: Number.parseInt(level),
+                uses: -1,
+                spells: spellData
+            };
+        })
+    }));
+}
+
+/**
+ * Process starting equipment data
+ * @param {Object} equipment - The starting equipment data
+ * @returns {Object} - Processed starting equipment data
+ */
+function processStartingEquipment(equipment) {
+    if (!equipment) return { default: [], choices: [] };
+
+    return {
+        default: equipment.default || [],
+        choices: equipment.choices?.map(choice => ({
+            count: choice.count || 1,
+            items: choice.items || []
+        })) || []
+    };
+}
+
+/**
+ * Process characteristics data
+ * @param {Object} entity - The entity containing characteristics data
+ * @returns {Promise<Object>} - Processed characteristics data
+ */
+async function processCharacteristics(entity) {
+    if (!entity.characteristics) return null;
+
+    return {
+        personalityTraits: await Promise.all((entity.characteristics.personalityTraits || []).map(processText)),
+        ideals: await Promise.all((entity.characteristics.ideals || []).map(processText)),
+        bonds: await Promise.all((entity.characteristics.bonds || []).map(processText)),
+        flaws: await Promise.all((entity.characteristics.flaws || []).map(processText))
+    };
+}
+
+/**
+ * Process pack contents
+ * @param {Array} items - The pack items data
+ * @returns {Promise<Array>} - Processed pack contents data
+ */
+async function processPackContents(items) {
+    if (!items) return [];
+
+    return Promise.all(items.map(async item => ({
+        name: item.name,
+        quantity: item.quantity || 1,
+        description: await processText(item.entries?.[0] || '')
+    })));
 }
 
 /**
@@ -627,48 +1222,26 @@ async function getRaces() {
 
 // Helper function to process race data
 async function processRaceData(race, isVariant = false) {
-    // Extract description from entries
-    let description = '';
-    const traits = [];
+    const description = race.entries ? await processText(race.entries[0]) : '';
 
-    if (race.entries) {
-        for (const entry of race.entries) {
-            if (entry.type === 'entries') {
-                if (entry.name) {
-                    traits.push({
-                        name: entry.name,
-                        description: Array.isArray(entry.entries)
-                            ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n')
-                            : await processText(entry.entries || '')
-                    });
-                } else {
-                    const entryText = Array.isArray(entry.entries)
-                        ? (await Promise.all(entry.entries.map(e => processText(e)))).join('\n\n')
-                        : await processText(entry.entries || '');
-                    if (!description) {
-                        description = entryText;
-                    }
-                }
-            }
-        }
-    }
+    const languages = race.languageProficiencies
+        ? race.languageProficiencies.flatMap(lang =>
+            lang ? Object.keys(lang).map(key => key.charAt(0).toUpperCase() + key.slice(1)) : []
+        )
+        : [];
 
     return {
         id: race.name.toLowerCase().replace(/\s+/g, '-'),
         name: race.name,
-        source: race.source || 'Unknown',
+        source: race.source || 'PHB',
         description: description || `${race.name} race`,
         ability: race.ability || [],
-        traits,
-        speed: typeof race.speed === 'number' ? race.speed :
-            (race.speed?.walk || 30),
-        size: Array.isArray(race.size) ? race.size[0] : race.size || 'M',
-        languages: race.languageProficiencies ? race.languageProficiencies.flatMap(lang =>
-            lang ? Object.keys(lang).map(key => key.charAt(0).toUpperCase() + key.slice(1)) : []
-        ) : [],
+        size: race.size || 'M',
+        speed: race.speed || 30,
+        languages,
         darkvision: race.darkvision || 0,
         resistances: race.resist || [],
-        isVariant
+        isVariant: isVariant
     };
 }
 

@@ -1,13 +1,9 @@
-// Remove UUID require and use window.electron
-// const { v4: uuidv4 } = require('uuid');
-
 // Character state
 let currentCharacter = {
     id: null,
     name: '',
     playerName: '',
-    race: '',
-    subrace: '',
+    race: null, // Will be initialized as RaceManager instance
     class: '',
     subclass: '',
     background: '',
@@ -21,42 +17,34 @@ let currentCharacter = {
         charisma: 10
     },
     abilityBonuses: {
-        strength: 0,
-        dexterity: 0,
-        constitution: 0,
-        intelligence: 0,
-        wisdom: 0,
-        charisma: 0
+        strength: [],
+        dexterity: [],
+        constitution: [],
+        intelligence: [],
+        wisdom: [],
+        charisma: []
     },
-    bonusSources: [],
+    size: 'M',
+    speed: { walk: 30 },
+    features: {
+        darkvision: 0,
+        resistances: new Set(),
+        traits: new Map()  // Map of trait name to { description, source }
+    },
     proficiencies: {
-        skills: [],
-        tools: [],
-        languages: ['Common'], // Default language
-        armor: [],
-        weapons: ['Simple Weapons'], // Default simple weapons proficiency
-        savingThrows: []
+        armor: new Set(),
+        weapons: new Set(),
+        tools: new Set(),
+        skills: new Set(),
+        languages: new Set(['Common']) // Default language
     },
-    proficiencySources: [
-        {
-            type: 'languages',
-            proficiency: 'Common',
-            source: 'Default'
-        },
-        {
-            type: 'weapons',
-            proficiency: 'Simple Weapons',
-            source: 'Default'
-        }
-    ],
-    optionalProficiencies: {
-        skills: { allowed: 0, selected: [] },
-        languages: { allowed: 0, selected: [] },
-        tools: { allowed: 0, selected: [] },
-        armor: { allowed: 0, selected: [] },
-        weapons: { allowed: 0, selected: [] }
+    proficiencySources: {
+        armor: new Map(),
+        weapons: new Map(),
+        tools: new Map(),
+        skills: new Map(),
+        languages: new Map([['Common', new Set(['Default'])]])
     },
-    savedOptionalProficiencies: null,
     height: '',
     weight: '',
     gender: '',
@@ -66,13 +54,87 @@ let currentCharacter = {
         armor: [],
         items: []
     },
-    racialTraits: [],
-    features: {
-        darkvision: 0,
-        speed: 30,
-        spells: []
+
+    // Methods for ability scores
+    getAbilityScore(ability) {
+        const base = this.abilityScores[ability] || 10;
+        const bonuses = this.abilityBonuses[ability] || [];
+        return base + bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
+    },
+
+    addAbilityBonus(ability, value, source) {
+        if (!this.abilityBonuses[ability]) {
+            this.abilityBonuses[ability] = [];
+        }
+        this.abilityBonuses[ability].push({ value, source });
+    },
+
+    clearAbilityBonuses(source) {
+        for (const ability in this.abilityBonuses) {
+            this.abilityBonuses[ability] = this.abilityBonuses[ability].filter(
+                bonus => bonus.source !== source
+            );
+        }
+    },
+
+    // Methods for proficiencies
+    addProficiency(type, proficiency, source) {
+        if (!this.proficiencies[type]) return;
+        this.proficiencies[type].add(proficiency);
+        if (!this.proficiencySources[type].has(proficiency)) {
+            this.proficiencySources[type].set(proficiency, new Set());
+        }
+        this.proficiencySources[type].get(proficiency).add(source);
+    },
+
+    clearProficiencies(source) {
+        for (const type in this.proficiencySources) {
+            for (const [prof, sources] of this.proficiencySources[type]) {
+                sources.delete(source);
+                if (sources.size === 0) {
+                    this.proficiencies[type].delete(prof);
+                    this.proficiencySources[type].delete(prof);
+                }
+            }
+        }
+    },
+
+    // Methods for languages
+    addLanguage(language, source) {
+        this.addProficiency('languages', language, source);
+    },
+
+    clearLanguages(source) {
+        this.clearProficiencies(source);
+    },
+
+    // Methods for resistances
+    addResistance(resistance, source) {
+        this.features.resistances.add(resistance);
+    },
+
+    clearResistances(source) {
+        // For now, just clear all resistances when source is removed
+        // TODO: Add source tracking for resistances
+        this.features.resistances.clear();
+    },
+
+    // Methods for traits
+    addTrait(name, description, source) {
+        this.features.traits.set(name, { description, source });
+    },
+
+    clearTraits(source) {
+        for (const [name, trait] of this.features.traits) {
+            if (trait.source === source) {
+                this.features.traits.delete(name);
+            }
+        }
     }
 };
+
+// Initialize RaceManager
+currentCharacter.race = new RaceManager(currentCharacter);
 
 // Track if there are unsaved changes
 const hasUnsavedChanges = {
@@ -81,6 +143,481 @@ const hasUnsavedChanges = {
 
 // Make currentCharacter available globally
 window.currentCharacter = currentCharacter;
+
+// Import core utilities
+import { EntityCard } from './core/ui/EntityCard.js';
+import { TooltipManager } from './core/ui/TooltipManager.js';
+import { ReferenceResolver } from './core/utils/ReferenceResolver.js';
+import { TextProcessor } from './core/utils/TextProcessor.js';
+
+// Import services
+import { RaceService } from './core/services/RaceService.js';
+import { ClassService } from './core/services/ClassService.js';
+import { SpellcastingService } from './core/services/SpellcastingService.js';
+
+// Import models
+import { Race } from './core/models/Race.js';
+import { Subrace } from './core/models/Subrace.js';
+import { Class } from './core/models/Class.js';
+import { Subclass } from './core/models/Subclass.js';
+import { Feature } from './core/models/Feature.js';
+import { Spell } from './core/models/Spell.js';
+
+// Initialize core systems
+const dataLoader = new DataLoader();
+const referenceResolver = new ReferenceResolver(dataLoader);
+const textProcessor = new TextProcessor(referenceResolver);
+const tooltipManager = TooltipManager.initialize();
+
+// Initialize services
+const raceService = new RaceService(dataLoader);
+const classService = new ClassService(dataLoader);
+const spellcastingService = new SpellcastingService(dataLoader);
+
+// Forward existing functions to new implementations
+function createCard(data) {
+    return new NewEntityCard(data).render();
+}
+
+function setupTooltips() {
+    return tooltipManager.initialize();
+}
+
+async function processText(text) {
+    return await textProcessor.processText(text);
+}
+
+async function resolveReference(ref) {
+    return await referenceResolver.resolveRef(ref);
+}
+
+// Forward existing spell-related functions to new implementations
+async function loadSpell(spellId) {
+    return await spellcastingService.loadSpell(spellId);
+}
+
+async function getSpellsForClass(classId, level = null) {
+    return await spellcastingService.getSpellsForClass(classId, level);
+}
+
+async function getSpellsForSubclass(classId, subclassId, level = null) {
+    return await spellcastingService.getSpellsForSubclass(classId, subclassId, level);
+}
+
+async function validateSpellForClass(spellId, classId, level) {
+    return await spellcastingService.validateSpellForClass(spellId, classId, level);
+}
+
+async function validateSpellComponents(spellId, hasComponent) {
+    return await spellcastingService.validateSpellComponents(spellId, hasComponent);
+}
+
+async function validateConcentration(spellId, activeSpells) {
+    return await spellcastingService.validateConcentration(spellId, activeSpells);
+}
+
+function calculateSpellSlots(classLevel, spellcastingType = 'full') {
+    return spellcastingService.calculateSpellSlots(classLevel, spellcastingType);
+}
+
+// Make core systems available globally
+window.dndDataLoader = dataLoader;
+window.dndReferenceResolver = referenceResolver;
+window.dndTextProcessor = textProcessor;
+window.raceService = raceService;
+window.classService = classService;
+window.spellcastingService = spellcastingService;
+
+// Initialize managers
+window.raceManager = new RaceManager(currentCharacter);
+
+// Forward existing race-related functions to new implementations
+async function loadRaces() {
+    return await raceService.getAvailableRaces();
+}
+
+async function loadSubraces(raceId) {
+    return await raceService.getAvailableSubraces(raceId);
+}
+
+async function getRace(raceId) {
+    return await raceService.loadRace(raceId);
+}
+
+async function getSubrace(subraceId, parentRaceId) {
+    return await raceService.loadSubrace(subraceId, parentRaceId);
+}
+
+/**
+ * Unified card system for displaying entities (races, classes, backgrounds, etc.)
+ */
+class EntityCard {
+    /**
+     * Create a new EntityCard
+     * @param {HTMLElement} container - The container element to render the card in
+     * @param {Object} entity - The processed entity data
+     * @param {Object} manager - The manager object for this entity type
+     */
+    constructor(container, entity, manager) {
+        this.container = container;
+        this.entity = entity;
+        this.manager = manager;
+    }
+
+    /**
+     * Render the card
+     * @returns {string} HTML string for the card
+     */
+    render() {
+        return `
+            <div class="entity-card ${this.entity.type}-card" data-id="${this.entity.id}">
+                <div class="card-header">
+                    <h4>${this.entity.name}</h4>
+                    ${this.renderHeaderExtras()}
+                </div>
+                <div class="card-body">
+                    ${this.renderBody()}
+                </div>
+                <div class="card-footer">
+                    ${this.renderFooter()}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render extra header content
+     * @returns {string} HTML string for extra header content
+     */
+    renderHeaderExtras() {
+        switch (this.entity.type) {
+            case 'pack':
+                return `<span class="quantity">×${this.entity.quantity || 1}</span>`;
+            case 'feat':
+                return this.entity.count > 1 ? `<span class="count">×${this.entity.count}</span>` : '';
+            case 'class':
+                return `<span class="level">Level ${currentCharacter.level}</span>`;
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Render the card body
+     * @returns {string} HTML string for the card body
+     */
+    renderBody() {
+        const description = this.entity.description ?
+            `<div class="description">${this.entity.description}</div>` : '';
+
+        switch (this.entity.type) {
+            case 'race':
+                return `
+                    ${description}
+                    <div class="race-details">
+                        <p>Size: ${this.entity.size}</p>
+                        ${this.renderSpeed(this.entity.speed)}
+                        ${this.renderAbilityScores(this.entity.ability)}
+                        ${this.renderTraits(this.entity.traits)}
+                        ${this.entity.features.darkvision ? `<p>Darkvision: ${this.entity.features.darkvision} feet</p>` : ''}
+                    </div>
+                `;
+            case 'class':
+                return `
+                    ${description}
+                    <div class="class-details">
+                        <p>Hit Dice: ${this.entity.hitDice}</p>
+                        ${this.renderProficiencies(this.entity.proficiencies)}
+                        ${this.renderFeatures(this.entity.features)}
+                        ${this.entity.spellcasting ? this.renderSpellcasting(this.entity.spellcasting) : ''}
+                    </div>
+                `;
+            case 'background':
+                return `
+                    ${description}
+                    <div class="background-details">
+                        ${this.renderProficiencies(this.entity.proficiencies)}
+                        ${this.renderCharacteristics(this.entity.characteristics)}
+                    </div>
+                `;
+            case 'feat':
+                return `
+                    ${description}
+                    ${this.entity.prerequisite ?
+                        `<div class="prerequisite">Prerequisite: ${this.entity.prerequisite}</div>` :
+                        ''}
+                    ${this.entity.ability ? this.renderAbilityScores(this.entity.ability) : ''}
+                `;
+            case 'item':
+            case 'equipment':
+                return `
+                    ${description}
+                    <div class="item-details">
+                        ${this.entity.value ? `<p>Value: ${this.entity.value.amount} ${this.entity.value.coin}</p>` : ''}
+                        ${this.entity.weight ? `<p>Weight: ${this.entity.weight} lb.</p>` : ''}
+                        ${this.entity.properties?.length ?
+                        `<p>Properties: ${this.entity.properties.join(', ')}</p>` : ''}
+                        ${this.entity.attunement ?
+                        `<p class="attunement">Requires Attunement${typeof this.entity.attunement === 'object' ?
+                            ` by ${this.entity.attunement.by}` : ''}</p>` : ''}
+                    </div>
+                `;
+            case 'pack':
+                return `
+                    ${description}
+                    <div class="pack-contents">
+                        ${this.renderPackContents()}
+                    </div>
+                `;
+            default:
+                return description;
+        }
+    }
+
+    /**
+     * Render the card footer
+     * @returns {string} HTML string for the card footer
+     */
+    renderFooter() {
+        return `
+            <div class="actions">
+                ${this.renderActions()}
+            </div>
+        `;
+    }
+
+    /**
+     * Render action buttons
+     * @returns {string} HTML string for action buttons
+     */
+    renderActions() {
+        switch (this.entity.type) {
+            case 'pack':
+                return `
+                    <button class="btn btn-sm btn-primary unpack-btn">Unpack</button>
+                    <button class="btn btn-sm btn-danger remove-btn">Remove</button>
+                `;
+            case 'item':
+            case 'equipment':
+                return `
+                    <button class="btn btn-sm btn-primary equip-btn">
+                        ${this.entity.equipped ? 'Unequip' : 'Equip'}
+                    </button>
+                    <button class="btn btn-sm btn-danger remove-btn">Remove</button>
+                `;
+            case 'feat':
+                return `
+                    <button class="btn btn-sm btn-danger remove-btn">Remove</button>
+                `;
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Render speed information
+     * @param {Object} speed - Speed data
+     * @returns {string} HTML string for speed information
+     */
+    renderSpeed(speed) {
+        return `
+            <div class="speed">
+                ${Object.entries(speed).map(([type, value]) =>
+            `<p>${type.charAt(0).toUpperCase() + type.slice(1)} Speed: ${value} feet</p>`
+        ).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render ability score information
+     * @param {Object} ability - Ability score data
+     * @returns {string} HTML string for ability score information
+     */
+    renderAbilityScores(ability) {
+        if (!ability) return '';
+
+        return `
+            <div class="ability-scores">
+                <h6>Ability Score Increase</h6>
+                <ul>
+                    ${ability.map(a => {
+            if (a.mode === 'fixed') {
+                return a.scores.map(score =>
+                    `<li>${score} +${a.amount}</li>`
+                ).join('');
+            }
+            return `<li>Choose ${a.scores.length} different abilities to increase by ${a.amount}</li>`;
+        }).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    /**
+     * Render proficiency information
+     * @param {Object} proficiencies - Proficiency data
+     * @returns {string} HTML string for proficiency information
+     */
+    renderProficiencies(proficiencies) {
+        if (!proficiencies) return '';
+
+        return `
+            <div class="proficiencies">
+                <h6>Proficiencies</h6>
+                <ul>
+                    ${proficiencies.armor.length ?
+                `<li><strong>Armor:</strong> ${proficiencies.armor.join(', ')}</li>` : ''}
+                    ${proficiencies.weapons.length ?
+                `<li><strong>Weapons:</strong> ${proficiencies.weapons.join(', ')}</li>` : ''}
+                    ${proficiencies.tools.length ?
+                `<li><strong>Tools:</strong> ${proficiencies.tools.join(', ')}</li>` : ''}
+                    ${proficiencies.languages.length ?
+                `<li><strong>Languages:</strong> ${proficiencies.languages.join(', ')}</li>` : ''}
+                    ${proficiencies.skills.choices.length ?
+                `<li><strong>Skills:</strong> Choose ${proficiencies.skills.choices[0].count} from ${proficiencies.skills.choices[0].from.join(', ')}</li>` : ''}
+                </ul>
+            </div>
+        `;
+    }
+
+    /**
+     * Render feature information
+     * @param {Array} features - Feature data
+     * @returns {string} HTML string for feature information
+     */
+    renderFeatures(features) {
+        if (!features?.length) return '';
+
+        return `
+            <div class="features">
+                <h6>Features</h6>
+                ${features.map(level => `
+                    <div class="feature-level">
+                        <h6>Level ${level.level}</h6>
+                        ${level.features.map(feature => `
+                            <div class="feature">
+                                <strong>${feature.name}:</strong>
+                                <div class="feature-description">${feature.description}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render spellcasting information
+     * @param {Object} spellcasting - Spellcasting data
+     * @returns {string} HTML string for spellcasting information
+     */
+    renderSpellcasting(spellcasting) {
+        return `
+            <div class="spellcasting">
+                <h6>Spellcasting</h6>
+                <p>Spellcasting Ability: ${spellcasting.ability}</p>
+                ${spellcasting.cantripProgression ?
+                `<p>Cantrips Known: ${spellcasting.cantripProgression[currentCharacter.level - 1]}</p>` : ''}
+                ${spellcasting.spellsKnownProgression ?
+                `<p>Spells Known: ${spellcasting.spellsKnownProgression[currentCharacter.level - 1]}</p>` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Render trait information
+     * @param {Array} traits - Trait data
+     * @returns {string} HTML string for trait information
+     */
+    renderTraits(traits) {
+        if (!traits?.length) return '';
+
+        return `
+            <div class="traits">
+                <h6>Traits</h6>
+                ${traits.map(trait => `
+                    <div class="trait">
+                        <strong>${trait.name}:</strong>
+                        <div class="trait-description">${trait.description}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render pack contents
+     * @returns {string} HTML string for pack contents
+     */
+    renderPackContents() {
+        if (!this.entity.contents?.length) return '';
+
+        return `
+            <h6>Contents</h6>
+            <ul>
+                ${this.entity.contents.map(item =>
+            `<li>${item.quantity || 1}× ${item.name}</li>`
+        ).join('')}
+            </ul>
+        `;
+    }
+
+    /**
+     * Render characteristics information
+     * @param {Object} characteristics - Characteristics data
+     * @returns {string} HTML string for characteristics information
+     */
+    renderCharacteristics(characteristics) {
+        if (!characteristics) return '';
+
+        return `
+            <div class="characteristics">
+                <h6>Characteristics</h6>
+                ${characteristics.personalityTraits?.length ? `
+                    <div class="characteristic-section">
+                        <strong>Personality Traits</strong>
+                        <ul>
+                            ${characteristics.personalityTraits.map(trait =>
+            `<li>${trait}</li>`
+        ).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${characteristics.ideals?.length ? `
+                    <div class="characteristic-section">
+                        <strong>Ideals</strong>
+                        <ul>
+                            ${characteristics.ideals.map(ideal =>
+            `<li>${ideal}</li>`
+        ).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${characteristics.bonds?.length ? `
+                    <div class="characteristic-section">
+                        <strong>Bonds</strong>
+                        <ul>
+                            ${characteristics.bonds.map(bond =>
+            `<li>${bond}</li>`
+        ).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${characteristics.flaws?.length ? `
+                    <div class="characteristic-section">
+                        <strong>Flaws</strong>
+                        <ul>
+                            ${characteristics.flaws.map(flaw =>
+            `<li>${flaw}</li>`
+        ).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+}
 
 // Initialize the application
 async function initializeCharacterApp() {
@@ -144,112 +681,18 @@ function setupFormListeners() {
 
 // Initialize build page
 async function initializeBuildPage() {
+    await initializeRaceSelection();
     await populateSelects();
     await calculateBonusesAndProficiencies();
     setupAbilityScores();
     setupProficiencies();
-
-    // Initialize skeleton details for race, class, and background
-    initializeSkeletonDetails();
-
-    // Add direct event listener for race select
-    const raceSelect = document.getElementById('raceSelect');
-    if (raceSelect) {
-        // Remove any existing event listeners by cloning the element
-        const oldElement = raceSelect;
-        const newElement = oldElement.cloneNode(true);
-        oldElement.parentNode.replaceChild(newElement, oldElement);
-
-        newElement.addEventListener('change', async function () {
-            const selectedRace = this.value;
-            currentCharacter.race = selectedRace;
-            currentCharacter.subrace = ''; // Reset subrace when race changes
-
-            // Update the subrace dropdown
-            await populateSubraces(selectedRace);
-
-            // Update race details
-            await updateRaceDetails(selectedRace, currentCharacter.subrace);
-
-            // Recalculate bonuses and update displays
-            await calculateBonusesAndProficiencies();
-            setupAbilityScores();
-            setupProficiencies();
-
-            // Show unsaved changes indicator
-            showUnsavedChangesIndicator();
-        });
-    }
-
-    // We don't need to add a direct event listener for subrace select anymore
-    // as it's now handled in the populateSubraces function
-
-    // Add direct event listener for class select
-    const classSelect = document.getElementById('classSelect');
-    if (classSelect) {
-        classSelect.addEventListener('change', async function () {
-            const selectedClass = this.value;
-            currentCharacter.class = selectedClass;
-            currentCharacter.subclass = ''; // Reset subclass when class changes
-
-            // Update the subclass dropdown
-            await populateSubclasses(selectedClass);
-
-            // Update class details
-            await updateClassDetails(selectedClass, '');
-
-            // Recalculate optional proficiencies and update proficiency display
-            await calculateOptionalProficiencies();
-            setupProficiencies();
-
-            // Show unsaved changes indicator
-            showUnsavedChangesIndicator();
-        });
-    }
-
-    // Add direct event listener for subclass select
-    const subclassSelect = document.getElementById('subclassSelect');
-    if (subclassSelect) {
-        subclassSelect.addEventListener('change', async function () {
-            const selectedSubclass = this.value;
-            currentCharacter.subclass = selectedSubclass;
-
-            // Update class details with subclass
-            await updateClassDetails(currentCharacter.class, selectedSubclass);
-
-            // Recalculate bonuses and update displays
-            await calculateBonusesAndProficiencies();
-            setupAbilityScores();
-            setupProficiencies();
-
-            // Show unsaved changes indicator
-            showUnsavedChangesIndicator();
-        });
-    }
-
-    // Add direct event listener for background select
-    const backgroundSelect = document.getElementById('backgroundSelect');
-    if (backgroundSelect) {
-        backgroundSelect.addEventListener('change', async function () {
-            const selectedBackground = this.value;
-            currentCharacter.background = selectedBackground;
-
-            // Update background details
-            await updateBackgroundDetails(selectedBackground);
-
-            // Recalculate optional proficiencies and update proficiency display
-            await calculateOptionalProficiencies();
-            setupProficiencies();
-
-            // Do not save automatically
-        });
-    }
+    setupOptionalProficiencies();
 
     if (currentCharacter.id) {
         await populateForm(currentCharacter);
     } else {
         // Initialize with empty race details to ensure consistent layout
-        await updateRaceDetails('', '');
+        await updateRaceDisplay();
         // Initialize with empty class details to ensure consistent layout
         await updateClassDetails('', '');
         // Initialize with empty background details to ensure consistent layout
@@ -633,35 +1076,30 @@ async function populateSubclasses(characterClass) {
 async function calculateBonusesAndProficiencies() {
     // Reset bonuses and proficiencies
     currentCharacter.abilityBonuses = {
-        strength: 0,
-        dexterity: 0,
-        constitution: 0,
-        intelligence: 0,
-        wisdom: 0,
-        charisma: 0
+        strength: [],
+        dexterity: [],
+        constitution: [],
+        intelligence: [],
+        wisdom: [],
+        charisma: []
     };
     currentCharacter.bonusSources = [];
 
     currentCharacter.proficiencies = {
-        skills: [],
-        tools: [],
-        languages: ['Common'], // Default language
-        armor: [],
-        weapons: ['Simple Weapons'], // Default simple weapons proficiency
+        skills: new Set(),
+        tools: new Set(),
+        languages: new Set(['Common']), // Default language
+        armor: new Set(),
+        weapons: new Set(),
         savingThrows: []
     };
-    currentCharacter.proficiencySources = [
-        {
-            type: 'languages',
-            proficiency: 'Common',
-            source: 'Default'
-        },
-        {
-            type: 'weapons',
-            proficiency: 'Simple Weapons',
-            source: 'Default'
-        }
-    ];
+    currentCharacter.proficiencySources = {
+        armor: new Map(),
+        weapons: new Map(),
+        tools: new Map(),
+        skills: new Map(),
+        languages: new Map([['Common', new Set(['Default'])]])
+    };
 
     // Initialize racial traits and features
     if (!currentCharacter.racialTraits) {
@@ -3285,3 +3723,252 @@ function setClassPlaceholderContent(classImage, classQuickDesc, classDetails) {
         </div>
     `;
 }
+
+/**
+ * Manages race-related functionality for a character
+ */
+// RaceManager class is defined in race-manager.js
+
+/**
+ * Initialize race selection
+ */
+async function initializeRaceSelection() {
+    const raceSelect = document.getElementById('raceSelect');
+    const subraceSelect = document.getElementById('subraceSelect');
+
+    if (!raceSelect || !subraceSelect) return;
+
+    try {
+        // Load races
+        const races = await window.dndDataLoader.loadRaces();
+
+        // Populate race select
+        raceSelect.innerHTML = `
+            <option value="">Choose a race...</option>
+            ${races.map(race => `
+                <option value="${race.id}">${race.name}</option>
+            `).join('')}
+        `;
+
+        // Handle race selection
+        raceSelect.addEventListener('change', async () => {
+            const raceId = raceSelect.value;
+
+            // Clear subrace selection
+            subraceSelect.innerHTML = '<option value="">Choose a subrace...</option>';
+            subraceSelect.disabled = true;
+
+            if (!raceId) {
+                // Clear race selection
+                await currentCharacter.race.setRace(null);
+                updateRaceDisplay();
+                return;
+            }
+
+            // Get selected race
+            const race = races.find(r => r.id === raceId);
+            if (!race) return;
+
+            // Update subrace options if available
+            if (race.subraces?.length > 0) {
+                subraceSelect.innerHTML = `
+                    <option value="">Choose a subrace...</option>
+                    ${race.subraces.map(subrace => `
+                        <option value="${subrace.id}">${subrace.name}</option>
+                    `).join('')}
+                `;
+                subraceSelect.disabled = false;
+            }
+
+            // Set race
+            await currentCharacter.race.setRace(raceId);
+            updateRaceDisplay();
+
+            // Show ability score choices if any
+            checkRaceAbilityChoices();
+        });
+
+        // Handle subrace selection
+        subraceSelect.addEventListener('change', async () => {
+            const raceId = raceSelect.value;
+            const subraceId = subraceSelect.value;
+
+            if (!raceId) return;
+
+            // Set race with subrace
+            await currentCharacter.race.setRace(raceId, subraceId);
+            updateRaceDisplay();
+
+            // Show ability score choices if any
+            checkRaceAbilityChoices();
+        });
+
+        // Initialize with current race if any
+        if (currentCharacter.race.selectedRace) {
+            const race = races.find(r => r.id === currentCharacter.race.selectedRace.id);
+            if (race) {
+                raceSelect.value = race.id;
+
+                if (race.subraces?.length > 0) {
+                    subraceSelect.innerHTML = `
+                        <option value="">Choose a subrace...</option>
+                        ${race.subraces.map(subrace => `
+                            <option value="${subrace.id}">${subrace.name}</option>
+                        `).join('')}
+                    `;
+                    subraceSelect.disabled = false;
+
+                    if (currentCharacter.race.selectedSubrace) {
+                        subraceSelect.value = currentCharacter.race.selectedSubrace.id;
+                    }
+                }
+            }
+            updateRaceDisplay();
+        }
+    } catch (error) {
+        console.error('Error initializing race selection:', error);
+        window.showNotification('Error loading races', 'danger');
+    }
+}
+
+/**
+ * Update race display
+ */
+async function updateRaceDisplay() {
+    const raceDetails = document.getElementById('raceDetails');
+    const raceQuickDesc = document.getElementById('raceQuickDesc');
+
+    if (!raceDetails || !raceQuickDesc) return;
+
+    try {
+        const race = currentCharacter.race.selectedRace;
+        if (!race) {
+            raceDetails.innerHTML = '<p class="text-muted">No race selected</p>';
+            raceQuickDesc.innerHTML = '';
+            return;
+        }
+
+        // Update quick description
+        raceQuickDesc.innerHTML = `
+            <h6>Quick Info</h6>
+            <p>${race.description || 'No description available.'}</p>
+        `;
+
+        // Create race card
+        const card = new EntityCard(raceDetails, race, currentCharacter.race);
+        raceDetails.innerHTML = card.render();
+
+        // Show subrace details if selected
+        if (currentCharacter.race.selectedSubrace) {
+            const subraceCard = new EntityCard(
+                raceDetails,
+                currentCharacter.race.selectedSubrace,
+                currentCharacter.race
+            );
+            raceDetails.innerHTML += subraceCard.render();
+        }
+    } catch (error) {
+        console.error('Error updating race display:', error);
+        window.showNotification('Error displaying race details', 'danger');
+    }
+}
+
+/**
+ * Check for and handle race ability score choices
+ */
+function checkRaceAbilityChoices() {
+    if (!currentCharacter.race.hasPendingChoices()) return;
+
+    const choices = currentCharacter.race.getPendingChoices();
+    for (const [source, choice] of Object.entries(choices)) {
+        showAbilityChoiceDialog(choice, source);
+    }
+}
+
+/**
+ * Show dialog for ability score choices
+ */
+function showAbilityChoiceDialog(choice, source) {
+    // Create modal dynamically
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'abilityChoiceModal';
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Choose Ability Scores</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Choose ${choice.count} abilities to increase by ${choice.amount}:</p>
+                    <form id="abilityChoiceForm">
+                        ${choice.from.map(ability => `
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                    name="ability" value="${ability}" id="ability_${ability}">
+                                <label class="form-check-label" for="ability_${ability}">
+                                    ${ability}
+                                </label>
+                            </div>
+                        `).join('')}
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="confirmAbilityChoices">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to document
+    document.body.appendChild(modal);
+
+    // Initialize Bootstrap modal
+    const modalInstance = new bootstrap.Modal(modal);
+
+    // Handle form submission
+    const form = modal.querySelector('#abilityChoiceForm');
+    const confirmBtn = modal.querySelector('#confirmAbilityChoices');
+
+    confirmBtn.addEventListener('click', () => {
+        const selected = Array.from(form.querySelectorAll('input:checked'))
+            .map(input => input.value);
+
+        if (selected.length !== choice.count) {
+            window.showNotification(
+                `Please select exactly ${choice.count} abilities`,
+                'warning'
+            );
+            return;
+        }
+
+        // Create choices object
+        const choices = {};
+        for (const ability of selected) {
+            choices[ability] = choice.amount;
+        }
+
+        // Apply choices
+        if (currentCharacter.race.applyAbilityChoices(choices, source)) {
+            modalInstance.hide();
+            modal.addEventListener('hidden.bs.modal', () => {
+                modal.remove();
+            });
+        }
+    });
+
+    // Show modal
+    modalInstance.show();
+}
+
+// Import class manager
+import { ClassManager } from './core/managers/ClassManager.js';
+import { SpellManager } from './core/managers/SpellManager.js';
+
+// Initialize managers
+currentCharacter.class = new ClassManager(currentCharacter);
+currentCharacter.spells = new SpellManager(currentCharacter);

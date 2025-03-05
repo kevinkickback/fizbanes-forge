@@ -95,17 +95,57 @@ function setupEventHandlers() {
 }
 ```
 
-## Implementation Order
-1. Add core data processing functions
-2. Add unified UI components
-3. Add unified CSS
-4. Update reference resolution
-5. Add tooltip system
-6. Test core functionality
-7. Test integration points
+## Parallel Structure Strategy
 
-## Overview
-Enhance the existing reference handling system in data-loader.js to better support 5e.tools references and tooltips, with unified data processing.
+### Directory Structure
+For this phase, implement the following directory structure alongside the existing files:
+```
+app/
+├── js/
+│   ├── core/           # New core module directory
+│   │   ├── data/       # Data processing and management
+│   │   │   └── DataLoader.js
+│   │   ├── ui/        # UI components
+│   │   │   ├── EntityCard.js
+│   │   │   └── TooltipManager.js
+│   │   └── utils/     # Utility functions
+│   │       ├── ReferenceResolver.js
+│   │       └── TextProcessor.js
+│   └── character.js   # Existing file (will gradually migrate)
+```
+
+### Migration Steps
+1. Create the new directory structure
+2. Move the EntityCard system to `core/ui/EntityCard.js`
+3. Move tooltip functionality to `core/ui/TooltipManager.js`
+4. Move data loading to `core/data/DataLoader.js`
+5. Move reference resolution to `core/utils/ReferenceResolver.js`
+6. Move text processing to `core/utils/TextProcessor.js`
+
+### Compatibility Layer
+In `character.js`, add forwarding functions to maintain backward compatibility:
+```javascript
+// Import new modules
+import { EntityCard } from './core/ui/EntityCard.js';
+import { TooltipManager } from './core/ui/TooltipManager.js';
+// ... other imports
+
+// Forward existing functions to new implementations
+function createCard(data) {
+    return new EntityCard(data).render();
+}
+
+function setupTooltips() {
+    return TooltipManager.initialize();
+}
+// ... other forwarding functions
+```
+
+### Testing Strategy
+1. Write tests for new module structure
+2. Ensure all existing functionality works through compatibility layer
+3. Add new tests for enhanced features
+4. Verify no regressions in existing features
 
 ## Implementation Steps
 

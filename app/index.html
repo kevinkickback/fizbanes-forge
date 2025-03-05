@@ -15,6 +15,9 @@
         <!-- Notification Container -->
         <div id="notificationContainer" class="notification-container"></div>
 
+        <!-- Tooltip Container -->
+        <div id="tooltipContainer" class="tooltip-container"></div>
+
         <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
@@ -43,6 +46,12 @@
                     <button class="nav-link" data-page="details">
                         <i class="fas fa-user"></i>
                         <span>Details</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-page="tests">
+                        <i class="fas fa-vial"></i>
+                        <span>Tests</span>
                     </button>
                 </li>
                 <li class="nav-item">
@@ -380,6 +389,80 @@
         </div>
     </template>
 
+    <template id="testsPage">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Test Suite</h5>
+            </div>
+            <div class="card-body">
+                <div class="test-controls mb-4">
+                    <h6>Phase 1: Core Reference System</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" data-test="entityCard">
+                            Test EntityCard
+                        </button>
+                        <button class="btn btn-primary" data-test="references">
+                            Test References
+                        </button>
+                        <button class="btn btn-primary" data-test="tooltips">
+                            Test Tooltips
+                        </button>
+                        <button class="btn btn-primary" data-test="runAll">
+                            Run All Phase 1 Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="test-controls mb-4">
+                    <h6>Phase 2: Race System</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" data-test="raceManager">
+                            Test Race Manager
+                        </button>
+                        <button class="btn btn-primary" data-test="raceData">
+                            Test Race Data
+                        </button>
+                        <button class="btn btn-primary" data-test="raceFeatures">
+                            Test Race Features
+                        </button>
+                        <button class="btn btn-primary" data-test="abilityChoices">
+                            Test Ability Choices
+                        </button>
+                        <button class="btn btn-primary" data-test="runAllPhase2">
+                            Run All Phase 2 Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="test-controls mb-4">
+                    <h6>Phase 3: Class System</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" data-test="classLoading">
+                            Test Class Loading
+                        </button>
+                        <button class="btn btn-primary" data-test="subclassLoading">
+                            Test Subclass Loading
+                        </button>
+                        <button class="btn btn-primary" data-test="spellcasting">
+                            Test Spellcasting
+                        </button>
+                        <button class="btn btn-primary" data-test="runAllPhase3">
+                            Run All Phase 3 Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="test-controls mb-4">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" data-test="runAllPhases">
+                            Run All Tests
+                        </button>
+                    </div>
+                </div>
+                <div id="testResults" class="test-results-container">
+                    <!-- Test results will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </template>
+
     <!-- New Character Modal -->
     <div class="modal fade" id="newCharacterModal" tabindex="-1" aria-labelledby="newCharacterModalLabel"
         aria-hidden="true">
@@ -432,7 +515,10 @@
     <script src="js/dnd-data.js"></script>
     <script src="js/data-loader.js"></script>
     <script src="js/utils.js"></script>
-    <script src="js/character.js"></script>
+    <script type="module" src="js/core/managers/RaceManager.js"></script>
+    <script type="module" src="js/core/ui/EntityCard.js"></script>
+    <script type="module" src="js/character.js"></script>
+    <script type="module" src="js/tests.js"></script>
     <script src="js/pdf-preview.js"></script>
 </body>
 
