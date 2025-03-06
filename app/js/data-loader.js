@@ -371,92 +371,20 @@ async function processText(text) {
  * @returns {Promise<Object>} - The processed entity data
  */
 async function processEntityData(entity, type, fluff = null) {
-    const processed = {
-        id: entity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        name: entity.name,
-        source: entity.source || 'PHB',
-        page: entity.page,
-        description: await processText(fluff?.entries?.[0] || ''),
-        type: type
-    };
+    // Generate a unique ID based on name and source
+    const id = entity.id || `${entity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(entity.source || 'phb').toLowerCase()}`;
 
-    // Add type-specific processing
-    switch (type) {
-        case 'item':
-            Object.assign(processed, {
-                value: processValue(entity.value),
-                weight: entity.weight || 0,
-                properties: processProperties(entity.property),
-                attunement: processAttunement(entity.reqAttune)
-            });
-            break;
-        case 'pack':
-            processed.contents = await processPackContents(entity.items);
-            break;
-        case 'background':
-            processed.proficiencies = processProficiencies(entity);
-            processed.characteristics = await processCharacteristics(entity);
-            break;
-        case 'feat':
-            processed.prerequisite = entity.prerequisite ? await processText(entity.prerequisite) : null;
-            processed.ability = processAbilityScoreIncrease(entity.ability);
-            processed.repeatable = entity.repeatable || false;
-            break;
-        case 'optfeature':
-            processed.prerequisite = entity.prerequisite ? await processText(entity.prerequisite) : null;
-            processed.featureType = entity.featureType || 'Unknown';
-            processed.className = entity.className || null;
-            processed.level = entity.level || null;
-            break;
-        case 'class':
-            Object.assign(processed, {
-                hitDice: entity.hd?.number && entity.hd?.faces ?
-                    `${entity.hd.number}d${entity.hd.faces}` : 'd10',
-                proficiencies: processProficiencies(entity),
-                startingEquipment: processStartingEquipment(entity.startingEquipment),
-                features: await processFeatures(entity.classFeatures),
-                spellcasting: processSpellcasting(entity.spellcasting),
-                subclasses: await Promise.all((entity.subclasses || []).map(async sc =>
-                    processEntityData(sc, 'subclass', fluff?.subclasses?.find(f =>
-                        f.name === sc.name && f.source === sc.source
-                    ))
-                ))
-            });
-            break;
-        case 'subclass':
-            Object.assign(processed, {
-                features: await processFeatures(entity.subclassFeatures),
-                spellcasting: processSpellcasting(entity.spellcasting)
-            });
-            break;
-        case 'race':
-            Object.assign(processed, {
-                size: Array.isArray(entity.size) ? entity.size[0] : entity.size || 'M',
-                speed: processSpeed(entity.speed),
-                ability: processAbilityScoreIncrease(entity.ability),
-                proficiencies: processProficiencies(entity),
-                traits: await processTraits(entity.traits),
-                features: {
-                    darkvision: entity.darkvision || 0,
-                    resistances: entity.resist || [],
-                    additionalSpells: processSpells(entity.additionalSpells)
-                },
-                subraces: await Promise.all((entity.subraces || []).map(async sr =>
-                    processEntityData(sr, 'subrace', fluff?.subraces?.find(f =>
-                        f.name === sr.name && f.source === sr.source
-                    ))
-                ))
-            });
-            break;
-        case 'subrace':
-            Object.assign(processed, {
-                parentRace: entity.parentRace,
-                ability: processAbilityScoreIncrease(entity.ability),
-                proficiencies: processProficiencies(entity),
-                traits: await processTraits(entity.traits)
-            });
-            break;
-    }
+    // Process the entity data
+    const processed = {
+        ...entity,
+        id,
+        type: type || 'unknown',
+        // Add fluff data if available
+        fluff: fluff ? {
+            entries: fluff.entries,
+            images: fluff.images
+        } : null
+    };
 
     return processed;
 }
@@ -899,17 +827,91 @@ async function loadItems() {
     }
 
     try {
-        const baseItems = await loadJsonFile('data/items-base.json');
-        const magicVariants = await loadJsonFile('data/magicvariants.json').catch(() => ({}));
-        const fluffData = await loadJsonFile('data/fluff-items.json').catch(() => ({}));
+        // Load all item-related data
+        const [baseItems, items, magicVariants, fluffData] = await Promise.all([
+            loadJsonFile('data/items-base.json'),
+            loadJsonFile('data/items.json'),
+            loadJsonFile('data/magicvariants.json').catch(() => ({})),
+            loadJsonFile('data/fluff-items.json').catch(() => ({}))
+        ]);
 
-        dataCache.items = {
-            base: baseItems,
-            magic: magicVariants,
-            fluff: fluffData
+        const processedItems = [];
+
+        // Helper function to process items from a collection
+        const processItemCollection = async (itemCollection, source = 'unknown') => {
+            // Convert to array if necessary
+            const itemArray = Array.isArray(itemCollection) ? itemCollection : Object.values(itemCollection);
+
+            for (const item of itemArray) {
+                try {
+                    // Skip items without a name
+                    if (!item.name) continue;
+
+                    const fluff = fluffData.itemFluff?.find(f =>
+                        f.name === item.name && f.source === item.source
+                    );
+
+                    const processed = await processEntityData(item, 'item', fluff);
+                    processedItems.push(processed);
+                } catch (err) {
+                    console.warn(`Error processing item ${item.name}:`, err);
+                }
+            }
         };
 
-        return dataCache.items;
+        // Process base items
+        if (baseItems.baseitem) {
+            await processItemCollection(baseItems.baseitem, 'base');
+        }
+
+        // Process items from items.json
+        if (items.item) {
+            await processItemCollection(items.item, 'item');
+        }
+
+        // Process magic variants
+        if (magicVariants.magicvariant) {
+            for (const variant of magicVariants.magicvariant) {
+                try {
+                    // Skip variants without a name
+                    if (!variant.name) continue;
+
+                    const fluff = fluffData.itemFluff?.find(f =>
+                        f.name === variant.name && f.source === variant.source
+                    );
+
+                    // Process the base variant
+                    const processed = await processEntityData({
+                        ...variant,
+                        magical: true,
+                        type: variant.type || 'MI'  // MI for magic items
+                    }, 'item', fluff);
+                    processedItems.push(processed);
+
+                    // Create individual entries for variants if required
+                    if (variant.requires && variant.requires.length > 0) {
+                        for (const req of variant.requires) {
+                            const variantItem = {
+                                ...variant,
+                                name: `${variant.name} (${req.type})`,
+                                parentName: variant.name,
+                                parentSource: variant.source,
+                                type: req.type,
+                                magical: true
+                            };
+                            const processedVariant = await processEntityData(variantItem, 'item', fluff);
+                            processedItems.push(processedVariant);
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Error processing variant ${variant.name}:`, err);
+                }
+            }
+        }
+
+        // Cache and return processed items
+        dataCache.items = processedItems;
+        return processedItems;
     } catch (error) {
         console.error('Error loading item data:', error);
         throw error;

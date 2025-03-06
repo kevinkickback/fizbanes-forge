@@ -87,8 +87,33 @@ export class Class {
 
     getSpellSlots(level) {
         if (!this.canCastSpells()) return {};
-        const progression = this.spellcasting.progression || [];
-        const levelData = progression.find(p => p.level === level);
-        return levelData?.slots || {};
+
+        // Use SpellcastingService for calculations
+        const spellcastingType = this.getSpellcastingType();
+        return window.spellcastingService.calculateSpellSlots(level, spellcastingType);
+    }
+
+    getSpellcastingType() {
+        if (!this.spellcasting) return null;
+
+        // Determine spellcasting type based on class
+        switch (this.name.toLowerCase()) {
+            case 'paladin':
+            case 'ranger':
+                return 'half';
+            case 'fighter': // Eldritch Knight
+            case 'rogue':  // Arcane Trickster
+                return this.subclass?.spellcasting ? 'third' : null;
+            case 'artificer':
+                return 'artificer';
+            case 'wizard':
+            case 'sorcerer':
+            case 'bard':
+            case 'cleric':
+            case 'druid':
+                return 'full';
+            default:
+                return null;
+        }
     }
 } 

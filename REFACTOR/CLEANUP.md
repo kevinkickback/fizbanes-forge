@@ -374,3 +374,118 @@ After all PHASEs are complete:
 2. Update all direct references to use new structure
 3. Archive original `character.js` for reference
 4. Update build process to use new structure 
+
+## Phase 4 Cleanup
+
+### In `character.js`
+
+1. **Equipment Management Functions**
+   - Remove `addItem` - replaced by `EquipmentManager.addItem`
+   - Remove `removeItem` - replaced by `EquipmentManager.removeItem`
+   - Remove `equipItem` - replaced by `EquipmentManager.equipItem`
+   - Remove `unequipItem` - replaced by `EquipmentManager.unequipItem`
+   - Remove `attuneItem` - replaced by `AttunementManager.attuneItem`
+   - Remove `unattuneItem` - replaced by `AttunementManager.unattuneItem`
+   - Remove `getEquippedItems` - replaced by `EquipmentManager.getEquippedItems`
+   - Remove `getAttunedItems` - replaced by `AttunementManager.getAttunedItems`
+   - Remove `getInventoryWeight` - replaced by `InventoryManager.getInventoryWeight`
+
+2. **Equipment Data Processing**
+   - Remove old equipment data validation code
+   - Remove equipment-specific feature processing
+   - Remove direct equipment feature application logic
+   - Remove equipment caching logic - now handled by `EquipmentService`
+   - Remove magic item processing - now handled by `MagicItemService`
+
+3. **New Module Integration**
+   - Verify all imports from `core/managers/EquipmentManager.js`
+   - Verify all imports from `core/managers/InventoryManager.js`
+   - Verify all imports from `core/managers/AttunementManager.js`
+   - Verify all imports from `core/services/EquipmentService.js`
+   - Verify all imports from `core/services/MagicItemService.js`
+   - Check all forwarding functions are properly implemented
+
+### In `data-loader.js`
+
+1. **Equipment Data Loading**
+   - Remove old equipment data loading functions - now in `EquipmentService`
+   - Remove equipment-specific data processing - now in `Item` models
+   - Remove individual equipment feature processors
+   - Remove equipment caching logic - now in `EquipmentService`
+   - Remove magic item loading - now in `MagicItemService`
+
+2. **Equipment Feature Processing**
+   - Remove individual equipment feature processors - now in `Item` models
+   - Remove equipment property processors - now in `Item` models
+   - Remove magic item processors - now in `MagicItemService`
+   - Remove attunement logic - now in `AttunementManager`
+
+### In `utils.js`
+
+1. **Equipment-Related Utilities**
+   - Remove old equipment validation functions
+   - Remove equipment-specific helper functions
+   - Remove deprecated equipment feature processing utilities
+   - Remove any equipment-specific caching utilities
+   - Remove magic item utilities
+
+### In HTML Templates
+
+1. **Equipment Selection UI**
+   - Remove old equipment selection event handlers
+   - Remove deprecated equipment UI update functions
+   - Clean up unused equipment-related data attributes
+   - Update to use new Equipment model methods
+   - Remove old magic item UI code
+
+### Notes
+- Before removing any code, verify that:
+  1. All tests for Phase 4 pass
+  2. The EquipmentManager fully handles all equipment-related functionality
+  3. Equipment selection and feature application work correctly
+  4. Magic item mechanics work as expected
+  5. The new Item models work as expected
+  6. EquipmentService properly manages equipment data and caching
+
+- Keep any code that:
+  1. Is still being used by unrefactored parts of the application
+  2. Provides backward compatibility for other features
+  3. Contains important documentation about equipment mechanics
+  4. Is required for the parallel structure strategy
+
+### Verification Steps
+1. Run all Phase 4 tests
+2. Test equipment selection UI functionality
+3. Verify equipment slot management
+4. Check magic item functionality
+5. Verify equipment feature application
+6. Test equipment-specific abilities
+7. Ensure no console errors after cleanup
+8. Verify all new module imports work
+9. Test EquipmentService caching
+10. Verify Item model functionality
+11. Test attunement system
+12. Verify inventory management
+
+### Parallel Structure Strategy
+1. **New Module Structure**
+   - Verify `core/managers/EquipmentManager.js` implementation
+   - Verify `core/managers/InventoryManager.js` implementation
+   - Verify `core/managers/AttunementManager.js` implementation
+   - Verify `core/services/EquipmentService.js` implementation
+   - Verify `core/services/MagicItemService.js` implementation
+   - Verify `core/models/Item.js` implementation
+   - Verify `core/models/Weapon.js` implementation
+   - Verify `core/models/Armor.js` implementation
+
+2. **Compatibility Layer**
+   - Verify all forwarding functions in `character.js`
+   - Test backward compatibility with existing code
+   - Check global namespace pollution
+   - Verify equipment service initialization
+
+### Testing Strategy
+1. Write tests for new equipment management modules
+2. Ensure existing equipment functionality works through compatibility layer
+3. Add new tests for enhanced equipment features
+4. Verify no regressions in existing equipment functionality 

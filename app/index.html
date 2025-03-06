@@ -265,26 +265,90 @@
 
     <template id="equipmentPage">
         <div class="row">
-            <div class="col-12 mb-4">
+            <!-- Starting Equipment -->
+            <div class="col-12 mb-4" id="startingEquipmentSection" style="display: none;">
                 <div class="card">
                     <div class="card-header py-2">
-                        <h5 class="mb-0">Weapons</h5>
+                        <h5 class="mb-0">Starting Equipment</h5>
                     </div>
                     <div class="card-body">
-                        <div class="equipment-list" id="weaponsList">
-                            <!-- Weapons will be populated dynamically -->
+                        <div class="starting-equipment-choices">
+                            <!-- Starting equipment choices will be populated dynamically -->
+                        </div>
+                        <div class="starting-equipment-preview mt-3">
+                            <!-- Preview of selected equipment will be shown here -->
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button class="btn btn-primary" id="confirmStartingEquipment">
+                                Confirm Equipment
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Inventory Management -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Inventory</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm" id="addItemBtn">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                            <span class="text-muted">
+                                Weight: <span id="inventoryWeight">0</span> / <span id="weightCapacity">0</span> lbs
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="inventory-list" id="inventoryList">
+                            <!-- Inventory items will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Packs -->
             <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header py-2">
-                        <h5 class="mb-0">Armor</h5>
+                        <h5 class="mb-0">Equipment Packs</h5>
                     </div>
                     <div class="card-body">
-                        <div class="equipment-list" id="armorList">
-                            <!-- Armor will be populated dynamically -->
+                        <div class="pack-list" id="packList">
+                            <!-- Equipment packs will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Slots -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0">Equipped Items</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="equipment-slots" id="equipmentSlots">
+                            <!-- Equipment slots will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attuned Items -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Attuned Items</h5>
+                        <span class="text-muted">
+                            <span id="attunedCount">0</span> / <span id="attunementLimit">3</span> items
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="attuned-items" id="attunedItems">
+                            <!-- Attuned items will be populated dynamically -->
                         </div>
                     </div>
                 </div>
@@ -450,6 +514,46 @@
                     </div>
                 </div>
                 <div class="test-controls mb-4">
+                    <h6>Phase 4: Equipment System</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" data-test="equipmentLoading">
+                            Test Equipment Loading
+                        </button>
+                        <button class="btn btn-primary" data-test="inventoryManagement">
+                            Test Inventory Management
+                        </button>
+                        <button class="btn btn-primary" data-test="equipmentSlots">
+                            Test Equipment Slots
+                        </button>
+                        <button class="btn btn-primary" data-test="attunement">
+                            Test Attunement
+                        </button>
+                        <button class="btn btn-primary" data-test="magicItems">
+                            Test Magic Items
+                        </button>
+                        <button class="btn btn-primary" data-test="runAllPhase4">
+                            Run All Phase 4 Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="test-controls mb-4">
+                    <h6>Phase 5: Equipment Packs and Starting Equipment</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" data-test="packLoading">
+                            Test Pack Loading
+                        </button>
+                        <button class="btn btn-primary" data-test="packManager">
+                            Test Pack Manager
+                        </button>
+                        <button class="btn btn-primary" data-test="startingEquipment">
+                            Test Starting Equipment
+                        </button>
+                        <button class="btn btn-primary" data-test="runAllPhase5">
+                            Run All Phase 5 Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="test-controls mb-4">
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" data-test="runAllPhases">
                             Run All Tests
@@ -510,13 +614,70 @@
         </div>
     </div>
 
+    <!-- Item Selection Modal -->
+    <div class="modal fade" id="itemSelectionModal" tabindex="-1" aria-labelledby="itemSelectionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemSelectionModalLabel">Add Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="itemSearchInput" placeholder="Search items...">
+                    </div>
+                    <div class="item-list" id="itemSearchResults">
+                        <!-- Search results will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pack Contents Modal -->
+    <div class="modal fade" id="packContentsModal" tabindex="-1" aria-labelledby="packContentsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="packContentsModalLabel">Pack Contents</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="pack-contents-list">
+                        <!-- Pack contents will be populated dynamically -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="unpackBtn">Unpack</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="assets/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/dnd-data.js"></script>
     <script src="js/data-loader.js"></script>
-    <script src="js/utils.js"></script>
-    <script type="module" src="js/core/managers/RaceManager.js"></script>
+    <!-- Core modules -->
+    <script type="module" src="js/core/data/DataLoader.js"></script>
     <script type="module" src="js/core/ui/EntityCard.js"></script>
+    <script type="module" src="js/core/ui/TooltipManager.js"></script>
+    <script type="module" src="js/core/managers/RaceManager.js"></script>
+    <script type="module" src="js/core/managers/EquipmentManager.js"></script>
+    <script type="module" src="js/core/managers/InventoryManager.js"></script>
+    <script type="module" src="js/core/managers/AttunementManager.js"></script>
+    <script type="module" src="js/core/managers/PackManager.js"></script>
+    <script type="module" src="js/core/managers/StartingEquipmentManager.js"></script>
+    <script type="module" src="js/core/services/ClassService.js"></script>
+    <script type="module" src="js/core/services/SpellcastingService.js"></script>
+    <script type="module" src="js/core/services/MagicItemService.js"></script>
+    <script type="module" src="js/core/services/PackService.js"></script>
+    <script type="module" src="js/core/services/EquipmentChoiceService.js"></script>
+    <!-- Main application modules -->
+    <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/character.js"></script>
     <script type="module" src="js/tests.js"></script>
     <script src="js/pdf-preview.js"></script>

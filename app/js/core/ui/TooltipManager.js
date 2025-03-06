@@ -3,10 +3,16 @@
  * Manages tooltip functionality for the D&D Character Creator
  */
 
+let instance = null;
+
 export class TooltipManager {
     constructor() {
+        if (instance) {
+            throw new Error('TooltipManager is a singleton. Use TooltipManager.getInstance() instead.');
+        }
         this.container = null;
         this.initialize();
+        instance = this;
     }
 
     initialize() {
@@ -89,10 +95,13 @@ export class TooltipManager {
         tooltip.classList.add('show');
     }
 
-    static initialize() {
-        if (!window.tooltipManager) {
-            window.tooltipManager = new TooltipManager();
+    static getInstance() {
+        if (!instance) {
+            instance = new TooltipManager();
         }
-        return window.tooltipManager;
+        return instance;
     }
-} 
+}
+
+// Export singleton instance
+export const tooltipManager = TooltipManager.getInstance(); 

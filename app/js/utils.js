@@ -1,14 +1,16 @@
 // Utility functions
 
+// Import the TooltipManager
+import { tooltipManager } from './core/ui/TooltipManager.js';
+
 // Initialize app namespace
-window.dndData = window.dndData || {};
-window.app = {
+const app = {
   currentPage: 'home',
   // Track last notification to prevent duplicates
   lastNotification: { message: '', type: '', timestamp: 0 },
   loadPage: (pageName) => {
     // Prevent navigation to character pages if no character is selected
-    if (['build', 'equipment', 'details'].includes(pageName) && (!currentCharacter || !currentCharacter.id)) {
+    if (['build', 'equipment', 'details'].includes(pageName) && (!window.currentCharacter || !window.currentCharacter.id)) {
       showNotification('Please select or create a character first', 'warning');
       return;
     }
@@ -34,7 +36,17 @@ window.app = {
           if (window.initializeBuildPage) window.initializeBuildPage();
           break;
         case 'equipment':
-          if (window.initializeEquipmentPage) window.initializeEquipmentPage();
+          // Use new equipment managers
+          if (window.currentCharacter) {
+            const equipmentManager = window.currentCharacter.equipmentManager;
+            const inventoryManager = window.currentCharacter.inventoryManager;
+            const attunementManager = window.currentCharacter.attunementManager;
+
+            // Initialize equipment page with new managers
+            if (window.initializeEquipmentPage) {
+              window.initializeEquipmentPage(equipmentManager, inventoryManager, attunementManager);
+            }
+          }
           break;
         case 'details':
           if (window.initializeDetailsPage) window.initializeDetailsPage();
@@ -51,10 +63,13 @@ window.app = {
       }
 
       // Update current page
-      window.app.currentPage = pageName;
+      app.currentPage = pageName;
     }
   }
 };
+
+// Export app object
+window.app = app;
 
 // Initialize settings page
 function initializeSettings() {
@@ -192,7 +207,7 @@ function initializeSettings() {
   });
 }
 
-// Make the settings initialization function available globally
+// Export settings initialization function
 window.initializeSettingsPage = initializeSettings;
 
 // Initialize the application
@@ -271,16 +286,25 @@ function initializeApp() {
       button.classList.add('active');
       // Load the page content
       const page = button.getAttribute('data-page');
-      window.app.loadPage(page);
+      app.loadPage(page);
     });
   }
 
   // Load initial page
-  window.app.loadPage('home');
+  app.loadPage('home');
 }
 
-// Wait for DOM content to be loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Export initialization function
+window.initializeApp = initializeApp;
+
+// Initialize tooltips and app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize tooltips first
+  tooltipManager.initialize();
+
+  // Then initialize the app
+  initializeApp();
+});
 
 // Show notification
 function showNotification(message, type = 'info') {
@@ -299,13 +323,13 @@ function showNotification(message, type = 'info') {
 
   // Prevent duplicate notifications within 1 second
   const now = Date.now();
-  const lastNotif = window.app.lastNotification;
+  const lastNotif = app.lastNotification;
   if (lastNotif.message === message && lastNotif.type === type && (now - lastNotif.timestamp) < 1000) {
     return; // Skip duplicate notification
   }
 
   // Update last notification
-  window.app.lastNotification = { message, type, timestamp: now };
+  app.lastNotification = { message, type, timestamp: now };
 
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
@@ -352,33 +376,23 @@ function validateRequiredFields(fields) {
   return true;
 }
 
-// Tooltip system has been moved to core/ui/TooltipManager.js
-// The following functions have been removed:
-// - setupTooltips
-// - handleTooltipMouseOver
-// - handleTooltipMouseOut
-// - handleTooltipMouseMove
-// - positionTooltip
+// Export to global scope for non-module scripts
+window.showNotification = showNotification;
+window.formatModifier = formatModifier;
+window.capitalizeWords = capitalizeWords;
+window.deepClone = deepClone;
+window.validateRequiredFields = validateRequiredFields;
+window.initializeSettingsPage = initializeSettings;
+window.initializeApp = initializeApp;
 
-// Initialize tooltips when DOM is ready
-document.addEventListener('DOMContentLoaded', setupTooltips);
-
-// Make tooltip functions available globally
-window.utils = window.utils || {};
-Object.assign(window.utils, {
-  setupTooltips,
-  handleTooltipMouseOver,
-  handleTooltipMouseOut,
-  handleTooltipMouseMove,
-  positionTooltip
-});
-
-// Export utilities
-window.utils = {
+// Export as ES module
+export {
+  app,
   showNotification,
   formatModifier,
   capitalizeWords,
   deepClone,
   validateRequiredFields,
-  initializeSettings
+  initializeSettings,
+  initializeApp
 };

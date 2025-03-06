@@ -1938,3 +1938,143 @@ body[data-current-page="details"] .floating-actions {
 	border: 1px solid var(--border-color);
 	color: var(--text-color);
 }
+
+/* Equipment System Styles */
+
+/* Equipment Grid */
+.equipment-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 1rem;
+	padding: 1rem;
+}
+
+/* Item Card */
+.item-card {
+	position: relative;
+	transition: transform 0.2s ease-in-out;
+}
+
+.item-card:hover {
+	transform: translateY(-2px);
+}
+
+.item-card .card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.item-card .quantity {
+	font-size: 0.9em;
+	color: var(--text-muted);
+	padding: 0.2em 0.5em;
+	background: var(--bg-light);
+	border-radius: 0.25rem;
+}
+
+.item-card .properties {
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color);
+}
+
+.item-card .properties p {
+	margin-bottom: 0.5rem;
+	font-size: 0.9em;
+}
+
+.item-card .card-footer {
+	background: transparent;
+	border-top: 1px solid var(--border-color);
+}
+
+.item-card .btn-group {
+	width: 100%;
+	display: flex;
+	gap: 0.5rem;
+}
+
+/* Equipment States */
+.item-card.equipped {
+	border-color: var(--primary);
+}
+
+.item-card.equipped .card-header {
+	background-color: var(--primary);
+	color: white;
+}
+
+.item-card.attuned {
+	border-color: var(--secondary);
+}
+
+.item-card.attuned .card-header {
+	background-color: var(--secondary);
+	color: white;
+}
+
+.item-card.equipped.attuned .card-header {
+	background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+/* Equipment Buttons */
+.item-card .btn {
+	flex: 1;
+	white-space: nowrap;
+}
+
+.item-card .btn.equipped,
+.item-card .btn.attuned {
+	opacity: 0.65;
+	cursor: not-allowed;
+}
+
+/* Equipment Tabs */
+.nav-tabs {
+	border-bottom: 1px solid var(--border-color);
+}
+
+.nav-tabs .nav-link {
+	color: var(--text-muted);
+	border: none;
+	border-bottom: 2px solid transparent;
+	padding: 0.5rem 1rem;
+}
+
+.nav-tabs .nav-link:hover {
+	color: var(--text-color);
+	border-color: var(--border-color);
+}
+
+.nav-tabs .nav-link.active {
+	color: var(--primary);
+	border-color: var(--primary);
+	background: transparent;
+}
+
+/* Equipment Sections */
+.equipment-section {
+	margin-bottom: 2rem;
+}
+
+.equipment-section:last-child {
+	margin-bottom: 0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+	.equipment-grid {
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	}
+
+	.item-card .btn-group {
+		flex-direction: column;
+	}
+}
+
+@media (max-width: 576px) {
+	.equipment-grid {
+		grid-template-columns: 1fr;
+	}
+}
