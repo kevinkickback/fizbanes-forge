@@ -1,7 +1,7 @@
 // Utility functions
 
 // Import the TooltipManager
-import { tooltipManager } from './core/ui/TooltipManager.js';
+import { tooltipManager } from './core/managers/TooltipManager.js';
 
 // Initialize app namespace
 const app = {
@@ -9,6 +9,7 @@ const app = {
   // Track last notification to prevent duplicates
   lastNotification: { message: '', type: '', timestamp: 0 },
   loadPage: (pageName) => {
+    console.log('loadPage called with:', pageName);
     // Prevent navigation to character pages if no character is selected
     if (['build', 'equipment', 'details'].includes(pageName) && (!window.currentCharacter || !window.currentCharacter.id)) {
       showNotification('Please select or create a character first', 'warning');
@@ -17,6 +18,7 @@ const app = {
 
     const pageContent = document.getElementById('pageContent');
     const template = document.getElementById(`${pageName}Page`);
+    console.log('Found template:', template ? 'yes' : 'no');
 
     if (template) {
       pageContent.innerHTML = '';
@@ -26,8 +28,11 @@ const app = {
       document.body.setAttribute('data-current-page', pageName);
 
       // Initialize page-specific functionality
+      console.log('Initializing page:', pageName);
       switch (pageName) {
         case 'home':
+          console.log('Home page - loadCharacters exists:', !!window.loadCharacters);
+          console.log('Home page - initializeCharacterApp exists:', !!window.initializeCharacterApp);
           if (window.loadCharacters) window.loadCharacters();
           // Reattach event listeners for the home page buttons
           if (window.initializeCharacterApp) window.initializeCharacterApp();
@@ -36,19 +41,30 @@ const app = {
           if (window.initializeBuildPage) window.initializeBuildPage();
           break;
         case 'equipment':
-          // Use new equipment managers
+          // Use existing equipment managers if they exist, only initialize if they don't
           if (window.currentCharacter) {
-            const equipmentManager = window.currentCharacter.equipmentManager;
-            const inventoryManager = window.currentCharacter.inventoryManager;
-            const attunementManager = window.currentCharacter.attunementManager;
+            if (!window.currentCharacter.equipmentManager) {
+              window.currentCharacter.equipmentManager = new EquipmentManager(window.currentCharacter);
+            }
+            if (!window.currentCharacter.inventoryManager) {
+              window.currentCharacter.inventoryManager = new InventoryManager(window.currentCharacter);
+            }
+            if (!window.currentCharacter.attunementManager) {
+              window.currentCharacter.attunementManager = new AttunementManager(window.currentCharacter);
+            }
 
-            // Initialize equipment page with new managers
+            // Initialize equipment page with existing managers
             if (window.initializeEquipmentPage) {
-              window.initializeEquipmentPage(equipmentManager, inventoryManager, attunementManager);
+              window.initializeEquipmentPage(
+                window.currentCharacter.equipmentManager,
+                window.currentCharacter.inventoryManager,
+                window.currentCharacter.attunementManager
+              );
             }
           }
           break;
         case 'details':
+          console.log('Details page - initializeDetailsPage exists:', !!window.initializeDetailsPage);
           if (window.initializeDetailsPage) window.initializeDetailsPage();
           break;
         case 'preview':
@@ -60,6 +76,17 @@ const app = {
         case 'tests':
           if (window.tests?.initialize) window.tests.initialize();
           break;
+        case 'tooltipTest':
+          // Initialize text processing for tooltip test page
+          const textProcessor = window.dndTextProcessor;
+          const elements = document.querySelectorAll('.tooltip-test-content p');
+          for (const element of elements) {
+            const originalText = element.innerHTML;
+            textProcessor.processText(originalText).then(processedText => {
+              element.innerHTML = processedText;
+            });
+          }
+          break;
       }
 
       // Update current page
@@ -70,6 +97,40 @@ const app = {
 
 // Export app object
 window.app = app;
+
+// Add function to update navigation state based on character selection
+function updateNavigation() {
+  // Check if currentCharacter exists and has an id using optional chaining
+  const hasCharacter = window.currentCharacter?.id != null;
+  const characterPages = ['build', 'equipment', 'details'];
+
+  // Get all navigation links
+  const navButtons = document.querySelectorAll('.nav-link');
+
+  // Update disabled state for character-specific pages
+  for (const button of navButtons) {
+    const page = button.getAttribute('data-page');
+    if (characterPages.includes(page)) {
+      if (hasCharacter) {
+        button.classList.remove('disabled');
+      } else {
+        button.classList.add('disabled');
+      }
+    }
+  }
+
+  // Update character actions visibility
+  const characterActions = document.getElementById('characterActions');
+  if (characterActions) {
+    characterActions.style.display = hasCharacter ? 'flex' : 'none';
+  }
+
+  // Log the current state for debugging
+  console.log('Navigation updated. Has character:', hasCharacter);
+}
+
+// Make updateNavigation available globally
+window.updateNavigation = updateNavigation;
 
 // Initialize settings page
 function initializeSettings() {
@@ -207,105 +268,6 @@ function initializeSettings() {
   });
 }
 
-// Export settings initialization function
-window.initializeSettingsPage = initializeSettings;
-
-// Initialize the application
-function initializeApp() {
-  // Check if all required scripts are loaded
-  if (!window.dndData) {
-    console.error('D&D data not loaded');
-    return;
-  }
-
-  // Add function to update navigation state based on character selection
-  function updateNavigation() {
-    // Check if currentCharacter exists and has an id using optional chaining
-    const hasCharacter = window.currentCharacter?.id != null;
-    const characterPages = ['build', 'equipment', 'details'];
-
-    // Get all navigation links
-    const navButtons = document.querySelectorAll('.nav-link');
-
-    // Update disabled state for character-specific pages
-    for (const button of navButtons) {
-      const page = button.getAttribute('data-page');
-      if (characterPages.includes(page)) {
-        if (hasCharacter) {
-          button.classList.remove('disabled');
-        } else {
-          button.classList.add('disabled');
-        }
-      }
-    }
-
-    // Log the current state for debugging
-    console.log('Navigation updated. Has character:', hasCharacter);
-  }
-
-  // Make updateNavigation available globally
-  window.updateNavigation = updateNavigation;
-
-  // Initialize floating action buttons
-  const saveBtn = document.getElementById('saveCharacter');
-  const previewBtn = document.getElementById('previewCharacter');
-
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      if (window.saveCharacter) window.saveCharacter();
-    });
-  }
-
-  if (previewBtn) {
-    previewBtn.addEventListener('click', () => {
-      if (window.generateCharacterSheet) window.generateCharacterSheet();
-    });
-  }
-
-  // Call updateNavigation initially
-  updateNavigation();
-
-  // Initialize navigation
-  const navButtons = document.querySelectorAll('.nav-link');
-  for (const button of navButtons) {
-    button.addEventListener('click', (e) => {
-      // Check if the button is disabled
-      if (button.classList.contains('disabled')) {
-        e.preventDefault();
-        e.stopPropagation();
-        showNotification('Please select or create a character first', 'warning');
-        return; // Exit early without applying active class or loading page
-      }
-
-      // Only proceed with navigation if the button is not disabled
-      // Remove active class from all buttons
-      for (const btn of navButtons) {
-        btn.classList.remove('active');
-      }
-      // Add active class to clicked button
-      button.classList.add('active');
-      // Load the page content
-      const page = button.getAttribute('data-page');
-      app.loadPage(page);
-    });
-  }
-
-  // Load initial page
-  app.loadPage('home');
-}
-
-// Export initialization function
-window.initializeApp = initializeApp;
-
-// Initialize tooltips and app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize tooltips first
-  tooltipManager.initialize();
-
-  // Then initialize the app
-  initializeApp();
-});
-
 // Show notification
 function showNotification(message, type = 'info') {
   const notificationContainer = document.getElementById('notificationContainer');
@@ -376,6 +338,57 @@ function validateRequiredFields(fields) {
   return true;
 }
 
+// Setup form listeners
+function setupFormListeners() {
+  document.addEventListener('change', (e) => {
+    const target = e.target;
+    if (target.matches('#characterName, #playerName, #height, #weight, #gender, #backstory, #backgroundSelect')) {
+      updateCharacterField(e);
+    }
+  });
+}
+
+// Update character field when form changes
+function updateCharacterField(event) {
+  if (!window.currentCharacter) return;
+
+  const field = event.target.id;
+  const value = event.target.value;
+
+  // Update the character object
+  if (field === 'characterName') {
+    window.currentCharacter.name = value;
+    // Update character name in UI if displayed
+    const characterNameDisplay = document.querySelector('.character-card.selected .card-title');
+    if (characterNameDisplay) {
+      characterNameDisplay.textContent = value;
+    }
+  } else {
+    window.currentCharacter[field] = value;
+  }
+
+  // Mark changes as unsaved
+  markUnsavedChanges();
+
+  // Log the update
+  console.log(`Updated ${field} to:`, value);
+}
+
+// Track unsaved changes
+function markUnsavedChanges() {
+  const indicator = document.getElementById('unsavedChangesIndicator');
+  if (indicator) {
+    indicator.style.display = 'inline-block';
+  }
+}
+
+function clearUnsavedChanges() {
+  const indicator = document.getElementById('unsavedChangesIndicator');
+  if (indicator) {
+    indicator.style.display = 'none';
+  }
+}
+
 // Export to global scope for non-module scripts
 window.showNotification = showNotification;
 window.formatModifier = formatModifier;
@@ -384,15 +397,24 @@ window.deepClone = deepClone;
 window.validateRequiredFields = validateRequiredFields;
 window.initializeSettingsPage = initializeSettings;
 window.initializeApp = initializeApp;
+window.setupFormListeners = setupFormListeners;
+window.updateCharacterField = updateCharacterField;
+window.markUnsavedChanges = markUnsavedChanges;
+window.clearUnsavedChanges = clearUnsavedChanges;
 
 // Export as ES module
 export {
   app,
+  updateNavigation,
   showNotification,
   formatModifier,
   capitalizeWords,
   deepClone,
   validateRequiredFields,
   initializeSettings,
-  initializeApp
+  initializeApp,
+  setupFormListeners,
+  updateCharacterField,
+  markUnsavedChanges,
+  clearUnsavedChanges
 };

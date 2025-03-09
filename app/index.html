@@ -8,6 +8,7 @@
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
     <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/tooltip.css" />
 </head>
 
 <body>
@@ -49,12 +50,6 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" data-page="tests">
-                        <i class="fas fa-vial"></i>
-                        <span>Tests</span>
-                    </button>
-                </li>
-                <li class="nav-item">
                     <button class="nav-link" data-page="settings">
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
@@ -82,10 +77,6 @@
                         <span>Save</span>
                     </button>
                 </div>
-                <button class="btn btn-primary" id="previewCharacter">
-                    <i class="fas fa-file-pdf"></i>
-                    <span>Preview</span>
-                </button>
             </div>
         </main>
     </div>
@@ -203,25 +194,19 @@
                                 <div class="background-selectors">
                                     <div class="background-select-container">
                                         <select class="form-select" id="backgroundSelect">
-                                            <!-- Options will be populated dynamically -->
+                                            <option value="">Choose a background...</option>
                                         </select>
                                     </div>
-                                </div>
-                                <div class="background-content-container">
-                                    <div class="background-quick-desc" id="backgroundQuickDesc">
-                                        <!-- Quick description will be added here -->
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="background-image-container">
-                                <div class="background-image" id="backgroundImage">
-                                    <!-- Background image will be set dynamically -->
-                                    <i class="fas fa-user-circle placeholder-icon"></i>
                                 </div>
                             </div>
                         </div>
                         <div class="background-content-container">
-                            <div id="backgroundDetails"></div>
+                            <div id="backgroundDetails">
+                                <!-- Background details will be rendered by EntityCard -->
+                            </div>
+                            <div id="backgroundCharacteristics">
+                                <!-- Characteristics will be rendered by CharacteristicManager -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -256,6 +241,45 @@
                         </div>
                         <div class="proficiency-notes-container mt-3" id="proficiencyNotes">
                             <!-- Proficiency notes will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feats -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Feats</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm" id="addFeatBtn">
+                                <i class="fas fa-plus"></i> Add Feat
+                            </button>
+                            <span class="text-muted">
+                                <span id="featCount">0</span> / <span id="maxFeats">0</span> feats
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="feat-list" id="featList">
+                            <!-- Feats will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional Features -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Optional Features</h5>
+                        <button class="btn btn-primary btn-sm" id="addFeatureBtn">
+                            <i class="fas fa-plus"></i> Add Feature
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="feature-list" id="featureList">
+                            <!-- Optional features will be populated dynamically -->
                         </div>
                     </div>
                 </div>
@@ -416,9 +440,6 @@
         <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Character Sheet Preview</h5>
-                <button class="btn btn-primary" id="downloadPDF">
-                    <i class="fas fa-download"></i> Download PDF
-                </button>
             </div>
             <div class="card-body">
                 <div class="pdf-preview" id="pdfPreview">
@@ -453,115 +474,36 @@
         </div>
     </template>
 
-    <template id="testsPage">
+    <!-- Add this new template before the closing body tag -->
+    <template id="tooltipTestPage">
         <div class="card">
-            <div class="card-header py-2">
-                <h5 class="mb-0">Test Suite</h5>
+            <div class="card-header">
+                <h5 class="mb-0">Tooltip Test Page</h5>
             </div>
             <div class="card-body">
-                <div class="test-controls mb-4">
-                    <h6>Phase 1: Core Reference System</h6>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-primary" data-test="entityCard">
-                            Test EntityCard
-                        </button>
-                        <button class="btn btn-primary" data-test="references">
-                            Test References
-                        </button>
-                        <button class="btn btn-primary" data-test="tooltips">
-                            Test Tooltips
-                        </button>
-                        <button class="btn btn-primary" data-test="runAll">
-                            Run All Phase 1 Tests
-                        </button>
-                    </div>
-                </div>
-                <div class="test-controls mb-4">
-                    <h6>Phase 2: Race System</h6>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-primary" data-test="raceManager">
-                            Test Race Manager
-                        </button>
-                        <button class="btn btn-primary" data-test="raceData">
-                            Test Race Data
-                        </button>
-                        <button class="btn btn-primary" data-test="raceFeatures">
-                            Test Race Features
-                        </button>
-                        <button class="btn btn-primary" data-test="abilityChoices">
-                            Test Ability Choices
-                        </button>
-                        <button class="btn btn-primary" data-test="runAllPhase2">
-                            Run All Phase 2 Tests
-                        </button>
-                    </div>
-                </div>
-                <div class="test-controls mb-4">
-                    <h6>Phase 3: Class System</h6>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-primary" data-test="classLoading">
-                            Test Class Loading
-                        </button>
-                        <button class="btn btn-primary" data-test="subclassLoading">
-                            Test Subclass Loading
-                        </button>
-                        <button class="btn btn-primary" data-test="spellcasting">
-                            Test Spellcasting
-                        </button>
-                        <button class="btn btn-primary" data-test="runAllPhase3">
-                            Run All Phase 3 Tests
-                        </button>
-                    </div>
-                </div>
-                <div class="test-controls mb-4">
-                    <h6>Phase 4: Equipment System</h6>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-primary" data-test="equipmentLoading">
-                            Test Equipment Loading
-                        </button>
-                        <button class="btn btn-primary" data-test="inventoryManagement">
-                            Test Inventory Management
-                        </button>
-                        <button class="btn btn-primary" data-test="equipmentSlots">
-                            Test Equipment Slots
-                        </button>
-                        <button class="btn btn-primary" data-test="attunement">
-                            Test Attunement
-                        </button>
-                        <button class="btn btn-primary" data-test="magicItems">
-                            Test Magic Items
-                        </button>
-                        <button class="btn btn-primary" data-test="runAllPhase4">
-                            Run All Phase 4 Tests
-                        </button>
-                    </div>
-                </div>
-                <div class="test-controls mb-4">
-                    <h6>Phase 5: Equipment Packs and Starting Equipment</h6>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-primary" data-test="packLoading">
-                            Test Pack Loading
-                        </button>
-                        <button class="btn btn-primary" data-test="packManager">
-                            Test Pack Manager
-                        </button>
-                        <button class="btn btn-primary" data-test="startingEquipment">
-                            Test Starting Equipment
-                        </button>
-                        <button class="btn btn-primary" data-test="runAllPhase5">
-                            Run All Phase 5 Tests
-                        </button>
-                    </div>
-                </div>
-                <div class="test-controls mb-4">
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" data-test="runAllPhases">
-                            Run All Tests
-                        </button>
-                    </div>
-                </div>
-                <div id="testResults" class="test-results-container">
-                    <!-- Test results will be displayed here -->
+                <div class="tooltip-test-content">
+                    <h3>Items</h3>
+                    <p>This is a {@item Thieves' Tools|PHB|p154} used by rogues.</p>
+
+                    <h3>Spells</h3>
+                    <p>The wizard cast {@spell light} to illuminate the dark cave.</p>
+                    <p>The cleric prepared {@spell cure wounds} and {@spell bless} for the day.</p>
+
+                    <h3>Classes</h3>
+                    <p>The {@class Fighter} stood ready with their weapon.</p>
+                    <p>A {@class Wizard} studied their spellbook intently.</p>
+
+                    <h3>Races</h3>
+                    <p>The {@race Dwarf} mined deep in the mountains.</p>
+                    <p>A {@race Elf} moved silently through the forest.</p>
+
+                    <h3>Actions</h3>
+                    <p>The warrior used the {@action Dodge} action.</p>
+                    <p>The rogue attempted to {@action Hide}.</p>
+
+                    <h3>Conditions</h3>
+                    <p>The monster became {@condition poisoned}.</p>
+                    <p>The warrior was {@condition prone}.</p>
                 </div>
             </div>
         </div>
@@ -657,30 +599,75 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Feat Selection Modal -->
+    <div class="modal fade" id="featSelectionModal" tabindex="-1" aria-labelledby="featSelectionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="featSelectionModalLabel">Add Feat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="featSearchInput" placeholder="Search feats...">
+                    </div>
+                    <div class="feat-search-results" id="featSearchResults">
+                        <!-- Search results will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional Feature Selection Modal -->
+    <div class="modal fade" id="featureSelectionModal" tabindex="-1" aria-labelledby="featureSelectionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="featureSelectionModalLabel">Add Optional Feature</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="featureSearchInput"
+                            placeholder="Search features...">
+                    </div>
+                    <div class="feature-search-results" id="featureSearchResults">
+                        <!-- Search results will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utils -->
+    <script type="module" src="js/core/utils/DataLoader.js"></script>
+    <script type="module" src="js/core/utils/TextProcessor.js"></script>
+    <script type="module" src="js/core/utils/ReferenceResolver.js"></script>
     <script src="assets/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/dnd-data.js"></script>
-    <script src="js/data-loader.js"></script>
-    <!-- Core modules -->
-    <script type="module" src="js/core/data/DataLoader.js"></script>
-    <script type="module" src="js/core/ui/EntityCard.js"></script>
-    <script type="module" src="js/core/ui/TooltipManager.js"></script>
-    <script type="module" src="js/core/managers/RaceManager.js"></script>
-    <script type="module" src="js/core/managers/EquipmentManager.js"></script>
-    <script type="module" src="js/core/managers/InventoryManager.js"></script>
-    <script type="module" src="js/core/managers/AttunementManager.js"></script>
+
+    <!-- Managers -->
+    <script type="module" src="js/core/managers/PrerequisiteManager.js"></script>
+    <script type="module" src="js/core/managers/ProficiencyManager.js"></script>
+    <script type="module" src="js/core/managers/MagicItemManager.js"></script>
     <script type="module" src="js/core/managers/PackManager.js"></script>
     <script type="module" src="js/core/managers/StartingEquipmentManager.js"></script>
-    <script type="module" src="js/core/services/ClassService.js"></script>
-    <script type="module" src="js/core/services/SpellcastingService.js"></script>
-    <script type="module" src="js/core/services/MagicItemService.js"></script>
-    <script type="module" src="js/core/services/PackService.js"></script>
-    <script type="module" src="js/core/services/EquipmentChoiceService.js"></script>
+    <script type="module" src="js/core/managers/EquipmentManager.js"></script>
+    <script type="module" src="js/core/managers/CharacteristicManager.js"></script>
+    <script type="module" src="js/core/managers/FeatManager.js"></script>
+    <script type="module" src="js/core/managers/SpellManager.js"></script>
+    <script type="module" src="js/core/managers/RaceManager.js"></script>
+    <script type="module" src="js/core/managers/ClassManager.js"></script>
+    <script type="module" src="js/core/managers/BackgroundManager.js"></script>
+    <script type="module" src="js/core/managers/OptionalFeatureManager.js"></script>
+    <script type="module" src="js/core/managers/InventoryManager.js"></script>
+    <script type="module" src="js/core/managers/AttunementManager.js"></script>
+
     <!-- Main application modules -->
+    <script type="module" src="js/core/utils/Initialize.js"></script>
     <script type="module" src="js/utils.js"></script>
-    <script type="module" src="js/character.js"></script>
-    <script type="module" src="js/tests.js"></script>
-    <script src="js/pdf-preview.js"></script>
 </body>
 
 </html>
