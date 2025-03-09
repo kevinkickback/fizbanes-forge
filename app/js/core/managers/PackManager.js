@@ -10,6 +10,94 @@ export class PackManager {
     constructor(character) {
         this.character = character;
         this.inventoryManager = character.inventoryManager || new InventoryManager(character);
+        this.cache = new Map(); // Cache for loaded packs
+    }
+
+    /**
+     * Load all available packs
+     * @returns {Promise<Array<Pack>>} Array of available packs
+     */
+    async loadPacks() {
+        try {
+            const items = await window.dndDataLoader.loadItems();
+            const packs = items.filter(item => item.type === 'pack')
+                .map(packData => new Pack(packData));
+            return packs;
+        } catch (error) {
+            console.error('Error loading packs:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get a specific pack by ID
+     * @param {string} packId - ID of the pack to get
+     * @returns {Promise<Pack|null>} Pack object or null if not found
+     */
+    async getPack(packId) {
+        try {
+            // Check cache first
+            if (this.cache.has(packId)) {
+                return this.cache.get(packId);
+            }
+
+            const items = await window.dndDataLoader.loadItems();
+            const packData = items.find(item => item.id === packId && item.type === 'pack');
+            if (!packData) return null;
+
+            const pack = new Pack(packData);
+            this.cache.set(packId, pack);
+            return pack;
+        } catch (error) {
+            console.error('Error getting pack:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get all packs that contain a specific item
+     * @param {string} itemId - ID of the item to search for
+     * @returns {Promise<Array<Pack>>} Array of packs containing the item
+     */
+    async getPacksContainingItem(itemId) {
+        try {
+            const packs = await this.loadPacks();
+            return packs.filter(pack => pack.containsItem(itemId));
+        } catch (error) {
+            console.error('Error searching packs:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get the most cost-effective pack for a set of items
+     * @param {Array<string>} itemIds - Array of item IDs needed
+     * @returns {Promise<Pack|null>} Most cost-effective pack or null if none found
+     */
+    async findBestPackForItems(itemIds) {
+        try {
+            const packs = await this.loadPacks();
+            let bestPack = null;
+            let bestValue = Number.POSITIVE_INFINITY;
+
+            for (const pack of packs) {
+                // Count how many needed items are in this pack
+                const containedItems = itemIds.filter(id => pack.containsItem(id));
+                if (containedItems.length === 0) continue;
+
+                // Calculate value per needed item
+                const valuePerItem = pack.totalValue / containedItems.length;
+                if (valuePerItem < bestValue) {
+                    bestValue = valuePerItem;
+                    bestPack = pack;
+                }
+            }
+
+            return bestPack;
+        } catch (error) {
+            console.error('Error finding best pack:', error);
+            return null;
+        }
     }
 
     /**
@@ -19,11 +107,9 @@ export class PackManager {
      */
     async addPack(packId) {
         try {
-            const items = await window.dndDataLoader.loadItems();
-            const packData = items.find(i => i.id === packId && i.type === 'pack');
-            if (!packData) return false;
+            const pack = await this.getPack(packId);
+            if (!pack) return false;
 
-            const pack = new Pack(packData);
             return await this.inventoryManager.addItem(pack);
         } catch (error) {
             console.error('Error adding pack:', error);
@@ -112,5 +198,12 @@ export class PackManager {
         return this.getPacks().reduce((total, pack) => {
             return total + pack.totalWeight;
         }, 0);
+    }
+
+    /**
+     * Clear the pack cache
+     */
+    clearCache() {
+        this.cache.clear();
     }
 } 

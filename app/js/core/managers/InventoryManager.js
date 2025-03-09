@@ -1,8 +1,8 @@
 export class InventoryManager {
-    constructor(character) {
+    constructor(character, parent) {
         this.character = character;
         this.inventory = new Map();
-        this.equipmentService = window.equipmentService;
+        this.parent = parent; // Reference to parent EquipmentManager
     }
 
     /**
@@ -14,7 +14,7 @@ export class InventoryManager {
     async addItem(itemId, quantity = 1) {
         try {
             // Load items if not already loaded
-            const items = await this.equipmentService.loadItems();
+            const items = await this.parent.loadItems();
             if (!items || items.length === 0) {
                 console.error('No items loaded');
                 return false;

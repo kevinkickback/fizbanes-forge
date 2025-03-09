@@ -31,8 +31,8 @@ contextBridge.exposeInMainWorld("electron", {
 
 // Expose character data storage functions
 contextBridge.exposeInMainWorld("characterStorage", {
-  saveCharacter: (character) => {
-    return ipcRenderer.invoke("saveCharacter", character);
+  saveCharacter: (characterData) => {
+    return ipcRenderer.invoke("saveCharacter", characterData);
   },
   loadCharacters: () => {
     return ipcRenderer.invoke("loadCharacters");
@@ -45,9 +45,6 @@ contextBridge.exposeInMainWorld("characterStorage", {
   },
   importCharacter: () => {
     return ipcRenderer.invoke("importCharacter");
-  },
-  generatePDF: (characterData) => {
-    return ipcRenderer.invoke("generatePDF", characterData);
   },
   openFile: (filePath) => ipcRenderer.invoke("openFile", filePath),
   setSavePath: (path) => {

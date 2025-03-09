@@ -268,6 +268,332 @@ function initializeSettings() {
   });
 }
 
+// Export settings initialization function
+window.initializeSettingsPage = initializeSettings;
+
+// Setup ability scores
+function setupAbilityScores() {
+  // Get ability score inputs
+  const abilityScores = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
+  abilityScores.forEach(ability => {
+    const input = document.getElementById(`${ability}Score`);
+    if (input) {
+      // Remove any existing listeners
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+
+      // Add new listener
+      newInput.addEventListener('change', (e) => {
+        if (window.currentCharacter) {
+          window.currentCharacter.abilityScores = window.currentCharacter.abilityScores || {};
+          window.currentCharacter.abilityScores[ability] = parseInt(e.target.value) || 0;
+          markUnsavedChanges();
+        }
+      });
+
+      // Set initial value if character exists
+      if (window.currentCharacter?.abilityScores?.[ability]) {
+        newInput.value = window.currentCharacter.abilityScores[ability];
+      }
+    }
+  });
+}
+
+// Setup proficiencies
+function setupProficiencies() {
+  // Get proficiency checkboxes
+  const proficiencyTypes = ['skills', 'tools', 'weapons', 'armor'];
+
+  proficiencyTypes.forEach(type => {
+    const container = document.getElementById(`${type}Container`);
+    if (container) {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        // Remove any existing listeners
+        const newCheckbox = checkbox.cloneNode(true);
+        checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+
+        // Add new listener
+        newCheckbox.addEventListener('change', (e) => {
+          if (window.currentCharacter) {
+            const proficiencyId = e.target.getAttribute('data-proficiency-id');
+            if (e.target.checked) {
+              window.currentCharacter.addProficiency(type, proficiencyId, 'Character');
+            } else {
+              window.currentCharacter.removeProficiency(type, proficiencyId, 'Character');
+            }
+            markUnsavedChanges();
+          }
+        });
+
+        // Set initial state if character exists
+        if (window.currentCharacter?.proficiencies?.[type]) {
+          const proficiencyId = newCheckbox.getAttribute('data-proficiency-id');
+          newCheckbox.checked = window.currentCharacter.proficiencies[type].includes(proficiencyId);
+        }
+      });
+    }
+  });
+}
+
+// Setup optional proficiencies
+function setupOptionalProficiencies() {
+  const optionalContainer = document.getElementById('optionalProficienciesContainer');
+  if (optionalContainer) {
+    const selects = optionalContainer.querySelectorAll('select');
+    selects.forEach(select => {
+      // Remove any existing listeners
+      const newSelect = select.cloneNode(true);
+      select.parentNode.replaceChild(newSelect, select);
+
+      // Add new listener
+      newSelect.addEventListener('change', (e) => {
+        if (window.currentCharacter) {
+          const type = e.target.getAttribute('data-proficiency-type');
+          const source = e.target.getAttribute('data-source');
+          const oldValue = e.target.getAttribute('data-current-value');
+          const newValue = e.target.value;
+
+          if (oldValue) {
+            window.currentCharacter.removeProficiency(type, oldValue, source);
+          }
+          if (newValue) {
+            window.currentCharacter.addProficiency(type, newValue, source);
+            e.target.setAttribute('data-current-value', newValue);
+          }
+          markUnsavedChanges();
+        }
+      });
+
+      // Set initial value if character exists
+      if (window.currentCharacter?.optionalProficiencies) {
+        const type = newSelect.getAttribute('data-proficiency-type');
+        const source = newSelect.getAttribute('data-source');
+        const currentValue = window.currentCharacter.optionalProficiencies[`${type}-${source}`];
+        if (currentValue) {
+          newSelect.value = currentValue;
+          newSelect.setAttribute('data-current-value', currentValue);
+        }
+      }
+    });
+  }
+}
+
+// Make functions available globally
+window.setupAbilityScores = setupAbilityScores;
+window.setupProficiencies = setupProficiencies;
+window.setupOptionalProficiencies = setupOptionalProficiencies;
+
+// Initialize the application
+function initializeApp() {
+  console.log('initializeApp called');
+  // Check if all required scripts are loaded
+  if (!window.DataLoader) {
+    console.error('DataLoader not loaded');
+    return;
+  }
+
+  // Initialize floating action buttons
+  const saveBtn = document.getElementById('saveCharacter');
+  const previewBtn = document.getElementById('previewCharacter');
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      if (window.currentCharacter) {
+        try {
+          // Helper functions to safely convert Maps and Sets
+          const mapToObject = (map) => {
+            if (!map) return {};
+            if (map instanceof Map) return Object.fromEntries(map);
+            if (typeof map === 'object') return map;
+            return {};
+          };
+
+          const setToArray = (set) => {
+            if (!set) return [];
+            if (set instanceof Set) return Array.from(set);
+            if (Array.isArray(set)) return set;
+            return [];
+          };
+
+          // Create a serializable version of the character
+          const serializableCharacter = {
+            id: window.currentCharacter.id,
+            name: window.currentCharacter.name,
+            playerName: window.currentCharacter.playerName,
+            level: window.currentCharacter.level,
+            abilityScores: { ...window.currentCharacter.abilityScores },
+            abilityBonuses: { ...window.currentCharacter.abilityBonuses },
+            size: window.currentCharacter.size,
+            speed: { ...window.currentCharacter.speed },
+            features: {
+              darkvision: window.currentCharacter.features.darkvision,
+              resistances: setToArray(window.currentCharacter.features.resistances),
+              traits: mapToObject(window.currentCharacter.features.traits)
+            },
+            proficiencies: {
+              armor: setToArray(window.currentCharacter.proficiencies.armor),
+              weapons: setToArray(window.currentCharacter.proficiencies.weapons),
+              tools: setToArray(window.currentCharacter.proficiencies.tools),
+              skills: setToArray(window.currentCharacter.proficiencies.skills),
+              languages: setToArray(window.currentCharacter.proficiencies.languages)
+            },
+            proficiencySources: {
+              armor: mapToObject(window.currentCharacter.proficiencySources.armor),
+              weapons: mapToObject(window.currentCharacter.proficiencySources.weapons),
+              tools: mapToObject(window.currentCharacter.proficiencySources.tools),
+              skills: mapToObject(window.currentCharacter.proficiencySources.skills),
+              languages: mapToObject(window.currentCharacter.proficiencySources.languages)
+            },
+            equipment: {
+              inventory: mapToObject(window.currentCharacter.equipment.inventoryManager?.inventory),
+              equipped: setToArray(window.currentCharacter.equipment.equipped),
+              attuned: setToArray(window.currentCharacter.equipment.attunementManager?.attuned)
+            },
+            characteristics: {
+              personalityTrait: window.currentCharacter.characteristics.characteristics.personalityTrait,
+              ideal: window.currentCharacter.characteristics.characteristics.ideal,
+              bond: window.currentCharacter.characteristics.characteristics.bond,
+              flaw: window.currentCharacter.characteristics.characteristics.flaw
+            },
+            race: window.currentCharacter.race.selectedRace,
+            class: window.currentCharacter.class.selectedClass,
+            background: window.currentCharacter.background.selectedBackground,
+            spells: {
+              knownSpells: mapToObject(window.currentCharacter.spells.knownSpells),
+              preparedSpells: setToArray(window.currentCharacter.spells.preparedSpells),
+              spellSlots: { ...window.currentCharacter.spells.spellSlots },
+              slotsUsed: { ...window.currentCharacter.spells.slotsUsed },
+              cantripCount: window.currentCharacter.spells.cantripCount
+            },
+            feats: {
+              feats: mapToObject(window.currentCharacter.feats.feats),
+              optionalFeatures: mapToObject(window.currentCharacter.feats.optionalFeatures),
+              maxFeats: window.currentCharacter.feats.maxFeats
+            },
+            optionalFeatures: mapToObject(window.currentCharacter.optionalFeatures.features),
+            height: window.currentCharacter.height,
+            weight: window.currentCharacter.weight,
+            gender: window.currentCharacter.gender,
+            backstory: window.currentCharacter.backstory,
+            lastModified: new Date().toISOString()
+          };
+
+          const result = await window.characterStorage.saveCharacter(serializableCharacter);
+          if (result.success) {
+            window.showNotification('Character saved successfully', 'success');
+            // Clear unsaved changes indicator
+            if (window.clearUnsavedChanges) window.clearUnsavedChanges();
+          } else {
+            window.showNotification(result.message || 'Failed to save character', 'danger');
+          }
+        } catch (error) {
+          console.error('Error saving character:', error);
+          window.showNotification('Error saving character: ' + error.message, 'danger');
+        }
+      } else {
+        window.showNotification('No character selected', 'warning');
+      }
+    });
+  }
+
+  if (previewBtn) {
+    previewBtn.addEventListener('click', () => {
+      if (window.generateCharacterSheet) window.generateCharacterSheet();
+    });
+  }
+
+  // Call updateNavigation initially
+  updateNavigation();
+
+  // Initialize navigation
+  const navButtons = document.querySelectorAll('.nav-link');
+  for (const button of navButtons) {
+    button.addEventListener('click', (e) => {
+      // Check if the button is disabled
+      if (button.classList.contains('disabled')) {
+        e.preventDefault();
+        e.stopPropagation();
+        showNotification('Please select or create a character first', 'warning');
+        return; // Exit early without applying active class or loading page
+      }
+
+      // Only proceed with navigation if the button is not disabled
+      // Remove active class from all buttons
+      for (const btn of navButtons) {
+        btn.classList.remove('active');
+      }
+      // Add active class to clicked button
+      button.classList.add('active');
+      // Load the page content
+      const page = button.getAttribute('data-page');
+      app.loadPage(page);
+    });
+  }
+
+  // Load initial page
+  app.loadPage('home');
+}
+
+// Export initialization function
+window.initializeApp = initializeApp;
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('DOMContentLoaded event fired');
+
+  // Initialize core components
+  await Promise.all([
+    // Initialize tooltips first
+    import('./core/managers/TooltipManager.js').then(module => {
+      window.tooltipManager = module.tooltipManager;
+      window.tooltipManager.initialize();
+    }),
+    // Initialize data loader
+    import('./core/utils/DataLoader.js').then(module => {
+      window.dndDataLoader = module.DataLoader.initialize();
+    })
+  ]);
+
+  // Wait for a longer time to ensure all modules are loaded
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Check if required modules are loaded
+  console.log('Checking for required modules...');
+  const requiredModules = {
+    tooltipManager: !!window.tooltipManager,
+    dataLoader: !!window.dndDataLoader,
+    loadCharacters: !!window.loadCharacters,
+    initializeCharacterApp: !!window.initializeCharacterApp,
+    RaceManager: !!window.RaceManager,
+    ClassManager: !!window.ClassManager
+  };
+
+  console.log('Module status:', requiredModules);
+
+  // Check if all required modules are loaded
+  const allModulesLoaded = Object.values(requiredModules).every(Boolean);
+
+  if (allModulesLoaded) {
+    console.log('All required modules loaded, initializing app...');
+    window.initializeApp();
+    app.loadPage('home');
+  } else {
+    console.error('Some required modules not loaded:', requiredModules);
+    // Try again after another delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (window.tooltipManager && window.dndDataLoader && window.loadCharacters && window.initializeCharacterApp) {
+      console.log('Modules loaded after second attempt, initializing app...');
+      window.initializeApp();
+      app.loadPage('home');
+    } else {
+      console.error('Failed to load required modules after second attempt');
+      showNotification('Error loading application modules', 'danger');
+    }
+  }
+});
+
 // Show notification
 function showNotification(message, type = 'info') {
   const notificationContainer = document.getElementById('notificationContainer');

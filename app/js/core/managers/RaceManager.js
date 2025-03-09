@@ -4,6 +4,8 @@
  */
 
 import { TextProcessor } from '../utils/TextProcessor.js';
+import { Race } from '../models/Race.js';
+import { Subrace } from '../models/Subrace.js';
 
 export class RaceManager {
     constructor(character) {
@@ -12,29 +14,141 @@ export class RaceManager {
         this.selectedSubrace = null;
         this.abilityChoices = new Map();
         this.textProcessor = new TextProcessor();
+
+        // Cache for race data
+        this.raceCache = new Map();
+        this.subraceCache = new Map();
+    }
+
+    /**
+     * Load a race by ID
+     * @param {string} raceId - The ID of the race to load
+     * @returns {Promise<Race>} - The loaded race
+     */
+    async loadRace(raceId) {
+        // Check cache first
+        if (this.raceCache.has(raceId)) {
+            return this.raceCache.get(raceId);
+        }
+
+        // Load race data
+        const races = await window.dndDataLoader.loadRaces();
+        const raceData = races.find(r => r.id === raceId);
+
+        if (!raceData) {
+            throw new Error(`Race not found: ${raceId}`);
+        }
+
+        // Create race instance
+        const race = new Race(raceData);
+        this.raceCache.set(raceId, race);
+        return race;
+    }
+
+    /**
+     * Load a subrace by ID
+     * @param {string} subraceId - The ID of the subrace to load
+     * @param {string} parentRaceId - The ID of the parent race
+     * @returns {Promise<Subrace>} - The loaded subrace
+     */
+    async loadSubrace(subraceId, parentRaceId) {
+        // Check cache first
+        const cacheKey = `${parentRaceId}:${subraceId}`;
+        if (this.subraceCache.has(cacheKey)) {
+            return this.subraceCache.get(cacheKey);
+        }
+
+        // Load parent race first
+        const parentRace = await this.loadRace(parentRaceId);
+        const subraceData = parentRace.subraces.find(s => s.id === subraceId);
+
+        if (!subraceData) {
+            throw new Error(`Subrace not found: ${subraceId}`);
+        }
+
+        // Create subrace instance
+        const subrace = new Subrace(subraceData, parentRace);
+        this.subraceCache.set(cacheKey, subrace);
+        return subrace;
+    }
+
+    /**
+     * Get all available races
+     * @returns {Promise<Race[]>} - Array of available races
+     */
+    async getAvailableRaces() {
+        const races = await window.dndDataLoader.loadRaces();
+        return races.map(raceData => new Race(raceData));
+    }
+
+    /**
+     * Get all available subraces for a race
+     * @param {string} raceId - The ID of the parent race
+     * @returns {Promise<Subrace[]>} - Array of available subraces
+     */
+    async getAvailableSubraces(raceId) {
+        try {
+            const race = await this.loadRace(raceId);
+            if (!race || !race.subraces || race.subraces.length === 0) {
+                return [];
+            }
+            return race.subraces.map(subraceData => new Subrace(subraceData, race));
+        } catch (error) {
+            console.error(`Error getting subraces for race ${raceId}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Clear the race and subrace cache
+     */
+    clearCache() {
+        this.raceCache.clear();
+        this.subraceCache.clear();
     }
 
     /**
      * Sets the character's race and applies racial features
-     * @param {Object} race - The race object to set
-     * @param {Object} subrace - Optional subrace object to set
+     * @param {string} raceId - The ID of the race to set
+     * @param {string} subraceId - Optional ID of the subrace to set
      * @returns {Promise<boolean>} - True if race was set successfully
      */
-    async setRace(race, subrace = null) {
+    async setRace(raceId, subraceId = null) {
         try {
-            if (!race || !race.name) {
-                throw new Error('Invalid race object provided');
-            }
-
             // Clear existing racial features
             this.clearRacialFeatures();
 
+            if (!raceId) {
+                this.selectedRace = null;
+                this.selectedSubrace = null;
+                return true;
+            }
+
+            // Load race data
+            const races = await window.dndDataLoader.loadRaces();
+            const race = races.find(r => r.id === raceId);
+
+            if (!race) {
+                console.warn(`Race not found: ${raceId}`);
+                return false;
+            }
+
             // Set new race
             this.selectedRace = race;
-            this.selectedSubrace = subrace;
 
             // Apply racial features
-            await this.applyRacialFeatures();
+            await this.applyRaceFeatures(race, 'Race');
+
+            // Handle subrace if specified
+            if (subraceId && race.subraces) {
+                const subrace = race.subraces.find(sr => sr.id === subraceId);
+                if (subrace) {
+                    this.selectedSubrace = subrace;
+                    await this.applyRaceFeatures(subrace, 'Subrace');
+                }
+            } else {
+                this.selectedSubrace = null;
+            }
 
             // Update character sheet
             if (window.updateCharacterSheet) {
@@ -58,12 +172,12 @@ export class RaceManager {
         this.character.clearAbilityBonuses('Subrace');
 
         // Clear proficiencies
-        this.character.clearProficiencies('Race');
-        this.character.clearProficiencies('Subrace');
+        this.character.removeProficienciesBySource('Race');
+        this.character.removeProficienciesBySource('Subrace');
 
         // Clear languages
-        this.character.clearLanguages('Race');
-        this.character.clearLanguages('Subrace');
+        this.character.removeLanguagesBySource('Race');
+        this.character.removeLanguagesBySource('Subrace');
 
         // Clear speed
         this.character.speed = { walk: 30 };

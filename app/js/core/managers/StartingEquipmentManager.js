@@ -12,6 +12,10 @@ export class StartingEquipmentManager {
         this.character = character;
         this.inventoryManager = character.inventoryManager || new InventoryManager(character);
         this.packManager = character.packManager || new PackManager(character);
+        this.cache = {
+            classEquipment: new Map(),
+            backgroundEquipment: new Map()
+        };
     }
 
     /**
@@ -24,12 +28,8 @@ export class StartingEquipmentManager {
     async applyStartingEquipment(classId, choices, backgroundId = null) {
         try {
             // Get class data
-            const classes = await window.dndDataLoader.loadClasses();
-            const classData = classes.find(c => c.id === classId);
-            if (!classData?.startingEquipment) return false;
-
-            // Create StartingEquipment instance
-            const startingEquipment = new StartingEquipment(classData.startingEquipment);
+            const startingEquipment = await this.getEquipmentChoices(classId);
+            if (!startingEquipment) return false;
 
             // Validate choices
             if (!startingEquipment.validateChoices(choices)) {
@@ -68,12 +68,11 @@ export class StartingEquipmentManager {
      */
     async applyBackgroundEquipment(backgroundId) {
         try {
-            const backgrounds = await window.dndDataLoader.loadBackgrounds();
-            const background = backgrounds.find(b => b.id === backgroundId);
-            if (!background?.startingEquipment) return false;
+            const equipment = await this.getBackgroundEquipment(backgroundId);
+            if (!equipment.length) return false;
 
             // Add each item from background
-            for (const item of background.startingEquipment) {
+            for (const item of equipment) {
                 if (item.type === 'pack') {
                     await this.packManager.addPack(item.id);
                 } else {
@@ -95,11 +94,18 @@ export class StartingEquipmentManager {
      */
     async getEquipmentChoices(classId) {
         try {
+            // Check cache first
+            if (this.cache.classEquipment.has(classId)) {
+                return this.cache.classEquipment.get(classId);
+            }
+
             const classes = await window.dndDataLoader.loadClasses();
             const classData = classes.find(c => c.id === classId);
             if (!classData?.startingEquipment) return null;
 
-            return new StartingEquipment(classData.startingEquipment);
+            const startingEquipment = new StartingEquipment(classData.startingEquipment);
+            this.cache.classEquipment.set(classId, startingEquipment);
+            return startingEquipment;
         } catch (error) {
             console.error('Error getting equipment choices:', error);
             return null;
@@ -113,9 +119,17 @@ export class StartingEquipmentManager {
      */
     async getBackgroundEquipment(backgroundId) {
         try {
+            // Check cache first
+            if (this.cache.backgroundEquipment.has(backgroundId)) {
+                return this.cache.backgroundEquipment.get(backgroundId);
+            }
+
             const backgrounds = await window.dndDataLoader.loadBackgrounds();
             const background = backgrounds.find(b => b.id === backgroundId);
-            return background?.startingEquipment || [];
+            const equipment = background?.startingEquipment || [];
+
+            this.cache.backgroundEquipment.set(backgroundId, equipment);
+            return equipment;
         } catch (error) {
             console.error('Error getting background equipment:', error);
             return [];
@@ -123,7 +137,52 @@ export class StartingEquipmentManager {
     }
 
     /**
-     * Clear all starting equipment
+     * Calculate the total value of selected equipment in copper pieces
+     * @param {string} classId - ID of the class
+     * @param {Object} choices - Map of choice IDs to selected item IDs
+     * @param {string} [backgroundId] - Optional background ID
+     * @returns {Promise<number>} Total value in copper pieces
+     */
+    async getSelectedEquipmentValue(classId, choices, backgroundId = null) {
+        try {
+            let totalValue = 0;
+
+            // Get class equipment value
+            const startingEquipment = await this.getEquipmentChoices(classId);
+            if (startingEquipment) {
+                const items = startingEquipment.getSelectedItems(choices);
+                for (const item of items) {
+                    if (item.type === 'pack') {
+                        const pack = await this.packManager.getPack(item.id);
+                        totalValue += pack?.value || 0;
+                    } else {
+                        totalValue += (item.value || 0) * (item.quantity || 1);
+                    }
+                }
+            }
+
+            // Add background equipment value if provided
+            if (backgroundId) {
+                const backgroundItems = await this.getBackgroundEquipment(backgroundId);
+                for (const item of backgroundItems) {
+                    if (item.type === 'pack') {
+                        const pack = await this.packManager.getPack(item.id);
+                        totalValue += pack?.value || 0;
+                    } else {
+                        totalValue += (item.value || 0) * (item.quantity || 1);
+                    }
+                }
+            }
+
+            return totalValue;
+        } catch (error) {
+            console.error('Error calculating equipment value:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Clear all starting equipment and caches
      * @returns {Promise<boolean>} True if equipment was cleared successfully
      */
     async clearStartingEquipment() {
@@ -136,6 +195,10 @@ export class StartingEquipmentManager {
             for (const item of startingItems) {
                 await this.inventoryManager.removeItem(item.id);
             }
+
+            // Clear caches
+            this.cache.classEquipment.clear();
+            this.cache.backgroundEquipment.clear();
 
             return true;
         } catch (error) {

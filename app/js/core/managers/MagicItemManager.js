@@ -1,4 +1,4 @@
-export class MagicItemService {
+export class MagicItemManager {
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
         this.cache = {
