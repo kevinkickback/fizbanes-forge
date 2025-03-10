@@ -6,118 +6,13 @@ export class SourceUI {
         this.sourceManager = sourceManager;
         this.container = document.getElementById('sourceBookSelection');
         this.sidebarContainer = document.getElementById('sidebarSourceList');
-        this.selectedSources = new Set(['PHB', 'DMG', 'MM']); // Core books always selected
-        this.isUpdatingFromEvent = false; // Flag to prevent event cascades
-
-        // Bind methods
-        this.handleSourceClick = this.handleSourceClick.bind(this);
-        this.initializeSourceSelection = this.initializeSourceSelection.bind(this);
-        this.initializeSidebarSources = this.initializeSidebarSources.bind(this);
-        this.updateSidebarVisibility = this.updateSidebarVisibility.bind(this);
-        this.handleCharacterChanged = this.handleCharacterChanged.bind(this);
-        this.handleCharacterLoaded = this.handleCharacterLoaded.bind(this);
-
-        // Initialize sidebar sources
-        this.initializeSidebarSources();
-        this.updateSidebarVisibility();
-
-        // Listen for character events
-        window.addEventListener('characterLoaded', this.handleCharacterLoaded);
-        window.addEventListener('characterChanged', this.handleCharacterChanged);
+        // Track sources separately for modal and sidebar
+        this.modalSources = new Set();
+        this.sidebarSources = new Set();
     }
 
     /**
-     * Handle character state changes
-     */
-    handleCharacterChanged() {
-        // Only update UI elements, don't trigger source changes
-        this.updateSidebarVisibility();
-    }
-
-    /**
-     * Handle character loaded event
-     */
-    handleCharacterLoaded() {
-        if (window.currentCharacter?.allowedSources) {
-            // Update selected sources from character
-            this.selectedSources = new Set(window.currentCharacter.allowedSources);
-
-            // Update UI to reflect current sources
-            this.updateAllSourceToggles();
-            this.updateSidebarVisibility();
-        }
-    }
-
-    /**
-     * Handle source toggle click event
-     * @param {Event} event - The click event
-     */
-    handleSourceClick(event) {
-        if (this.isUpdatingFromEvent) return; // Prevent event cascade
-
-        const button = event.currentTarget;
-        const source = button.dataset.source;
-        const isCore = this.sourceManager.getCoreSources().has(source);
-
-        // Don't allow deselecting core sources
-        if (isCore && button.classList.contains('selected')) {
-            return;
-        }
-
-        button.classList.toggle('selected');
-
-        if (button.classList.contains('selected')) {
-            this.selectedSources.add(source);
-        } else {
-            this.selectedSources.delete(source);
-        }
-
-        // Update all instances of this source toggle
-        this.updateSourceToggles(source);
-
-        // Update character's allowed sources and trigger unsaved changes
-        if (window.currentCharacter) {
-            this.isUpdatingFromEvent = true;
-            try {
-                // Create a new Set with the current sources
-                const updatedSources = new Set(this.selectedSources);
-
-                // Ensure core sources are included
-                for (const coreSource of this.sourceManager.getCoreSources()) {
-                    updatedSources.add(coreSource);
-                }
-
-                // Update the character's allowed sources
-                window.currentCharacter.setAllowedSources(updatedSources);
-
-                // Only dispatch unsaved changes event
-                window.dispatchEvent(new CustomEvent('unsavedChanges'));
-            } finally {
-                this.isUpdatingFromEvent = false;
-            }
-        }
-    }
-
-    /**
-     * Update all source toggles to match current state
-     */
-    updateAllSourceToggles() {
-        // Update all source toggles in both containers
-        const updateContainer = (container) => {
-            if (!container) return;
-            const buttons = container.querySelectorAll('.source-toggle');
-            buttons.forEach(button => {
-                const source = button.dataset.source;
-                button.classList.toggle('selected', this.selectedSources.has(source));
-            });
-        };
-
-        updateContainer(this.container);
-        updateContainer(this.sidebarContainer);
-    }
-
-    /**
-     * Initialize the source book selection UI
+     * Initialize the source book selection UI for the create modal
      */
     initializeSourceSelection() {
         if (!this.container) return;
@@ -125,16 +20,13 @@ export class SourceUI {
         // Clear existing content
         this.container.innerHTML = '';
 
-        // Get available sources and core sources
+        // Get available sources
         const availableSources = this.sourceManager.getAvailableSources();
-        const coreSources = this.sourceManager.getCoreSources();
 
-        // Create buttons for each non-core source
+        // Create buttons for all sources
         for (const [abbr, details] of availableSources) {
-            if (!coreSources.has(abbr)) {
-                const button = this.createSourceToggle(abbr, details, false);
-                this.container.appendChild(button);
-            }
+            const button = this.createSourceToggle(abbr, details, true, false);
+            this.container.appendChild(button);
         }
     }
 
@@ -144,49 +36,16 @@ export class SourceUI {
     initializeSidebarSources() {
         if (!this.sidebarContainer) return;
 
-        // Clear existing content
-        this.sidebarContainer.innerHTML = '';
+        // Only initialize if not already initialized
+        if (this.sidebarContainer.children.length === 0) {
+            // Get available sources
+            const availableSources = this.sourceManager.getAvailableSources();
 
-        // Get available sources
-        const availableSources = this.sourceManager.getAvailableSources();
-
-        // Create buttons for all sources (including core)
-        for (const [abbr, details] of availableSources) {
-            const button = this.createSourceToggle(abbr, details, true);
-            this.sidebarContainer.appendChild(button);
-        }
-
-        // Initially hide the sidebar sources section
-        this.updateSidebarVisibility();
-    }
-
-    /**
-     * Update sidebar visibility based on active character
-     */
-    updateSidebarVisibility() {
-        if (!this.sidebarContainer) return;
-
-        const sourcesSection = this.sidebarContainer.closest('.sidebar-sources');
-        if (!sourcesSection) return;
-
-        // Show sources section only if there is an active character with an id
-        if (window.currentCharacter && window.currentCharacter.id) {
-            sourcesSection.style.display = 'block';
-            if (window.currentCharacter.allowedSources) {
-                // Convert array to Set if needed
-                const sources = Array.isArray(window.currentCharacter.allowedSources)
-                    ? new Set(window.currentCharacter.allowedSources)
-                    : window.currentCharacter.allowedSources;
-                this.setSelectedSources(sources);
-            } else {
-                // Reset to core sources when no sources are set
-                this.setSelectedSources(this.sourceManager.getCoreSources());
+            // Create buttons for all sources
+            for (const [abbr, details] of availableSources) {
+                const button = this.createSourceToggle(abbr, details, true, true);
+                this.sidebarContainer.appendChild(button);
             }
-        } else {
-            // Hide sources section when no character is active
-            sourcesSection.style.display = 'none';
-            // Reset to core sources
-            this.setSelectedSources(this.sourceManager.getCoreSources());
         }
     }
 
@@ -194,15 +53,14 @@ export class SourceUI {
      * Create a source toggle button
      * @param {string} abbr - Source abbreviation
      * @param {Object} details - Source details
-     * @param {boolean} isSidebar - Whether this toggle is for the sidebar
+     * @param {boolean} isInteractive - Whether the button should be clickable
+     * @param {boolean} isSidebar - Whether this is a sidebar toggle
      * @returns {HTMLElement} The created button element
      */
-    createSourceToggle(abbr, details, isSidebar = false) {
+    createSourceToggle(abbr, details, isInteractive, isSidebar) {
         const button = document.createElement('div');
         button.className = 'source-toggle';
         button.dataset.source = abbr;
-        button.setAttribute('role', 'button');
-        button.setAttribute('tabindex', '0');
 
         // Add book icon
         const icon = document.createElement('i');
@@ -212,54 +70,88 @@ export class SourceUI {
         // Add source name in span
         const nameSpan = document.createElement('span');
         nameSpan.className = 'source-name';
-
-        // Use abbreviated name in sidebar, full name in modal
-        if (isSidebar) {
-            nameSpan.textContent = abbr === 'XPHB' ? "PHB '24" : abbr;
-        } else {
-            nameSpan.textContent = details.name;
-        }
-
+        nameSpan.textContent = abbr === 'XPHB' ? "PHB '24" : abbr;
         button.appendChild(nameSpan);
 
-        // Set initial selected state
-        if (this.selectedSources.has(abbr)) {
-            button.classList.add('selected');
+        // Add click handlers if interactive
+        if (isInteractive) {
+            button.setAttribute('role', 'button');
+            button.setAttribute('tabindex', '0');
+            button.addEventListener('click', () => this.handleSourceClick(button, isSidebar));
+            button.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.handleSourceClick(button, isSidebar);
+                }
+            });
         }
-
-        // Add event listeners
-        button.addEventListener('click', this.handleSourceClick);
-        button.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.handleSourceClick(e);
-            }
-        });
 
         return button;
     }
 
     /**
-     * Update all instances of a source toggle
-     * @param {string} source - Source abbreviation
+     * Handle source toggle click event
+     * @param {HTMLElement} button - The clicked button
+     * @param {boolean} isSidebar - Whether this is a sidebar toggle
      */
-    updateSourceToggles(source) {
-        const isSelected = this.selectedSources.has(source);
+    handleSourceClick(button, isSidebar) {
+        const source = button.dataset.source;
+        const isSelected = !button.classList.contains('selected');
 
-        // Update in floating UI
-        if (this.container) {
-            const floatingButton = this.container.querySelector(`[data-source="${source}"]`);
-            if (floatingButton) {
-                floatingButton.classList.toggle('selected', isSelected);
+        // Update UI
+        button.classList.toggle('selected', isSelected);
+
+        if (isSidebar && window.currentCharacter) {
+            // Update sidebar sources and character's allowed sources
+            if (isSelected) {
+                this.sidebarSources.add(source);
+            } else {
+                this.sidebarSources.delete(source);
+            }
+
+            // Update character's sources
+            window.currentCharacter.allowedSources = new Set(this.sidebarSources);
+            window.currentCharacter.setAllowedSources(this.sidebarSources);
+            window.dispatchEvent(new CustomEvent('unsavedChanges'));
+        } else {
+            // Update modal sources
+            if (isSelected) {
+                this.modalSources.add(source);
+            } else {
+                this.modalSources.delete(source);
             }
         }
+    }
 
-        // Update in sidebar
-        if (this.sidebarContainer) {
-            const sidebarButton = this.sidebarContainer.querySelector(`[data-source="${source}"]`);
-            if (sidebarButton) {
-                sidebarButton.classList.toggle('selected', isSelected);
+    /**
+     * Update sidebar source toggles to match character's allowed sources
+     * @param {Set} allowedSources - Set of source abbreviations from character save file
+     */
+    setSelectedSources(allowedSources) {
+        if (!this.sidebarContainer) return;
+
+        // Initialize sidebar if needed
+        this.initializeSidebarSources();
+
+        // First, update our internal state
+        this.sidebarSources = new Set(allowedSources);
+
+        // Then update the UI to match exactly what's in allowedSources
+        const buttons = this.sidebarContainer.querySelectorAll('.source-toggle');
+        buttons.forEach(button => {
+            const source = button.dataset.source;
+            const shouldBeSelected = allowedSources.has(source);
+
+            // Only update if the state needs to change
+            if (button.classList.contains('selected') !== shouldBeSelected) {
+                button.classList.toggle('selected', shouldBeSelected);
             }
+        });
+
+        // Update character's sources if it exists
+        if (window.currentCharacter) {
+            window.currentCharacter.allowedSources = new Set(allowedSources);
+            window.currentCharacter.setAllowedSources(allowedSources);
         }
     }
 
@@ -268,28 +160,11 @@ export class SourceUI {
      * @returns {Set} Set of selected source abbreviations
      */
     getSelectedSources() {
-        return this.selectedSources;
-    }
-
-    /**
-     * Set the selected sources
-     * @param {Set} sources - Set of source abbreviations to select
-     */
-    setSelectedSources(sources) {
-        this.selectedSources = new Set(sources);
-
-        // Update all source toggles in both containers
-        const updateContainer = (container) => {
-            if (container) {
-                const buttons = container.querySelectorAll('.source-toggle');
-                buttons.forEach(button => {
-                    const source = button.dataset.source;
-                    button.classList.toggle('selected', this.selectedSources.has(source));
-                });
-            }
-        };
-
-        updateContainer(this.container);
-        updateContainer(this.sidebarContainer);
+        // If we're in the create modal, return modal sources
+        if (document.getElementById('newCharacterModal')?.classList.contains('show')) {
+            return new Set(this.modalSources);
+        }
+        // Otherwise return sidebar sources
+        return new Set(this.sidebarSources);
     }
 } 

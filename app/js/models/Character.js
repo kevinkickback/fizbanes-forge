@@ -9,7 +9,7 @@ export class Character {
         this.subclass = '';
         this.background = '';
         this.level = 1;
-        this.allowedSources = new Set(['PHB', 'DMG', 'MM']); // Core books always selected
+        this.allowedSources = new Set(); // Initialize empty, don't add core books by default
         this.abilityScores = {
             strength: 10,
             dexterity: 10,
@@ -145,7 +145,7 @@ export class Character {
         }
     }
 
-    // Add methods for source management
+    // Methods for source management
     addAllowedSource(source) {
         if (source) {
             this.allowedSources.add(source.toUpperCase());
@@ -163,15 +163,8 @@ export class Character {
     }
 
     setAllowedSources(sources) {
-        // Convert input to Set if it isn't already
-        const sourcesSet = sources instanceof Set ? sources : new Set(sources);
-
-        // Ensure core sources are included
-        const coreSources = new Set(['PHB', 'DMG', 'MM']);
-        coreSources.forEach(source => sourcesSet.add(source));
-
-        // Update allowedSources with all sources
-        this.allowedSources = sourcesSet;
+        console.log('[Sources] Character sources updated:', Array.from(sources));
+        this.allowedSources = new Set(sources);
     }
 
     getAllowedSources() {
@@ -187,24 +180,17 @@ export class Character {
         character.name = data.name;
         character.playerName = data.playerName;
         character.level = data.level;
+        character.lastModified = data.lastModified;
         character.height = data.height;
         character.weight = data.weight;
         character.gender = data.gender;
         character.backstory = data.backstory;
 
-        // Set allowed sources with proper handling of different formats
+        // Set allowed sources from data
         if (data.allowedSources) {
-            let sources;
-            if (Array.isArray(data.allowedSources)) {
-                sources = new Set(data.allowedSources);
-            } else if (typeof data.allowedSources === 'string') {
-                sources = new Set(data.allowedSources.split(','));
-            } else if (data.allowedSources instanceof Set) {
-                sources = new Set(data.allowedSources);
-            } else {
-                sources = new Set(['PHB', 'DMG', 'MM']);
-            }
-            character.setAllowedSources(sources);
+            const sourcesArray = Array.isArray(data.allowedSources) ? data.allowedSources : Array.from(data.allowedSources);
+            character.allowedSources = new Set(sourcesArray);
+            console.log('[Sources] Character loaded with sources:', Array.from(character.allowedSources));
         }
 
         // Copy ability scores and bonuses

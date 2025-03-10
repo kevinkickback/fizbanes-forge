@@ -473,11 +473,24 @@ async function loadCharacters() {
             const deleteBtn = card.querySelector('.delete-character');
 
             // Add click handler to the entire card for selection
-            characterCard?.addEventListener('click', (e) => {
+            characterCard?.addEventListener('click', async (e) => {
                 // Don't trigger if clicking buttons
-                if (!e.target.closest('.btn-group')) {
+                if (e.target.closest('.btn')) return;
+
+                try {
                     // Load character using the new fromJSON method
                     window.currentCharacter = Character.fromJSON(character);
+
+                    // Create a single SourceUI instance if it doesn't exist
+                    if (!window.characterSourceUI) {
+                        window.characterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
+                        window.characterSourceUI.initializeSourceSelection();
+                    }
+
+                    // Set the exact sources from the save file - do this only once
+                    if (character.allowedSources) {
+                        window.characterSourceUI.setSelectedSources(new Set(character.allowedSources));
+                    }
 
                     // Initialize managers for the loaded character
                     window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
@@ -491,14 +504,6 @@ async function loadCharacters() {
                     window.currentCharacter.packManager = new PackManager(window.currentCharacter, window.dndDataLoader);
                     window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter, window.dndDataLoader);
 
-                    // Initialize ability scores UI
-                    const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
-                    abilityScoreUI.update();
-
-                    // Initialize proficiencies
-                    setupProficiencies();
-                    setupOptionalProficiencies();
-
                     // Update character card selection state
                     document.querySelectorAll('.character-card').forEach(card => {
                         card.classList.toggle('selected', card.dataset.characterId === character.id);
@@ -510,13 +515,23 @@ async function loadCharacters() {
                     // Initialize details page for the selected character
                     initializeDetailsPage();
 
+                    // Initialize ability scores UI
+                    const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
+                    await abilityScoreUI.update();
+
+                    // Initialize proficiencies
+                    setupProficiencies();
+                    setupOptionalProficiencies();
+
                     // Clear any unsaved changes indicator
                     clearUnsavedChanges();
 
-                    // Dispatch character changed event
-                    window.dispatchEvent(new CustomEvent('characterChanged'));
+                    // Dispatch only characterLoaded event after everything is set up
+                    window.dispatchEvent(new CustomEvent('characterLoaded'));
 
-                    window.showNotification(`Selected character: ${character.name}`, 'success');
+                } catch (error) {
+                    console.error('Error loading character:', error);
+                    window.showNotification('Error loading character: ' + error.message, 'danger');
                 }
             });
 
@@ -579,8 +594,10 @@ function initializeNewCharacterModal() {
     const modal = document.getElementById('newCharacterModal');
     if (!modal) return;
 
-    // Initialize source selection and store it on the window for access
-    window.newCharacterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
+    // Create a single SourceUI instance if it doesn't exist
+    if (!window.characterSourceUI) {
+        window.characterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
+    }
 
     // Store the element that had focus before the modal was opened
     let previousActiveElement = null;
@@ -589,14 +606,17 @@ function initializeNewCharacterModal() {
     modal.addEventListener('show.bs.modal', () => {
         // Store the currently focused element
         previousActiveElement = document.activeElement;
-        window.newCharacterSourceUI.initializeSourceSelection();
+
+        // Only initialize source selection if it hasn't been initialized yet
+        if (!window.characterSourceUI.container.children.length) {
+            window.characterSourceUI.initializeSourceSelection();
+        }
     });
 
     // Handle modal hidden event
     modal.addEventListener('hidden.bs.modal', () => {
         // Clear form
         document.getElementById('newCharacterForm')?.reset();
-        window.newCharacterSourceUI.setSelectedSources(new Set(['PHB', 'DMG', 'MM'])); // Reset to core books
 
         // Remove focus from any elements inside the modal
         const focusedElement = document.activeElement;
@@ -633,9 +653,9 @@ async function createCharacterFromModal() {
             return;
         }
 
-        // Get selected sources from the stored UI instance
-        const selectedSources = window.newCharacterSourceUI.getSelectedSources();
-        console.log('Selected sources:', selectedSources);
+        // Get selected sources from the shared SourceUI instance - use exactly what's selected
+        const selectedSources = new Set(window.characterSourceUI.getSelectedSources());
+        console.log('Selected sources:', Array.from(selectedSources));
 
         // Create a new character
         const character = new Character();
@@ -667,6 +687,11 @@ async function createCharacterFromModal() {
         window.currentCharacter.allowedSources = new Set(selectedSources);
         window.currentCharacter.setAllowedSources(selectedSources);
 
+        // Update sidebar sources to match the new character
+        if (window.characterSourceUI) {
+            window.characterSourceUI.setSelectedSources(selectedSources);
+        }
+
         // Initialize managers for the new active character
         window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.class = new ClassManager(window.currentCharacter, window.dndDataLoader);
@@ -689,8 +714,8 @@ async function createCharacterFromModal() {
         // Update navigation state for the new active character
         updateNavigation();
 
-        // Dispatch character changed event ONCE, after all initialization is complete
-        window.dispatchEvent(new CustomEvent('characterChanged'));
+        // Dispatch only characterLoaded event after everything is set up
+        window.dispatchEvent(new CustomEvent('characterLoaded'));
 
         window.showNotification('Character created successfully!', 'success');
     } catch (error) {
@@ -702,16 +727,24 @@ async function createCharacterFromModal() {
 // Load a character and initialize all managers
 async function loadCharacter(character) {
     try {
-        // Create a new character instance from the saved data
+        // Create character from saved data
         window.currentCharacter = Character.fromJSON(character);
 
-        // Initialize core managers first with dataLoader
+        // Use EXACTLY what's in the save file for sources, no modifications
+        const savedSources = new Set(character.allowedSources);
+        window.currentCharacter.allowedSources = savedSources;
+
+        // Create SourceUI if needed and set EXACTLY the same sources
+        if (!window.characterSourceUI) {
+            window.characterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
+        }
+        window.characterSourceUI.setSelectedSources(savedSources);
+
+        // Initialize managers
         window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.class = new ClassManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.background = new BackgroundManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter, window.dndDataLoader);
-
-        // Initialize secondary managers with dataLoader
         window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.spells = new SpellManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.feats = new FeatManager(window.currentCharacter, window.dndDataLoader);
@@ -719,22 +752,18 @@ async function loadCharacter(character) {
         window.currentCharacter.packManager = new PackManager(window.currentCharacter, window.dndDataLoader);
         window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter, window.dndDataLoader);
 
-        // Initialize managers
+        // Initialize core data and managers
         await Promise.all([
+            window.dndDataLoader.loadRaces(),
+            window.dndDataLoader.loadClasses(),
+            window.dndDataLoader.loadBackgrounds(),
             window.currentCharacter.race.initialize(),
             window.currentCharacter.class.initialize(),
             window.currentCharacter.background.initialize(),
             window.currentCharacter.characteristics.initialize()
         ]);
 
-        // Load core data first
-        await Promise.all([
-            window.dndDataLoader.loadRaces(),
-            window.dndDataLoader.loadClasses(),
-            window.dndDataLoader.loadBackgrounds()
-        ]);
-
-        // Set the saved race, class, and background in sequence
+        // Set saved character data
         if (character.race) {
             await window.currentCharacter.race.setRace(character.race, character.subrace);
         }
@@ -745,15 +774,13 @@ async function loadCharacter(character) {
             await window.currentCharacter.background.setBackground(character.background);
         }
 
-        // Initialize UI components after data is loaded
+        // Update UI
         const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
         await abilityScoreUI.update();
-
-        // Update navigation state
         updateNavigation();
 
-        // Dispatch character changed event
-        window.dispatchEvent(new CustomEvent('characterChanged'));
+        // Notify character loaded
+        window.dispatchEvent(new CustomEvent('characterLoaded'));
 
         return true;
     } catch (error) {

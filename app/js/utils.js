@@ -126,6 +126,12 @@ function updateNavigation() {
     characterActions.style.display = hasCharacter ? 'flex' : 'none';
   }
 
+  // Update sidebar sources visibility using the same logic
+  const sidebarSources = document.querySelector('.sidebar-sources');
+  if (sidebarSources) {
+    sidebarSources.style.display = hasCharacter ? 'block' : 'none';
+  }
+
   // Log the current state for debugging
   console.log('Navigation updated. Has character:', hasCharacter);
 }
@@ -718,11 +724,18 @@ function createCharacterCard(character) {
   const deleteBtn = card.querySelector('.delete-character');
 
   // Add click handler to the entire card for selection
-  characterCard?.addEventListener('click', (e) => {
+  characterCard?.addEventListener('click', async (e) => {
     // Don't trigger if clicking buttons
     if (!e.target.closest('.btn')) {
       // Load character using the new fromJSON method
       window.currentCharacter = Character.fromJSON(character);
+
+      // Create SourceUI if needed and set sources from character file
+      if (!window.characterSourceUI) {
+        window.characterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
+      }
+      // Set sidebar sources to match character's allowed sources
+      window.characterSourceUI.setSelectedSources(new Set(character.allowedSources));
 
       // Initialize managers for the loaded character
       window.currentCharacter.race = new RaceManager(window.currentCharacter);
@@ -758,6 +771,11 @@ function createCharacterCard(character) {
       // Clear any unsaved changes indicator
       clearUnsavedChanges();
 
+      // Ensure the SourceUI is updated with the correct sources
+      if (window.characterSourceUI) {
+        window.characterSourceUI.setSelectedSources(window.currentCharacter.getAllowedSources());
+      }
+
       window.showNotification(`Selected character: ${character.name}`, 'success');
     }
   });
@@ -781,13 +799,29 @@ function createCharacterCard(character) {
       try {
         const result = await window.characterStorage.deleteCharacter(character.id);
         if (result.success) {
-          window.showNotification('Character deleted successfully', 'success');
           // If the deleted character was selected, clear the selection
           if (window.currentCharacter?.id === character.id) {
             window.currentCharacter = null;
+            // Dispatch characterChanged event to update UI elements
+            window.dispatchEvent(new CustomEvent('characterChanged'));
             updateNavigation();
+            // If we're on a character-specific page, return to home
+            if (['build', 'equipment', 'details'].includes(app.currentPage)) {
+              app.loadPage('home');
+            }
           }
-          await loadCharacters(); // Reload the list
+
+          // Remove the card from the UI
+          card.remove();
+
+          // Check if there are any characters left
+          const characterList = document.getElementById('characterList');
+          if (characterList && !characterList.querySelector('.character-card')) {
+            // No characters left, clear the list and show empty state
+            characterList.innerHTML = '';
+          }
+
+          window.showNotification('Character deleted successfully', 'success');
         } else {
           window.showNotification(result.message || 'Failed to delete character', 'danger');
         }
@@ -808,10 +842,11 @@ async function saveCharacter() {
       throw new Error('No character to save');
     }
 
+    console.log('=== Starting character save ===');
     console.log('Current character before save:', window.currentCharacter);
     console.log('Character ID:', window.currentCharacter.id);
     console.log('Character name:', window.currentCharacter.name);
-    console.log('Allowed sources:', window.currentCharacter.allowedSources);
+    console.log('Current character allowedSources:', window.currentCharacter.allowedSources);
 
     // Create a serializable copy of the character
     const serializableCharacter = {
@@ -822,14 +857,9 @@ async function saveCharacter() {
     // Ensure ID is preserved
     serializableCharacter.id = window.currentCharacter.id;
 
-    // Ensure allowed sources are properly serialized
-    if (window.currentCharacter.allowedSources instanceof Set) {
-      serializableCharacter.allowedSources = Array.from(window.currentCharacter.allowedSources);
-    } else if (Array.isArray(window.currentCharacter.allowedSources)) {
-      serializableCharacter.allowedSources = [...window.currentCharacter.allowedSources];
-    } else {
-      serializableCharacter.allowedSources = ['PHB', 'DMG', 'MM'];
-    }
+    // Always use the character's current allowedSources
+    serializableCharacter.allowedSources = Array.from(window.currentCharacter.allowedSources);
+    console.log('Using character sources:', serializableCharacter.allowedSources);
 
     console.log('Serializable character:', serializableCharacter);
 
@@ -895,18 +925,10 @@ async function loadCharacter(characterData) {
     // Create character instance from JSON
     window.currentCharacter = Character.fromJSON(characterData);
 
-    // Ensure allowed sources are properly set
-    if (characterData.allowedSources) {
-      const sources = Array.isArray(characterData.allowedSources)
-        ? new Set(characterData.allowedSources)
-        : new Set(characterData.allowedSources);
-      window.currentCharacter.setAllowedSources(sources);
-      window.currentCharacter.allowedSources = sources;
+    // Update sidebar sources if UI exists
+    if (window.characterSourceUI && characterData.allowedSources) {
+      window.characterSourceUI.setSelectedSources(new Set(characterData.allowedSources));
     }
-
-    // Dispatch events to update UI
-    window.dispatchEvent(new CustomEvent('characterLoaded'));
-    window.dispatchEvent(new CustomEvent('characterChanged'));
 
     return true;
   } catch (error) {
