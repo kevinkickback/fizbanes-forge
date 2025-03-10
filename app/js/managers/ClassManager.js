@@ -147,6 +147,11 @@ export class ClassManager {
             // Update character's class information
             this.updateCharacterClass(classData, level, subclassData);
 
+            // Mark changes as unsaved
+            if (window.markUnsavedChanges) {
+                window.markUnsavedChanges();
+            }
+
             return true;
         } catch (error) {
             console.error('Error setting class:', error);

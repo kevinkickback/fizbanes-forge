@@ -14,7 +14,7 @@ export class ClassUI {
 
         try {
             // Load classes using ClassManager
-            const classes = await window.dndDataLoader.loadClasses();
+            const classes = await this.character.class.loadClasses();
 
             // Populate class select
             classSelect.innerHTML = `
@@ -45,11 +45,14 @@ export class ClassUI {
                     this.character.class = '';
                     this.character.subclass = '';
                     await this.updateClassDetails('', '');
+                    if (window.markUnsavedChanges) {
+                        window.markUnsavedChanges();
+                    }
                     return;
                 }
 
                 // Get selected class data
-                const classData = classes.find(c => c.id === classId);
+                const classData = await this.character.class.loadClass(classId);
                 if (!classData) {
                     await this.updateClassDetails('', '');
                     return;
@@ -69,6 +72,9 @@ export class ClassUI {
                 // Update class details
                 this.character.class = classId;
                 await this.updateClassDetails(classId, '');
+                if (window.markUnsavedChanges) {
+                    window.markUnsavedChanges();
+                }
             });
 
             // Handle subclass selection
@@ -84,13 +90,16 @@ export class ClassUI {
                 // Update class details with subclass
                 this.character.subclass = subclassId;
                 await this.updateClassDetails(classId, subclassId);
+                if (window.markUnsavedChanges) {
+                    window.markUnsavedChanges();
+                }
             });
 
             // Initialize with current class if any
             if (this.character.class) {
                 classSelect.value = this.character.class;
 
-                const classData = classes.find(c => c.id === this.character.class);
+                const classData = await this.character.class.loadClass(this.character.class);
                 if (classData && classData.subclasses && classData.subclasses.length > 0) {
                     subclassSelect.innerHTML = `
                         <option value="">Choose a subclass...</option>
@@ -137,8 +146,8 @@ export class ClassUI {
                 return;
             }
 
-            // Load class data
-            const classData = await window.dndDataLoader.loadClass(characterClass);
+            // Load class data using the character's ClassManager
+            const classData = await this.character.class.loadClass(characterClass);
             if (!classData) {
                 console.error('Class data not found:', characterClass);
                 this.setClassPlaceholderContent(classImage, classQuickDesc, classDetails);
@@ -149,7 +158,7 @@ export class ClassUI {
             // Load subclass data if applicable
             let subclassData = null;
             if (subclass) {
-                subclassData = await window.dndDataLoader.loadSubclass(characterClass, subclass);
+                subclassData = await this.character.class.loadSubclass(subclass, characterClass);
                 if (!subclassData) {
                     console.warn('Subclass data not found:', subclass);
                 }

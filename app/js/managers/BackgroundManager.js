@@ -154,48 +154,40 @@ export class BackgroundManager {
 
     /**
      * Set the character's background
-     * @param {string} backgroundId - ID of the background
+     * @param {string} backgroundId - ID of the background to set
      * @param {string} variantName - Optional variant name
      * @returns {Promise<boolean>} True if background was set successfully
      */
     async setBackground(backgroundId, variantName = null) {
         try {
-            // Clear existing background features
-            this.clearBackground();
-
-            // Load background data
             const background = await this.loadBackground(backgroundId);
             if (!background) {
-                console.warn(`Failed to load background: ${backgroundId}`);
                 return false;
             }
 
-            // Set new background
+            // Set the background
             this.selectedBackground = background;
 
-            // Set variant if specified
-            if (variantName) {
-                this.selectedVariant = background.getVariants().find(v => v.name === variantName);
+            // Handle variant if specified
+            if (variantName && background.variants) {
+                this.selectedVariant = background.variants.find(v => v.name === variantName) || null;
+            } else {
+                this.selectedVariant = null;
             }
 
-            // Apply proficiencies
-            const proficiencies = this.selectedVariant?.proficiencies || background.proficiencies;
-            await this.applyProficiencies(proficiencies);
+            // Update character's background information
+            this.character.background = {
+                name: background.name,
+                feature: this.selectedVariant?.feature || background.feature,
+                proficiencies: background.proficiencies,
+                languages: background.languages,
+                equipment: background.equipment,
+                characteristics: background.characteristics
+            };
 
-            // Apply languages
-            await this.applyLanguages(background.languages);
-
-            // Add equipment
-            if (background.equipment?.length > 0) {
-                for (const item of background.equipment) {
-                    await this.character.addItem(item.id, item.quantity || 1);
-                }
-            }
-
-            // Add feature
-            const feature = this.selectedVariant?.feature || background.feature;
-            if (feature) {
-                this.character.addFeature('background', feature.name, feature.description);
+            // Mark changes as unsaved
+            if (window.markUnsavedChanges) {
+                window.markUnsavedChanges();
             }
 
             return true;

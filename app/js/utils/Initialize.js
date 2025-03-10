@@ -1,13 +1,29 @@
-// Import Character model
+// Import required classes and managers
 import { Character } from '../models/Character.js';
+import { SourceUI } from '../ui/SourceUI.js';
+import { RaceManager } from '../managers/RaceManager.js';
+import { ClassManager } from '../managers/ClassManager.js';
+import { BackgroundManager } from '../managers/BackgroundManager.js';
+import { CharacteristicManager } from '../managers/CharacteristicManager.js';
+import { EquipmentManager } from '../managers/EquipmentManager.js';
+import { SpellManager } from '../managers/SpellManager.js';
+import { FeatManager } from '../managers/FeatManager.js';
+import { OptionalFeatureManager } from '../managers/OptionalFeatureManager.js';
+import { PackManager } from '../managers/PackManager.js';
+import { StartingEquipmentManager } from '../managers/StartingEquipmentManager.js';
 
 // Import utilities and services
 import { DataLoader } from './DataLoader.js';
 import { EntityCard } from '../ui/EntityCard.js';
 import { ReferenceResolver } from './ReferenceResolver.js';
 import { TextProcessor } from './TextProcessor.js';
-import { ClassManager } from '../managers/ClassManager.js';
-import { setupFormListeners, updateCharacterField, markUnsavedChanges, clearUnsavedChanges } from '../utils.js';
+import {
+    setupFormListeners,
+    updateCharacterField,
+    markUnsavedChanges,
+    clearUnsavedChanges,
+    populateForm
+} from '../utils.js';
 
 // Import UI components
 import { RaceUI } from '../ui/RaceUI.js';
@@ -15,37 +31,14 @@ import { ClassUI } from '../ui/ClassUI.js';
 import { EquipmentUI } from '../ui/EquipmentUI.js';
 import { BackgroundUI } from '../ui/BackgroundUI.js';
 import { AbilityScoreUI } from '../ui/AbilityScoreUI.js';
+import { ProficiencyUI } from '../ui/ProficiencyUI.js';
 
 // Import managers
 import { tooltipManager } from '../managers/TooltipManager.js';
 import { PrerequisiteManager } from '../managers/PrerequisiteManager.js';
 import { ProficiencyManager } from '../managers/ProficiencyManager.js';
-import { RaceManager } from '../managers/RaceManager.js';
-import { SpellManager } from '../managers/SpellManager.js';
-import { EquipmentManager } from '../managers/EquipmentManager.js';
-import { BackgroundManager } from '../managers/BackgroundManager.js';
-import { CharacteristicManager } from '../managers/CharacteristicManager.js';
-import { FeatManager } from '../managers/FeatManager.js';
-import { OptionalFeatureManager } from '../managers/OptionalFeatureManager.js';
-import { PackManager } from '../managers/PackManager.js';
-import { StartingEquipmentManager } from '../managers/StartingEquipmentManager.js';
 
-// Initialize character state
-window.currentCharacter = new Character();
-
-// Initialize managers for character
-const raceManager = new RaceManager(window.currentCharacter);
-const backgroundManager = new BackgroundManager(window.currentCharacter);
-window.currentCharacter.race = raceManager;
-window.currentCharacter.background = backgroundManager;
-
-// Initialize UI components
-const raceUI = new RaceUI(window.currentCharacter);
-const classUI = new ClassUI(window.currentCharacter);
-const equipmentUI = new EquipmentUI(window.currentCharacter);
-const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
-
-// Initialize core systems
+// Initialize core systems first
 const dataLoader = window.dndDataLoader || new DataLoader();
 const referenceResolver = new ReferenceResolver(dataLoader);
 const textProcessor = new TextProcessor(referenceResolver);
@@ -55,10 +48,30 @@ window.dndDataLoader = dataLoader;
 window.dndReferenceResolver = referenceResolver;
 window.dndTextProcessor = textProcessor;
 
-// Initialize managers
-const classManager = new ClassManager(window.currentCharacter);
+// Initialize character state
+window.currentCharacter = new Character();
+
+// Initialize service managers first
 const proficiencyService = new ProficiencyManager(dataLoader);
 const prerequisiteService = new PrerequisiteManager(dataLoader);
+
+// Initialize character managers with dataLoader
+const raceManager = new RaceManager(window.currentCharacter, dataLoader);
+const classManager = new ClassManager(window.currentCharacter, dataLoader);
+const backgroundManager = new BackgroundManager(window.currentCharacter, dataLoader);
+const characteristicManager = new CharacteristicManager(window.currentCharacter, dataLoader);
+
+// Assign managers to character
+window.currentCharacter.race = raceManager;
+window.currentCharacter.class = classManager;
+window.currentCharacter.background = backgroundManager;
+window.currentCharacter.characteristics = characteristicManager;
+
+// Initialize UI components with managers
+const raceUI = new RaceUI(window.currentCharacter);
+const classUI = new ClassUI(window.currentCharacter);
+const equipmentUI = new EquipmentUI(window.currentCharacter);
+const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
 
 // Make managers available globally
 window.RaceManager = RaceManager;
@@ -83,6 +96,9 @@ tooltipManager.initialize();
 // Initialize the application
 async function initializeCharacterApp() {
     console.log('initializeCharacterApp called');
+
+    // Initialize new character modal
+    initializeNewCharacterModal();
 
     // Load existing characters
     await loadCharacters();
@@ -129,33 +145,60 @@ async function initializeCharacterApp() {
 
     // Form input listeners
     setupFormListeners();
+
+    // Add listener for unsaved changes event
+    window.addEventListener('unsavedChanges', () => {
+        const indicator = document.getElementById('unsavedChangesIndicator');
+        if (indicator) {
+            indicator.style.display = 'inline-block';
+        }
+    });
 }
 
 // Initialize build page
 async function initializeBuildPage() {
-    await raceUI.initializeRaceSelection();
-    await classUI.initializeClassSelection();
+    try {
+        // Load core data first
+        await Promise.all([
+            window.dndDataLoader.loadRaces(),
+            window.dndDataLoader.loadClasses()
+        ]);
 
-    // Initialize ability scores
-    if (window.currentCharacter) {
-        const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
-        abilityScoreUI.update();
-    }
+        // Initialize managers
+        await window.currentCharacter.class.initialize();
 
-    setupProficiencies();
-    setupOptionalProficiencies();
+        // Initialize UI components after data is loaded
+        await raceUI.initializeRaceSelection();
+        await classUI.initializeClassSelection();
 
-    // Initialize background UI
-    const backgroundContainer = document.querySelector('.card-body.background-card-body');
-    if (backgroundContainer) {
-        new BackgroundUI(backgroundContainer, window.currentCharacter.background);
-    }
+        // Initialize ability scores and proficiencies
+        if (window.currentCharacter) {
+            // Initialize ability scores
+            const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
+            await abilityScoreUI.update();
 
-    if (window.currentCharacter.id) {
-        await populateForm(window.currentCharacter);
-    } else {
-        await raceUI.updateRaceDisplay();
-        await classUI.updateClassDetails('', '');
+            // Initialize proficiencies
+            const proficiencyUI = new ProficiencyUI(window.currentCharacter);
+            await proficiencyUI.initialize();
+        }
+
+        // Initialize background UI
+        const backgroundContainer = document.querySelector('.card-body.background-card-body');
+        if (backgroundContainer) {
+            new BackgroundUI(backgroundContainer, window.currentCharacter.background);
+        }
+
+        // If this is an existing character, populate the form
+        if (window.currentCharacter.id && typeof populateForm === 'function') {
+            await populateForm(window.currentCharacter);
+        } else {
+            // For new characters, just update the displays
+            await raceUI.updateRaceDisplay();
+            await classUI.updateClassDetails('', '');
+        }
+    } catch (error) {
+        console.error('Error initializing build page:', error);
+        window.showNotification('Error loading character data', 'danger');
     }
 }
 
@@ -403,8 +446,9 @@ async function loadCharacters() {
                     <div class="card-body">
                         <h5 class="card-title">${character.name}</h5>
                         <p class="card-text">
-                            ${character.race?.name || ''} ${character.class?.name || ''}
-                            ${character.level ? `(Level ${character.level})` : ''}
+                            Level: ${character.level || 'None'}<br>
+                            Race: ${character.race?.name || 'None'}<br>
+                            Class: ${character.class?.name ? `${character.class.name}${character.subclass?.name ? ` (${character.subclass.name})` : ''}` : 'None'}
                         </p>
                         <p class="card-text">
                             <small class="text-muted">Last modified: ${new Date(character.lastModified).toLocaleDateString()}</small>
@@ -436,16 +480,16 @@ async function loadCharacters() {
                     window.currentCharacter = Character.fromJSON(character);
 
                     // Initialize managers for the loaded character
-                    window.currentCharacter.race = new RaceManager(window.currentCharacter);
-                    window.currentCharacter.class = new ClassManager(window.currentCharacter);
-                    window.currentCharacter.background = new BackgroundManager(window.currentCharacter);
-                    window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter);
-                    window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter);
-                    window.currentCharacter.spells = new SpellManager(window.currentCharacter);
-                    window.currentCharacter.feats = new FeatManager(window.currentCharacter);
-                    window.currentCharacter.optionalFeatures = new OptionalFeatureManager(window.currentCharacter);
-                    window.currentCharacter.packManager = new PackManager(window.currentCharacter);
-                    window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter);
+                    window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.class = new ClassManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.background = new BackgroundManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.spells = new SpellManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.feats = new FeatManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.optionalFeatures = new OptionalFeatureManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.packManager = new PackManager(window.currentCharacter, window.dndDataLoader);
+                    window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter, window.dndDataLoader);
 
                     // Initialize ability scores UI
                     const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
@@ -468,6 +512,9 @@ async function loadCharacters() {
 
                     // Clear any unsaved changes indicator
                     clearUnsavedChanges();
+
+                    // Dispatch character changed event
+                    window.dispatchEvent(new CustomEvent('characterChanged'));
 
                     window.showNotification(`Selected character: ${character.name}`, 'success');
                 }
@@ -527,87 +574,192 @@ function createNewCharacter() {
     modal.show();
 }
 
+// Initialize the new character modal
+function initializeNewCharacterModal() {
+    const modal = document.getElementById('newCharacterModal');
+    if (!modal) return;
+
+    // Initialize source selection and store it on the window for access
+    window.newCharacterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
+
+    // Store the element that had focus before the modal was opened
+    let previousActiveElement = null;
+
+    // Initialize when modal is shown
+    modal.addEventListener('show.bs.modal', () => {
+        // Store the currently focused element
+        previousActiveElement = document.activeElement;
+        window.newCharacterSourceUI.initializeSourceSelection();
+    });
+
+    // Handle modal hidden event
+    modal.addEventListener('hidden.bs.modal', () => {
+        // Clear form
+        document.getElementById('newCharacterForm')?.reset();
+        window.newCharacterSourceUI.setSelectedSources(new Set(['PHB', 'DMG', 'MM'])); // Reset to core books
+
+        // Remove focus from any elements inside the modal
+        const focusedElement = document.activeElement;
+        if (modal.contains(focusedElement)) {
+            focusedElement.blur();
+        }
+
+        // Restore focus to the previous element
+        if (previousActiveElement && document.body.contains(previousActiveElement)) {
+            previousActiveElement.focus();
+        } else {
+            // If the previous element is no longer available, focus the new character button
+            document.getElementById('newCharacterBtn')?.focus();
+        }
+    });
+
+    // Handle keyboard events
+    modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+        }
+    });
+}
+
 // Create a new character from modal input
 async function createCharacterFromModal() {
-    const nameInput = document.getElementById('newCharacterName');
-    if (!nameInput?.value) {
-        window.showNotification('Please enter a character name', 'warning');
-        return;
-    }
-
-    // Create a new character
-    const character = new Character();
-    character.id = crypto.randomUUID();
-    character.name = nameInput.value;
-    character.lastModified = new Date().toISOString();
-
-    // Initialize default ability scores
-    character.abilityScores = {
-        strength: 10,
-        dexterity: 10,
-        constitution: 10,
-        intelligence: 10,
-        wisdom: 10,
-        charisma: 10
-    };
-
-    // Save the new character first
     try {
+        const nameInput = document.getElementById('newCharacterName');
+        if (!nameInput?.value) {
+            window.showNotification('Please enter a character name', 'warning');
+            return;
+        }
+
+        // Get selected sources from the stored UI instance
+        const selectedSources = window.newCharacterSourceUI.getSelectedSources();
+        console.log('Selected sources:', selectedSources);
+
+        // Create a new character
+        const character = new Character();
+        character.id = crypto.randomUUID();
+        character.name = nameInput.value;
+        character.lastModified = new Date().toISOString();
+
+        // Set the allowed sources using the proper method
+        character.setAllowedSources(selectedSources);
+        console.log('Setting allowed sources:', Array.from(selectedSources));
+
+        // Convert character to JSON for saving
+        const characterData = character.toJSON();
+        // Ensure allowed sources are properly set in the JSON data
+        characterData.allowedSources = Array.from(selectedSources);
+        console.log('Saving character data:', characterData);
+
+        // Save the new character
         console.log('Attempting to save character...');
-        const saveResult = await window.characterStorage.saveCharacter(character);
+        const saveResult = await window.characterStorage.saveCharacter(characterData);
         console.log('Save result:', saveResult);
 
         if (!saveResult.success) {
             throw new Error(saveResult.message || 'Failed to save character');
         }
 
-        // Only initialize the current character and managers after successful save
-        window.currentCharacter = character;
+        // Set as current character and ensure sources are set
+        window.currentCharacter = Character.fromJSON(characterData);
+        window.currentCharacter.allowedSources = new Set(selectedSources);
+        window.currentCharacter.setAllowedSources(selectedSources);
 
-        // Initialize managers
-        window.currentCharacter.race = new RaceManager(window.currentCharacter);
-        window.currentCharacter.class = new ClassManager(window.currentCharacter);
-        window.currentCharacter.background = new BackgroundManager(window.currentCharacter);
-        window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter);
-        window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter);
-        window.currentCharacter.spells = new SpellManager(window.currentCharacter);
-        window.currentCharacter.feats = new FeatManager(window.currentCharacter);
-        window.currentCharacter.optionalFeatures = new OptionalFeatureManager(window.currentCharacter);
-        window.currentCharacter.packManager = new PackManager(window.currentCharacter);
-        window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter);
-
-        // Initialize ability scores UI
-        const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
-        abilityScoreUI.update();
-
-        console.log('Initialized managers');
+        // Initialize managers for the new active character
+        window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.class = new ClassManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.background = new BackgroundManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.spells = new SpellManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.feats = new FeatManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.optionalFeatures = new OptionalFeatureManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.packManager = new PackManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter, window.dndDataLoader);
 
         // Close the modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('newCharacterModal'));
-        if (modal) {
-            modal.hide();
-        }
+        modal?.hide();
 
-        // Reset the form
-        nameInput.value = '';
-
-        window.showNotification('Character created successfully', 'success');
-
-        // Reload the character list and update UI state
-        console.log('Reloading character list...');
+        // Refresh the character list to show the new character
         await loadCharacters();
 
-        // Update character card selection state
-        document.querySelectorAll('.character-card').forEach(card => {
-            card.classList.toggle('selected', card.dataset.characterId === window.currentCharacter.id);
-        });
+        // Update navigation state for the new active character
+        updateNavigation();
+
+        // Dispatch character changed event ONCE, after all initialization is complete
+        window.dispatchEvent(new CustomEvent('characterChanged'));
+
+        window.showNotification('Character created successfully!', 'success');
+    } catch (error) {
+        console.error('Error creating character:', error);
+        window.showNotification('Error creating character: ' + error.message, 'error');
+    }
+}
+
+// Load a character and initialize all managers
+async function loadCharacter(character) {
+    try {
+        // Create a new character instance from the saved data
+        window.currentCharacter = Character.fromJSON(character);
+
+        // Initialize core managers first with dataLoader
+        window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.class = new ClassManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.background = new BackgroundManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter, window.dndDataLoader);
+
+        // Initialize secondary managers with dataLoader
+        window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.spells = new SpellManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.feats = new FeatManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.optionalFeatures = new OptionalFeatureManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.packManager = new PackManager(window.currentCharacter, window.dndDataLoader);
+        window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter, window.dndDataLoader);
+
+        // Initialize managers
+        await Promise.all([
+            window.currentCharacter.race.initialize(),
+            window.currentCharacter.class.initialize(),
+            window.currentCharacter.background.initialize(),
+            window.currentCharacter.characteristics.initialize()
+        ]);
+
+        // Load core data first
+        await Promise.all([
+            window.dndDataLoader.loadRaces(),
+            window.dndDataLoader.loadClasses(),
+            window.dndDataLoader.loadBackgrounds()
+        ]);
+
+        // Set the saved race, class, and background in sequence
+        if (character.race) {
+            await window.currentCharacter.race.setRace(character.race, character.subrace);
+        }
+        if (character.class) {
+            await window.currentCharacter.class.setClass(character.class, character.level || 1, character.subclass);
+        }
+        if (character.background) {
+            await window.currentCharacter.background.setBackground(character.background);
+        }
+
+        // Initialize UI components after data is loaded
+        const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
+        await abilityScoreUI.update();
 
         // Update navigation state
         updateNavigation();
+
+        // Dispatch character changed event
+        window.dispatchEvent(new CustomEvent('characterChanged'));
+
+        return true;
     } catch (error) {
-        console.error('Error saving new character:', error);
-        console.error('Error details:', error.stack);
-        window.showNotification('Error creating character: ' + error.message, 'danger');
+        console.error('Error loading character:', error);
+        window.showNotification('Error loading character', 'danger');
+        return false;
     }
 }
 
@@ -621,3 +773,48 @@ window.initializeDetailsPage = initializeDetailsPage;
 window.initializeBuildPage = initializeBuildPage;
 window.initializeEquipmentPage = initializeEquipmentPage;
 window.initializeSpellcastingPage = initializeSpellcastingPage;
+window.loadCharacter = loadCharacter;
+
+/**
+ * Initialize the UI for a character
+ */
+async function initializeUI() {
+    // Initialize race selection
+    const raceSelect = document.getElementById('raceSelect');
+    if (raceSelect) {
+        await window.currentCharacter.race.populateRaceSelect();
+    }
+
+    // Initialize class selection
+    const classSelect = document.getElementById('classSelect');
+    if (classSelect) {
+        await window.currentCharacter.class.populateClassSelect();
+    }
+
+    // Initialize background selection
+    const backgroundSelect = document.getElementById('backgroundSelect');
+    if (backgroundSelect) {
+        await window.currentCharacter.background.populateBackgroundSelect();
+    }
+
+    // Initialize ability scores
+    const abilityScoreContainer = document.querySelector('.ability-score-container');
+    if (abilityScoreContainer) {
+        await window.currentCharacter.initializeAbilityScores();
+    }
+
+    // Initialize proficiencies
+    const proficiencyContainer = document.querySelector('.proficiency-container');
+    if (proficiencyContainer) {
+        await window.currentCharacter.initializeProficiencies();
+    }
+
+    // Initialize equipment
+    const equipmentPage = document.getElementById('equipmentPage');
+    if (equipmentPage) {
+        await initializeEquipmentPage();
+    }
+
+    // Update navigation state
+    updateNavigation();
+}

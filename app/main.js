@@ -205,56 +205,82 @@ function getUniqueFilename(directory, baseFilename) {
 // Save character data
 ipcMain.handle("saveCharacter", async (event, character) => {
   try {
+    console.log('Received character for saving:', character);
+    console.log('Character ID:', character.id);
+    console.log('Character name:', character.name);
+
+    // Validate character data
+    if (!character || !character.id) {
+      throw new Error('Invalid character data: missing ID');
+    }
+
     // Get the save path
     const savePath = getCharactersFilePath();
+    console.log('Save path:', savePath);
 
     // Create directory if it doesn't exist
     if (!fs.existsSync(savePath)) {
       fs.mkdirSync(savePath, { recursive: true });
     }
 
-    // Generate a user-friendly filename
-    const baseFilename = getCharacterFilename(character);
-    const uniqueFilename = getUniqueFilename(savePath, baseFilename);
-    const characterFilePath = path.join(savePath, uniqueFilename);
-
-    // Check if this character was previously saved with a different filename
+    // First, try to find an existing file for this character ID
+    let existingFilePath = null;
     const files = fs.readdirSync(savePath).filter(file => file.endsWith('.ffp'));
-    let oldFilePath = null;
-
     for (const file of files) {
       try {
         const filePath = path.join(savePath, file);
         const data = fs.readFileSync(filePath, "utf8");
-        const savedCharacter = JSON.parse(data);
-
-        if (savedCharacter?.id === character.id && filePath !== characterFilePath) {
-          oldFilePath = filePath;
+        const existingCharacter = JSON.parse(data);
+        if (existingCharacter?.id === character.id) {
+          existingFilePath = filePath;
           break;
         }
       } catch (err) {
-        console.error(`Error reading character file ${file}:`, err);
+        console.error(`Error checking file ${file}:`, err);
       }
     }
 
-    // Save the character to its own .ffp file
-    fs.writeFileSync(characterFilePath, JSON.stringify(character, null, 2));
-    console.log(`Character saved to: ${characterFilePath}`);
+    // Generate the base filename
+    const sanitizedName = sanitizeFilename(character.name || 'character');
+    let targetFilePath;
 
-    // Delete the old file if it exists
-    if (oldFilePath) {
-      try {
-        fs.unlinkSync(oldFilePath);
-        console.log(`Deleted old character file: ${oldFilePath}`);
-      } catch (err) {
-        console.error(`Error deleting old character file: ${err.message}`);
+    if (existingFilePath) {
+      // Use the existing file path to maintain consistency
+      targetFilePath = existingFilePath;
+    } else {
+      // Check if a file with this name exists but has a different character ID
+      const baseFilePath = path.join(savePath, `${sanitizedName}.ffp`);
+      if (fs.existsSync(baseFilePath)) {
+        try {
+          const data = fs.readFileSync(baseFilePath, "utf8");
+          const existingCharacter = JSON.parse(data);
+          if (existingCharacter?.id !== character.id) {
+            // File exists but belongs to a different character, generate unique name
+            const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
+            targetFilePath = path.join(savePath, uniqueName);
+          } else {
+            targetFilePath = baseFilePath;
+          }
+        } catch (err) {
+          // If we can't read the file, treat it as a different character's file
+          const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
+          targetFilePath = path.join(savePath, uniqueName);
+        }
+      } else {
+        // No file exists with this name, use it
+        targetFilePath = baseFilePath;
       }
     }
+
+    // Save the character
+    const characterData = JSON.stringify(character, null, 2);
+    fs.writeFileSync(targetFilePath, characterData);
+    console.log(`Character saved successfully to: ${targetFilePath}`);
 
     return { success: true, message: "Character saved successfully" };
   } catch (error) {
     console.error("Error saving character:", error);
-    return { success: false, message: "Failed to save character" };
+    return { success: false, message: `Failed to save character: ${error.message}` };
   }
 });
 

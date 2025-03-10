@@ -2,6 +2,7 @@
 
 // Import the TooltipManager
 import { tooltipManager } from './managers/TooltipManager.js';
+import { Character } from './models/Character.js';
 
 // Initialize app namespace
 const app = {
@@ -402,92 +403,7 @@ function initializeApp() {
     saveBtn.addEventListener('click', async () => {
       if (window.currentCharacter) {
         try {
-          // Helper functions to safely convert Maps and Sets
-          const mapToObject = (map) => {
-            if (!map) return {};
-            if (map instanceof Map) return Object.fromEntries(map);
-            if (typeof map === 'object') return map;
-            return {};
-          };
-
-          const setToArray = (set) => {
-            if (!set) return [];
-            if (set instanceof Set) return Array.from(set);
-            if (Array.isArray(set)) return set;
-            return [];
-          };
-
-          // Create a serializable version of the character
-          const serializableCharacter = {
-            id: window.currentCharacter.id,
-            name: window.currentCharacter.name,
-            playerName: window.currentCharacter.playerName,
-            level: window.currentCharacter.level,
-            abilityScores: { ...window.currentCharacter.abilityScores },
-            abilityBonuses: { ...window.currentCharacter.abilityBonuses },
-            size: window.currentCharacter.size,
-            speed: { ...window.currentCharacter.speed },
-            features: {
-              darkvision: window.currentCharacter.features.darkvision,
-              resistances: setToArray(window.currentCharacter.features.resistances),
-              traits: mapToObject(window.currentCharacter.features.traits)
-            },
-            proficiencies: {
-              armor: setToArray(window.currentCharacter.proficiencies.armor),
-              weapons: setToArray(window.currentCharacter.proficiencies.weapons),
-              tools: setToArray(window.currentCharacter.proficiencies.tools),
-              skills: setToArray(window.currentCharacter.proficiencies.skills),
-              languages: setToArray(window.currentCharacter.proficiencies.languages)
-            },
-            proficiencySources: {
-              armor: mapToObject(window.currentCharacter.proficiencySources.armor),
-              weapons: mapToObject(window.currentCharacter.proficiencySources.weapons),
-              tools: mapToObject(window.currentCharacter.proficiencySources.tools),
-              skills: mapToObject(window.currentCharacter.proficiencySources.skills),
-              languages: mapToObject(window.currentCharacter.proficiencySources.languages)
-            },
-            equipment: {
-              inventory: mapToObject(window.currentCharacter.equipment.inventoryManager?.inventory),
-              equipped: setToArray(window.currentCharacter.equipment.equipped),
-              attuned: setToArray(window.currentCharacter.equipment.attunementManager?.attuned)
-            },
-            characteristics: {
-              personalityTrait: window.currentCharacter.characteristics.characteristics.personalityTrait,
-              ideal: window.currentCharacter.characteristics.characteristics.ideal,
-              bond: window.currentCharacter.characteristics.characteristics.bond,
-              flaw: window.currentCharacter.characteristics.characteristics.flaw
-            },
-            race: window.currentCharacter.race.selectedRace,
-            class: window.currentCharacter.class.selectedClass,
-            background: window.currentCharacter.background.selectedBackground,
-            spells: {
-              knownSpells: mapToObject(window.currentCharacter.spells.knownSpells),
-              preparedSpells: setToArray(window.currentCharacter.spells.preparedSpells),
-              spellSlots: { ...window.currentCharacter.spells.spellSlots },
-              slotsUsed: { ...window.currentCharacter.spells.slotsUsed },
-              cantripCount: window.currentCharacter.spells.cantripCount
-            },
-            feats: {
-              feats: mapToObject(window.currentCharacter.feats.feats),
-              optionalFeatures: mapToObject(window.currentCharacter.feats.optionalFeatures),
-              maxFeats: window.currentCharacter.feats.maxFeats
-            },
-            optionalFeatures: mapToObject(window.currentCharacter.optionalFeatures.features),
-            height: window.currentCharacter.height,
-            weight: window.currentCharacter.weight,
-            gender: window.currentCharacter.gender,
-            backstory: window.currentCharacter.backstory,
-            lastModified: new Date().toISOString()
-          };
-
-          const result = await window.characterStorage.saveCharacter(serializableCharacter);
-          if (result.success) {
-            window.showNotification('Character saved successfully', 'success');
-            // Clear unsaved changes indicator
-            if (window.clearUnsavedChanges) window.clearUnsavedChanges();
-          } else {
-            window.showNotification(result.message || 'Failed to save character', 'danger');
-          }
+          await window.saveCharacter();
         } catch (error) {
           console.error('Error saving character:', error);
           window.showNotification('Error saving character: ' + error.message, 'danger');
@@ -715,19 +631,6 @@ function clearUnsavedChanges() {
   }
 }
 
-// Export to global scope for non-module scripts
-window.showNotification = showNotification;
-window.formatModifier = formatModifier;
-window.capitalizeWords = capitalizeWords;
-window.deepClone = deepClone;
-window.validateRequiredFields = validateRequiredFields;
-window.initializeSettingsPage = initializeSettings;
-window.initializeApp = initializeApp;
-window.setupFormListeners = setupFormListeners;
-window.updateCharacterField = updateCharacterField;
-window.markUnsavedChanges = markUnsavedChanges;
-window.clearUnsavedChanges = clearUnsavedChanges;
-
 // Export as ES module
 export {
   app,
@@ -742,5 +645,273 @@ export {
   setupFormListeners,
   updateCharacterField,
   markUnsavedChanges,
-  clearUnsavedChanges
+  clearUnsavedChanges,
+  populateForm
 };
+
+// Function to populate form fields with character data
+async function populateForm(character) {
+  if (!character) return;
+
+  // Get all form inputs with data-field attributes
+  const formInputs = document.querySelectorAll('[data-field]');
+
+  for (const input of formInputs) {
+    const fieldName = input.dataset.field;
+    const value = character[fieldName];
+
+    if (value !== undefined) {
+      if (input.type === 'checkbox') {
+        input.checked = value;
+      } else {
+        input.value = value;
+      }
+    }
+  }
+}
+
+// Function to create a character card
+function createCharacterCard(character) {
+  const card = document.createElement('div');
+  card.className = 'col-md-4 col-lg-3 mb-4';
+  card.innerHTML = `
+        <div class="card character-card ${window.currentCharacter?.id === character.id ? 'selected' : ''}" 
+             data-character-id="${character.id}">
+            <div class="active-profile-badge">Active Profile</div>
+            <div class="card-body">
+                <div class="character-info">
+                    <h5 class="card-title">${character.name || 'Unnamed Character'}</h5>
+                    <div class="character-details">
+                        <div class="detail-item">
+                            <i class="fas fa-crown"></i>
+                            <span>${character.level ? `Level ${character.level}` : 'Level 1'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-user"></i>
+                            <span>${character.race?.name || 'No Race'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-hat-wizard"></i>
+                            <span>${character.class?.name || 'No Class'}</span>
+                        </div>
+                    </div>
+                    <div class="last-modified">
+                        <i class="fas fa-clock"></i>
+                        <span>${new Date(character.lastModified).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-secondary export-character" title="Export Character">
+                        <i class="fas fa-file-export"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-character" title="Delete Character">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+  // Add event listeners
+  const characterCard = card.querySelector('.character-card');
+  const exportBtn = card.querySelector('.export-character');
+  const deleteBtn = card.querySelector('.delete-character');
+
+  // Add click handler to the entire card for selection
+  characterCard?.addEventListener('click', (e) => {
+    // Don't trigger if clicking buttons
+    if (!e.target.closest('.btn')) {
+      // Load character using the new fromJSON method
+      window.currentCharacter = Character.fromJSON(character);
+
+      // Initialize managers for the loaded character
+      window.currentCharacter.race = new RaceManager(window.currentCharacter);
+      window.currentCharacter.class = new ClassManager(window.currentCharacter);
+      window.currentCharacter.background = new BackgroundManager(window.currentCharacter);
+      window.currentCharacter.characteristics = new CharacteristicManager(window.currentCharacter);
+      window.currentCharacter.equipment = new EquipmentManager(window.currentCharacter);
+      window.currentCharacter.spells = new SpellManager(window.currentCharacter);
+      window.currentCharacter.feats = new FeatManager(window.currentCharacter);
+      window.currentCharacter.optionalFeatures = new OptionalFeatureManager(window.currentCharacter);
+      window.currentCharacter.packManager = new PackManager(window.currentCharacter);
+      window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter);
+
+      // Initialize ability scores UI
+      const abilityScoreUI = new AbilityScoreUI(window.currentCharacter);
+      abilityScoreUI.update();
+
+      // Initialize proficiencies
+      setupProficiencies();
+      setupOptionalProficiencies();
+
+      // Update character card selection state
+      document.querySelectorAll('.character-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.characterId === character.id);
+      });
+
+      // Update navigation state
+      updateNavigation();
+
+      // Initialize details page for the selected character
+      initializeDetailsPage();
+
+      // Clear any unsaved changes indicator
+      clearUnsavedChanges();
+
+      window.showNotification(`Selected character: ${character.name}`, 'success');
+    }
+  });
+
+  exportBtn?.addEventListener('click', async () => {
+    try {
+      const result = await window.characterStorage.exportCharacter(character.id);
+      if (result.success) {
+        window.showNotification('Character exported successfully', 'success');
+      } else {
+        window.showNotification(result.message || 'Failed to export character', 'danger');
+      }
+    } catch (error) {
+      console.error('Error exporting character:', error);
+      window.showNotification('Error exporting character', 'danger');
+    }
+  });
+
+  deleteBtn?.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to delete this character?')) {
+      try {
+        const result = await window.characterStorage.deleteCharacter(character.id);
+        if (result.success) {
+          window.showNotification('Character deleted successfully', 'success');
+          // If the deleted character was selected, clear the selection
+          if (window.currentCharacter?.id === character.id) {
+            window.currentCharacter = null;
+            updateNavigation();
+          }
+          await loadCharacters(); // Reload the list
+        } else {
+          window.showNotification(result.message || 'Failed to delete character', 'danger');
+        }
+      } catch (error) {
+        console.error('Error deleting character:', error);
+        window.showNotification('Error deleting character', 'danger');
+      }
+    }
+  });
+
+  return card;
+}
+
+// Save the current character
+async function saveCharacter() {
+  try {
+    if (!window.currentCharacter) {
+      throw new Error('No character to save');
+    }
+
+    console.log('Current character before save:', window.currentCharacter);
+    console.log('Character ID:', window.currentCharacter.id);
+    console.log('Character name:', window.currentCharacter.name);
+    console.log('Allowed sources:', window.currentCharacter.allowedSources);
+
+    // Create a serializable copy of the character
+    const serializableCharacter = {
+      ...window.currentCharacter.toJSON(),
+      lastModified: new Date().toISOString()
+    };
+
+    // Ensure ID is preserved
+    serializableCharacter.id = window.currentCharacter.id;
+
+    // Ensure allowed sources are properly serialized
+    if (window.currentCharacter.allowedSources instanceof Set) {
+      serializableCharacter.allowedSources = Array.from(window.currentCharacter.allowedSources);
+    } else if (Array.isArray(window.currentCharacter.allowedSources)) {
+      serializableCharacter.allowedSources = [...window.currentCharacter.allowedSources];
+    } else {
+      serializableCharacter.allowedSources = ['PHB', 'DMG', 'MM'];
+    }
+
+    console.log('Serializable character:', serializableCharacter);
+
+    // Save to file system
+    const result = await window.characterStorage.saveCharacter(serializableCharacter);
+    console.log('Save result:', result);
+
+    if (result.success) {
+      window.showNotification('Character saved successfully', 'success');
+      // Clear unsaved changes flag
+      if (window.clearUnsavedChanges) window.clearUnsavedChanges();
+
+      // Update the UI for the current character card
+      const characterCard = document.querySelector(`.character-card[data-character-id="${window.currentCharacter.id}"]`);
+      if (characterCard) {
+        // Update character name
+        const nameEl = characterCard.querySelector('.card-title');
+        if (nameEl) {
+          nameEl.textContent = serializableCharacter.name || 'Unnamed Character';
+        }
+
+        // Update last modified time
+        const lastModifiedEl = characterCard.querySelector('.last-modified');
+        if (lastModifiedEl) {
+          const date = new Date(serializableCharacter.lastModified);
+          lastModifiedEl.innerHTML = `<i class="fas fa-clock me-1"></i>Last modified: ${date.toLocaleString()}`;
+        }
+
+        // Update other details if they exist
+        const levelEl = characterCard.querySelector('.detail-item span:has(+ i.fa-crown)');
+        if (levelEl) {
+          levelEl.textContent = serializableCharacter.level ? `Level ${serializableCharacter.level}` : 'Level 1';
+        }
+
+        const raceEl = characterCard.querySelector('.detail-item span:has(+ i.fa-user)');
+        if (raceEl) {
+          raceEl.textContent = serializableCharacter.race?.name || 'No Race';
+        }
+
+        const classEl = characterCard.querySelector('.detail-item span:has(+ i.fa-hat-wizard)');
+        if (classEl) {
+          classEl.textContent = serializableCharacter.class?.name || 'No Class';
+        }
+      }
+    } else {
+      console.error('Save failed:', result.message);
+      window.showNotification(result.message || 'Failed to save character', 'danger');
+    }
+    return result.success;
+  } catch (error) {
+    console.error('Error saving character:', error);
+    window.showNotification('Error saving character: ' + error.message, 'danger');
+    return false;
+  }
+}
+
+// Make the function available globally
+window.saveCharacter = saveCharacter;
+
+// Load character function
+async function loadCharacter(characterData) {
+  try {
+    // Create character instance from JSON
+    window.currentCharacter = Character.fromJSON(characterData);
+
+    // Ensure allowed sources are properly set
+    if (characterData.allowedSources) {
+      const sources = Array.isArray(characterData.allowedSources)
+        ? new Set(characterData.allowedSources)
+        : new Set(characterData.allowedSources);
+      window.currentCharacter.setAllowedSources(sources);
+      window.currentCharacter.allowedSources = sources;
+    }
+
+    // Dispatch events to update UI
+    window.dispatchEvent(new CustomEvent('characterLoaded'));
+    window.dispatchEvent(new CustomEvent('characterChanged'));
+
+    return true;
+  } catch (error) {
+    console.error('Error loading character:', error);
+    window.showNotification('Error loading character: ' + error.message, 'danger');
+    return false;
+  }
+}

@@ -8,6 +8,7 @@ export class ReferenceResolver {
         this.dataLoader = dataLoader;
         this.cache = new Map();
         this.skillData = null;
+        this.processingRefs = new Set(); // Track references being processed
     }
 
     async loadSkillData() {
@@ -32,14 +33,25 @@ export class ReferenceResolver {
             return ref;
         }
 
+        // Check if we're already processing this reference
+        if (this.processingRefs.has(ref)) {
+            console.warn('Circular reference detected:', ref);
+            return ref;
+        }
+
         const match = ref.match(/{@(\w+)\s+([^}]+)}/);
         if (!match) return ref;
+
+        // Add reference to processing set
+        this.processingRefs.add(ref);
 
         const [fullMatch, tag, content] = match;
         const [name, source = 'PHB', ...rest] = content.split('|');
 
         const cacheKey = `${tag}:${name}:${source}`;
         if (this.cache.has(cacheKey)) {
+            // Remove reference from processing set
+            this.processingRefs.delete(ref);
             return this.cache.get(cacheKey);
         }
 
@@ -337,14 +349,12 @@ export class ReferenceResolver {
                 }
                 case 'book': {
                     const books = await this.dataLoader.loadBooks();
-                    const book = books.find(b => b.name.toLowerCase() === name.toLowerCase());
-                    if (book) {
+                    entity = books.find(b => b.name.toLowerCase() === name.toLowerCase() || b.id.toLowerCase() === name.toLowerCase());
+                    if (entity) {
                         tooltipData = {
-                            title: book.name,
-                            description: book.fluff?.entries?.[0] || `A sourcebook for D&D 5th Edition.`,
-                            published: book.published,
-                            author: book.author,
-                            source: `${book.source}, page ${book.page || '??'}`
+                            title: entity.name,
+                            description: `Source: ${entity.source}${entity.published ? `\nPublished: ${entity.published}` : ''}`,
+                            source: entity.source
                         };
                     }
                     break;
@@ -412,6 +422,9 @@ export class ReferenceResolver {
         } catch (error) {
             console.warn(`Error resolving reference ${fullMatch}:`, error);
             return name;
+        } finally {
+            // Remove reference from processing set
+            this.processingRefs.delete(ref);
         }
     }
 
@@ -439,9 +452,15 @@ export class ReferenceResolver {
         if (typeof text !== 'string') return text;
 
         const references = text.match(/{@\w+[^}]+}/g) || [];
+        if (references.length === 0) return text;
 
         let resolvedText = text;
         for (const ref of references) {
+            // Skip if we're already processing this reference
+            if (this.processingRefs.has(ref)) {
+                console.warn('Skipping circular reference:', ref);
+                continue;
+            }
             const resolved = await this.resolveRef(ref, depth);
             resolvedText = resolvedText.replace(ref, resolved);
         }
@@ -512,5 +531,6 @@ export class ReferenceResolver {
     clearCache() {
         this.cache.clear();
         this.skillData = null;
+        this.processingRefs.clear();
     }
 } 

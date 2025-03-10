@@ -8,6 +8,11 @@ import { Race } from '../models/Race.js';
 import { Subrace } from '../models/Subrace.js';
 
 export class RaceManager {
+    // Default values matching DataLoader
+    static DEFAULT_SIZE = ['M'];
+    static DEFAULT_SPEED = { walk: 30 };
+    static DEFAULT_ABILITY_SCORES = [];
+
     constructor(character) {
         this.character = character;
         this.selectedRace = null;
@@ -155,6 +160,11 @@ export class RaceManager {
                 window.updateCharacterSheet();
             }
 
+            // Mark changes as unsaved
+            if (window.markUnsavedChanges) {
+                window.markUnsavedChanges();
+            }
+
             return true;
         } catch (error) {
             console.error('Error setting race:', error);
@@ -179,13 +189,9 @@ export class RaceManager {
         this.character.removeLanguagesBySource('Race');
         this.character.removeLanguagesBySource('Subrace');
 
-        // Clear speed
-        this.character.speed = { walk: 30 };
-
-        // Clear size
-        this.character.size = 'M';
-
-        // Clear darkvision
+        // Reset to defaults
+        this.character.speed = { ...RaceManager.DEFAULT_SPEED };
+        this.character.size = RaceManager.DEFAULT_SIZE[0];
         this.character.features.darkvision = 0;
 
         // Clear resistances
@@ -221,127 +227,109 @@ export class RaceManager {
      * @param {string} source - The source of the features (Race or Subrace)
      */
     async applyRaceFeatures(race, source) {
-        // Apply size
-        if (race.size) {
-            if (Array.isArray(race.size)) {
-                this.character.size = race.size[0]; // Use first size option
-            } else if (typeof race.size === 'string') {
-                this.character.size = race.size;
-            }
-        }
+        if (!race) return;
 
-        // Apply speed
+        // Apply size (use first size if multiple options are available)
+        const size = Array.isArray(race.size) ? race.size[0] : (race.size || RaceManager.DEFAULT_SIZE[0]);
+        this.character.size = size;
+
+        // Apply speed (handle normalized speed object)
         if (race.speed) {
-            if (typeof race.speed === 'number') {
-                // Handle case where speed is just a number (walking speed)
-                this.character.speed = { walk: race.speed };
-            } else if (typeof race.speed === 'object') {
-                // Handle case where speed is an object with different movement types
-                // Make sure we start with a clean speed object
-                this.character.speed = {};
-                for (const [type, value] of Object.entries(race.speed)) {
-                    if (typeof value === 'number') {
-                        this.character.speed[type] = value;
-                    } else if (typeof value === 'object' && value.number) {
-                        this.character.speed[type] = value.number;
-                    }
-                }
-            }
+            const normalizedSpeed = typeof race.speed === 'number'
+                ? { walk: race.speed }
+                : Object.entries(race.speed).reduce((acc, [type, value]) => {
+                    acc[type] = typeof value === 'number' ? value : (value.number || 0);
+                    return acc;
+                }, {});
+            this.character.speed = normalizedSpeed;
+        } else {
+            this.character.speed = { ...RaceManager.DEFAULT_SPEED };
         }
 
         // Apply ability score increases
         if (race.ability && Array.isArray(race.ability)) {
-            console.log(`Applying ability scores for ${race.name} (${source}):`, race.ability);
             for (const abilityIncrease of race.ability) {
-                console.log('Processing ability increase:', abilityIncrease);
                 if (abilityIncrease.mode === 'fixed') {
-                    // Handle new format with mode and scores array
+                    // Handle fixed ability scores
                     for (const ability of abilityIncrease.scores) {
-                        console.log(`Adding fixed ability bonus: ${ability} +${abilityIncrease.amount}`);
                         this.character.addAbilityBonus(ability, abilityIncrease.amount, source);
                     }
                 } else if (abilityIncrease.mode === 'choose') {
-                    // Store choice information for later
+                    // Store choice configuration
                     this.abilityChoices.set(source, {
-                        count: abilityIncrease.count,
-                        from: abilityIncrease.from,
-                        amount: abilityIncrease.amount
+                        count: abilityIncrease.count || 1,
+                        from: abilityIncrease.from || [],
+                        amount: abilityIncrease.amount || 1
                     });
                 } else {
-                    // Handle old format with direct ability mappings
+                    // Handle legacy format
                     for (const [ability, amount] of Object.entries(abilityIncrease)) {
-                        const abilityLower = ability.toLowerCase();
-                        if (abilityLower !== 'choose' && typeof amount === 'number') {
-                            console.log(`Adding ability bonus: ${abilityLower} +${amount}`);
-                            this.character.addAbilityBonus(abilityLower, amount, source);
+                        if (ability !== 'choose' && typeof amount === 'number') {
+                            this.character.addAbilityBonus(ability.toLowerCase(), amount, source);
                         }
-                    }
-                }
-            }
-        }
-
-        // Apply languages
-        if (race.languageProficiencies) {
-            if (Array.isArray(race.languageProficiencies)) {
-                // Handle array format
-                for (const langEntry of race.languageProficiencies) {
-                    if (typeof langEntry === 'string') {
-                        // Direct string format
-                        this.character.addLanguage(langEntry.charAt(0).toUpperCase() + langEntry.slice(1), source);
-                    } else if (typeof langEntry === 'object') {
-                        // Object format within array
-                        for (const [lang, hasProf] of Object.entries(langEntry)) {
-                            if (hasProf === true) {
-                                this.character.addLanguage(lang.charAt(0).toUpperCase() + lang.slice(1), source);
-                            }
-                        }
-                    }
-                }
-            } else if (typeof race.languageProficiencies === 'object') {
-                // Handle direct object format
-                for (const [lang, hasProf] of Object.entries(race.languageProficiencies)) {
-                    if (hasProf === true) {
-                        this.character.addLanguage(lang.charAt(0).toUpperCase() + lang.slice(1), source);
                     }
                 }
             }
         }
 
         // Apply darkvision
-        if (race.features?.darkvision) {
-            this.character.features.darkvision = race.features.darkvision;
-        } else if (race.darkvision) {
-            this.character.features.darkvision = race.darkvision;
+        if (race.features?.darkvision || race.darkvision) {
+            this.character.features.darkvision = race.features?.darkvision || race.darkvision || 0;
         }
 
-        // Apply resistances
-        if (race.features?.resistances) {
-            for (const resistance of race.features.resistances) {
+        // Apply resistances (handle both features.resistances and resist arrays)
+        const resistances = [
+            ...(race.features?.resistances || []),
+            ...(race.resist || [])
+        ];
+
+        for (const resistance of resistances) {
+            if (typeof resistance === 'string') {
                 this.character.addResistance(resistance.toLowerCase(), source);
-            }
-        } else if (race.resist) {
-            for (const resistance of race.resist) {
-                this.character.addResistance(resistance.toLowerCase(), source);
+            } else if (resistance.choose) {
+                // Store resistance choices for later
+                this.character.addPendingChoice('resistance', {
+                    source,
+                    count: resistance.choose.count || 1,
+                    from: resistance.choose.from || []
+                });
+            } else {
+                const resistanceStr = resistance.name || resistance.type;
+                if (resistanceStr) {
+                    this.character.addResistance(resistanceStr.toLowerCase(), source);
+                }
             }
         }
 
         // Apply traits
-        if (race.entries) {
-            for (const entry of race.entries) {
-                if (entry.type === 'entries' && entry.name) {
-                    let description;
-                    if (Array.isArray(entry.entries)) {
-                        description = entry.entries.map(e => {
-                            if (typeof e === 'string') return e;
-                            if (typeof e === 'object' && e.type === 'list') {
-                                return e.items.map(item => `• ${item}`).join('\n');
-                            }
-                            return JSON.stringify(e);
-                        }).join('\n');
-                    } else {
-                        description = entry.entries;
+        if (race.traits) {
+            for (const trait of race.traits) {
+                this.character.addTrait(trait.name, trait.description, source);
+            }
+        }
+
+        // Apply languages
+        if (race.languages) {
+            for (const language of race.languages) {
+                this.character.addLanguage(language, source);
+            }
+        }
+
+        // Apply proficiencies
+        if (race.proficiencies) {
+            for (const [type, profs] of Object.entries(race.proficiencies)) {
+                if (Array.isArray(profs)) {
+                    for (const prof of profs) {
+                        this.character.addProficiency(type, prof, source);
                     }
-                    this.character.addTrait(entry.name, description, source);
+                } else if (profs.choose) {
+                    // Store proficiency choices for later
+                    this.character.addPendingChoice('proficiency', {
+                        source,
+                        type,
+                        count: profs.choose.count || 1,
+                        from: profs.choose.from || []
+                    });
                 }
             }
         }
@@ -372,34 +360,26 @@ export class RaceManager {
     }
 
     /**
+     * Checks if there are pending ability score choices
+     * @returns {boolean} - True if there are pending choices
+     */
+    hasPendingChoices() {
+        return this.abilityChoices.size > 0;
+    }
+
+    /**
+     * Gets any pending ability score choices
+     * @returns {Map<string, Object>} - Map of source to choice configuration
+     */
+    getPendingChoices() {
+        return this.abilityChoices;
+    }
+
+    /**
      * Gets the currently selected race name
      * @returns {string|null} - The name of the selected race, or null if none selected
      */
     getCurrentRaceName() {
         return this.selectedRace?.name || null;
-    }
-
-    /**
-     * Checks if there are pending ability score choices
-     * @returns {boolean} - True if there are pending choices
-     */
-    hasPendingChoices() {
-        if (!this.selectedRace) return false;
-
-        // Check race ability choices
-        if (this.selectedRace.ability) {
-            for (const abilityIncrease of this.selectedRace.ability) {
-                if (abilityIncrease.choose) return true;
-            }
-        }
-
-        // Check subrace ability choices
-        if (this.selectedSubrace?.ability) {
-            for (const abilityIncrease of this.selectedSubrace.ability) {
-                if (abilityIncrease.choose) return true;
-            }
-        }
-
-        return false;
     }
 } 

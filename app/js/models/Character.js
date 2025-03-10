@@ -9,6 +9,7 @@ export class Character {
         this.subclass = '';
         this.background = '';
         this.level = 1;
+        this.allowedSources = new Set(['PHB', 'DMG', 'MM']); // Core books always selected
         this.abilityScores = {
             strength: 10,
             dexterity: 10,
@@ -144,46 +145,191 @@ export class Character {
         }
     }
 
+    // Add methods for source management
+    addAllowedSource(source) {
+        if (source) {
+            this.allowedSources.add(source.toUpperCase());
+        }
+    }
+
+    removeAllowedSource(source) {
+        if (source) {
+            this.allowedSources.delete(source.toUpperCase());
+        }
+    }
+
+    isSourceAllowed(source) {
+        return source ? this.allowedSources.has(source.toUpperCase()) : false;
+    }
+
+    setAllowedSources(sources) {
+        // Convert input to Set if it isn't already
+        const sourcesSet = sources instanceof Set ? sources : new Set(sources);
+
+        // Ensure core sources are included
+        const coreSources = new Set(['PHB', 'DMG', 'MM']);
+        coreSources.forEach(source => sourcesSet.add(source));
+
+        // Update allowedSources with all sources
+        this.allowedSources = sourcesSet;
+    }
+
+    getAllowedSources() {
+        return new Set(this.allowedSources);
+    }
+
     // Static method to create a Character instance from JSON data
     static fromJSON(data) {
         const character = new Character();
 
         // Copy basic properties
-        Object.assign(character, data);
+        character.id = data.id;
+        character.name = data.name;
+        character.playerName = data.playerName;
+        character.level = data.level;
+        character.height = data.height;
+        character.weight = data.weight;
+        character.gender = data.gender;
+        character.backstory = data.backstory;
 
-        // Helper functions for safe conversion
-        const toSet = (data) => new Set(Array.isArray(data) ? data : []);
-        const toMap = (data, valueTransform = (v) => v) => {
-            if (typeof data !== 'object' || data === null) return new Map();
-            return new Map(
-                Object.entries(data).map(([k, v]) => [k, valueTransform(v)])
-            );
-        };
+        // Set allowed sources with proper handling of different formats
+        if (data.allowedSources) {
+            let sources;
+            if (Array.isArray(data.allowedSources)) {
+                sources = new Set(data.allowedSources);
+            } else if (typeof data.allowedSources === 'string') {
+                sources = new Set(data.allowedSources.split(','));
+            } else if (data.allowedSources instanceof Set) {
+                sources = new Set(data.allowedSources);
+            } else {
+                sources = new Set(['PHB', 'DMG', 'MM']);
+            }
+            character.setAllowedSources(sources);
+        }
 
-        // Reconstruct complex objects
+        // Copy ability scores and bonuses
+        character.abilityScores = { ...data.abilityScores };
+        character.abilityBonuses = { ...data.abilityBonuses };
+
+        // Copy size and speed
+        character.size = data.size;
+        character.speed = { ...data.speed };
+
+        // Copy features
         character.features = {
             darkvision: data.features?.darkvision || 0,
-            resistances: toSet(data.features?.resistances),
-            traits: toMap(data.features?.traits)
+            resistances: new Set(Array.isArray(data.features?.resistances) ? data.features.resistances : []),
+            traits: new Map(Object.entries(data.features?.traits || {}))
         };
 
+        // Copy proficiencies - ensure we're creating Sets from arrays
         character.proficiencies = {
-            armor: toSet(data.proficiencies?.armor),
-            weapons: toSet(data.proficiencies?.weapons),
-            tools: toSet(data.proficiencies?.tools),
-            skills: toSet(data.proficiencies?.skills),
-            languages: toSet(data.proficiencies?.languages || ['Common'])
+            armor: new Set(Array.isArray(data.proficiencies?.armor) ? data.proficiencies.armor : []),
+            weapons: new Set(Array.isArray(data.proficiencies?.weapons) ? data.proficiencies.weapons : []),
+            tools: new Set(Array.isArray(data.proficiencies?.tools) ? data.proficiencies.tools : []),
+            skills: new Set(Array.isArray(data.proficiencies?.skills) ? data.proficiencies.skills : []),
+            languages: new Set(Array.isArray(data.proficiencies?.languages) ? data.proficiencies.languages : ['Common'])
         };
 
-        // Reconstruct proficiency sources with nested Sets
+        // Copy proficiency sources - ensure we're creating Maps from entries
         character.proficiencySources = {
-            armor: toMap(data.proficiencySources?.armor, sources => toSet(sources)),
-            weapons: toMap(data.proficiencySources?.weapons, sources => toSet(sources)),
-            tools: toMap(data.proficiencySources?.tools, sources => toSet(sources)),
-            skills: toMap(data.proficiencySources?.skills, sources => toSet(sources)),
-            languages: toMap(data.proficiencySources?.languages, sources => toSet(sources))
+            armor: new Map(Object.entries(data.proficiencySources?.armor || {})),
+            weapons: new Map(Object.entries(data.proficiencySources?.weapons || {})),
+            tools: new Map(Object.entries(data.proficiencySources?.tools || {})),
+            skills: new Map(Object.entries(data.proficiencySources?.skills || {})),
+            languages: new Map(Object.entries(data.proficiencySources?.languages || {}))
         };
+
+        // Copy equipment
+        character.equipment = {
+            weapons: Array.isArray(data.equipment?.weapons) ? data.equipment.weapons : [],
+            armor: Array.isArray(data.equipment?.armor) ? data.equipment.armor : [],
+            items: Array.isArray(data.equipment?.items) ? data.equipment.items : []
+        };
+
+        // Store race, class, and background IDs
+        character.race = data.race || '';
+        character.subrace = data.subrace || '';
+        character.class = data.class || '';
+        character.subclass = data.subclass || '';
+        character.background = data.background || '';
 
         return character;
+    }
+
+    // Add toJSON method to ensure sources are saved
+    toJSON() {
+        // Create a clean object without circular references
+        const cleanObject = {
+            id: this.id,
+            name: this.name,
+            playerName: this.playerName,
+            level: this.level,
+            // Convert Set to Array while preserving all sources
+            allowedSources: Array.from(this.allowedSources),
+            abilityScores: { ...this.abilityScores },
+            abilityBonuses: { ...this.abilityBonuses },
+            size: this.size,
+            speed: { ...this.speed },
+            features: {
+                darkvision: this.features.darkvision,
+                resistances: Array.from(this.features.resistances),
+                traits: Object.fromEntries(this.features.traits)
+            },
+            proficiencies: {
+                armor: Array.from(this.proficiencies.armor),
+                weapons: Array.from(this.proficiencies.weapons),
+                tools: Array.from(this.proficiencies.tools),
+                skills: Array.from(this.proficiencies.skills),
+                languages: Array.from(this.proficiencies.languages)
+            },
+            proficiencySources: Object.fromEntries(
+                Object.entries(this.proficiencySources).map(([type, sources]) => [
+                    type,
+                    Object.fromEntries(Array.from(sources).map(([key, value]) => [
+                        key,
+                        Array.from(value)
+                    ]))
+                ])
+            ),
+            height: this.height,
+            weight: this.weight,
+            gender: this.gender,
+            backstory: this.backstory,
+            equipment: {
+                weapons: Array.isArray(this.equipment.weapons) ? [...this.equipment.weapons] : [],
+                armor: Array.isArray(this.equipment.armor) ? [...this.equipment.armor] : [],
+                items: Array.isArray(this.equipment.items) ? [...this.equipment.items] : []
+            },
+            // Store manager data safely
+            race: this.race?.selectedRace?.id || '',
+            subrace: this.race?.selectedSubrace?.id || '',
+            class: this.class?.selectedClass?.id || '',
+            subclass: this.class?.selectedSubclass?.id || '',
+            background: this.background?.selectedBackground?.id || '',
+            // Store additional manager data without circular references
+            characteristics: this.characteristics ? {
+                personalityTrait: this.characteristics.getCharacteristic('personalityTrait'),
+                ideal: this.characteristics.getCharacteristic('ideal'),
+                bond: this.characteristics.getCharacteristic('bond'),
+                flaw: this.characteristics.getCharacteristic('flaw')
+            } : {},
+            spells: this.spells ? {
+                known: Array.from(this.spells.knownSpells?.keys() || []),
+                prepared: Array.from(this.spells.preparedSpells || []),
+                slots: { ...this.spells.spellSlots },
+                slotsUsed: { ...this.spells.slotsUsed }
+            } : {},
+            feats: this.feats ? {
+                selected: Array.from(this.feats.feats?.keys() || []),
+                optional: Array.from(this.feats.optionalFeatures?.keys() || [])
+            } : {},
+            optionalFeatures: this.optionalFeatures ? {
+                selected: Array.from(this.optionalFeatures.features?.keys() || [])
+            } : {},
+            lastModified: new Date().toISOString()
+        };
+
+        return cleanObject;
     }
 } 
