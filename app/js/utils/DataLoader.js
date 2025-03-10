@@ -66,6 +66,7 @@ export class DataLoader {
                         ...item,
                         source: item.source || 'PHB',
                         id: `${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(item.source || 'phb').toLowerCase()}`,
+                        type: item.type,
                         canBeEquipped: item.weapon || item.type === 'S' || item.type === 'LA' || item.type === 'MA' || item.type === 'HA',
                         attunement: item.reqAttune || false
                     };
@@ -77,7 +78,7 @@ export class DataLoader {
             console.log('Processing items from items.json...');
             for (const item of (items.item || [])) {
                 // Note: Pack processing is now handled by PackManager
-                // See core/managers/PackManager.js
+                // See managers/PackManager.js
                 const processedItem = {
                     ...item,
                     source: item.source || 'PHB',
@@ -143,7 +144,7 @@ export class DataLoader {
             }
 
             // Note: Standard packs are now handled by PackService
-            // See core/services/PackService.js for implementation
+            // See services/PackService.js for implementation
 
             // Cache and return processed items
             this.dataCache.set('items', allItems);
@@ -312,31 +313,53 @@ export class DataLoader {
 
                 // Extract the first class from the file and its subclasses
                 const classObj = classData.class[0];
-                const classId = `${classObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(classObj.source || 'phb').toLowerCase()}`;
+                const classId = `${classObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${classObj.source || 'phb'}`;
 
                 const subclasses = (classData.subclass || []).map(sc => ({
                     ...sc,
                     source: sc.source || 'PHB',
                     classSource: classObj.source || 'PHB',
-                    id: `${sc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(sc.source || 'phb').toLowerCase()}`,
+                    id: `${sc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${sc.source || 'phb'}`,
                     classId: classId
                 }));
 
                 // Add fluff data if available
-                const fluff = fluffData.classFluff?.[0] || {};
+                const xphbFluff = fluffData.classFluff?.find(f => f.source === 'XPHB' && f.name === classObj.name);
+                const phbFluff = fluffData.classFluff?.find(f => f.source === 'PHB' && f.name === classObj.name);
+                const fluff = xphbFluff || phbFluff;
 
-                return {
+                // Create both PHB and XPHB versions if XPHB fluff exists
+                const classes = [];
+
+                // Add original PHB version
+                classes.push({
                     id: classId,
-                    name: classObj.name || className.charAt(0).toUpperCase() + className.slice(1),
+                    name: classObj.name,
                     source: classObj.source || 'PHB',
                     ...classObj,
-                    fluff,
+                    fluff: phbFluff || {},
+                    entries: classObj.entries || [],
                     subclasses
-                };
+                });
+
+                // Add XPHB version if it has fluff
+                if (xphbFluff) {
+                    classes.push({
+                        id: `${classObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-xphb`,
+                        name: classObj.name,
+                        source: 'XPHB',
+                        ...classObj,
+                        fluff: xphbFluff,
+                        entries: classObj.entries || [],
+                        subclasses
+                    });
+                }
+
+                return classes;
             });
 
-            // Wait for all class data to load
-            const classes = await Promise.all(classPromises);
+            // Wait for all class data to load and flatten the array
+            const classes = (await Promise.all(classPromises)).flat();
             console.log('Loaded all class data:', classes);
 
             // Cache and return the classes

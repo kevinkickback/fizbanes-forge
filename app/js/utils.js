@@ -1,7 +1,7 @@
 // Utility functions
 
 // Import the TooltipManager
-import { tooltipManager } from './core/managers/TooltipManager.js';
+import { tooltipManager } from './managers/TooltipManager.js';
 
 // Initialize app namespace
 const app = {
@@ -546,12 +546,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize core components
   await Promise.all([
     // Initialize tooltips first
-    import('./core/managers/TooltipManager.js').then(module => {
+    import('./managers/TooltipManager.js').then(module => {
       window.tooltipManager = module.tooltipManager;
       window.tooltipManager.initialize();
     }),
     // Initialize data loader
-    import('./core/utils/DataLoader.js').then(module => {
+    import('./utils/DataLoader.js').then(module => {
       window.dndDataLoader = module.DataLoader.initialize();
     })
   ]);

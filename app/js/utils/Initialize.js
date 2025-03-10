@@ -7,7 +7,7 @@ import { EntityCard } from '../ui/EntityCard.js';
 import { ReferenceResolver } from './ReferenceResolver.js';
 import { TextProcessor } from './TextProcessor.js';
 import { ClassManager } from '../managers/ClassManager.js';
-import { setupFormListeners, updateCharacterField, markUnsavedChanges, clearUnsavedChanges } from '../../utils.js';
+import { setupFormListeners, updateCharacterField, markUnsavedChanges, clearUnsavedChanges } from '../utils.js';
 
 // Import UI components
 import { RaceUI } from '../ui/RaceUI.js';

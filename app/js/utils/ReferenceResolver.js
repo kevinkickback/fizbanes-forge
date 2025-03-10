@@ -166,13 +166,77 @@ export class ReferenceResolver {
                 }
                 case 'class': {
                     const classes = await this.dataLoader.loadClasses();
-                    const classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase());
+                    // Try to find the class with the exact source first
+                    let classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === source);
+
+                    // If not found and source is PHB, try XPHB
+                    if (!classData && source === 'PHB') {
+                        classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === 'XPHB');
+                    }
+
+                    // If still not found, try PHB as fallback
+                    if (!classData && source === 'XPHB') {
+                        classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === 'PHB');
+                    }
+
                     if (classData) {
+                        const processEntries = (entries) => {
+                            if (!entries) return '';
+                            if (typeof entries === 'string') return entries;
+                            if (Array.isArray(entries)) {
+                                return entries.map(entry => {
+                                    if (typeof entry === 'string') return entry;
+                                    if (entry.type === 'section' || entry.type === 'entries') {
+                                        const text = [];
+                                        if (entry.name && entry.name !== classData.name && entry.name.toLowerCase() !== 'description') {
+                                            text.push(entry.name);
+                                        }
+                                        if (entry.entries) {
+                                            if (Array.isArray(entry.entries)) {
+                                                text.push(entry.entries.map(e => {
+                                                    if (typeof e === 'string') return e;
+                                                    if (e.type === 'entries') return processEntries(e.entries);
+                                                    return '';
+                                                }).filter(Boolean).join('\n\n'));
+                                            } else {
+                                                text.push(processEntries(entry.entries));
+                                            }
+                                        }
+                                        return text.filter(Boolean).join('\n\n');
+                                    }
+                                    return '';
+                                }).filter(Boolean).join('\n\n');
+                            }
+                            return '';
+                        };
+
+                        // Get description from fluff entries
+                        let description = '';
+
+                        // Try fluff entries first
+                        if (classData.fluff?.entries) {
+                            // Get the first section that matches the class name or has no name
+                            const mainSection = classData.fluff.entries.find(e =>
+                                e.type === 'section' &&
+                                (!e.name || e.name === classData.name || e.name.toLowerCase() === 'description')
+                            );
+
+                            if (mainSection) {
+                                description = processEntries([mainSection]);
+                            } else {
+                                // If no main section found, try processing all entries
+                                description = processEntries(classData.fluff.entries);
+                            }
+                        }
+
+                        // If no fluff description, try regular entries
+                        if (!description && classData.entries) {
+                            description = processEntries(classData.entries);
+                        }
+
                         tooltipData = {
                             title: classData.name,
-                            description: classData.fluff?.entries?.[0] || `A ${classData.name.toLowerCase()} is a master of ${classData.spellcasting ? 'magical and ' : ''}martial abilities.`,
-                            hitDice: `d${classData.hd}`,
-                            spellcasting: classData.spellcasting?.ability,
+                            description: description,
                             source: `${classData.source}, page ${classData.page || '??'}`
                         };
                     }
@@ -182,23 +246,28 @@ export class ReferenceResolver {
                     const races = await this.dataLoader.loadRaces();
                     const raceData = races.find(r => r.name.toLowerCase() === name.toLowerCase());
                     if (raceData) {
-                        const abilityText = raceData.ability.map(a => {
-                            if (typeof a === 'object') {
-                                if (a.choose) {
-                                    return `Choose ${a.choose.count} from ${a.choose.from.join(', ')}`;
-                                }
-                                return Object.entries(a).map(([ability, bonus]) => `${ability} ${bonus >= 0 ? '+' : ''}${bonus}`).join(', ');
+                        const processEntries = (entries) => {
+                            if (!entries) return '';
+                            if (typeof entries === 'string') return entries;
+                            if (Array.isArray(entries)) {
+                                return entries.map(entry => {
+                                    if (typeof entry === 'string') return entry;
+                                    if (entry.type === 'entries') {
+                                        return `${entry.name}\n${processEntries(entry.entries)}`;
+                                    }
+                                    return '';
+                                }).filter(Boolean).join('\n');
                             }
                             return '';
-                        }).filter(Boolean).join('; ');
+                        };
+
+                        const description = processEntries(raceData.fluff?.entries) ||
+                            processEntries(raceData.entries) ||
+                            `A member of the ${raceData.name} race.`;
 
                         tooltipData = {
                             title: raceData.name,
-                            description: raceData.fluff?.entries?.[0] || raceData.entries?.[0] || `A member of the ${raceData.name} race.`,
-                            size: Array.isArray(raceData.size) ? raceData.size[0] : raceData.size,
-                            speed: typeof raceData.speed === 'number' ? `${raceData.speed} ft.` :
-                                typeof raceData.speed === 'object' ? `${raceData.speed.walk || 30} ft.` : '30 ft.',
-                            ability: abilityText,
+                            description: description,
                             source: `${raceData.source}, page ${raceData.page || '??'}`
                         };
                     }
@@ -384,13 +453,10 @@ export class ReferenceResolver {
         let content = '';
 
         if (data.title) {
-            content += `<strong>${data.title}</strong><br>`;
+            content += `<strong>${data.title}</strong>`;
         }
 
-        if (data.ability) {
-            content += `<div class="ability-score">${data.ability}</div>`;
-        }
-
+        // Handle spell-specific formatting
         if (data.level !== undefined) {
             if (data.level === 0) {
                 content += `<div class="spell-header">${data.school} Cantrip</div>`;
@@ -412,6 +478,7 @@ export class ReferenceResolver {
             }
         }
 
+        // Handle item-specific formatting
         if (data.type) {
             content += `<div class="item-type">${data.type}</div>`;
             if (data.rarity) {
@@ -432,11 +499,7 @@ export class ReferenceResolver {
         }
 
         if (data.description) {
-            content += `<div class="description">${data.description}</div>`;
-        }
-
-        if (data.roll) {
-            content += `<div class="roll-info"><strong>Roll:</strong> ${data.roll}</div>`;
+            content += `<div class="tooltip-description">${data.description}</div>`;
         }
 
         if (data.source) {
