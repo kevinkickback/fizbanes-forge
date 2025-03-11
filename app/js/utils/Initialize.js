@@ -198,7 +198,7 @@ async function initializeBuildPage() {
         }
     } catch (error) {
         console.error('Error initializing build page:', error);
-        window.showNotification('Error loading character data', 'danger');
+        window.showNotification('Error loading character data', 'error');
     }
 }
 
@@ -220,7 +220,7 @@ function initializeSkeletonDetails() {
         if (window.currentCharacter.race) {
             raceUI.updateRaceDisplay();
         } else {
-            raceUI.setRacePlaceholderContent(raceImage, raceQuickDesc, raceDetails);
+            raceUI.setRacePlaceholderContent();
         }
     }
 
@@ -229,7 +229,7 @@ function initializeSkeletonDetails() {
         if (window.currentCharacter.class) {
             classUI.updateClassDetails(window.currentCharacter.class, window.currentCharacter.subclass);
         } else {
-            classUI.setClassPlaceholderContent(classImage, classQuickDesc, classDetails);
+            classUI.setClassPlaceholderContent();
         }
     }
 
@@ -442,7 +442,7 @@ async function loadCharacters() {
             card.className = 'col-md-4 col-lg-3 mb-4';
             card.innerHTML = `
                 <div class="card character-card ${window.currentCharacter?.id === character.id ? 'selected' : ''}" data-character-id="${character.id}">
-                    <div class="active-profile-badge">Active Profile</div>
+                    <div class="active-profile-badge">Selected</div>
                     <div class="card-body">
                         <h5 class="card-title">${character.name}</h5>
                         <p class="card-text">
@@ -480,17 +480,6 @@ async function loadCharacters() {
                 try {
                     // Load character using the new fromJSON method
                     window.currentCharacter = Character.fromJSON(character);
-
-                    // Create a single SourceUI instance if it doesn't exist
-                    if (!window.characterSourceUI) {
-                        window.characterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
-                        window.characterSourceUI.initializeSourceSelection();
-                    }
-
-                    // Set the exact sources from the save file - do this only once
-                    if (character.allowedSources) {
-                        window.characterSourceUI.setSelectedSources(new Set(character.allowedSources));
-                    }
 
                     // Initialize managers for the loaded character
                     window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
@@ -653,9 +642,14 @@ async function createCharacterFromModal() {
             return;
         }
 
-        // Get selected sources from the shared SourceUI instance - use exactly what's selected
-        const selectedSources = new Set(window.characterSourceUI.getSelectedSources());
-        console.log('Selected sources:', Array.from(selectedSources));
+        // Get selected sources from the SourceUI instance
+        const selectedSources = window.characterSourceUI.getSelectedSources();
+
+        // Validate source selection
+        if (!window.characterSourceUI.validateSourceSelection()) {
+            window.showNotification('* At least one Player\'s Handbook (2014 or 2024) must be selected', 'warning');
+            return;
+        }
 
         // Create a new character
         const character = new Character();
@@ -663,34 +657,23 @@ async function createCharacterFromModal() {
         character.name = nameInput.value;
         character.lastModified = new Date().toISOString();
 
-        // Set the allowed sources using the proper method
-        character.setAllowedSources(selectedSources);
-        console.log('Setting allowed sources:', Array.from(selectedSources));
+        // Set the allowed sources
+        character.allowedSources = new Set(selectedSources);
 
         // Convert character to JSON for saving
         const characterData = character.toJSON();
         // Ensure allowed sources are properly set in the JSON data
         characterData.allowedSources = Array.from(selectedSources);
-        console.log('Saving character data:', characterData);
 
         // Save the new character
-        console.log('Attempting to save character...');
         const saveResult = await window.characterStorage.saveCharacter(characterData);
-        console.log('Save result:', saveResult);
 
         if (!saveResult.success) {
             throw new Error(saveResult.message || 'Failed to save character');
         }
 
-        // Set as current character and ensure sources are set
+        // Set as current character
         window.currentCharacter = Character.fromJSON(characterData);
-        window.currentCharacter.allowedSources = new Set(selectedSources);
-        window.currentCharacter.setAllowedSources(selectedSources);
-
-        // Update sidebar sources to match the new character
-        if (window.characterSourceUI) {
-            window.characterSourceUI.setSelectedSources(selectedSources);
-        }
 
         // Initialize managers for the new active character
         window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);
@@ -729,16 +712,6 @@ async function loadCharacter(character) {
     try {
         // Create character from saved data
         window.currentCharacter = Character.fromJSON(character);
-
-        // Use EXACTLY what's in the save file for sources, no modifications
-        const savedSources = new Set(character.allowedSources);
-        window.currentCharacter.allowedSources = savedSources;
-
-        // Create SourceUI if needed and set EXACTLY the same sources
-        if (!window.characterSourceUI) {
-            window.characterSourceUI = new SourceUI(window.dndDataLoader.sourceManager);
-        }
-        window.characterSourceUI.setSelectedSources(savedSources);
 
         // Initialize managers
         window.currentCharacter.race = new RaceManager(window.currentCharacter, window.dndDataLoader);

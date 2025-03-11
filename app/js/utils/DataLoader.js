@@ -169,7 +169,41 @@ export class DataLoader {
                 this.loadJsonFile('fluff-races.json').catch(() => ({ raceFluff: [] }))
             ]);
 
+            // Get allowed sources from current character or use defaults
+            const allowedSources = window.currentCharacter?.getAllowedSources() ||
+                new Set(['PHB', 'DMG', 'MM']);
+
+            // Check if at least one PHB version is selected
+            const hasPHB14 = allowedSources.has('PHB');
+            const hasPHB24 = allowedSources.has('XPHB');
+
+            if (!hasPHB14 && !hasPHB24) {
+                console.error('At least one PHB version (PHB\'14 or PHB\'24) must be selected');
+                window.showNotification('Please enable either PHB\'14 or PHB\'24 in source selection', 'warning');
+                // Return only PHB races as a fallback
+                raceData.race = raceData.race.filter(race =>
+                    !race._abstract &&
+                    (race.source === 'PHB' || race.source === 'XPHB')
+                );
+            } else {
+                // Filter races by allowed sources before processing
+                raceData.race = raceData.race.filter(race =>
+                    !race._abstract && // Skip abstract races
+                    allowedSources.has(race.source || 'PHB')
+                );
+            }
+
             const races = this.processRaceData(raceData, fluffData);
+
+            // Further filter subraces by allowed sources
+            for (const race of races) {
+                if (race.subraces) {
+                    race.subraces = race.subraces.filter(subrace =>
+                        allowedSources.has(subrace.source || race.source || 'PHB')
+                    );
+                }
+            }
+
             this.dataCache.set('races', races);
             return races;
         } catch (error) {
@@ -180,47 +214,46 @@ export class DataLoader {
 
     processRaceData(raceData, fluffData) {
         const processedRaces = [];
-        const seenRaces = new Set(); // Track races we've already processed
-
-        // Get allowed sources from the current character
-        const allowedSources = window.currentCharacter?.getAllowedSources() ||
-            new Set(['PHB', 'DMG', 'MM']); // Default to core books if no character
 
         for (const race of (raceData.race || [])) {
-            // Skip non-player races and races from non-allowed sources
-            if (race.traitTags?.includes('NPC Race') ||
-                !allowedSources.has(race.source?.toUpperCase())) {
-                continue;
-            }
-
-            // If this race is reprinted in XPHB and we're looking at the PHB version, skip it
-            if (race.reprintedAs?.some(reprint => reprint.includes('XPHB')) &&
-                race.source === 'PHB' &&
-                allowedSources.has('XPHB')) {
-                continue;
-            }
-
-            // If we've already processed this race name (ignoring source), skip it
-            const raceName = race.name.toLowerCase();
-            if (seenRaces.has(raceName)) {
-                continue;
-            }
-            seenRaces.add(raceName);
+            // Skip abstract races
+            if (race._abstract) continue;
 
             // Process base race
             const processedRace = this.createBaseRace(race, fluffData);
 
-            // Process subraces (handle all subrace formats)
-            const subraces = [
-                ...(race.subraces || []),
-                ...(race._versions || []),
-                ...(race.lineages || [])
-            ].filter(subrace =>
-                subrace && subrace.name &&  // Add check for valid subrace data
-                !subrace.traitTags?.includes('NPC Race') &&
-                allowedSources.has((subrace.source || race.source)?.toUpperCase())
-            ).map(subrace => this.processSubrace(subrace, processedRace))
-                .filter(subrace => subrace !== null);  // Filter out null subraces
+            // Process subraces, versions, and lineages
+            const subraces = [];
+
+            // Handle regular subraces
+            if (race.subraces) {
+                for (const subrace of race.subraces) {
+                    if (!subrace._abstract) {  // Skip abstract subraces
+                        const processed = this.processSubrace(subrace, processedRace);
+                        if (processed) subraces.push(processed);
+                    }
+                }
+            }
+
+            // Handle versions
+            if (race._versions) {
+                for (const version of race._versions) {
+                    if (!version._abstract) {  // Skip abstract versions
+                        const processed = this.processSubrace(version, processedRace);
+                        if (processed) subraces.push(processed);
+                    }
+                }
+            }
+
+            // Handle lineages
+            if (race.lineages) {
+                for (const lineage of race.lineages) {
+                    if (!lineage._abstract) {  // Skip abstract lineages
+                        const processed = this.processSubrace(lineage, processedRace);
+                        if (processed) subraces.push(processed);
+                    }
+                }
+            }
 
             processedRace.subraces = subraces;
             processedRaces.push(processedRace);
@@ -230,21 +263,16 @@ export class DataLoader {
     }
 
     createBaseRace(race, fluffData) {
-        // Create standardized race object
         const baseRace = {
             id: `${race.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(race.source || 'phb').toLowerCase()}`,
             name: race.name,
             source: race.source || 'PHB',
-            size: Array.isArray(race.size) ? race.size[0] : (race.size || 'M'),
-            speed: this.normalizeSpeed(race.speed),
-            ability: this.normalizeAbilityScores(race.ability),
-            traits: this.normalizeTraits(race.entries),
-            languages: this.normalizeLanguages(race.languageProficiencies),
+            size: Array.isArray(race.size) ? race.size : [race.size || 'M'],
+            speed: typeof race.speed === 'number' ? { walk: race.speed } : race.speed,
+            ability: race.ability || [],
+            languages: race.languageProficiencies || [],
             resistances: [...(race.resist || []), ...(race.features?.resistances || [])],
-            features: {
-                darkvision: race.darkvision || race.features?.darkvision || 0,
-                ...race.features
-            },
+            features: race.features || {},
             proficiencies: race.proficiencies || {},
             spells: race.additionalSpells || [],
             entries: race.entries || [],
@@ -266,24 +294,25 @@ export class DataLoader {
     }
 
     processSubrace(subraceData, parentRace) {
-        if (!subraceData || !subraceData.name) {
-            console.warn('Invalid subrace data:', subraceData);
+        // Skip if no data or if it's an abstract implementation
+        if (!subraceData || subraceData._abstract || !subraceData.name) {
             return null;
+        }
+
+        // Handle implementation references
+        if (subraceData._implementations) {
+            return null;  // Skip implementation definitions
         }
 
         const subrace = {
             id: `${subraceData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(subraceData.source || parentRace.source || 'phb').toLowerCase()}`,
-            name: subraceData.name.replace(/^[^;]+;\s*/, ''), // Remove parent race name if present
+            name: subraceData.name.replace(/^[^;]+;\s*/, ''),
             source: subraceData.source || parentRace.source || 'PHB',
             parentRace: parentRace.id,
-            ability: this.normalizeAbilityScores(subraceData.ability),
-            traits: this.normalizeTraits(subraceData.entries),
-            features: {
-                darkvision: subraceData.darkvision || parentRace.features.darkvision || 0,
-                ...subraceData.features
-            },
+            ability: subraceData.ability || [],
+            features: subraceData.features || {},
             spells: subraceData.additionalSpells || [],
-            entries: this.processSubraceEntries(subraceData)
+            entries: subraceData.entries || []
         };
 
         // Handle _mod entries if they exist (for _versions format)
@@ -296,72 +325,6 @@ export class DataLoader {
         }
 
         return subrace;
-    }
-
-    normalizeSpeed(speed) {
-        if (typeof speed === 'number') {
-            return { walk: speed };
-        }
-        if (typeof speed === 'object') {
-            const normalized = {};
-            for (const [type, value] of Object.entries(speed)) {
-                normalized[type] = typeof value === 'number' ? value : value.number || 0;
-            }
-            return normalized;
-        }
-        return { walk: 30 }; // Default walking speed
-    }
-
-    normalizeAbilityScores(ability) {
-        if (!ability) return [];
-        return ability.map(score => {
-            if (score.mode === 'choose') {
-                return {
-                    mode: 'choose',
-                    count: score.count || 1,
-                    from: score.from || [],
-                    amount: score.amount || 1
-                };
-            }
-            if (score.mode === 'fixed') {
-                return {
-                    mode: 'fixed',
-                    scores: score.scores || [],
-                    amount: score.amount || 1
-                };
-            }
-            // Handle legacy format
-            return {
-                mode: 'fixed',
-                scores: Object.keys(score).filter(key => key !== 'choose'),
-                amount: Object.values(score)[0]
-            };
-        });
-    }
-
-    normalizeLanguages(languages) {
-        if (!languages) return [];
-        if (Array.isArray(languages)) {
-            return languages.map(lang =>
-                typeof lang === 'string' ? lang : Object.keys(lang)[0]
-            );
-        }
-        return Object.keys(languages).filter(lang => languages[lang]);
-    }
-
-    normalizeTraits(entries) {
-        if (!entries) return [];
-        return entries.filter(entry =>
-            entry.type === 'entries' && entry.name
-        ).map(entry => ({
-            name: entry.name,
-            description: Array.isArray(entry.entries) ? entry.entries.join('\n') : entry.entries
-        }));
-    }
-
-    processSubraceEntries(subraceData) {
-        if (!subraceData.entries) return [];
-        return Array.isArray(subraceData.entries) ? subraceData.entries : [subraceData.entries];
     }
 
     async loadClasses() {
@@ -644,13 +607,18 @@ export class DataLoader {
         }
         if (!window.dndDataLoader) {
             window.dndDataLoader = new DataLoader();
+
+            // Add event listener for character changes
+            window.addEventListener('characterLoaded', () => {
+                window.dndDataLoader.clearCache();
+            });
         }
         return window.dndDataLoader;
     }
 
-    // Add method to clear cache when sources change
+    // Remove this method as it's now handled by the clearCache method
     clearCacheOnSourceChange() {
-        this.dataCache.clear();
+        this.clearCache();
     }
 }
 

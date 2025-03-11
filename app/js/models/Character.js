@@ -34,19 +34,22 @@ export class Character {
             traits: new Map()  // Map of trait name to { description, source }
         };
         this.proficiencies = {
-            armor: new Set(),
-            weapons: new Set(),
-            tools: new Set(),
-            skills: new Set(),
-            languages: new Set(['Common']) // Default language
+            armor: [],
+            weapons: [],
+            tools: [],
+            skills: [],
+            languages: [],
+            savingThrows: []
         };
         this.proficiencySources = {
             armor: new Map(),
             weapons: new Map(),
             tools: new Map(),
             skills: new Map(),
-            languages: new Map([['Common', new Set(['Default'])]])
+            languages: new Map(),
+            savingThrows: new Map()
         };
+        this.pendingChoices = new Map(); // Map to store pending choices
         this.height = '';
         this.weight = '';
         this.gender = '';
@@ -56,55 +59,124 @@ export class Character {
             armor: [],
             items: []
         };
+        this.pendingAbilityChoices = []; // Array to store pending ability score choices
+
+        // Add Common as a default language
+        this.addLanguage('Common', 'Default');
     }
 
     // Methods for ability scores
     getAbilityScore(ability) {
+        console.log(`[Character] Getting ability score for ${ability}`);
         const base = this.abilityScores[ability] || 10;
         const bonuses = this.abilityBonuses[ability] || [];
-        return base + bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
+        const total = base + bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
+        console.log(`[Character] ${ability}: base=${base}, bonuses=${JSON.stringify(bonuses)}, total=${total}`);
+        return total;
     }
 
     addAbilityBonus(ability, value, source) {
+        console.log(`[Character] Adding ability bonus: ${ability} +${value} from ${source}`);
         if (!this.abilityBonuses[ability]) {
             this.abilityBonuses[ability] = [];
         }
-        this.abilityBonuses[ability].push({ value, source });
+
+        // Check if a bonus from this source already exists
+        const existingBonus = this.abilityBonuses[ability].find(bonus => bonus.source === source);
+        if (existingBonus) {
+            // Update existing bonus
+            existingBonus.value = value;
+        } else {
+            // Add new bonus
+            this.abilityBonuses[ability].push({ value, source });
+        }
+
+        console.log(`[Character] Updated ability bonuses for ${ability}:`, this.abilityBonuses[ability]);
     }
 
     clearAbilityBonuses(source) {
+        console.log(`[Character] Clearing ability bonuses from source: ${source}`);
+        console.log('[Character] Before clear:', this.abilityBonuses);
         for (const ability in this.abilityBonuses) {
             this.abilityBonuses[ability] = this.abilityBonuses[ability].filter(
                 bonus => bonus.source !== source
             );
         }
+        console.log('[Character] After clear:', this.abilityBonuses);
+    }
+
+    // Methods for pending choices
+    addPendingChoice(type, choice) {
+        console.log(`[Character] Adding pending choice:`, { type, choice });
+        if (!this.pendingChoices.has(type)) {
+            this.pendingChoices.set(type, []);
+        }
+        this.pendingChoices.get(type).push(choice);
+
+        // Also add to ability choices if it's an ability choice
+        if (type === 'ability') {
+            this.pendingAbilityChoices.push(choice);
+        }
+    }
+
+    getPendingAbilityChoices() {
+        return this.pendingAbilityChoices;
+    }
+
+    clearPendingAbilityChoices() {
+        this.pendingAbilityChoices = [];
+    }
+
+    // Rename the duplicate methods to be more specific
+    getPendingChoicesByType(type) {
+        return this.pendingChoices.get(type) || [];
+    }
+
+    clearPendingChoicesByType(type) {
+        if (type) {
+            this.pendingChoices.delete(type);
+        } else {
+            this.pendingChoices.clear();
+        }
     }
 
     // Methods for proficiencies
     addProficiency(type, proficiency, source) {
-        if (!this.proficiencies[type]) return;
-        this.proficiencies[type].add(proficiency);
+        // Ensure the proficiency array exists
+        if (!this.proficiencies[type]) {
+            this.proficiencies[type] = [];
+        }
+
+        // Add to proficiencies array if not already present
+        if (!this.proficiencies[type].includes(proficiency)) {
+            this.proficiencies[type].push(proficiency);
+        }
+
+        // Ensure the source tracking exists
+        if (!this.proficiencySources[type]) {
+            this.proficiencySources[type] = new Map();
+        }
         if (!this.proficiencySources[type].has(proficiency)) {
             this.proficiencySources[type].set(proficiency, new Set());
         }
+
+        // Add the source
         this.proficiencySources[type].get(proficiency).add(source);
     }
 
-    clearProficiencies(source) {
+    removeProficienciesBySource(source) {
         for (const type in this.proficiencySources) {
-            for (const [prof, sources] of this.proficiencySources[type]) {
+            for (const [proficiency, sources] of this.proficiencySources[type].entries()) {
                 sources.delete(source);
                 if (sources.size === 0) {
-                    this.proficiencies[type].delete(prof);
-                    this.proficiencySources[type].delete(prof);
+                    this.proficiencySources[type].delete(proficiency);
+                    const index = this.proficiencies[type].indexOf(proficiency);
+                    if (index > -1) {
+                        this.proficiencies[type].splice(index, 1);
+                    }
                 }
             }
         }
-    }
-
-    // Methods for removing proficiencies by source
-    removeProficienciesBySource(source) {
-        this.clearProficiencies(source);
     }
 
     // Methods for languages
@@ -112,13 +184,8 @@ export class Character {
         this.addProficiency('languages', language, source);
     }
 
-    clearLanguages(source) {
-        this.clearProficiencies(source);
-    }
-
-    // Methods for languages
     removeLanguagesBySource(source) {
-        this.clearProficiencies(source);
+        this.removeProficienciesBySource(source);
     }
 
     // Methods for resistances
@@ -127,8 +194,6 @@ export class Character {
     }
 
     clearResistances(source) {
-        // For now, just clear all resistances when source is removed
-        // TODO: Add source tracking for resistances
         this.features.resistances.clear();
     }
 
@@ -138,7 +203,7 @@ export class Character {
     }
 
     clearTraits(source) {
-        for (const [name, trait] of this.features.traits) {
+        for (const [name, trait] of this.features.traits.entries()) {
             if (trait.source === source) {
                 this.features.traits.delete(name);
             }
@@ -210,11 +275,12 @@ export class Character {
 
         // Copy proficiencies - ensure we're creating Sets from arrays
         character.proficiencies = {
-            armor: new Set(Array.isArray(data.proficiencies?.armor) ? data.proficiencies.armor : []),
-            weapons: new Set(Array.isArray(data.proficiencies?.weapons) ? data.proficiencies.weapons : []),
-            tools: new Set(Array.isArray(data.proficiencies?.tools) ? data.proficiencies.tools : []),
-            skills: new Set(Array.isArray(data.proficiencies?.skills) ? data.proficiencies.skills : []),
-            languages: new Set(Array.isArray(data.proficiencies?.languages) ? data.proficiencies.languages : ['Common'])
+            armor: Array.isArray(data.proficiencies?.armor) ? data.proficiencies.armor : [],
+            weapons: Array.isArray(data.proficiencies?.weapons) ? data.proficiencies.weapons : [],
+            tools: Array.isArray(data.proficiencies?.tools) ? data.proficiencies.tools : [],
+            skills: Array.isArray(data.proficiencies?.skills) ? data.proficiencies.skills : [],
+            languages: Array.isArray(data.proficiencies?.languages) ? data.proficiencies.languages : ['Common'],
+            savingThrows: Array.isArray(data.proficiencies?.savingThrows) ? data.proficiencies.savingThrows : []
         };
 
         // Copy proficiency sources - ensure we're creating Maps from entries
@@ -223,7 +289,8 @@ export class Character {
             weapons: new Map(Object.entries(data.proficiencySources?.weapons || {})),
             tools: new Map(Object.entries(data.proficiencySources?.tools || {})),
             skills: new Map(Object.entries(data.proficiencySources?.skills || {})),
-            languages: new Map(Object.entries(data.proficiencySources?.languages || {}))
+            languages: new Map(Object.entries(data.proficiencySources?.languages || {})),
+            savingThrows: new Map(Object.entries(data.proficiencySources?.savingThrows || {}))
         };
 
         // Copy equipment
@@ -267,7 +334,8 @@ export class Character {
                 weapons: Array.from(this.proficiencies.weapons),
                 tools: Array.from(this.proficiencies.tools),
                 skills: Array.from(this.proficiencies.skills),
-                languages: Array.from(this.proficiencies.languages)
+                languages: Array.from(this.proficiencies.languages),
+                savingThrows: Array.from(this.proficiencies.savingThrows)
             },
             proficiencySources: Object.fromEntries(
                 Object.entries(this.proficiencySources).map(([type, sources]) => [

@@ -47,7 +47,20 @@ export class TooltipManager {
 
         // Parse the HTML content safely
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = decodeURIComponent(target.dataset.tooltip);
+        tempDiv.style.whiteSpace = 'pre-line';  // Preserve meaningful line breaks
+        let tooltipContent = decodeURIComponent(target.dataset.tooltip)
+            .replace(/\n\s*\n/g, '\n')  // Replace multiple line breaks with single
+            .replace(/\s+/g, ' ')  // Normalize spaces
+            .trim();  // Remove leading/trailing whitespace
+
+        // Format source references
+        tooltipContent = tooltipContent.replace(/\b(PHB|XPHB)\b/g, (match) => {
+            return match === 'PHB' ? 'PHB\'14' :
+                match === 'XPHB' ? 'PHB\'24' :
+                    match;
+        });
+
+        tempDiv.innerHTML = tooltipContent;
 
         // Extract title if it exists (wrapped in <strong>)
         const titleElement = tempDiv.querySelector('strong');
@@ -68,6 +81,7 @@ export class TooltipManager {
         }
 
         // Add remaining content
+        content.style.whiteSpace = 'normal';  // Allow normal text wrapping
         while (tempDiv.firstChild) {
             content.appendChild(tempDiv.firstChild);
         }
@@ -182,7 +196,10 @@ export class TooltipManager {
     }
 
     static getInstance() {
-        return instance || (instance = new TooltipManager());
+        if (!instance) {
+            instance = new TooltipManager();
+        }
+        return instance;
     }
 }
 

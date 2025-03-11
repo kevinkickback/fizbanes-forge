@@ -1,7 +1,7 @@
 /* D&D 5e Style Tooltips */
 :root {
     /* Theme Colors */
-    --tooltip-title-color: #e6cc80;
+    --tooltip-title-color: var(--text-color);
     --tooltip-title-color-spell: #7bb5ff;
     --tooltip-title-color-condition: #ff7b7b;
     --tooltip-title-color-action: #7bff7b;
@@ -18,10 +18,103 @@
     --tooltip-text-link: #4da6ff;
 }
 
+/* Bootstrap-style tooltips */
+.tooltip {
+    position: fixed;
+    z-index: 1070;
+    display: block;
+    margin: 0;
+    font-family: inherit;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: left;
+    text-decoration: none;
+    text-shadow: none;
+    text-transform: none;
+    letter-spacing: normal;
+    word-break: normal;
+    word-spacing: normal;
+    white-space: normal;
+    line-break: auto;
+    font-size: 0.875rem;
+    word-wrap: break-word;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+.tooltip-inner {
+    max-width: 300px;
+    padding: 0.75rem 1rem;
+    color: #fff;
+    text-align: left;
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+}
+
+.tooltip-inner h4 {
+    color: var(--accent-color);
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.tooltip-inner p {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.tooltip-inner p:last-child {
+    margin-bottom: 0;
+}
+
+/* Tooltip arrows */
+.tooltip .tooltip-arrow {
+    position: absolute;
+    display: block;
+    width: 0.8rem;
+    height: 0.4rem;
+}
+
+.tooltip .tooltip-arrow::before {
+    position: absolute;
+    content: "";
+    border-color: transparent;
+    border-style: solid;
+}
+
+.tooltip.bs-tooltip-top .tooltip-arrow {
+    bottom: 0;
+}
+
+.tooltip.bs-tooltip-top .tooltip-arrow::before {
+    top: -1px;
+    border-width: 0.4rem 0.4rem 0;
+    border-top-color: var(--border-color);
+}
+
+.tooltip.bs-tooltip-bottom .tooltip-arrow {
+    top: 0;
+}
+
+.tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+    bottom: -1px;
+    border-width: 0 0.4rem 0.4rem;
+    border-bottom-color: var(--border-color);
+}
+
+/* Custom D&D Tooltips */
 .tooltip-container {
     position: fixed;
     z-index: 9999;
-    pointer-events: none; /* Container should not block events */
+    pointer-events: none;
 }
 
 .tooltip-container .tooltip {
@@ -54,9 +147,14 @@
 }
 
 .tooltip-container .tooltip-content {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: inline;
+    white-space: normal;
+}
+
+.tooltip-container .tooltip-content span,
+.tooltip-container .tooltip-content .reference-link {
+    display: inline;
+    white-space: normal;
 }
 
 .tooltip-container .tooltip-title {
@@ -163,11 +261,7 @@
 }
 
 /* Reference links within tooltips */
-.tooltip-container .reference-link {
-    color: var(--tooltip-text-link);
-    cursor: pointer;
-    text-decoration: underline dotted;
-}
+
 
 /* Italicized sections */
 .tooltip-container .tooltip-italic {

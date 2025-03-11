@@ -265,22 +265,30 @@ export class ReferenceResolver {
                                 return entries.map(entry => {
                                     if (typeof entry === 'string') return entry;
                                     if (entry.type === 'entries') {
-                                        return `${entry.name}\n${processEntries(entry.entries)}`;
+                                        return `${entry.name ? `${entry.name}\n` : ''}${processEntries(entry.entries)}`;
                                     }
-                                    return '';
+                                    return entry.entries || '';
                                 }).filter(Boolean).join('\n');
                             }
                             return '';
                         };
 
-                        const description = processEntries(raceData.fluff?.entries) ||
-                            processEntries(raceData.entries) ||
-                            `A member of the ${raceData.name} race.`;
+                        // Try to get description from fluff first, then entries
+                        let description = '';
+                        if (raceData.fluff?.entries) {
+                            description = processEntries(raceData.fluff.entries);
+                        }
+                        if (!description && raceData.entries) {
+                            description = processEntries(raceData.entries);
+                        }
+                        if (!description) {
+                            description = `A member of the ${raceData.name} race.`;
+                        }
 
                         tooltipData = {
                             title: raceData.name,
                             description: description,
-                            source: `${raceData.source}, page ${raceData.page || '??'}`
+                            source: raceData.source
                         };
                     }
                     break;

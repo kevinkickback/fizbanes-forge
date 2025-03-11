@@ -38,12 +38,12 @@ export class Subrace extends Race {
         const mergedProficiencies = { ...parentProficiencies };
 
         // Merge each proficiency type
-        Object.entries(this.proficiencies).forEach(([type, profs]) => {
+        for (const [type, profs] of Object.entries(this.proficiencies)) {
             mergedProficiencies[type] = [
                 ...(mergedProficiencies[type] || []),
                 ...profs
             ];
-        });
+        }
 
         return mergedProficiencies;
     }

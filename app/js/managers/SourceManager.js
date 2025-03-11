@@ -8,10 +8,10 @@ export class SourceManager {
 
         // All available source books
         this.availableSources = new Map([
-            ['PHB', { name: "Player's Handbook", abbreviation: 'PHB', isCore: true }],
+            ['PHB', { name: "Player's Handbook (2014)", abbreviation: 'PHB', isCore: true }],
+            ['XPHB', { name: "Player's Handbook (2024)", abbreviation: 'XPHB', isCore: false }],
             ['DMG', { name: "Dungeon Master's Guide", abbreviation: 'DMG', isCore: true }],
             ['MM', { name: "Monster Manual", abbreviation: 'MM', isCore: true }],
-            ['XPHB', { name: "Player's Handbook (2024)", abbreviation: 'XPHB', isCore: false }],
             ['SCAG', { name: "Sword Coast Adventurer's Guide", abbreviation: 'SCAG', isCore: false }],
             ['VGM', { name: "Volo's Guide to Monsters", abbreviation: 'VGM', isCore: false }],
             ['MTF', { name: "Mordenkainen's Tome of Foes", abbreviation: 'MTF', isCore: false }],
@@ -80,5 +80,60 @@ export class SourceManager {
     formatSourceName(source) {
         const details = this.getSourceDetails(source);
         return details ? `${details.name} (${details.abbreviation})` : source;
+    }
+
+    /**
+     * Validate source selection
+     * @param {Set<string>} sources - Set of source codes to validate
+     * @returns {boolean} - True if the selection is valid
+     */
+    validateSourceSelection(sources) {
+        // At least one PHB version must be selected
+        const hasPHB14 = sources.has('PHB');
+        const hasPHB24 = sources.has('XPHB');
+
+        if (!hasPHB14 && !hasPHB24) {
+            window.showNotification('Please select either PHB\'14 or PHB\'24', 'warning');
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Update allowed sources
+     * @param {Set<string>} sources - New set of allowed sources
+     * @returns {boolean} - True if sources were updated successfully
+     */
+    updateAllowedSources(sources) {
+        if (!this.validateSourceSelection(sources)) {
+            return false;
+        }
+
+        this.allowedSources = new Set(sources);
+
+        // Clear data loader cache when sources change
+        if (window.dndDataLoader) {
+            window.dndDataLoader.clearCache();
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the current allowed sources
+     * @returns {Set<string>} Set of allowed source codes
+     */
+    getAllowedSources() {
+        return new Set(this.allowedSources);
+    }
+
+    /**
+     * Check if a source is allowed
+     * @param {string} source - Source code to check
+     * @returns {boolean} True if the source is allowed
+     */
+    isSourceAllowed(source) {
+        return this.allowedSources.has(source);
     }
 } 

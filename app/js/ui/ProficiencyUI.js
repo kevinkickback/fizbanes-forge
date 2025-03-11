@@ -43,11 +43,16 @@ export class ProficiencyUI {
                 'Poisoner\'s kit', 'Thieves\' tools', 'Dice set',
                 'Dragonchess set', 'Playing card set', 'Musical instrument'
             ],
-            languages: [
-                'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
-                'Halfling', 'Orc', 'Abyssal', 'Celestial', 'Draconic',
-                'Deep Speech', 'Infernal', 'Primordial', 'Sylvan', 'Undercommon'
-            ]
+            languages: {
+                normal: [
+                    'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
+                    'Halfling', 'Orc'
+                ],
+                exotic: [
+                    'Abyssal', 'Celestial', 'Draconic', 'Deep Speech', 'Infernal',
+                    'Primordial', 'Sylvan', 'Undercommon'
+                ]
+            }
         };
 
         // Initialize character proficiency structures
@@ -120,7 +125,10 @@ export class ProficiencyUI {
             const container = document.getElementById(`${type}Container`);
             if (!container) continue;
 
-            let items = this.availableOptions[type] || [];
+            // Special handling for languages which are categorized
+            let items = type === 'languages' ?
+                [...this.availableOptions[type].normal, ...this.availableOptions[type].exotic] :
+                this.availableOptions[type] || [];
             let icon = this.getIconForType(type);
 
             // Handle selection counter
@@ -146,11 +154,16 @@ export class ProficiencyUI {
                 const canSelect = type !== 'savingThrows' && !isDefault && isAvailable &&
                     optionalCount > selectedCount && !isProficient && !isOptionallySelected;
 
+                // Add class for normal/exotic languages
+                const isNormalLanguage = type === 'languages' && this.availableOptions.languages.normal.includes(item);
+                const languageClass = type === 'languages' ? (isNormalLanguage ? 'normal-language' : 'exotic-language') : '';
+
                 return `
                     <div class="proficiency-item ${isProficient || isDefault ? 'proficient' : ''} 
                          ${isOptionallySelected ? 'proficient optional-selected' : ''} 
                          ${canSelect ? 'selectable' : ''} 
-                         ${!isAvailable && !isDefault ? 'disabled' : ''}"
+                         ${!isAvailable && !isDefault ? 'disabled' : ''}
+                         ${languageClass}"
                          data-proficiency="${item}"
                          data-type="${type}">
                         <i class="fas ${icon} ${isOptionallySelected ? 'optional' : ''}"></i>

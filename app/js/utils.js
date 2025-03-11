@@ -683,7 +683,7 @@ function createCharacterCard(character) {
   card.innerHTML = `
         <div class="card character-card ${window.currentCharacter?.id === character.id ? 'selected' : ''}" 
              data-character-id="${character.id}">
-            <div class="active-profile-badge">Active Profile</div>
+            <div class="active-profile-badge">Active Character</div>
             <div class="card-body">
                 <div class="character-info">
                     <h5 class="card-title">${character.name || 'Unnamed Character'}</h5>
