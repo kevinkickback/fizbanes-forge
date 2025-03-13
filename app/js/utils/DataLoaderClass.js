@@ -1,3 +1,101 @@
+/**
+ * @typedef {Object} ClassHitDie
+ * @property {number} number - Number of dice
+ * @property {number} faces - Number of faces on the die
+ * 
+ * @typedef {Object} SpellcastingInfo
+ * @property {string} ability - Spellcasting ability (e.g., 'int', 'wis', 'cha')
+ * @property {string} type - Type of spellcasting (e.g., 'prepared', 'known')
+ * @property {boolean} [ritual] - Whether the class can cast ritual spells
+ * @property {Object} progression - Spell slot progression
+ * 
+ * @typedef {Object} ProficiencyInfo
+ * @property {Array<string>} armor - Armor proficiencies
+ * @property {Array<string>} weapons - Weapon proficiencies
+ * @property {Array<string>} tools - Tool proficiencies
+ * @property {Array<string>} skills - Skill proficiencies
+ * @property {Array<string>} saves - Saving throw proficiencies
+ * 
+ * @typedef {Object} MulticlassingInfo
+ * @property {Object} requirements - Ability score requirements
+ * @property {ProficiencyInfo} proficiencies - Additional proficiencies gained
+ * 
+ * @typedef {Object} ClassFeature
+ * @property {string} name - Feature name
+ * @property {string} source - Source book
+ * @property {number} level - Level gained
+ * @property {Array<string>|string} description - Feature description
+ * @property {Object} [requirements] - Feature requirements
+ * @property {Array<string>} [choices] - Available choices
+ * 
+ * @typedef {Object} SubclassFeature extends ClassFeature
+ * @property {string} subclassName - Name of the subclass
+ * @property {string} subclassSource - Source of the subclass
+ * 
+ * @typedef {Object} VariantFeature
+ * @property {string} name - Variant name
+ * @property {string} source - Source book
+ * @property {string} type - Type of variant
+ * @property {Array<string>|string} description - Variant description
+ * @property {Object} [requirements] - Variant requirements
+ * 
+ * @typedef {Object} StartingEquipment
+ * @property {string} type - Type of equipment ('item' or 'currency')
+ * @property {string} name - Equipment name
+ * @property {string} source - Source book
+ * @property {number} [quantity] - Quantity
+ * @property {Object} [choice] - Equipment choice options
+ * 
+ * @typedef {Object} SpellProgression
+ * @property {number} level - Character level
+ * @property {Object} slots - Spell slots by spell level
+ * @property {Array<string>} [known] - Spells known at this level
+ * @property {number} [cantrips] - Number of cantrips known
+ * 
+ * @typedef {Object} AdditionalSpells
+ * @property {string} ability - Spellcasting ability
+ * @property {boolean} prepared - Whether spells are always prepared
+ * @property {Object} spells - Spells by level
+ * 
+ * @typedef {Object} FluffData
+ * @property {Array<string>|string} description - Class description
+ * @property {Array<Object>} [images] - Associated images
+ * 
+ * @typedef {Object} ProcessedClass
+ * @property {string} id - Unique identifier
+ * @property {string} name - Class name
+ * @property {string} source - Source book
+ * @property {number} page - Page number
+ * @property {boolean} srd - Whether it's in the SRD
+ * @property {boolean} basicRules - Whether it's in the Basic Rules
+ * @property {ClassHitDie} hd - Hit die information
+ * @property {Array<string>} proficiency - Proficiency bonus progression
+ * @property {string} [edition] - Game edition ('2024' or 'one')
+ * @property {SpellcastingInfo} [spellcasting] - Spellcasting information
+ * @property {Array<Object>} [optionalfeatures] - Optional class features
+ * @property {Array<VariantFeature>} [variantFeatures] - Variant features
+ * @property {ProficiencyInfo} startingProficiencies - Starting proficiencies
+ * @property {Array<StartingEquipment>} startingEquipment - Starting equipment
+ * @property {MulticlassingInfo} [multiclassing] - Multiclassing information
+ * @property {Array<ClassFeature>} classFeatures - Class features
+ * @property {string} subclassTitle - Title for subclasses
+ * @property {FluffData} [fluff] - Descriptive information
+ * 
+ * @typedef {Object} ProcessedSubclass
+ * @property {string} id - Unique identifier
+ * @property {string} name - Subclass name
+ * @property {string} shortName - Short display name
+ * @property {string} source - Source book
+ * @property {string} className - Parent class name
+ * @property {string} classSource - Parent class source
+ * @property {number} page - Page number
+ * @property {SpellcastingInfo} [spellcasting] - Spellcasting information
+ * @property {AdditionalSpells} [additionalSpells] - Additional spells granted
+ * @property {Array<VariantFeature>} [variantFeatures] - Variant features
+ * @property {Array<SubclassFeature>} features - Subclass features
+ * @property {FluffData} [fluff] - Descriptive information
+ */
+
 import { DataLoader } from './DataLoader.new.js';
 
 /**
@@ -342,6 +440,21 @@ export class DataLoaderClass extends DataLoader {
     }
 
     /**
+     * Process multiclassing data
+     * @private
+     * @param {Object} multiclassing - Raw multiclassing data
+     * @returns {Object|null} Processed multiclassing data
+     */
+    processMulticlassingData(multiclassing) {
+        if (!multiclassing) return null;
+
+        return {
+            requirements: this.processMulticlassingRequirements(multiclassing.requirements),
+            proficiencies: this.processProficiencies(multiclassing.proficiencies)
+        };
+    }
+
+    /**
      * Process new edition optional features
      * @private
      */
@@ -355,6 +468,50 @@ export class DataLoaderClass extends DataLoader {
             options: feature.options || [],
             requirements: this.processRequirements(feature.requirements)
         }));
+    }
+
+    /**
+     * Process new edition additional spells
+     * @private
+     */
+    processNewEditionAdditionalSpells(spells) {
+        if (!spells) return null;
+
+        return {
+            ability: spells.ability || null,
+            prepared: spells.prepared || false,
+            spells: this.processSpellsByLevel(spells.spells || {}),
+            options: spells.options || [],
+            resource: spells.resource || null
+        };
+    }
+
+    /**
+     * Process legacy additional spells
+     * @private
+     */
+    processLegacyAdditionalSpells(spells) {
+        if (!spells) return null;
+
+        return {
+            ability: spells.ability || null,
+            prepared: spells.prepared || false,
+            spells: this.processSpellsByLevel(spells.spells || {})
+        };
+    }
+
+    /**
+     * Process spells by level
+     * @private
+     */
+    processSpellsByLevel(spellsByLevel) {
+        if (!spellsByLevel) return {};
+
+        const processed = {};
+        for (const [level, spells] of Object.entries(spellsByLevel)) {
+            processed[level] = Array.isArray(spells) ? spells : [];
+        }
+        return processed;
     }
 
     /**
@@ -501,19 +658,32 @@ export class DataLoaderClass extends DataLoader {
      * @private
      */
     processFluff(name, source, fluffData) {
-        if (!fluffData) return null;
+        if (!fluffData || typeof fluffData !== 'object') return null;
 
-        const fluff = fluffData.find(f =>
-            f.name === name &&
-            f.source === source
-        );
+        // If fluffData is an array, search for matching entry
+        if (Array.isArray(fluffData)) {
+            const fluff = fluffData.find(f =>
+                f.name === name &&
+                f.source === source
+            );
 
-        if (!fluff) return null;
+            if (!fluff) return null;
 
-        return {
-            entries: fluff.entries || [],
-            images: fluff.images || []
-        };
+            return {
+                entries: fluff.entries || [],
+                images: fluff.images || []
+            };
+        }
+
+        // If fluffData is an object (direct fluff entry)
+        if (fluffData.name === name && fluffData.source === source) {
+            return {
+                entries: fluffData.entries || [],
+                images: fluffData.images || []
+            };
+        }
+
+        return null;
     }
 
     /**
@@ -642,6 +812,221 @@ export class DataLoaderClass extends DataLoader {
                     save.toLowerCase() === ability.toLowerCase()
                 )
             );
+        }, options);
+    }
+
+    /**
+     * Search classes by name with improved caching
+     * @param {string} searchTerm - Search term
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedClass>>} Array of matching classes
+     */
+    async searchClassesByName(searchTerm, options = {}) {
+        const cacheKey = `search_class_${searchTerm.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = searchTerm.toLowerCase();
+
+            return data.classes.filter(cls =>
+                cls.name.toLowerCase().includes(term)
+            );
+        }, options);
+    }
+
+    /**
+     * Search subclasses by name with improved caching
+     * @param {string} searchTerm - Search term
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedSubclass>>} Array of matching subclasses
+     */
+    async searchSubclassesByName(searchTerm, options = {}) {
+        const cacheKey = `search_subclass_${searchTerm.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = searchTerm.toLowerCase();
+
+            return data.subclasses.filter(sub =>
+                sub.name.toLowerCase().includes(term)
+            );
+        }, options);
+    }
+
+    /**
+     * Get classes by proficiency type with improved caching
+     * @param {string} profType - Type of proficiency ('armor', 'weapons', 'tools', 'skills', 'saves')
+     * @param {string} proficiency - Specific proficiency to search for
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedClass>>} Array of classes with the specified proficiency
+     */
+    async getClassesByProficiency(profType, proficiency, options = {}) {
+        const cacheKey = `classes_prof_${profType}_${proficiency.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = proficiency.toLowerCase();
+
+            return data.classes.filter(cls => {
+                const profs = cls.startingProficiencies?.[profType];
+                if (!profs) return false;
+
+                if (!Array.isArray(profs)) {
+                    // Handle non-array proficiencies (like skills object)
+                    if (profType === 'skills' && profs.choices) {
+                        return profs.choices.some(p =>
+                            (typeof p === 'string' && p.toLowerCase().includes(term)) ||
+                            (typeof p === 'object' && p.name && p.name.toLowerCase().includes(term))
+                        );
+                    }
+                    return false;
+                }
+
+                // Handle array of proficiencies
+                return profs.some(p => {
+                    if (typeof p === 'string') {
+                        return p.toLowerCase().includes(term);
+                    }
+                    if (typeof p === 'object' && p.name) {
+                        return p.name.toLowerCase().includes(term);
+                    }
+                    return false;
+                });
+            });
+        }, options);
+    }
+
+    /**
+     * Get classes by feature name with improved caching
+     * @param {string} featureName - Feature name to search for
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedClass>>} Array of classes with the specified feature
+     */
+    async getClassesByFeature(featureName, options = {}) {
+        const cacheKey = `classes_feature_${featureName.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = featureName.toLowerCase();
+
+            return data.classes.filter(cls =>
+                cls.classFeatures?.some(f =>
+                    f.name.toLowerCase().includes(term)
+                )
+            );
+        }, options);
+    }
+
+    /**
+     * Get subclasses by feature name with improved caching
+     * @param {string} featureName - Feature name to search for
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedSubclass>>} Array of subclasses with the specified feature
+     */
+    async getSubclassesByFeature(featureName, options = {}) {
+        const cacheKey = `subclasses_feature_${featureName.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = featureName.toLowerCase();
+
+            return data.subclasses.filter(sub =>
+                sub.features?.some(f =>
+                    f.name.toLowerCase().includes(term)
+                )
+            );
+        }, options);
+    }
+
+    /**
+     * Get classes by spell list with improved caching
+     * @param {string} spell - Spell name to search for
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedClass>>} Array of classes that can cast the spell
+     */
+    async getClassesBySpell(spell, options = {}) {
+        const cacheKey = `classes_spell_${spell.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = spell.toLowerCase();
+
+            return data.classes.filter(cls => {
+                // Check base spellcasting
+                if (cls.spellcasting?.spells?.some(s =>
+                    s.name.toLowerCase().includes(term)
+                )) return true;
+
+                // Check optional features for spells
+                if (cls.optionalfeatures?.some(f =>
+                    f.spells?.some(s =>
+                        s.name.toLowerCase().includes(term)
+                    )
+                )) return true;
+
+                return false;
+            });
+        }, options);
+    }
+
+    /**
+     * Get subclasses by additional spells with improved caching
+     * @param {string} spell - Spell name to search for
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedSubclass>>} Array of subclasses that grant the spell
+     */
+    async getSubclassesBySpell(spell, options = {}) {
+        const cacheKey = `subclasses_spell_${spell.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = spell.toLowerCase();
+
+            return data.subclasses.filter(sub =>
+                sub.additionalSpells?.spells?.some(s =>
+                    s.name.toLowerCase().includes(term)
+                )
+            );
+        }, options);
+    }
+
+    /**
+     * Get classes by equipment proficiency with improved caching
+     * @param {string} equipment - Equipment name to search for
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<ProcessedClass>>} Array of classes that start with or are proficient in the equipment
+     */
+    async getClassesByEquipment(equipment, options = {}) {
+        const cacheKey = `classes_equipment_${equipment.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const data = await this.loadClasses(options);
+            const term = equipment.toLowerCase();
+
+            return data.classes.filter(cls => {
+                // Check starting equipment
+                if (cls.startingEquipment?.some(e =>
+                    e.name.toLowerCase().includes(term)
+                )) return true;
+
+                // Check armor proficiencies
+                if (cls.startingProficiencies?.armor?.some(a =>
+                    a.toLowerCase().includes(term)
+                )) return true;
+
+                // Check weapon proficiencies
+                if (cls.startingProficiencies?.weapons?.some(w =>
+                    w.toLowerCase().includes(term)
+                )) return true;
+
+                return false;
+            });
+        }, options);
+    }
+
+    /**
+     * Get all variant features for a class with improved caching
+     * @param {string} classId - Class ID
+     * @param {Object} options - Loading options
+     * @returns {Promise<Array<VariantFeature>>} Array of variant features
+     */
+    async getVariantFeatures(classId, options = {}) {
+        const cacheKey = `variants_${classId.toLowerCase()}`;
+        return this.getOrLoadData(cacheKey, async () => {
+            const cls = await this.getClassById(classId, options);
+            return cls?.variantFeatures || [];
         }, options);
     }
 } 
