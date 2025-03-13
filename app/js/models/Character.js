@@ -107,7 +107,7 @@ export class Character {
 
     // Methods for pending choices
     addPendingChoice(type, choice) {
-        console.log(`[Character] Adding pending choice:`, { type, choice });
+        console.log("[Character] Adding pending choice:", { type, choice });
         if (!this.pendingChoices.has(type)) {
             this.pendingChoices.set(type, []);
         }

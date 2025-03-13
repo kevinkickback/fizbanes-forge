@@ -100,7 +100,7 @@ export class ClassUI {
                 classSelect.value = this.character.class;
 
                 const classData = await this.character.class.loadClass(this.character.class);
-                if (classData && classData.subclasses && classData.subclasses.length > 0) {
+                if (classData?.subclasses && classData.subclasses.length > 0) {
                     subclassSelect.innerHTML = `
                         <option value="">Choose a subclass...</option>
                         ${classData.subclasses.map(subclass => `
@@ -266,20 +266,24 @@ export class ClassUI {
         if (!classData.primaryAbility) return 'Varies';
 
         const abilities = [];
-        classData.primaryAbility.forEach(ability => {
-            if (ability.str) abilities.push('Strength');
-            if (ability.dex) abilities.push('Dexterity');
-            if (ability.con) abilities.push('Constitution');
-            if (ability.int) abilities.push('Intelligence');
-            if (ability.wis) abilities.push('Wisdom');
-            if (ability.cha) abilities.push('Charisma');
-        });
+        for (const ability of classData.primaryAbility) {
+            if (typeof ability === 'string') {
+                abilities.push(ability.toUpperCase());
+            } else {
+                if (ability.str) abilities.push('Strength');
+                if (ability.dex) abilities.push('Dexterity');
+                if (ability.con) abilities.push('Constitution');
+                if (ability.int) abilities.push('Intelligence');
+                if (ability.wis) abilities.push('Wisdom');
+                if (ability.cha) abilities.push('Charisma');
+            }
+        }
 
         return abilities.length > 0 ? abilities.join(' or ') : 'Varies';
     }
 
     getSavingThrows(classData) {
-        if (!classData.proficiency) return '<li>None</li>';
+        if (!classData.proficiency?.length) return '<li>None</li>';
 
         const proficiencyMap = {
             'str': 'Strength',
@@ -302,7 +306,7 @@ export class ClassUI {
             .map(armor => {
                 if (typeof armor === 'string') {
                     return `<li>${armor.charAt(0).toUpperCase() + armor.slice(1)}</li>`;
-                } else if (typeof armor === 'object') {
+                } if (typeof armor === 'object') {
                     // Handle object format (e.g., {proficiency: "light armor"})
                     const proficiency = armor.proficiency || armor.name || JSON.stringify(armor);
                     return `<li>${proficiency.charAt(0).toUpperCase() + proficiency.slice(1)}</li>`;
@@ -320,7 +324,7 @@ export class ClassUI {
             .map(weapon => {
                 if (typeof weapon === 'string') {
                     return `<li>${weapon.charAt(0).toUpperCase() + weapon.slice(1)}</li>`;
-                } else if (typeof weapon === 'object') {
+                } if (typeof weapon === 'object') {
                     // Handle object format (e.g., {proficiency: "simple weapons"})
                     const proficiency = weapon.proficiency || weapon.name || JSON.stringify(weapon);
                     return `<li>${proficiency.charAt(0).toUpperCase() + proficiency.slice(1)}</li>`;
@@ -332,7 +336,7 @@ export class ClassUI {
     }
 
     getToolProficiencies(classData) {
-        if (!classData.startingProficiencies?.tools) return '<li>None</li>';
+        if (!classData.startingProficiencies?.tools?.length) return '<li>None</li>';
 
         return classData.startingProficiencies.tools
             .map(tool => `<li>${tool.charAt(0).toUpperCase() + tool.slice(1)}</li>`)
@@ -340,7 +344,7 @@ export class ClassUI {
     }
 
     getSubclassFeatures(subclassData) {
-        if (!subclassData?.subclassFeatures) return '<li>No subclass features available</li>';
+        if (!subclassData?.subclassFeatures?.length) return '<li>No subclass features available</li>';
 
         return subclassData.subclassFeatures
             .map(feature => {
@@ -417,9 +421,9 @@ export class ClassUI {
             if (desc) {
                 if (typeof desc === 'string') {
                     return desc;
-                } else if (Array.isArray(desc.entries)) {
+                } if (Array.isArray(desc.entries)) {
                     return desc.entries.join(' ');
-                } else if (typeof desc.entries === 'string') {
+                } if (typeof desc.entries === 'string') {
                     return desc.entries;
                 }
             }
@@ -435,9 +439,9 @@ export class ClassUI {
             if (desc) {
                 if (typeof desc === 'string') {
                     return desc;
-                } else if (Array.isArray(desc.entries)) {
+                } if (Array.isArray(desc.entries)) {
                     return desc.entries.join(' ');
-                } else if (typeof desc.entries === 'string') {
+                } if (typeof desc.entries === 'string') {
                     return desc.entries;
                 }
             }
@@ -445,65 +449,5 @@ export class ClassUI {
 
         // Fallback to a generic description
         return `${classData.name} class features and abilities.`;
-    }
-
-    // Helper method to get primary ability
-    getPrimaryAbility(classData) {
-        if (!classData.primaryAbility) return 'Varies';
-
-        const abilities = [];
-        for (const ability of classData.primaryAbility) {
-            if (typeof ability === 'string') {
-                abilities.push(ability.toUpperCase());
-            } else {
-                if (ability.str) abilities.push('Strength');
-                if (ability.dex) abilities.push('Dexterity');
-                if (ability.con) abilities.push('Constitution');
-                if (ability.int) abilities.push('Intelligence');
-                if (ability.wis) abilities.push('Wisdom');
-                if (ability.cha) abilities.push('Charisma');
-            }
-        }
-
-        return abilities.length > 0 ? abilities.join(' or ') : 'Varies';
-    }
-
-    // Helper method to get saving throws
-    getSavingThrows(classData) {
-        if (!classData.proficiency?.length) return '<li>None</li>';
-
-        const proficiencyMap = {
-            'str': 'Strength',
-            'dex': 'Dexterity',
-            'con': 'Constitution',
-            'int': 'Intelligence',
-            'wis': 'Wisdom',
-            'cha': 'Charisma'
-        };
-
-        return classData.proficiency
-            .map(prof => `<li>${proficiencyMap[prof] || prof}</li>`)
-            .join('');
-    }
-
-    // Helper method to get tool proficiencies
-    getToolProficiencies(classData) {
-        if (!classData.startingProficiencies?.tools?.length) return '<li>None</li>';
-
-        return classData.startingProficiencies.tools
-            .map(tool => `<li>${tool.charAt(0).toUpperCase() + tool.slice(1)}</li>`)
-            .join('');
-    }
-
-    // Helper method to get subclass features
-    getSubclassFeatures(subclassData) {
-        if (!subclassData?.subclassFeatures?.length) return '<li>No subclass features available</li>';
-
-        return subclassData.subclassFeatures
-            .map(feature => {
-                if (typeof feature === 'string') return `<li>${feature}</li>`;
-                return `<li>${feature.name || 'Unnamed Feature'}</li>`;
-            })
-            .join('');
     }
 } 

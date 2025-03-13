@@ -74,7 +74,7 @@ export class BackgroundManager {
 
         if (suggestedCharacteristics?.entries) {
             // Process each table in the entries
-            suggestedCharacteristics.entries.forEach(entry => {
+            for (const entry of suggestedCharacteristics.entries) {
                 if (entry.type === "table") {
                     const label = entry.colLabels[1].toLowerCase();
                     if (label === "personality trait") {
@@ -87,7 +87,7 @@ export class BackgroundManager {
                         characteristics.flaws = entry.rows.map(row => row[1]);
                     }
                 }
-            });
+            }
         }
 
         return characteristics;

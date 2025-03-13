@@ -35,7 +35,7 @@ export class Item {
         const match = String(value).match(/(\d+)\s*([cgsp]p)/i);
         if (!match) return 0;
 
-        const amount = parseInt(match[1]);
+        const amount = Number.parseInt(match[1]);
         const currency = match[2].toLowerCase();
 
         // Convert to copper pieces for standardization

@@ -385,9 +385,9 @@ async function importCharacter() {
             // If import failed
             let errorMessage = result.message || 'Failed to import character(s)';
             if (result.failedImports) {
-                errorMessage += '\nDetails:\n' + result.failedImports.map(f =>
+                errorMessage = `${errorMessage}\nDetails:\n${result.failedImports.map(f =>
                     `${f.file}: ${f.reason}`
-                ).join('\n');
+                ).join('\n')}`;
             }
             window.showNotification(errorMessage, 'danger');
         }
@@ -494,9 +494,9 @@ async function loadCharacters() {
                     window.currentCharacter.startingEquipmentManager = new StartingEquipmentManager(window.currentCharacter, window.dndDataLoader);
 
                     // Update character card selection state
-                    document.querySelectorAll('.character-card').forEach(card => {
+                    for (const card of document.querySelectorAll('.character-card')) {
                         card.classList.toggle('selected', card.dataset.characterId === character.id);
-                    });
+                    }
 
                     // Update navigation state
                     updateNavigation();
@@ -520,7 +520,7 @@ async function loadCharacters() {
 
                 } catch (error) {
                     console.error('Error loading character:', error);
-                    window.showNotification('Error loading character: ' + error.message, 'danger');
+                    window.showNotification(`Error loading character: ${error.message}`, 'danger');
                 }
             });
 
@@ -703,7 +703,7 @@ async function createCharacterFromModal() {
         window.showNotification('Character created successfully!', 'success');
     } catch (error) {
         console.error('Error creating character:', error);
-        window.showNotification('Error creating character: ' + error.message, 'error');
+        window.showNotification(`Error creating character: ${error.message}`, 'error');
     }
 }
 
@@ -758,7 +758,7 @@ async function loadCharacter(character) {
         return true;
     } catch (error) {
         console.error('Error loading character:', error);
-        window.showNotification('Error loading character', 'danger');
+        window.showNotification(`Error loading character: ${error.message}`, 'danger');
         return false;
     }
 }

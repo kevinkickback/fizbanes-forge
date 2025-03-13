@@ -302,7 +302,7 @@ export class ReferenceResolver {
                             description: entity.description,
                             level: entity.level,
                             school: entity.school,
-                            castingTime: entity.time?.[0]?.number + ' ' + entity.time?.[0]?.unit,
+                            castingTime: `${entity.time?.[0]?.number} ${entity.time?.[0]?.unit}`,
                             range: entity.range?.distance?.type === 'self' ? 'Self' :
                                 `${entity.range?.distance?.amount || ''} ${entity.range?.distance?.type || ''}`,
                             components: Object.entries(entity.components)
@@ -374,7 +374,7 @@ export class ReferenceResolver {
                     const attackTypes = {
                         mw: 'Melee Weapon Attack',
                         rw: 'Ranged Weapon Attack',
-                        mw, r: 'Melee or Ranged Weapon Attack',
+                        'mw,r': 'Melee or Ranged Weapon Attack',
                         ms: 'Melee Spell Attack',
                         rs: 'Ranged Spell Attack'
                     };

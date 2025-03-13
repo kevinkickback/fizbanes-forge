@@ -33,9 +33,9 @@ export class CharacteristicManager {
     }
 
     clearCharacteristics() {
-        Object.keys(this.characteristics).forEach(key => {
+        for (const key of Object.keys(this.characteristics)) {
             this.characteristics[key] = null;
-        });
+        }
     }
 
     async getCharacteristicOptions(backgroundId) {
@@ -49,9 +49,9 @@ export class CharacteristicManager {
 
     toJSON() {
         const json = {};
-        Object.entries(this.characteristics).forEach(([key, value]) => {
+        for (const [key, value] of Object.entries(this.characteristics)) {
             json[key] = value ? value.toJSON() : null;
-        });
+        }
         return json;
     }
 } 

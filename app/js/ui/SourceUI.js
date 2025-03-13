@@ -130,10 +130,10 @@ export class SourceUI {
         // Update UI to reflect the selection
         if (this.container) {
             const buttons = this.container.querySelectorAll('.source-toggle');
-            buttons.forEach(button => {
+            for (const button of buttons) {
                 const source = button.dataset.source;
                 button.classList.toggle('selected', sources.has(source));
-            });
+            }
         }
     }
 } 

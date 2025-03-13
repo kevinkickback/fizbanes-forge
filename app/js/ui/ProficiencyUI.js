@@ -61,11 +61,11 @@ export class ProficiencyUI {
         }
 
         // Initialize each proficiency type as an array
-        this.proficiencyTypes.forEach(type => {
+        for (const type of this.proficiencyTypes) {
             if (!Array.isArray(this.character.proficiencies[type])) {
                 this.character.proficiencies[type] = [];
             }
-        });
+        }
 
         // Add default proficiencies
         for (const [type, defaults] of Object.entries(this.defaultProficiencies)) {
@@ -82,14 +82,14 @@ export class ProficiencyUI {
         }
 
         // Initialize each optional proficiency type
-        this.proficiencyTypes.forEach(type => {
+        for (const type of this.proficiencyTypes) {
             if (!this.character.optionalProficiencies[type]) {
                 this.character.optionalProficiencies[type] = { allowed: 0, selected: [] };
             }
             if (!Array.isArray(this.character.optionalProficiencies[type].selected)) {
                 this.character.optionalProficiencies[type].selected = [];
             }
-        });
+        }
     }
 
     /**
@@ -126,10 +126,10 @@ export class ProficiencyUI {
             if (!container) continue;
 
             // Special handling for languages which are categorized
-            let items = type === 'languages' ?
+            const items = type === 'languages' ?
                 [...this.availableOptions[type].normal, ...this.availableOptions[type].exotic] :
                 this.availableOptions[type] || [];
-            let icon = this.getIconForType(type);
+            const icon = this.getIconForType(type);
 
             // Handle selection counter
             const header = container.previousElementSibling;
@@ -223,9 +223,9 @@ export class ProficiencyUI {
      * Setup the main proficiency containers and their event listeners
      */
     setupProficiencyContainers() {
-        this.proficiencyTypes.forEach(type => {
+        for (const type of this.proficiencyTypes) {
             const container = document.getElementById(`${type}Container`);
-            if (!container) return;
+            if (!container) continue;
 
             container.addEventListener('click', (e) => {
                 const item = e.target.closest('.proficiency-item');
@@ -244,7 +244,7 @@ export class ProficiencyUI {
                     this.updateProficiencyNotes();
                 }
             });
-        });
+        }
     }
 
     /**
@@ -275,9 +275,9 @@ export class ProficiencyUI {
      * Update selection counters for optional proficiencies
      */
     updateSelectionCounters() {
-        this.proficiencyTypes.forEach(type => {
+        for (const type of this.proficiencyTypes) {
             const container = document.getElementById(`${type}Container`);
-            if (!container) return;
+            if (!container) continue;
 
             const header = container.previousElementSibling;
             const counter = header?.querySelector('.selection-counter');
@@ -286,7 +286,7 @@ export class ProficiencyUI {
             const allowed = this.character?.optionalProficiencies?.[type]?.allowed || 0;
             const selected = this.character?.optionalProficiencies?.[type]?.selected?.length || 0;
             counter.textContent = ` (${selected}/${allowed} selected)`;
-        });
+        }
     }
 
     /**

@@ -77,7 +77,7 @@ const app = {
         case 'tests':
           if (window.tests?.initialize) window.tests.initialize();
           break;
-        case 'tooltipTest':
+        case 'tooltipTest': {
           // Initialize text processing for tooltip test page
           const textProcessor = window.dndTextProcessor;
           const elements = document.querySelectorAll('.tooltip-test-content p');
@@ -88,6 +88,7 @@ const app = {
             });
           }
           break;
+        }
       }
 
       // Update current page
@@ -280,10 +281,9 @@ window.initializeSettingsPage = initializeSettings;
 
 // Setup ability scores
 function setupAbilityScores() {
-  // Get ability score inputs
   const abilityScores = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
 
-  abilityScores.forEach(ability => {
+  for (const ability of abilityScores) {
     const input = document.getElementById(`${ability}Score`);
     if (input) {
       // Remove any existing listeners
@@ -294,7 +294,7 @@ function setupAbilityScores() {
       newInput.addEventListener('change', (e) => {
         if (window.currentCharacter) {
           window.currentCharacter.abilityScores = window.currentCharacter.abilityScores || {};
-          window.currentCharacter.abilityScores[ability] = parseInt(e.target.value) || 0;
+          window.currentCharacter.abilityScores[ability] = Number.parseInt(e.target.value) || 0;
           markUnsavedChanges();
         }
       });
@@ -304,19 +304,18 @@ function setupAbilityScores() {
         newInput.value = window.currentCharacter.abilityScores[ability];
       }
     }
-  });
+  }
 }
 
 // Setup proficiencies
 function setupProficiencies() {
-  // Get proficiency checkboxes
   const proficiencyTypes = ['skills', 'tools', 'weapons', 'armor'];
 
-  proficiencyTypes.forEach(type => {
+  for (const type of proficiencyTypes) {
     const container = document.getElementById(`${type}Container`);
     if (container) {
       const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
+      for (const checkbox of checkboxes) {
         // Remove any existing listeners
         const newCheckbox = checkbox.cloneNode(true);
         checkbox.parentNode.replaceChild(newCheckbox, checkbox);
@@ -339,9 +338,9 @@ function setupProficiencies() {
           const proficiencyId = newCheckbox.getAttribute('data-proficiency-id');
           newCheckbox.checked = window.currentCharacter.proficiencies[type].includes(proficiencyId);
         }
-      });
+      }
     }
-  });
+  }
 }
 
 // Setup optional proficiencies
@@ -349,7 +348,7 @@ function setupOptionalProficiencies() {
   const optionalContainer = document.getElementById('optionalProficienciesContainer');
   if (optionalContainer) {
     const selects = optionalContainer.querySelectorAll('select');
-    selects.forEach(select => {
+    for (const select of selects) {
       // Remove any existing listeners
       const newSelect = select.cloneNode(true);
       select.parentNode.replaceChild(newSelect, select);
@@ -383,7 +382,7 @@ function setupOptionalProficiencies() {
           newSelect.setAttribute('data-current-value', currentValue);
         }
       }
-    });
+    }
   }
 }
 
@@ -412,7 +411,7 @@ function initializeApp() {
           await window.saveCharacter();
         } catch (error) {
           console.error('Error saving character:', error);
-          window.showNotification('Error saving character: ' + error.message, 'danger');
+          window.showNotification(`Error saving character: ${error.message}`, 'danger');
         }
       } else {
         window.showNotification('No character selected', 'warning');
@@ -758,9 +757,9 @@ function createCharacterCard(character) {
       setupOptionalProficiencies();
 
       // Update character card selection state
-      document.querySelectorAll('.character-card').forEach(card => {
+      for (const card of document.querySelectorAll('.character-card')) {
         card.classList.toggle('selected', card.dataset.characterId === character.id);
-      });
+      }
 
       // Update navigation state
       updateNavigation();
@@ -911,7 +910,7 @@ async function saveCharacter() {
     return result.success;
   } catch (error) {
     console.error('Error saving character:', error);
-    window.showNotification('Error saving character: ' + error.message, 'danger');
+    window.showNotification(`Error saving character: ${error.message}`, 'danger');
     return false;
   }
 }
@@ -933,7 +932,7 @@ async function loadCharacter(characterData) {
     return true;
   } catch (error) {
     console.error('Error loading character:', error);
-    window.showNotification('Error loading character: ' + error.message, 'danger');
+    window.showNotification(`Error loading character: ${error.message}`, 'danger');
     return false;
   }
 }

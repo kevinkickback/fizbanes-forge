@@ -192,9 +192,11 @@ export class BackgroundUI {
             if (desc) {
                 if (typeof desc === 'string') {
                     return desc;
-                } else if (Array.isArray(desc.entries)) {
+                }
+                if (Array.isArray(desc.entries)) {
                     return desc.entries.join(' ');
-                } else if (typeof desc.entries === 'string') {
+                }
+                if (typeof desc.entries === 'string') {
                     return desc.entries;
                 }
             }
@@ -317,16 +319,16 @@ export class BackgroundUI {
 
     attachCharacteristicListeners() {
         const selects = this.container.querySelectorAll('.characteristics-section select');
-        selects.forEach(select => {
+        for (const select of selects) {
             select?.addEventListener('change', () => {
                 const type = select.name;
                 const value = select.options[select.selectedIndex].text;
-                const index = parseInt(select.value);
+                const index = Number.parseInt(select.value, 10);
                 if (value) {
                     this.backgroundManager.setCharacteristic(type, value, index);
                 }
             });
-        });
+        }
     }
 
     /**
