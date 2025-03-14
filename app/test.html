@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval'">
-    <title>DataLoader Test Page</title>
+    <title>Data Loader Tests</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
+            max-width: 800px;
+            margin: 20px auto;
             padding: 20px;
             background-color: #f5f5f5;
         }
@@ -19,9 +19,9 @@
         .test-section {
             background-color: white;
             padding: 20px;
-            margin-bottom: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
         .test-button {
@@ -52,788 +52,172 @@
         .error {
             color: #dc3545;
             background-color: #f8d7da;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
         }
 
         .success {
             color: #28a745;
             background-color: #d4edda;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
         }
     </style>
 </head>
 
 <body>
-    <h1>DataLoader Test Page</h1>
-
-    <!-- Item Loader Tests -->
-    <div class="test-section">
-        <h2>DataLoaderItem Tests</h2>
-
-        <h3>Basic Loading</h3>
-        <button class="test-button" onclick="window.testItemLoader('loadItems')">Load Items</button>
-        <button class="test-button" onclick="window.testLoadItemsInChunks()">Load Items in Chunks</button>
-
-        <h3>Equipment Tests</h3>
-        <button class="test-button" onclick="window.testMartialWeapons()">Get Martial Weapons</button>
-        <button class="test-button" onclick="window.testSimpleWeapons()">Get Simple Weapons</button>
-        <button class="test-button" onclick="window.testHeavyArmor()">Get Heavy Armor</button>
-        <button class="test-button" onclick="window.testMediumArmor()">Get Medium Armor</button>
-        <button class="test-button" onclick="window.testLightArmor()">Get Light Armor</button>
-        <button class="test-button" onclick="window.testShields()">Get Shields</button>
-
-        <h3>Item Type Tests</h3>
-        <button class="test-button" onclick="window.testItemLoader('getItemsByType', 'potion')">Get Potions</button>
-        <button class="test-button" onclick="window.testItemLoader('getItemsByType', 'gear')">Get Gear</button>
-        <button class="test-button" onclick="window.testBurglarsPack()">Get Burglar's Pack</button>
-        <button class="test-button" onclick="window.testItemLoader('getItemsByType', 'scroll')">Get Scrolls</button>
-        <button class="test-button" onclick="window.testItemLoader('getItemsByType', 'wand')">Get Wands</button>
-
-        <h3>Magic Item Tests</h3>
-        <button class="test-button" onclick="window.testMagicWeapons()">Get Magic Weapons</button>
-        <button class="test-button" onclick="window.testMagicArmor()">Get Magic Armor</button>
-        <button class="test-button" onclick="window.testMagicItems()">Get Magic Items</button>
-        <button class="test-button" onclick="window.testMagicItemsByRarity()">Get Legendary Items</button>
-
-        <div id="item-loader-result" class="result-area"></div>
-    </div>
-
     <!-- Race Loader Tests -->
     <div class="test-section">
-        <h2>DataLoaderRace Tests</h2>
-        <h3>Basic Loading</h3>
-        <button class="test-button" onclick="window.testRaceLoader('loadRaces')">Load All Races</button>
-        <button class="test-button" onclick="window.testRaceLoader('loadRacesInChunks', 5)">Load Races in
-            Chunks</button>
-
-        <h3>Race Queries</h3>
-        <button class="test-button" onclick="window.testRaceLoader('getRaceById', 'dwarf_phb')">Get Dwarf Race by
-            ID</button>
-        <button class="test-button" onclick="window.testRaceLoader('getRaceById', 'elf_phb')">Get Elf Race by
-            ID</button>
-        <button class="test-button" onclick="window.testRaceLoader('getSubraces', 'elf_phb')">Get Elf Subraces</button>
-        <button class="test-button" onclick="window.testRaceLoader('getRacialTraits', 'dwarf_phb')">Get Dwarf Racial
-            Traits</button>
-        <button class="test-button" onclick="window.testRaceLoader('getRacialSpellcasting', 'tiefling_phb')">Get
-            Tiefling Racial Spellcasting</button>
-
-        <h3>Race Filtering</h3>
-        <button class="test-button" onclick="window.testRaceLoader('getRacesBySize', 'M')">Get Medium Races</button>
-        <button class="test-button" onclick="window.testRaceLoader('getRacesBySize', 'S')">Get Small Races</button>
-        <button class="test-button" onclick="window.testRaceLoader('getRacesByAbility', 'dex')">Get Dex Races</button>
-        <button class="test-button" onclick="window.testRaceLoader('getRacesByAbility', 'str')">Get Str Races</button>
-
-        <h3>Data Processing Tests</h3>
-        <button class="test-button"
-            onclick="window.testRaceProcessing('processSize', { type: 'M', note: 'Medium-sized humanoid' })">Test
-            Process Size</button>
-        <button class="test-button" onclick="window.testRaceProcessing('processSpeed', { walk: 30, fly: 60 })">Test
-            Process Speed</button>
-        <button class="test-button"
-            onclick="window.testRaceProcessing('processAbilityScores', [{ dex: 2, wis: 1 }])">Test Process Ability
-            Scores</button>
-        <button class="test-button"
-            onclick="window.testRaceProcessing('processLanguages', { known: ['Common', 'Elvish'], additional: { count: 1, choices: ['Dwarvish', 'Giant'] } })">Test
-            Process Languages</button>
-
-        <div id="race-loader-result" class="result-area"></div>
-    </div>
-
-    <!-- Background Loader Tests -->
-    <div class="test-section">
-        <h2>DataLoaderBackground Tests</h2>
-
-        <h3>Basic Loading</h3>
-        <button class="test-button" onclick="window.testBackgroundLoader('loadBackgrounds')">Load All
-            Backgrounds</button>
-        <button class="test-button" onclick="window.testBackgroundLoader('loadBackgroundsInChunks', 5)">Load Backgrounds
-            in Chunks</button>
-
-        <h3>Background Queries</h3>
-        <button class="test-button" onclick="window.testBackgroundLoader('getBackgroundById', 'acolyte_phb')">Get
-            Acolyte Background</button>
-        <button class="test-button" onclick="window.testBackgroundLoader('getBackgroundFeatures', 'sage_phb')">Get Sage
-            Features</button>
-        <button class="test-button"
-            onclick="window.testBackgroundLoader('getBackgroundCharacteristics', 'criminal_phb')">Get Criminal
-            Characteristics</button>
-        <button class="test-button" onclick="window.testBackgroundLoader('getBackgroundVariants', 'noble_phb')">Get
-            Noble Variants</button>
-
-        <h3>Search and Filtering</h3>
-        <button class="test-button" onclick="window.testBackgroundLoader('searchByName', 'soldier')">Search 'Soldier'
-            Backgrounds</button>
-        <button class="test-button" onclick="window.testBackgroundLoader('getBackgroundsByProficiency', 'arcana')">Get
-            Backgrounds with Arcana</button>
-        <button class="test-button" onclick="window.testBackgroundLoader('getBackgroundsByFeature', 'shelter')">Get
-            Backgrounds with Shelter Feature</button>
-
-        <h3>Data Processing Tests</h3>
-        <button class="test-button" onclick="window.testBackgroundProcessing('processCharacteristics', {
-            personalityTraits: { rows: [[1, 'Confident'], [2, 'Quiet']] },
-            ideals: { rows: [[1, 'Honor'], [2, 'Power']] }
-        })">Test Process Characteristics</button>
-        <button class="test-button" onclick="window.testBackgroundProcessing('processFeatures', [{
-            name: 'Position of Privilege',
-            entries: ['You are welcome in high society...']
-        }])">Test Process Features</button>
-
-        <div id="background-loader-result" class="result-area"></div>
+        <h2>Race Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testRace('loadRaces')">Load All Races</button>
+            <button class="test-button" onclick="testRace('getRaceById', 'dwarf_phb')">Get Dwarf</button>
+            <button class="test-button" onclick="testRace('getSubraces', 'elf_phb')">Get Elf Subraces</button>
+            <button class="test-button" onclick="testRace('getRaceFluff', 'Dwarf', 'PHB')">Get Dwarf Fluff</button>
+        </div>
+        <div id="race-result" class="result-area"></div>
     </div>
 
     <!-- Class Loader Tests -->
     <div class="test-section">
-        <h2>DataLoaderClass Tests</h2>
-
-        <h3>Basic Loading</h3>
-        <button class="test-button" onclick="window.testClassLoader('loadClasses')">Load All Classes</button>
-        <button class="test-button" onclick="window.testClassLoader('loadClassesInChunks', 5)">Load Classes in
-            Chunks</button>
-
-        <h3>Class Queries</h3>
-        <button class="test-button" onclick="window.testClassLoader('getClassById', 'fighter')">Get Fighter
-            Class</button>
-        <button class="test-button" onclick="window.testClassLoader('getClassById', 'wizard')">Get Wizard Class</button>
-        <button class="test-button" onclick="window.testClassLoader('getSubclasses', 'fighter')">Get Fighter
-            Subclasses</button>
-        <button class="test-button" onclick="window.testClassLoader('getFeaturesByLevel', 'fighter', 1)">Get Fighter
-            Level 1 Features</button>
-        <button class="test-button" onclick="window.testClassLoader('getVariantFeatures', 'fighter')">Get Fighter
-            Variants</button>
-
-        <h3>Search and Filtering</h3>
-        <button class="test-button" onclick="window.testClassLoader('searchClassesByName', 'fighter')">Search 'Fighter'
-            Classes</button>
-        <button class="test-button" onclick="window.testClassLoader('searchSubclassesByName', 'champion')">Search
-            'Champion' Subclasses</button>
-        <button class="test-button"
-            onclick="window.testClassLoader('getClassesByProficiency', 'weapons', 'martial')">Get Classes with Martial
-            Weapons</button>
-        <button class="test-button" onclick="window.testClassLoader('getClassesByFeature', 'Fighting Style')">Get
-            Classes with Fighting Style</button>
-        <button class="test-button" onclick="window.testClassLoader('getSubclassesByFeature', 'Improved Critical')">Get
-            Subclasses with Improved Critical</button>
-        <button class="test-button" onclick="window.testClassLoader('getClassesBySpell', 'magic missile')">Get Classes
-            with Magic Missile</button>
-        <button class="test-button" onclick="window.testClassLoader('getSubclassesBySpell', 'magic missile')">Get
-            Subclasses with Magic Missile</button>
-        <button class="test-button" onclick="window.testClassLoader('getClassesByEquipment', 'shield')">Get Classes with
-            Shield</button>
-
-        <div id="class-loader-result" class="result-area"></div>
+        <h2>Class Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testClass('loadClasses')">Load All Classes</button>
+            <button class="test-button" onclick="testClass('getClassById', 'fighter_phb')">Get Fighter</button>
+            <button class="test-button" onclick="testClass('getSubclasses', 'fighter_phb')">Get Fighter
+                Subclasses</button>
+            <button class="test-button" onclick="testClass('getClassFluff', 'Fighter', 'PHB')">Get Fighter
+                Fluff</button>
+        </div>
+        <div id="class-result" class="result-area"></div>
     </div>
 
-    <script>
-        // Initialize result areas
-        const itemLoaderResult = document.getElementById('item-loader-result');
-        const raceLoaderResult = document.getElementById('race-loader-result');
+    <!-- Background Loader Tests -->
+    <div class="test-section">
+        <h2>Background Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testBackground('loadBackgrounds')">Load All Backgrounds</button>
+            <button class="test-button" onclick="testBackground('getBackgroundById', 'acolyte_phb')">Get
+                Acolyte</button>
+            <button class="test-button" onclick="testBackground('getBackgroundFluff', 'Acolyte', 'PHB')">Get Acolyte
+                Fluff</button>
+        </div>
+        <div id="background-result" class="result-area"></div>
+    </div>
 
-        // Error handler
-        function handleError(error, area) {
-            console.error('Test error:', error);
-            area.innerHTML = `Error: ${error.message}`;
-            area.classList.add('error');
-            area.classList.remove('success');
-        }
+    <!-- Item Loader Tests -->
+    <div class="test-section">
+        <h2>Item Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testItem('loadItems')">Load All Items</button>
+            <button class="test-button" onclick="testItem('getItemById', 'beadofrefreshment_xge')">Get Bead of
+                Refreshment</button>
+            <button class="test-button" onclick="testItem('getBaseItem', 'Longsword')">Get Base Longsword</button>
+            <button class="test-button" onclick="testItem('getMagicVariant', 'Flame Tongue')">Get Flame Tongue</button>
+            <button class="test-button" onclick="testItem('getItemFluff', 'Armor of the Valiant Soul', 'TDCSR')">Get
+                Armor Fluff</button>
+        </div>
+        <div id="item-result" class="result-area"></div>
+    </div>
 
-        // Success handler
-        function handleSuccess(result, area) {
-            area.innerHTML = JSON.stringify(result, null, 2);
-            area.classList.remove('error');
-            area.classList.add('success');
-        }
-    </script>
+    <!-- Deity Loader Tests -->
+    <div class="test-section">
+        <h2>Deity Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testDeity('loadDeities')">Load All Deities</button>
+            <button class="test-button" onclick="testDeity('getDeityById', 'tyr_scag')">Get Tyr</button>
+        </div>
+        <div id="deity-result" class="result-area"></div>
+    </div>
+
+    <!-- Feature Loader Tests -->
+    <div class="test-section">
+        <h2>Feature Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testFeature('loadFeatures')">Load All Features</button>
+            <button class="test-button" onclick="testFeature('getFeatById', 'alert_phb')">Get Alert Feat</button>
+            <button class="test-button" onclick="testFeature('getOptionalFeatureById', 'eldritchblast_phb')">Get
+                Eldritch Blast</button>
+            <button class="test-button" onclick="testFeature('getFeatFluff', 'Alert', 'PHB')">Get Alert Fluff</button>
+        </div>
+        <div id="feature-result" class="result-area"></div>
+    </div>
+
+    <!-- Spell Loader Tests -->
+    <div class="test-section">
+        <h2>Spell Loader Tests</h2>
+        <div>
+            <button class="test-button" onclick="testSpell('loadSpells')">Load All Spells</button>
+            <button class="test-button" onclick="testSpell('getSpellById', 'fireball_phb')">Get Fireball</button>
+            <button class="test-button" onclick="testSpell('getSpellFluff', 'Fireball', 'PHB')">Get Fireball
+                Fluff</button>
+        </div>
+        <div id="spell-result" class="result-area"></div>
+    </div>
 
     <script type="module">
-        import { DataLoaderItem } from './js/utils/DataLoaderItem.js';
-        import { DataLoaderRace } from './js/utils/DataLoaderRace.js';
-        import { DataLoaderBackground } from './js/utils/DataLoaderBackground.js';
-        import { DataLoaderClass } from './js/utils/DataLoaderClass.js';
+        import { RaceLoader } from './js/dataloaders/RaceLoader.js';
+        import { ClassLoader } from './js/dataloaders/ClassLoader.js';
+        import { BackgroundLoader } from './js/dataloaders/BackgroundLoader.js';
+        import { ItemLoader } from './js/dataloaders/ItemLoader.js';
+        import { DeityLoader } from './js/dataloaders/DeityLoader.js';
+        import { FeatureLoader } from './js/dataloaders/FeatureLoader.js';
+        import { SpellLoader } from './js/dataloaders/SpellLoader.js';
 
-        try {
-            // Initialize loaders
-            const itemLoader = new DataLoaderItem();
-            const raceLoader = new DataLoaderRace();
-            const backgroundLoader = new DataLoaderBackground();
-            const classLoader = new DataLoaderClass();
+        const raceResultArea = document.getElementById('race-result');
+        const classResultArea = document.getElementById('class-result');
+        const backgroundResultArea = document.getElementById('background-result');
+        const itemResultArea = document.getElementById('item-result');
+        const deityResultArea = document.getElementById('deity-result');
+        const featureResultArea = document.getElementById('feature-result');
+        const spellResultArea = document.getElementById('spell-result');
 
-            // Set up global character for testing
-            window.currentCharacter = {
-                getAllowedSources() {
-                    return new Set([
-                        'PHB', 'DMG', 'MM',                  // Core books
-                        'XPHB', 'XDMG', 'XMM',              // Expanded books
-                        'SCAG', 'VGM', 'MTF',               // Supplements
-                        'TCE', 'MOT', 'EGW',                // Additional sources
-                        'FTD', 'BGG', 'GGR', 'VRGR',        // More supplements
-                        'ERLW', 'SCC', 'SatO', 'DSotDQ',    // Setting books
-                        'WBtW', 'MPMM',                     // Additional content
-                        'ToA', 'TDCSR', 'AAG',              // Campaign books
-                        'BGDIA', 'AI', 'DoDk',              // More campaign books
-                        'GoS', 'CoS',                       // Adventure books
-                        'ALCurseOfStrahd',                  // Adventurers League
-                        'ALElementalEvil',                  // Adventurers League
-                        'ALRageOfDemons'                    // Adventurers League
-                    ]);
-                }
-            };
+        const raceLoader = new RaceLoader();
+        const classLoader = new ClassLoader();
+        const backgroundLoader = new BackgroundLoader();
+        const itemLoader = new ItemLoader();
+        const deityLoader = new DeityLoader();
+        const featureLoader = new FeatureLoader();
+        const spellLoader = new SpellLoader();
 
-            // Make test functions available globally
-            window.testItemLoader = async function (method, ...args) {
-                itemLoaderResult.innerHTML = 'Loading...';
+        // Generic test function creator
+        function createTestFunction(loader, resultArea, name) {
+            return async function (method, ...args) {
+                resultArea.innerHTML = 'Loading...';
+                resultArea.className = 'result-area';
+
                 try {
-                    const result = await itemLoader[method](...args);
-                    handleSuccess(result, itemLoaderResult);
-                    console.log(`ItemLoader ${method} result:`, result);
+                    const result = await loader[method](...args);
+                    resultArea.textContent = JSON.stringify(result, null, 2);
+                    resultArea.classList.add('success');
+                    console.log(`${name} ${method} result:`, result);
                 } catch (error) {
-                    handleError(error, itemLoaderResult);
+                    resultArea.textContent = `Error: ${error.message}\n${error.stack}`;
+                    resultArea.classList.add('error');
+                    console.error(`${name} test error:`, error);
                 }
             };
-
-            // Add Burglar's Pack test function
-            window.testBurglarsPack = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const gearItems = await itemLoader.getItemsByType('gear');
-                    const burglarsPack = gearItems.find(item => item.name === "Burglar's Pack");
-                    handleSuccess(burglarsPack, itemLoaderResult);
-                    console.log('Burglar\'s Pack:', burglarsPack);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            // Update race loader test functions
-            window.testRaceLoader = async function (method, ...args) {
-                raceLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const result = await raceLoader[method](...args);
-
-                    // Special handling for loadRacesInChunks generator
-                    if (method === 'loadRacesInChunks') {
-                        let allChunks = [];
-                        raceLoaderResult.innerHTML = 'Loading chunks...\n';
-
-                        // Iterate through the generator
-                        for await (const chunk of result) {
-                            allChunks.push(chunk);
-                            raceLoaderResult.innerHTML += `Received chunk ${allChunks.length} with ${chunk.length} races\n`;
-                        }
-
-                        // Show final results
-                        const finalResult = {
-                            totalChunks: allChunks.length,
-                            totalRaces: allChunks.reduce((sum, chunk) => sum + chunk.length, 0),
-                            chunks: allChunks.map(chunk => chunk.map(race => ({
-                                id: race.id,
-                                name: race.name,
-                                source: race.source
-                            })))
-                        };
-                        handleSuccess(finalResult, raceLoaderResult);
-                    } else {
-                        // Format output based on method
-                        let formattedResult;
-                        switch (method) {
-                            case 'getRacesByAbility':
-                                formattedResult = result.map(race => ({
-                                    name: race.name,
-                                    source: race.source,
-                                    abilityScores: race.abilityScores,
-                                    size: race.size
-                                }));
-                                break;
-                            case 'getRacesBySize':
-                                formattedResult = result.map(race => ({
-                                    name: race.name,
-                                    source: race.source,
-                                    size: race.size,
-                                    speed: race.speed
-                                }));
-                                break;
-                            case 'getRacialTraits':
-                                formattedResult = result.map(trait => ({
-                                    name: trait.name,
-                                    entries: trait.entries,
-                                    source: trait.source,
-                                    choices: trait.choices
-                                }));
-                                break;
-                            case 'getRacialSpellcasting':
-                                if (result) {
-                                    formattedResult = {
-                                        ability: result.ability,
-                                        innate: result.innate,
-                                        spells: result.spells,
-                                        daily: result.daily,
-                                        requirements: result.requirements
-                                    };
-                                } else {
-                                    formattedResult = null;
-                                }
-                                break;
-                            case 'getRaceById':
-                                // Format race data to show important fields
-                                if (result) {
-                                    formattedResult = {
-                                        id: result.id,
-                                        name: result.name,
-                                        source: result.source,
-                                        size: result.size,
-                                        speed: result.speed,
-                                        abilityScores: result.abilityScores,
-                                        traits: result.traits.map(t => ({
-                                            name: t.name,
-                                            source: t.source
-                                        })),
-                                        fluff: result.fluff ? {
-                                            entries: result.fluff.entries,
-                                            images: result.fluff.images.map(img => ({
-                                                type: img.type,
-                                                href: img.href,
-                                                artist: img.artist
-                                            }))
-                                        } : null
-                                    };
-                                } else {
-                                    formattedResult = null;
-                                }
-                                break;
-                            case 'getSubraces':
-                                formattedResult = result.map(subrace => ({
-                                    id: subrace.id,
-                                    name: subrace.name,
-                                    raceName: subrace.raceName,
-                                    source: subrace.source,
-                                    abilityScores: subrace.abilityScores,
-                                    traits: subrace.traits.map(t => ({
-                                        name: t.name,
-                                        source: t.source
-                                    }))
-                                }));
-                                break;
-                            default:
-                                formattedResult = result;
-                        }
-                        handleSuccess(formattedResult, raceLoaderResult);
-                    }
-                    console.log(`RaceLoader ${method} result:`, result);
-                } catch (error) {
-                    handleError(error, raceLoaderResult);
-                }
-            };
-
-            // Update processing test function
-            window.testRaceProcessing = function (method, testData) {
-                raceLoaderResult.innerHTML = 'Processing...';
-                try {
-                    let result;
-                    switch (method) {
-                        case 'processSize':
-                            result = raceLoader.processSize(testData);
-                            break;
-                        case 'processSpeed':
-                            result = raceLoader.processSpeed(testData);
-                            break;
-                        case 'processAbilityScores':
-                            result = raceLoader.processAbilityScores(testData);
-                            break;
-                        case 'processLanguages':
-                            result = raceLoader.processLanguages({ languages: testData });
-                            break;
-                        case 'processFluff':
-                            // Add test for fluff processing
-                            result = raceLoader.processFluff(
-                                testData.name,
-                                testData.source,
-                                { raceFluff: testData.fluff }
-                            );
-                            break;
-                        default:
-                            throw new Error(`Unknown processing method: ${method}`);
-                    }
-                    handleSuccess(result, raceLoaderResult);
-                    console.log(`RaceLoader ${method} result:`, result);
-                } catch (error) {
-                    handleError(error, raceLoaderResult);
-                }
-            };
-
-            // Equipment test functions
-            window.testMartialWeapons = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const weapons = await itemLoader.getItemsByType('weapon');
-                    const martialWeapons = weapons.filter(w => w.weaponCategory === 'martial');
-                    handleSuccess(martialWeapons, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testSimpleWeapons = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const weapons = await itemLoader.getItemsByType('weapon');
-                    const simpleWeapons = weapons.filter(w => w.weaponCategory === 'simple');
-                    handleSuccess(simpleWeapons, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testHeavyArmor = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const armor = await itemLoader.getItemsByType('armor');
-                    const heavyArmor = armor.filter(a => a.armorCategory === 'heavy');
-                    handleSuccess(heavyArmor, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testMediumArmor = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const armor = await itemLoader.getItemsByType('armor');
-                    const mediumArmor = armor.filter(a => a.armorCategory === 'medium');
-                    handleSuccess(mediumArmor, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testLightArmor = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const armor = await itemLoader.getItemsByType('armor');
-                    const lightArmor = armor.filter(a => a.armorCategory === 'light');
-                    handleSuccess(lightArmor, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            // Add a new test function specifically for shields
-            window.testShields = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const armor = await itemLoader.getItemsByType('armor');
-                    const shields = armor.filter(a => a.armorCategory === 'shield');
-                    handleSuccess(shields, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            // Magic item test functions
-            window.testMagicWeapons = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const items = await itemLoader.getItemsByType('weapon');
-                    const magicWeapons = items.filter(i => i.rarity !== 'none' && i.rarity !== 'unknown');
-                    handleSuccess(magicWeapons, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testMagicArmor = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const items = await itemLoader.getItemsByType('armor');
-                    const magicArmor = items.filter(i => i.rarity !== 'none' && i.rarity !== 'unknown');
-                    handleSuccess(magicArmor, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testMagicItems = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const items = await itemLoader.getItemsByType('item');
-                    const magicItems = items.filter(i => i.rarity !== 'none' && i.rarity !== 'unknown');
-                    handleSuccess(magicItems, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            window.testMagicItemsByRarity = async function () {
-                itemLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const items = await itemLoader.loadItems();
-                    const allItems = [
-                        ...items.items,
-                        ...items.weapons,
-                        ...items.armor,
-                        ...items.magicItems
-                    ];
-                    const legendaryItems = allItems.filter(item =>
-                        item.rarity === 'legendary'
-                    );
-                    handleSuccess(legendaryItems, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            // Add loadItemsInChunks test function
-            window.testLoadItemsInChunks = async function () {
-                itemLoaderResult.innerHTML = 'Loading chunks...\n';
-                try {
-                    const chunkSize = 20;
-                    let allChunks = [];
-
-                    for await (const chunk of itemLoader.loadItemsInChunks(chunkSize)) {
-                        allChunks.push(chunk);
-                        itemLoaderResult.innerHTML += `Received chunk ${allChunks.length} with ${chunk.length} items\n`;
-                    }
-
-                    const finalResult = {
-                        totalChunks: allChunks.length,
-                        totalItems: allChunks.reduce((sum, chunk) => sum + chunk.length, 0),
-                        chunks: allChunks
-                    };
-                    handleSuccess(finalResult, itemLoaderResult);
-                } catch (error) {
-                    handleError(error, itemLoaderResult);
-                }
-            };
-
-            // Add background loader test functions
-            window.testBackgroundLoader = async function (method, ...args) {
-                const backgroundLoaderResult = document.getElementById('background-loader-result');
-                backgroundLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const result = await backgroundLoader[method](...args);
-
-                    // Special handling for loadBackgroundsInChunks generator
-                    if (method === 'loadBackgroundsInChunks') {
-                        let allChunks = [];
-                        backgroundLoaderResult.innerHTML = 'Loading chunks...\n';
-
-                        for await (const chunk of result) {
-                            allChunks.push(chunk);
-                            backgroundLoaderResult.innerHTML += `Received chunk ${allChunks.length} with ${chunk.length} backgrounds\n`;
-                        }
-
-                        const finalResult = {
-                            totalChunks: allChunks.length,
-                            totalBackgrounds: allChunks.reduce((sum, chunk) => sum + chunk.length, 0),
-                            chunks: allChunks.map(chunk => chunk.map(bg => ({
-                                id: bg.id,
-                                name: bg.name,
-                                source: bg.source
-                            })))
-                        };
-                        handleSuccess(finalResult, backgroundLoaderResult);
-                    } else {
-                        // Format output based on method
-                        let formattedResult;
-                        switch (method) {
-                            case 'getBackgroundById':
-                                if (result) {
-                                    formattedResult = {
-                                        id: result.id,
-                                        name: result.name,
-                                        source: result.source,
-                                        features: result.features?.map(f => ({
-                                            name: f.name,
-                                            description: f.description
-                                        })),
-                                        characteristics: result.characteristics,
-                                        proficiencies: result.proficiencies,
-                                        startingEquipment: result.startingEquipment,
-                                        fluff: result.fluff
-                                    };
-                                } else {
-                                    formattedResult = null;
-                                }
-                                break;
-                            case 'getBackgroundFeatures':
-                                formattedResult = result.map(feature => ({
-                                    name: feature.name,
-                                    description: feature.description
-                                }));
-                                break;
-                            case 'getBackgroundCharacteristics':
-                                formattedResult = result ? {
-                                    personalityTraits: result.personalityTraits,
-                                    ideals: result.ideals,
-                                    bonds: result.bonds,
-                                    flaws: result.flaws
-                                } : null;
-                                break;
-                            case 'searchByName':
-                            case 'getBackgroundsByProficiency':
-                            case 'getBackgroundsByFeature':
-                                formattedResult = result.map(bg => ({
-                                    id: bg.id,
-                                    name: bg.name,
-                                    source: bg.source,
-                                    features: bg.features?.map(f => f.name)
-                                }));
-                                break;
-                            default:
-                                formattedResult = result;
-                        }
-                        handleSuccess(formattedResult, backgroundLoaderResult);
-                    }
-                    console.log(`BackgroundLoader ${method} result:`, result);
-                } catch (error) {
-                    handleError(error, backgroundLoaderResult);
-                }
-            };
-
-            // Add background processing test function
-            window.testBackgroundProcessing = function (method, testData) {
-                const backgroundLoaderResult = document.getElementById('background-loader-result');
-                backgroundLoaderResult.innerHTML = 'Processing...';
-                try {
-                    let result;
-                    switch (method) {
-                        case 'processCharacteristics':
-                            result = backgroundLoader.processCharacteristics(testData);
-                            break;
-                        case 'processFeatures':
-                            result = backgroundLoader.processFeatures(testData);
-                            break;
-                        default:
-                            throw new Error(`Unknown processing method: ${method}`);
-                    }
-                    handleSuccess(result, backgroundLoaderResult);
-                    console.log(`BackgroundLoader ${method} result:`, result);
-                } catch (error) {
-                    handleError(error, backgroundLoaderResult);
-                }
-            };
-
-            // Add class loader test functions
-            window.testClassLoader = async function (method, ...args) {
-                const classLoaderResult = document.getElementById('class-loader-result');
-                classLoaderResult.innerHTML = 'Loading...';
-                try {
-                    const result = await classLoader[method](...args);
-
-                    // Special handling for loadClassesInChunks generator
-                    if (method === 'loadClassesInChunks') {
-                        let allChunks = [];
-                        classLoaderResult.innerHTML = 'Loading chunks...\n';
-
-                        for await (const chunk of result) {
-                            allChunks.push(chunk);
-                            classLoaderResult.innerHTML += `Received chunk ${allChunks.length} with ${chunk.length} classes\n`;
-                        }
-
-                        const finalResult = {
-                            totalChunks: allChunks.length,
-                            totalClasses: allChunks.reduce((sum, chunk) => sum + chunk.length, 0),
-                            chunks: allChunks.map(chunk => chunk.map(cls => ({
-                                id: cls.id,
-                                name: cls.name,
-                                source: cls.source
-                            })))
-                        };
-                        handleSuccess(finalResult, classLoaderResult);
-                    } else {
-                        // Format output based on method
-                        let formattedResult;
-                        switch (method) {
-                            case 'getClassById':
-                                if (result) {
-                                    formattedResult = {
-                                        id: result.id,
-                                        name: result.name,
-                                        source: result.source,
-                                        hd: result.hd,
-                                        startingProficiencies: result.startingProficiencies,
-                                        spellcasting: result.spellcasting,
-                                        classFeatures: result.classFeatures?.map(f => ({
-                                            name: f.name,
-                                            level: f.level,
-                                            description: f.description
-                                        }))
-                                    };
-                                } else {
-                                    formattedResult = null;
-                                }
-                                break;
-                            case 'getSubclasses':
-                                formattedResult = result.map(sub => ({
-                                    name: sub.name,
-                                    source: sub.source,
-                                    className: sub.className,
-                                    features: sub.features?.map(f => f.name)
-                                }));
-                                break;
-                            case 'getFeaturesByLevel':
-                                formattedResult = result.map(feature => ({
-                                    name: feature.name,
-                                    level: feature.level,
-                                    description: feature.description
-                                }));
-                                break;
-                            case 'searchClassesByName':
-                            case 'getClassesByProficiency':
-                            case 'getClassesByFeature':
-                            case 'getClassesBySpell':
-                            case 'getClassesByEquipment':
-                                formattedResult = result.map(cls => ({
-                                    id: cls.id,
-                                    name: cls.name,
-                                    source: cls.source,
-                                    features: cls.classFeatures?.map(f => f.name)
-                                }));
-                                break;
-                            case 'searchSubclassesByName':
-                            case 'getSubclassesByFeature':
-                            case 'getSubclassesBySpell':
-                                formattedResult = result.map(sub => ({
-                                    name: sub.name,
-                                    className: sub.className,
-                                    source: sub.source,
-                                    features: sub.features?.map(f => f.name)
-                                }));
-                                break;
-                            default:
-                                formattedResult = result;
-                        }
-                        handleSuccess(formattedResult, classLoaderResult);
-                    }
-                    console.log(`ClassLoader ${method} result:`, result);
-                } catch (error) {
-                    handleError(error, classLoaderResult);
-                }
-            };
-
-            // Update initial load test to include class loader
-            Promise.all([
-                itemLoader.loadItems(),
-                raceLoader.loadRaces(),
-                backgroundLoader.loadBackgrounds(),
-                classLoader.loadClasses()
-            ]).then(() => {
-                console.log('Initial data load complete');
-            }).catch(error => {
-                console.error('Initial load error:', error);
-            });
-
-        } catch (error) {
-            console.error('Setup error:', error);
-            document.body.innerHTML += `
-                <div class="error">
-                    Error initializing loaders: ${error.message}<br>
-                    Stack: ${error.stack}
-                </div>
-            `;
         }
+
+        // Create test functions for each loader
+        window.testRace = createTestFunction(raceLoader, raceResultArea, 'RaceLoader');
+        window.testClass = createTestFunction(classLoader, classResultArea, 'ClassLoader');
+        window.testBackground = createTestFunction(backgroundLoader, backgroundResultArea, 'BackgroundLoader');
+        window.testItem = createTestFunction(itemLoader, itemResultArea, 'ItemLoader');
+        window.testDeity = createTestFunction(deityLoader, deityResultArea, 'DeityLoader');
+        window.testFeature = createTestFunction(featureLoader, featureResultArea, 'FeatureLoader');
+        window.testSpell = createTestFunction(spellLoader, spellResultArea, 'SpellLoader');
+
+        // Initial load test
+        Promise.all([
+            raceLoader.loadRaces(),
+            classLoader.loadClasses(),
+            backgroundLoader.loadBackgrounds(),
+            itemLoader.loadItems(),
+            deityLoader.loadDeities(),
+            featureLoader.loadFeatures(),
+            spellLoader.loadSpells()
+        ]).then(() => {
+            console.log('Initial data load complete');
+        }).catch(error => {
+            console.error('Initial load error:', error);
+        });
     </script>
 </body>
 

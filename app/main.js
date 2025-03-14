@@ -31,26 +31,27 @@ function createMainWindow() {
     resizable: true,
     icon: path.resolve(__dirname, 'img', 'icon.ico'),
     webPreferences: {
-      sandbox: false,
-      contextIsolation: false,
-      nodeIntegration: true,
-      webSecurity: false,
-      allowRunningInsecureContent: true,
-      devTools: true,
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+      devTools: !app.isPackaged,
       preload: path.join(__dirname, 'js', 'preload.js')
     }
   });
 
-  // Enable DevTools
-  mainWindow.webContents.openDevTools();
+  // Enable DevTools only in development
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
 
-  // Add keyboard shortcut to toggle DevTools (Ctrl+Shift+I or Cmd+Option+I)
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-      mainWindow.webContents.toggleDevTools();
-      event.preventDefault();
-    }
-  });
+    // Add keyboard shortcut to toggle DevTools (Ctrl+Shift+I or Cmd+Option+I)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+    });
+  }
 
   // Show and focus mainWindow after loading
   mainWindow.webContents.on("did-finish-load", () => {
@@ -59,7 +60,7 @@ function createMainWindow() {
   });
 
   // Load HTML file
-  mainWindow.loadFile(path.join(__dirname, 'test.html'));
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   // Hide menu bar
   mainWindow.setMenuBarVisibility(false);

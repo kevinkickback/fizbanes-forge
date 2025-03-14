@@ -1,5 +1,5 @@
 /**
- * DataLoader.js
+ * BaseLoader.js
  * Base class for all data loaders with improved caching and lazy loading
  */
 
@@ -12,13 +12,12 @@
 
 /**
  * @typedef {Object} LoadOptions
- * @property {number} [chunkSize] - Size of chunks for partial loading
  * @property {number} [maxRetries=3] - Maximum number of retries for failed loads
  * @property {number} [cacheExpiry=3600000] - Cache expiry in milliseconds (default 1 hour)
- * @property {function} [transform] - Transform function to apply to loaded data
+ * @property {boolean} [forceRefresh] - Force a cache refresh
  */
 
-export class DataLoader {
+export class BaseLoader {
     /**
      * @param {Object} options
      * @param {number} [options.maxCacheSize=100] - Maximum number of entries in cache
@@ -33,16 +32,13 @@ export class DataLoader {
     }
 
     /**
-     * Load a JSON file with support for chunking and retries
+     * Load a JSON file with retry support
      * @param {string} path - Path to the JSON file
      * @param {LoadOptions} [options] - Loading options
      * @returns {Promise<any>} Parsed JSON data
      */
     async loadJsonFile(path, options = {}) {
-        const {
-            maxRetries = 3,
-            transform
-        } = options;
+        const { maxRetries = 3 } = options;
 
         let lastError;
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -51,12 +47,7 @@ export class DataLoader {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
-                let data = await response.json();
-                if (transform) {
-                    data = transform(data);
-                }
-                return data;
+                return await response.json();
             } catch (error) {
                 lastError = error;
                 if (attempt < maxRetries) {
@@ -68,39 +59,22 @@ export class DataLoader {
     }
 
     /**
-     * Load data in chunks
-     * @param {string} path - Path to the JSON file
-     * @param {LoadOptions} options - Loading options
-     * @returns {AsyncGenerator<any>} Generator yielding chunks of data
-     */
-    async *loadInChunks(path, options = {}) {
-        const { chunkSize = 100 } = options;
-        const data = await this.loadJsonFile(path, options);
-
-        if (Array.isArray(data)) {
-            for (let i = 0; i < data.length; i += chunkSize) {
-                yield data.slice(i, i + chunkSize);
-            }
-        } else {
-            yield data;
-        }
-    }
-
-    /**
-     * Get data from cache or load it with improved caching
+     * Get data from cache or load it
      * @param {string} key - Cache key
      * @param {Function} loadFn - Function to load data if not cached
      * @param {LoadOptions} [options] - Loading options
      * @returns {Promise<any>} Cached or loaded data
      */
     async getOrLoadData(key, loadFn, options = {}) {
-        const { cacheExpiry = this.defaultExpiry } = options;
+        const { cacheExpiry = this.defaultExpiry, forceRefresh = false } = options;
 
-        // Check cache and expiry
-        const cached = this.dataCache.get(key);
-        if (cached && Date.now() < cached.expiry) {
-            cached.timestamp = Date.now();
-            return cached.data;
+        // Check cache and expiry if not forcing refresh
+        if (!forceRefresh) {
+            const cached = this.dataCache.get(key);
+            if (cached && Date.now() < cached.expiry) {
+                cached.timestamp = Date.now();
+                return cached.data;
+            }
         }
 
         // Check pending loads
@@ -127,7 +101,6 @@ export class DataLoader {
      * @private
      */
     setCacheEntry(key, data, expiry) {
-        // Implement LRU eviction if cache is full
         if (this.dataCache.size >= this.maxCacheSize) {
             let oldestKey = null;
             let oldestTime = Number.POSITIVE_INFINITY;
@@ -224,13 +197,5 @@ export class DataLoader {
      */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    /**
-     * Get allowed sources for filtering
-     * @returns {Set<string>} Set of allowed source IDs
-     */
-    getAllowedSources() {
-        return window.currentCharacter?.getAllowedSources() || new Set(['PHB', 'DMG', 'MM']);
     }
 } 
