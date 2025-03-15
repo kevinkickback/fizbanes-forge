@@ -65,7 +65,6 @@ export class ItemLoader extends BaseLoader {
     async loadItems(options = {}) {
         return this.getOrLoadData('items', async () => {
             try {
-                console.log('Loading item data...');
                 const [baseData, itemData, variantData, fluffData] = await Promise.all([
                     this.loadJsonFile(this.dataFiles.base, {
                         ...options,

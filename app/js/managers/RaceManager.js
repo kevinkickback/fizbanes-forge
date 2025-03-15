@@ -8,6 +8,9 @@ import { Race } from '../models/Race.js';
 import { Subrace } from '../models/Subrace.js';
 import { AbilityScoreUI } from '../ui/AbilityScoreUI.js';
 import { RaceUI } from '../ui/RaceUI.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
+import { markUnsavedChanges } from '../utils/characterHandler.js';
 
 export class RaceManager {
     // Default values matching DataLoader
@@ -17,6 +20,7 @@ export class RaceManager {
 
     constructor(character) {
         this.character = character;
+        this.dataLoader = characterInitializer.dataLoader;
         this.selectedRace = null;
         this.selectedSubrace = null;
         this.abilityChoices = new Map();
@@ -33,23 +37,13 @@ export class RaceManager {
      * @returns {Promise<Race>} - The loaded race
      */
     async loadRace(raceId) {
-        // Check cache first
-        if (this.raceCache.has(raceId)) {
-            return this.raceCache.get(raceId);
+        try {
+            const races = await this.dataLoader.loadRaces();
+            return races.find(race => race.id === raceId);
+        } catch (error) {
+            console.error('Error loading race:', error);
+            return null;
         }
-
-        // Load race data
-        const races = await window.dndDataLoader.loadRaces();
-        const raceData = races.find(r => r.id === raceId);
-
-        if (!raceData) {
-            throw new Error(`Race not found: ${raceId}`);
-        }
-
-        // Create race instance
-        const race = new Race(raceData);
-        this.raceCache.set(raceId, race);
-        return race;
     }
 
     /**
@@ -84,7 +78,7 @@ export class RaceManager {
      * @returns {Promise<Race[]>} - Array of available races
      */
     async getAvailableRaces() {
-        const races = await window.dndDataLoader.loadRaces();
+        const races = await this.dataLoader.loadRaces();
         return races.map(raceData => new Race(raceData));
     }
 
@@ -95,7 +89,7 @@ export class RaceManager {
      */
     async getAvailableSubraces(raceId) {
         try {
-            const races = await window.dndDataLoader.loadRaces();
+            const races = await this.dataLoader.loadRaces();
             const race = races.find(r => r.id === raceId);
 
             if (!race || !race.subraces || race.subraces.length === 0) {
@@ -145,7 +139,7 @@ export class RaceManager {
             }
 
             // Load race data
-            const races = await window.dndDataLoader.loadRaces();
+            const races = await this.dataLoader.loadRaces();
             const race = races.find(r => r.id === raceId);
 
             if (!race) {
@@ -191,14 +185,14 @@ export class RaceManager {
             }
 
             // Mark changes as unsaved
-            if (window.markUnsavedChanges) {
-                window.markUnsavedChanges();
+            if (markUnsavedChanges) {
+                markUnsavedChanges();
             }
 
             return true;
         } catch (error) {
             console.error('Error setting race:', error);
-            window.showNotification(`Error setting race: ${error.message}`, 'danger');
+            showNotification(`Error setting race: ${error.message}`, 'danger');
             return false;
         }
     }

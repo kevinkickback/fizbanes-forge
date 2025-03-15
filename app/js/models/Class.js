@@ -1,8 +1,13 @@
+import { characterInitializer } from '../utils/Initialize.js';
+
 export class Class {
     constructor(data) {
         this.id = data.id;
         this.name = data.name;
         this.source = data.source;
+        this.level = data.level || 1;
+        this.spellcastingType = data.spellcasting?.type;
+        this.spellcastingService = characterInitializer.spellcastingService;
         this.hitDice = data.hitDice;
         this.proficiencies = data.proficiencies || {};
         this.features = data.features || [];
@@ -11,6 +16,10 @@ export class Class {
         this.startingEquipment = data.startingEquipment || {};
         this.multiclassing = data.multiclassing || {};
         this.description = data.description || '';
+    }
+
+    calculateSpellSlots(level) {
+        return this.spellcastingService.calculateSpellSlots(level, this.spellcastingType);
     }
 
     // Core getters
@@ -89,8 +98,7 @@ export class Class {
         if (!this.canCastSpells()) return {};
 
         // Use SpellcastingService for calculations
-        const spellcastingType = this.getSpellcastingType();
-        return window.spellcastingService.calculateSpellSlots(level, spellcastingType);
+        return this.calculateSpellSlots(level);
     }
 
     getSpellcastingType() {

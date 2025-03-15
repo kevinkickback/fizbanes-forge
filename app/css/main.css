@@ -1674,10 +1674,28 @@ body[data-current-page="details"] .floating-actions {
 	padding: 1rem;
 	margin-bottom: 0.5rem;
 	box-shadow: var(--box-shadow);
-	display: flex;
-	align-items: flex-start;
-	gap: 0.75rem;
 	animation: slideIn 0.3s ease-out;
+}
+
+.notification-content {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.notification-message {
+	flex: 1;
+}
+
+.notification-close {
+	padding: 0.25rem;
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.notification-close:hover {
+	opacity: 1;
 }
 
 .notification.success {
@@ -1717,10 +1735,6 @@ body[data-current-page="details"] .floating-actions {
 	color: var(--accent-color);
 }
 
-.notification .content {
-	flex: 1;
-}
-
 .notification .title {
 	font-weight: 600;
 	margin-bottom: 0.25rem;
@@ -1730,21 +1744,6 @@ body[data-current-page="details"] .floating-actions {
 	color: var(--text-muted);
 	font-size: 0.9rem;
 	margin: 0;
-}
-
-.notification .close {
-	color: var(--text-muted);
-	background: none;
-	border: none;
-	padding: 0;
-	font-size: 1.1rem;
-	cursor: pointer;
-	opacity: 0.7;
-	transition: opacity 0.2s ease;
-}
-
-.notification .close:hover {
-	opacity: 1;
 }
 
 @keyframes slideIn {

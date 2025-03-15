@@ -10,23 +10,76 @@ export class TooltipManager {
         if (instance) {
             throw new Error('TooltipManager is a singleton. Use TooltipManager.getInstance() instead.');
         }
-        this.container = null;
-        this.activeTooltips = new Map(); // Map of tooltip elements to their trigger elements
-        this.initialize();
+        this.tooltip = null;
+        this.tooltipContent = null;
+        this.tooltipTitle = null;
+        this.tooltipDescription = null;
+        this.tooltipDetails = null;
+        this.tooltipActions = null;
+        this.tooltipFooter = null;
+        this.activeTooltip = null;
+        this.tooltipDelay = 200;
+        this.tooltipTimeout = null;
+        this.tooltipOffset = 10;
+        this._initialized = false;
         instance = this;
     }
 
     initialize() {
-        this.container = document.getElementById('tooltipContainer') || this.createContainer();
-        document.addEventListener('mouseover', this.handleMouseOver.bind(this));
+        if (this._initialized) return;
+
+        this.tooltip = document.createElement('div');
+        this.tooltip.className = 'tooltip';
+        this.tooltip.style.display = 'none';
+        document.body.appendChild(this.tooltip);
+
+        this.tooltipContent = document.createElement('div');
+        this.tooltipContent.className = 'tooltip-content';
+        this.tooltip.appendChild(this.tooltipContent);
+
+        this.tooltipTitle = document.createElement('h3');
+        this.tooltipTitle.className = 'tooltip-title';
+        this.tooltipContent.appendChild(this.tooltipTitle);
+
+        this.tooltipDescription = document.createElement('p');
+        this.tooltipDescription.className = 'tooltip-description';
+        this.tooltipContent.appendChild(this.tooltipDescription);
+
+        this.tooltipDetails = document.createElement('div');
+        this.tooltipDetails.className = 'tooltip-details';
+        this.tooltipContent.appendChild(this.tooltipDetails);
+
+        this.tooltipActions = document.createElement('div');
+        this.tooltipActions.className = 'tooltip-actions';
+        this.tooltipContent.appendChild(this.tooltipActions);
+
+        this.tooltipFooter = document.createElement('div');
+        this.tooltipFooter.className = 'tooltip-footer';
+        this.tooltipContent.appendChild(this.tooltipFooter);
+
+        this._initialized = true;
     }
 
-    createContainer() {
-        const container = document.createElement('div');
-        container.id = 'tooltipContainer';
-        container.className = 'tooltip-container';
-        document.body.appendChild(container);
-        return container;
+    positionTooltip(event) {
+        const tooltipRect = this.tooltip.getBoundingClientRect();
+        const scrollTop = document.documentElement.scrollTop;
+        const scrollLeft = document.documentElement.scrollLeft;
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
+
+        let left = event.clientX + this.tooltipOffset + scrollLeft;
+        let top = event.clientY + this.tooltipOffset + scrollTop;
+
+        // Adjust position if tooltip would overflow viewport
+        if (left + tooltipRect.width > viewportWidth) {
+            left = event.clientX - tooltipRect.width - this.tooltipOffset + scrollLeft;
+        }
+        if (top + tooltipRect.height > viewportHeight) {
+            top = viewportHeight - tooltipRect.height - this.tooltipOffset + scrollTop;
+        }
+
+        this.tooltip.style.left = `${left}px`;
+        this.tooltip.style.top = `${top}px`;
     }
 
     handleMouseOver(event) {
@@ -135,7 +188,7 @@ export class TooltipManager {
 
         // Add to DOM and position
         this.container.appendChild(tooltip);
-        this.positionTooltip(tooltip, target);
+        this.positionTooltip(event);
 
         // Trigger show animation after positioning
         requestAnimationFrame(() => {
@@ -167,32 +220,6 @@ export class TooltipManager {
         if (!tooltip.dataset.parentTooltip) return null;
         return Array.from(this.activeTooltips.keys())
             .find(t => t.id === tooltip.dataset.parentTooltip);
-    }
-
-    positionTooltip(tooltip, target) {
-        const targetRect = target.getBoundingClientRect();
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-        let left = targetRect.right + scrollLeft + 5;
-        let top = targetRect.top + scrollTop;
-
-        // Adjust position if tooltip would go off screen
-        if (left + tooltipRect.width > window.innerWidth) {
-            left = targetRect.left + scrollLeft - tooltipRect.width - 5;
-        }
-        if (top + tooltipRect.height > window.innerHeight) {
-            top = window.innerHeight - tooltipRect.height - 10 + scrollTop;
-        }
-        if (top < scrollTop) {
-            top = scrollTop + 10;
-        }
-
-        Object.assign(tooltip.style, {
-            left: `${left}px`,
-            top: `${top}px`
-        });
     }
 
     static getInstance() {

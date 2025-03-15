@@ -62,7 +62,6 @@ export class RaceLoader extends BaseLoader {
         const cacheKey = 'races_all';
         return this.getOrLoadData(cacheKey, async () => {
             try {
-                console.log('Loading race data...');
                 const [raceData, fluffData] = await Promise.all([
                     this.loadJsonFile(this.dataFiles.races, {
                         ...options,

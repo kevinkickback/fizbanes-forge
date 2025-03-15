@@ -67,16 +67,13 @@ export class Character {
 
     // Methods for ability scores
     getAbilityScore(ability) {
-        console.log(`[Character] Getting ability score for ${ability}`);
         const base = this.abilityScores[ability] || 10;
         const bonuses = this.abilityBonuses[ability] || [];
         const total = base + bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
-        console.log(`[Character] ${ability}: base=${base}, bonuses=${JSON.stringify(bonuses)}, total=${total}`);
         return total;
     }
 
     addAbilityBonus(ability, value, source) {
-        console.log(`[Character] Adding ability bonus: ${ability} +${value} from ${source}`);
         if (!this.abilityBonuses[ability]) {
             this.abilityBonuses[ability] = [];
         }
@@ -90,19 +87,14 @@ export class Character {
             // Add new bonus
             this.abilityBonuses[ability].push({ value, source });
         }
-
-        console.log(`[Character] Updated ability bonuses for ${ability}:`, this.abilityBonuses[ability]);
     }
 
     clearAbilityBonuses(source) {
-        console.log(`[Character] Clearing ability bonuses from source: ${source}`);
-        console.log('[Character] Before clear:', this.abilityBonuses);
         for (const ability in this.abilityBonuses) {
             this.abilityBonuses[ability] = this.abilityBonuses[ability].filter(
                 bonus => bonus.source !== source
             );
         }
-        console.log('[Character] After clear:', this.abilityBonuses);
     }
 
     // Methods for pending choices

@@ -3,6 +3,8 @@ import { AttunementManager } from './AttunementManager.js';
 import { Item } from '../models/Item.js';
 import { Weapon } from '../models/Weapon.js';
 import { Armor } from '../models/Armor.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
 
 export class EquipmentManager {
     constructor(character) {
@@ -15,6 +17,10 @@ export class EquipmentManager {
             magicItems: null,
             fluff: null
         };
+        this.dataLoader = characterInitializer.dataLoader;
+        this.textProcessor = characterInitializer.textProcessor;
+        this.items = new Map();
+        this.magicItems = new Map();
     }
 
     /**
@@ -25,39 +31,28 @@ export class EquipmentManager {
         if (this.cache.items) return this.cache.items;
 
         try {
-            // Load base items, items, magic items, and fluff data
-            const [baseItems, items, magicItems, fluffData] = await Promise.all([
-                window.dndDataLoader.loadJsonFile('items-base.json'),
-                window.dndDataLoader.loadJsonFile('items.json'),
-                window.dndDataLoader.loadJsonFile('magicvariants.json'),
-                window.dndDataLoader.loadJsonFile('fluff-items.json').catch(() => ({}))
+            const [baseItems, items, magicVariants, fluff] = await Promise.all([
+                this.dataLoader.loadJsonFile('items-base.json'),
+                this.dataLoader.loadJsonFile('items.json'),
+                this.dataLoader.loadJsonFile('magicvariants.json'),
+                this.dataLoader.loadJsonFile('fluff-items.json').catch(() => ({}))
             ]);
 
-            const allItems = [];
-
-            // Process base items
-            if (baseItems.baseitem) {
-                for (const item of baseItems.baseitem) {
-                    const processedItem = await this.processItem(item, fluffData);
-                    allItems.push(processedItem);
+            // Process items with their fluff data
+            const allItems = [...baseItems, ...items];
+            for (const item of allItems) {
+                if (fluff[item.id]) {
+                    item.fluff = fluff[item.id];
+                    if (fluff[item.id].entries) {
+                        item.description = await this.textProcessor.processText(fluff[item.id].entries[0]);
+                    }
                 }
+                this.items.set(item.id, item);
             }
 
-            // Process items from items.json
-            if (items.item) {
-                for (const item of items.item) {
-                    const processedItem = await this.processItem(item, fluffData);
-                    allItems.push(processedItem);
-                }
-            }
-
-            // Process magic variants
-            if (magicItems.magicvariant) {
-                for (const variant of magicItems.magicvariant) {
-                    const processedVariant = await this.processItem(variant, fluffData);
-                    processedVariant.magical = true;
-                    allItems.push(processedVariant);
-                }
+            // Process magic items
+            for (const variant of magicVariants) {
+                this.magicItems.set(variant.id, variant);
             }
 
             // Cache and return processed items
@@ -65,7 +60,8 @@ export class EquipmentManager {
             return allItems;
         } catch (error) {
             console.error('Error loading items:', error);
-            throw error;
+            showNotification('Error loading items', 'error');
+            return [];
         }
     }
 
@@ -78,7 +74,7 @@ export class EquipmentManager {
     async processItem(itemData, fluff = null) {
         // Add fluff data to item description if available
         if (fluff?.entries?.length) {
-            itemData.description = await window.dndTextProcessor.processText(fluff.entries[0]);
+            itemData.description = await this.textProcessor.processText(fluff.entries[0]);
         }
 
         // Create appropriate item type based on data

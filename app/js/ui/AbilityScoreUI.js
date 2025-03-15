@@ -1,6 +1,5 @@
 export class AbilityScoreUI {
     constructor(character) {
-        console.log('[AbilityScoreUI] Initializing with character:', character);
         this.character = character;
         this.container = document.querySelector('.ability-score-container');
         this.bonusesContainer = document.getElementById('abilityBonusesNotes');
@@ -10,20 +9,14 @@ export class AbilityScoreUI {
     }
 
     initialize() {
-        console.log('[AbilityScoreUI] Initializing UI');
         this.render();
         this.setupEventListeners();
     }
 
     render() {
-        console.log('[AbilityScoreUI] Rendering ability scores');
         if (!this.container) {
-            console.warn('[AbilityScoreUI] Container not found');
-            return;
+            return; // Silently return if container is not found (expected on pages without ability scores)
         }
-
-        console.log('[AbilityScoreUI] Current ability scores:', this.character.abilityScores);
-        console.log('[AbilityScoreUI] Current ability bonuses:', this.character.abilityBonuses);
 
         let content = '';
 
@@ -31,7 +24,6 @@ export class AbilityScoreUI {
         content += '<div class="ability-score-grid">';
         content += this.abilityScores.map(ability => {
             const score = this.character.getAbilityScore(ability);
-            console.log(`[AbilityScoreUI] Rendering ${ability}: score=${score}`);
             return `
                 <div class="ability-score-box" data-ability="${ability}">
                     <h6>${ability.toUpperCase()}</h6>
@@ -91,7 +83,6 @@ export class AbilityScoreUI {
             for (const ability of this.abilityScores) {
                 const bonuses = this.character.abilityBonuses?.[ability] || [];
                 if (bonuses.length) {
-                    console.log(`[AbilityScoreUI] Processing bonuses for ${ability}:`, bonuses);
                     for (const bonus of bonuses) {
                         if (!sourceMap.has(bonus.source)) {
                             sourceMap.set(bonus.source, []);
@@ -235,7 +226,6 @@ export class AbilityScoreUI {
 
     renderBonus(ability) {
         const bonuses = this.character.abilityBonuses?.[ability] || [];
-        console.log(`[AbilityScoreUI] Rendering bonuses for ${ability}:`, bonuses);
         if (!bonuses.length) return '';
 
         const totalBonus = bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
@@ -279,7 +269,6 @@ export class AbilityScoreUI {
     }
 
     update() {
-        console.log('[AbilityScoreUI] Update called');
         this.render();
     }
 } 

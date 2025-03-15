@@ -1,8 +1,14 @@
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
+
 /**
  * Manages source book selection and filtering for character creation and data loading
  */
 export class SourceManager {
     constructor() {
+        this.dataLoader = characterInitializer.dataLoader;
+        this.allowedSources = new Set(['PHB']);
+
         // Core rulebooks that are always available
         this.coreSources = new Set(['PHB', 'DMG', 'MM']);
 
@@ -20,6 +26,9 @@ export class SourceManager {
             ['VRGR', { name: "Van Richten's Guide to Ravenloft", abbreviation: 'VRGR', isCore: false }],
             ['ERLW', { name: "Eberron: Rising from the Last War", abbreviation: 'ERLW', isCore: false }]
         ]);
+
+        this.sources = new Set();
+        this.defaultSources = new Set(['PHB', 'DMG', 'MM', 'XGE', 'TCE', 'SCAG']);
     }
 
     /**
@@ -45,6 +54,15 @@ export class SourceManager {
      */
     isValidSource(source) {
         return this.availableSources.has(source?.toUpperCase());
+    }
+
+    /**
+     * Check if either PHB version is selected
+     * @returns {boolean} Whether either PHB version is selected
+     */
+    hasPhbSource() {
+        const allowedSources = this.getAllowedSources();
+        return allowedSources.has('PHB') || allowedSources.has('XPHB');
     }
 
     /**
@@ -88,12 +106,11 @@ export class SourceManager {
      * @returns {boolean} - True if the selection is valid
      */
     validateSourceSelection(sources) {
-        // At least one PHB version must be selected
-        const hasPHB14 = sources.has('PHB');
-        const hasPHB24 = sources.has('XPHB');
+        const hasPhb14 = sources.has('PHB');
+        const hasPhb24 = sources.has('XPHB');
 
-        if (!hasPHB14 && !hasPHB24) {
-            window.showNotification('Please select either PHB\'14 or PHB\'24', 'warning');
+        if (!hasPhb14 && !hasPhb24) {
+            showNotification('Please select either PHB\'14 or PHB\'24', 'warning');
             return false;
         }
 
@@ -113,8 +130,8 @@ export class SourceManager {
         this.allowedSources = new Set(sources);
 
         // Clear data loader cache when sources change
-        if (window.dndDataLoader) {
-            window.dndDataLoader.clearCache();
+        if (this.dataLoader) {
+            this.dataLoader.clearCache();
         }
 
         return true;
@@ -135,5 +152,37 @@ export class SourceManager {
      */
     isSourceAllowed(source) {
         return this.allowedSources.has(source);
+    }
+
+    async loadSources() {
+        try {
+            return await this.dataLoader.loadSources();
+        } catch (error) {
+            console.error('Error loading sources:', error);
+            showNotification('Error loading sources', 'error');
+            return [];
+        }
+    }
+
+    addSource(sourceId) {
+        this.allowedSources.add(sourceId);
+    }
+
+    removeSource(sourceId) {
+        if (sourceId === 'PHB') {
+            showNotification('Cannot remove Player\'s Handbook', 'warning');
+            return false;
+        }
+        return this.allowedSources.delete(sourceId);
+    }
+
+    clearSources() {
+        this.allowedSources = new Set(['PHB']);
+    }
+
+    clearCache() {
+        if (this.dataLoader) {
+            this.dataLoader.clearCache();
+        }
     }
 } 

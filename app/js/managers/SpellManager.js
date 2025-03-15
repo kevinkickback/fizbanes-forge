@@ -7,12 +7,16 @@ import { TextProcessor } from '../utils/TextProcessor.js';
 import { Race } from '../models/Race.js';
 import { Subrace } from '../models/Subrace.js';
 import { Spell } from '../models/Spell.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
+import { markUnsavedChanges } from '../utils/characterHandler.js';
 
 export class SpellManager {
     constructor(character) {
         this.character = character;
-        this.knownSpells = new Map();  // spellId -> spell data
-        this.preparedSpells = new Set();  // Set of prepared spell IDs
+        this.dataLoader = characterInitializer.dataLoader;
+        this.knownSpells = new Set();
+        this.preparedSpells = new Set();
         this.spellSlots = {
             1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
         };
@@ -21,6 +25,26 @@ export class SpellManager {
         };
         this.cantripCount = 0;
         this.spellCache = new Map(); // Cache for loaded spells
+    }
+
+    async loadSpells() {
+        try {
+            return await this.dataLoader.loadSpells();
+        } catch (error) {
+            console.error('Error loading spells:', error);
+            showNotification('Error loading spells', 'error');
+            return [];
+        }
+    }
+
+    addKnownSpell(spellId) {
+        if (this.knownSpells.has(spellId)) {
+            showNotification('Spell already known', 'warning');
+            return false;
+        }
+        this.knownSpells.add(spellId);
+        markUnsavedChanges();
+        return true;
     }
 
     /**
@@ -35,7 +59,7 @@ export class SpellManager {
         }
 
         // Load spell data
-        const spells = await window.dndDataLoader.loadSpells();
+        const spells = await this.loadSpells();
         const spellData = spells.find(s => s.id === spellId);
 
         if (!spellData) {
@@ -55,7 +79,7 @@ export class SpellManager {
      * @returns {Promise<Spell[]>} - Array of available spells
      */
     async getSpellsForClass(classId, level = null) {
-        const spells = await window.dndDataLoader.loadSpells();
+        const spells = await this.loadSpells();
         const filtered = spells.filter(s =>
             s.classes.includes(classId) &&
             (level === null || s.level === level)
@@ -72,7 +96,7 @@ export class SpellManager {
      */
     async getSpellsForSubclass(classId, subclassId, level = null) {
         const classSpells = await this.getSpellsForClass(classId, level);
-        const subclassSpells = await window.dndDataLoader.loadSubclassSpells(subclassId);
+        const subclassSpells = await this.dataLoader.loadSubclassSpells(subclassId);
 
         // Combine and filter spells
         const allSpells = [...classSpells];
@@ -88,7 +112,7 @@ export class SpellManager {
     async addSpell(spellId) {
         try {
             // Load spell data
-            const spells = await window.dndDataLoader.loadSpells();
+            const spells = await this.loadSpells();
             const spell = spells.find(s => s.id === spellId);
             if (!spell) {
                 console.error(`Spell ${spellId} not found`);

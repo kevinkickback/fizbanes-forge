@@ -5,6 +5,9 @@
 
 import { Background } from '../models/Background.js';
 import { CharacteristicManager } from './CharacteristicManager.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
+import { characterHandler } from '../utils/characterHandler.js';
 
 export class BackgroundManager {
     constructor(character) {
@@ -12,7 +15,9 @@ export class BackgroundManager {
         this.selectedBackground = null;
         this.selectedVariant = null;
         this.characteristicManager = new CharacteristicManager(character);
-        this.backgroundCache = new Map();
+        this.backgrounds = new Map();
+        this.dataLoader = characterInitializer.dataLoader;
+        this.characterHandler = characterHandler;
     }
 
     /**
@@ -21,35 +26,23 @@ export class BackgroundManager {
      */
     async loadBackgrounds() {
         try {
-            console.log('Loading backgrounds...');
-            const backgroundData = await window.dndDataLoader.loadJsonFile('backgrounds.json');
-            console.log('Loaded background data:', backgroundData);
-            const fluffData = await window.dndDataLoader.loadJsonFile('fluff-backgrounds.json').catch(() => ({}));
-            console.log('Loaded fluff data:', fluffData);
+            const [backgrounds, fluff] = await Promise.all([
+                this.dataLoader.loadJsonFile('backgrounds.json'),
+                this.dataLoader.loadJsonFile('fluff-backgrounds.json').catch(() => ({}))
+            ]);
 
-            // Process backgrounds
-            const backgrounds = await Promise.all((backgroundData.background || []).map(async bg => {
-                const fluff = fluffData.backgroundFluff?.find(f =>
-                    f.name === bg.name && f.source === bg.source
-                );
+            // Process backgrounds with their fluff data
+            for (const background of backgrounds) {
+                if (fluff[background.id]) {
+                    background.fluff = fluff[background.id];
+                }
+                this.backgrounds.set(background.id, background);
+            }
 
-                // Create background data object
-                const backgroundData = {
-                    ...bg,
-                    id: `${bg.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(bg.source || 'phb').toLowerCase()}`,
-                    source: bg.source || 'PHB',
-                    fluff: fluff,
-                    // Extract characteristics from the entries
-                    characteristics: this.extractCharacteristics(bg.entries)
-                };
-
-                return backgroundData;
-            }));
-
-            console.log('Processed backgrounds:', backgrounds);
-            return backgrounds;
+            return Array.from(this.backgrounds.values());
         } catch (error) {
             console.error('Error loading backgrounds:', error);
+            showNotification('Error loading backgrounds', 'error');
             return [];
         }
     }
@@ -99,10 +92,6 @@ export class BackgroundManager {
      * @returns {Promise<Background|null>} Background object or null if not found
      */
     async loadBackground(backgroundId) {
-        if (this.backgroundCache.has(backgroundId)) {
-            return this.backgroundCache.get(backgroundId);
-        }
-
         try {
             const backgrounds = await this.loadBackgrounds();
             const background = backgrounds.find(b => b.id === backgroundId);
@@ -114,10 +103,11 @@ export class BackgroundManager {
 
             console.log('Creating background model with data:', background);
             const backgroundModel = new Background(background);
-            this.backgroundCache.set(backgroundId, backgroundModel);
+            this.backgrounds.set(backgroundId, backgroundModel);
             return backgroundModel;
         } catch (error) {
             console.error('Error loading background:', error);
+            showNotification('Error loading background', 'error');
             return null;
         }
     }
@@ -162,6 +152,7 @@ export class BackgroundManager {
         try {
             const background = await this.loadBackground(backgroundId);
             if (!background) {
+                showNotification('Background not found', 'error');
                 return false;
             }
 
@@ -186,13 +177,12 @@ export class BackgroundManager {
             };
 
             // Mark changes as unsaved
-            if (window.markUnsavedChanges) {
-                window.markUnsavedChanges();
-            }
+            utils.markUnsavedChanges();
 
             return true;
         } catch (error) {
             console.error('Error setting background:', error);
+            showNotification('Error setting background', 'error');
             return false;
         }
     }

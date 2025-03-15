@@ -2,12 +2,18 @@
 import { Class } from '../models/Class.js';
 import { Subclass } from '../models/Subclass.js';
 import { Feature } from '../models/Feature.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
+import { markUnsavedChanges } from '../utils/characterHandler.js';
 
 export class ClassManager {
     constructor(character) {
         this.character = character;
-        this.classCache = new Map();
-        this.subclassCache = new Map();
+        this.dataLoader = characterInitializer.dataLoader;
+        this.textProcessor = characterInitializer.textProcessor;
+        this.spellcastingService = characterInitializer.spellcastingService;
+        this.classes = new Map();
+        this.subclasses = new Map();
         this.featureCache = new Map();
     }
 
@@ -25,45 +31,36 @@ export class ClassManager {
     // Load and cache class data
     async loadClasses() {
         try {
-            const classData = await window.dndDataLoader.loadClasses();
-            for (const data of classData) {
-                const classInstance = new Class(data);
-                this.classCache.set(data.id, classInstance);
+            const classes = await this.dataLoader.loadClasses();
+            for (const classData of classes) {
+                this.classes.set(classData.id, classData);
             }
-            return Array.from(this.classCache.values());
+            return Array.from(this.classes.values());
         } catch (error) {
-            console.error('Error loading class data:', error);
-            throw error;
+            console.error('Error loading classes:', error);
+            showNotification('Error loading classes', 'error');
+            return [];
         }
     }
 
     // Load a specific class by ID
     async loadClass(classId) {
-        // Check cache first
-        if (this.classCache.has(classId)) {
-            return this.classCache.get(classId);
+        try {
+            const classes = await this.loadClasses();
+            return classes.find(c => c.id === classId);
+        } catch (error) {
+            console.error('Error loading class:', error);
+            showNotification('Error loading class', 'error');
+            return null;
         }
-
-        // Load class data
-        const classes = await window.dndDataLoader.loadClasses();
-        const classData = classes.find(c => c.id === classId);
-
-        if (!classData) {
-            throw new Error(`Class ${classId} not found`);
-        }
-
-        // Create class instance
-        const characterClass = new Class(classData);
-        this.classCache.set(classId, characterClass);
-        return characterClass;
     }
 
     // Load a specific subclass by ID
     async loadSubclass(subclassId, parentClassId) {
         // Check cache first
         const cacheKey = `${parentClassId}:${subclassId}`;
-        if (this.subclassCache.has(cacheKey)) {
-            return this.subclassCache.get(cacheKey);
+        if (this.subclasses.has(cacheKey)) {
+            return this.subclasses.get(cacheKey);
         }
 
         // Load parent class first
@@ -76,7 +73,7 @@ export class ClassManager {
 
         // Create subclass instance
         const subclass = new Subclass(subclassData, parentClass);
-        this.subclassCache.set(cacheKey, subclass);
+        this.subclasses.set(cacheKey, subclass);
         return subclass;
     }
 
@@ -125,178 +122,37 @@ export class ClassManager {
     }
 
     // Set or update character's class
-    async setClass(classId, level = 1, subclassId = null) {
+    async setClass(classId) {
         try {
             const classData = await this.loadClass(classId);
             if (!classData) {
-                throw new Error(`Class ${classId} not found`);
+                showNotification('Class not found', 'error');
+                return false;
             }
 
-            // Clear existing class features at this level
-            this.clearClassFeatures(level);
+            this.character.class = classData;
+            markUnsavedChanges();
 
-            // Get subclass data if applicable
-            let subclassData = null;
-            if (subclassId && level >= 3) {
-                subclassData = await this.loadSubclass(subclassId, classId);
-            }
-
-            // Apply class features
-            await this.applyClassFeatures(classData, level, subclassData);
-
-            // Update character's class information
-            this.updateCharacterClass(classData, level, subclassData);
-
-            // Mark changes as unsaved
-            if (window.markUnsavedChanges) {
-                window.markUnsavedChanges();
+            // Update spellcasting if applicable
+            if (classData.spellcasting) {
+                this.spellcastingService.updateSpellSlots(
+                    classData.spellcasting.progression,
+                    this.character.level
+                );
             }
 
             return true;
         } catch (error) {
             console.error('Error setting class:', error);
+            showNotification('Error setting class', 'error');
             return false;
-        }
-    }
-
-    // Clear class features for a specific level
-    clearClassFeatures(level) {
-        if (!this.character.features) {
-            this.character.features = [];
-        }
-        this.character.features = this.character.features.filter(f => f.level !== level);
-    }
-
-    // Apply class and subclass features
-    async applyClassFeatures(classData, level, subclassData = null) {
-        // Apply class features for this level
-        const levelFeatures = classData.features.find(f => f.level === level);
-        if (levelFeatures) {
-            for (const feature of levelFeatures.features) {
-                await this.addFeature(feature.name, feature.description, level, false);
-            }
-        }
-
-        // Apply subclass features if applicable
-        if (subclassData) {
-            const subclassFeatures = subclassData.features.find(f => f.level === level);
-            if (subclassFeatures) {
-                for (const feature of subclassFeatures.features) {
-                    await this.addFeature(feature.name, feature.description, level, true);
-                }
-            }
-        }
-    }
-
-    // Add a feature to the character
-    async addFeature(name, description, level, isSubclassFeature = false) {
-        if (!this.character.features) {
-            this.character.features = [];
-        }
-
-        this.character.features.push({
-            name,
-            description: await window.textProcessor.process(description),
-            level,
-            source: isSubclassFeature ? 'Subclass' : 'Class'
-        });
-    }
-
-    // Update character's class information
-    updateCharacterClass(classData, level, subclassData = null) {
-        // Update basic class info
-        this.character.class = {
-            name: classData.name,
-            level: level,
-            hitDice: classData.hitDice,
-            subclass: subclassData ? {
-                name: subclassData.name,
-                features: subclassData.features
-            } : null
-        };
-
-        // Update proficiencies if this is the first level
-        if (level === 1) {
-            this.applyClassProficiencies(classData.proficiencies);
-        } else if (level === 1 && classData.multiclassing) {
-            this.applyMulticlassProficiencies(classData.multiclassing.proficiencies);
-        }
-
-        // Update spellcasting if applicable
-        if (classData.spellcasting) {
-            this.updateSpellcasting(classData.spellcasting, level);
-        }
-    }
-
-    // Apply class proficiencies
-    applyClassProficiencies(proficiencies) {
-        // Add armor proficiencies
-        for (const armor of proficiencies.armor) {
-            this.character.addProficiency('armor', armor, 'Class');
-        }
-
-        // Add weapon proficiencies
-        for (const weapon of proficiencies.weapons) {
-            this.character.addProficiency('weapon', weapon, 'Class');
-        }
-
-        // Add tool proficiencies
-        for (const tool of proficiencies.tools) {
-            this.character.addProficiency('tool', tool, 'Class');
-        }
-
-        // Add saving throw proficiencies
-        for (const save of proficiencies.savingThrows) {
-            this.character.addSavingThrowProficiency(save);
-        }
-
-        // Store skill choices
-        if (proficiencies.skills.choices > 0) {
-            this.character.pendingSkillChoices = {
-                count: proficiencies.skills.choices,
-                from: proficiencies.skills.from
-            };
-        }
-    }
-
-    // Apply multiclass proficiencies
-    applyMulticlassProficiencies(proficiencies) {
-        for (const type in proficiencies) {
-            for (const prof of proficiencies[type]) {
-                this.character.addProficiency(type, prof, 'Multiclass');
-            }
-        }
-    }
-
-    // Update spellcasting information
-    updateSpellcasting(spellcasting, level) {
-        if (!this.character.spellcasting) {
-            this.character.spellcasting = {};
-        }
-
-        // Set spellcasting ability if not already set
-        if (!this.character.spellcasting.ability) {
-            this.character.spellcasting.ability = spellcasting.ability;
-        }
-
-        // Update cantrips known
-        this.character.spellcasting.cantripsKnown = spellcasting.cantripProgression[level - 1];
-
-        // Update spells known if applicable
-        if (spellcasting.spellsKnownProgression) {
-            this.character.spellcasting.spellsKnown = spellcasting.spellsKnownProgression[level - 1];
-        }
-
-        // Update spell slots based on progression type
-        if (window.SpellcastingService) {
-            window.SpellcastingService.updateSpellSlots(spellcasting.progression, level);
         }
     }
 
     // Clear all caches
     clearCache() {
-        this.classCache.clear();
-        this.subclassCache.clear();
+        this.classes.clear();
+        this.subclasses.clear();
         this.featureCache.clear();
     }
 
@@ -322,7 +178,4 @@ export class ClassManager {
 
         return true;
     }
-}
-
-// Make ClassManager available globally
-window.ClassManager = ClassManager; 
+} 

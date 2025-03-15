@@ -16,7 +16,6 @@ try {
   if (fs.existsSync(userPreferencesPath)) {
     const loadedPreferences = JSON.parse(fs.readFileSync(userPreferencesPath, "utf8"));
     userPreferences = { ...userPreferences, ...loadedPreferences };
-    console.log("Loaded user preferences:", userPreferences);
   }
 } catch (error) {
   console.error("Error loading user preferences:", error);
@@ -79,7 +78,6 @@ function saveUserPreferences() {
   try {
     const userPreferencesPath = path.join(app.getPath("userData"), "preferences.json");
     fs.writeFileSync(userPreferencesPath, JSON.stringify(userPreferences, null, 2));
-    console.log("Saved user preferences:", userPreferences);
   } catch (error) {
     console.error("Error saving user preferences:", error);
   }
@@ -88,79 +86,94 @@ function saveUserPreferences() {
 // Move character files from one location to another
 async function moveCharacterFiles(oldPath, newPath) {
   try {
-    if (!oldPath || !newPath || oldPath === newPath) {
-      return { success: false, message: "Invalid paths provided" };
-    }
+    const files = await fs.readdir(oldPath);
+    const ffpFiles = files.filter(file => file.endsWith('.ffp'));
 
-    // Check if source directory exists
-    if (!fs.existsSync(oldPath)) {
-      return { success: false, message: "Source directory does not exist" };
-    }
+    console.log(`File Migration: ${oldPath} → ${newPath} (${ffpFiles.length} files)`);
 
-    // Check if destination directory exists, create if not
-    if (!fs.existsSync(newPath)) {
-      fs.mkdirSync(newPath, { recursive: true });
-    }
+    for (const file of ffpFiles) {
+      const oldFilePath = path.join(oldPath, file);
+      const newFilePath = path.join(newPath, file);
 
-    // Find all .ffp files in the old directory
-    const files = fs.readdirSync(oldPath).filter(file => file.endsWith('.ffp'));
-
-    if (files.length === 0) {
-      return { success: true, message: "No character files found to move", fileCount: 0 };
-    }
-
-    console.log(`Found ${files.length} .ffp files in ${oldPath}`);
-
-    // Copy all .ffp files to the new location
-    let filesCopied = 0;
-    let filesMoved = 0;
-    const results = [];
-
-    for (const file of files) {
       try {
-        const oldFilePath = path.join(oldPath, file);
-        const newFilePath = path.join(newPath, file);
-
-        // Read the file content
-        const fileContent = fs.readFileSync(oldFilePath, 'utf8');
-
-        // Write to the new location
-        fs.writeFileSync(newFilePath, fileContent);
-        filesCopied++;
-        console.log(`Successfully copied file to: ${newFilePath}`);
-
-        // Verify the file was copied correctly
-        if (fs.existsSync(newFilePath)) {
-          // Try to delete the original file
-          try {
-            fs.unlinkSync(oldFilePath);
-            filesMoved++;
-            console.log(`Deleted original file: ${oldFilePath}`);
-          } catch (deleteErr) {
-            console.warn(`Could not delete original file ${oldFilePath}: ${deleteErr.message}`);
-            results.push(`Copied but could not delete: ${file}`);
-          }
-        } else {
-          results.push(`Failed to verify copy: ${file}`);
-        }
-      } catch (copyErr) {
-        console.error(`Error copying file ${file}: ${copyErr.message}`);
-        results.push(`Failed to copy: ${file}`);
+        await fs.copyFile(oldFilePath, newFilePath);
+        await fs.unlink(oldFilePath);
+      } catch (err) {
+        console.error(`Migration failed for ${file}:`, err.message);
       }
     }
 
-    return {
-      success: true,
-      message: `Moved ${filesMoved} files, copied ${filesCopied} files`,
-      fileCount: files.length,
-      filesMoved,
-      filesCopied,
-      details: results.length > 0 ? results : undefined
-    };
+    return { success: true };
   } catch (error) {
     console.error("Error moving character files:", error);
-    return { success: false, message: `Error: ${error.message}`, fileCount: 0 };
+    return { success: false, error: error.message };
   }
+}
+
+// Save character data
+ipcMain.handle("saveCharacter", async (event, character) => {
+  try {
+    if (!character || !character.id) {
+      throw new Error('Invalid character data: missing ID');
+    }
+
+    const savePath = getCharactersFilePath();
+
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(savePath)) {
+      fs.mkdirSync(savePath, { recursive: true });
+    }
+
+    // Find existing file or generate new path
+    const targetFilePath = await findOrCreateCharacterPath(savePath, character);
+
+    // Save the character
+    const characterData = JSON.stringify(character, null, 2);
+    fs.writeFileSync(targetFilePath, characterData);
+    return { success: true, path: targetFilePath };
+  } catch (error) {
+    console.error("Error saving character:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Find existing character file or create new path
+async function findOrCreateCharacterPath(savePath, character) {
+  const files = fs.readdirSync(savePath).filter(file => file.endsWith('.ffp'));
+
+  // Try to find existing file
+  for (const file of files) {
+    try {
+      const filePath = path.join(savePath, file);
+      const data = fs.readFileSync(filePath, "utf8");
+      const existingCharacter = JSON.parse(data);
+      if (existingCharacter?.id === character.id) {
+        return filePath;
+      }
+    } catch (err) {
+      console.error(`Error checking file ${file}:`, err);
+    }
+  }
+
+  // Generate new path
+  const sanitizedName = sanitizeFilename(character.name || 'character');
+  const baseFilePath = path.join(savePath, `${sanitizedName}.ffp`);
+
+  if (fs.existsSync(baseFilePath)) {
+    try {
+      const data = fs.readFileSync(baseFilePath, "utf8");
+      const existingCharacter = JSON.parse(data);
+      if (existingCharacter?.id !== character.id) {
+        const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
+        return path.join(savePath, uniqueName);
+      }
+    } catch (err) {
+      const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
+      return path.join(savePath, uniqueName);
+    }
+  }
+
+  return baseFilePath;
 }
 
 // Helper function to sanitize filenames
@@ -202,88 +215,6 @@ function getUniqueFilename(directory, baseFilename) {
 
   return uniqueFilename;
 }
-
-// Save character data
-ipcMain.handle("saveCharacter", async (event, character) => {
-  try {
-    console.log('Received character for saving:', character);
-    console.log('Character ID:', character.id);
-    console.log('Character name:', character.name);
-
-    // Validate character data
-    if (!character || !character.id) {
-      throw new Error('Invalid character data: missing ID');
-    }
-
-    // Get the save path
-    const savePath = getCharactersFilePath();
-    console.log('Save path:', savePath);
-
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(savePath)) {
-      fs.mkdirSync(savePath, { recursive: true });
-    }
-
-    // First, try to find an existing file for this character ID
-    let existingFilePath = null;
-    const files = fs.readdirSync(savePath).filter(file => file.endsWith('.ffp'));
-    for (const file of files) {
-      try {
-        const filePath = path.join(savePath, file);
-        const data = fs.readFileSync(filePath, "utf8");
-        const existingCharacter = JSON.parse(data);
-        if (existingCharacter?.id === character.id) {
-          existingFilePath = filePath;
-          break;
-        }
-      } catch (err) {
-        console.error(`Error checking file ${file}:`, err);
-      }
-    }
-
-    // Generate the base filename
-    const sanitizedName = sanitizeFilename(character.name || 'character');
-    let targetFilePath;
-
-    if (existingFilePath) {
-      // Use the existing file path to maintain consistency
-      targetFilePath = existingFilePath;
-    } else {
-      // Check if a file with this name exists but has a different character ID
-      const baseFilePath = path.join(savePath, `${sanitizedName}.ffp`);
-      if (fs.existsSync(baseFilePath)) {
-        try {
-          const data = fs.readFileSync(baseFilePath, "utf8");
-          const existingCharacter = JSON.parse(data);
-          if (existingCharacter?.id !== character.id) {
-            // File exists but belongs to a different character, generate unique name
-            const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
-            targetFilePath = path.join(savePath, uniqueName);
-          } else {
-            targetFilePath = baseFilePath;
-          }
-        } catch (err) {
-          // If we can't read the file, treat it as a different character's file
-          const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
-          targetFilePath = path.join(savePath, uniqueName);
-        }
-      } else {
-        // No file exists with this name, use it
-        targetFilePath = baseFilePath;
-      }
-    }
-
-    // Save the character
-    const characterData = JSON.stringify(character, null, 2);
-    fs.writeFileSync(targetFilePath, characterData);
-    console.log(`Character saved successfully to: ${targetFilePath}`);
-
-    return { success: true, message: "Character saved successfully" };
-  } catch (error) {
-    console.error("Error saving character:", error);
-    return { success: false, message: `Failed to save character: ${error.message}` };
-  }
-});
 
 // Load characters
 ipcMain.handle("loadCharacters", async () => {

@@ -3,9 +3,70 @@
  * Handles text processing for the D&D Character Creator
  */
 
-export class TextProcessor {
+import { referenceResolver } from './ReferenceResolver.js';
+
+class TextProcessor {
     constructor(referenceResolver) {
+        if (!referenceResolver) {
+            throw new Error('ReferenceResolver is required for TextProcessor');
+        }
         this.referenceResolver = referenceResolver;
+        this.observer = null;
+    }
+
+    /**
+     * Initialize the text processor and set up observers
+     */
+    initialize() {
+        // Set up mutation observer to process dynamically added content
+        this.observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            this.processPageContent(node);
+                        }
+                    }
+                }
+            }
+        });
+
+        // Start observing the document body for dynamic content changes
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Process initial page content
+        this.processPageContent(document.body);
+
+        console.log('TextProcessor initialized successfully');
+    }
+
+    /**
+     * Process text content in a container
+     * @param {HTMLElement} container - The container element to process
+     */
+    async processPageContent(container) {
+        // Find all text nodes that might contain references
+        const textElements = container.querySelectorAll('.description, .text-content, .tooltip-content, p, li, td, .card-text');
+
+        for (const element of textElements) {
+            try {
+                const originalText = element.innerHTML;
+                // Skip if already processed or empty
+                if (!originalText || element.hasAttribute('data-processed')) continue;
+
+                const processedText = await this.processText(originalText);
+                if (processedText !== originalText) {
+                    element.innerHTML = processedText;
+                }
+                // Mark as processed to avoid reprocessing
+                element.setAttribute('data-processed', 'true');
+            } catch (error) {
+                console.warn('Error processing text content:', error);
+            }
+        }
     }
 
     async processText(text) {
@@ -102,4 +163,17 @@ export class TextProcessor {
             </table>
         `;
     }
-} 
+
+    /**
+     * Clean up resources when the processor is no longer needed
+     */
+    destroy() {
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
+    }
+}
+
+// Create and export singleton instance with injected dependency
+export const textProcessor = new TextProcessor(referenceResolver); 

@@ -5,11 +5,14 @@
 
 import { Pack } from '../models/Pack.js';
 import { InventoryManager } from './InventoryManager.js';
+import { characterInitializer } from '../utils/Initialize.js';
 
 export class PackManager {
     constructor(character) {
         this.character = character;
         this.inventoryManager = character.inventoryManager || new InventoryManager(character);
+        this.dataLoader = characterInitializer.dataLoader;
+        this.packs = new Map();
         this.cache = new Map(); // Cache for loaded packs
     }
 
@@ -19,10 +22,8 @@ export class PackManager {
      */
     async loadPacks() {
         try {
-            const items = await window.dndDataLoader.loadItems();
-            const packs = items.filter(item => item.type === 'pack')
-                .map(packData => new Pack(packData));
-            return packs;
+            const items = await this.dataLoader.loadItems();
+            return items.filter(item => item.type === 'pack');
         } catch (error) {
             console.error('Error loading packs:', error);
             return [];
@@ -41,7 +42,7 @@ export class PackManager {
                 return this.cache.get(packId);
             }
 
-            const items = await window.dndDataLoader.loadItems();
+            const items = await this.dataLoader.loadItems();
             const packData = items.find(item => item.id === packId && item.type === 'pack');
             if (!packData) return null;
 
@@ -205,5 +206,16 @@ export class PackManager {
      */
     clearCache() {
         this.cache.clear();
+    }
+
+    async getPackContents(packId) {
+        try {
+            const items = await this.dataLoader.loadItems();
+            const pack = items.find(item => item.id === packId);
+            return pack?.contents || [];
+        } catch (error) {
+            console.error('Error getting pack contents:', error);
+            return [];
+        }
     }
 } 

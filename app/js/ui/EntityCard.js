@@ -3,6 +3,8 @@
  * Unified card component for displaying entity information
  */
 
+import { characterInitializer } from '../utils/Initialize.js';
+
 export class EntityCard {
     /**
      * Create a new EntityCard
@@ -14,6 +16,7 @@ export class EntityCard {
         this.container = container;
         this.entity = entity;
         this.manager = manager;
+        this.character = characterInitializer.currentCharacter;
     }
 
     /**
@@ -21,23 +24,40 @@ export class EntityCard {
      * @returns {string} HTML string for the card
      */
     render() {
+        const card = document.createElement('div');
+        card.className = 'entity-card';
+        card.innerHTML = this.getCardContent();
+        return card;
+    }
+
+    getCardContent() {
+        const level = this.character?.level || 1;
         return `
-            <div class="entity-card ${this.entity.type}-card" data-id="${this.entity.id}">
+            <div class="card">
                 <div class="card-header">
-                    <h4>${this.entity.name}</h4>
-                    ${this.renderHeaderExtras()}
+                    <h3 class="card-title">${this.entity.name}</h3>
+                    <span class="level">Level ${level}</span>
                 </div>
                 <div class="card-body">
-                    ${this.renderBody()}
-                </div>
-                <div class="card-footer">
-                    ${this.renderFooter()}
+                    ${this.getCardBody()}
                 </div>
             </div>
         `;
     }
 
+    getCardBody() {
+        return `
+            <p class="description">${this.entity.description || ''}</p>
+            ${this.getAdditionalContent()}
+        `;
+    }
+
+    getAdditionalContent() {
+        return '';
+    }
+
     /**
+     * Render the card body
      * Render extra header content
      * @returns {string} HTML string for extra header content
      */
@@ -48,7 +68,7 @@ export class EntityCard {
             case 'feat':
                 return this.entity.count > 1 ? `<span class="count">×${this.entity.count}</span>` : '';
             case 'class':
-                return `<span class="level">Level ${window.currentCharacter.level}</span>`;
+                return `<span class="level">Level ${this.character?.level}</span>`;
             default:
                 return '';
         }

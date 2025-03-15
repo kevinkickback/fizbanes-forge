@@ -3,8 +3,13 @@
  * Handles reference resolution for the D&D Character Creator
  */
 
-export class ReferenceResolver {
+import { dataLoader } from '../dataloaders/DataLoader.js';
+
+class ReferenceResolver {
     constructor(dataLoader) {
+        if (!dataLoader) {
+            throw new Error('DataLoader is required for ReferenceResolver');
+        }
         this.dataLoader = dataLoader;
         this.cache = new Map();
         this.skillData = null;
@@ -28,46 +33,66 @@ export class ReferenceResolver {
     }
 
     async resolveRef(ref, depth = 0) {
-        if (depth > 10) {
-            console.warn('Maximum reference resolution depth reached');
-            return ref;
-        }
-
-        // Check if we're already processing this reference
-        if (this.processingRefs.has(ref)) {
-            console.warn('Circular reference detected:', ref);
+        if (depth > 5) {
+            console.warn('Maximum reference depth exceeded');
             return ref;
         }
 
         const match = ref.match(/{@(\w+)\s+([^}]+)}/);
         if (!match) return ref;
 
-        // Add reference to processing set
-        this.processingRefs.add(ref);
-
-        const [fullMatch, tag, content] = match;
-        const [name, source = 'PHB', ...rest] = content.split('|');
-
-        const cacheKey = `${tag}:${name}:${source}`;
-        if (this.cache.has(cacheKey)) {
-            // Remove reference from processing set
-            this.processingRefs.delete(ref);
-            return this.cache.get(cacheKey);
-        }
+        const [fullMatch, type, content] = match;
+        let tooltipData = null;
+        let entity = null;
 
         try {
-            let entity = null;
-            let tooltipData = null;
+            // Split content into name and source if provided
+            const [name, source = 'PHB'] = content.split('|');
 
-            if (tag === 'dice') {
-                tooltipData = {
-                    title: 'Dice Roll',
-                    description: `Roll ${name}`,
-                    roll: name
-                };
-            }
-
-            switch (tag) {
+            switch (type) {
+                case 'spell': {
+                    const spells = await this.dataLoader.loadSpells() || [];
+                    entity = spells.find(s => s?.name?.toLowerCase() === name.toLowerCase());
+                    if (entity) {
+                        tooltipData = {
+                            title: entity.name,
+                            description: Array.isArray(entity.entries) ? entity.entries.join('\n') : entity.entries || 'No description available.',
+                            level: entity.level,
+                            school: entity.school,
+                            castingTime: entity.time?.[0] ? `${entity.time[0].number} ${entity.time[0].unit}` : 'Unknown',
+                            range: this.formatSpellRange(entity.range),
+                            components: this.formatSpellComponents(entity.components),
+                            duration: this.formatSpellDuration(entity.duration),
+                            source: `${source}, page ${entity.page || '??'}`
+                        };
+                    } else {
+                        tooltipData = {
+                            title: name,
+                            description: 'Spell details not found.',
+                            source: source
+                        };
+                    }
+                    return this.createTooltipElement(type, name, tooltipData, depth);
+                }
+                case 'race': {
+                    const races = await this.dataLoader.loadRaces() || [];
+                    const raceData = races.find(r => r?.name?.toLowerCase() === name.toLowerCase());
+                    if (raceData) {
+                        const description = this.getRaceDescription(raceData);
+                        tooltipData = {
+                            title: raceData.name,
+                            description: description || `A member of the ${raceData.name} race.`,
+                            source: `${raceData.source || 'PHB'}, page ${raceData.page || '??'}`
+                        };
+                    } else {
+                        tooltipData = {
+                            title: name,
+                            description: `A member of the ${name} race.`,
+                            source: source || 'PHB'
+                        };
+                    }
+                    break;
+                }
                 case 'skill': {
                     const skills = await this.loadSkillData();
                     entity = skills.get(name.toLowerCase());
@@ -177,145 +202,37 @@ export class ReferenceResolver {
                     break;
                 }
                 case 'class': {
-                    const classes = await this.dataLoader.loadClasses();
+                    const classes = await this.dataLoader.loadClasses() || [];
                     // Try to find the class with the exact source first
-                    let classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === source);
+                    let classData = classes.find(c => c?.name?.toLowerCase() === name.toLowerCase() && c.source === source);
 
                     // If not found and source is PHB, try XPHB
                     if (!classData && source === 'PHB') {
-                        classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === 'XPHB');
+                        classData = classes.find(c => c?.name?.toLowerCase() === name.toLowerCase() && c.source === 'XPHB');
                     }
 
                     // If still not found, try PHB as fallback
                     if (!classData && source === 'XPHB') {
-                        classData = classes.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === 'PHB');
+                        classData = classes.find(c => c?.name?.toLowerCase() === name.toLowerCase() && c.source === 'PHB');
                     }
 
                     if (classData) {
-                        const processEntries = (entries) => {
-                            if (!entries) return '';
-                            if (typeof entries === 'string') return entries;
-                            if (Array.isArray(entries)) {
-                                return entries.map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'section' || entry.type === 'entries') {
-                                        const text = [];
-                                        if (entry.name && entry.name !== classData.name && entry.name.toLowerCase() !== 'description') {
-                                            text.push(entry.name);
-                                        }
-                                        if (entry.entries) {
-                                            if (Array.isArray(entry.entries)) {
-                                                text.push(entry.entries.map(e => {
-                                                    if (typeof e === 'string') return e;
-                                                    if (e.type === 'entries') return processEntries(e.entries);
-                                                    return '';
-                                                }).filter(Boolean).join('\n\n'));
-                                            } else {
-                                                text.push(processEntries(entry.entries));
-                                            }
-                                        }
-                                        return text.filter(Boolean).join('\n\n');
-                                    }
-                                    return '';
-                                }).filter(Boolean).join('\n\n');
-                            }
-                            return '';
-                        };
-
-                        // Get description from fluff entries
-                        let description = '';
-
-                        // Try fluff entries first
-                        if (classData.fluff?.entries) {
-                            // Get the first section that matches the class name or has no name
-                            const mainSection = classData.fluff.entries.find(e =>
-                                e.type === 'section' &&
-                                (!e.name || e.name === classData.name || e.name.toLowerCase() === 'description')
-                            );
-
-                            if (mainSection) {
-                                description = processEntries([mainSection]);
-                            } else {
-                                // If no main section found, try processing all entries
-                                description = processEntries(classData.fluff.entries);
-                            }
-                        }
-
-                        // If no fluff description, try regular entries
-                        if (!description && classData.entries) {
-                            description = processEntries(classData.entries);
-                        }
-
+                        const description = classData.fluff?.entries?.[0]?.entries?.join('\n') ||
+                            classData.entries?.[0]?.entries?.join('\n') ||
+                            `Information about the ${name} class.`;
                         tooltipData = {
                             title: classData.name,
                             description: description,
                             source: `${classData.source}, page ${classData.page || '??'}`
                         };
-                    }
-                    break;
-                }
-                case 'race': {
-                    const races = await this.dataLoader.loadRaces();
-                    const raceData = races.find(r => r.name.toLowerCase() === name.toLowerCase());
-                    if (raceData) {
-                        const processEntries = (entries) => {
-                            if (!entries) return '';
-                            if (typeof entries === 'string') return entries;
-                            if (Array.isArray(entries)) {
-                                return entries.map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'entries') {
-                                        return `${entry.name ? `${entry.name}\n` : ''}${processEntries(entry.entries)}`;
-                                    }
-                                    return entry.entries || '';
-                                }).filter(Boolean).join('\n');
-                            }
-                            return '';
-                        };
-
-                        // Try to get description from fluff first, then entries
-                        let description = '';
-                        if (raceData.fluff?.entries) {
-                            description = processEntries(raceData.fluff.entries);
-                        }
-                        if (!description && raceData.entries) {
-                            description = processEntries(raceData.entries);
-                        }
-                        if (!description) {
-                            description = `A member of the ${raceData.name} race.`;
-                        }
-
+                    } else {
                         tooltipData = {
-                            title: raceData.name,
-                            description: description,
-                            source: raceData.source
+                            title: name,
+                            description: `Information about the ${name} class.`,
+                            source: source
                         };
                     }
-                    break;
-                }
-                case 'spell': {
-                    const spells = await this.dataLoader.loadSpells();
-                    entity = spells.find(s => s.name.toLowerCase() === name.toLowerCase());
-                    if (entity) {
-                        tooltipData = {
-                            title: entity.name,
-                            description: entity.description,
-                            level: entity.level,
-                            school: entity.school,
-                            castingTime: `${entity.time?.[0]?.number} ${entity.time?.[0]?.unit}`,
-                            range: entity.range?.distance?.type === 'self' ? 'Self' :
-                                `${entity.range?.distance?.amount || ''} ${entity.range?.distance?.type || ''}`,
-                            components: Object.entries(entity.components)
-                                .map(([type, value]) => type + (typeof value === 'string' ? ` (${value})` : ''))
-                                .join(', '),
-                            duration: entity.duration?.[0]?.type === 'instant' ? 'Instantaneous' :
-                                entity.duration?.[0]?.type === 'timed' ?
-                                    `${entity.duration[0].duration.amount} ${entity.duration[0].duration.type}` :
-                                    entity.duration?.[0]?.type || '',
-                            source: `${source}, page ${entity.page || '??'}`
-                        };
-                    }
-                    break;
+                    return this.createTooltipElement(type, name, tooltipData, depth);
                 }
                 case 'damage': {
                     tooltipData = {
@@ -421,18 +338,14 @@ export class ReferenceResolver {
                 }
             }
 
-            const result = tooltipData ?
-                await this.createTooltipElement(tag, name, tooltipData, depth) :
-                name;
+            if (!tooltipData) {
+                return `<span class="reference">${name}</span>`;
+            }
 
-            this.cache.set(cacheKey, result);
-            return result;
+            return this.createTooltipElement(type, name, tooltipData, depth);
         } catch (error) {
-            console.warn(`Error resolving reference ${fullMatch}:`, error);
-            return name;
-        } finally {
-            // Remove reference from processing set
-            this.processingRefs.delete(ref);
+            console.warn(`Error resolving reference ${ref}:`, error);
+            return `<span class="reference">${content.split('|')[0]}</span>`;
         }
     }
 
@@ -536,9 +449,61 @@ export class ReferenceResolver {
         return content;
     }
 
+    formatSpellRange(range) {
+        if (!range) return 'Unknown';
+        return range.distance?.type === 'self' ? 'Self' :
+            `${range.distance?.amount || ''} ${range.distance?.type || ''}`.trim() || 'Unknown';
+    }
+
+    formatSpellComponents(components) {
+        if (!components) return 'Unknown';
+        return Object.entries(components)
+            .map(([type, value]) => type + (typeof value === 'string' ? ` (${value})` : ''))
+            .join(', ') || 'None';
+    }
+
+    formatSpellDuration(duration) {
+        if (!duration?.[0]) return 'Unknown';
+        return duration[0].type === 'instant' ? 'Instantaneous' :
+            duration[0].type === 'timed' ?
+                `${duration[0].duration.amount} ${duration[0].duration.type}` :
+                duration[0].type || 'Unknown';
+    }
+
+    getRaceDescription(raceData) {
+        if (!raceData) return 'No description available.';
+
+        const processEntries = (entries) => {
+            if (!entries) return '';
+            if (typeof entries === 'string') return entries;
+            if (Array.isArray(entries)) {
+                return entries.map(entry => {
+                    if (typeof entry === 'string') return entry;
+                    if (entry.type === 'entries') {
+                        return `${entry.name ? `${entry.name}\n` : ''}${processEntries(entry.entries)}`;
+                    }
+                    return entry.entries || '';
+                }).filter(Boolean).join('\n');
+            }
+            return '';
+        };
+
+        let description = '';
+        if (raceData.fluff?.entries) {
+            description = processEntries(raceData.fluff.entries);
+        }
+        if (!description && raceData.entries) {
+            description = processEntries(raceData.entries);
+        }
+        return description || `A member of the ${raceData.name} race.`;
+    }
+
     clearCache() {
         this.cache.clear();
         this.skillData = null;
         this.processingRefs.clear();
     }
-} 
+}
+
+// Create and export singleton instance with injected dependency
+export const referenceResolver = new ReferenceResolver(dataLoader); 

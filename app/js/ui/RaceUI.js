@@ -1,15 +1,18 @@
 import { EntityCard } from './EntityCard.js';
 import { RaceManager } from '../managers/RaceManager.js';
 import { TextProcessor } from '../utils/TextProcessor.js';
+import { showNotification } from '../utils/notifications.js';
+import { characterInitializer } from '../utils/Initialize.js';
 
 export class RaceUI {
     constructor(character) {
         this.character = character;
         this.raceManager = new RaceManager(character);
-        this.textProcessor = window.dndTextProcessor;
+        this.textProcessor = characterInitializer.textProcessor;
+        this.dataLoader = characterInitializer.dataLoader;
 
         // Add event listener for character changes
-        window.addEventListener('characterLoaded', async () => {
+        document.addEventListener('characterLoaded', async () => {
             // Only refresh race list if we're on the build page
             if (document.body.getAttribute('data-current-page') === 'build') {
                 await this.refreshRaceList();
@@ -64,7 +67,7 @@ export class RaceUI {
             raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
             // Load and sort races
-            const races = await window.dndDataLoader.loadRaces();
+            const races = await this.dataLoader.loadRaces();
             races.sort((a, b) => a.name.localeCompare(b.name));
 
             // Add race options
@@ -96,7 +99,7 @@ export class RaceUI {
             this.setupEventListeners();
         } catch (error) {
             console.error('Error initializing race selection:', error);
-            window.showNotification('Error loading races', 'error');
+            showNotification('Error loading races', 'error');
         }
     }
 
@@ -115,7 +118,7 @@ export class RaceUI {
             raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
             // Load and sort races
-            const races = await window.dndDataLoader.loadRaces();
+            const races = await this.dataLoader.loadRaces();
             races.sort((a, b) => a.name.localeCompare(b.name));
 
             // Add race options
@@ -136,7 +139,7 @@ export class RaceUI {
             }
         } catch (error) {
             console.error('Error refreshing race list:', error);
-            window.showNotification('Error loading races', 'danger');
+            showNotification('Error loading races', 'danger');
         }
     }
 
@@ -248,8 +251,8 @@ export class RaceUI {
                             })
                         ).then(results => results.join(''))}
                         </ul>
-                    </div>
-                ` : ''}`;
+                    </div>` : ''}
+            `;
 
             // Process tooltips for the newly added content
             const textToProcess = [raceQuickDesc, raceDetails];
@@ -263,9 +266,8 @@ export class RaceUI {
             }
 
         } catch (error) {
-            console.error('Error updating race display:', error);
-            window.showNotification('Error displaying race details', 'error');
-            this.setRacePlaceholderContent();
+            console.error('Error displaying race details:', error);
+            showNotification('Error displaying race details', 'error');
         }
     }
 
@@ -395,7 +397,7 @@ export class RaceUI {
                 .map(input => input.value);
 
             if (selected.length !== choice.count) {
-                window.showNotification(
+                showNotification(
                     `Please select exactly ${choice.count} abilities`,
                     'warning'
                 );
@@ -628,7 +630,7 @@ export class RaceUI {
                 this.checkRaceAbilityChoices();
             } catch (error) {
                 console.error('Error handling race selection:', error);
-                window.showNotification('Error updating race details', 'error');
+                showNotification('Error updating race details', 'error');
             }
         });
 
@@ -646,7 +648,7 @@ export class RaceUI {
                     this.checkRaceAbilityChoices();
                 } catch (error) {
                     console.error('Error handling subrace selection:', error);
-                    window.showNotification('Error updating subrace details', 'error');
+                    showNotification('Error updating subrace details', 'error');
                 }
             });
         }

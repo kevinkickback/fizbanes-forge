@@ -122,7 +122,6 @@ export class ClassLoader extends BaseLoader {
     async loadClasses(options = {}) {
         return this.getOrLoadData('classes', async () => {
             try {
-                console.log('Loading class data...');
                 const index = await this.loadClassIndex(options);
                 const classKeys = Object.keys(index);
 

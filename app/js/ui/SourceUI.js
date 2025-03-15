@@ -1,11 +1,13 @@
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
+
 /**
  * Handles the UI for source book selection in the create character modal
  */
 export class SourceUI {
-    constructor(sourceManager) {
-        this.sourceManager = sourceManager;
-        this.container = document.getElementById('sourceBookSelection');
-        this.selectedSources = new Set();
+    constructor() {
+        this.sourceManager = characterInitializer.sourceManager;
+        this.selectedSources = new Set(['PHB']);
     }
 
     /**
@@ -72,10 +74,45 @@ export class SourceUI {
      * Validate that at least one PHB version is selected
      * @returns {boolean} True if the selection is valid
      */
-    validateSourceSelection() {
-        const hasPHB14 = this.selectedSources.has('PHB');
-        const hasPHB24 = this.selectedSources.has('XPHB');
-        return hasPHB14 || hasPHB24;
+    validateSourceSelection(sources) {
+        // At least one player's handbook must be selected
+        if (!sources.has('PHB') && !sources.has('XPHB')) {
+            showNotification('At least one player\'s handbook must be selected', 'warning');
+            return false;
+        }
+        return true;
+    }
+
+    async loadSources() {
+        try {
+            return await this.sourceManager.loadSources();
+        } catch (error) {
+            console.error('Error loading sources:', error);
+            showNotification('Error loading sources', 'error');
+            return [];
+        }
+    }
+
+    addSource(sourceId) {
+        this.selectedSources.add(sourceId);
+        this.sourceManager.addSource(sourceId);
+    }
+
+    removeSource(sourceId) {
+        if (sourceId === 'PHB') {
+            showNotification('Cannot remove Player\'s Handbook', 'warning');
+            return false;
+        }
+        const removed = this.selectedSources.delete(sourceId);
+        if (removed) {
+            this.sourceManager.removeSource(sourceId);
+        }
+        return removed;
+    }
+
+    clearSources() {
+        this.selectedSources = new Set(['PHB']);
+        this.sourceManager.clearSources();
     }
 
     /**
@@ -91,7 +128,7 @@ export class SourceUI {
         if (!isSelected && isPHB) {
             const otherPHB = source === 'PHB' ? 'XPHB' : 'PHB';
             if (!this.selectedSources.has(otherPHB)) {
-                window.showNotification('At least one player\'s handbook must be selected', 'warning');
+                showNotification('At least one player\'s handbook must be selected', 'warning');
                 return;
             }
         }
@@ -112,7 +149,7 @@ export class SourceUI {
      * @returns {Set} Set of selected source abbreviations
      */
     getSelectedSources() {
-        return new Set(this.selectedSources);
+        return Array.from(this.selectedSources);
     }
 
     /**

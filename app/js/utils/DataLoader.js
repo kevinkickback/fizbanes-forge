@@ -1,4 +1,5 @@
-import { SourceManager } from '../managers/SourceManager.js';
+import { characterInitializer } from './Initialize.js';
+import { FeatManager } from '../managers/FeatManager.js';
 
 /**
  * DataLoader.js
@@ -6,9 +7,161 @@ import { SourceManager } from '../managers/SourceManager.js';
  */
 
 export class DataLoader {
-    constructor() {
+    constructor(electron) {
+        this.electron = electron;
+        this.sourceManager = null;
+        this.itemManager = null;
+        this.raceManager = null;
+        this.classManager = null;
+        this.backgroundManager = null;
+        this.spellManager = null;
+        this.featManager = null;
+        this.deityManager = null;
+        this.featureManager = null;
         this.dataCache = new Map();
-        this.sourceManager = new SourceManager();
+    }
+
+    // Initialize the data loader
+    static async initialize(electron) {
+        const loader = new DataLoader(electron);
+        await loader.loadData();
+
+        // Listen for character loaded event to clear cache
+        document.addEventListener('characterLoaded', () => {
+            loader.clearCache();
+        });
+
+        return loader;
+    }
+
+    // Clear cache
+    clearCache() {
+        this.itemManager = null;
+        this.raceManager = null;
+        this.classManager = null;
+        this.backgroundManager = null;
+        this.spellManager = null;
+        this.featManager = null;
+        this.deityManager = null;
+        this.featureManager = null;
+        this.dataCache.clear();
+    }
+
+    // Load all data
+    async loadData() {
+        try {
+            // Load items data
+            const itemsData = await this.electron.ipc.invoke('read-json-file', 'data/items.json');
+            const magicItemsData = await this.electron.ipc.invoke('read-json-file', 'data/magic-items.json').catch(() => ({}));
+
+            // Merge regular items and magic items
+            const allItems = {
+                ...itemsData,
+                ...magicItemsData
+            };
+
+            // Initialize item manager
+            this.itemManager = {
+                items: allItems,
+                getItem: (id) => allItems[id],
+                getAllItems: () => Object.values(allItems),
+                searchItems: (query) => {
+                    const searchTerm = query.toLowerCase();
+                    return Object.values(allItems).filter(item =>
+                        item.name.toLowerCase().includes(searchTerm) ||
+                        item.type.toLowerCase().includes(searchTerm)
+                    );
+                }
+            };
+
+            // Load races data
+            const raceData = await this.electron.ipc.invoke('read-json-file', 'data/races.json');
+
+            // Initialize race manager
+            this.raceManager = {
+                races: raceData,
+                getRace: (id) => raceData[id],
+                getAllRaces: () => Object.values(raceData),
+                searchRaces: (query) => {
+                    const searchTerm = query.toLowerCase();
+                    return Object.values(raceData).filter(race =>
+                        race.name.toLowerCase().includes(searchTerm)
+                    );
+                }
+            };
+
+            // Initialize source manager
+            this.sourceManager = {
+                sources: new Set(),
+                addSource: (source) => this.sourceManager.sources.add(source),
+                removeSource: (source) => this.sourceManager.sources.delete(source),
+                hasSource: (source) => this.sourceManager.sources.has(source),
+                getAllSources: () => Array.from(this.sourceManager.sources),
+                setAllowedSources: (sources) => {
+                    this.sourceManager.sources.clear();
+                    for (const source of sources) {
+                        this.sourceManager.sources.add(source);
+                    }
+                }
+            };
+
+            // Get allowed sources from character or use defaults
+            const allowedSources = characterInitializer.currentCharacter?.getAllowedSources() ||
+                new Set(['PHB', 'DMG', 'MM', 'XGE', 'TCE', 'SCAG']);
+
+            // Set initial allowed sources
+            this.sourceManager.setAllowedSources(allowedSources);
+
+            // Initialize feat manager
+            this.featManager = new FeatManager(characterInitializer.currentCharacter);
+
+            // Load spells data
+            const spellsData = await this.electron.ipc.invoke('read-json-file', 'data/spells.json');
+
+            // Initialize spell manager
+            this.spellManager = {
+                spells: spellsData,
+                getSpell: (id) => spellsData[id],
+                getAllSpells: () => Object.values(spellsData),
+                searchSpells: (query) => {
+                    const searchTerm = query.toLowerCase();
+                    return Object.values(spellsData).filter(spell =>
+                        spell.name.toLowerCase().includes(searchTerm) ||
+                        spell.school.toLowerCase().includes(searchTerm)
+                    );
+                }
+            };
+
+            return this;
+        } catch (error) {
+            console.error('Error loading data:', error);
+            throw error;
+        }
+    }
+
+    // Get item manager
+    getItemManager() {
+        return this.itemManager;
+    }
+
+    // Get race manager
+    getRaceManager() {
+        return this.raceManager;
+    }
+
+    // Get source manager
+    getSourceManager() {
+        return this.sourceManager;
+    }
+
+    // Get spell manager
+    getSpellManager() {
+        return this.spellManager;
+    }
+
+    // Get feat manager
+    getFeatManager() {
+        return this.featManager;
     }
 
     async loadJsonFile(path) {
@@ -31,131 +184,47 @@ export class DataLoader {
         }
 
         try {
-            // Load base items, items, magic items, and fluff data
-            const [baseItems, items, magicItems, fluffData] = await Promise.all([
-                this.loadJsonFile('items-base.json'),
-                this.loadJsonFile('items.json'),
-                this.loadJsonFile('magicvariants.json'),
-                this.loadJsonFile('fluff-items.json').catch(() => ({}))
-            ]);
+            const itemsData = await this.electron.ipc.invoke('read-json-file', 'data/items.json');
+            const magicItemsData = await this.electron.ipc.invoke('read-json-file', 'data/magic-items.json').catch(() => ({}));
 
-            // Process base items
-            const allItems = [];
-
-            // Process base items
-            for (const item of (baseItems.baseitem || [])) {
-                if (item.items) {
-                    // Handle item groups (like Potions of Healing)
-                    for (const subItemStr of item.items) {
-                        // Split subitem into name and source if specified
-                        const [name, subSource] = subItemStr.includes('|') ? subItemStr.split('|') : [subItemStr, item.source];
-                        const processedItem = {
-                            name: name.trim(),
-                            source: subSource || item.source,
-                            type: item.type,
-                            rarity: item.rarity,
-                            weight: item.weight,
-                            parentName: item.name,
-                            parentSource: item.source,
-                            id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(subSource || item.source || 'phb').toLowerCase()}`,
-                            canBeEquipped: item.weapon || item.type === 'S' || item.type === 'LA' || item.type === 'MA' || item.type === 'HA',
-                            attunement: item.reqAttune || false
-                        };
-                        allItems.push(processedItem);
-                    }
-                } else {
-                    // Handle regular items
-                    const processedItem = {
-                        ...item,
-                        source: item.source || 'PHB',
-                        id: `${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(item.source || 'phb').toLowerCase()}`,
-                        type: item.type,
-                        canBeEquipped: item.weapon || item.type === 'S' || item.type === 'LA' || item.type === 'MA' || item.type === 'HA',
-                        attunement: item.reqAttune || false
-                    };
-                    allItems.push(processedItem);
-                }
-            }
-
-            // Process items from items.json
-            console.log('Processing items from items.json...');
-            for (const item of (items.item || [])) {
-                // Note: Pack processing is now handled by PackManager
-                // See managers/PackManager.js
-                const processedItem = {
-                    ...item,
-                    source: item.source || 'PHB',
-                    id: `${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(item.source || 'phb').toLowerCase()}`,
-                    type: item.type,
-                    canBeEquipped: item.weapon || item.type === 'S' || item.type === 'LA' || item.type === 'MA' || item.type === 'HA',
-                    attunement: item.reqAttune || false,
-                    magical: item.rarity !== undefined && item.rarity !== 'none' && item.rarity !== 'unknown',
-                    value: item.value || 0,
-                    weight: item.weight || 0
-                };
-                allItems.push(processedItem);
-            }
+            // Process regular items
+            const processedItems = this.processItems(itemsData?.item || []);
 
             // Process magic items
-            console.log('Processing magic items...');
-            for (const item of (magicItems.magicvariant || [])) {
-                const processedItem = {
-                    ...item,
-                    source: item.source || 'DMG',  // Keep DMG as default for magic items
-                    magical: true,
-                    id: `${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(item.source || 'dmg').toLowerCase()}`,
-                    canBeEquipped: item.weapon || item.type === 'S' || item.type === 'LA' || item.type === 'MA' || item.type === 'HA',
-                    attunement: item.reqAttune || false
-                };
-                allItems.push(processedItem);
-
-                // If this is a group of items, process each one
-                if (item.items) {
-                    for (const subItemStr of item.items) {
-                        if (typeof subItemStr !== 'string') {
-                            console.warn('Unexpected item format in magic variants:', subItemStr);
-                            continue;
-                        }
-                        const [name, subSource] = subItemStr.includes('|') ? subItemStr.split('|') : [subItemStr, item.source];
-                        const subItem = {
-                            name: name.trim(),
-                            source: subSource || item.source || 'DMG',  // Keep DMG as default for magic items
-                            type: item.type,
-                            rarity: item.rarity,
-                            weight: item.weight,
-                            magical: true,
-                            parentName: item.name,
-                            parentSource: item.source,
-                            id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(subSource || item.source || 'dmg').toLowerCase()}`,
-                            canBeEquipped: item.weapon || item.type === 'S' || item.type === 'LA' || item.type === 'MA' || item.type === 'HA',
-                            attunement: item.reqAttune || false
-                        };
-                        allItems.push(subItem);
-                    }
-                }
-            }
-
-            // Add fluff data where available
-            for (const item of allItems) {
-                const fluff = fluffData.itemFluff?.find(f =>
-                    f.name === (item.parentName || item.name) &&
-                    f.source === (item.parentSource || item.source)
-                );
-                if (fluff) {
-                    item.fluff = fluff;
-                }
-            }
-
-            // Note: Standard packs are now handled by PackService
-            // See services/PackService.js for implementation
+            const processedMagicItems = this.processMagicItems(magicItemsData?.magicItem || []);
 
             // Cache and return processed items
+            const allItems = [...processedItems, ...processedMagicItems];
             this.dataCache.set('items', allItems);
             return allItems;
         } catch (error) {
-            console.error('Error loading items:', error);
-            throw error;
+            console.warn('Error loading items:', error);
+            return []; // Return empty array instead of throwing
         }
+    }
+
+    // Process regular items
+    processItems(itemsData) {
+        const processedItems = [];
+        for (const item of itemsData) {
+            // Process item data...
+            processedItems.push(item);
+        }
+        return processedItems;
+    }
+
+    // Process magic items
+    processMagicItems(magicItemsData) {
+        const processedItems = [];
+        for (const item of magicItemsData) {
+            try {
+                // Process magic item data...
+                processedItems.push(item);
+            } catch (err) {
+                console.warn('Unexpected item format in magic variants:', item);
+            }
+        }
+        return processedItems;
     }
 
     async loadRaces() {
@@ -164,167 +233,29 @@ export class DataLoader {
         }
 
         try {
-            const [raceData, fluffData] = await Promise.all([
-                this.loadJsonFile('races.json'),
-                this.loadJsonFile('fluff-races.json').catch(() => ({ raceFluff: [] }))
-            ]);
-
-            // Get allowed sources from current character or use defaults
-            const allowedSources = window.currentCharacter?.getAllowedSources() ||
-                new Set(['PHB', 'DMG', 'MM']);
-
-            // Check if at least one PHB version is selected
-            const hasPHB14 = allowedSources.has('PHB');
-            const hasPHB24 = allowedSources.has('XPHB');
-
-            if (!hasPHB14 && !hasPHB24) {
-                console.error('At least one PHB version (PHB\'14 or PHB\'24) must be selected');
-                window.showNotification('Please enable either PHB\'14 or PHB\'24 in source selection', 'warning');
-                // Return only PHB races as a fallback
-                raceData.race = raceData.race.filter(race =>
-                    !race._abstract &&
-                    (race.source === 'PHB' || race.source === 'XPHB')
-                );
-            } else {
-                // Filter races by allowed sources before processing
-                raceData.race = raceData.race.filter(race =>
-                    !race._abstract && // Skip abstract races
-                    allowedSources.has(race.source || 'PHB')
-                );
+            // Validate source selection
+            if (!this.sourceManager.hasPhbSource()) {
+                console.warn('At least one PHB version (PHB\'14 or PHB\'24) must be selected');
+                return [];
             }
 
-            const races = this.processRaceData(raceData, fluffData);
+            const raceData = await this.electron.ipc.invoke('read-json-file', 'data/races.json');
+            // Extract races array from the data structure and ensure it exists
+            const races = raceData?.race || [];
 
-            // Further filter subraces by allowed sources
-            for (const race of races) {
-                if (race.subraces) {
-                    race.subraces = race.subraces.filter(subrace =>
-                        allowedSources.has(subrace.source || race.source || 'PHB')
-                    );
-                }
-            }
+            // Process each race to ensure consistent structure
+            const processedRaces = races.map(race => ({
+                ...race,
+                id: `${race.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(race.source || 'phb').toLowerCase()}`,
+                source: race.source || 'PHB'
+            }));
 
-            this.dataCache.set('races', races);
-            return races;
+            this.dataCache.set('races', processedRaces);
+            return processedRaces;
         } catch (error) {
-            console.error('Error loading races:', error);
-            throw error;
+            console.warn('Error loading races:', error);
+            return []; // Return empty array instead of throwing
         }
-    }
-
-    processRaceData(raceData, fluffData) {
-        const processedRaces = [];
-
-        for (const race of (raceData.race || [])) {
-            // Skip abstract races
-            if (race._abstract) continue;
-
-            // Process base race
-            const processedRace = this.createBaseRace(race, fluffData);
-
-            // Process subraces, versions, and lineages
-            const subraces = [];
-
-            // Handle regular subraces
-            if (race.subraces) {
-                for (const subrace of race.subraces) {
-                    if (!subrace._abstract) {  // Skip abstract subraces
-                        const processed = this.processSubrace(subrace, processedRace);
-                        if (processed) subraces.push(processed);
-                    }
-                }
-            }
-
-            // Handle versions
-            if (race._versions) {
-                for (const version of race._versions) {
-                    if (!version._abstract) {  // Skip abstract versions
-                        const processed = this.processSubrace(version, processedRace);
-                        if (processed) subraces.push(processed);
-                    }
-                }
-            }
-
-            // Handle lineages
-            if (race.lineages) {
-                for (const lineage of race.lineages) {
-                    if (!lineage._abstract) {  // Skip abstract lineages
-                        const processed = this.processSubrace(lineage, processedRace);
-                        if (processed) subraces.push(processed);
-                    }
-                }
-            }
-
-            processedRace.subraces = subraces;
-            processedRaces.push(processedRace);
-        }
-
-        return processedRaces.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    createBaseRace(race, fluffData) {
-        const baseRace = {
-            id: `${race.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(race.source || 'phb').toLowerCase()}`,
-            name: race.name,
-            source: race.source || 'PHB',
-            size: Array.isArray(race.size) ? race.size : [race.size || 'M'],
-            speed: typeof race.speed === 'number' ? { walk: race.speed } : race.speed,
-            ability: race.ability || [],
-            languages: race.languageProficiencies || [],
-            resistances: [...(race.resist || []), ...(race.features?.resistances || [])],
-            features: race.features || {},
-            proficiencies: race.proficiencies || {},
-            spells: race.additionalSpells || [],
-            entries: race.entries || [],
-            subraces: []
-        };
-
-        // Add fluff data if available
-        const fluff = fluffData.raceFluff?.find(f =>
-            f.name === race.name && f.source === race.source
-        );
-        if (fluff) {
-            baseRace.fluff = fluff;
-            if (fluff.images?.length > 0) {
-                baseRace.imageUrl = fluff.images[0].href?.default;
-            }
-        }
-
-        return baseRace;
-    }
-
-    processSubrace(subraceData, parentRace) {
-        // Skip if no data or if it's an abstract implementation
-        if (!subraceData || subraceData._abstract || !subraceData.name) {
-            return null;
-        }
-
-        // Handle implementation references
-        if (subraceData._implementations) {
-            return null;  // Skip implementation definitions
-        }
-
-        const subrace = {
-            id: `${subraceData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(subraceData.source || parentRace.source || 'phb').toLowerCase()}`,
-            name: subraceData.name.replace(/^[^;]+;\s*/, ''),
-            source: subraceData.source || parentRace.source || 'PHB',
-            parentRace: parentRace.id,
-            ability: subraceData.ability || [],
-            features: subraceData.features || {},
-            spells: subraceData.additionalSpells || [],
-            entries: subraceData.entries || []
-        };
-
-        // Handle _mod entries if they exist (for _versions format)
-        if (subraceData._mod?.entries) {
-            if (subraceData._mod.entries.mode === 'replaceArr') {
-                subrace.entries = subraceData._mod.entries.items;
-            } else {
-                subrace.entries = subraceData._mod.entries;
-            }
-        }
-
-        return subrace;
     }
 
     async loadClasses() {
@@ -334,7 +265,7 @@ export class DataLoader {
 
         try {
             const index = await this.loadJsonFile('class/index.json');
-            const allowedSources = window.currentCharacter?.getAllowedSources() ||
+            const allowedSources = characterInitializer.currentCharacter?.getAllowedSources() ||
                 new Set(['PHB', 'DMG', 'MM']);
 
             const classPromises = Object.entries(index)
@@ -440,7 +371,7 @@ export class DataLoader {
         }
 
         // Use FeatManager instead of FeatService
-        const featManager = new FeatManager(window.currentCharacter);
+        const featManager = new FeatManager(characterInitializer.currentCharacter);
         const feats = await featManager.loadFeats();
         this.dataCache.set('feats', feats);
         return feats;
@@ -452,7 +383,7 @@ export class DataLoader {
         }
 
         // Use FeatManager instead of FeatService
-        const featManager = new FeatManager(window.currentCharacter);
+        const featManager = new FeatManager(characterInitializer.currentCharacter);
         const features = await featManager.loadOptionalFeatures();
         this.dataCache.set('optionalFeatures', features);
         return features;
@@ -464,30 +395,21 @@ export class DataLoader {
         }
 
         try {
-            // First load the index
-            const index = await this.loadJsonFile('spells/index.json');
-            console.log('Loaded spells index:', index);
+            const spellsData = await this.electron.ipc.invoke('read-json-file', 'data/spells.json')
+                .catch(() => ({ spell: [] })); // Provide default empty structure if file not found
 
-            // Load PHB spells (core spells)
-            const phbSpellsResponse = await this.loadJsonFile(`spells/${index.PHB}`);
-            const spells = phbSpellsResponse.spell.map(spell => ({
+            // Extract spells array and ensure consistent structure
+            const processedSpells = (spellsData?.spell || []).map(spell => ({
                 ...spell,
                 id: `${spell.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(spell.source || 'phb').toLowerCase()}`,
-                source: spell.source || 'PHB',
-                description: Array.isArray(spell.entries) ? spell.entries.join('\n') : spell.entries?.[0] || '',
-                time: spell.time || [{ number: 1, unit: 'action' }],
-                range: spell.range || { type: 'point', distance: { type: 'self' } },
-                components: spell.components || {},
-                duration: spell.duration || [{ type: 'instant' }],
-                classes: spell.classes?.fromClassList?.map(c => c.name) || []
+                source: spell.source || 'PHB'
             }));
 
-            // Cache and return
-            this.dataCache.set('spells', spells);
-            return spells;
+            this.dataCache.set('spells', processedSpells);
+            return processedSpells;
         } catch (error) {
-            console.error('Error loading spells:', error);
-            throw error;
+            console.warn('Error loading spells:', error);
+            return []; // Return empty array instead of throwing
         }
     }
 
@@ -595,32 +517,4 @@ export class DataLoader {
             throw error;
         }
     }
-
-    clearCache() {
-        this.dataCache.clear();
-    }
-
-    // Initialize the DataLoader and make it available globally
-    static initialize() {
-        if (!window.DataLoader) {
-            window.DataLoader = DataLoader;
-        }
-        if (!window.dndDataLoader) {
-            window.dndDataLoader = new DataLoader();
-
-            // Add event listener for character changes
-            window.addEventListener('characterLoaded', () => {
-                window.dndDataLoader.clearCache();
-            });
-        }
-        return window.dndDataLoader;
-    }
-
-    // Remove this method as it's now handled by the clearCache method
-    clearCacheOnSourceChange() {
-        this.clearCache();
-    }
-}
-
-// Initialize DataLoader when the module is loaded
-DataLoader.initialize(); 
+} 

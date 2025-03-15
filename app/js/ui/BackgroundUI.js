@@ -4,11 +4,14 @@
  */
 
 import { EntityCard } from './EntityCard.js';
+import { BackgroundManager } from '../managers/BackgroundManager.js';
+import { characterInitializer } from '../utils/Initialize.js';
 
 export class BackgroundUI {
-    constructor(container, backgroundManager) {
-        this.container = container;
-        this.backgroundManager = backgroundManager;
+    constructor(character) {
+        this.character = character;
+        this.backgroundManager = new BackgroundManager(character);
+        this.textProcessor = characterInitializer.textProcessor;
         this.initialize();
     }
 
@@ -169,7 +172,7 @@ export class BackgroundUI {
                 const textNodes = element.querySelectorAll('p, li');
                 for (const node of textNodes) {
                     const originalText = node.innerHTML;
-                    const processedText = await window.dndTextProcessor.processText(originalText);
+                    const processedText = await this.processText(originalText);
                     node.innerHTML = processedText;
                 }
             }
@@ -404,5 +407,9 @@ export class BackgroundUI {
                 </div>
             </div>
         `;
+    }
+
+    async processText(originalText) {
+        return await this.textProcessor.processText(originalText);
     }
 } 

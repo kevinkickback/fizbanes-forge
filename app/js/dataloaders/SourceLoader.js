@@ -25,7 +25,6 @@ export class SourceLoader extends BaseLoader {
             maxCacheSize: options.maxCacheSize || 50,
             defaultExpiry: options.defaultExpiry || 7200000 // 2 hours
         });
-        this.baseDir = 'sources';
     }
 
     /**
@@ -36,8 +35,8 @@ export class SourceLoader extends BaseLoader {
     async loadSources(options = {}) {
         return this.getOrLoadData('sources', async () => {
             try {
-                console.log('Loading source data...');
-                const data = await this.loadJsonFile(`${this.baseDir}/books.json`, {
+                // Note: BaseLoader's loadJsonFile already prepends 'data/' to the path
+                const data = await this.loadJsonFile('books.json', {
                     ...options,
                     maxRetries: 3
                 });

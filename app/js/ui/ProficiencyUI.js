@@ -1,8 +1,10 @@
+import { characterInitializer } from '../utils/Initialize.js';
+
 export class ProficiencyUI {
     constructor(character) {
         this.character = character;
         this.proficiencyTypes = ['skills', 'savingThrows', 'languages', 'tools', 'armor', 'weapons'];
-        this.proficiencyManager = window.proficiencyService;
+        this.proficiencyManager = characterInitializer.proficiencyService;
 
         // Define default proficiencies that all characters have
         this.defaultProficiencies = {
@@ -350,6 +352,6 @@ export class ProficiencyUI {
      * Mark that there are unsaved changes
      */
     markUnsavedChanges() {
-        window.dispatchEvent(new CustomEvent('unsavedChanges'));
+        document.dispatchEvent(new CustomEvent('unsavedChanges'));
     }
 } 

@@ -6,6 +6,8 @@
 import { StartingEquipment } from '../models/StartingEquipment.js';
 import { InventoryManager } from './InventoryManager.js';
 import { PackManager } from './PackManager.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
 
 export class StartingEquipmentManager {
     constructor(character) {
@@ -16,6 +18,8 @@ export class StartingEquipmentManager {
             classEquipment: new Map(),
             backgroundEquipment: new Map()
         };
+        this.dataLoader = characterInitializer.dataLoader;
+        this.selectedEquipment = new Map();
     }
 
     /**
@@ -99,7 +103,7 @@ export class StartingEquipmentManager {
                 return this.cache.classEquipment.get(classId);
             }
 
-            const classes = await window.dndDataLoader.loadClasses();
+            const classes = await this.dataLoader.loadClasses();
             const classData = classes.find(c => c.id === classId);
             if (!classData?.startingEquipment) return null;
 
@@ -124,7 +128,7 @@ export class StartingEquipmentManager {
                 return this.cache.backgroundEquipment.get(backgroundId);
             }
 
-            const backgrounds = await window.dndDataLoader.loadBackgrounds();
+            const backgrounds = await this.dataLoader.loadBackgrounds();
             const background = backgrounds.find(b => b.id === backgroundId);
             const equipment = background?.startingEquipment || [];
 
@@ -204,6 +208,39 @@ export class StartingEquipmentManager {
         } catch (error) {
             console.error('Error clearing starting equipment:', error);
             return false;
+        }
+    }
+
+    async loadClassStartingEquipment() {
+        try {
+            const classes = await this.dataLoader.loadClasses();
+            const classData = classes.find(c => c.id === this.character.class?.id);
+            return classData?.startingEquipment || [];
+        } catch (error) {
+            console.error('Error loading class starting equipment:', error);
+            return [];
+        }
+    }
+
+    async loadBackgroundStartingEquipment() {
+        try {
+            const backgrounds = await this.dataLoader.loadBackgrounds();
+            const backgroundData = backgrounds.find(b => b.id === this.character.background?.id);
+            return backgroundData?.startingEquipment || [];
+        } catch (error) {
+            console.error('Error loading background starting equipment:', error);
+            return [];
+        }
+    }
+
+    async loadStartingEquipment() {
+        try {
+            const items = await this.dataLoader.loadItems();
+            return items.filter(item => item.isStartingEquipment);
+        } catch (error) {
+            console.error('Error loading starting equipment:', error);
+            showNotification('Error loading starting equipment', 'error');
+            return [];
         }
     }
 } 

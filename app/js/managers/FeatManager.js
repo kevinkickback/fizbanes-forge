@@ -4,16 +4,19 @@
  */
 
 import { Feat } from '../models/Feat.js';
+import { characterInitializer } from '../utils/Initialize.js';
+import { showNotification } from '../utils/notifications.js';
 
 export class FeatManager {
     constructor(character) {
         this.character = character;
+        this.dataLoader = characterInitializer.dataLoader;
         this.feats = new Map();
-        this.optionalFeatures = new Map();
+        this.features = new Map();
         this.maxFeats = this.calculateMaxFeats();
         this.cache = {
             feats: null,
-            optionalFeatures: null
+            features: null
         };
     }
 
@@ -27,22 +30,25 @@ export class FeatManager {
         }
 
         try {
-            const featData = await window.dndDataLoader.loadJsonFile('feats.json');
-            const fluffData = await window.dndDataLoader.loadJsonFile('fluff-feats.json').catch(() => ({}));
+            const [feats, fluff] = await Promise.all([
+                this.dataLoader.loadJsonFile('feats.json'),
+                this.dataLoader.loadJsonFile('fluff-feats.json').catch(() => ({}))
+            ]);
 
-            // Process feats
-            const processedFeats = await Promise.all((featData.feat || []).map(async feat => {
-                const fluff = fluffData.featFluff?.find(f =>
-                    f.name === feat.name && f.source === feat.source
-                );
-                return this.processFeat(feat, fluff);
-            }));
+            // Process feats with their fluff data
+            for (const feat of feats) {
+                if (fluff[feat.id]) {
+                    feat.fluff = fluff[feat.id];
+                }
+                this.feats.set(feat.id, feat);
+            }
 
-            this.cache.feats = processedFeats;
-            return processedFeats;
+            this.cache.feats = Array.from(this.feats.values());
+            return this.cache.feats;
         } catch (error) {
-            console.error('Error loading feat data:', error);
-            throw error;
+            console.error('Error loading feats:', error);
+            showNotification('Error loading feats', 'error');
+            return [];
         }
     }
 
@@ -50,28 +56,31 @@ export class FeatManager {
      * Load all available optional features
      * @returns {Promise<Array>} Array of processed optional features
      */
-    async loadOptionalFeatures() {
-        if (this.cache.optionalFeatures) {
-            return this.cache.optionalFeatures;
+    async loadFeatures() {
+        if (this.cache.features) {
+            return this.cache.features;
         }
 
         try {
-            const featureData = await window.dndDataLoader.loadJsonFile('optionalfeatures.json');
-            const fluffData = await window.dndDataLoader.loadJsonFile('fluff-optionalfeatures.json').catch(() => ({}));
+            const [features, fluff] = await Promise.all([
+                this.dataLoader.loadJsonFile('optionalfeatures.json'),
+                this.dataLoader.loadJsonFile('fluff-optionalfeatures.json').catch(() => ({}))
+            ]);
 
-            // Process features
-            const processedFeatures = await Promise.all((featureData.optionalfeature || []).map(async feature => {
-                const fluff = fluffData.optionalFeatureFluff?.find(f =>
-                    f.name === feature.name && f.source === feature.source
-                );
-                return this.processOptionalFeature(feature, fluff);
-            }));
+            // Process features with their fluff data
+            for (const feature of features) {
+                if (fluff[feature.id]) {
+                    feature.fluff = fluff[feature.id];
+                }
+                this.features.set(feature.id, feature);
+            }
 
-            this.cache.optionalFeatures = processedFeatures;
-            return processedFeatures;
+            this.cache.features = Array.from(this.features.values());
+            return this.cache.features;
         } catch (error) {
-            console.error('Error loading optional feature data:', error);
-            throw error;
+            console.error('Error loading features:', error);
+            showNotification('Error loading features', 'error');
+            return [];
         }
     }
 
@@ -104,7 +113,7 @@ export class FeatManager {
      * @param {Object} fluff - Optional fluff data
      * @returns {Object} Processed feature object
      */
-    processOptionalFeature(feature, fluff = null) {
+    processFeature(feature, fluff = null) {
         return {
             id: `${feature.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(feature.source || 'phb').toLowerCase()}`,
             name: feature.name,
@@ -224,8 +233,8 @@ export class FeatManager {
      * @param {string} featureId - ID of the feature to load
      * @returns {Promise<Object>} Optional feature object
      */
-    async loadOptionalFeature(featureId) {
-        const features = await this.loadOptionalFeatures();
+    async loadFeature(featureId) {
+        const features = await this.loadFeatures();
         const feature = features.find(f => f.id === featureId);
         if (!feature) {
             throw new Error(`Optional feature not found: ${featureId}`);
@@ -471,6 +480,6 @@ export class FeatManager {
      */
     clearCache() {
         this.cache.feats = null;
-        this.cache.optionalFeatures = null;
+        this.cache.features = null;
     }
 } 

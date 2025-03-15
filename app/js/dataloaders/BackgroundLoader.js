@@ -46,7 +46,6 @@ export class BackgroundLoader extends BaseLoader {
     async loadBackgrounds(options = {}) {
         return this.getOrLoadData('backgrounds', async () => {
             try {
-                console.log('Loading background data...');
                 const [backgroundData, fluffData] = await Promise.all([
                     this.loadJsonFile(this.dataFiles.backgrounds, {
                         ...options,

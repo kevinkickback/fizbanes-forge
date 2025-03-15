@@ -92,7 +92,6 @@ export class SpellLoader extends BaseLoader {
     async loadSpells(options = {}) {
         return this.getOrLoadData('spells', async () => {
             try {
-                console.log('Loading spell data...');
 
                 // Load indexes
                 const [index, fluffIndex] = await Promise.all([

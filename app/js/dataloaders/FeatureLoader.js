@@ -69,7 +69,6 @@ export class FeatureLoader extends BaseLoader {
     async loadFeatures(options = {}) {
         return this.getOrLoadData('features', async () => {
             try {
-                console.log('Loading feature data...');
                 const [featData, optionalFeatureData, featFluffData, optionalFluffData] = await Promise.all([
                     this.loadJsonFile(this.dataFiles.feats, {
                         ...options,
