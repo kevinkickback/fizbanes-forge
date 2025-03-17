@@ -1,11 +1,26 @@
 /**
  * TextProcessor.js
- * Handles text processing for the D&D Character Creator
+ * Handles text processing for D&D content formatting and references
+ * 
+ * @typedef {Object} TextProcessingOptions
+ * @property {boolean} [processReferences=true] - Whether to process references in text
+ * @property {boolean} [processFormatting=true] - Whether to process text formatting
+ * 
+ * @typedef {Object} ProcessedText
+ * @property {string} text - The processed text content
+ * @property {Array<string>} references - List of references found in the text
  */
 
 import { referenceResolver } from './ReferenceResolver.js';
 
+/**
+ * Class responsible for processing text content, handling references, and formatting
+ */
 class TextProcessor {
+    /**
+     * @param {ReferenceResolver} referenceResolver - The reference resolver instance
+     * @throws {Error} If referenceResolver is not provided
+     */
     constructor(referenceResolver) {
         if (!referenceResolver) {
             throw new Error('ReferenceResolver is required for TextProcessor');
@@ -16,6 +31,7 @@ class TextProcessor {
 
     /**
      * Initialize the text processor and set up observers
+     * @returns {Promise<void>}
      */
     initialize() {
         // Set up mutation observer to process dynamically added content
@@ -44,10 +60,12 @@ class TextProcessor {
     }
 
     /**
-     * Process text content in a container
+     * Process all content within a container element
      * @param {HTMLElement} container - The container element to process
+     * @param {TextProcessingOptions} [options] - Processing options
+     * @returns {Promise<void>}
      */
-    async processPageContent(container) {
+    async processPageContent(container, options = {}) {
         // Find all text nodes that might contain references
         const textElements = container.querySelectorAll('.description, .text-content, .tooltip-content, p, li, td, .card-text');
 
@@ -57,7 +75,7 @@ class TextProcessor {
                 // Skip if already processed or empty
                 if (!originalText || element.hasAttribute('data-processed')) continue;
 
-                const processedText = await this.processText(originalText);
+                const processedText = await this.processText(originalText, options);
                 if (processedText !== originalText) {
                     element.innerHTML = processedText;
                 }
@@ -69,20 +87,22 @@ class TextProcessor {
         }
     }
 
-    async processText(text) {
+    /**
+     * Process text content and handle references
+     * @param {string} text - The text to process
+     * @param {TextProcessingOptions} [options] - Processing options
+     * @returns {Promise<string>} The processed text
+     */
+    async processText(text, options = {}) {
         if (!text) return '';
-        if (typeof text === 'string') {
-            return this.processString(text);
-        }
-        if (Array.isArray(text)) {
-            return this.processArray(text);
-        }
-        if (typeof text === 'object') {
-            return this.processObject(text);
-        }
-        return String(text);
+        return this.processString(text);
     }
 
+    /**
+     * Process a string value and handle references
+     * @param {string} text - The string to process
+     * @returns {Promise<string>} The processed string
+     */
     async processString(text) {
         // Replace references
         const withReferences = await this.replaceReferences(text);
@@ -93,24 +113,11 @@ class TextProcessor {
         return formatted;
     }
 
-    async processArray(array) {
-        const processed = await Promise.all(array.map(item => this.processText(item)));
-        return processed.join('\n');
-    }
-
-    async processObject(obj) {
-        if (obj.type === 'list') {
-            return this.processList(obj);
-        }
-        if (obj.type === 'table') {
-            return this.processTable(obj);
-        }
-        if (obj.entries) {
-            return this.processText(obj.entries);
-        }
-        return '';
-    }
-
+    /**
+     * Replace references in text with their resolved values
+     * @param {string} text - The text containing references
+     * @returns {Promise<string>} The text with resolved references
+     */
     async replaceReferences(text) {
         const refRegex = /{@[^}]+}/g;
         const matches = text.match(refRegex);
@@ -124,6 +131,11 @@ class TextProcessor {
         return result;
     }
 
+    /**
+     * Process text formatting (bold, italic, etc.)
+     * @param {string} input - The text to format
+     * @returns {string} The formatted text
+     */
     processFormatting(input) {
         // Bold
         const withBold = input.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -139,33 +151,8 @@ class TextProcessor {
         return withH1;
     }
 
-    async processList(list) {
-        const items = await Promise.all(list.items.map(async item => {
-            const processed = await this.processText(item);
-            return `<li>${processed}</li>`;
-        }));
-
-        const tag = list.ordered ? 'ol' : 'ul';
-        return `<${tag}>${items.join('')}</${tag}>`;
-    }
-
-    async processTable(table) {
-        const headers = table.headers.map(h => `<th>${h}</th>`).join('');
-        const rows = await Promise.all(table.rows.map(async row => {
-            const cells = await Promise.all(row.map(cell => this.processText(cell)));
-            return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
-        }));
-
-        return `
-            <table class="data-table">
-                <thead><tr>${headers}</tr></thead>
-                <tbody>${rows.join('')}</tbody>
-            </table>
-        `;
-    }
-
     /**
-     * Clean up resources when the processor is no longer needed
+     * Clean up resources and disconnect observers
      */
     destroy() {
         if (this.observer) {

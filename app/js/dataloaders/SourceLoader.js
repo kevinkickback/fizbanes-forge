@@ -41,12 +41,28 @@ export class SourceLoader extends BaseLoader {
                     maxRetries: 3
                 });
 
-                if (!data?.source?.length) {
+                if (!data?.book?.length) {
                     throw new Error('No valid source data loaded');
                 }
 
-                console.log(`Loaded ${data.source.length} sources`);
-                return data;
+                // Transform book data into source format
+                const sources = data.book.map(book => ({
+                    id: book.id,
+                    name: book.name,
+                    abbreviation: book.id,
+                    isCore: book.isCore || false,
+                    group: book.group,
+                    version: book.version,
+                    hasErrata: book.hasErrata || false,
+                    targetLanguage: book.targetLanguage || 'en',
+                    url: book.url || null,
+                    description: book.description || null,
+                    contents: book.contents || null,
+                    isDefault: book.isDefault || false
+                }));
+
+                console.log(`Loaded ${sources.length} sources`);
+                return { source: sources };
             } catch (error) {
                 console.error('Error loading sources:', error);
                 throw error;

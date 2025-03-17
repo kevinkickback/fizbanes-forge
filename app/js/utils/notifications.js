@@ -1,16 +1,32 @@
-// Notification utilities
+/**
+ * notifications.js
+ * Handles user feedback through a notification system
+ * 
+ * @typedef {'info'|'success'|'warning'|'danger'} NotificationType
+ */
 
 // Track last notification to prevent duplicates
-const notificationState = {
-    lastNotification: { message: '', type: '', timestamp: 0 }
-};
+let lastNotification = { message: '', type: '', timestamp: 0 };
+const DEBOUNCE_DELAY = 3000;
+const CLOSE_ANIMATION_DURATION = 150;
 
 /**
- * Show a notification to the user
+ * Shows a notification to the user with debouncing
  * @param {string} message - The message to display
- * @param {string} type - The type of notification ('info', 'success', 'warning', 'danger')
+ * @param {NotificationType} [type='info'] - The type of notification
  */
 export function showNotification(message, type = 'info') {
+    // Check if this is a duplicate notification within the debounce window
+    const now = Date.now();
+    if (lastNotification.message === message &&
+        lastNotification.type === type &&
+        (now - lastNotification.timestamp) < DEBOUNCE_DELAY) {
+        return; // Skip duplicate notification
+    }
+
+    // Update last notification
+    lastNotification = { message, type, timestamp: now };
+
     // Create notification container if it doesn't exist
     let notificationContainer = document.getElementById('notificationContainer');
     if (!notificationContainer) {
@@ -33,30 +49,30 @@ export function showNotification(message, type = 'info') {
     // Add notification to container
     notificationContainer.appendChild(notification);
 
-    // Add close button handler
-    const closeButton = notification.querySelector('.notification-close');
-    closeButton.addEventListener('click', () => {
-        notification.classList.add('fade-out');
+    // Function to close notification with animation
+    const closeNotification = (isManualClose = false) => {
+        notification.classList.add('notification-closing');
         setTimeout(() => {
             notification.remove();
             // Remove container if empty
             if (notificationContainer.children.length === 0) {
                 notificationContainer.remove();
             }
-        }, 300);
-    });
+            // Reset last notification if manually closed
+            if (isManualClose) {
+                lastNotification = { message: '', type: '', timestamp: 0 };
+            }
+        }, CLOSE_ANIMATION_DURATION);
+    };
+
+    // Add close button handler
+    const closeButton = notification.querySelector('.notification-close');
+    closeButton.addEventListener('click', () => closeNotification(true));
 
     // Auto-remove notification after 5 seconds
     setTimeout(() => {
         if (notification.parentElement) {
-            notification.classList.add('fade-out');
-            setTimeout(() => {
-                notification.remove();
-                // Remove container if empty
-                if (notificationContainer.children.length === 0) {
-                    notificationContainer.remove();
-                }
-            }, 300);
+            closeNotification(false);
         }
     }, 5000);
 } 

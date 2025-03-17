@@ -1,7 +1,39 @@
+/**
+ * characterHandler.js
+ * Manages D&D character creation, loading, saving, and deletion
+ * 
+ * @typedef {Object} DefaultCharacter
+ * @property {string|null} id - The character's unique identifier
+ * @property {string} name - The character's name
+ * @property {number} level - The character's level
+ * @property {Object} class - The character's class information
+ * @property {number} class.level - The character's class level
+ * @property {Object|null} race - The character's race information
+ * @property {Object|null} background - The character's background information
+ * @property {Object} abilityScores - The character's ability scores
+ * @property {number} abilityScores.str - Strength score
+ * @property {number} abilityScores.dex - Dexterity score
+ * @property {number} abilityScores.con - Constitution score
+ * @property {number} abilityScores.int - Intelligence score
+ * @property {number} abilityScores.wis - Wisdom score
+ * @property {number} abilityScores.cha - Charisma score
+ * @property {Object} proficiencies - The character's proficiencies
+ * @property {Array} feats - The character's feats
+ * @property {Array} spells - The character's spells
+ * @property {Array} equipment - The character's equipment
+ * @property {string} lastModified - ISO timestamp of last modification
+ * 
+ * @typedef {Object} CharacterStorageResult
+ * @property {boolean} success - Whether the operation was successful
+ * @property {string} [message] - Optional message describing the result
+ * @property {Error} [error] - Optional error if operation failed
+ */
+
 // Character handling utilities
 import { Character } from '../models/Character.js';
 import { showNotification } from './notifications.js';
 import { navigation } from './navigation.js';
+import { SourceCard } from '../ui/SourceCard.js';
 
 let instance = null;
 
@@ -24,17 +56,30 @@ const defaultCharacter = {
     proficiencies: {},
     feats: [],
     spells: [],
-    equipment: []
+    equipment: [],
+    lastModified: new Date().toISOString()
 };
 
+/**
+ * Class responsible for managing D&D characters including creation, loading, saving, and deletion
+ */
 export class CharacterHandler {
+    /**
+     * Initializes a new CharacterHandler instance
+     * @private
+     */
     constructor() {
         if (instance) {
             throw new Error('CharacterHandler is a singleton. Use CharacterHandler.getInstance() instead.');
         }
         instance = this;
+        this.sourceCard = new SourceCard();
     }
 
+    /**
+     * Initializes the character handler and loads existing characters
+     * @returns {Promise<void>}
+     */
     initialize() {
         // Load existing characters
         this.loadCharacters();
@@ -42,10 +87,13 @@ export class CharacterHandler {
         // Initialize event listeners
         this.initializeEventListeners();
 
-        console.log('Character system initialized');
+        console.log('Character Handler initialized');
     }
 
-    // Initialize event listeners for character-related buttons
+    /**
+     * Sets up event listeners for character-related actions
+     * @private
+     */
     initializeEventListeners() {
         // Set up new character button
         const newCharacterBtn = document.getElementById('newCharacterBtn');
@@ -87,7 +135,11 @@ export class CharacterHandler {
         }
     }
 
-    // Load and display characters
+    /**
+     * Loads all saved characters from storage
+     * @returns {Promise<void>}
+     * @private
+     */
     async loadCharacters() {
         const characterList = document.getElementById('characterList');
         if (!characterList) return;
@@ -109,8 +161,20 @@ export class CharacterHandler {
 
             // Create character cards
             for (const character of uniqueCharacters) {
-                if (!characterList.querySelector(`[data-character-id="${character.id}"]`)) {
-                    const card = this.createCharacterCard(character);
+                // Skip if card already exists and character hasn't changed
+                const existingCard = characterList.querySelector(`[data-character-id="${character.id}"]`);
+                if (existingCard) {
+                    const lastModified = existingCard.querySelector('.last-modified span')?.textContent;
+                    const newLastModified = new Date(character.lastModified).toLocaleDateString();
+                    if (lastModified === newLastModified) {
+                        continue;
+                    }
+                }
+
+                const card = this.createCharacterCard(character);
+                if (existingCard) {
+                    existingCard.replaceWith(card);
+                } else {
                     characterList.insertAdjacentHTML('beforeend', card);
                 }
             }
@@ -124,7 +188,12 @@ export class CharacterHandler {
         }
     }
 
-    // Create a character card
+    /**
+     * Creates a card element for displaying a character
+     * @param {Character} character - The character to create a card for
+     * @returns {HTMLElement} The created character card element
+     * @private
+     */
     createCharacterCard(character) {
         return `
             <div class="col-md-6 col-lg-4 mb-4">
@@ -150,7 +219,7 @@ export class CharacterHandler {
                             </div>
                             <div class="last-modified">
                                 <i class="fas fa-clock me-2"></i>
-                                <span>${new Date(character.lastModified).toLocaleDateString()}</span>
+                                <span>Last modified: ${new Date(character.lastModified).toLocaleDateString()}</span>
                             </div>
                         </div>
                         <div class="card-actions mt-3">
@@ -167,7 +236,11 @@ export class CharacterHandler {
         `;
     }
 
-    // No Character Placeholder
+    /**
+     * Shows the empty state message when no characters exist
+     * @param {HTMLElement} container - The container to show the empty state in
+     * @private
+     */
     showEmptyState(container) {
         container.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 200px);">
@@ -180,6 +253,12 @@ export class CharacterHandler {
         `;
     }
 
+    /**
+     * Filters out duplicate characters based on ID
+     * @param {Array<Character>} characters - Array of characters to filter
+     * @returns {Array<Character>} Array of unique characters
+     * @private
+     */
     getUniqueCharacters(characters) {
         const uniqueMap = new Map(characters.map(char => [char.id, char]));
         return Array.from(uniqueMap.values()).sort((a, b) => {
@@ -189,6 +268,11 @@ export class CharacterHandler {
         });
     }
 
+    /**
+     * Sets up event listeners for character card interactions
+     * @param {HTMLElement} container - The container containing character cards
+     * @private
+     */
     setupCharacterCardListeners(container) {
         container.addEventListener('click', async (e) => {
             const card = e.target.closest('.character-card');
@@ -223,9 +307,19 @@ export class CharacterHandler {
         });
     }
 
-    // Character management methods
+    /**
+     * Handles the selection of a character
+     * @param {Character} character - The selected character
+     * @returns {Promise<void>}
+     * @private
+     */
     async handleCharacterSelect(character) {
         try {
+            // Don't reload if it's the same character
+            if (window.currentCharacter?.id === character.id) {
+                return;
+            }
+
             window.currentCharacter = Character.fromJSON(character);
 
             // Update active badge on all character cards
@@ -257,6 +351,12 @@ export class CharacterHandler {
         }
     }
 
+    /**
+     * Handles the export of a character to a JSON file
+     * @param {string} characterId - The ID of the character to export
+     * @returns {Promise<void>}
+     * @private
+     */
     async handleCharacterExport(characterId) {
         try {
             const result = await window.characterStorage.exportCharacter(characterId);
@@ -271,6 +371,12 @@ export class CharacterHandler {
         }
     }
 
+    /**
+     * Handles the deletion of a character
+     * @param {string} characterId - The ID of the character to delete
+     * @returns {Promise<void>}
+     * @private
+     */
     async handleCharacterDelete(characterId) {
         try {
             const result = await window.characterStorage.deleteCharacter(characterId);
@@ -298,11 +404,19 @@ export class CharacterHandler {
 
         } catch (error) {
             console.error('Error deleting character:', error);
-            showNotification('Error deleting character', 'danger');
+            // Only show error notification if we haven't already shown one from the result.success check
+            if (!document.querySelector('.notification-container .notification')) {
+                showNotification('Error deleting character', 'danger');
+            }
         }
     }
 
-    // Create a new character
+    /**
+     * Handles the creation of a new character
+     * @param {Event} e - The event that triggered character creation
+     * @returns {Promise<void>}
+     * @private
+     */
     async createNewCharacter(e) {
         if (e) e.preventDefault();
 
@@ -311,80 +425,101 @@ export class CharacterHandler {
         if (modal) {
             const bootstrapModal = new bootstrap.Modal(modal);
             bootstrapModal.show();
+
+            // Initialize source UI
+            this.sourceCard.container = document.getElementById('sourceBookSelection');
+            await this.sourceCard.initializeSourceSelection();
         } else {
             console.error('New character modal not found');
             showNotification('Could not open new character form', 'danger');
         }
     }
 
-    // Create a character from modal form
+    /**
+     * Creates a new character from the modal form data
+     * @returns {Promise<void>}
+     * @private
+     */
     async createCharacterFromModal() {
         try {
-            const nameInput = document.getElementById('newCharacterName');
-            const levelInput = document.getElementById('newCharacterLevel');
-
-            if (!nameInput || !levelInput) {
+            const form = document.getElementById('newCharacterForm');
+            if (!form) {
                 showNotification('Character creation form not found', 'danger');
                 return;
             }
 
+            // Trigger form validation
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const nameInput = document.getElementById('newCharacterName');
+            const levelInput = document.getElementById('newCharacterLevel');
+            const genderInput = document.getElementById('newCharacterGender');
+            const featVariant = document.getElementById('featVariant');
+            const multiclassVariant = document.getElementById('multiclassVariant');
+
             const name = nameInput.value.trim();
             const level = Number.parseInt(levelInput.value, 10);
 
-            if (!name) {
-                showNotification('Please enter a character name', 'warning');
+            // Get selected sources from the existing SourceCard instance
+            const selectedSources = new Set();
+
+            // Get all selected toggles
+            const selectedToggles = this.sourceCard.container.querySelectorAll('.source-toggle.selected');
+            for (const toggle of selectedToggles) {
+                selectedSources.add(toggle.getAttribute('data-source'));
+            }
+
+            // Validate source selection
+            if (!this.sourceCard.validateSourceSelection(selectedSources)) {
                 return;
             }
 
-            if (Number.isNaN(level) || level < 1 || level > 20) {
-                showNotification('Level must be between 1 and 20', 'warning');
-                return;
-            }
+            // Generate a UUID for the new character
+            const id = await window.characterStorage.generateUUID();
 
-            // Create a new character with form values
-            const newCharacter = {
-                id: crypto.randomUUID(),
+            // Create character with selected sources
+            const character = {
+                ...defaultCharacter,
+                id: id,
                 name: name,
                 level: level,
-                class: null,
-                race: null,
-                background: null,
-                abilityScores: {
-                    str: 10,
-                    dex: 10,
-                    con: 10,
-                    int: 10,
-                    wis: 10,
-                    cha: 10
-                },
-                proficiencies: [],
-                feats: [],
-                spells: [],
-                equipment: [],
-                lastModified: new Date().toISOString()
+                gender: genderInput.value,
+                allowedSources: Array.from(selectedSources),
+                variantRules: {
+                    feats: featVariant.checked,
+                    multiclassing: multiclassVariant.checked
+                }
             };
 
-            // Save the new character
-            const result = await window.characterStorage.saveCharacter(newCharacter);
+            // Create character in storage
+            const result = await window.characterStorage.saveCharacter(character);
             if (result.success) {
                 // Close the modal
                 const modal = document.getElementById('newCharacterModal');
                 if (modal) {
                     const bootstrapModal = bootstrap.Modal.getInstance(modal);
                     if (bootstrapModal) {
+                        // Move focus outside the modal before hiding it
+                        const newCharacterBtn = document.getElementById('newCharacterBtn');
+                        if (newCharacterBtn) {
+                            newCharacterBtn.focus();
+                        }
                         bootstrapModal.hide();
                     }
                 }
 
                 // Clear form
-                nameInput.value = '';
-                levelInput.value = '1';
+                form.reset();
+
+                // Properly initialize and select the character
+                await this.handleCharacterSelect(character);
 
                 showNotification('New character created successfully', 'success');
                 // Reload the character list
                 await this.loadCharacters();
-                // Navigate to character builder
-                navigation.loadPage('build');
             } else {
                 showNotification('Failed to create new character', 'danger');
             }
@@ -394,7 +529,11 @@ export class CharacterHandler {
         }
     }
 
-    // Import a character from file
+    /**
+     * Handles the import of a character from a JSON file
+     * @returns {Promise<void>}
+     * @private
+     */
     async handleCharacterImport() {
         try {
             const result = await window.characterStorage.importCharacter();
@@ -411,6 +550,11 @@ export class CharacterHandler {
         }
     }
 
+    /**
+     * Gets the singleton instance of CharacterHandler
+     * @returns {CharacterHandler} The singleton instance
+     * @static
+     */
     static getInstance() {
         if (!instance) {
             instance = new CharacterHandler();

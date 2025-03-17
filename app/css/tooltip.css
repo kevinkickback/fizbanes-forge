@@ -1,311 +1,399 @@
 /* D&D 5e Style Tooltips */
 :root {
-    /* Theme Colors */
-    --tooltip-title-color: var(--text-color);
-    --tooltip-title-color-spell: #7bb5ff;
-    --tooltip-title-color-condition: #ff7b7b;
-    --tooltip-title-color-action: #7bff7b;
-    --tooltip-title-color-object: #ffb77b;
-    --tooltip-title-color-variantrule: #c77bff;
-    --tooltip-title-color-book: #ffd700;
-    
-    /* Border Colors */
-    --tooltip-border-color: #444;
-    
-    /* Text Colors */
-    --tooltip-text-color: #fff;
-    --tooltip-text-muted: #ccc;
-    --tooltip-text-link: #4da6ff;
+	/* Theme Colors */
+	--tooltip-title-color: var(--text-color);
+	--tooltip-title-color-spell: #7bb5ff;
+	--tooltip-title-color-condition: #ff7b7b;
+	--tooltip-title-color-action: #7bff7b;
+	--tooltip-title-color-object: #ffb77b;
+	--tooltip-title-color-variantrule: #c77bff;
+	--tooltip-title-color-book: #ffd700;
+
+	/* Item Rarity Colors */
+	--item-rarity-common: #ffffff;
+	--item-rarity-uncommon: #1eff00;
+	--item-rarity-rare: #0070dd;
+	--item-rarity-very-rare: #a335ee;
+	--item-rarity-legendary: #ff8000;
+	--item-rarity-artifact: #e6cc80;
+
+	/* Border Colors */
+	--tooltip-border-color: #444;
+
+	/* Text Colors */
+	--tooltip-text-color: #fff;
+	--tooltip-text-muted: #ccc;
+	--tooltip-text-link: #4da6ff;
 }
 
 /* Bootstrap-style tooltips */
 .tooltip {
-    position: fixed;
-    z-index: 1070;
-    display: block;
-    margin: 0;
-    font-family: inherit;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 1.5;
-    text-align: left;
-    text-decoration: none;
-    text-shadow: none;
-    text-transform: none;
-    letter-spacing: normal;
-    word-break: normal;
-    word-spacing: normal;
-    white-space: normal;
-    line-break: auto;
-    font-size: 0.875rem;
-    word-wrap: break-word;
-    opacity: 0;
-    pointer-events: none;
+	position: fixed;
+	z-index: 1070;
+	display: block;
+	margin: 0;
+	font-family: inherit;
+	font-style: normal;
+	font-weight: 400;
+	line-height: 1.5;
+	text-align: left;
+	text-decoration: none;
+	text-shadow: none;
+	text-transform: none;
+	letter-spacing: normal;
+	word-break: normal;
+	word-spacing: normal;
+	white-space: normal;
+	line-break: auto;
+	font-size: 0.875rem;
+	word-wrap: break-word;
+	opacity: 0;
+	pointer-events: none;
 }
 
 .tooltip.show {
-    opacity: 1;
+	opacity: 1;
 }
 
 .tooltip-inner {
-    max-width: 300px;
-    padding: 0.75rem 1rem;
-    color: #fff;
-    text-align: left;
-    background-color: var(--secondary-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--border-color);
+	max-width: 300px;
+	padding: 0.75rem 1rem;
+	color: #fff;
+	text-align: left;
+	background-color: var(--secondary-color);
+	border-radius: var(--border-radius);
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	border: 1px solid var(--border-color);
 }
 
 .tooltip-inner h4 {
-    color: var(--accent-color);
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
+	color: var(--accent-color);
+	font-size: 1rem;
+	margin-bottom: 0.5rem;
+	font-weight: 600;
 }
 
 .tooltip-inner p {
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    line-height: 1.4;
+	margin-bottom: 0.5rem;
+	font-size: 0.9rem;
+	line-height: 1.4;
 }
 
 .tooltip-inner p:last-child {
-    margin-bottom: 0;
+	margin-bottom: 0;
 }
 
 /* Tooltip arrows */
 .tooltip .tooltip-arrow {
-    position: absolute;
-    display: block;
-    width: 0.8rem;
-    height: 0.4rem;
+	position: absolute;
+	display: block;
+	width: 0.8rem;
+	height: 0.4rem;
 }
 
 .tooltip .tooltip-arrow::before {
-    position: absolute;
-    content: "";
-    border-color: transparent;
-    border-style: solid;
+	position: absolute;
+	content: "";
+	border-color: transparent;
+	border-style: solid;
 }
 
 .tooltip.bs-tooltip-top .tooltip-arrow {
-    bottom: 0;
+	bottom: 0;
 }
 
 .tooltip.bs-tooltip-top .tooltip-arrow::before {
-    top: -1px;
-    border-width: 0.4rem 0.4rem 0;
-    border-top-color: var(--border-color);
+	top: -1px;
+	border-width: 0.4rem 0.4rem 0;
+	border-top-color: var(--border-color);
 }
 
 .tooltip.bs-tooltip-bottom .tooltip-arrow {
-    top: 0;
+	top: 0;
 }
 
 .tooltip.bs-tooltip-bottom .tooltip-arrow::before {
-    bottom: -1px;
-    border-width: 0 0.4rem 0.4rem;
-    border-bottom-color: var(--border-color);
+	bottom: -1px;
+	border-width: 0 0.4rem 0.4rem;
+	border-bottom-color: var(--border-color);
 }
 
 /* Custom D&D Tooltips */
 .tooltip-container {
-    position: fixed;
-    z-index: 9999;
-    pointer-events: none;
+	position: fixed;
+	z-index: 9999;
+	pointer-events: none;
 }
 
 .tooltip-container .tooltip {
-    position: absolute;
-    min-width: 360px;
-    max-width: 600px;
-    background: rgba(25, 25, 25, 0.98);
-    border: 1px solid var(--tooltip-border-color);
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    font-family: 'Roboto', 'Helvetica Neue', sans-serif;
-    color: var(--tooltip-text-color);
-    padding: 8px 12px;
-    pointer-events: auto;
-    opacity: 0;
-    font-size: 14px;
-    line-height: 1.5;
-    transform: translateX(4px);
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+	position: absolute;
+	min-width: 360px;
+	max-width: 600px;
+	background: rgba(25, 25, 25, 0.98);
+	border: 1px solid var(--tooltip-border-color);
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+	font-family: "Roboto", "Helvetica Neue", sans-serif;
+	color: var(--tooltip-text-color);
+	padding: 8px 12px;
+	pointer-events: auto;
+	opacity: 0;
+	font-size: 14px;
+	line-height: 1.5;
+	transform: translateX(4px);
+	transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
 .tooltip-container .tooltip.show {
-    opacity: 1;
-    transform: translateX(0);
+	opacity: 1;
+	transform: translateX(0);
 }
 
 .tooltip-container .tooltip.hide {
-    opacity: 0;
-    transform: translateX(-4px);
+	opacity: 0;
+	transform: translateX(-4px);
 }
 
 .tooltip-container .tooltip-content {
-    display: inline;
-    white-space: normal;
+	display: inline;
+	white-space: normal;
 }
 
 .tooltip-container .tooltip-content span,
 .tooltip-container .tooltip-content .reference-link {
-    display: inline;
-    white-space: normal;
+	display: inline;
+	white-space: normal;
 }
 
 .tooltip-container .tooltip-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--tooltip-title-color);
-    border-bottom: 1px solid var(--tooltip-border-color);
-    padding-bottom: 2px;
-    margin-bottom: 2px;
-    line-height: 1.2;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--tooltip-title-color);
+	border-bottom: 1px solid var(--tooltip-border-color);
+	padding-bottom: 2px;
+	margin-bottom: 2px;
+	line-height: 1.2;
 }
 
 .tooltip-container .tooltip-quick-desc {
-    font-size: 14px;
-    color: var(--tooltip-text-color);
-    font-style: italic;
-    margin: 1px 0;
-    padding: 1px 0;
-    line-height: 1.3;
-    border-bottom: 1px solid var(--tooltip-border-color);
+	font-size: 14px;
+	color: var(--tooltip-text-color);
+	font-style: italic;
+	margin: 1px 0;
+	padding: 1px 0;
+	line-height: 1.3;
+	border-bottom: 1px solid var(--tooltip-border-color);
 }
 
 .tooltip-container .tooltip-metadata {
-    font-size: 13px;
-    color: var(--tooltip-text-muted);
-    margin: 2px 0;
+	font-size: 13px;
+	color: var(--tooltip-text-muted);
+	margin: 2px 0;
 }
 
 .tooltip-container .tooltip-casting-details {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 8px;
-    font-size: 13px;
-    color: #ddd;
-    margin: 4px 0;
-    padding: 4px;
-    background: rgba(40, 40, 40, 0.5);
-    border-radius: 3px;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 4px 8px;
+	font-size: 13px;
+	color: #ddd;
+	margin: 4px 0;
+	padding: 4px;
+	background: rgba(40, 40, 40, 0.5);
+	border-radius: 3px;
 }
 
 .tooltip-container .tooltip-description {
-    color: var(--tooltip-text-color);
-    line-height: 1.4;
-    margin: 4px 0;
-    font-size: 14px;
+	color: var(--tooltip-text-color);
+	line-height: 1.4;
+	margin: 4px 0;
+	font-size: 14px;
 }
 
 .tooltip-container .tooltip-description em {
-    font-style: italic;
-    color: var(--tooltip-title-color);
+	font-style: italic;
+	color: var(--tooltip-title-color);
 }
 
 .tooltip-container .tooltip-source {
-    font-size: 12px;
-    color: var(--tooltip-text-link);
-    text-align: right;
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid var(--tooltip-border-color);
+	font-size: 12px;
+	color: var(--tooltip-text-link);
+	text-align: right;
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: 1px solid var(--tooltip-border-color);
 }
 
 /* Activity table styles */
 .tooltip-container .tooltip-table {
-    width: 100%;
-    margin: 8px 0;
-    border-collapse: collapse;
+	width: 100%;
+	margin: 8px 0;
+	border-collapse: collapse;
 }
 
 .tooltip-container .tooltip-table th,
 .tooltip-container .tooltip-table td {
-    padding: 4px 8px;
-    text-align: left;
-    border-bottom: 1px solid #444;
+	padding: 4px 8px;
+	text-align: left;
+	border-bottom: 1px solid #444;
 }
 
 .tooltip-container .tooltip-table th {
-    color: #e6cc80;
-    font-weight: 500;
-    font-size: 13px;
+	color: #e6cc80;
+	font-weight: 500;
+	font-size: 13px;
 }
 
 .tooltip-container .tooltip-table td {
-    color: #eee;
-    font-size: 13px;
+	color: #eee;
+	font-size: 13px;
 }
 
 /* Special sections */
 .tooltip-container .tooltip-section {
-    margin: 8px 0;
+	margin: 8px 0;
 }
 
 .tooltip-container .tooltip-section-title {
-    color: #e6cc80;
-    font-style: italic;
-    margin-bottom: 4px;
-    font-size: 14px;
+	color: #e6cc80;
+	font-style: italic;
+	margin-bottom: 4px;
+	font-size: 14px;
 }
 
 /* Weight and properties */
 .tooltip-container .tooltip-properties {
-    color: #ccc;
-    font-size: 13px;
-    font-style: italic;
+	color: #ccc;
+	font-size: 13px;
+	font-style: italic;
 }
 
 /* Reference links within tooltips */
+.reference-link {
+	cursor: help;
+	position: relative;
+	display: inline;
+	color: var(--accent-secondary);
+	text-decoration: none;
+	transition: color 0.2s ease;
+	white-space: normal;
+}
 
+.reference-link:hover {
+	color: var(--accent-secondary-hover);
+	text-decoration: none;
+}
 
 /* Italicized sections */
 .tooltip-container .tooltip-italic {
-    font-style: italic;
-    color: var(--tooltip-text-muted);
+	font-style: italic;
+	color: var(--tooltip-text-muted);
 }
 
 /* Specific styling for different reference types */
 .tooltip-container .tooltip[data-type="spell"] .tooltip-title {
-    color: var(--tooltip-title-color-spell);
+	color: var(--tooltip-title-color-spell);
 }
 
 .tooltip-container .tooltip[data-type="condition"] .tooltip-title {
-    color: var(--tooltip-title-color-condition);
+	color: var(--tooltip-title-color-condition);
 }
 
 .tooltip-container .tooltip[data-type="condition"] .tooltip-description {
-    color: #fff;
-    padding: 8px;
-    background: rgba(255, 123, 123, 0.1);
-    border-radius: 4px;
-    margin: 8px 0;
+	color: #fff;
+	padding: 8px;
+	background: rgba(255, 123, 123, 0.1);
+	border-radius: 4px;
+	margin: 8px 0;
 }
 
 .tooltip-container .tooltip[data-type="condition"] .tooltip-source {
-    color: var(--tooltip-title-color-condition);
+	color: var(--tooltip-title-color-condition);
 }
 
 .tooltip-container .tooltip[data-type="action"] .tooltip-title {
-    color: var(--tooltip-title-color-action);
+	color: var(--tooltip-title-color-action);
 }
 
 .tooltip-container .tooltip[data-type="object"] .tooltip-title {
-    color: var(--tooltip-title-color-object);
+	color: var(--tooltip-title-color-object);
 }
 
 .tooltip-container .tooltip[data-type="variantrule"] .tooltip-title {
-    color: var(--tooltip-title-color-variantrule);
+	color: var(--tooltip-title-color-variantrule);
 }
 
 .tooltip-container .tooltip[data-type="book"] .tooltip-title {
-    color: var(--tooltip-title-color-book);
+	color: var(--tooltip-title-color-book);
 }
 
 .tooltip-container .tooltip[data-type="book"] .tooltip-metadata {
-    color: var(--tooltip-title-color);
-} 
+	color: var(--tooltip-title-color);
+}
+
+/* Item rarity colors */
+.tooltip-container .tooltip[data-type="item"] .item-type {
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+
+/* Common items - White */
+.tooltip-container .tooltip[data-type="item"] .item-rarity.rarity-common {
+	color: var(--item-rarity-common);
+}
+
+/* Uncommon items - Green */
+.tooltip-container .tooltip[data-type="item"] .item-rarity.rarity-uncommon {
+	color: var(--item-rarity-uncommon);
+}
+
+/* Rare items - Blue */
+.tooltip-container .tooltip[data-type="item"] .item-rarity.rarity-rare {
+	color: var(--item-rarity-rare);
+}
+
+/* Very Rare items - Purple */
+.tooltip-container .tooltip[data-type="item"] .item-rarity.rarity-very-rare {
+	color: var(--item-rarity-very-rare);
+}
+
+/* Legendary items - Orange */
+.tooltip-container .tooltip[data-type="item"] .item-rarity.rarity-legendary {
+	color: var(--item-rarity-legendary);
+}
+
+/* Artifact items - Special Gold */
+.tooltip-container .tooltip[data-type="item"] .item-rarity.rarity-artifact {
+	color: var(--item-rarity-artifact);
+	font-style: italic;
+}
+
+/* Tooltip test section styles */
+.tooltip-test-content {
+	color: var(--text-color);
+}
+
+.tooltip-test-content h3 {
+	color: var(--accent-color);
+	margin-bottom: 1rem;
+}
+
+.tooltip-test-content p {
+	margin-bottom: 0.5rem;
+	line-height: 1.5;
+}
+
+.tooltip-test-content .reference-group {
+	margin-bottom: 1rem;
+}
+
+.tooltip-test-content .reference-group h4 {
+	color: var(--accent-color);
+	margin-bottom: 0.5rem;
+}
+
+.tooltip-test-content .reference-group .reference-item {
+	display: inline-block;
+	margin-right: 1rem;
+	margin-bottom: 0.5rem;
+}

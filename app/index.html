@@ -542,28 +542,58 @@
             </div>
             <div class="card-body">
                 <div class="tooltip-test-content">
-                    <h3>Items</h3>
-                    <p>This is a {@item Thieves' Tools|PHB|p154} used by rogues.</p>
+                    <h3>Tooltip Reference Tests</h3>
 
-                    <h3>Spells</h3>
-                    <p>The wizard cast {@spell light} to illuminate the dark cave.</p>
-                    <p>The cleric prepared {@spell cure wounds} and {@spell bless} for the day.</p>
+                    <div class="reference-group">
+                        <h4>Classes</h4>
+                        <p>{@class Fighter|PHB} (PHB)</p>
+                        <p>{@class Fighter|XPHB} (XPHB)</p>
+                    </div>
 
-                    <h3>Classes</h3>
-                    <p>The {@class Fighter} stood ready with their weapon.</p>
-                    <p>A {@class Wizard} studied their spellbook intently.</p>
+                    <div class="reference-group">
+                        <h4>Races</h4>
+                        <p>{@race Dwarf|PHB} (PHB)</p>
+                        <p>{@race Elf|XPHB} (XPHB)</p>
+                    </div>
 
-                    <h3>Races</h3>
-                    <p>The {@race Dwarf} mined deep in the mountains.</p>
-                    <p>A {@race Elf} moved silently through the forest.</p>
+                    <div class="reference-group">
+                        <h4>Items</h4>
+                        <p>{@item Staff of Power|PHB} (PHB)</p>
+                        <p>{@item Battleaxe|PHB} (PHB)</p>
+                        <p>{@item Leather Armor|PHB} (PHB)</p>
+                    </div>
 
-                    <h3>Actions</h3>
-                    <p>The warrior used the {@action Dodge} action.</p>
-                    <p>The rogue attempted to {@action Hide}.</p>
+                    <div class="reference-group">
+                        <h4>Spells</h4>
+                        <p>{@spell light|PHB} (PHB)</p>
+                    </div>
 
-                    <h3>Conditions</h3>
-                    <p>The monster became {@condition poisoned}.</p>
-                    <p>The warrior was {@condition prone}.</p>
+                    <div class="reference-group">
+                        <h4>Actions & Conditions</h4>
+                        <p>{@action Dodge|PHB} (PHB)</p>
+                        <p>{@condition poisoned|PHB} (PHB)</p>
+                    </div>
+
+                    <div class="reference-group">
+                        <h4>Character Options</h4>
+                        <p>{@background Acolyte|PHB} (PHB)</p>
+                        <p>{@feature Darkvision|PHB} (PHB)</p>
+                        <p>{@feat Alert|PHB} (PHB)</p>
+                        <p>{@feat Fey Touched|XGTE} (XGTE)</p>
+                    </div>
+
+                    <div class="reference-group">
+                        <h4>Skills & Proficiencies</h4>
+                        <p>{@skill Stealth|PHB} (PHB)</p>
+                        <p>{@proficiency Light Armor|PHB} (PHB)</p>
+                        <p>{@language Common|PHB} (PHB)</p>
+                    </div>
+
+                    <div class="reference-group">
+                        <h4>Sources</h4>
+                        <p>{@source PHB} (PHB)</p>
+                        <p>{@source XPHB} (XPHB)</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -580,16 +610,119 @@
                 </div>
                 <div class="modal-body">
                     <form id="newCharacterForm">
-                        <div class="mb-3">
-                            <label for="newCharacterName" class="form-label">Character Name</label>
-                            <input type="text" class="form-control" id="newCharacterName" required>
+                        <!-- Basic Information Section -->
+                        <div class="form-section">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="newCharacterName" class="form-label">
+                                            <i class="fas fa-user"></i>Character Name
+                                        </label>
+                                        <input type="text" class="form-control" id="newCharacterName" required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="newCharacterLevel" class="form-label">
+                                                <i class="fas fa-level-up-alt"></i>Starting Level
+                                            </label>
+                                            <input type="number" class="form-control" id="newCharacterLevel" value="1"
+                                                min="1" max="20" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="newCharacterGender" class="form-label">
+                                                <i class="fas fa-venus-mars"></i>Gender
+                                            </label>
+                                            <select class="form-select" id="newCharacterGender" required>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="nonBinary">Non-binary</option>
+                                                <option value="construct">Construct</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-image"></i>Portrait
+                                    </label>
+                                    <div class="character-icon-selector">
+                                        <div class="icon-grid">
+                                            <!-- Icons will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Source Books</label>
+
+                        <!-- Ability Scores and Variant Rules Section -->
+                        <div class="form-section">
+                            <div class="row">
+                                <div class="col-md-6 ability-scores-section">
+                                    <label class="form-label">
+                                        <i class="fas fa-dice"></i>Ability Score Generation
+                                    </label>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="abilityScoreMethod"
+                                            id="pointBuy" value="pointBuy" checked>
+                                        <label class="form-check-label" for="pointBuy">
+                                            Point Buy (27 points)
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="abilityScoreMethod"
+                                            id="standardArray" value="standardArray">
+                                        <label class="form-check-label" for="standardArray">
+                                            Standard Array (15, 14, 13, 12, 10, 8)
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="abilityScoreMethod"
+                                            id="rollDice" value="rollDice">
+                                        <label class="form-check-label" for="rollDice">
+                                            Custom (No restrictions)
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 variant-rules-section">
+                                    <label class="form-label">
+                                        <i class="fas fa-cogs"></i>Variant Rules
+                                    </label>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="featVariant" checked>
+                                        <label class="form-check-label" for="featVariant">
+                                            Feats (Optional)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="multiclassVariant" checked>
+                                        <label class="form-check-label" for="multiclassVariant">
+                                            Multiclassing
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Source Books Section -->
+                        <div class="form-section">
+                            <div id="sourceBookHeader">
+                                <div class="mb-1">
+                                    <label class="form-label">
+                                        <i class="fas fa-book"></i>Source Books
+                                    </label>
+                                    <div class="d-flex align-items-center gap-2 ps-2">
+                                        <a href="#" class="text-decoration-none text-accent"
+                                            id="selectAllSources">Select All</a>
+                                        <span class="text-muted">|</span>
+                                        <a href="#" class="text-decoration-none text-accent"
+                                            id="deselectAllSources">None</a>
+                                    </div>
+                                </div>
+                            </div>
                             <div id="sourceBookSelection">
                                 <!-- Source book toggles will be added here -->
                             </div>
-                            <small class="text-muted">At least one Player's Handbook (2014 or 2024) must be
+                            <small class="text-muted">* At least one Player's Handbook (2014 or 2024) must be
                                 selected</small>
                         </div>
                     </form>

@@ -55,5 +55,8 @@ contextBridge.exposeInMainWorld("characterStorage", {
   },
   checkCharacterFiles: (directory) => {
     return ipcRenderer.invoke("check-character-files", directory);
+  },
+  generateUUID: () => {
+    return ipcRenderer.invoke("generateUUID");
   }
 });

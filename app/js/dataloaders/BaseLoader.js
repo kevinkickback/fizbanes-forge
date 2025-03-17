@@ -1,20 +1,22 @@
 /**
  * BaseLoader.js
  * Base class for all data loaders with improved caching and lazy loading
- */
-
-/**
+ * 
  * @typedef {Object} CacheEntry
  * @property {any} data - The cached data
  * @property {number} timestamp - When the entry was last accessed
  * @property {number} expiry - When the entry should expire
- */
-
-/**
+ * 
  * @typedef {Object} LoadOptions
  * @property {number} [maxRetries=3] - Maximum number of retries for failed loads
  * @property {number} [cacheExpiry=3600000] - Cache expiry in milliseconds (default 1 hour)
  * @property {boolean} [forceRefresh] - Force a cache refresh
+ * 
+ * @typedef {Object} CacheStats
+ * @property {number} totalEntries - Total number of entries in cache
+ * @property {number} expiredEntries - Number of expired entries
+ * @property {number} pendingLoads - Number of pending load operations
+ * @property {number} averageAge - Average age of cache entries in milliseconds
  */
 
 export class BaseLoader {

@@ -469,7 +469,7 @@ ipcMain.handle("importCharacter", async (event) => {
     });
 
     if (result.canceled || result.filePaths.length === 0) {
-      return { success: false, message: "No files selected" };
+      return { success: false, message: "No files selected", type: 'warning' };
     }
 
     const savePath = getCharactersFilePath();
@@ -529,7 +529,8 @@ ipcMain.handle("importCharacter", async (event) => {
         characters: importedCharacters,
         importCount: importedCharacters.length,
         failedCount: failedImports.length,
-        failedImports: failedImports.length > 0 ? failedImports : undefined
+        failedImports: failedImports.length > 0 ? failedImports : undefined,
+        type: failedImports.length > 0 ? 'warning' : 'success'
       };
     }
 
@@ -537,14 +538,15 @@ ipcMain.handle("importCharacter", async (event) => {
       return {
         success: false,
         message: "All imports failed",
-        failedImports
+        failedImports,
+        type: 'danger'
       };
     }
 
-    return { success: false, message: "No characters were imported" };
+    return { success: false, message: "No characters were imported", type: 'warning' };
   } catch (error) {
     console.error("Error importing characters:", error);
-    return { success: false, message: "Error importing characters" };
+    return { success: false, message: "Error importing characters", type: 'danger' };
   }
 });
 

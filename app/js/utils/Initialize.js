@@ -1,3 +1,18 @@
+/**
+ * Initialize.js
+ * Core initialization utilities for the D&D Character Creator application
+ * 
+ * @typedef {Object} InitializationOptions
+ * @property {boolean} [loadAllData=true] - Whether to load all data sources
+ * @property {boolean} [skipCharacterLoad=false] - Whether to skip loading characters
+ * @property {boolean} [forceRefresh=false] - Whether to force refresh cached data
+ * 
+ * @typedef {Object} InitializationResult
+ * @property {boolean} success - Whether initialization was successful
+ * @property {Array<string>} loadedComponents - List of successfully loaded components
+ * @property {Array<Error>} errors - List of errors encountered during initialization
+ */
+
 // Core imports
 import { navigation } from './navigation.js';
 import { tooltipManager } from '../managers/TooltipManager.js';
@@ -6,13 +21,16 @@ import { dataLoader } from '../dataloaders/DataLoader.js';
 import { textProcessor } from './TextProcessor.js';
 
 /**
- * Initialize the application in the correct order
+ * Initializes all core components of the application in the correct order
+ * @param {InitializationOptions} [options] - Initialization options
+ * @returns {Promise<InitializationResult>} The result of initialization
+ * @throws {Error} If initialization fails
  */
-export async function initializeAll() {
+export async function initializeAll(options = {}) {
     try {
         // Initialize data loaders and reference resolver
         try {
-            const loadingPromises = [
+            await Promise.all([
                 dataLoader.loadSpells().catch(error => {
                     console.warn('Failed to load spells:', error);
                     return null;
@@ -44,35 +62,60 @@ export async function initializeAll() {
                 dataLoader.loadRaces().catch(error => {
                     console.warn('Failed to load races:', error);
                     return null;
+                }),
+                dataLoader.loadConditions().catch(error => {
+                    console.warn('Failed to load conditions:', error);
+                    return null;
+                }),
+                dataLoader.loadActions().catch(error => {
+                    console.warn('Failed to load actions:', error);
+                    return null;
+                }),
+                dataLoader.loadVariantRules().catch(error => {
+                    console.warn('Failed to load variant rules:', error);
+                    return null;
                 })
-            ];
-
-            const results = await Promise.all(loadingPromises);
-            const loadedData = results.filter(result => result !== null);
-            console.log(`Data loaders initialized successfully (${loadedData.length} of ${loadingPromises.length} loaders)`);
+            ]);
         } catch (error) {
             console.error('Error initializing data loaders:', error);
+            throw error;
+        }
+
+        // Initialize tooltip manager
+        try {
+            await tooltipManager.initialize();
+        } catch (error) {
+            console.error('Error initializing tooltip manager:', error);
+            throw error;
+        }
+
+        // Initialize text processor
+        try {
+            await textProcessor.initialize();
+        } catch (error) {
+            console.error('Error initializing text processor:', error);
+            throw error;
         }
 
         // Initialize character handler
-        await characterHandler.initialize();
-        console.log('Character handler initialized successfully');
+        try {
+            await characterHandler.initialize();
+        } catch (error) {
+            console.error('Error initializing character handler:', error);
+            throw error;
+        }
 
         // Initialize navigation
-        navigation.initialize();
-        console.log('Navigation initialized successfully');
-
-        // Initialize tooltips
-        tooltipManager.initialize();
-        console.log('Tooltip manager initialized successfully');
-
-        // Initialize text processor
-        textProcessor.initialize();
-        console.log('Text processor initialized successfully');
+        try {
+            await navigation.initialize();
+        } catch (error) {
+            console.error('Error initializing navigation:', error);
+            throw error;
+        }
 
         console.log('Application initialized successfully');
     } catch (error) {
-        console.error('Error during initialization:', error);
+        console.error('Failed to initialize application:', error);
         throw error;
     }
 }

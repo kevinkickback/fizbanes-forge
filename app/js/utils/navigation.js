@@ -1,17 +1,40 @@
-// Navigation utilities
+/**
+ * navigation.js
+ * Handles page navigation and routing in the D&D Character Creator
+ * 
+ * @typedef {Object} NavigationState
+ * @property {string} currentPage - The currently active page
+ * @property {boolean} _initialized - Whether the navigation system has been initialized
+ * 
+ * @typedef {Object} PageConfig
+ * @property {string} name - The name of the page
+ * @property {boolean} [requiresCharacter=true] - Whether a character must be selected
+ * @property {Function} [onLoad] - Callback function when page is loaded
+ * 
+ * @typedef {Object} NavigationOptions
+ * @property {boolean} [forceReload=false] - Whether to force reload the page content
+ * @property {boolean} [skipAnimation=false] - Whether to skip transition animations
+ */
 
-// Import required dependencies
 import { showNotification } from './notifications.js';
 import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
 
-// Navigation app with all navigation-related functionality
+/**
+ * Navigation app with all navigation-related functionality
+ * @type {NavigationState & {
+ *   initialize: () => Promise<void>,
+ *   loadPage: (pageName: string, options?: NavigationOptions) => Promise<void>,
+ *   _initializePageContent: (pageName: string) => Promise<void>
+ * }}
+ */
 export const navigation = {
     currentPage: 'home',
     _initialized: false,
 
     /**
      * Initialize the navigation system
+     * @returns {Promise<void>}
      */
     initialize() {
         if (this._initialized) return;
@@ -38,10 +61,12 @@ export const navigation = {
     },
 
     /**
-     * Load a page by name
-     * @param {string} pageName - Name of the page to load
+     * Loads and displays a specific page
+     * @param {string} pageName - The name of the page to load
+     * @param {NavigationOptions} [options] - Navigation options
+     * @returns {Promise<void>}
      */
-    loadPage(pageName) {
+    loadPage(pageName, options = {}) {
         // Prevent navigation to character pages if no character is selected
         if (['build', 'equipment', 'details'].includes(pageName) &&
             (!window.currentCharacter || !window.currentCharacter.id)) {
@@ -73,7 +98,9 @@ export const navigation = {
     },
 
     /**
-     * Initialize content for the current page
+     * Initializes the content for a specific page
+     * @param {string} pageName - The name of the page to initialize
+     * @returns {Promise<void>}
      * @private
      */
     _initializePageContent(pageName) {
