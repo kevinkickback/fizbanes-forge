@@ -133,6 +133,19 @@ export class CharacterHandler {
             // Add click handler
             newCreateBtn.addEventListener('click', () => this.createCharacterFromModal());
         }
+
+        // Set up save character button
+        const saveCharacterBtn = document.getElementById('saveCharacter');
+        if (saveCharacterBtn) {
+            // Remove any existing event listeners
+            const newSaveBtn = saveCharacterBtn.cloneNode(true);
+            saveCharacterBtn.parentNode.replaceChild(newSaveBtn, saveCharacterBtn);
+
+            // Add click handler
+            newSaveBtn.addEventListener('click', async () => {
+                await this.saveCharacterDetails();
+            });
+        }
     }
 
     /**
@@ -342,12 +355,112 @@ export class CharacterHandler {
                 }
             }
 
+            // Populate the details page if we're on it
+            await this.populateDetailsPage();
+
             // Dispatch character changed event
             document.dispatchEvent(new CustomEvent('characterChanged'));
 
         } catch (error) {
             console.error('Error selecting character:', error);
             showNotification('Error selecting character', 'danger');
+        }
+    }
+
+    /**
+     * Populates the details page with the current character's information
+     * @returns {Promise<void>}
+     * @private
+     */
+    async populateDetailsPage() {
+        if (!window.currentCharacter) return;
+
+        try {
+            // Get all the input fields
+            const characterName = document.getElementById('characterName');
+            const playerName = document.getElementById('playerName');
+            const height = document.getElementById('height');
+            const weight = document.getElementById('weight');
+            const gender = document.getElementById('gender');
+            const backstory = document.getElementById('backstory');
+
+            // Populate the fields with character data
+            if (characterName) characterName.value = window.currentCharacter.name || '';
+            if (playerName) playerName.value = window.currentCharacter.playerName || '';
+            if (height) height.value = window.currentCharacter.height || '';
+            if (weight) weight.value = window.currentCharacter.weight || '';
+            if (gender) gender.value = window.currentCharacter.gender || '';
+            if (backstory) backstory.value = window.currentCharacter.backstory || '';
+
+            // Show unsaved changes indicator when fields are modified
+            const showUnsavedChanges = () => {
+                const indicator = document.getElementById('unsavedChangesIndicator');
+                if (indicator) {
+                    indicator.style.display = 'inline-block';
+                }
+            };
+
+            // Add input event listeners to all fields
+            for (const field of [characterName, playerName, height, weight, gender, backstory]) {
+                if (field) {
+                    field.addEventListener('input', showUnsavedChanges);
+                }
+            }
+
+        } catch (error) {
+            console.error('Error populating details page:', error);
+            showNotification('Error loading character details', 'danger');
+        }
+    }
+
+    /**
+     * Saves the current character's details
+     * @returns {Promise<void>}
+     * @private
+     */
+    async saveCharacterDetails() {
+        if (!window.currentCharacter) return;
+
+        try {
+            // Get all the input fields
+            const characterName = document.getElementById('characterName');
+            const playerName = document.getElementById('playerName');
+            const height = document.getElementById('height');
+            const weight = document.getElementById('weight');
+            const gender = document.getElementById('gender');
+            const backstory = document.getElementById('backstory');
+
+            // Update character data
+            window.currentCharacter.name = characterName?.value || '';
+            window.currentCharacter.playerName = playerName?.value || '';
+            window.currentCharacter.height = height?.value || '';
+            window.currentCharacter.weight = weight?.value || '';
+            window.currentCharacter.gender = gender?.value || '';
+            window.currentCharacter.backstory = backstory?.value || '';
+            window.currentCharacter.lastModified = new Date().toISOString();
+
+            // Save to storage
+            await window.characterStorage.saveCharacter(window.currentCharacter);
+
+            // Update the character card
+            const characterCard = document.querySelector(`[data-character-id="${window.currentCharacter.id}"]`);
+            if (characterCard) {
+                const cardTitle = characterCard.querySelector('.card-title');
+                if (cardTitle) {
+                    cardTitle.textContent = window.currentCharacter.name || 'Unnamed Character';
+                }
+            }
+
+            // Hide unsaved changes indicator
+            const indicator = document.getElementById('unsavedChangesIndicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+
+            showNotification('Character details saved', 'success');
+        } catch (error) {
+            console.error('Error saving character details:', error);
+            showNotification('Error saving character details', 'danger');
         }
     }
 
@@ -393,21 +506,18 @@ export class CharacterHandler {
                 characterCard.remove();
             }
 
+            // Show appropriate notification based on result
             if (result.success) {
                 showNotification('Character deleted successfully', 'success');
+                // Reload the home page since the character list needs to be updated
+                navigation.loadPage('home');
             } else {
-                showNotification(result.message || 'Failed to delete character', 'danger');
+                throw new Error(result.message || 'Failed to delete character');
             }
-
-            // Reload the home page since the character list needs to be updated
-            navigation.loadPage('home');
 
         } catch (error) {
             console.error('Error deleting character:', error);
-            // Only show error notification if we haven't already shown one from the result.success check
-            if (!document.querySelector('.notification-container .notification')) {
-                showNotification('Error deleting character', 'danger');
-            }
+            showNotification(error.message || 'Error deleting character', 'danger');
         }
     }
 
@@ -480,6 +590,9 @@ export class CharacterHandler {
             // Generate a UUID for the new character
             const id = await window.characterStorage.generateUUID();
 
+            // Get selected ability score generation method
+            const abilityScoreMethod = form.querySelector('input[name="abilityScoreMethod"]:checked').value;
+
             // Create character with selected sources
             const character = {
                 ...defaultCharacter,
@@ -490,7 +603,8 @@ export class CharacterHandler {
                 allowedSources: Array.from(selectedSources),
                 variantRules: {
                     feats: featVariant.checked,
-                    multiclassing: multiclassVariant.checked
+                    multiclassing: multiclassVariant.checked,
+                    abilityScoreMethod: abilityScoreMethod
                 }
             };
 

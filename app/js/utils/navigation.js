@@ -118,6 +118,7 @@ export const navigation = {
                 break;
             case 'details':
                 // Initialize details page
+                characterHandler.populateDetailsPage();
                 break;
             case 'settings':
                 // Initialize settings page UI and controls

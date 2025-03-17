@@ -35,7 +35,7 @@ function createMainWindow() {
       nodeIntegration: false,
       webSecurity: true,
       devTools: !app.isPackaged,
-      preload: path.join(__dirname, 'js', 'preload.js')
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 

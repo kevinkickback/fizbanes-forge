@@ -604,10 +604,7 @@
         aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="newCharacterModalLabel">Create New Character</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+                <div class="modal-header"></div>
                 <div class="modal-body">
                     <form id="newCharacterForm">
                         <!-- Basic Information Section -->
@@ -722,12 +719,12 @@
                             <div id="sourceBookSelection">
                                 <!-- Source book toggles will be added here -->
                             </div>
-                            <small class="text-muted">* At least one Player's Handbook (2014 or 2024) must be
-                                selected</small>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
+                    <small class="me-auto">* At least one Player's Handbook (2014 or 2024) must be
+                        selected</small>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="createCharacterBtn">Create</button>
                 </div>
