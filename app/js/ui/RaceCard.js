@@ -1,36 +1,43 @@
 import { EntityCard } from './EntityCard.js';
-import { RaceManager } from '../managers/RaceManager.js';
-import { TextProcessor } from '../utils/TextProcessor.js';
 import { showNotification } from '../utils/notifications.js';
-import { characterInitializer } from '../utils/Initialize.js';
+import { AbilityScoreCard } from './AbilityScoreCard.js';
+import { characterHandler } from '../utils/characterHandler.js';
+import { raceManager } from '../managers/RaceManager.js';
+import { textProcessor } from '../utils/TextProcessor.js';
 
-export class RaceUI {
-    constructor(character) {
-        this.character = character;
-        this.raceManager = new RaceManager(character);
-        this.textProcessor = characterInitializer.textProcessor;
-        this.dataLoader = characterInitializer.dataLoader;
+export class RaceCard {
+    constructor() {
+        this.raceManager = raceManager;
+        this.characterHandler = characterHandler;
+        this.textProcessor = textProcessor;
+        this.raceSelect = null;
+        this.subraceSelect = null;
+        this.raceDetails = null;
+        this.abilityScoreContainer = document.querySelector('.ability-score-container');
+        this.initialized = false;
 
-        // Add event listener for character changes
-        document.addEventListener('characterLoaded', async () => {
-            // Only refresh race list if we're on the build page
-            if (document.body.getAttribute('data-current-page') === 'build') {
-                await this.refreshRaceList();
-            }
-        });
+        // Subscribe to character changes
+        this.characterHandler.addCharacterListener(this.handleCharacterChange.bind(this));
+    }
 
-        // Initialize when the DOM is ready and we're on the build page
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', async () => {
-                if (document.body.getAttribute('data-current-page') === 'build') {
-                    await this.initializeRaceSelection();
-                }
-            });
-        } else {
-            // DOM is already ready, initialize if on build page
-            if (document.body.getAttribute('data-current-page') === 'build') {
-                this.initializeRaceSelection();
-            }
+    /**
+     * Handles character changes
+     * @param {Character|null} character - The new character
+     * @private
+     */
+    handleCharacterChange(character) {
+        if (!this.initialized) return; // Only handle changes if already initialized
+
+        if (!character) {
+            this.clearRaceSelection();
+            return;
+        }
+
+        // Update race selection if needed
+        if (character.race?.selectedRace) {
+            this.raceSelect.value = character.race.selectedRace.id;
+            this.updateRaceDisplay(character.race.selectedRace.id);
+            this.updateSubraceSelect(character.race.selectedRace.id);
         }
     }
 
@@ -38,69 +45,122 @@ export class RaceUI {
      * Initialize race selection
      */
     async initializeRaceSelection() {
-        const raceSelect = document.getElementById('raceSelect');
-        const subraceSelect = document.getElementById('subraceSelect');
-        const raceDetails = document.getElementById('raceDetails');
-        const raceQuickDesc = document.getElementById('raceQuickDesc');
-        const raceImage = document.getElementById('raceImage');
-
-        if (!raceSelect) {
-            console.warn('Race select element not found on build page');
-            return;
-        }
-
-        if (!raceDetails || !raceQuickDesc || !raceImage) {
-            console.warn('Some race UI elements not found, but continuing with available elements');
-        }
-
-        // Initialize subrace select
-        if (subraceSelect) {
-            subraceSelect.disabled = true;
-            subraceSelect.innerHTML = '<option value="">Select Race First</option>';
-        }
-
-        // Set initial placeholder content
-        this.setRacePlaceholderContent();
+        if (this.initialized) return;
 
         try {
-            // Clear existing options
-            raceSelect.innerHTML = '<option value="">Select a Race</option>';
+            // Get DOM elements
+            this.raceSelect = document.getElementById('raceSelect');
+            this.subraceSelect = document.getElementById('subraceSelect');
+            this.raceDetails = document.getElementById('raceDetails');
 
-            // Load and sort races
-            const races = await this.dataLoader.loadRaces();
-            races.sort((a, b) => a.name.localeCompare(b.name));
-
-            // Add race options
-            for (const race of races) {
-                const option = document.createElement('option');
-                option.value = race.id;
-                const sourceDisplay = race.source === 'PHB' ? 'PHB\'14' :
-                    race.source === 'XPHB' ? 'PHB\'24' :
-                        race.source;
-                option.textContent = `${race.name} (${sourceDisplay})`;
-                raceSelect.appendChild(option);
+            if (!this.raceSelect) {
+                console.warn('Race select element not found');
+                return;
             }
 
-            // Set current race if one is selected
-            if (this.character.race?.selectedRace) {
-                raceSelect.value = this.character.race.selectedRace.id;
-                await this.updateRaceDisplay(this.character.race.selectedRace.id);
-
-                // Update subrace selection if applicable
-                if (this.character.race.selectedSubrace) {
-                    await this.updateSubraceSelect(this.character.race.selectedRace.id);
-                    if (subraceSelect) {
-                        subraceSelect.value = this.character.race.selectedSubrace.id;
-                    }
-                }
-            }
-
-            // Setup event listeners
+            // Set up event listeners
             this.setupEventListeners();
+
+            // Load and populate race list
+            await this.refreshRaceList();
+
+            // Set initial race if character has one
+            const character = this.characterHandler.currentCharacter;
+            if (character?.race?.selectedRace) {
+                this.raceSelect.value = character.race.selectedRace.id;
+                await this.updateRaceDisplay(character.race.selectedRace.id);
+                await this.updateSubraceSelect(character.race.selectedRace.id);
+            }
+
+            this.initialized = true;
         } catch (error) {
             console.error('Error initializing race selection:', error);
-            showNotification('Error loading races', 'error');
         }
+    }
+
+    /**
+     * Clear race selection
+     */
+    clearRaceSelection() {
+        if (!this.initialized) return;
+
+        if (this.raceSelect) this.raceSelect.value = '';
+        if (this.subraceSelect) {
+            this.subraceSelect.value = '';
+            this.subraceSelect.disabled = true;
+        }
+        if (this.raceDetails) this.raceDetails.innerHTML = '';
+    }
+
+    /**
+     * Set up event listeners for race selection
+     * @private
+     */
+    setupEventListeners() {
+        // Race selection change
+        this.raceSelect.addEventListener('change', async (e) => {
+            const raceId = e.target.value;
+            const character = this.characterHandler.currentCharacter;
+            if (!character) return;
+
+            if (!raceId) {
+                // Clear race selection
+                await this.raceManager.setRace(null);
+                this.subraceSelect.disabled = true;
+                this.subraceSelect.innerHTML = '<option value="">Select a race first</option>';
+                this.raceDetails.innerHTML = '';
+                return;
+            }
+
+            try {
+                // Set the race
+                const success = await this.raceManager.setRace(raceId);
+                if (!success) {
+                    throw new Error('Failed to set race');
+                }
+
+                // Update subrace selection
+                await this.updateSubraceSelect(raceId);
+
+                // Update race display
+                await this.updateRaceDisplay(raceId);
+            } catch (error) {
+                console.error('Error setting race:', error);
+                this.raceSelect.value = '';
+                showNotification('Error setting race', 'danger');
+            }
+        });
+
+        // Subrace selection change
+        this.subraceSelect.addEventListener('change', async (e) => {
+            const subraceId = e.target.value;
+            const raceId = this.raceSelect.value;
+            const character = this.characterHandler.currentCharacter;
+            if (!character) return;
+
+            if (!subraceId) {
+                // Clear subrace selection
+                await this.raceManager.setRace(raceId);
+                // Update display without subrace
+                await this.updateRaceDisplay(raceId);
+                return;
+            }
+
+            try {
+                // Set the race with subrace
+                const success = await this.raceManager.setRace(raceId, subraceId);
+                if (!success) {
+                    throw new Error('Failed to set subrace');
+                }
+
+                // Update race display with subrace
+                await this.updateRaceDisplay(raceId);
+            } catch (error) {
+                console.error('Error setting subrace:', error);
+                this.subraceSelect.value = '';
+                showNotification('Error setting subrace', 'danger');
+            }
+        });
     }
 
     /**
@@ -118,7 +178,7 @@ export class RaceUI {
             raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
             // Load and sort races
-            const races = await this.dataLoader.loadRaces();
+            const races = await this.raceManager.getAvailableRaces();
             races.sort((a, b) => a.name.localeCompare(b.name));
 
             // Add race options
@@ -133,9 +193,9 @@ export class RaceUI {
             }
 
             // Set current race if one is selected
-            if (this.character.race?.selectedRace) {
-                raceSelect.value = this.character.race.selectedRace.id;
-                await this.updateRaceDisplay(this.character.race.selectedRace.id);
+            if (this.characterHandler.currentCharacter.race?.selectedRace) {
+                raceSelect.value = this.characterHandler.currentCharacter.race.selectedRace.id;
+                await this.updateRaceDisplay(this.characterHandler.currentCharacter.race.selectedRace.id);
             }
         } catch (error) {
             console.error('Error refreshing race list:', error);
@@ -175,14 +235,20 @@ export class RaceUI {
 
         try {
             if (!raceId) {
-                this.setRacePlaceholderContent();
+                // Clear content instead of setting placeholder
+                raceQuickDesc.innerHTML = '';
+                raceImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+                raceDetails.innerHTML = '';
                 return;
             }
 
             const race = await this.raceManager.loadRace(raceId);
             if (!race) {
                 console.error('Failed to load race details');
-                this.setRacePlaceholderContent();
+                // Clear content on error
+                raceQuickDesc.innerHTML = '';
+                raceImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+                raceDetails.innerHTML = '';
                 return;
             }
 
@@ -226,7 +292,7 @@ export class RaceUI {
                         <ul class="mb-0">
                             ${race.source === 'XPHB' ?
                     `<li>Common</li>
-                             <li>2 normal languages of your choice</li>` :
+                                 <li>2 normal languages of your choice</li>` :
                     (race.languages?.length > 0 ?
                         race.languages.map(lang =>
                             `<li>${typeof lang === 'string' ? lang : Object.keys(lang)[0]}</li>`
@@ -238,7 +304,7 @@ export class RaceUI {
                 ${race.entries?.length > 0 ? `
                     <div class="detail-section traits-section mt-3">
                         <h6>Traits</h6>
-                        <ul class="mb-0 traits-grid">
+                        <div class="traits-grid">
                             ${await Promise.all(race.entries
                             .filter(entry => entry.type === 'entries' && entry.name)
                             .map(async entry => {
@@ -247,10 +313,10 @@ export class RaceUI {
                                     entry.entries || '';
                                 const processedDescription = await this.textProcessor.processText(description);
                                 const encodedDescription = encodeURIComponent(processedDescription);
-                                return `<li class="has-tooltip" data-tooltip="${encodedDescription}">${entry.name}</li>`;
+                                return `<div class="trait-tag has-tooltip" data-tooltip="${encodedDescription}">${entry.name}</div>`;
                             })
                         ).then(results => results.join(''))}
-                        </ul>
+                        </div>
                     </div>` : ''}
             `;
 
@@ -272,65 +338,25 @@ export class RaceUI {
     }
 
     /**
-     * Set placeholder content for race
-     */
-    setRacePlaceholderContent() {
-        const raceImage = document.getElementById('raceImage');
-        const raceQuickDesc = document.getElementById('raceQuickDesc');
-        const raceDetails = document.getElementById('raceDetails');
-
-        if (!raceImage || !raceQuickDesc || !raceDetails) return;
-
-        // Set placeholder image
-        raceImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-
-        // Set placeholder quick description
-        raceQuickDesc.innerHTML = `
-            <div class="placeholder-content">
-                <h5>Select a Race</h5>
-                <p>Choose a race to see details about their traits, abilities, and other characteristics.</p>
-            </div>`;
-
-        // Set placeholder details
-        raceDetails.innerHTML = `
-            <div class="race-details-grid">
-                <div class="detail-section">
-                    <h6>Ability Score Increase</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Size</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Speed</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Languages</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-            </div>`;
-    }
-
-    /**
-     * Check for and handle race ability score choices
+     * Check for race ability score choices
+     * @returns {boolean} True if the race has ability score choices
      */
     checkRaceAbilityChoices() {
-        if (!this.character.race.hasPendingChoices()) return;
+        const character = this.characterHandler.currentCharacter;
+        if (!character?.race?.selectedRace?.ability) return false;
 
-        const choices = this.character.race.getPendingChoices();
-        for (const [source, choice] of Object.entries(choices)) {
-            this.showAbilityChoiceDialog(choice, source);
+        const ability = character.race.selectedRace.ability;
+        if (!Array.isArray(ability)) return false;
+
+        // Check for races that have explicit choices
+        for (const score of ability) {
+            if (typeof score === 'object' &&
+                ((score.choose?.from && score.choose?.count) ||
+                    (score.mode === 'choose' && score.from && score.count))) {
+                return true;
+            }
         }
+        return false;
     }
 
     /**
@@ -421,13 +447,13 @@ export class RaceUI {
             }
 
             // Apply choices
-            if (this.character.race.applyAbilityChoices(choices, source)) {
+            if (this.characterHandler.currentCharacter.race.applyAbilityChoices(choices, source)) {
                 modalInstance.hide();
                 modal.addEventListener('hidden.bs.modal', () => {
                     modal.remove();
                     // Update ability score card
-                    const abilityScoreUI = new AbilityScoreUI(this.character);
-                    abilityScoreUI.update();
+                    const abilityScoreCard = new AbilityScoreCard(this.characterHandler.currentCharacter);
+                    abilityScoreCard.update();
                 });
             }
         });
@@ -584,73 +610,6 @@ export class RaceUI {
             console.error('Error updating subrace select:', error);
             subraceSelect.disabled = true;
             subraceSelect.innerHTML = '<option value="">Error Loading Subraces</option>';
-        }
-    }
-
-    setupEventListeners() {
-        const raceSelect = document.getElementById('raceSelect');
-        const subraceSelect = document.getElementById('subraceSelect');
-
-        if (!raceSelect) {
-            console.error('Race selection element not found');
-            return;
-        }
-
-        // Handle race selection
-        raceSelect.addEventListener('change', async () => {
-            const raceId = raceSelect.value;
-
-            if (!raceId) {
-                // Clear race selection and show skeleton preview
-                await this.raceManager.setRace(null);
-                this.setRacePlaceholderContent();
-                if (subraceSelect) {
-                    subraceSelect.disabled = true;
-                    subraceSelect.innerHTML = '<option value="">Select Race First</option>';
-                }
-                return;
-            }
-
-            try {
-                // Get selected race using RaceManager
-                const race = await this.raceManager.loadRace(raceId);
-                if (!race) {
-                    this.setRacePlaceholderContent();
-                    return;
-                }
-
-                // Update subrace select
-                await this.updateSubraceSelect(raceId);
-
-                // Set race without subrace initially
-                await this.raceManager.setRace(raceId);
-                await this.updateRaceDisplay(raceId);
-
-                // Show ability score choices if any
-                this.checkRaceAbilityChoices();
-            } catch (error) {
-                console.error('Error handling race selection:', error);
-                showNotification('Error updating race details', 'error');
-            }
-        });
-
-        // Handle subrace selection
-        if (subraceSelect) {
-            subraceSelect.addEventListener('change', async () => {
-                const raceId = raceSelect.value;
-                const subraceId = subraceSelect.value;
-
-                if (!raceId) return;
-
-                try {
-                    await this.raceManager.setRace(raceId, subraceId);
-                    await this.updateRaceDisplay(raceId, subraceId);
-                    this.checkRaceAbilityChoices();
-                } catch (error) {
-                    console.error('Error handling subrace selection:', error);
-                    showNotification('Error updating subrace details', 'error');
-                }
-            });
         }
     }
 } 

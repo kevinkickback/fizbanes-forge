@@ -3,8 +3,6 @@
  * Unified card component for displaying entity information
  */
 
-import { characterInitializer } from '../utils/Initialize.js';
-
 export class EntityCard {
     /**
      * Create a new EntityCard
@@ -16,7 +14,7 @@ export class EntityCard {
         this.container = container;
         this.entity = entity;
         this.manager = manager;
-        this.character = characterInitializer.currentCharacter;
+        this.character = window.currentCharacter;
     }
 
     /**

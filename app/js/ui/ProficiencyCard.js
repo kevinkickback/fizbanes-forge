@@ -1,6 +1,6 @@
 import { characterInitializer } from '../utils/Initialize.js';
 
-export class ProficiencyUI {
+export class ProficiencyCard {
     constructor(character) {
         this.character = character;
         this.proficiencyTypes = ['skills', 'savingThrows', 'languages', 'tools', 'armor', 'weapons'];

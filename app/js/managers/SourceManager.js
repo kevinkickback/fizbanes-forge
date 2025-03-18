@@ -31,6 +31,7 @@ export class SourceManager {
         this.sources = new Set();
         this.defaultSources = new Set();
         this._initialized = false;
+        this.characterHandler = null;
 
         // List of banned sources
         this.bannedSources = new Set([
@@ -42,6 +43,31 @@ export class SourceManager {
             'MOT',   // Mythic Odysseys of Theros
             'MMPM'   // Mordenkainen's Monsters of the Multiverse
         ]);
+    }
+
+    /**
+     * Set the character handler and initialize listeners
+     * @param {CharacterHandler} handler - The character handler instance
+     */
+    setCharacterHandler(handler) {
+        this.characterHandler = handler;
+        // Subscribe to character changes
+        this.characterHandler.addCharacterListener(this.handleCharacterChange.bind(this));
+    }
+
+    /**
+     * Handles character changes
+     * @param {Character|null} character - The new character
+     * @private
+     */
+    handleCharacterChange(character) {
+        if (!character) {
+            this.allowedSources = new Set(['PHB']);
+            return;
+        }
+
+        // Update allowed sources from character
+        this.allowedSources = new Set(character.allowedSources || ['PHB']);
     }
 
     /**
@@ -244,8 +270,16 @@ export class SourceManager {
             return false;
         }
 
+        const character = this.characterHandler.currentCharacter;
+        if (!character) return false;
+
+        // Update character's allowed sources
+        character.allowedSources = Array.from(sources);
         this.allowedSources = new Set(sources);
         this.clearCache();
+
+        // Mark character as modified
+        this.characterHandler.showUnsavedChanges();
         return true;
     }
 

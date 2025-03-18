@@ -19,6 +19,9 @@
 import { showNotification } from './notifications.js';
 import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
+import { RaceCard } from '../ui/RaceCard.js';
+import { textProcessor } from './TextProcessor.js';
+import { dataLoader } from '../dataloaders/DataLoader.js';
 
 /**
  * Navigation app with all navigation-related functionality
@@ -69,7 +72,7 @@ export const navigation = {
     loadPage(pageName, options = {}) {
         // Prevent navigation to character pages if no character is selected
         if (['build', 'equipment', 'details'].includes(pageName) &&
-            (!window.currentCharacter || !window.currentCharacter.id)) {
+            (!characterHandler.currentCharacter || !characterHandler.currentCharacter.id)) {
             showNotification('Please select or create a character first', 'warning');
             return;
         }
@@ -80,7 +83,7 @@ export const navigation = {
             const page = link.getAttribute('data-page');
             link.classList.toggle('active', page === pageName);
             if (['build', 'equipment', 'details'].includes(page)) {
-                link.classList.toggle('disabled', !window.currentCharacter);
+                link.classList.toggle('disabled', !characterHandler.currentCharacter);
             }
         }
 
@@ -112,6 +115,12 @@ export const navigation = {
                 break;
             case 'build':
                 // Initialize build page
+                if (characterHandler.currentCharacter) {
+                    const raceCard = new RaceCard();
+                    raceCard.initializeRaceSelection().catch(error => {
+                        console.error('Error initializing race card:', error);
+                    });
+                }
                 break;
             case 'equipment':
                 // Initialize equipment page

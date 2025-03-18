@@ -5,7 +5,7 @@ import { characterInitializer } from '../utils/Initialize.js';
 import { characterHandler } from '../utils/characterHandler.js';
 import { markUnsavedChanges, setupAbilityScores, setupProficiencies } from '../utils/characterHandler.js';
 
-export class ClassUI {
+export class ClassCard {
     constructor(character) {
         this.character = character;
         this.classManager = new ClassManager(character);
@@ -34,14 +34,6 @@ export class ClassUI {
                 `).join('')}
             `;
 
-            // Show initial skeleton preview if no class is selected
-            if (!this.character.class) {
-                const classImage = document.getElementById('classImage');
-                const classQuickDesc = document.getElementById('classQuickDesc');
-                const classDetails = document.getElementById('classDetails');
-                this.setClassPlaceholderContent(classImage, classQuickDesc, classDetails);
-            }
-
             // Handle class selection
             classSelect.addEventListener('change', async () => {
                 const classId = classSelect.value;
@@ -51,7 +43,7 @@ export class ClassUI {
                 subclassSelect.disabled = true;
 
                 if (!classId) {
-                    // Clear class selection and show skeleton preview
+                    // Clear class selection
                     this.character.class = '';
                     this.character.subclass = '';
                     await this.updateClassDetails('');
@@ -141,7 +133,7 @@ export class ClassUI {
             const processedText = await this.textProcessor.processText(originalText);
 
             // Update UI elements
-            this.updateClassUI(classData, processedText);
+            this.updateClassCard(classData, processedText);
 
             // Update character calculations
             if (this.character.calculateBonusesAndProficiencies) {
@@ -405,7 +397,7 @@ export class ClassUI {
         }
     }
 
-    async updateClassUI(classData, processedText) {
+    async updateClassCard(classData, processedText) {
         const classImage = document.getElementById('classImage');
         const classQuickDesc = document.getElementById('classQuickDesc');
         const classDetails = document.getElementById('classDetails');
@@ -508,7 +500,10 @@ export class ClassUI {
             console.error('Error displaying class details:', error);
             console.error('Error stack:', error.stack);
             showNotification('Error displaying class details', 'danger');
-            this.setClassPlaceholderContent(classImage, classQuickDesc, classDetails);
+            // Clear content on error
+            classQuickDesc.innerHTML = '';
+            classImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+            classDetails.innerHTML = '';
         }
     }
 

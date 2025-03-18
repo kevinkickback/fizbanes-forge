@@ -7,7 +7,7 @@ import { EntityCard } from './EntityCard.js';
 import { BackgroundManager } from '../managers/BackgroundManager.js';
 import { characterInitializer } from '../utils/Initialize.js';
 
-export class BackgroundUI {
+export class BackgroundCard {
     constructor(character) {
         this.character = character;
         this.backgroundManager = new BackgroundManager(character);
@@ -16,43 +16,12 @@ export class BackgroundUI {
     }
 
     async initialize() {
-        this.container.innerHTML = `
-            <div class="background-selection-controls">
-                <div class="background-selectors">
-                    <div class="background-select-container">
-                        <select class="form-select" id="backgroundSelect">
-                            <option value="">Choose a background...</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="background-content-container">
-                    <div class="background-quick-desc" id="backgroundQuickDesc">
-                        <!-- Quick description will be added here -->
-                    </div>
-                </div>
-            </div>
-            <div class="background-image-container">
-                <div class="background-image" id="backgroundImage">
-                    <!-- Background image will be set dynamically -->
-                    <i class="fas fa-user-circle placeholder-icon"></i>
-                </div>
-            </div>
-            <div id="backgroundDetails">
-                <!-- Background details will be rendered here -->
-            </div>
-        `;
-
         await this.renderBackgroundSelection();
-
-        // Show placeholder if no background is selected
-        if (!this.backgroundManager.selectedBackground) {
-            this.setBackgroundPlaceholderContent();
-        }
     }
 
     async renderBackgroundSelection() {
         const backgrounds = await this.backgroundManager.getAvailableBackgrounds();
-        const selection = this.container.querySelector('#backgroundSelect');
+        const selection = document.querySelector('#backgroundSelect');
 
         // Update the select options
         selection.innerHTML = `
@@ -63,9 +32,9 @@ export class BackgroundUI {
         `;
 
         // Add variant container if not exists
-        let variantContainer = this.container.querySelector('#variantContainer');
+        let variantContainer = document.querySelector('#variantContainer');
         if (!variantContainer) {
-            const selectors = this.container.querySelector('.background-selectors');
+            const selectors = document.querySelector('.background-selectors');
             variantContainer = document.createElement('div');
             variantContainer.id = 'variantContainer';
             variantContainer.className = 'background-select-container';
@@ -104,7 +73,7 @@ export class BackgroundUI {
 
             // Update quick description
             backgroundQuickDesc.innerHTML = `
-                <h6>Background Description</h6>
+                <h5>${background.name}</h5>
                 <p>${this.getQuickDescription(background)}</p>`;
 
             // Process skill proficiencies
@@ -143,6 +112,14 @@ export class BackgroundUI {
                     .join('');
             }
 
+            // Process equipment
+            let equipment = '<li>None</li>';
+            if (background.equipment?.length > 0) {
+                equipment = background.equipment
+                    .map(item => `<li>${typeof item === 'string' ? item.charAt(0).toUpperCase() + item.slice(1) : item}</li>`)
+                    .join('');
+            }
+
             // Update background details
             backgroundDetails.innerHTML = `
                 <div class="background-details-grid">
@@ -162,6 +139,12 @@ export class BackgroundUI {
                         <h6>Languages</h6>
                         <ul class="mb-0">
                             ${languages}
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h6>Equipment</h6>
+                        <ul class="mb-0">
+                            ${equipment}
                         </ul>
                     </div>
                 </div>`;
@@ -209,77 +192,10 @@ export class BackgroundUI {
         return `${background.name} background features and characteristics.`;
     }
 
-    async renderCharacteristics(backgroundId) {
-        const options = await this.backgroundManager.getCharacteristicOptions();
-        if (!options) {
-            this.setCharacteristicsPlaceholderContent();
-            return;
-        }
-
-        const characteristics = this.backgroundManager.getCharacteristics();
-        const container = this.container.querySelector('#backgroundCharacteristics');
-
-        container.innerHTML = `
-            <div class="characteristics-section">
-                <h3>Characteristics</h3>
-                
-                <div class="form-group">
-                    <label>Personality Trait</label>
-                    <select class="form-select" name="personalityTrait">
-                        <option value="">Choose a personality trait...</option>
-                        ${options.personalityTraits.map((trait, i) => `
-                            <option value="${i}" ${characteristics.personalityTrait?.value === trait ? 'selected' : ''}>
-                                ${trait}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Ideal</label>
-                    <select class="form-select" name="ideal">
-                        <option value="">Choose an ideal...</option>
-                        ${options.ideals.map((ideal, i) => `
-                            <option value="${i}" ${characteristics.ideal?.value === ideal ? 'selected' : ''}>
-                                ${ideal}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Bond</label>
-                    <select class="form-select" name="bond">
-                        <option value="">Choose a bond...</option>
-                        ${options.bonds.map((bond, i) => `
-                            <option value="${i}" ${characteristics.bond?.value === bond ? 'selected' : ''}>
-                                ${bond}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Flaw</label>
-                    <select class="form-select" name="flaw">
-                        <option value="">Choose a flaw...</option>
-                        ${options.flaws.map((flaw, i) => `
-                            <option value="${i}" ${characteristics.flaw?.value === flaw ? 'selected' : ''}>
-                                ${flaw}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-            </div>
-        `;
-
-        this.attachCharacteristicListeners();
-    }
-
     attachSelectionListeners() {
-        const backgroundSelect = this.container.querySelector('#backgroundSelect');
-        const variantSelect = this.container.querySelector('#variantSelect');
-        const variantContainer = this.container.querySelector('#variantContainer');
+        const backgroundSelect = document.querySelector('#backgroundSelect');
+        const variantSelect = document.querySelector('#variantSelect');
+        const variantContainer = document.querySelector('#variantContainer');
 
         backgroundSelect?.addEventListener('change', async () => {
             const backgroundId = backgroundSelect.value;
@@ -307,7 +223,6 @@ export class BackgroundUI {
             // Update background
             await this.backgroundManager.setBackground(backgroundId);
             await this.renderBackgroundDetails(background);
-            await this.renderCharacteristics(backgroundId);
         });
 
         variantSelect?.addEventListener('change', async () => {
@@ -318,20 +233,6 @@ export class BackgroundUI {
                 await this.renderBackgroundDetails(backgroundId);
             }
         });
-    }
-
-    attachCharacteristicListeners() {
-        const selects = this.container.querySelectorAll('.characteristics-section select');
-        for (const select of selects) {
-            select?.addEventListener('change', () => {
-                const type = select.name;
-                const value = select.options[select.selectedIndex].text;
-                const index = Number.parseInt(select.value, 10);
-                if (value) {
-                    this.backgroundManager.setCharacteristic(type, value, index);
-                }
-            });
-        }
     }
 
     /**
@@ -349,8 +250,10 @@ export class BackgroundUI {
 
         // Set placeholder quick description
         backgroundQuickDesc.innerHTML = `
-            <h6>Background Description</h6>
-            <p>Select a Background to see their characteristics, proficiencies, and other features.</p>`;
+            <div class="placeholder-content">
+                <h5>Select a Background</h5>
+                <p>Choose a background to see details about their traits, proficiencies, and other characteristics.</p>
+            </div>`;
 
         // Set placeholder details with grid layout
         backgroundDetails.innerHTML = `
@@ -373,40 +276,13 @@ export class BackgroundUI {
                         <li class="placeholder-text">—</li>
                     </ul>
                 </div>
+                <div class="detail-section">
+                    <h6>Equipment</h6>
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
             </div>`;
-    }
-
-    /**
-     * Set placeholder content for characteristics
-     */
-    setCharacteristicsPlaceholderContent() {
-        const container = this.container.querySelector('#backgroundCharacteristics');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="characteristics-section">
-                <h3>Characteristics</h3>
-                <div class="placeholder-content">
-                    <p>Select a background to customize your character's personality traits, ideals, bonds, and flaws.</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Personality Traits</h6>
-                    <p class="placeholder-text">—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Ideals</h6>
-                    <p class="placeholder-text">—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Bonds</h6>
-                    <p class="placeholder-text">—</p>
-                </div>
-                <div class="detail-section">
-                    <h6>Flaws</h6>
-                    <p class="placeholder-text">—</p>
-                </div>
-            </div>
-        `;
     }
 
     async processText(originalText) {

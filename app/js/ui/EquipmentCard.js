@@ -1,6 +1,6 @@
 import { EntityCard } from './EntityCard.js';
 
-export class EquipmentUI {
+export class EquipmentCard {
     constructor(character) {
         this.character = character;
     }

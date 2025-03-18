@@ -34,6 +34,7 @@ import { Character } from '../models/Character.js';
 import { showNotification } from './notifications.js';
 import { navigation } from './navigation.js';
 import { SourceCard } from '../ui/SourceCard.js';
+import { SourceManager } from '../managers/SourceManager.js';
 
 let instance = null;
 
@@ -74,6 +75,66 @@ export class CharacterHandler {
         }
         instance = this;
         this.sourceCard = new SourceCard();
+        this._currentCharacter = null;
+        this._characterListeners = new Set();
+
+        // Initialize managers
+        this.sourceManager = new SourceManager();
+        this.sourceManager.setCharacterHandler(this);  // Set this handler after initialization
+    }
+
+    /**
+     * Gets the current character
+     * @returns {Character|null} The current character or null if none selected
+     */
+    get currentCharacter() {
+        return this._currentCharacter;
+    }
+
+    /**
+     * Sets the current character and notifies listeners
+     * @param {Character|null} character - The character to set as current
+     * @private
+     */
+    set currentCharacter(character) {
+        this._currentCharacter = character;
+        this._notifyCharacterChanged();
+    }
+
+    /**
+     * Adds a listener for character changes
+     * @param {Function} listener - The listener function to add
+     */
+    addCharacterListener(listener) {
+        this._characterListeners.add(listener);
+    }
+
+    /**
+     * Removes a listener for character changes
+     * @param {Function} listener - The listener function to remove
+     */
+    removeCharacterListener(listener) {
+        this._characterListeners.delete(listener);
+    }
+
+    /**
+     * Notifies all listeners of character changes
+     * @private
+     */
+    _notifyCharacterChanged() {
+        const event = new CustomEvent('characterChanged', {
+            detail: { character: this.currentCharacter }
+        });
+        document.dispatchEvent(event);
+
+        // Also notify registered listeners
+        for (const listener of this._characterListeners) {
+            try {
+                listener(this.currentCharacter);
+            } catch (error) {
+                console.error('Error in character change listener:', error);
+            }
+        }
     }
 
     /**
@@ -210,7 +271,7 @@ export class CharacterHandler {
     createCharacterCard(character) {
         return `
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card character-card ${window.currentCharacter?.id === character.id ? 'selected' : ''}" 
+                <div class="card character-card ${this.currentCharacter?.id === character.id ? 'selected' : ''}" 
                      data-character-id="${character.id}">
                     <div class="active-profile-badge">Active Character</div>
                     <div class="card-body">
@@ -329,11 +390,11 @@ export class CharacterHandler {
     async handleCharacterSelect(character) {
         try {
             // Don't reload if it's the same character
-            if (window.currentCharacter?.id === character.id) {
+            if (this.currentCharacter?.id === character.id) {
                 return;
             }
 
-            window.currentCharacter = Character.fromJSON(character);
+            this.currentCharacter = Character.fromJSON(character);
 
             // Update active badge on all character cards
             const characterCards = document.querySelectorAll('.character-card');
@@ -358,9 +419,6 @@ export class CharacterHandler {
             // Populate the details page if we're on it
             await this.populateDetailsPage();
 
-            // Dispatch character changed event
-            document.dispatchEvent(new CustomEvent('characterChanged'));
-
         } catch (error) {
             console.error('Error selecting character:', error);
             showNotification('Error selecting character', 'danger');
@@ -373,7 +431,7 @@ export class CharacterHandler {
      * @private
      */
     async populateDetailsPage() {
-        if (!window.currentCharacter) return;
+        if (!this.currentCharacter) return;
 
         try {
             // Get all the input fields
@@ -385,25 +443,17 @@ export class CharacterHandler {
             const backstory = document.getElementById('backstory');
 
             // Populate the fields with character data
-            if (characterName) characterName.value = window.currentCharacter.name || '';
-            if (playerName) playerName.value = window.currentCharacter.playerName || '';
-            if (height) height.value = window.currentCharacter.height || '';
-            if (weight) weight.value = window.currentCharacter.weight || '';
-            if (gender) gender.value = window.currentCharacter.gender || '';
-            if (backstory) backstory.value = window.currentCharacter.backstory || '';
-
-            // Show unsaved changes indicator when fields are modified
-            const showUnsavedChanges = () => {
-                const indicator = document.getElementById('unsavedChangesIndicator');
-                if (indicator) {
-                    indicator.style.display = 'inline-block';
-                }
-            };
+            if (characterName) characterName.value = this.currentCharacter.name || '';
+            if (playerName) playerName.value = this.currentCharacter.playerName || '';
+            if (height) height.value = this.currentCharacter.height || '';
+            if (weight) weight.value = this.currentCharacter.weight || '';
+            if (gender) gender.value = this.currentCharacter.gender || '';
+            if (backstory) backstory.value = this.currentCharacter.backstory || '';
 
             // Add input event listeners to all fields
             for (const field of [characterName, playerName, height, weight, gender, backstory]) {
                 if (field) {
-                    field.addEventListener('input', showUnsavedChanges);
+                    field.addEventListener('input', () => this.showUnsavedChanges());
                 }
             }
 
@@ -419,7 +469,7 @@ export class CharacterHandler {
      * @private
      */
     async saveCharacterDetails() {
-        if (!window.currentCharacter) return;
+        if (!this.currentCharacter) return;
 
         try {
             // Get all the input fields
@@ -431,23 +481,23 @@ export class CharacterHandler {
             const backstory = document.getElementById('backstory');
 
             // Update character data
-            window.currentCharacter.name = characterName?.value || '';
-            window.currentCharacter.playerName = playerName?.value || '';
-            window.currentCharacter.height = height?.value || '';
-            window.currentCharacter.weight = weight?.value || '';
-            window.currentCharacter.gender = gender?.value || '';
-            window.currentCharacter.backstory = backstory?.value || '';
-            window.currentCharacter.lastModified = new Date().toISOString();
+            this.currentCharacter.name = characterName?.value || '';
+            this.currentCharacter.playerName = playerName?.value || '';
+            this.currentCharacter.height = height?.value || '';
+            this.currentCharacter.weight = weight?.value || '';
+            this.currentCharacter.gender = gender?.value || '';
+            this.currentCharacter.backstory = backstory?.value || '';
+            this.currentCharacter.lastModified = new Date().toISOString();
 
             // Save to storage
-            await window.characterStorage.saveCharacter(window.currentCharacter);
+            await window.characterStorage.saveCharacter(this.currentCharacter);
 
             // Update the character card
-            const characterCard = document.querySelector(`[data-character-id="${window.currentCharacter.id}"]`);
+            const characterCard = document.querySelector(`[data-character-id="${this.currentCharacter.id}"]`);
             if (characterCard) {
                 const cardTitle = characterCard.querySelector('.card-title');
                 if (cardTitle) {
-                    cardTitle.textContent = window.currentCharacter.name || 'Unnamed Character';
+                    cardTitle.textContent = this.currentCharacter.name || 'Unnamed Character';
                 }
             }
 
@@ -495,9 +545,8 @@ export class CharacterHandler {
             const result = await window.characterStorage.deleteCharacter(characterId);
 
             // If the deleted character was the current character, clear it
-            if (window.currentCharacter?.id === characterId) {
-                window.currentCharacter = null;
-                document.dispatchEvent(new CustomEvent('characterChanged'));
+            if (this.currentCharacter?.id === characterId) {
+                this.currentCharacter = null;
             }
 
             // Remove the character card from the UI
@@ -661,6 +710,17 @@ export class CharacterHandler {
         } catch (error) {
             console.error('Error importing character:', error);
             showNotification('Error importing character', 'danger');
+        }
+    }
+
+    /**
+     * Shows the unsaved changes indicator
+     * @public
+     */
+    showUnsavedChanges() {
+        const indicator = document.getElementById('unsavedChangesIndicator');
+        if (indicator) {
+            indicator.style.display = 'inline-block';
         }
     }
 
