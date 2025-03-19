@@ -53,6 +53,9 @@ contextBridge.exposeInMainWorld("characterStorage", {
     selectFolder: () => {
         return ipcRenderer.invoke("select-folder");
     },
+    getDefaultSavePath: () => {
+        return ipcRenderer.invoke("get-default-save-path");
+    },
     checkCharacterFiles: (directory) => {
         return ipcRenderer.invoke("check-character-files", directory);
     },

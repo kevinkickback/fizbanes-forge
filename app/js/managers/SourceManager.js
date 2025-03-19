@@ -61,13 +61,17 @@ export class SourceManager {
      * @private
      */
     handleCharacterChange(character) {
+        console.log('[SourceManager] Character changed:', character ? 'new character' : 'null');
         if (!character) {
             this.allowedSources = new Set(['PHB']);
+            console.log('[SourceManager] Reset to default PHB source');
             return;
         }
 
         // Update allowed sources from character
+        console.log('[SourceManager] Character allowed sources:', Array.from(character.allowedSources || ['PHB']));
         this.allowedSources = new Set(character.allowedSources || ['PHB']);
+        console.log('[SourceManager] Updated allowed sources:', Array.from(this.allowedSources));
     }
 
     /**
@@ -75,22 +79,23 @@ export class SourceManager {
      * @returns {Promise<void>}
      */
     async initialize() {
-        if (this._initialized) return;
+        if (this._initialized) {
+            console.log('[SourceManager] Already initialized');
+            return;
+        }
 
         try {
+            console.log('[SourceManager] Starting initialization');
             const sources = await this.dataLoader.loadSources();
+            console.log('[SourceManager] Loaded sources from data loader');
 
             if (sources.source && Array.isArray(sources.source)) {
-                // Filter out unwanted groups and sort by priority
+                // Filter and sort sources
                 const validSources = sources.source
                     .filter(source => {
-                        // First filter out unwanted groups
-                        if (['screen', 'recipe', 'other', 'supplement-alt'].includes(source.group)) {
-                            return false;
-                        }
-
                         // Filter out banned sources (case insensitive)
                         if (this.bannedSources.has(source.id.toUpperCase())) {
+                            console.log('[SourceManager] Filtered out banned source:', source.id);
                             return false;
                         }
 
@@ -126,6 +131,9 @@ export class SourceManager {
                             return false;
                         });
 
+                        if (!hasOptions) {
+                            console.log('[SourceManager] Filtered out source without player options:', source.id);
+                        }
                         return hasOptions;
                     })
                     .sort((a, b) => {
@@ -139,6 +147,8 @@ export class SourceManager {
                         const groupPriority = { core: 0, setting: 1, supplement: 2 };
                         return groupPriority[a.group] - groupPriority[b.group];
                     });
+
+                console.log('[SourceManager] Valid sources after filtering:', validSources.map(s => s.id));
 
                 // Initialize available sources
                 for (const source of validSources) {
@@ -164,21 +174,23 @@ export class SourceManager {
                 // Set default sources (PHB, DMG, MM)
                 this.defaultSources = new Set(['PHB', 'DMG', 'MM']);
                 this._initialized = true;
+                console.log('[SourceManager] Initialization complete');
             } else {
-                console.error('Invalid source data format:', sources);
+                console.error('[SourceManager] Invalid source data format:', sources);
                 showNotification('Error loading source books: Invalid data format', 'error');
             }
         } catch (error) {
-            console.error('Error initializing SourceManager:', error);
+            console.error('[SourceManager] Error during initialization:', error);
             showNotification('Error loading source books', 'error');
         }
     }
 
     /**
-     * Get all available source books
-     * @returns {Array<string>} Array of source book codes
+     * Get available sources
+     * @returns {Array<string>} Array of available source codes
      */
     getAvailableSources() {
+        console.log('[SourceManager] Getting available sources:', Array.from(this.availableSources.keys()));
         return Array.from(this.availableSources.keys());
     }
 
@@ -225,12 +237,14 @@ export class SourceManager {
     }
 
     /**
-     * Get source book details
-     * @param {string} source - Source abbreviation
-     * @returns {SourceDetails|null} Source book details or null if not found
+     * Get source details
+     * @param {string} source - Source code to get details for
+     * @returns {SourceDetails|null} Source details or null if not found
      */
     getSourceDetails(source) {
-        return this.availableSources.get(source?.toUpperCase()) || null;
+        const details = this.availableSources.get(source?.toUpperCase());
+        console.log('[SourceManager] Getting details for source:', source, details ? 'found' : 'not found');
+        return details;
     }
 
     /**
@@ -245,18 +259,25 @@ export class SourceManager {
 
     /**
      * Validate source selection
-     * @param {Set<string>} sources - Set of source codes to validate
-     * @returns {boolean} True if the selection is valid
+     * @param {Set<string>} sources - Set of selected sources
+     * @returns {boolean} True if selection is valid
      */
     validateSourceSelection(sources) {
-        const hasPhb14 = sources.has('PHB');
-        const hasPhb24 = sources.has('XPHB');
+        console.log('[SourceManager] Validating source selection:', Array.from(sources));
 
-        if (!hasPhb14 && !hasPhb24) {
+        // Convert sources to uppercase for comparison
+        const upperSources = new Set(Array.from(sources).map(s => s.toUpperCase()));
+
+        // Check if either PHB or XPHB is selected
+        const hasCoreSource = upperSources.has('PHB') || upperSources.has('XPHB');
+
+        if (!hasCoreSource) {
+            console.log('[SourceManager] No core source selected');
             showNotification('Please select either PHB\'14 or PHB\'24', 'warning');
             return false;
         }
 
+        console.log('[SourceManager] Source selection validated successfully');
         return true;
     }
 
@@ -266,20 +287,26 @@ export class SourceManager {
      * @returns {boolean} True if sources were updated successfully
      */
     updateAllowedSources(sources) {
-        if (!this.validateSourceSelection(sources)) {
+        console.log('[SourceManager] Updating allowed sources:', Array.from(sources));
+
+        // Convert sources to uppercase for validation
+        const upperSources = new Set(Array.from(sources).map(s => s.toUpperCase()));
+
+        if (!this.validateSourceSelection(upperSources)) {
+            console.log('[SourceManager] Source selection validation failed');
             return false;
         }
 
         const character = this.characterHandler.currentCharacter;
-        if (!character) return false;
+        if (!character) {
+            console.log('[SourceManager] No current character found');
+            return false;
+        }
 
-        // Update character's allowed sources
-        character.allowedSources = Array.from(sources);
-        this.allowedSources = new Set(sources);
-        this.clearCache();
-
-        // Mark character as modified
-        this.characterHandler.showUnsavedChanges();
+        console.log('[SourceManager] Setting allowed sources for character:', character.id);
+        character.setAllowedSources(upperSources);
+        this.allowedSources = new Set(upperSources);
+        console.log('[SourceManager] Allowed sources updated successfully');
         return true;
     }
 
@@ -288,6 +315,7 @@ export class SourceManager {
      * @returns {Set<string>} Set of allowed source codes
      */
     getAllowedSources() {
+        console.log('[SourceManager] Getting allowed sources:', Array.from(this.allowedSources));
         return new Set(this.allowedSources);
     }
 
@@ -319,7 +347,9 @@ export class SourceManager {
      * @param {string} sourceId - Source identifier to add
      */
     addSource(sourceId) {
+        console.log('[SourceManager] Adding source:', sourceId);
         this.allowedSources.add(sourceId);
+        console.log('[SourceManager] Current allowed sources:', Array.from(this.allowedSources));
     }
 
     /**
@@ -328,11 +358,11 @@ export class SourceManager {
      * @returns {boolean} True if source was removed
      */
     removeSource(sourceId) {
-        if (sourceId === 'PHB') {
-            showNotification('Cannot remove Player\'s Handbook', 'warning');
-            return false;
-        }
-        return this.allowedSources.delete(sourceId);
+        console.log('[SourceManager] Removing source:', sourceId);
+        const removed = this.allowedSources.delete(sourceId);
+        console.log('[SourceManager] Source removed:', removed);
+        console.log('[SourceManager] Current allowed sources:', Array.from(this.allowedSources));
+        return removed;
     }
 
     /**

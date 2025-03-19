@@ -1,6 +1,6 @@
 /**
  * Initialize.js
- * Core initialization utilities for the D&D Character Creator application
+ * Core initialization utilities
  * 
  * @typedef {Object} InitializationOptions
  * @property {boolean} [loadAllData=true] - Whether to load all data sources
@@ -11,6 +11,10 @@
  * @property {boolean} success - Whether initialization was successful
  * @property {Array<string>} loadedComponents - List of successfully loaded components
  * @property {Array<Error>} errors - List of errors encountered during initialization
+ * 
+ * @typedef {Object} DataLoadResult
+ * @property {any} data - The loaded data or null if loading failed
+ * @property {Error|null} error - The error that occurred during loading, if any
  */
 
 // Core imports
@@ -21,101 +25,89 @@ import { dataLoader } from '../dataloaders/DataLoader.js';
 import { textProcessor } from './TextProcessor.js';
 
 /**
+ * Wrapper for data loader calls that handles errors consistently
+ * @param {Promise<any>} promise - The data loader promise to execute
+ * @param {string} component - The name of the component being loaded (for error reporting)
+ * @returns {Promise<any|null>} The loaded data or null if loading failed
+ * @private
+ */
+async function loadDataWithErrorHandling(promise, component) {
+    try {
+        return await promise;
+    } catch (error) {
+        console.warn(`Failed to load ${component}:`, error);
+        return null;
+    }
+}
+
+/**
  * Initializes all core components of the application in the correct order
- * @param {InitializationOptions} [options] - Initialization options
+ * @param {InitializationOptions} [options] - Initialization options (currently reserved for future use)
  * @returns {Promise<InitializationResult>} The result of initialization
- * @throws {Error} If initialization fails
+ * @throws {Error} If initialization fails catastrophically
  */
 export async function initializeAll(options = {}) {
+    const result = {
+        success: true,
+        loadedComponents: [],
+        errors: []
+    };
+
     try {
         // Initialize data loaders and reference resolver
         try {
-            await Promise.all([
-                dataLoader.loadSpells().catch(error => {
-                    console.warn('Failed to load spells:', error);
-                    return null;
-                }),
-                dataLoader.loadSources().catch(error => {
-                    console.warn('Failed to load sources:', error);
-                    return null;
-                }),
-                dataLoader.loadFeatures().catch(error => {
-                    console.warn('Failed to load features:', error);
-                    return null;
-                }),
-                dataLoader.loadDeities().catch(error => {
-                    console.warn('Failed to load deities:', error);
-                    return null;
-                }),
-                dataLoader.loadClasses().catch(error => {
-                    console.warn('Failed to load classes:', error);
-                    return null;
-                }),
-                dataLoader.loadBackgrounds().catch(error => {
-                    console.warn('Failed to load backgrounds:', error);
-                    return null;
-                }),
-                dataLoader.loadItems().catch(error => {
-                    console.warn('Failed to load items:', error);
-                    return null;
-                }),
-                dataLoader.loadRaces().catch(error => {
-                    console.warn('Failed to load races:', error);
-                    return null;
-                }),
-                dataLoader.loadConditions().catch(error => {
-                    console.warn('Failed to load conditions:', error);
-                    return null;
-                }),
-                dataLoader.loadActions().catch(error => {
-                    console.warn('Failed to load actions:', error);
-                    return null;
-                }),
-                dataLoader.loadVariantRules().catch(error => {
-                    console.warn('Failed to load variant rules:', error);
-                    return null;
-                })
-            ]);
+            const dataLoadPromises = [
+                loadDataWithErrorHandling(dataLoader.loadSpells(), 'spells'),
+                loadDataWithErrorHandling(dataLoader.loadSources(), 'sources'),
+                loadDataWithErrorHandling(dataLoader.loadFeatures(), 'features'),
+                loadDataWithErrorHandling(dataLoader.loadDeities(), 'deities'),
+                loadDataWithErrorHandling(dataLoader.loadClasses(), 'classes'),
+                loadDataWithErrorHandling(dataLoader.loadBackgrounds(), 'backgrounds'),
+                loadDataWithErrorHandling(dataLoader.loadItems(), 'items'),
+                loadDataWithErrorHandling(dataLoader.loadRaces(), 'races'),
+                loadDataWithErrorHandling(dataLoader.loadConditions(), 'conditions'),
+                loadDataWithErrorHandling(dataLoader.loadActions(), 'actions'),
+                loadDataWithErrorHandling(dataLoader.loadVariantRules(), 'variant rules')
+            ];
+
+            await Promise.all(dataLoadPromises);
         } catch (error) {
             console.error('Error initializing data loaders:', error);
-            throw error;
+            result.errors.push(error);
         }
 
-        // Initialize tooltip manager
-        try {
-            await tooltipManager.initialize();
-        } catch (error) {
-            console.error('Error initializing tooltip manager:', error);
-            throw error;
+        // Initialize core components
+        const components = [
+            { name: 'tooltip manager', init: () => tooltipManager.initialize() },
+            { name: 'text processor', init: () => textProcessor.initialize() },
+            { name: 'character handler', init: () => characterHandler.initialize() },
+            { name: 'navigation', init: () => navigation.initialize() }
+        ];
+
+        for (const component of components) {
+            try {
+                await component.init();
+                result.loadedComponents.push(component.name);
+            } catch (error) {
+                console.error(`Error initializing ${component.name}:`, error);
+                result.errors.push(error);
+            }
         }
 
-        // Initialize text processor
-        try {
-            await textProcessor.initialize();
-        } catch (error) {
-            console.error('Error initializing text processor:', error);
-            throw error;
+        // Set overall success based on whether any critical errors occurred
+        result.success = result.errors.length === 0;
+
+        if (result.success) {
+            console.log('Application initialized successfully');
+        } else {
+            console.warn('Application initialized with some errors:', result.errors);
         }
 
-        // Initialize character handler
-        try {
-            await characterHandler.initialize();
-        } catch (error) {
-            console.error('Error initializing character handler:', error);
-            throw error;
-        }
-
-        // Initialize navigation
-        try {
-            await navigation.initialize();
-        } catch (error) {
-            console.error('Error initializing navigation:', error);
-            throw error;
-        }
-
-        console.log('Application initialized successfully');
+        return result;
     } catch (error) {
         console.error('Failed to initialize application:', error);
+        result.success = false;
+        result.errors.push(error);
         throw error;
     }
 }

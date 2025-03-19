@@ -1,676 +1,655 @@
 /**
  * RaceManager.js
- * Manages race-related functionality for the D&D Character Creator
- * 
- * @typedef {Object} RaceData
- * @property {string} id - Unique identifier for the race
- * @property {string} name - Name of the race
- * @property {string} source - Source book (e.g., 'PHB', 'XPHB')
- * @property {Array} size - Array of possible sizes
- * @property {Object} speed - Movement speeds
- * @property {Array} ability - Ability score improvements
- * @property {Array} languages - Known languages
- * @property {Array} entries - Race description entries
- * @property {Array} subraces - Available subraces
- * 
- * @typedef {Object} SubraceData
- * @property {string} id - Unique identifier for the subrace
- * @property {string} name - Name of the subrace
- * @property {string} source - Source book
- * @property {Array} ability - Ability score improvements
- * @property {Array} entries - Subrace description entries
- * @property {string} parentRaceId - ID of the parent race
+ * Manages race data transformation and state
  */
-
 import { Race } from '../models/Race.js';
-import { Subrace } from '../models/Subrace.js';
-import { RaceCard } from '../ui/RaceCard.js';
-import { characterHandler } from '../utils/characterHandler.js';
 import { dataLoader } from '../dataloaders/DataLoader.js';
 
-export class RaceManager {
-    // Default values matching DataLoader
-    static DEFAULT_SIZE = ['M'];
-    static DEFAULT_SPEED = { walk: 30 };
-    static DEFAULT_ABILITY_SCORES = [];
+let instance = null;
 
-    /**
-     * Creates a new RaceManager instance
-     * @param {Object} dataLoader - The DataLoader instance for loading race data
-     */
-    constructor(dataLoader) {
-        this.dataLoader = dataLoader;
+export class RaceManager {
+    constructor() {
+        if (instance) {
+            throw new Error('RaceManager is a singleton. Use RaceManager.getInstance() instead.');
+        }
+        instance = this;
+
+        this.races = new Map();
         this.selectedRace = null;
         this.selectedSubrace = null;
-        this.abilityChoices = new Map();
-        this.characterHandler = characterHandler;
-
-        // Subscribe to character changes
-        this.characterHandler.addCharacterListener(this.handleCharacterChange.bind(this));
-
-        // Cache for race data
-        this.raceCache = new Map();
-        this.subraceCache = new Map();
     }
 
     /**
-     * Handles character changes
-     * @param {Character|null} character - The new character
-     * @private
+     * Gets the singleton instance of RaceManager
+     * @returns {RaceManager} The singleton instance
+     * @static
      */
-    handleCharacterChange(character) {
-        if (!character) {
-            this.clearCache();
-            return;
+    static getInstance() {
+        if (!instance) {
+            instance = new RaceManager();
         }
-
-        // Initialize race object if needed
-        if (!character.race || typeof character.race === 'string') {
-            character.race = {
-                selectedRace: null,
-                selectedSubrace: null
-            };
-        }
+        return instance;
     }
 
     /**
-     * Load a race by ID
-     * @param {string} raceId - The ID of the race to load (format: "name_source" in lowercase)
-     * @returns {Promise<Race|null>} The loaded race or null if not found
+     * Initialize race data
+     * @returns {Promise<void>}
      */
-    async loadRace(raceId) {
+    async initialize() {
         try {
-            if (!raceId) {
-                console.warn('Attempted to load race with undefined ID');
-                return null;
-            }
-
-            // Check cache first
-            if (this.raceCache.has(raceId)) {
-                return this.raceCache.get(raceId);
-            }
-
-            // Use RaceLoader's getRaceById method
-            const raceData = await this.dataLoader.raceLoader.getRaceById(raceId);
-            if (!raceData) {
-                console.warn(`Race not found: ${raceId}`);
-                return null;
-            }
-
-            // Create Race instance with proper ID format
-            const race = new Race({
-                ...raceData,
-                id: raceId // Ensure the ID matches the format used by RaceLoader
-            });
-            this.raceCache.set(raceId, race);
-            return race;
+            const raceData = await dataLoader.loadRaces();
+            this.processRaceData(raceData);
         } catch (error) {
-            console.error('Error loading race:', error);
-            return null;
+            console.error('Failed to initialize race data:', error);
+            throw error;
         }
     }
 
     /**
-     * Load a subrace by ID
-     * @param {string} subraceId - The ID of the subrace to load
-     * @param {string} parentRaceId - The ID of the parent race
-     * @returns {Promise<Subrace|null>} The loaded subrace or null if not found
+     * Process raw race data into Race objects
+     * @param {Object} raceData - Raw race data from loader
      */
-    async loadSubrace(subraceId, parentRaceId) {
-        try {
-            // Check cache first
-            const cacheKey = `${parentRaceId}:${subraceId}`;
-            if (this.subraceCache.has(cacheKey)) {
-                return this.subraceCache.get(cacheKey);
-            }
+    processRaceData(raceData) {
+        // Process main races
+        for (const rawRace of raceData.race) {
+            // Create the main race with processed data
+            const processedRace = this.processRawRace(rawRace);
+            this.races.set(`${processedRace.name}_${processedRace.source}`, processedRace);
 
-            // Load parent race first
-            const parentRace = await this.loadRace(parentRaceId);
-            if (!parentRace) {
-                console.warn(`Parent race not found: ${parentRaceId}`);
-                return null;
-            }
-
-            // Get subrace data from RaceLoader
-            const subraceData = await this.dataLoader.raceLoader.getSubraces(parentRaceId);
-            const subrace = subraceData.find(s => {
-                const source = (s.source || 'phb').toLowerCase();
-                const name = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                return `${name}_${source}` === subraceId.toLowerCase();
-            });
-
-            if (!subrace) {
-                console.warn(`Subrace not found: ${subraceId}`);
-                return null;
-            }
-
-            // Create Subrace instance
-            const subraceInstance = new Subrace({
-                ...subrace,
-                id: subraceId,
-                parentRaceId
-            }, parentRace);
-
-            this.subraceCache.set(cacheKey, subraceInstance);
-            return subraceInstance;
-        } catch (error) {
-            console.error('Error loading subrace:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Load all available races
-     * @returns {Promise<Race[]>} Array of available races
-     */
-    async getAvailableRaces() {
-        try {
-            const raceData = await this.dataLoader.raceLoader.loadRaces();
-            if (!raceData || !raceData.race) {
-                throw new Error('Failed to load race data');
-            }
-
-            const character = this.characterHandler.currentCharacter;
-            if (!character) return [];
-
-            // Filter races by allowed sources and create instances
-            return raceData.race
-                .filter(race => {
-                    const source = race.source.toLowerCase();
-                    return Array.from(character.allowedSources).some(allowedSource =>
-                        allowedSource.toLowerCase() === source
-                    );
-                })
-                .map(race => {
-                    const source = race.source.toLowerCase();
-                    const name = race.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const raceId = `${name}_${source}`;
-
-                    return new Race({
-                        ...race,
-                        id: raceId
+            // Handle reprinted races
+            if (rawRace.reprintedAs) {
+                for (const reprinted of rawRace.reprintedAs) {
+                    const [name, source] = reprinted.split('|');
+                    const reprintedRace = this.processRawRace({
+                        ...rawRace,
+                        name: name,
+                        source: source,
+                        languageProficiencies: source === 'XPHB' ?
+                            [{ common: true, anyStandard: 2 }] :
+                            (rawRace.languageProficiencies || [{ common: true }])
                     });
-                });
-        } catch (error) {
-            console.error('Error getting available races:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Load all available subraces for a race
-     * @param {string} raceId - The ID of the parent race
-     * @returns {Promise<Subrace[]>} Array of available subraces
-     */
-    async getAvailableSubraces(raceId) {
-        try {
-            // Check cache first
-            if (this.subraceCache.has(raceId)) {
-                return this.subraceCache.get(raceId);
-            }
-
-            // Load parent race first
-            const parentRace = await this.loadRace(raceId);
-            if (!parentRace) {
-                return [];
-            }
-
-            // Get subrace data from RaceLoader
-            const subraceData = await this.dataLoader.raceLoader.getSubraces(raceId);
-            if (!subraceData || subraceData.length === 0) {
-                return [];
-            }
-
-            // Create subrace instances
-            const subraces = subraceData.map(subrace => {
-                const source = subrace.source.toLowerCase();
-                const name = subrace.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                const subraceId = `${name}_${source}`;
-
-                return new Subrace({
-                    ...subrace,
-                    id: subraceId,
-                    parentRaceId: raceId
-                }, parentRace);
-            });
-
-            this.subraceCache.set(raceId, subraces);
-            return subraces;
-        } catch (error) {
-            console.error(`Error getting subraces for race ${raceId}:`, error);
-            return [];
-        }
-    }
-
-    /**
-     * Clear the race and subrace cache
-     */
-    clearCache() {
-        this.raceCache.clear();
-        this.subraceCache.clear();
-    }
-
-    /**
-     * Set the character's race and subrace
-     */
-    async setRace(raceId, subraceId = null) {
-        console.log(`[RaceManager] Setting race: ${raceId} subrace: ${subraceId}`);
-
-        const character = this.characterHandler.currentCharacter;
-        if (!character) return false;
-
-        // Clear existing racial features
-        this.clearRacialFeatures();
-
-        if (!raceId) {
-            character.race = null;
-            return true;
-        }
-
-        try {
-            // Load race data
-            const race = await this.loadRace(raceId);
-            if (!race) {
-                console.error('Failed to load race:', raceId);
-                return false;
-            }
-
-            // Initialize race object
-            character.race = {
-                selectedRace: race,
-                selectedSubrace: null,
-                abilityBonuses: {},
-                traits: [],
-                proficiencies: [],
-                languages: [],
-                speed: {},
-                size: race.size,
-                source: race.source
-            };
-
-            // Handle ability scores
-            if (race.ability) {
-                character.race.abilityBonuses = this.parseAbilityScores(race.ability);
-            }
-
-            // Handle subrace if specified
-            if (subraceId && race.subraces) {
-                const subrace = race.subraces.find(s => s.id === subraceId);
-                if (subrace) {
-                    character.race.selectedSubrace = subrace;
-
-                    // Merge subrace ability scores with base race
-                    if (subrace.ability) {
-                        const subraceBonuses = this.parseAbilityScores(subrace.ability);
-                        character.race.abilityBonuses = {
-                            ...character.race.abilityBonuses,
-                            ...subraceBonuses
-                        };
-                    }
+                    this.races.set(`${reprintedRace.name}_${reprintedRace.source}`, reprintedRace);
                 }
             }
+        }
 
-            // Process racial features
-            await this.processRacialFeatures(race);
-
-            // Mark character as modified
-            this.characterHandler.showUnsavedChanges();
-
-            return true;
-        } catch (error) {
-            console.error('Error setting race:', error);
-            return false;
+        // Process subraces
+        for (const rawSubrace of raceData.subrace) {
+            const parentRace = this.races.get(`${rawSubrace.raceName}_${rawSubrace.raceSource || 'PHB'}`);
+            if (parentRace) {
+                parentRace.addSubrace(this.processRawSubrace(rawSubrace));
+            }
         }
     }
 
     /**
-     * Parse ability scores from race or subrace data
+     * Process raw race data into standardized format
+     * @param {Object} rawRace - Raw race data
+     * @returns {Race} Processed Race object
      */
-    parseAbilityScores(ability) {
-        if (!ability) return {};
+    processRawRace(rawRace) {
+        return new Race({
+            ...rawRace,
+            size: this.parseSize(rawRace.size),
+            speed: this.parseSpeed(rawRace.speed),
+            ability: this.parseAbility(rawRace.ability)
+        });
+    }
+
+    /**
+     * Process raw subrace data into standardized format
+     * @param {Object} rawSubrace - Raw subrace data
+     * @returns {Object} Processed subrace object
+     */
+    processRawSubrace(rawSubrace) {
+        return {
+            ...rawSubrace,
+            ability: this.parseAbility(rawSubrace.ability)
+        };
+    }
+
+    /**
+     * Parse size data from various formats
+     * @param {Object|string|Array} sizeData - Size information
+     * @returns {Object} Parsed size data with standardized format
+     */
+    parseSize(sizeData) {
+        // Handle array format (e.g., ["M"] or ["S", "M"])
+        if (Array.isArray(sizeData)) {
+            return {
+                value: sizeData.map(s => this.standardizeSize(s)).join(' or '),
+                choices: sizeData.map(s => this.standardizeSize(s))
+            };
+        }
+
+        // Handle string format (e.g., "Medium")
+        if (typeof sizeData === 'string') {
+            return {
+                value: this.standardizeSize(sizeData),
+                choices: [this.standardizeSize(sizeData)]
+            };
+        }
+
+        // Handle object format (e.g., { value: "Medium" })
+        if (typeof sizeData === 'object' && sizeData !== null) {
+            return {
+                value: this.standardizeSize(sizeData.value || 'Medium'),
+                choices: [this.standardizeSize(sizeData.value || 'Medium')]
+            };
+        }
+
+        // Default to Medium if no size is specified
+        return {
+            value: 'Medium',
+            choices: ['Medium']
+        };
+    }
+
+    /**
+     * Standardize size abbreviation to full name
+     * @param {string} size - Size abbreviation or name
+     * @returns {string} Standardized size name
+     */
+    standardizeSize(size) {
+        const sizeMap = {
+            'T': 'Tiny',
+            'S': 'Small',
+            'M': 'Medium',
+            'L': 'Large',
+            'H': 'Huge',
+            'G': 'Gargantuan'
+        };
+        return sizeMap[size.toUpperCase()] || size;
+    }
+
+    /**
+     * Parse speed data from various formats
+     * @param {Object|number} speedData - Speed information
+     * @returns {Object} Parsed speed data
+     */
+    parseSpeed(speedData) {
+        if (typeof speedData === 'number') {
+            return { walk: speedData };
+        }
+        return speedData || { walk: 30 };
+    }
+
+    /**
+     * Parse ability score improvements from race data
+     * @param {Object} abilityData - Ability score data
+     * @returns {Array} Array of ability score improvements
+     */
+    parseAbility(abilityData) {
+        console.log('[RaceManager] Parsing ability data:', abilityData);
+
+        // Handle edge case where ability is empty or undefined
+        if (!abilityData) {
+            console.log('[RaceManager] No ability data to parse');
+            return [];
+        }
 
         // Handle array format
-        if (Array.isArray(ability)) {
-            const bonuses = {};
-            for (const score of ability) {
-                if (typeof score === 'object') {
-                    // Handle choice format
-                    if (score.choose) {
-                        // Store choice data for later processing
-                        bonuses._choices = bonuses._choices || [];
-                        bonuses._choices.push(score.choose);
-                    }
-                    // Handle fixed bonuses
-                    else if (score.mode === 'fixed') {
-                        for (const ability of score.scores) {
-                            bonuses[ability.toLowerCase()] = score.amount;
+        if (Array.isArray(abilityData)) {
+            console.log('[RaceManager] Parsing array format:', abilityData);
+            const improvements = [];
+
+            for (const entry of abilityData) {
+                if (typeof entry === 'object' && !Array.isArray(entry)) {
+                    // Check for mixed case - object with both fixed bonuses and choose option
+                    if (entry.choose && entry.from) {
+                        // Process the choice component
+                        improvements.push({
+                            isChoice: true,
+                            count: entry.choose || 1,
+                            amount: entry.amount || 1,
+                            choices: Array.isArray(entry.from) ?
+                                entry.from.map(a => a.toLowerCase()) :
+                                []
+                        });
+                    } else if (entry.choose?.from) {
+                        // Handle nested choose format
+                        improvements.push({
+                            isChoice: true,
+                            count: entry.choose.count || 1,
+                            amount: entry.choose.amount || 1,
+                            choices: Array.isArray(entry.choose.from) ?
+                                entry.choose.from.map(a => a.toLowerCase()) :
+                                []
+                        });
+
+                        // Also process any fixed bonuses in the same object
+                        for (const [key, value] of Object.entries(entry)) {
+                            if (key !== 'choose' && typeof value === 'number') {
+                                improvements.push({
+                                    ability: key.toLowerCase(),
+                                    amount: value,
+                                    isChoice: false
+                                });
+                            }
                         }
-                    }
-                    // Handle direct bonuses
-                    else {
-                        for (const [ability, amount] of Object.entries(score)) {
-                            if (typeof amount === 'number') {
-                                bonuses[ability.toLowerCase()] = amount;
+                    } else {
+                        // Handle simple object with ability scores only
+                        for (const [key, value] of Object.entries(entry)) {
+                            if (key !== 'choose' && typeof value === 'number') {
+                                improvements.push({
+                                    ability: key.toLowerCase(),
+                                    amount: value,
+                                    isChoice: false
+                                });
                             }
                         }
                     }
+                } else if (typeof entry === 'string') {
+                    // Parse string format like "dexterity +2"
+                    const parts = entry.split(/\s+/);
+                    if (parts.length >= 2) {
+                        const ability = parts[0].toLowerCase();
+                        const amountStr = parts[1].replace(/^[+]/, '');
+                        const amount = Number.parseInt(amountStr, 10) || 1;
+                        improvements.push({
+                            ability,
+                            amount,
+                            isChoice: false
+                        });
+                    }
                 }
             }
-            return bonuses;
+
+            return improvements;
         }
 
-        // Handle object format
-        if (typeof ability === 'object') {
-            const bonuses = {};
-            for (const [ability, amount] of Object.entries(ability)) {
-                if (typeof amount === 'number') {
-                    bonuses[ability.toLowerCase()] = amount;
-                }
+        // Handle object format (not in an array)
+        if (typeof abilityData === 'object' && !Array.isArray(abilityData)) {
+            const improvements = [];
+
+            // Handle choice component if present
+            if (abilityData.from) {
+                improvements.push({
+                    isChoice: true,
+                    count: abilityData.choose || 1,
+                    amount: abilityData.amount || 1,
+                    choices: Array.isArray(abilityData.from) ?
+                        abilityData.from.map(a => a.toLowerCase()) :
+                        []
+                });
             }
-            return bonuses;
-        }
 
-        return {};
-    }
-
-    /**
-     * Process racial features from race and subrace
-     */
-    async processRacialFeatures(race) {
-        if (!race) return;
-
-        // Process base race features
-        if (race.entries) {
-            for (const entry of race.entries) {
-                if (entry.type === 'entries' && entry.name) {
-                    this.characterHandler.currentCharacter.race.traits.push({
-                        name: entry.name,
-                        description: Array.isArray(entry.entries) ? entry.entries.join(' ') : entry.entries
+            // Handle fixed components
+            for (const [key, value] of Object.entries(abilityData)) {
+                if (key !== 'from' && key !== 'choose' && key !== 'amount' && typeof value === 'number') {
+                    improvements.push({
+                        ability: key.toLowerCase(),
+                        amount: value,
+                        isChoice: false
                     });
                 }
             }
+
+            return improvements;
         }
 
-        // Process subrace features if present
-        if (this.characterHandler.currentCharacter.race.selectedSubrace?.entries) {
-            for (const entry of this.characterHandler.currentCharacter.race.selectedSubrace.entries) {
-                if (entry.type === 'entries' && entry.name) {
-                    this.characterHandler.currentCharacter.race.traits.push({
-                        name: entry.name,
-                        description: Array.isArray(entry.entries) ? entry.entries.join(' ') : entry.entries
-                    });
-                }
+        // Handle simple string format
+        if (typeof abilityData === 'string') {
+            const parts = abilityData.split(/\s+/);
+            if (parts.length >= 2) {
+                const ability = parts[0].toLowerCase();
+                const amountStr = parts[1].replace(/^[+]/, '');
+                const amount = Number.parseInt(amountStr, 10) || 1;
+                return [{
+                    ability,
+                    amount,
+                    isChoice: false
+                }];
             }
         }
 
-        // Process languages
-        if (race.languages) {
-            this.characterHandler.currentCharacter.race.languages = Array.isArray(race.languages)
-                ? race.languages
-                : [race.languages];
-        }
-
-        // Process speed
-        if (race.speed) {
-            this.characterHandler.currentCharacter.race.speed = typeof race.speed === 'number'
-                ? { walk: race.speed }
-                : race.speed;
-        }
+        console.log('[RaceManager] Unable to parse ability data, returning empty array');
+        return [];
     }
 
     /**
-     * Clears all racial features from the character
+     * Get all available races
+     * @returns {Array<Race>} Array of Race objects
      */
-    clearRacialFeatures() {
-        console.log('[RaceManager] Clearing racial features');
-        console.log('[RaceManager] Before clear - Ability bonuses:', this.characterHandler.currentCharacter.abilityBonuses);
-
-        // Clear ability score increases
-        this.characterHandler.currentCharacter.clearAbilityBonuses('Race');
-        this.characterHandler.currentCharacter.clearAbilityBonuses('Subrace');
-
-        console.log('[RaceManager] After clear - Ability bonuses:', this.characterHandler.currentCharacter.abilityBonuses);
-
-        // Clear proficiencies
-        this.characterHandler.currentCharacter.removeProficienciesBySource('Race');
-        this.characterHandler.currentCharacter.removeProficienciesBySource('Subrace');
-
-        // Clear languages
-        this.characterHandler.currentCharacter.removeLanguagesBySource('Race');
-        this.characterHandler.currentCharacter.removeLanguagesBySource('Subrace');
-
-        // Reset to defaults
-        this.characterHandler.currentCharacter.speed = { ...RaceManager.DEFAULT_SPEED };
-        this.characterHandler.currentCharacter.size = RaceManager.DEFAULT_SIZE[0];
-        this.characterHandler.currentCharacter.features.darkvision = 0;
-
-        // Clear resistances
-        this.characterHandler.currentCharacter.clearResistances('Race');
-        this.characterHandler.currentCharacter.clearResistances('Subrace');
-
-        // Clear traits
-        this.characterHandler.currentCharacter.clearTraits('Race');
-        this.characterHandler.currentCharacter.clearTraits('Subrace');
-
-        // Clear ability choices
-        this.abilityChoices.clear();
+    getAllRaces() {
+        return Array.from(this.races.values());
     }
 
     /**
-     * Applies racial features from the selected race and subrace
+     * Get race by name and source
+     * @param {string} name - Race name
+     * @param {string} source - Race source
+     * @returns {Race|null} Race object or null if not found
      */
-    async applyRacialFeatures() {
-        if (!this.selectedRace) return;
+    getRace(name, source = 'PHB') {
+        return this.races.get(`${name}_${source}`) || null;
+    }
 
-        // Apply race features
-        await this.applyRaceFeatures(this.selectedRace, 'Race');
+    /**
+     * Select a race
+     * @param {string} raceName - Name of the race to select
+     * @param {string} source - Source of the race
+     * @returns {Race|null} Selected race or null if not found
+     */
+    selectRace(raceName, source = 'PHB') {
+        this.selectedRace = this.getRace(raceName, source);
+        this.selectedSubrace = null;
+        return this.selectedRace;
+    }
 
-        // Apply subrace features if selected
+    /**
+     * Select a subrace
+     * @param {string} subraceName - Name of the subrace to select
+     * @returns {Object|null} Selected subrace or null if not found
+     */
+    selectSubrace(subraceName) {
+        if (!this.selectedRace) return null;
+
+        this.selectedSubrace = this.selectedRace.getSubrace(subraceName);
+        return this.selectedSubrace;
+    }
+
+    /**
+     * Get currently selected race
+     * @returns {Race|null} Currently selected race
+     */
+    getSelectedRace() {
+        return this.selectedRace;
+    }
+
+    /**
+     * Get currently selected subrace
+     * @returns {Object|null} Currently selected subrace
+     */
+    getSelectedSubrace() {
+        return this.selectedSubrace;
+    }
+
+    /**
+     * Get combined ability score improvements from race and subrace
+     * @returns {Array} Combined ability score improvements
+     */
+    getCombinedAbilityImprovements() {
+        const improvements = [];
+
+        if (this.selectedRace) {
+            improvements.push(...this.selectedRace.getAbilityImprovements());
+        }
+
         if (this.selectedSubrace) {
-            await this.applyRaceFeatures(this.selectedSubrace, 'Subrace');
+            improvements.push(...(this.selectedSubrace.ability || []));
+        }
+
+        return improvements;
+    }
+
+    /**
+     * Get combined traits from race and subrace
+     * @returns {Array} Combined traits
+     */
+    getCombinedTraits() {
+        const traits = [];
+
+        if (this.selectedRace) {
+            // Filter out traits that are displayed elsewhere
+            const filteredTraits = this.selectedRace.getTraits().filter(trait => {
+                const name = trait.name?.toLowerCase() || '';
+                return !name.includes('age') && !name.includes('speed') &&
+                    !name.includes('language') && !name.includes('size');
+            });
+            traits.push(...filteredTraits);
+        }
+
+        if (this.selectedSubrace) {
+            // Filter out traits that are displayed elsewhere
+            const filteredSubraceTraits = (this.selectedSubrace.entries || []).filter(trait => {
+                const name = trait.name?.toLowerCase() || '';
+                return !name.includes('age') && !name.includes('speed') &&
+                    !name.includes('language') && !name.includes('size');
+            });
+            traits.push(...filteredSubraceTraits);
+        }
+
+        return traits;
+    }
+
+    /**
+     * Get formatted ability score improvements
+     * @returns {string} Formatted ability score improvements
+     */
+    getFormattedAbilityImprovements() {
+        const improvements = this.getCombinedAbilityImprovements();
+        if (!improvements || improvements.length === 0) {
+            return 'None';
+        }
+
+        // Process improvements and separate fixed improvements to display one per line
+        const choiceImprovements = [];
+        const fixedImprovements = [];
+
+        for (const improvement of improvements) {
+            if (improvement.isChoice) {
+                // Format choice improvements
+                const formattedChoices = improvement.choices.map(ability =>
+                    this._getAbilityAbbreviation(ability).toUpperCase()
+                ).join(', ');
+                choiceImprovements.push(`Choose ${improvement.count} from: ${formattedChoices} (+${improvement.amount})`);
+            } else {
+                // Format fixed improvements with uppercase abbreviations - one per entry
+                fixedImprovements.push(`${this._getAbilityAbbreviation(improvement.ability).toUpperCase()} +${improvement.amount}`);
+            }
+        }
+
+        // Combine with line breaks between fixed improvements
+        return [...fixedImprovements, ...choiceImprovements].join('\n');
+    }
+
+    /**
+     * Convert ability name to standard abbreviation
+     * @param {string} ability - The ability name
+     * @returns {string} The abbreviated ability name
+     * @private
+     */
+    _getAbilityAbbreviation(ability) {
+        const abilityLower = ability.toLowerCase();
+        switch (abilityLower) {
+            case 'strength': return 'STR';
+            case 'dexterity': return 'DEX';
+            case 'constitution': return 'CON';
+            case 'intelligence': return 'INT';
+            case 'wisdom': return 'WIS';
+            case 'charisma': return 'CHA';
+            case 'str': return 'STR';
+            case 'dex': return 'DEX';
+            case 'con': return 'CON';
+            case 'int': return 'INT';
+            case 'wis': return 'WIS';
+            case 'cha': return 'CHA';
+            default: return ability.toUpperCase();
         }
     }
 
     /**
-     * Applies features from a race or subrace
-     * @param {Object} race - The race or subrace object
-     * @param {string} source - The source of the features (Race or Subrace)
+     * Get formatted movement speeds
+     * @returns {string} Formatted movement speeds
      */
-    async applyRaceFeatures(race, source) {
-        if (!race) return;
+    getFormattedMovementSpeeds() {
+        if (!this.selectedRace) return 'None';
+        const speeds = [];
+        for (const [type, speed] of Object.entries(this.selectedRace.getSpeeds())) {
+            speeds.push(`${type.charAt(0).toUpperCase() + type.slice(1)}: ${speed} ft.`);
+        }
+        return speeds.join('\n');
+    }
 
-        console.log(`[RaceManager] Applying ${source} features for ${race.name}`);
-        console.log(`[RaceManager] ${source} ability scores:`, race.ability);
+    /**
+     * Get formatted languages
+     * @returns {string} Formatted languages
+     */
+    getFormattedLanguages() {
+        if (!this.selectedRace) return 'None';
 
-        // Apply size - keep array if multiple sizes are available
-        this.characterHandler.currentCharacter.size = Array.isArray(race.size) ? race.size : [race.size || RaceManager.DEFAULT_SIZE[0]];
+        // For XPHB races, always return Common and 2 Standard
+        if (this.selectedRace.source === 'XPHB') {
+            return 'Common\nChoose 2 standard languages';
+        }
 
-        // Apply speed
-        this.characterHandler.currentCharacter.speed = race.speed || { ...RaceManager.DEFAULT_SPEED };
+        const languages = new Set(['Common']); // Always include Common
+        const proficiencies = this.selectedRace.getLanguageProficiencies();
 
-        // Clear previous ability bonuses from this source
-        console.log(`[RaceManager] Before clearing ${source} ability bonuses:`, this.characterHandler.currentCharacter.abilityBonuses);
-        this.characterHandler.currentCharacter.clearAbilityBonuses(source);
-        console.log(`[RaceManager] After clearing ${source} ability bonuses:`, this.characterHandler.currentCharacter.abilityBonuses);
+        if (!proficiencies || proficiencies.length === 0) {
+            return 'Common';
+        }
 
-        // Apply ability score increases
-        if (race.ability && Array.isArray(race.ability)) {
-            console.log(`[RaceManager] Processing ability increases for ${source}:`, race.ability);
+        for (const proficiency of proficiencies) {
+            // Handle standard languages
+            for (const [language, value] of Object.entries(proficiency)) {
+                if (value === true) {
+                    languages.add(language.charAt(0).toUpperCase() + language.slice(1));
+                }
+            }
 
-            for (const abilityIncrease of race.ability) {
-                if (typeof abilityIncrease === 'object') {
-                    // First apply any fixed bonuses in the object
-                    const abilityMap = {
-                        'str': 'strength',
-                        'dex': 'dexterity',
-                        'con': 'constitution',
-                        'int': 'intelligence',
-                        'wis': 'wisdom',
-                        'cha': 'charisma'
-                    };
+            // Handle "anyStandard" choice
+            if (proficiency.anyStandard) {
+                languages.add(`Choose ${proficiency.anyStandard} standard language${proficiency.anyStandard > 1 ? 's' : ''}`);
+            }
 
-                    for (const [shortName, value] of Object.entries(abilityIncrease)) {
-                        if (typeof value === 'number') {
-                            const ability = abilityMap[shortName] || shortName;
-                            this.characterHandler.currentCharacter.addAbilityBonus(ability, value, source);
-                        }
+            // Handle "other" choice
+            if (proficiency.other) {
+                languages.add('Choose 1 other language');
+            }
+        }
+
+        return Array.from(languages).join('\n');
+    }
+
+    /**
+     * Get ability score choices from race and subrace
+     * @returns {Array} Array of ability score choices with source information
+     */
+    getAbilityScoreChoices() {
+        console.log('[RaceManager] Getting ability score choices');
+        const choices = [];
+
+        if (this.selectedRace) {
+            // Get choices from main race
+            const raceChoices = this.selectedRace.getAbilityImprovements()
+                .filter(improvement => improvement.isChoice)
+                .flatMap(improvement => {
+                    console.log('[RaceManager] Race choice improvement:', improvement);
+
+                    // For each choice count requested, create separate choice objects
+                    const sourceChoices = [];
+                    const count = improvement.count || 1;
+
+                    // Always create individual choice objects, even for multi-select choices
+                    for (let i = 0; i < count; i++) {
+                        sourceChoices.push({
+                            type: 'ability',
+                            amount: improvement.amount,
+                            count: 1, // Always 1 for individual dropdowns
+                            choices: improvement.choices,
+                            source: `Race Choice ${i + 1}` // Differentiate sources
+                        });
+                        console.log(`[RaceManager] Created individual choice ${i + 1} of ${count}`);
                     }
 
-                    // Then handle any choices in the same object
-                    if (abilityIncrease.choose || abilityIncrease.mode === 'choose') {
-                        const choiceConfig = abilityIncrease.choose || abilityIncrease;
-                        const count = choiceConfig.count || 1;
-                        const amount = choiceConfig.amount || 1;
+                    return sourceChoices;
+                });
+            choices.push(...raceChoices);
 
-                        // For each count, add a separate choice
+            // Get choices from subrace if selected
+            if (this.selectedSubrace) {
+                const subraceChoices = (this.selectedSubrace.ability || [])
+                    .filter(improvement => improvement.isChoice)
+                    .flatMap(improvement => {
+                        console.log('[RaceManager] Subrace choice improvement:', improvement);
+
+                        // For each choice count requested, create separate choice objects
+                        const sourceChoices = [];
+                        const count = improvement.count || 1;
+
+                        // Always create individual choice objects
                         for (let i = 0; i < count; i++) {
-                            this.characterHandler.currentCharacter.addPendingChoice('ability', {
-                                source: `${source} Choice ${i + 1}`,
+                            sourceChoices.push({
                                 type: 'ability',
-                                count: 1, // Each choice is individual
-                                from: choiceConfig.from.map(shortName => abilityMap[shortName] || shortName),
-                                amount
+                                amount: improvement.amount,
+                                count: 1, // Always 1 for individual dropdowns
+                                choices: improvement.choices,
+                                source: `Subrace Choice ${i + 1}` // Differentiate sources
                             });
                         }
-                    }
-                }
-            }
-        }
 
-        // Apply features
-        if (race.features) {
-            for (const [key, value] of Object.entries(race.features)) {
-                this.characterHandler.currentCharacter.features[key] = value;
-            }
-        }
-
-        // Apply resistances
-        if (race.resistances) {
-            for (const resistance of race.resistances) {
-                // Handle both string and object resistances
-                const resistanceValue = typeof resistance === 'string' ?
-                    resistance :
-                    (resistance.resist || resistance.name || resistance.type);
-
-                if (resistanceValue) {
-                    this.characterHandler.currentCharacter.addResistance(resistanceValue.toLowerCase(), source);
-                }
-            }
-        }
-
-        // Apply entries as traits
-        if (race.entries) {
-            for (const entry of race.entries) {
-                if (entry.type === 'entries' && entry.name) {
-                    const description = Array.isArray(entry.entries) ? entry.entries.join('\n') : entry.entries;
-                    this.characterHandler.currentCharacter.addTrait(entry.name, description, source);
-                }
-            }
-        }
-
-        // Apply languages
-        if (race.source === 'XPHB') {
-            // XPHB races know Common and 2 normal languages of their choice
-            this.characterHandler.currentCharacter.addLanguage('Common', source);
-            this.characterHandler.currentCharacter.addPendingChoice('language', {
-                source,
-                type: 'languages',
-                count: 2,
-                from: 'normal',
-                description: 'Choose two normal languages'
-            });
-        } else if (race.languages) {
-            for (const language of race.languages) {
-                this.characterHandler.currentCharacter.addLanguage(language, source);
-            }
-        }
-
-        // Apply proficiencies
-        if (race.proficiencies) {
-            for (const [type, profs] of Object.entries(race.proficiencies)) {
-                if (Array.isArray(profs)) {
-                    for (const prof of profs) {
-                        this.characterHandler.currentCharacter.addProficiency(type, prof, source);
-                    }
-                } else if (profs.choose) {
-                    // Store proficiency choices for later
-                    this.characterHandler.currentCharacter.addPendingChoice('proficiency', {
-                        source,
-                        type,
-                        count: profs.choose.count || 1,
-                        from: profs.choose.from || []
+                        return sourceChoices;
                     });
-                }
+                choices.push(...subraceChoices);
             }
         }
 
-        // Apply spells
-        if (race.spells) {
-            for (const spell of race.spells) {
-                if (this.characterHandler.currentCharacter.spells) {
-                    await this.characterHandler.currentCharacter.spells.addSpell(spell.id || spell, source);
-                }
+        console.log('[RaceManager] Final ability score choices:', choices);
+        return choices;
+    }
+
+    /**
+     * Get fixed ability score improvements from race and subrace
+     * @returns {Array} Array of fixed ability score improvements
+     */
+    getFixedAbilityImprovements() {
+        const improvements = [];
+
+        if (this.selectedRace) {
+            // Get fixed improvements from main race
+            const raceImprovements = this.selectedRace.getAbilityImprovements()
+                .filter(improvement => !improvement.isChoice)
+                .map(improvement => ({
+                    ability: improvement.ability.toLowerCase(),
+                    value: improvement.amount,
+                    source: 'Race'
+                }));
+            improvements.push(...raceImprovements);
+
+            // Get fixed improvements from subrace if selected
+            if (this.selectedSubrace) {
+                const subraceImprovements = (this.selectedSubrace.ability || [])
+                    .filter(improvement => !improvement.isChoice)
+                    .map(improvement => ({
+                        ability: improvement.ability.toLowerCase(),
+                        value: improvement.amount,
+                        source: 'Subrace'
+                    }));
+                improvements.push(...subraceImprovements);
             }
         }
 
-        // Check for and handle ability score choices
-        if (this.hasPendingChoices()) {
-            const abilityScoreContainer = document.querySelector('.ability-score-container');
-            if (abilityScoreContainer) {
-                const raceUIInstance = new RaceCard(this.characterHandler.currentCharacter);
-                raceUIInstance.checkRaceAbilityChoices();
-            }
+        return improvements;
+    }
+
+    /**
+     * Get available races based on allowed sources
+     * @param {boolean} filterBySource - Whether to filter by source
+     * @returns {Array<Object>} Array of available races
+     */
+    getAvailableRaces(filterBySource = true) {
+        console.log('[RaceManager] Getting available races, filter by source:', filterBySource);
+        let races = this.races || [];
+
+        if (filterBySource) {
+            const allowedSources = this.sourceManager.getAllowedSources();
+            console.log('[RaceManager] Filtering races by sources:', Array.from(allowedSources));
+
+            // Make sure source names are uppercase for comparison
+            const upperAllowedSources = new Set(Array.from(allowedSources).map(s => s.toUpperCase()));
+
+            races = races.filter(race => {
+                const raceSource = race.source?.toUpperCase();
+                return upperAllowedSources.has(raceSource);
+            });
+
+            console.log('[RaceManager] Races after filtering:', races.map(r => r.name));
         }
-    }
 
-    /**
-     * Makes ability score choices for the race/subrace
-     * @param {Object} choices - Map of ability scores to increase
-     * @returns {boolean} - True if choices were applied successfully
-     */
-    applyAbilityChoices(choices) {
-        try {
-            if (!this.selectedRace) return false;
-
-            // Clear previous choices
-            this.characterHandler.currentCharacter.clearAbilityBonuses('Race Choice');
-
-            // Apply new choices
-            for (const [ability, value] of Object.entries(choices)) {
-                this.characterHandler.currentCharacter.addAbilityBonus(ability, value, 'Race Choice');
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Error applying ability choices:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Checks if there are pending ability score choices
-     * @returns {boolean} - True if there are pending choices
-     */
-    hasPendingChoices() {
-        return this.abilityChoices.size > 0;
-    }
-
-    /**
-     * Gets any pending ability score choices
-     * @returns {Map<string, Object>} - Map of source to choice configuration
-     */
-    getPendingChoices() {
-        return this.abilityChoices;
-    }
-
-    /**
-     * Gets the currently selected race name
-     * @returns {string|null} - The name of the selected race, or null if none selected
-     */
-    getCurrentRaceName() {
-        return this.selectedRace?.name || null;
+        return races;
     }
 }
 
-// Create and export a singleton instance
-export const raceManager = new RaceManager(dataLoader); 
+export const raceManager = RaceManager.getInstance();

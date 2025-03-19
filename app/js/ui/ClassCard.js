@@ -130,7 +130,7 @@ export class ClassCard {
 
             // Process class description text
             const originalText = classData.description || 'No description available.';
-            const processedText = await this.textProcessor.processText(originalText);
+            const processedText = await this.textProcessor.processString(originalText);
 
             // Update UI elements
             this.updateClassCard(classData, processedText);
@@ -475,7 +475,7 @@ export class ClassCard {
                 const textNodes = element.querySelectorAll('p, li');
                 for (const node of textNodes) {
                     const originalText = node.innerHTML;
-                    const processedText = await this.textProcessor.processText(originalText);
+                    const processedText = await this.textProcessor.processString(originalText);
                     node.innerHTML = processedText;
                 }
             }

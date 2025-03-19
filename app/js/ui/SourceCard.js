@@ -1,6 +1,11 @@
 /**
  * SourceCard.js
- * Manages the UI for source book selection in character creation
+ * Manages the UI for source book selection in character creation.
+ * 
+ * @typedef {Object} SourceToggle
+ * @property {HTMLElement} element - The toggle button element
+ * @property {string} source - The source book identifier
+ * @property {boolean} isSelected - Whether the source is currently selected
  */
 
 import { SourceManager } from '../managers/SourceManager.js';
@@ -21,97 +26,84 @@ export class SourceCard {
      */
     async initializeSourceSelection() {
         if (!this.container) {
-            console.error('Source selection container not found');
+            console.error('[SourceCard] Source selection container not found');
             return;
         }
 
-        // Initialize header container
         this.headerContainer = document.getElementById('sourceBookHeader');
         if (!this.headerContainer) {
-            console.error('Source book header container not found');
+            console.error('[SourceCard] Source book header container not found');
             return;
         }
 
-        // Initialize source manager if not already initialized
         if (!this._initialized) {
             await this.sourceManager.initialize();
             this._initialized = true;
         }
 
-        // Clear existing content
         this.container.innerHTML = '';
         this.headerContainer.innerHTML = '';
 
-        // Add header with links
-        const headerElement = this.createSourceHeader();
-        this.headerContainer.appendChild(headerElement);
+        this.headerContainer.appendChild(this._createSourceHeader());
 
-        // Get available sources
         const availableSources = this.sourceManager.getAvailableSources();
-        console.log('Available sources:', availableSources);
-
-        // Create source toggles
         for (const source of availableSources) {
-            const toggle = this.createSourceToggle(source);
-            this.container.appendChild(toggle);
+            this.container.appendChild(this._createSourceToggle(source));
         }
 
         // Pre-select PHB
         const phbToggle = this.container.querySelector('[data-source="PHB"]');
         if (phbToggle) {
-            this.handleSourceClick(phbToggle);
+            this._handleSourceClick(phbToggle);
         }
     }
 
     /**
      * Creates the source selection header with links
      * @returns {HTMLElement} The header container with links
+     * @private
      */
-    createSourceHeader() {
+    _createSourceHeader() {
         const headerContainer = document.createElement('div');
         headerContainer.className = 'mb-1';
 
-        // Create the header
         const header = document.createElement('label');
         header.className = 'form-label';
         header.textContent = 'Source Books';
         headerContainer.appendChild(header);
 
-        // Create the links container
         const linksContainer = document.createElement('div');
         linksContainer.className = 'd-flex align-items-center gap-2 ps-2';
 
-        // Create Select All link
-        const selectAllLink = document.createElement('a');
-        selectAllLink.href = '#';
-        selectAllLink.className = 'text-decoration-none text-accent';
-        selectAllLink.textContent = 'Select All';
-        selectAllLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.selectAllSources();
-        });
-
-        // Create divider
+        const selectAllLink = this._createHeaderLink('Select All', () => this.selectAllSources());
         const divider = document.createElement('span');
         divider.className = 'text-muted';
         divider.textContent = '|';
+        const selectNoneLink = this._createHeaderLink('None', () => this.deselectAllSources());
 
-        // Create None link
-        const selectNoneLink = document.createElement('a');
-        selectNoneLink.href = '#';
-        selectNoneLink.className = 'text-decoration-none text-accent';
-        selectNoneLink.textContent = 'None';
-        selectNoneLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.deselectAllSources();
-        });
-
-        linksContainer.appendChild(selectAllLink);
-        linksContainer.appendChild(divider);
-        linksContainer.appendChild(selectNoneLink);
+        linksContainer.append(selectAllLink, divider, selectNoneLink);
         headerContainer.appendChild(linksContainer);
 
         return headerContainer;
+    }
+
+    /**
+     * Creates a header link with the given text and click handler
+     * @param {string} text - Link text
+     * @param {Function} onClick - Click handler
+     * @returns {HTMLElement} The created link element
+     * @private
+     */
+    _createHeaderLink(text, onClick) {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.className = 'text-decoration-none text-accent';
+        link.textContent = text;
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            onClick();
+        });
+        return link;
     }
 
     /**
@@ -121,7 +113,7 @@ export class SourceCard {
         const toggles = this.container.querySelectorAll('.source-toggle');
         for (const toggle of toggles) {
             if (!toggle.classList.contains('selected')) {
-                this.handleSourceClick(toggle);
+                this._handleSourceClick(toggle);
             }
         }
     }
@@ -133,7 +125,7 @@ export class SourceCard {
         const toggles = this.container.querySelectorAll('.source-toggle');
         for (const toggle of toggles) {
             if (toggle.classList.contains('selected')) {
-                this.handleSourceClick(toggle);
+                this._handleSourceClick(toggle);
             }
         }
     }
@@ -142,53 +134,58 @@ export class SourceCard {
      * Creates a toggle button for a source book
      * @param {string} source - The source book identifier
      * @returns {HTMLElement} The created toggle button
+     * @private
      */
-    createSourceToggle(source) {
+    _createSourceToggle(source) {
         const toggle = document.createElement('button');
         toggle.className = 'source-toggle';
         toggle.setAttribute('data-source', source);
         toggle.setAttribute('role', 'checkbox');
         toggle.setAttribute('aria-checked', 'false');
         toggle.setAttribute('tabindex', '0');
-        toggle.setAttribute('type', 'button'); // Prevent form submission
+        toggle.setAttribute('type', 'button');
 
-        // Add icon
         const icon = document.createElement('i');
         icon.className = 'fas fa-book';
         toggle.appendChild(icon);
 
-        // Add source name
         const name = document.createElement('span');
         name.textContent = this.sourceManager.formatSourceName(source);
         toggle.appendChild(name);
 
-        // Add event listeners
+        this._setupToggleEventListeners(toggle);
+        return toggle;
+    }
+
+    /**
+     * Sets up event listeners for a source toggle
+     * @param {HTMLElement} toggle - The toggle button element
+     * @private
+     */
+    _setupToggleEventListeners(toggle) {
         toggle.addEventListener('click', (e) => {
             e.preventDefault();
-            this.handleSourceClick(toggle);
+            this._handleSourceClick(toggle);
         });
         toggle.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                this.handleSourceClick(toggle);
+                this._handleSourceClick(toggle);
             }
         });
-
-        return toggle;
     }
 
     /**
      * Handles clicking a source toggle
      * @param {HTMLElement} toggle - The clicked toggle button
+     * @private
      */
-    handleSourceClick(toggle) {
-        // Prevent form submission
+    _handleSourceClick(toggle) {
         toggle.preventDefault?.();
 
         const source = toggle.getAttribute('data-source');
         const isSelected = toggle.classList.contains('selected');
 
-        // Toggle selection
         toggle.classList.toggle('selected', !isSelected);
         toggle.setAttribute('aria-checked', !isSelected);
 
@@ -197,6 +194,8 @@ export class SourceCard {
         } else {
             this._selectedSources.delete(source);
         }
+
+        this._validateSourceSelection();
     }
 
     /**
@@ -212,6 +211,20 @@ export class SourceCard {
         return true;
     }
 
+    /**
+     * Validates the current source selection
+     * @private
+     */
+    _validateSourceSelection() {
+        if (!this._selectedSources.has('PHB') && !this._selectedSources.has('XPHB')) {
+            showNotification('Please select at least one Player\'s Handbook (PHB\'14 or PHB\'24)', 'warning');
+        }
+    }
+
+    /**
+     * Loads available source books
+     * @returns {Promise<Array>} Array of available sources
+     */
     async loadSources() {
         try {
             return await this.sourceManager.loadSources();
@@ -222,11 +235,20 @@ export class SourceCard {
         }
     }
 
+    /**
+     * Adds a source to the selection
+     * @param {string} sourceId - The source book identifier
+     */
     addSource(sourceId) {
         this._selectedSources.add(sourceId);
         this.sourceManager.addSource(sourceId);
     }
 
+    /**
+     * Removes a source from the selection
+     * @param {string} sourceId - The source book identifier
+     * @returns {boolean} Whether the source was removed
+     */
     removeSource(sourceId) {
         if (sourceId === 'PHB') {
             showNotification('Cannot remove Player\'s Handbook', 'warning');
@@ -239,6 +261,9 @@ export class SourceCard {
         return removed;
     }
 
+    /**
+     * Clears all selected sources
+     */
     clearSources() {
         this._selectedSources = new Set();
         this.sourceManager.clearSources();

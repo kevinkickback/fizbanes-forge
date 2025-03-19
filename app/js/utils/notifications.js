@@ -1,42 +1,50 @@
 /**
  * notifications.js
- * Handles user feedback through a notification system
+ * Displays temporary messages to the user with configurable types, debouncing, and auto-closing.
  * 
  * @typedef {'info'|'success'|'warning'|'danger'} NotificationType
+ * @property {string} message - The message to display in the notification
+ * @property {NotificationType} type - The type of notification that determines its appearance
+ * @property {number} timestamp - When the notification was created
  */
 
-// Track last notification to prevent duplicates
+// Constants for notification behavior
+const NOTIFICATION_CONFIG = Object.freeze({
+    /** @type {number} Time in ms to prevent duplicate notifications from appearing */
+    DEBOUNCE_DELAY: 3000,
+    /** @type {number} Time in ms for the close animation when removing notifications */
+    CLOSE_ANIMATION_DURATION: 150,
+    /** @type {number} Time in ms before notifications automatically close */
+    AUTO_CLOSE_DELAY: 5000
+});
+
+/** @type {{message: string, type: string, timestamp: number}} */
 let lastNotification = { message: '', type: '', timestamp: 0 };
-const DEBOUNCE_DELAY = 3000;
-const CLOSE_ANIMATION_DURATION = 150;
 
 /**
- * Shows a notification to the user with debouncing
- * @param {string} message - The message to display
- * @param {NotificationType} [type='info'] - The type of notification
+ * Creates the notification container if it doesn't exist
+ * @returns {HTMLElement} The notification container element that holds all notifications
+ * @private
  */
-export function showNotification(message, type = 'info') {
-    // Check if this is a duplicate notification within the debounce window
-    const now = Date.now();
-    if (lastNotification.message === message &&
-        lastNotification.type === type &&
-        (now - lastNotification.timestamp) < DEBOUNCE_DELAY) {
-        return; // Skip duplicate notification
+function getOrCreateNotificationContainer() {
+    let container = document.getElementById('notificationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notificationContainer';
+        container.className = 'notification-container';
+        document.body.appendChild(container);
     }
+    return container;
+}
 
-    // Update last notification
-    lastNotification = { message, type, timestamp: now };
-
-    // Create notification container if it doesn't exist
-    let notificationContainer = document.getElementById('notificationContainer');
-    if (!notificationContainer) {
-        notificationContainer = document.createElement('div');
-        notificationContainer.id = 'notificationContainer';
-        notificationContainer.className = 'notification-container';
-        document.body.appendChild(notificationContainer);
-    }
-
-    // Create notification element
+/**
+ * Creates a notification element with the given message and type
+ * @param {string} message - The notification message to display
+ * @param {NotificationType} type - The notification type that determines its appearance
+ * @returns {HTMLElement} The notification element with message and close button
+ * @private
+ */
+function createNotificationElement(message, type) {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
@@ -45,8 +53,31 @@ export function showNotification(message, type = 'info') {
             <button type="button" class="btn-close notification-close" aria-label="Close"></button>
         </div>
     `;
+    return notification;
+}
 
-    // Add notification to container
+/**
+ * Shows a notification to the user with debouncing and auto-closing
+ * @param {string} message - The message to display in the notification
+ * @param {NotificationType} [type='info'] - The type of notification that determines its appearance
+ */
+export function showNotification(message, type = 'info') {
+    // Check if this is a duplicate notification within the debounce window
+    const now = Date.now();
+    if (lastNotification.message === message &&
+        lastNotification.type === type &&
+        (now - lastNotification.timestamp) < NOTIFICATION_CONFIG.DEBOUNCE_DELAY) {
+        return; // Skip duplicate notification
+    }
+
+    // Update last notification
+    lastNotification = { message, type, timestamp: now };
+
+    // Get or create notification container
+    const notificationContainer = getOrCreateNotificationContainer();
+
+    // Create and add notification element
+    const notification = createNotificationElement(message, type);
     notificationContainer.appendChild(notification);
 
     // Function to close notification with animation
@@ -62,17 +93,17 @@ export function showNotification(message, type = 'info') {
             if (isManualClose) {
                 lastNotification = { message: '', type: '', timestamp: 0 };
             }
-        }, CLOSE_ANIMATION_DURATION);
+        }, NOTIFICATION_CONFIG.CLOSE_ANIMATION_DURATION);
     };
 
     // Add close button handler
     const closeButton = notification.querySelector('.notification-close');
     closeButton.addEventListener('click', () => closeNotification(true));
 
-    // Auto-remove notification after 5 seconds
+    // Auto-remove notification after configured delay
     setTimeout(() => {
         if (notification.parentElement) {
             closeNotification(false);
         }
-    }, 5000);
+    }, NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY);
 } 

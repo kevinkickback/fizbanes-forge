@@ -285,7 +285,12 @@ export class BackgroundCard {
             </div>`;
     }
 
+    /**
+     * Process text content
+     * @param {string} originalText - The text to process
+     * @returns {Promise<string>} The processed text
+     */
     async processText(originalText) {
-        return await this.textProcessor.processText(originalText);
+        return await this.textProcessor.processString(originalText);
     }
 } 

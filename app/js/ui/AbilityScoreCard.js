@@ -1,261 +1,389 @@
+/**
+ * AbilityScoreCard.js
+ * Handles UI updates for ability scores, including rendering ability score boxes,
+ * managing ability choice dropdowns, and displaying bonus notes.
+ * 
+ * @typedef {Object} AbilityChoice
+ * @property {string} source - Source of the ability choice (e.g., "Race", "Background")
+ * @property {number} amount - Amount of the bonus to apply
+ * @property {boolean} [isChoice] - Whether this is a choice-based bonus
+ * 
+ * @typedef {Object} BonusGroup
+ * @property {string} ability - The ability name
+ * @property {number} value - The bonus value
+ * @property {string} source - Source of the bonus
+ * @property {boolean} [isChoice] - Whether this is a choice-based bonus
+ * 
+ * @typedef {Object} AbilityScoreBox
+ * @property {HTMLElement} score - Element displaying the ability score
+ * @property {HTMLElement} modifier - Element displaying the ability modifier
+ * @property {HTMLElement} bonus - Element displaying any bonus
+ */
+
+import { abilityScoreManager } from '../managers/AbilityScoreManager.js';
+
 export class AbilityScoreCard {
-    constructor(character) {
-        this.character = character;
+    /**
+     * Creates a new AbilityScoreCard instance
+     * @constructor
+     */
+    constructor() {
         this.container = document.querySelector('.ability-score-container');
         this.bonusesContainer = document.getElementById('abilityBonusesNotes');
-        this.abilityScores = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-        this.abilityChoices = new Map(); // Store current ability choices
+        this.abilityScoresChangedListener = () => this.render();
         this.initialize();
     }
 
+    /**
+     * Initializes the ability score card by rendering content and setting up event listeners
+     */
     initialize() {
+        console.log('[AbilityScoreCard] Initializing');
         this.render();
         this.setupEventListeners();
     }
 
+    /**
+     * Renders the entire ability score card, including scores, choices, and bonus notes
+     */
     render() {
+        console.log('[AbilityScoreCard] Rendering ability score card');
+
         if (!this.container) {
-            return; // Silently return if container is not found (expected on pages without ability scores)
+            console.log('[AbilityScoreCard] Container not found, skipping render');
+            return;
         }
 
-        // Update ability score boxes
-        for (const ability of this.abilityScores) {
+        this._renderAbilityScores();
+        this._renderAbilityChoices();
+        this._renderBonusNotes();
+    }
+
+    /**
+     * Renders the ability score boxes with their current values and modifiers
+     * @private
+     */
+    _renderAbilityScores() {
+        for (const ability of abilityScoreManager.getAllAbilities()) {
             const box = this.container.querySelector(`[data-ability="${ability}"]`);
             if (box) {
-                const score = this.character.getAbilityScore(ability);
+                const score = abilityScoreManager.getTotalScore(ability);
+                console.log(`[AbilityScoreCard] Updating ${ability} score to ${score}`);
                 box.querySelector('.score').textContent = score;
-                box.querySelector('.modifier').textContent = this.formatModifier(score);
+                box.querySelector('.modifier').textContent = abilityScoreManager.getModifier(score);
                 const bonusDiv = box.querySelector('.bonus');
                 bonusDiv.innerHTML = this.renderBonus(ability);
             }
         }
+    }
 
-        // Handle ability choices and bonus notes
-        let bonusContent = '';
+    /**
+     * Renders the ability choice dropdowns for pending ability score choices
+     * @private
+     */
+    _renderAbilityChoices() {
+        const pendingChoices = abilityScoreManager.getPendingChoices();
+        console.log('[AbilityScoreCard] Pending ability choices:', pendingChoices);
 
-        // Add ability choices if any
-        const pendingChoices = this.character.getPendingAbilityChoices()
-            .filter(choice => choice.type === 'ability');
-
-        if (pendingChoices.length > 0) {
-            bonusContent += '<div class="ability-choices">';
-            for (const [index, choice] of pendingChoices.entries()) {
-                const availableAbilities = this.getAvailableAbilities(index);
-                const selectedAbility = this.abilityChoices.get(index);
-
-                bonusContent += `
-                    <div class="ability-choice-group">
-                        <label class="form-label">+${choice.amount} bonus (${choice.source} ${index + 1})</label>
-                        <select class="form-select form-select-sm ability-choice-select" data-choice-index="${index}" data-bonus="${choice.amount}" data-source="${choice.source}">
-                            <option value="">Choose...</option>
-                            ${availableAbilities.map(ability => `
-                                <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
-                                    ${ability.charAt(0).toUpperCase() + ability.slice(1)}
-                                </option>
-                            `).join('')}
-                        </select>
-                    </div>
-                `;
-            }
-            bonusContent += '</div>';
+        if (pendingChoices.length === 0) {
+            this._removeChoicesContainer();
+            return;
         }
 
-        // Create bonus notes
-        const sourceMap = new Map();
-        for (const ability of this.abilityScores) {
-            const bonuses = this.character.abilityBonuses?.[ability] || [];
-            if (bonuses.length) {
-                for (const bonus of bonuses) {
-                    if (!sourceMap.has(bonus.source)) {
-                        sourceMap.set(bonus.source, []);
-                    }
-                    sourceMap.get(bonus.source).push({
-                        ability: ability,
-                        value: bonus.value
-                    });
-                }
-            }
+        const choicesContainer = this._getOrCreateChoicesContainer();
+        choicesContainer.innerHTML = this._createAbilityChoicesContent(pendingChoices);
+        this._setupChoiceEventListeners(choicesContainer);
+    }
+
+    /**
+     * Creates the HTML content for ability choice dropdowns
+     * @param {Array<AbilityChoice>} pendingChoices - Array of pending ability choices
+     * @returns {string} HTML content for the choices
+     * @private
+     */
+    _createAbilityChoicesContent(pendingChoices) {
+        return `
+            <div class="ability-choices-grid">
+                ${pendingChoices.map((choice, index) => this._createChoiceDropdown(choice, index)).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Creates a single ability choice dropdown
+     * @param {AbilityChoice} choice - The ability choice object
+     * @param {number} index - The index of the choice
+     * @returns {string} HTML content for the dropdown
+     * @private
+     */
+    _createChoiceDropdown(choice, index) {
+        const availableAbilities = abilityScoreManager.getAvailableAbilities(index);
+        const selectedAbility = abilityScoreManager.abilityChoices.get(index);
+
+        console.log(`[AbilityScoreCard] Choice ${index}:`, {
+            source: choice.source,
+            amount: choice.amount,
+            availableAbilities
+        });
+
+        return `
+            <div class="ability-choice-group">
+                <label class="form-label">+${choice.amount} bonus (${choice.source.replace(/\s+\d+$/, '')})</label>
+                <select class="form-select form-select-sm ability-choice-select" 
+                    data-choice-index="${index}" 
+                    data-bonus="${choice.amount}" 
+                    data-source="${choice.source}">
+                    <option value="">Choose...</option>
+                    ${availableAbilities.map(ability => `
+                        <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
+                            ${this._getAbilityAbbreviation(ability)}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+        `;
+    }
+
+    /**
+     * Gets or creates the choices container element
+     * @returns {HTMLElement} The choices container element
+     * @private
+     */
+    _getOrCreateChoicesContainer() {
+        let container = this.container.querySelector('.ability-choices-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'ability-choices-container';
+            this.container.appendChild(container);
         }
+        return container;
+    }
 
-        // Group race-related bonuses
-        const raceSourcePrefixes = ['Race', 'Race Choice', 'Subrace'];
-        const groupedSourceMap = new Map();
-
-        for (const [source, bonusList] of sourceMap) {
-            if (raceSourcePrefixes.some(prefix => source.startsWith(prefix))) {
-                if (!groupedSourceMap.has('Race')) {
-                    groupedSourceMap.set('Race', []);
-                }
-                groupedSourceMap.get('Race').push(...bonusList.map(b => ({
-                    ...b,
-                    isChoice: source.includes('Choice')
-                })));
-            } else {
-                groupedSourceMap.set(source, bonusList);
-            }
+    /**
+     * Removes the choices container if it exists
+     * @private
+     */
+    _removeChoicesContainer() {
+        const container = this.container.querySelector('.ability-choices-container');
+        if (container) {
+            container.remove();
         }
+    }
 
-        // Create bonus notes
-        if (groupedSourceMap.size > 0) {
-            bonusContent += '<h6 class="mb-2">Ability Score Bonuses</h6>';
-            for (const [source, bonusList] of groupedSourceMap) {
-                if (source === 'Race') {
-                    const fixedBonuses = bonusList.filter(b => !b.isChoice);
-                    const choiceBonuses = bonusList.filter(b => b.isChoice);
-
-                    const fixedText = fixedBonuses.map(b =>
-                        `${b.value >= 0 ? '+' : ''}${b.value} ${b.ability.toUpperCase()}`
-                    ).join(', ');
-
-                    const choiceText = choiceBonuses.map(b =>
-                        `${b.value >= 0 ? '+' : ''}${b.value} ${b.ability.toUpperCase()} (selected)`
-                    ).join(', ');
-
-                    const allBonusText = [fixedText, choiceText].filter(Boolean).join(', ');
-
-                    if (allBonusText) {
-                        bonusContent += `<div class="bonus-note">
-                            <strong>${source}</strong>: ${allBonusText}
-                        </div>`;
-                    }
-                } else {
-                    const bonusText = bonusList.map(b =>
-                        `${b.value >= 0 ? '+' : ''}${b.value} ${b.ability.toUpperCase()}`
-                    ).join(', ');
-                    bonusContent += `<div class="bonus-note">
-                        <strong>${source}</strong>: ${bonusText}
-                    </div>`;
-                }
-            }
-        } else {
-            bonusContent += '<div class="text-muted">No ability score bonuses applied.</div>';
-        }
-
-        this.bonusesContainer.innerHTML = bonusContent;
-
-        // Add event listeners to new dropdowns
-        const dropdowns = this.bonusesContainer.querySelectorAll('.ability-choice-select');
+    /**
+     * Sets up event listeners for ability choice dropdowns
+     * @param {HTMLElement} container - The container with the dropdowns
+     * @private
+     */
+    _setupChoiceEventListeners(container) {
+        const dropdowns = container.querySelectorAll('.ability-choice-select');
         for (const dropdown of dropdowns) {
             dropdown.addEventListener('change', (e) => this.handleAbilityChoice(e));
         }
     }
 
-    getAvailableAbilities(currentChoiceIndex) {
-        const allAbilities = [...this.abilityScores];
-        const selectedAbilities = new Set();
+    /**
+     * Renders the bonus notes section showing all ability score bonuses
+     * @private
+     */
+    _renderBonusNotes() {
+        const bonusGroups = abilityScoreManager.getBonusGroups();
+        console.log('[AbilityScoreCard] Bonus groups:', Array.from(bonusGroups.entries()));
 
-        // Collect all selected abilities except the current one
-        for (const [index, ability] of this.abilityChoices.entries()) {
-            if (index !== currentChoiceIndex && ability) {
-                selectedAbilities.add(ability);
+        if (bonusGroups.size === 0) {
+            this.bonusesContainer.innerHTML = '<div class="text-muted">No ability score bonuses applied.</div>';
+            return;
+        }
+
+        let bonusContent = '<h6 class="mb-2">Ability Score Bonuses</h6>';
+        const raceBonuses = this._processRaceBonuses(bonusGroups);
+
+        if (raceBonuses.length > 0) {
+            bonusContent += this._createBonusNote('Race', raceBonuses.join(', '));
+        }
+
+        // Process remaining bonus groups
+        for (const [source, bonusList] of bonusGroups.entries()) {
+            const bonusText = bonusList.map(b =>
+                `${this._getAbilityAbbreviation(b.ability)} ${b.value >= 0 ? '+' : ''}${b.value}`
+            ).join(', ');
+            bonusContent += this._createBonusNote(source, bonusText);
+        }
+
+        this.bonusesContainer.innerHTML = bonusContent;
+    }
+
+    /**
+     * Processes race-related bonuses and formats them for display
+     * @param {Map<string, Array<BonusGroup>>} bonusGroups - Map of all bonus groups
+     * @returns {Array<string>} Array of formatted race bonus strings
+     * @private
+     */
+    _processRaceBonuses(bonusGroups) {
+        const raceRelatedSources = ['Race', 'Race Choice 1', 'Race Choice 2', 'Race Choice 3'];
+        const raceBonuses = new Map();
+        const allRaceBonuses = [];
+
+        // Collect race-related bonuses
+        for (const source of raceRelatedSources) {
+            if (bonusGroups.has(source)) {
+                raceBonuses.set(source, bonusGroups.get(source));
+                bonusGroups.delete(source);
             }
         }
 
-        // Get abilities that already have racial bonuses
-        const abilitiesWithRacialBonuses = new Set();
-        for (const ability of this.abilityScores) {
-            const bonuses = this.character.abilityBonuses?.[ability] || [];
-            for (const bonus of bonuses) {
-                // Check if the bonus is from a racial source (Race, Subrace, but not Race Choice)
-                if ((bonus.source === 'Race' || bonus.source === 'Subrace') && !bonus.source.includes('Choice')) {
-                    abilitiesWithRacialBonuses.add(ability);
+        // Process fixed race bonuses
+        if (raceBonuses.has('Race')) {
+            const fixedBonuses = raceBonuses.get('Race').filter(b => !b.isChoice);
+            for (const bonus of fixedBonuses) {
+                allRaceBonuses.push(
+                    `${this._getAbilityAbbreviation(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`
+                );
+            }
+        }
+
+        // Process race choice bonuses
+        for (const [source, bonusList] of raceBonuses.entries()) {
+            if (source.includes('Choice')) {
+                for (const bonus of bonusList) {
+                    allRaceBonuses.push(
+                        `${this._getAbilityAbbreviation(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value} (choice)`
+                    );
                 }
             }
         }
 
-        // Return abilities that:
-        // 1. Haven't been selected by other choices
-        // 2. Don't already have racial bonuses
-        return allAbilities.filter(ability =>
-            !selectedAbilities.has(ability) &&
-            !abilitiesWithRacialBonuses.has(ability)
-        );
+        return allRaceBonuses;
     }
 
+    /**
+     * Creates a bonus note HTML element
+     * @param {string} source - The source of the bonus
+     * @param {string} content - The bonus content
+     * @returns {string} HTML for the bonus note
+     * @private
+     */
+    _createBonusNote(source, content) {
+        return `<div class="bonus-note">
+            <strong>${source}</strong>: ${content}
+        </div>`;
+    }
+
+    /**
+     * Renders the bonus display for a specific ability
+     * @param {string} ability - The ability name
+     * @returns {string} HTML for the bonus display
+     */
+    renderBonus(ability) {
+        const score = abilityScoreManager.getTotalScore(ability);
+        const baseScore = abilityScoreManager.getBaseScore(ability);
+        const totalBonus = score - baseScore;
+
+        if (totalBonus === 0) return '';
+
+        const bonusClass = totalBonus >= 0 ? 'bonus' : 'bonus negative';
+        return `<div class="${bonusClass}">${totalBonus >= 0 ? '+' : ''}${totalBonus}</div>`;
+    }
+
+    /**
+     * Handles the selection of an ability choice from a dropdown
+     * @param {Event} event - The change event from the dropdown
+     */
     handleAbilityChoice(event) {
         const select = event.target;
         const choiceIndex = Number.parseInt(select.dataset.choiceIndex, 10);
         const bonus = Number.parseInt(select.dataset.bonus, 10);
         const source = select.dataset.source;
         const selectedAbility = select.value;
-        const previousAbility = this.abilityChoices.get(choiceIndex);
 
-        // Clear the specific choice's bonus
-        this.character.clearAbilityBonuses(source);
-
-        // Update stored choices
-        if (selectedAbility) {
-            this.abilityChoices.set(choiceIndex, selectedAbility);
-            this.character.addAbilityBonus(selectedAbility, bonus, source);
-        } else {
-            this.abilityChoices.delete(choiceIndex);
-        }
-
-        // Re-render the UI to update other dropdowns' available options
-        this.render();
+        abilityScoreManager.handleAbilityChoice(selectedAbility, choiceIndex, bonus, source);
     }
 
-    applyAbilityChoices() {
-        // Clear previous choice-based bonuses
-        this.character.clearAbilityBonuses('Half-Elf Choice');
-        this.character.clearAbilityBonuses('Race Choice');
-
-        // Apply current choices
-        for (const [index, ability] of this.abilityChoices.entries()) {
-            if (ability) {
-                const select = this.container.querySelector(`[data-choice-index="${index}"]`);
-                const bonus = Number.parseInt(select.dataset.bonus, 10);
-                const source = select.dataset.source;
-                this.character.addAbilityBonus(ability, bonus, source);
-            }
-        }
-    }
-
-    renderBonus(ability) {
-        const bonuses = this.character.abilityBonuses?.[ability] || [];
-        if (!bonuses.length) return '';
-
-        const totalBonus = bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
-        const bonusClass = totalBonus >= 0 ? 'bonus' : 'bonus negative';
-        return `<div class="${bonusClass}">${totalBonus >= 0 ? '+' : ''}${totalBonus}</div>`;
-    }
-
-    formatModifier(score) {
-        const modifier = Math.floor((score - 10) / 2);
-        return modifier >= 0 ? `+${modifier}` : `${modifier}`;
-    }
-
+    /**
+     * Sets up event listeners for the ability score card
+     */
     setupEventListeners() {
-        if (!this.container) return;
+        console.log('[AbilityScoreCard] Setting up event listeners');
 
-        this.container.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-action]');
-            if (!button) return;
+        // Remove existing listeners first (to prevent duplicates)
+        document.removeEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
 
-            const action = button.dataset.action;
-            const abilityBox = button.closest('.ability-score-box');
-            if (!abilityBox) return;
+        // Store a reference to the listener for later removal
+        this.abilityScoresChangedListener = (event) => {
+            console.log('[AbilityScoreCard] Received abilityScoresChanged event:', event.detail);
+            this.render();
+        };
 
-            const ability = abilityBox.dataset.ability;
-            const baseScore = this.character.abilityScores[ability] || 10;
+        // Add the listener
+        document.addEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
 
-            if (action === 'increase') {
-                // Base score cannot exceed 20
-                if (baseScore < 20) {
-                    this.character.abilityScores[ability] = baseScore + 1;
-                    this.render();
-                }
-            } else if (action === 'decrease') {
-                // Base score cannot go below 3
-                if (baseScore > 3) {
-                    this.character.abilityScores[ability] = baseScore - 1;
-                    this.render();
-                }
-            }
-        });
+        // Add listeners for any interactive elements in the ability score card
+        if (this.container) {
+            this.container.addEventListener('click', this._handleAbilityScoreClick.bind(this));
+        }
+
+        console.log('[AbilityScoreCard] Event listeners set up successfully');
     }
 
+    /**
+     * Handles clicks on ability score buttons for increasing/decreasing scores
+     * @param {Event} event - The click event
+     * @private
+     */
+    _handleAbilityScoreClick(event) {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+
+        const action = button.dataset.action;
+        const abilityBox = button.closest('.ability-score-box');
+        if (!abilityBox) return;
+
+        const ability = abilityBox.dataset.ability;
+        const currentScore = abilityScoreManager.getBaseScore(ability);
+
+        if (action === 'increase') {
+            abilityScoreManager.updateBaseScore(ability, currentScore + 1);
+        } else if (action === 'decrease') {
+            abilityScoreManager.updateBaseScore(ability, currentScore - 1);
+        }
+    }
+
+    /**
+     * Removes event listeners when the card is destroyed
+     */
+    remove() {
+        document.removeEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
+    }
+
+    /**
+     * Updates the ability score card display
+     */
     update() {
         this.render();
+    }
+
+    /**
+     * Converts an ability name to its standard abbreviation
+     * @param {string} ability - The ability name
+     * @returns {string} The abbreviated ability name
+     * @private
+     */
+    _getAbilityAbbreviation(ability) {
+        const abilityLower = ability.toLowerCase();
+        switch (abilityLower) {
+            case 'strength': return 'STR';
+            case 'dexterity': return 'DEX';
+            case 'constitution': return 'CON';
+            case 'intelligence': return 'INT';
+            case 'wisdom': return 'WIS';
+            case 'charisma': return 'CHA';
+            case 'str': return 'STR';
+            case 'dex': return 'DEX';
+            case 'con': return 'CON';
+            case 'int': return 'INT';
+            case 'wis': return 'WIS';
+            case 'cha': return 'CHA';
+            default: return ability.toUpperCase();
+        }
     }
 } 

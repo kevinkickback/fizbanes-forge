@@ -113,32 +113,57 @@ async function moveCharacterFiles(oldPath, newPath) {
 // Save character data
 ipcMain.handle("saveCharacter", async (event, character) => {
   try {
+    console.log('[CharacterStorage] Starting character save:', {
+      id: character.id,
+      name: character.name,
+      allowedSources: character.allowedSources
+    });
+
     if (!character || !character.id) {
       throw new Error('Invalid character data: missing ID');
     }
 
     const savePath = getCharactersFilePath();
+    console.log('[CharacterStorage] Save path:', savePath);
 
     // Create directory if it doesn't exist
     if (!fs.existsSync(savePath)) {
       fs.mkdirSync(savePath, { recursive: true });
+      console.log('[CharacterStorage] Created save directory');
     }
 
     // Find existing file or generate new path
     const targetFilePath = await findOrCreateCharacterPath(savePath, character);
+    console.log('[CharacterStorage] Target file path:', targetFilePath);
+
+    // Process allowedSources for proper serialization
+    // If allowedSources is a Set or has a 'has' method, convert it to an array
+    if (character.allowedSources && (
+      character.allowedSources instanceof Set ||
+      typeof character.allowedSources.has === 'function'
+    )) {
+      character.allowedSources = Array.from(character.allowedSources);
+      console.log('[CharacterStorage] Converted allowedSources to array:', character.allowedSources);
+    }
+
+    // Ensure lastModified date is set to current time
+    character.lastModified = new Date().toISOString();
+    console.log('[CharacterStorage] Updated lastModified date:', character.lastModified);
 
     // Save the character
     const characterData = JSON.stringify(character, null, 2);
     fs.writeFileSync(targetFilePath, characterData);
+    console.log('[CharacterStorage] Character saved successfully');
     return { success: true, path: targetFilePath };
   } catch (error) {
-    console.error("Error saving character:", error);
+    console.error("[CharacterStorage] Error saving character:", error);
     return { success: false, error: error.message };
   }
 });
 
 // Find existing character file or create new path
 async function findOrCreateCharacterPath(savePath, character) {
+  console.log('[CharacterStorage] Finding/creating character path for:', character.name);
   const files = fs.readdirSync(savePath).filter(file => file.endsWith('.ffp'));
 
   // Try to find existing file
@@ -148,10 +173,11 @@ async function findOrCreateCharacterPath(savePath, character) {
       const data = fs.readFileSync(filePath, "utf8");
       const existingCharacter = JSON.parse(data);
       if (existingCharacter?.id === character.id) {
+        console.log('[CharacterStorage] Found existing character file:', filePath);
         return filePath;
       }
     } catch (err) {
-      console.error(`Error checking file ${file}:`, err);
+      console.error(`[CharacterStorage] Error checking file ${file}:`, err);
     }
   }
 
@@ -165,14 +191,17 @@ async function findOrCreateCharacterPath(savePath, character) {
       const existingCharacter = JSON.parse(data);
       if (existingCharacter?.id !== character.id) {
         const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
+        console.log('[CharacterStorage] Generated unique filename:', uniqueName);
         return path.join(savePath, uniqueName);
       }
     } catch (err) {
       const uniqueName = getUniqueFilename(savePath, `${sanitizedName}.ffp`);
+      console.log('[CharacterStorage] Generated unique filename after error:', uniqueName);
       return path.join(savePath, uniqueName);
     }
   }
 
+  console.log('[CharacterStorage] Using base file path:', baseFilePath);
   return baseFilePath;
 }
 
@@ -219,21 +248,26 @@ function getUniqueFilename(directory, baseFilename) {
 // Load characters
 ipcMain.handle("loadCharacters", async () => {
   try {
+    console.log('[CharacterStorage] Starting character load');
     // Get the save path
     const savePath = getCharactersFilePath();
+    console.log('[CharacterStorage] Load path:', savePath);
 
     // Create directory if it doesn't exist
     if (!fs.existsSync(savePath)) {
       fs.mkdirSync(savePath, { recursive: true });
+      console.log('[CharacterStorage] Created load directory');
       return []; // No characters yet
     }
 
     // Read all files in the directory
     const files = fs.readdirSync(savePath);
+    console.log('[CharacterStorage] Found files:', files.length);
 
     // Filter for .ffp files and load each character
     const characters = [];
     const characterFiles = files.filter(file => file.endsWith('.ffp'));
+    console.log('[CharacterStorage] Character files:', characterFiles.length);
 
     for (const file of characterFiles) {
       try {
@@ -242,16 +276,47 @@ ipcMain.handle("loadCharacters", async () => {
         const character = JSON.parse(data);
 
         if (character?.id) {
+          // Ensure allowedSources is an array
+          if (character.allowedSources) {
+            // If it's an empty object, convert to an array with default PHB
+            if (Object.keys(character.allowedSources).length === 0) {
+              character.allowedSources = ['PHB'];
+              console.log('[CharacterStorage] Fixed empty allowedSources object:', character.allowedSources);
+            }
+            // If it's not already an array, convert it
+            else if (!Array.isArray(character.allowedSources)) {
+              character.allowedSources = Array.from(Object.keys(character.allowedSources));
+              console.log('[CharacterStorage] Converted allowedSources to array:', character.allowedSources);
+            }
+          } else {
+            // Default to PHB if missing
+            character.allowedSources = ['PHB'];
+            console.log('[CharacterStorage] Added default allowedSources:', character.allowedSources);
+          }
+
+          // Ensure lastModified is a valid date string
+          if (!character.lastModified || Number.isNaN(new Date(character.lastModified).getTime())) {
+            character.lastModified = new Date().toISOString();
+            console.log('[CharacterStorage] Fixed invalid lastModified date:', character.lastModified);
+          }
+
+          console.log('[CharacterStorage] Loaded character:', {
+            id: character.id,
+            name: character.name,
+            lastModified: character.lastModified,
+            allowedSources: character.allowedSources
+          });
           characters.push(character);
         }
       } catch (err) {
-        console.error(`Error reading character file ${file}:`, err);
+        console.error(`[CharacterStorage] Error reading character file ${file}:`, err);
       }
     }
 
+    console.log('[CharacterStorage] Successfully loaded characters:', characters.length);
     return characters;
   } catch (error) {
-    console.error("Error loading characters:", error);
+    console.error("[CharacterStorage] Error loading characters:", error);
     return [];
   }
 });

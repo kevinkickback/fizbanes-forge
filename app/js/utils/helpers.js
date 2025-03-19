@@ -1,6 +1,6 @@
 /**
  * helpers.js
- * Utility functions for common operations in the D&D Character Creator
+ * Utility functions for common operations
  * 
  * @typedef {Object} AbilityScore
  * @property {number} score - The raw ability score value
@@ -10,11 +10,6 @@
  * @property {boolean} isValid - Whether all required fields have values
  * @property {Array<string>} missingFields - List of field IDs that are missing values
  */
-
-/**
- * tility functions for common operations
- */
-
 
 /**
  * Formats an ability score with its modifier

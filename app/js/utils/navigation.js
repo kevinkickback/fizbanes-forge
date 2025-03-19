@@ -1,15 +1,10 @@
 /**
  * navigation.js
- * Handles page navigation and routing in the D&D Character Creator
+ * Page navigation and routing
  * 
  * @typedef {Object} NavigationState
  * @property {string} currentPage - The currently active page
  * @property {boolean} _initialized - Whether the navigation system has been initialized
- * 
- * @typedef {Object} PageConfig
- * @property {string} name - The name of the page
- * @property {boolean} [requiresCharacter=true] - Whether a character must be selected
- * @property {Function} [onLoad] - Callback function when page is loaded
  * 
  * @typedef {Object} NavigationOptions
  * @property {boolean} [forceReload=false] - Whether to force reload the page content
@@ -20,20 +15,22 @@ import { showNotification } from './notifications.js';
 import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
 import { RaceCard } from '../ui/RaceCard.js';
-import { textProcessor } from './TextProcessor.js';
-import { dataLoader } from '../dataloaders/DataLoader.js';
+import { AbilityScoreCard } from '../ui/AbilityScoreCard.js';
 
 /**
  * Navigation app with all navigation-related functionality
  * @type {NavigationState & {
  *   initialize: () => Promise<void>,
- *   loadPage: (pageName: string, options?: NavigationOptions) => Promise<void>,
+ *   loadPage: (pageName: string) => Promise<void>,
  *   _initializePageContent: (pageName: string) => Promise<void>
  * }}
  */
 export const navigation = {
     currentPage: 'home',
     _initialized: false,
+
+    /** @type {readonly string[]} Pages that require a character to be selected */
+    _CHARACTER_PAGES: Object.freeze(['build', 'equipment', 'details']),
 
     /**
      * Initialize the navigation system
@@ -64,28 +61,29 @@ export const navigation = {
     },
 
     /**
+     * Checks if a page requires a character to be selected
+     * @param {string} pageName - The name of the page to check
+     * @returns {boolean} Whether the page requires a character
+     * @private
+     */
+    _requiresCharacter(pageName) {
+        return this._CHARACTER_PAGES.includes(pageName);
+    },
+
+    /**
      * Loads and displays a specific page
      * @param {string} pageName - The name of the page to load
-     * @param {NavigationOptions} [options] - Navigation options
      * @returns {Promise<void>}
      */
-    loadPage(pageName, options = {}) {
+    loadPage(pageName) {
         // Prevent navigation to character pages if no character is selected
-        if (['build', 'equipment', 'details'].includes(pageName) &&
-            (!characterHandler.currentCharacter || !characterHandler.currentCharacter.id)) {
+        if (this._requiresCharacter(pageName) && (!characterHandler.currentCharacter || !characterHandler.currentCharacter.id)) {
             showNotification('Please select or create a character first', 'warning');
             return;
         }
 
         // Update navigation state
-        const navLinks = document.querySelectorAll('.nav-link');
-        for (const link of navLinks) {
-            const page = link.getAttribute('data-page');
-            link.classList.toggle('active', page === pageName);
-            if (['build', 'equipment', 'details'].includes(page)) {
-                link.classList.toggle('disabled', !characterHandler.currentCharacter);
-            }
-        }
+        this._updateNavigationState(pageName);
 
         // Load page content
         const pageContent = document.getElementById('pageContent');
@@ -101,39 +99,53 @@ export const navigation = {
     },
 
     /**
+     * Updates the navigation state and UI
+     * @param {string} pageName - The name of the current page
+     * @private
+     */
+    _updateNavigationState(pageName) {
+        const navLinks = document.querySelectorAll('.nav-link');
+        for (const link of navLinks) {
+            const page = link.getAttribute('data-page');
+            link.classList.toggle('active', page === pageName);
+            if (this._requiresCharacter(page)) {
+                link.classList.toggle('disabled', !characterHandler.currentCharacter);
+            }
+        }
+    },
+
+    /**
      * Initializes the content for a specific page
      * @param {string} pageName - The name of the page to initialize
      * @returns {Promise<void>}
      * @private
      */
     _initializePageContent(pageName) {
-        switch (pageName) {
-            case 'home':
-                // Load characters and initialize event listeners for new DOM elements
+        const pageInitializers = {
+            home: () => {
                 characterHandler.loadCharacters();
                 characterHandler.initializeEventListeners();
-                break;
-            case 'build':
-                // Initialize build page
+            },
+            build: () => {
                 if (characterHandler.currentCharacter) {
-                    const raceCard = new RaceCard();
-                    raceCard.initializeRaceSelection().catch(error => {
-                        console.error('Error initializing race card:', error);
-                    });
+                    new RaceCard();
+                    new AbilityScoreCard();
                 }
-                break;
-            case 'equipment':
+            },
+            equipment: () => {
                 // Initialize equipment page
-                break;
-            case 'details':
-                // Initialize details page
+            },
+            details: () => {
                 characterHandler.populateDetailsPage();
-                break;
-            case 'settings':
-                // Initialize settings page UI and controls
-                settingsManager.initializeEventListeners();
+            },
+            settings: () => {
                 settingsManager.updateSavePathDisplay();
-                break;
+            }
+        };
+
+        const initializer = pageInitializers[pageName];
+        if (initializer) {
+            initializer();
         }
     }
 }; 

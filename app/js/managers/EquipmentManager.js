@@ -44,7 +44,7 @@ export class EquipmentManager {
                 if (fluff[item.id]) {
                     item.fluff = fluff[item.id];
                     if (fluff[item.id].entries) {
-                        item.description = await this.textProcessor.processText(fluff[item.id].entries[0]);
+                        item.description = await this.textProcessor.processString(fluff[item.id].entries[0]);
                     }
                 }
                 this.items.set(item.id, item);
@@ -74,7 +74,7 @@ export class EquipmentManager {
     async processItem(itemData, fluff = null) {
         // Add fluff data to item description if available
         if (fluff?.entries?.length) {
-            itemData.description = await this.textProcessor.processText(fluff.entries[0]);
+            itemData.description = await this.textProcessor.processString(fluff.entries[0]);
         }
 
         // Create appropriate item type based on data

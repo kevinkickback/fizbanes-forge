@@ -578,6 +578,32 @@ body {
 	width: 100%;
 }
 
+/* Ability score choice dropdowns at the bottom of the ability-score-container */
+.ability-choices-container {
+	width: 100%;
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color);
+}
+
+.ability-choices-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	width: 100%;
+}
+
+.ability-choice-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.ability-choice-group label {
+	font-weight: 500;
+	font-size: 0.9rem;
+}
+
 /* Responsive breakpoints for ability score grid */
 @media (max-width: 1200px) {
 	.ability-score-grid {
@@ -613,8 +639,8 @@ body {
 
 .ability-score-box .bonus {
 	position: absolute;
-	top: 0.5rem;
-	right: 0.5rem;
+	top: 0rem;
+	right: 0.2rem;
 	font-size: 0.85rem;
 	color: var(--success-color);
 	font-weight: bold;

@@ -1,6 +1,6 @@
 /**
  * ReferenceResolver.js
- * Handles reference resolution and tooltip creation for D&D content
+ * Handle inline reference conversion and tooltip creation for dataLoader content
  * 
  * @typedef {Object} SkillData
  * @property {string} name - The name of the skill
@@ -17,12 +17,33 @@
  * @property {string} [time] - For actions, the time required
  * @property {string} [size] - For objects, the size category
  * @property {string} [objectType] - For objects, the type of object
+ * @property {string} [level] - For spells, the spell level
+ * @property {string} [school] - For spells, the school of magic
+ * @property {string} [castingTime] - For spells, the casting time
+ * @property {string} [range] - For spells, the spell range
+ * @property {string} [components] - For spells, the spell components
+ * @property {string} [duration] - For spells, the spell duration
+ * @property {string} [rarity] - For items, the item rarity
+ * @property {string} [value] - For items, the item value
+ * @property {string} [weight] - For items, the item weight
+ * @property {string[]} [properties] - For items, the item properties
+ * @property {boolean} [attunement] - For items, whether attunement is required
+ * 
+ * @typedef {Object} ReferenceEntry
+ * @property {string} [name] - The entry name
+ * @property {string|string[]} [entries] - The entry content
+ * @property {string} [type] - The entry type (list, entries, etc.)
+ * @property {Object[]} [items] - For list type entries, the list items
+ * @property {string} [caption] - For table type entries, the table caption
+ * @property {Array<Array<string>>} [rows] - For table type entries, the table rows
  */
 
 import { dataLoader } from '../dataloaders/DataLoader.js';
 
 /**
- * Class responsible for resolving references and creating tooltips in the D&D Character Creator
+ * Class responsible for resolving references and creating tooltips in the D&D Character Creator.
+ * Handles various types of game content references including spells, items, races, classes,
+ * and other game elements.
  */
 class ReferenceResolver {
     /**
@@ -61,10 +82,227 @@ class ReferenceResolver {
     }
 
     /**
+     * Handles spell reference resolution
+     * @param {string} name - The spell name
+     * @param {string} source - The source book
+     * @returns {Promise<TooltipData>} The tooltip data for the spell
+     * @private
+     */
+    async handleSpellRef(name, source) {
+        const spellsData = await this.dataLoader.loadSpells();
+        const spells = spellsData?.spell || [];
+        const fluff = spellsData?.fluff || [];
+        const entity = spells.find(s => s?.name?.toLowerCase() === name.toLowerCase());
+
+        if (!entity) {
+            return {
+                title: name,
+                description: 'Spell details not found.',
+                source: source
+            };
+        }
+
+        let description = '';
+        if (Array.isArray(entity.entries)) {
+            description = entity.entries
+                .map(entry => {
+                    if (typeof entry === 'string') return entry;
+                    if (entry.type === 'list') {
+                        return entry.items.map(item => {
+                            if (typeof item === 'string') return item;
+                            return `${item.name}: ${item.entries.join('\n')}`;
+                        }).join('\n');
+                    }
+                    if (entry.type === 'entries') {
+                        return entry.entries.join('\n');
+                    }
+                    return '';
+                })
+                .filter(Boolean)
+                .join('\n\n');
+        }
+
+        // Add fluff if available
+        if (Array.isArray(fluff?.entries)) {
+            const fluffText = fluff.entries
+                .map(entry => {
+                    if (typeof entry === 'string') return entry;
+                    if (entry.type === 'entries') return entry.entries.join('\n');
+                    return '';
+                })
+                .filter(Boolean)
+                .join('\n\n');
+
+            if (fluffText) {
+                description = `${description}\n\n${fluffText}`;
+            }
+        }
+
+        return {
+            title: entity.name,
+            description: description || 'No description available.',
+            level: entity.level,
+            school: entity.school,
+            castingTime: entity.time?.[0] ? `${entity.time[0].number} ${entity.time[0].unit}` : 'Unknown',
+            range: this.formatSpellRange(entity.range),
+            components: this.formatSpellComponents(entity.components),
+            duration: this.formatSpellDuration(entity.duration),
+            source: `${source}, page ${entity.page || '??'}`
+        };
+    }
+
+    /**
+     * Handles item reference resolution
+     * @param {string} name - The item name
+     * @param {string} source - The source book
+     * @returns {Promise<TooltipData|null>} The tooltip data for the item, or null if not found
+     * @private
+     */
+    async handleItemRef(name, source) {
+        const itemsData = await this.dataLoader.loadItems();
+        const items = itemsData.item || [];
+        const baseItems = itemsData.baseitem || [];
+        const fluff = itemsData.fluff || [];
+        const entity = items.find(i => i.name.toLowerCase() === name.toLowerCase()) ||
+            baseItems.find(i => i.name.toLowerCase() === name.toLowerCase());
+        const itemFluff = fluff.find(f => f.name.toLowerCase() === name.toLowerCase());
+
+        if (!entity) return null;
+
+        const typeMap = {
+            'T': 'Tool',
+            'G': 'Gaming Set',
+            'AT': 'Artisan\'s Tools',
+            'INS': 'Instrument',
+            'GS': 'General Store Item',
+            'SCF': 'Spellcasting Focus',
+            'A': 'Ammunition',
+            'M': 'Melee Weapon',
+            'R': 'Ranged Weapon',
+            'LA': 'Light Armor',
+            'MA': 'Medium Armor',
+            'HA': 'Heavy Armor',
+            'S': 'Shield',
+            'P': 'Potion',
+            'SC': 'Scroll',
+            'W': 'Wondrous Item',
+            'RD': 'Rod',
+            'ST': 'Staff',
+            'WD': 'Wand',
+            'RG': 'Ring',
+            'OTH': 'Other'
+        };
+
+        let description = this.formatItemDescription(entity, itemFluff);
+
+        // Add weapon properties if it's a weapon
+        if (entity.weapon) {
+            const properties = [];
+            if (entity.dmg1) properties.push(`Damage: ${entity.dmg1} ${entity.dmgType}`);
+            if (entity.dmg2) properties.push(`Versatile: ${entity.dmg2}`);
+            if (entity.property) {
+                const propertyMap = {
+                    'A': 'Ammunition',
+                    'F': 'Finesse',
+                    'H': 'Heavy',
+                    'L': 'Light',
+                    'LD': 'Loading',
+                    'R': 'Reach',
+                    'S': 'Special',
+                    'T': 'Thrown',
+                    'V': 'Versatile',
+                    '2H': 'Two-Handed'
+                };
+                properties.push(...entity.property.map(p => propertyMap[p] || p));
+            }
+            if (properties.length > 0) {
+                description = `${description}\n\n${properties.join('\n')}`;
+            }
+        }
+
+        return {
+            title: entity.name,
+            description: description,
+            type: typeMap[entity.type] || entity.type,
+            rarity: entity.rarity === 'none' ? 'Common' : (entity.rarity || 'Common'),
+            value: entity.value ? `${entity.value / 100} gp` : 'No value listed',
+            weight: entity.weight ? `${entity.weight} lb.` : 'No weight listed',
+            properties: entity.properties,
+            attunement: entity.reqAttune,
+            source: `${source}, page ${entity.page || '??'}`
+        };
+    }
+
+    /**
+     * Formats item description including entries, additional entries, and fluff
+     * @param {Object} entity - The item entity
+     * @param {Object} itemFluff - The item's fluff data
+     * @returns {string} The formatted description
+     * @private
+     */
+    formatItemDescription(entity, itemFluff) {
+        let description = '';
+
+        // Add main entries
+        if (entity.entries) {
+            description = Array.isArray(entity.entries) ?
+                entity.entries.map(entry => {
+                    if (typeof entry === 'string') return entry;
+                    if (entry.type === 'list') {
+                        return entry.items.map(item => {
+                            if (typeof item === 'string') return item;
+                            return `${item.name}: ${item.entries.join('\n')}`;
+                        }).join('\n');
+                    }
+                    if (entry.type === 'entries') {
+                        return `${entry.name}\n${entry.entries.join('\n')}`;
+                    }
+                    return '';
+                }).join('\n\n') :
+                entity.entries;
+        }
+
+        // Add additional entries
+        if (entity.additionalEntries) {
+            const additionalText = Array.isArray(entity.additionalEntries) ?
+                entity.additionalEntries.map(entry => {
+                    if (typeof entry === 'string') return entry;
+                    if (entry.type === 'entries') {
+                        return `${entry.name}\n${entry.entries.join('\n')}`;
+                    }
+                    if (entry.type === 'table') {
+                        return `${entry.caption}\n${entry.rows.map(row => row.join(': ')).join('\n')}`;
+                    }
+                    return '';
+                }).join('\n\n') :
+                entity.additionalEntries;
+
+            description = description ? `${description}\n\n${additionalText}` : additionalText;
+        }
+
+        // Add fluff
+        if (itemFluff?.entries) {
+            const fluffText = Array.isArray(itemFluff.entries) ?
+                itemFluff.entries.map(entry => {
+                    if (typeof entry === 'string') return entry;
+                    if (entry.type === 'entries') return entry.entries.join('\n');
+                    return '';
+                }).filter(Boolean).join('\n\n') :
+                itemFluff.entries;
+
+            if (fluffText) {
+                description = description ? `${description}\n\n${fluffText}` : fluffText;
+            }
+        }
+
+        return description || entity.description || '';
+    }
+
+    /**
      * Resolves a reference to its full data
-     * @param {string} ref - The reference to resolve
+     * @param {string} ref - The reference to resolve (format: {@type name|source})
      * @param {number} [depth=0] - The current depth of reference resolution
-     * @returns {Promise<Object>} The resolved reference data
+     * @returns {Promise<string|HTMLElement>} The resolved reference as HTML or text
      * @throws {Error} If the reference cannot be resolved
      */
     async resolveRef(ref, depth = 0) {
@@ -84,7 +322,6 @@ class ReferenceResolver {
 
         const [fullMatch, type, content] = match;
         let tooltipData = null;
-        let entity = null;
 
         try {
             // Add to processing set to prevent circular references
@@ -94,69 +331,14 @@ class ReferenceResolver {
             const [name, source = 'PHB'] = content.split('|');
 
             switch (type) {
-                case 'spell': {
-                    const spellsData = await this.dataLoader.loadSpells();
-                    const spells = spellsData?.spell || [];
-                    const fluff = spellsData?.fluff || [];
-                    entity = spells.find(s => s?.name?.toLowerCase() === name.toLowerCase());
-
-                    if (entity) {
-                        let description = '';
-                        if (Array.isArray(entity.entries)) {
-                            description = entity.entries
-                                .map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'list') {
-                                        return entry.items.map(item => {
-                                            if (typeof item === 'string') return item;
-                                            return `${item.name}: ${item.entries.join('\n')}`;
-                                        }).join('\n');
-                                    }
-                                    if (entry.type === 'entries') {
-                                        return entry.entries.join('\n');
-                                    }
-                                    return '';
-                                })
-                                .filter(Boolean)
-                                .join('\n\n');
-                        }
-
-                        // Add fluff if available
-                        if (Array.isArray(fluff?.entries)) {
-                            const fluffText = fluff.entries
-                                .map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'entries') return entry.entries.join('\n');
-                                    return '';
-                                })
-                                .filter(Boolean)
-                                .join('\n\n');
-
-                            if (fluffText) {
-                                description = `${description}\n\n${fluffText}`;
-                            }
-                        }
-
-                        tooltipData = {
-                            title: entity.name,
-                            description: description || 'No description available.',
-                            level: entity.level,
-                            school: entity.school,
-                            castingTime: entity.time?.[0] ? `${entity.time[0].number} ${entity.time[0].unit}` : 'Unknown',
-                            range: this.formatSpellRange(entity.range),
-                            components: this.formatSpellComponents(entity.components),
-                            duration: this.formatSpellDuration(entity.duration),
-                            source: `${source}, page ${entity.page || '??'}`
-                        };
-                    } else {
-                        tooltipData = {
-                            title: name,
-                            description: 'Spell details not found.',
-                            source: source
-                        };
-                    }
-                    return this.createTooltipElement(type, name, tooltipData, depth);
-                }
+                case 'spell':
+                    tooltipData = await this.handleSpellRef(name, source);
+                    break;
+                case 'item':
+                case 'equipment':
+                case 'pack':
+                    tooltipData = await this.handleItemRef(name, source);
+                    break;
                 case 'rarity': {
                     const rarityDescriptions = {
                         'common': 'Common items are widespread and easily available.',
@@ -171,7 +353,7 @@ class ReferenceResolver {
                         description: rarityDescriptions[name.toLowerCase()] || 'Rarity description not found.',
                         source: source
                     };
-                    return this.createTooltipElement(type, name, tooltipData, depth);
+                    break;
                 }
                 case 'source': {
                     const sourcesData = await this.dataLoader.loadSources();
@@ -211,7 +393,7 @@ class ReferenceResolver {
                             };
                         }
                     }
-                    return this.createTooltipElement(type, name, tooltipData, depth);
+                    break;
                 }
                 case 'race': {
                     const racesData = await this.dataLoader.loadRaces();
@@ -243,161 +425,17 @@ class ReferenceResolver {
                             source: source || 'PHB'
                         };
                     }
-                    return this.createTooltipElement(type, name, tooltipData, depth);
+                    break;
                 }
                 case 'skill': {
                     const skills = await this.loadSkillData();
-                    entity = skills.get(name.toLowerCase());
-                    if (entity) {
-                        tooltipData = {
-                            title: entity.name,
-                            description: Array.isArray(entity.entries) ? entity.entries.join('\n') : entity.entries,
-                            ability: entity.ability.toUpperCase(),
-                            source: `${source}, page ${entity.page || '??'}`
-                        };
-                    }
-                    break;
-                }
-                case 'item':
-                case 'equipment':
-                case 'pack': {
-                    const itemsData = await this.dataLoader.loadItems();
-                    const items = itemsData.item || [];
-                    const baseItems = itemsData.baseitem || [];
-                    const fluff = itemsData.fluff || [];
-                    entity = items.find(i => i.name.toLowerCase() === name.toLowerCase()) ||
-                        baseItems.find(i => i.name.toLowerCase() === name.toLowerCase());
-                    const itemFluff = fluff.find(f => f.name.toLowerCase() === name.toLowerCase());
-                    if (entity) {
-                        const typeMap = {
-                            'T': 'Tool',
-                            'G': 'Gaming Set',
-                            'AT': 'Artisan\'s Tools',
-                            'INS': 'Instrument',
-                            'GS': 'General Store Item',
-                            'SCF': 'Spellcasting Focus',
-                            'A': 'Ammunition',
-                            'M': 'Melee Weapon',
-                            'R': 'Ranged Weapon',
-                            'LA': 'Light Armor',
-                            'MA': 'Medium Armor',
-                            'HA': 'Heavy Armor',
-                            'S': 'Shield',
-                            'P': 'Potion',
-                            'SC': 'Scroll',
-                            'W': 'Wondrous Item',
-                            'RD': 'Rod',
-                            'ST': 'Staff',
-                            'WD': 'Wand',
-                            'RG': 'Ring',
-                            'OTH': 'Other'
-                        };
-
-                        let description = '';
-                        if (entity.entries) {
-                            description = Array.isArray(entity.entries) ?
-                                entity.entries.map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'list') {
-                                        return entry.items.map(item => {
-                                            if (typeof item === 'string') return item;
-                                            return `${item.name}: ${item.entries.join('\n')}`;
-                                        }).join('\n');
-                                    }
-                                    if (entry.type === 'entries') {
-                                        return `${entry.name}\n${entry.entries.join('\n')}`;
-                                    }
-                                    return '';
-                                }).join('\n\n') :
-                                entity.entries;
-                        }
-
-                        // Add additional entries if they exist
-                        if (entity.additionalEntries) {
-                            const additionalText = Array.isArray(entity.additionalEntries) ?
-                                entity.additionalEntries.map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'entries') {
-                                        return `${entry.name}\n${entry.entries.join('\n')}`;
-                                    }
-                                    if (entry.type === 'table') {
-                                        return `${entry.caption}\n${entry.rows.map(row => row.join(': ')).join('\n')}`;
-                                    }
-                                    return '';
-                                }).join('\n\n') :
-                                entity.additionalEntries;
-
-                            description = description ? `${description}\n\n${additionalText}` : additionalText;
-                        }
-
-                        // Add fluff if available
-                        if (itemFluff?.entries) {
-                            const fluffText = Array.isArray(itemFluff.entries) ?
-                                itemFluff.entries.map(entry => {
-                                    if (typeof entry === 'string') return entry;
-                                    if (entry.type === 'entries') return entry.entries.join('\n');
-                                    return '';
-                                }).filter(Boolean).join('\n\n') :
-                                itemFluff.entries;
-
-                            if (fluffText) {
-                                description = description ? `${description}\n\n${fluffText}` : fluffText;
-                            }
-                        }
-
-                        description = description || entity.description || '';
-
-                        // Add weapon properties if it's a weapon
-                        if (entity.weapon) {
-                            const properties = [];
-                            if (entity.dmg1) properties.push(`Damage: ${entity.dmg1} ${entity.dmgType}`);
-                            if (entity.dmg2) properties.push(`Versatile: ${entity.dmg2}`);
-                            if (entity.property) {
-                                const propertyMap = {
-                                    'A': 'Ammunition',
-                                    'F': 'Finesse',
-                                    'H': 'Heavy',
-                                    'L': 'Light',
-                                    'LD': 'Loading',
-                                    'R': 'Reach',
-                                    'S': 'Special',
-                                    'T': 'Thrown',
-                                    'V': 'Versatile',
-                                    '2H': 'Two-Handed'
-                                };
-                                properties.push(...entity.property.map(p => propertyMap[p] || p));
-                            }
-                            if (properties.length > 0) {
-                                description = `${description}\n\n${properties.join('\n')}`;
-                            }
-                        }
-
-                        tooltipData = {
-                            title: entity.name,
-                            description: description,
-                            type: typeMap[entity.type] || entity.type,
-                            rarity: entity.rarity === 'none' ? 'Common' : (entity.rarity || 'Common'),
-                            value: entity.value ? `${entity.value / 100} gp` : 'No value listed',
-                            weight: entity.weight ? `${entity.weight} lb.` : 'No weight listed',
-                            properties: entity.properties,
-                            attunement: entity.reqAttune,
-                            source: `${source}, page ${entity.page || '??'}`
-                        };
-                        return this.createTooltipElement('item', entity.name, tooltipData, depth);
-                    }
+                    tooltipData = skills.get(name.toLowerCase());
                     break;
                 }
                 case 'background': {
                     const backgroundsData = await this.dataLoader.loadBackgrounds();
                     const backgrounds = backgroundsData?.background || [];
-                    entity = backgrounds.find(b => b.name.toLowerCase() === name.toLowerCase());
-                    if (entity) {
-                        tooltipData = {
-                            title: entity.name,
-                            description: Array.isArray(entity.entries) ? entity.entries.join('\n') : entity.entries,
-                            source: `${source}, page ${entity.page || '??'}`
-                        };
-                    }
+                    tooltipData = backgrounds.find(b => b.name.toLowerCase() === name.toLowerCase());
                     break;
                 }
                 case 'class': {
@@ -458,7 +496,7 @@ class ReferenceResolver {
                             source: source || 'PHB'
                         };
                     }
-                    return this.createTooltipElement(type, name, tooltipData, depth);
+                    break;
                 }
                 case 'damage': {
                     tooltipData = {
@@ -502,14 +540,7 @@ class ReferenceResolver {
                 case 'book': {
                     const booksData = await this.dataLoader.loadSources();
                     const books = booksData?.book || [];
-                    entity = books.find(b => b.name.toLowerCase() === name.toLowerCase() || b.id.toLowerCase() === name.toLowerCase());
-                    if (entity) {
-                        tooltipData = {
-                            title: entity.name,
-                            description: `Source: ${entity.source}${entity.published ? `\nPublished: ${entity.published}` : ''}`,
-                            source: entity.source
-                        };
-                    }
+                    tooltipData = books.find(b => b.name.toLowerCase() === name.toLowerCase() || b.id.toLowerCase() === name.toLowerCase());
                     break;
                 }
                 case 'h': {
@@ -605,7 +636,7 @@ class ReferenceResolver {
                             description: description,
                             source: `${raceWithFeature.source || 'PHB'}, page ${raceWithFeature.page || '??'}`
                         };
-                        return this.createTooltipElement(type, name, tooltipData, depth);
+                        break;
                     }
 
                     // If not found as a racial trait, check optional features
@@ -704,7 +735,7 @@ class ReferenceResolver {
      * Creates a tooltip element for displaying reference data
      * @param {string} type - The type of tooltip to create
      * @param {string} text - The text to display in the tooltip
-     * @param {Object} data - Additional data for the tooltip
+     * @param {TooltipData} data - Additional data for the tooltip
      * @param {number} depth - The current depth of reference resolution
      * @returns {Promise<HTMLElement>} The created tooltip element
      */
@@ -730,7 +761,7 @@ class ReferenceResolver {
 
     /**
      * Formats tooltip content based on the data type and properties
-     * @param {Object} data - The tooltip data to format
+     * @param {TooltipData} data - The tooltip data to format
      * @returns {string} The formatted HTML content for the tooltip
      */
     formatTooltipContent(data) {

@@ -1,30 +1,41 @@
-// Settings management utilities
+/**
+ * SettingsManager.js
+ * Manages application settings and configuration
+ */
 import { showNotification } from '../utils/notifications.js';
-
-let instance = null;
+import { storage } from '../utils/Storage.js';
 
 export class SettingsManager {
     constructor() {
-        if (instance) {
-            throw new Error('SettingsManager is a singleton. Use SettingsManager.getInstance() instead.');
+        this.initialize();
+    }
+
+    async initialize() {
+        try {
+            console.log('Initializing settings manager');
+
+            // Update save path display
+            await this.updateSavePathDisplay();
+
+            // Set up event listeners
+            this.initializeEventListeners();
+        } catch (error) {
+            console.error('Error initializing settings manager:', error);
+            showNotification('Failed to initialize settings', 'danger');
         }
-        instance = this;
     }
 
     async updateSavePathDisplay() {
         try {
-            // Get paths
-            const appDataPath = await window.electron.app.getPath("userData");
-            const defaultPath = await window.electron.ipc.invoke('get-default-save-path');
-
-            // Set up save path display
-            const savePathElement = document.getElementById('currentSaveLocation');
-            if (savePathElement) {
-                savePathElement.textContent = defaultPath || appDataPath;
+            const saveLocationElement = document.getElementById('currentSaveLocation');
+            if (saveLocationElement) {
+                // Get the current save path from the main process
+                const currentPath = await window.characterStorage.getDefaultSavePath();
+                saveLocationElement.textContent = currentPath || 'Using default save location';
             }
         } catch (error) {
             console.error('Error updating save path display:', error);
-            showNotification('Failed to update save path display', 'danger');
+            showNotification('Error updating save path display', 'error');
         }
     }
 
@@ -37,6 +48,7 @@ export class SettingsManager {
             if (browseButton) {
                 browseButton.addEventListener('click', async () => {
                     try {
+                        // These operations need to interact with the file system via IPC
                         const result = await window.characterStorage.selectFolder();
                         if (result.success) {
                             const saveResult = await window.characterStorage.setSavePath(result.path);
@@ -55,6 +67,7 @@ export class SettingsManager {
             if (resetButton) {
                 resetButton.addEventListener('click', async () => {
                     try {
+                        // This needs to interact with the file system via IPC
                         const saveResult = await window.characterStorage.setSavePath(null);
                         if (saveResult.success) {
                             showNotification('Save path reset successfully', 'success');
@@ -71,13 +84,6 @@ export class SettingsManager {
             showNotification('Failed to initialize settings controls', 'danger');
         }
     }
-
-    static getInstance() {
-        if (!instance) {
-            instance = new SettingsManager();
-        }
-        return instance;
-    }
 }
 
-export const settingsManager = SettingsManager.getInstance(); 
+export const settingsManager = new SettingsManager(); 

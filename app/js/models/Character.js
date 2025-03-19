@@ -3,13 +3,19 @@ export class Character {
         this.id = null;
         this.name = '';
         this.playerName = '';
-        this.race = null; // Will be initialized as RaceManager instance
+        this.race = {
+            name: '',
+            source: '',
+            subrace: ''
+        }; // Store race info as an object with name and source
 
-        this.class = '';
+        this.class = {
+            level: 1
+        };
         this.subclass = '';
         this.background = '';
         this.level = 1;
-        this.allowedSources = new Set(); // Initialize empty, don't add core books by default
+        this.allowedSources = new Set(['PHB']); // Initialize with PHB as default
         this.abilityScores = {
             strength: 10,
             dexterity: 10,
@@ -67,26 +73,52 @@ export class Character {
 
     // Methods for ability scores
     getAbilityScore(ability) {
-        const base = this.abilityScores[ability] || 10;
-        const bonuses = this.abilityBonuses[ability] || [];
-        const total = base + bonuses.reduce((sum, bonus) => sum + bonus.value, 0);
-        return total;
+        // Simple getter without manager dependency
+        return this.abilityScores[ability] || 0;
     }
 
+    getAbilityModifier(ability) {
+        const score = this.getAbilityScore(ability);
+        return Math.floor((score - 10) / 2);
+    }
+
+    /**
+     * Add an ability score bonus
+     * @param {string} ability - The ability to add the bonus to
+     * @param {number} value - The bonus value
+     * @param {string} source - The source of the bonus
+     */
     addAbilityBonus(ability, value, source) {
-        if (!this.abilityBonuses[ability]) {
-            this.abilityBonuses[ability] = [];
+        console.log(`[Character] Adding ability bonus: ${ability} +${value} from ${source}`);
+
+        // Normalize the ability name
+        const normalizedAbility = ability.toLowerCase()
+            .replace(/^str$/, 'strength')
+            .replace(/^dex$/, 'dexterity')
+            .replace(/^con$/, 'constitution')
+            .replace(/^int$/, 'intelligence')
+            .replace(/^wis$/, 'wisdom')
+            .replace(/^cha$/, 'charisma');
+
+        console.log(`[Character] Normalized ability name: ${normalizedAbility}`);
+
+        if (!this.abilityBonuses[normalizedAbility]) {
+            this.abilityBonuses[normalizedAbility] = [];
         }
 
         // Check if a bonus from this source already exists
-        const existingBonus = this.abilityBonuses[ability].find(bonus => bonus.source === source);
+        const existingBonus = this.abilityBonuses[normalizedAbility].find(bonus => bonus.source === source);
         if (existingBonus) {
             // Update existing bonus
+            console.log(`[Character] Updating existing bonus for ${normalizedAbility} from ${source}: ${existingBonus.value} -> ${value}`);
             existingBonus.value = value;
         } else {
             // Add new bonus
-            this.abilityBonuses[ability].push({ value, source });
+            console.log(`[Character] Adding new bonus for ${normalizedAbility} from ${source}: +${value}`);
+            this.abilityBonuses[normalizedAbility].push({ value, source });
         }
+
+        console.log(`[Character] Current ability bonuses for ${normalizedAbility}:`, this.abilityBonuses[normalizedAbility]);
     }
 
     clearAbilityBonuses(source) {
@@ -111,7 +143,7 @@ export class Character {
         }
     }
 
-    getPendingAbilityChoices() {
+    getSimplePendingAbilityChoices() {
         return this.pendingAbilityChoices;
     }
 
@@ -204,32 +236,41 @@ export class Character {
 
     // Methods for source management
     addAllowedSource(source) {
+        console.log('[Character] Adding allowed source:', source);
         if (source) {
             this.allowedSources.add(source.toUpperCase());
+            console.log('[Character] Current allowed sources:', Array.from(this.allowedSources));
         }
     }
 
     removeAllowedSource(source) {
+        console.log('[Character] Removing allowed source:', source);
         if (source) {
             this.allowedSources.delete(source.toUpperCase());
+            console.log('[Character] Current allowed sources:', Array.from(this.allowedSources));
         }
     }
 
     isSourceAllowed(source) {
-        return source ? this.allowedSources.has(source.toUpperCase()) : false;
+        const isAllowed = source ? this.allowedSources.has(source.toUpperCase()) : false;
+        console.log('[Character] Checking if source is allowed:', source, isAllowed);
+        return isAllowed;
     }
 
     setAllowedSources(sources) {
-        console.log('[Sources] Character sources updated:', Array.from(sources));
+        console.log('[Character] Setting allowed sources:', Array.from(sources));
         this.allowedSources = new Set(sources);
+        console.log('[Character] Allowed sources after setting:', Array.from(this.allowedSources));
     }
 
     getAllowedSources() {
+        console.log('[Character] Getting allowed sources:', Array.from(this.allowedSources));
         return new Set(this.allowedSources);
     }
 
     // Static method to create a Character instance from JSON data
     static fromJSON(data) {
+        console.log('[Character] Creating from JSON, allowedSources:', data.allowedSources);
         const character = new Character();
 
         // Copy basic properties
@@ -245,18 +286,30 @@ export class Character {
 
         // Set allowed sources from data
         if (data.allowedSources) {
-            const sourcesArray = Array.isArray(data.allowedSources) ? data.allowedSources : Array.from(data.allowedSources);
-            character.allowedSources = new Set(sourcesArray);
-            console.log('[Sources] Character loaded with sources:', Array.from(character.allowedSources));
+            // Handle both Set and Array formats
+            const sources = Array.isArray(data.allowedSources)
+                ? data.allowedSources
+                : Array.from(data.allowedSources);
+
+            // Ensure all sources are uppercase
+            character.allowedSources = new Set(sources.map(source => source.toUpperCase()));
+            console.log('[Character] Set allowed sources from data:', Array.from(character.allowedSources));
+        } else {
+            character.allowedSources = new Set(['PHB']);
+            console.log('[Character] Using default PHB source:', Array.from(character.allowedSources));
         }
 
         // Copy ability scores and bonuses
-        character.abilityScores = { ...data.abilityScores };
-        character.abilityBonuses = { ...data.abilityBonuses };
+        if (data.abilityScores) {
+            character.abilityScores = { ...data.abilityScores };
+        }
+        if (data.abilityBonuses) {
+            character.abilityBonuses = { ...data.abilityBonuses };
+        }
 
         // Copy size and speed
-        character.size = data.size;
-        character.speed = { ...data.speed };
+        character.size = data.size || 'M';
+        character.speed = { ...data.speed } || { walk: 30 };
 
         // Copy features
         character.features = {
@@ -265,117 +318,107 @@ export class Character {
             traits: new Map(Object.entries(data.features?.traits || {}))
         };
 
-        // Copy proficiencies - ensure we're creating Sets from arrays
+        // Copy proficiencies
         character.proficiencies = {
-            armor: Array.isArray(data.proficiencies?.armor) ? data.proficiencies.armor : [],
-            weapons: Array.isArray(data.proficiencies?.weapons) ? data.proficiencies.weapons : [],
-            tools: Array.isArray(data.proficiencies?.tools) ? data.proficiencies.tools : [],
-            skills: Array.isArray(data.proficiencies?.skills) ? data.proficiencies.skills : [],
-            languages: Array.isArray(data.proficiencies?.languages) ? data.proficiencies.languages : ['Common'],
-            savingThrows: Array.isArray(data.proficiencies?.savingThrows) ? data.proficiencies.savingThrows : []
+            armor: Array.isArray(data.proficiencies?.armor) ? [...data.proficiencies.armor] : [],
+            weapons: Array.isArray(data.proficiencies?.weapons) ? [...data.proficiencies.weapons] : [],
+            tools: Array.isArray(data.proficiencies?.tools) ? [...data.proficiencies.tools] : [],
+            skills: Array.isArray(data.proficiencies?.skills) ? [...data.proficiencies.skills] : [],
+            languages: Array.isArray(data.proficiencies?.languages) ? [...data.proficiencies.languages] : ['Common'],
+            savingThrows: Array.isArray(data.proficiencies?.savingThrows) ? [...data.proficiencies.savingThrows] : []
         };
 
-        // Copy proficiency sources - ensure we're creating Maps from entries
-        character.proficiencySources = {
-            armor: new Map(Object.entries(data.proficiencySources?.armor || {})),
-            weapons: new Map(Object.entries(data.proficiencySources?.weapons || {})),
-            tools: new Map(Object.entries(data.proficiencySources?.tools || {})),
-            skills: new Map(Object.entries(data.proficiencySources?.skills || {})),
-            languages: new Map(Object.entries(data.proficiencySources?.languages || {})),
-            savingThrows: new Map(Object.entries(data.proficiencySources?.savingThrows || {}))
+        // Copy race information
+        character.race = {
+            name: data.race?.name || '',
+            source: data.race?.source || '',
+            subrace: data.race?.subrace || ''
         };
 
-        // Copy equipment
-        character.equipment = {
-            weapons: Array.isArray(data.equipment?.weapons) ? data.equipment.weapons : [],
-            armor: Array.isArray(data.equipment?.armor) ? data.equipment.armor : [],
-            items: Array.isArray(data.equipment?.items) ? data.equipment.items : []
-        };
-
-        // Store race, class, and background IDs
-        character.race = data.race || '';
-        character.subrace = data.subrace || '';
-        character.class = data.class || '';
+        // Copy class information
+        character.class = data.class || { level: 1 };
         character.subclass = data.subclass || '';
         character.background = data.background || '';
 
         return character;
     }
 
-    // Add toJSON method to ensure sources are saved
+    /**
+     * Convert the character to a JSON object for saving
+     * @returns {Object} JSON representation of the character
+     */
     toJSON() {
-        // Create a clean object without circular references
-        const cleanObject = {
+        console.log('[Character] Converting to JSON, allowedSources:', Array.from(this.allowedSources));
+        return {
             id: this.id,
             name: this.name,
+            allowedSources: Array.from(this.allowedSources),
             playerName: this.playerName,
             level: this.level,
-            // Convert Set to Array while preserving all sources
-            allowedSources: Array.from(this.allowedSources),
+            lastModified: new Date().toISOString(),
+            height: this.height,
+            weight: this.weight,
+            gender: this.gender,
+            backstory: this.backstory,
+
+            // Ability scores and bonuses
             abilityScores: { ...this.abilityScores },
             abilityBonuses: { ...this.abilityBonuses },
+
+            // Race, class, background
+            race: { ...this.race },
+            class: { ...this.class },
+            subclass: this.subclass,
+            background: this.background,
+
+            // Size and speed
             size: this.size,
             speed: { ...this.speed },
+
+            // Features and proficiencies
             features: {
                 darkvision: this.features.darkvision,
                 resistances: Array.from(this.features.resistances),
                 traits: Object.fromEntries(this.features.traits)
             },
             proficiencies: {
-                armor: Array.from(this.proficiencies.armor),
-                weapons: Array.from(this.proficiencies.weapons),
-                tools: Array.from(this.proficiencies.tools),
-                skills: Array.from(this.proficiencies.skills),
-                languages: Array.from(this.proficiencies.languages),
-                savingThrows: Array.from(this.proficiencies.savingThrows)
+                armor: [...this.proficiencies.armor],
+                weapons: [...this.proficiencies.weapons],
+                tools: [...this.proficiencies.tools],
+                skills: [...this.proficiencies.skills],
+                languages: [...this.proficiencies.languages],
+                savingThrows: [...this.proficiencies.savingThrows]
             },
-            proficiencySources: Object.fromEntries(
-                Object.entries(this.proficiencySources).map(([type, sources]) => [
-                    type,
-                    Object.fromEntries(Array.from(sources).map(([key, value]) => [
-                        key,
-                        Array.from(value)
-                    ]))
-                ])
-            ),
-            height: this.height,
-            weight: this.weight,
-            gender: this.gender,
-            backstory: this.backstory,
-            equipment: {
-                weapons: Array.isArray(this.equipment.weapons) ? [...this.equipment.weapons] : [],
-                armor: Array.isArray(this.equipment.armor) ? [...this.equipment.armor] : [],
-                items: Array.isArray(this.equipment.items) ? [...this.equipment.items] : []
-            },
-            // Store manager data safely
-            race: this.race?.selectedRace?.id || '',
-            subrace: this.race?.selectedSubrace?.id || '',
-            class: this.class?.selectedClass?.id || '',
-            subclass: this.class?.selectedSubclass?.id || '',
-            background: this.background?.selectedBackground?.id || '',
-            // Store additional manager data without circular references
-            characteristics: this.characteristics ? {
-                personalityTrait: this.characteristics.getCharacteristic('personalityTrait'),
-                ideal: this.characteristics.getCharacteristic('ideal'),
-                bond: this.characteristics.getCharacteristic('bond'),
-                flaw: this.characteristics.getCharacteristic('flaw')
-            } : {},
-            spells: this.spells ? {
-                known: Array.from(this.spells.knownSpells?.keys() || []),
-                prepared: Array.from(this.spells.preparedSpells || []),
-                slots: { ...this.spells.spellSlots },
-                slotsUsed: { ...this.spells.slotsUsed }
-            } : {},
-            feats: this.feats ? {
-                selected: Array.from(this.feats.feats?.keys() || []),
-                optional: Array.from(this.feats.optionalFeatures?.keys() || [])
-            } : {},
-            optionalFeatures: this.optionalFeatures ? {
-                selected: Array.from(this.optionalFeatures.features?.keys() || [])
-            } : {},
-            lastModified: new Date().toISOString()
-        };
 
-        return cleanObject;
+            // Variant rules
+            variantRules: { ...this.variantRules }
+        };
+    }
+
+    /**
+     * Add a pending ability choice
+     * @param {Object} choice - The ability choice
+     */
+    addPendingAbilityChoice(choice) {
+        console.log('[Character] Adding pending ability choice:', choice);
+        if (!this.pendingAbilityChoices) {
+            this.pendingAbilityChoices = [];
+        }
+        this.pendingAbilityChoices.push(choice);
+        console.log('[Character] Current pending choices:', this.pendingAbilityChoices);
+    }
+
+    /**
+     * Get all pending ability choices
+     * @returns {Array} Array of pending ability choices
+     */
+    getPendingAbilityChoices() {
+        console.log('[Character] Getting pending ability choices');
+        if (!this.pendingAbilityChoices) {
+            console.log('[Character] No pending choices found');
+            return [];
+        }
+        console.log('[Character] Found pending choices:', this.pendingAbilityChoices);
+        return this.pendingAbilityChoices;
     }
 } 

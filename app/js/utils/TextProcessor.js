@@ -1,20 +1,18 @@
 /**
  * TextProcessor.js
- * Handles text processing for D&D content formatting and references
+ * Process text content, handle references, and apply formatting to D&D game content.
  * 
  * @typedef {Object} TextProcessingOptions
  * @property {boolean} [processReferences=true] - Whether to process references in text
  * @property {boolean} [processFormatting=true] - Whether to process text formatting
- * 
- * @typedef {Object} ProcessedText
- * @property {string} text - The processed text content
- * @property {Array<string>} references - List of references found in the text
+ * @property {boolean} [processDynamicContent=true] - Whether to process dynamically added content
  */
 
 import { referenceResolver } from './ReferenceResolver.js';
 
 /**
- * Class responsible for processing text content, handling references, and formatting
+ * Class responsible for processing text content, handling references, and formatting.
+ * Manages both static and dynamic content processing with configurable options.
  */
 class TextProcessor {
     /**
@@ -27,10 +25,18 @@ class TextProcessor {
         }
         this.referenceResolver = referenceResolver;
         this.observer = null;
+        this.defaultOptions = {
+            processReferences: true,
+            processFormatting: true,
+            processDynamicContent: true
+        };
     }
 
     /**
-     * Initialize the text processor and set up observers
+     * Initialize the text processor and set up observers for dynamic content processing.
+     * Sets up a MutationObserver to watch for DOM changes and processes new content.
+     * Also processes the initial page content.
+     * 
      * @returns {Promise<void>}
      */
     initialize() {
@@ -60,12 +66,16 @@ class TextProcessor {
     }
 
     /**
-     * Process all content within a container element
+     * Process all content within a container element.
+     * Finds text elements and applies reference resolution and formatting.
+     * 
      * @param {HTMLElement} container - The container element to process
-     * @param {TextProcessingOptions} [options] - Processing options
+     * @param {TextProcessingOptions} [options] - Processing options to override defaults
      * @returns {Promise<void>}
      */
     async processPageContent(container, options = {}) {
+        const mergedOptions = { ...this.defaultOptions, ...options };
+
         // Find all text nodes that might contain references
         const textElements = container.querySelectorAll('.description, .text-content, .tooltip-content, p, li, td, .card-text');
 
@@ -75,7 +85,7 @@ class TextProcessor {
                 // Skip if already processed or empty
                 if (!originalText || element.hasAttribute('data-processed')) continue;
 
-                const processedText = await this.processText(originalText, options);
+                const processedText = await this.processString(originalText, mergedOptions);
                 if (processedText !== originalText) {
                     element.innerHTML = processedText;
                 }
@@ -88,33 +98,35 @@ class TextProcessor {
     }
 
     /**
-     * Process text content and handle references
-     * @param {string} text - The text to process
-     * @param {TextProcessingOptions} [options] - Processing options
-     * @returns {Promise<string>} The processed text
-     */
-    async processText(text, options = {}) {
-        if (!text) return '';
-        return this.processString(text);
-    }
-
-    /**
-     * Process a string value and handle references
+     * Process a string value and handle references and formatting.
+     * Applies reference resolution and text formatting based on provided options.
+     * 
      * @param {string} text - The string to process
-     * @returns {Promise<string>} The processed string
+     * @param {TextProcessingOptions} [options] - Processing options to override defaults
+     * @returns {Promise<string>} The processed string with resolved references and formatting
      */
-    async processString(text) {
-        // Replace references
-        const withReferences = await this.replaceReferences(text);
+    async processString(text, options = {}) {
+        if (!text) return '';
 
-        // Process markdown-style formatting
-        const formatted = this.processFormatting(withReferences);
+        let processedText = text;
 
-        return formatted;
+        // Process references if enabled
+        if (options.processReferences) {
+            processedText = await this.replaceReferences(processedText);
+        }
+
+        // Process formatting if enabled
+        if (options.processFormatting) {
+            processedText = this.processFormatting(processedText);
+        }
+
+        return processedText;
     }
 
     /**
-     * Replace references in text with their resolved values
+     * Replace references in text with their resolved values.
+     * Handles D&D-style references in the format {@reference}.
+     * 
      * @param {string} text - The text containing references
      * @returns {Promise<string>} The text with resolved references
      */
@@ -132,27 +144,34 @@ class TextProcessor {
     }
 
     /**
-     * Process text formatting (bold, italic, etc.)
+     * Process text formatting (bold, italic, headers).
+     * Applies markdown-style formatting to text content.
+     * 
      * @param {string} input - The text to format
-     * @returns {string} The formatted text
+     * @returns {string} The formatted text with HTML tags
      */
     processFormatting(input) {
-        // Bold
-        const withBold = input.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        // Define formatting patterns
+        const patterns = [
+            { regex: /\*\*([^*]+)\*\*/g, replacement: '<strong>$1</strong>' }, // Bold
+            { regex: /\*([^*]+)\*/g, replacement: '<em>$1</em>' }, // Italic
+            { regex: /^### (.+)$/gm, replacement: '<h3>$1</h3>' }, // H3
+            { regex: /^## (.+)$/gm, replacement: '<h2>$1</h2>' }, // H2
+            { regex: /^# (.+)$/gm, replacement: '<h1>$1</h1>' }  // H1
+        ];
 
-        // Italic
-        const withItalic = withBold.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-        // Headers
-        const withH3 = withItalic.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-        const withH2 = withH3.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-        const withH1 = withH2.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-
-        return withH1;
+        // Apply each formatting pattern
+        return patterns.reduce((text, { regex, replacement }) =>
+            text.replace(regex, replacement),
+            input
+        );
     }
 
     /**
-     * Clean up resources and disconnect observers
+     * Clean up resources and disconnect observers.
+     * Should be called when the text processor is no longer needed.
+     * 
+     * @returns {void}
      */
     destroy() {
         if (this.observer) {
