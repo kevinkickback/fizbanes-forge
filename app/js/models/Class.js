@@ -1,5 +1,3 @@
-import { characterInitializer } from '../utils/Initialize.js';
-
 export class Class {
     constructor(data) {
         this.id = data.id;

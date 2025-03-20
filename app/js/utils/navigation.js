@@ -15,6 +15,7 @@ import { showNotification } from './notifications.js';
 import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
 import { RaceCard } from '../ui/RaceCard.js';
+import { ClassCard } from '../ui/ClassCard.js';
 import { AbilityScoreCard } from '../ui/AbilityScoreCard.js';
 
 /**
@@ -82,6 +83,9 @@ export const navigation = {
             return;
         }
 
+        // Save changes from current page before navigating away
+        this._saveCurrentPageChanges();
+
         // Update navigation state
         this._updateNavigationState(pageName);
 
@@ -96,6 +100,60 @@ export const navigation = {
             this.currentPage = pageName;
             this._initializePageContent(pageName);
         }
+    },
+
+    /**
+     * Saves changes from the current page before navigating away
+     * @private
+     */
+    _saveCurrentPageChanges() {
+        if (!characterHandler.currentCharacter) return;
+
+        // Save changes based on the current page
+        switch (this.currentPage) {
+            case 'details': {
+                // Save character details without triggering a full save operation
+                characterHandler.updateCharacterDetails(true);
+                break;
+            }
+            case 'build': {
+                // Save race and other build page data
+                const buildFields = characterHandler.getCharacterDetailFields();
+                if (buildFields.raceSelect?.value) {
+                    const [raceName, source] = buildFields.raceSelect.value.split('_');
+                    characterHandler.currentCharacter.race = {
+                        ...characterHandler.currentCharacter.race,
+                        name: raceName,
+                        source: source
+                    };
+                }
+                if (buildFields.subraceSelect?.value) {
+                    characterHandler.currentCharacter.race.subrace = buildFields.subraceSelect.value;
+                }
+
+                // Save class and subclass selections
+                if (buildFields.classSelect?.value) {
+                    const [className, source] = buildFields.classSelect.value.split('_');
+                    characterHandler.currentCharacter.class = {
+                        ...characterHandler.currentCharacter.class,
+                        name: className,
+                        source: source
+                    };
+                }
+                if (buildFields.subclassSelect?.value) {
+                    characterHandler.currentCharacter.class.subclass = buildFields.subclassSelect.value;
+                }
+                break;
+            }
+            // Add cases for other pages that have form inputs to save
+            case 'equipment': {
+                // Add code to save equipment page changes
+                break;
+            }
+        }
+
+        // Show the unsaved changes indicator since we just captured changes
+        characterHandler.showUnsavedChanges();
     },
 
     /**
@@ -129,7 +187,54 @@ export const navigation = {
             build: () => {
                 if (characterHandler.currentCharacter) {
                     new RaceCard();
+                    new ClassCard();
                     new AbilityScoreCard();
+
+                    // Ensure race selection fields are properly initialized
+                    const raceSelect = document.getElementById('raceSelect');
+                    const subraceSelect = document.getElementById('subraceSelect');
+
+                    if (raceSelect && characterHandler.currentCharacter.race &&
+                        characterHandler.currentCharacter.race.name &&
+                        characterHandler.currentCharacter.race.source) {
+                        const raceValue = `${characterHandler.currentCharacter.race.name}_${characterHandler.currentCharacter.race.source}`;
+                        // Set after a small delay to ensure the dropdown is fully initialized
+                        setTimeout(() => {
+                            if (raceSelect.querySelector(`option[value="${raceValue}"]`)) {
+                                raceSelect.value = raceValue;
+                                // Trigger change event to update subrace options
+                                raceSelect.dispatchEvent(new Event('change'));
+                            }
+                        }, 100);
+                    }
+
+                    // Ensure class selection fields are properly initialized
+                    const classSelect = document.getElementById('classSelect');
+                    const subclassSelect = document.getElementById('subclassSelect');
+
+                    if (classSelect && characterHandler.currentCharacter.class &&
+                        characterHandler.currentCharacter.class.name &&
+                        characterHandler.currentCharacter.class.source) {
+                        const classValue = `${characterHandler.currentCharacter.class.name}_${characterHandler.currentCharacter.class.source}`;
+                        // Set after a small delay to ensure the dropdown is fully initialized
+                        setTimeout(() => {
+                            if (classSelect.querySelector(`option[value="${classValue}"]`)) {
+                                classSelect.value = classValue;
+                                // Trigger change event to update subclass options
+                                classSelect.dispatchEvent(new Event('change'));
+
+                                // If there's a subclass, select it after a small delay
+                                if (subclassSelect && characterHandler.currentCharacter.class.subclass) {
+                                    setTimeout(() => {
+                                        if (subclassSelect.querySelector(`option[value="${characterHandler.currentCharacter.class.subclass}"]`)) {
+                                            subclassSelect.value = characterHandler.currentCharacter.class.subclass;
+                                            subclassSelect.dispatchEvent(new Event('change'));
+                                        }
+                                    }, 100);
+                                }
+                            }
+                        }, 150);
+                    }
                 }
             },
             equipment: () => {

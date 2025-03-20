@@ -514,8 +514,10 @@ export class CharacterHandler {
         if (!this.currentCharacter) return;
 
         try {
-            // Update character details from UI
-            this.updateCharacterDetails(true);
+            // Save changes from current page before saving to storage
+            if (navigation && typeof navigation._saveCurrentPageChanges === 'function') {
+                navigation._saveCurrentPageChanges();
+            }
 
             this.currentCharacter.lastModified = new Date().toISOString();
 
