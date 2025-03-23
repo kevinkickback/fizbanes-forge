@@ -187,6 +187,9 @@ export class RaceCard {
         await this._updateSizeAndSpeed(race);
         await this._updateLanguages(race);
         await this._updateTraits(race);
+
+        // Process the entire details container to resolve reference tags
+        await textProcessor.processElement(this.raceDetails);
     }
 
     /**
@@ -328,12 +331,50 @@ export class RaceCard {
             (savedRace.name || savedRace.source) :
             (savedRace.name !== currentRace[0] || savedRace.source !== currentRace[1] || savedSubrace !== (subrace?.name || ''));
 
-        if (hasChanged) {
-            characterHandler.showUnsavedChanges();
-        } else {
-            characterHandler.hideUnsavedChanges();
+        // If race changed, clear all ability score related data
+        if (hasChanged && savedRace.name) {
+            console.log(`[RaceCard] Race changed from ${savedRace.name} to ${race?.name || 'none'}, cleaning up previous race data`);
+
+            // Log current ability bonuses before clearing
+            console.log('[RaceCard] Ability bonuses BEFORE clearing:', JSON.parse(JSON.stringify(character.abilityBonuses)));
+
+            // Clear ability bonuses from race and subrace
+            character.clearAbilityBonuses('Race');
+            character.clearAbilityBonuses('Subrace');
+
+            // Clear ALL race and subrace choice bonuses (including numbered ones)
+            for (const ability in character.abilityBonuses) {
+                character.abilityBonuses[ability] = character.abilityBonuses[ability].filter(
+                    bonus => !bonus.source.startsWith('Race Choice') && !bonus.source.startsWith('Subrace Choice')
+                );
+            }
+
+            // Log ability bonuses after clearing
+            console.log('[RaceCard] Ability bonuses AFTER clearing:', JSON.parse(JSON.stringify(character.abilityBonuses)));
+
+            // Clear pending ability choices
+            character.clearPendingAbilityChoices();
+
+            // Clear any ability choice selections stored in the ability score manager
+            this.raceManager.clearAbilityChoiceSelections();
         }
 
+        if (hasChanged) {
+            // Update the character's race information
+            if (!race) {
+                character.race = {};
+            } else {
+                character.race = {
+                    name: race.name,
+                    source: race.source,
+                    subrace: subrace?.name || null
+                };
+            }
+
+            characterHandler.showUnsavedChanges();
+        }
+
+        // Add the new race's ability bonuses (this remains the same)
         this._updateAbilityBonuses(race, subrace);
     }
 
@@ -345,15 +386,9 @@ export class RaceCard {
      */
     _updateAbilityBonuses(race, subrace) {
         const character = characterHandler.currentCharacter;
-        if (!character) return;
+        if (!character || !race) return;
 
-        // Clear previous bonuses
-        character.clearAbilityBonuses('Race');
-        character.clearAbilityBonuses('Race Choice');
-        character.clearAbilityBonuses('Subrace');
-        character.clearAbilityBonuses('Subrace Choice');
-
-        if (!race) return;
+        console.log(`[RaceCard] Adding ability bonuses for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
 
         // Add fixed ability improvements
         const fixedImprovements = this.raceManager.getFixedAbilityImprovements();

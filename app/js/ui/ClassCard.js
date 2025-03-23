@@ -8,7 +8,8 @@
  * @property {string} source - Source book of the class
  * @property {string} description - Brief description of the class
  * @property {number} hitDice - Hit die size (e.g., 8 for d8)
- * @property {string[]} primaryAbility - Primary ability scores for the class
+ * @property {string[]} skillProficiencies - Available skill proficiencies
+ * @property {number} skillChoiceCount - Number of skills to choose
  * @property {string[]} savingThrows - Saving throw proficiencies
  * @property {string[]} armorProficiencies - Armor proficiencies
  * @property {string[]} weaponProficiencies - Weapon proficiencies
@@ -174,6 +175,8 @@ export class ClassCard {
 
     /**
      * Updates the display of class details for the selected class
+     * @param {Object} classData - The class data to display
+     * @param {Object} subclassData - The optional subclass data
      */
     async updateClassDetails(classData, subclassData = null) {
         if (!classData) {
@@ -181,57 +184,131 @@ export class ClassCard {
             return;
         }
 
-        // Update all sections of the class details
+        // Update individual sections
         this._updateHitDie(classData);
-        this._updatePrimaryAbility(classData);
+        this._updateSkillProficiencies(classData);
         this._updateSavingThrows(classData);
-        this._updateArmorProficiencies(classData);
-        this._updateWeaponProficiencies(classData);
-        this._updateToolProficiencies(classData);
+        await this._updateArmorProficiencies(classData);
+        await this._updateWeaponProficiencies(classData);
+        await this._updateToolProficiencies(classData);
 
-        // Update subclass specific details if available
-        if (subclassData) {
-            // Add subclass-specific details
-        }
+        // Process the entire details container at once to resolve all reference tags
+        await textProcessor.processElement(this.classDetails);
 
-        // Explicitly process the updated content
-        await textProcessor.processPageContent(this.classDetails);
+        // Update features
+        await this._updateFeatures(classData, subclassData);
     }
 
     /**
      * Updates the hit die information display
      */
     _updateHitDie(classData) {
-        const hitDieSection = this.classDetails.querySelector('.detail-section:nth-child(1) p');
+        const hitDieSection = this.classDetails.querySelector('.detail-section:nth-child(1) ul');
         if (hitDieSection) {
-            hitDieSection.className = 'text-content';
-            hitDieSection.textContent = `d${classData.hitDice}`;
-            hitDieSection.classList.remove('placeholder-text');
+            hitDieSection.innerHTML = '';
+            const li = document.createElement('li');
+            li.className = 'text-content';
+            li.textContent = `d${classData.getHitDice()}`;
+            hitDieSection.appendChild(li);
         }
     }
 
     /**
-     * Updates the primary ability information display
+     * Updates the skill proficiencies information display
      */
-    _updatePrimaryAbility(classData) {
-        const primaryAbilitySection = this.classDetails.querySelector('.detail-section:nth-child(2) p');
-        if (primaryAbilitySection) {
-            const abilityMap = {
-                'str': 'Strength',
-                'dex': 'Dexterity',
-                'con': 'Constitution',
-                'int': 'Intelligence',
-                'wis': 'Wisdom',
-                'cha': 'Charisma'
-            };
+    _updateSkillProficiencies(classData) {
+        const skillProficienciesSection = this.classDetails.querySelector('.detail-section:nth-child(2)');
+        if (skillProficienciesSection) {
+            // Find or create the list container
+            let skillList = skillProficienciesSection.querySelector('ul');
+            if (!skillList) {
+                skillList = document.createElement('ul');
+                skillProficienciesSection.appendChild(skillList);
+            }
 
-            const abilityText = classData.primaryAbility
-                .map(ability => abilityMap[ability] || ability)
-                .join(' or ');
+            // Clear previous content
+            skillList.innerHTML = '';
+            skillList.className = ''; // Reset classes
 
-            primaryAbilitySection.className = 'text-content';
-            primaryAbilitySection.textContent = abilityText;
-            primaryAbilitySection.classList.remove('placeholder-text');
+            // Remove any previous choose text header
+            const existingChooseText = skillProficienciesSection.querySelector('.choose-text');
+            if (existingChooseText) {
+                existingChooseText.remove();
+            }
+
+            // Check if we have skills to display
+            const skills = classData.getSkillProficiencies();
+            if (skills?.length) {
+                // Get the formatted string from the class manager
+                const formattedString = this.classManager.getFormattedSkillProficiencies(classData);
+                const hasChoices = formattedString.includes('Choose');
+
+                if (hasChoices) {
+                    // For "Choose X from Y" format, split into header and skills list
+                    // Extract the "Choose X from:" part from the string
+                    const choosePattern = /(Choose \d+ from:)\s+(.*)/;
+                    const matches = formattedString.match(choosePattern);
+
+                    if (matches && matches.length >= 3) {
+                        const chooseText = matches[1]; // "Choose X from:"
+                        const skillsText = matches[2]; // The list of skills
+
+                        // Add the "Choose X from:" as a header above the list
+                        const chooseHeader = document.createElement('div');
+                        chooseHeader.className = 'choose-text font-weight-bold';
+                        chooseHeader.style.marginBottom = '0.5rem';
+                        chooseHeader.textContent = chooseText;
+
+                        // Insert the header before the list
+                        skillProficienciesSection.insertBefore(chooseHeader, skillList);
+
+                        // Split the skills by comma and create a list item for each
+                        const skillsArray = skillsText.split(', ');
+
+                        // Apply multi-column if more than 3 skills
+                        if (skillsArray.length > 3) {
+                            skillList.className = 'multi-column-list';
+                            if (skillsArray.length > 6) {
+                                skillList.classList.add('many-items');
+                            }
+                        }
+
+                        // Add each skill as a separate list item
+                        for (const skill of skillsArray) {
+                            const li = document.createElement('li');
+                            li.className = 'text-content';
+                            li.textContent = skill.trim();
+                            skillList.appendChild(li);
+                        }
+                    } else {
+                        // Fallback if the pattern matching fails
+                        const li = document.createElement('li');
+                        li.className = 'text-content';
+                        li.textContent = formattedString;
+                        skillList.appendChild(li);
+                    }
+                } else {
+                    // For fixed skills, display each as a separate item
+                    // Apply multi-column if more than 3 skills
+                    if (skills.length > 3) {
+                        skillList.className = 'multi-column-list';
+                        if (skills.length > 6) {
+                            skillList.classList.add('many-items');
+                        }
+                    }
+
+                    for (const skill of skills) {
+                        const li = document.createElement('li');
+                        li.className = 'text-content';
+                        li.textContent = skill;
+                        skillList.appendChild(li);
+                    }
+                }
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'None';
+                skillList.appendChild(li);
+            }
         }
     }
 
@@ -243,8 +320,9 @@ export class ClassCard {
         if (savingThrowsSection) {
             savingThrowsSection.innerHTML = '';
 
-            if (classData.savingThrows && classData.savingThrows.length > 0) {
-                for (const save of classData.savingThrows) {
+            const savingThrows = classData.getSavingThrows();
+            if (savingThrows && savingThrows.length > 0) {
+                for (const save of savingThrows) {
                     const li = document.createElement('li');
                     li.className = 'text-content';
                     li.textContent = save;
@@ -260,14 +338,25 @@ export class ClassCard {
 
     /**
      * Updates the armor proficiencies information display
+     * @private
      */
-    _updateArmorProficiencies(classData) {
+    async _updateArmorProficiencies(classData) {
         const armorSection = this.classDetails.querySelector('.detail-section:nth-child(4) ul');
         if (armorSection) {
             armorSection.innerHTML = '';
+            armorSection.className = ''; // Reset classes
 
-            if (classData.armorProficiencies && classData.armorProficiencies.length > 0) {
-                for (const armor of classData.armorProficiencies) {
+            const armorProficiencies = classData.getArmorProficiencies();
+            if (armorProficiencies && armorProficiencies.length > 0) {
+                // Apply multi-column if more than 3 proficiencies
+                if (armorProficiencies.length > 3) {
+                    armorSection.className = 'multi-column-list';
+                    if (armorProficiencies.length > 6) {
+                        armorSection.classList.add('many-items');
+                    }
+                }
+
+                for (const armor of armorProficiencies) {
                     const li = document.createElement('li');
                     li.className = 'text-content';
                     li.textContent = armor;
@@ -283,14 +372,25 @@ export class ClassCard {
 
     /**
      * Updates the weapon proficiencies information display
+     * @private
      */
-    _updateWeaponProficiencies(classData) {
+    async _updateWeaponProficiencies(classData) {
         const weaponSection = this.classDetails.querySelector('.detail-section:nth-child(5) ul');
         if (weaponSection) {
             weaponSection.innerHTML = '';
+            weaponSection.className = ''; // Reset classes
 
-            if (classData.weaponProficiencies && classData.weaponProficiencies.length > 0) {
-                for (const weapon of classData.weaponProficiencies) {
+            const weaponProficiencies = classData.getWeaponProficiencies();
+            if (weaponProficiencies && weaponProficiencies.length > 0) {
+                // Apply multi-column if more than 3 proficiencies
+                if (weaponProficiencies.length > 3) {
+                    weaponSection.className = 'multi-column-list';
+                    if (weaponProficiencies.length > 6) {
+                        weaponSection.classList.add('many-items');
+                    }
+                }
+
+                for (const weapon of weaponProficiencies) {
                     const li = document.createElement('li');
                     li.className = 'text-content';
                     li.textContent = weapon;
@@ -306,14 +406,25 @@ export class ClassCard {
 
     /**
      * Updates the tool proficiencies information display
+     * @private
      */
-    _updateToolProficiencies(classData) {
+    async _updateToolProficiencies(classData) {
         const toolSection = this.classDetails.querySelector('.detail-section:nth-child(6) ul');
         if (toolSection) {
             toolSection.innerHTML = '';
+            toolSection.className = ''; // Reset classes
 
-            if (classData.toolProficiencies && classData.toolProficiencies.length > 0) {
-                for (const tool of classData.toolProficiencies) {
+            const toolProficiencies = classData.getToolProficiencies();
+            if (toolProficiencies && toolProficiencies.length > 0) {
+                // Apply multi-column if more than 3 proficiencies
+                if (toolProficiencies.length > 3) {
+                    toolSection.className = 'multi-column-list';
+                    if (toolProficiencies.length > 6) {
+                        toolSection.classList.add('many-items');
+                    }
+                }
+
+                for (const tool of toolProficiencies) {
                     const li = document.createElement('li');
                     li.className = 'text-content';
                     li.textContent = tool;
@@ -352,19 +463,30 @@ export class ClassCard {
                 paragraph.classList.add('placeholder-text');
             }
         }
+
+        // Specifically update the features section to use a list item
+        const featuresSection = this.classDetails.querySelector('.features-section');
+        if (featuresSection) {
+            featuresSection.innerHTML = `
+                <h6>Features</h6>
+                <div class="features-grid">
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
+            `;
+        }
     }
 
     /**
-     * Setup event listeners for class and subclass selection
+     * Setup event listeners for class selection
      */
     setupEventListeners() {
-        if (this.classSelect) {
-            this.classSelect.addEventListener('change', (event) => this._handleClassChange(event));
-        }
+        this.classSelect.addEventListener('change', this._handleClassChange.bind(this));
+        this.subclassSelect.addEventListener('change', this._handleSubclassChange.bind(this));
 
-        if (this.subclassSelect) {
-            this.subclassSelect.addEventListener('change', (event) => this._handleSubclassChange(event));
-        }
+        // Listen for character changes (level, etc.) to update features
+        document.addEventListener('characterChanged', this._handleCharacterChanged.bind(this));
     }
 
     /**
@@ -427,6 +549,21 @@ export class ClassCard {
     }
 
     /**
+     * Handle character changes (like level changes)
+     * @param {Event} event - The character changed event
+     * @private
+     */
+    async _handleCharacterChanged(event) {
+        const classData = this.classManager.getSelectedClass();
+        const subclassData = this.classManager.getSelectedSubclass();
+
+        if (classData) {
+            // Only update the features section, not the entire card
+            await this._updateFeatures(classData, subclassData);
+        }
+    }
+
+    /**
      * Update character's class and subclass information
      */
     _updateCharacterClass(classData, subclassData) {
@@ -454,7 +591,7 @@ export class ClassCard {
                 name: classData.name,
                 source: classData.source,
                 level: 1,
-                hitDice: classData.hitDice
+                hitDice: classData.getHitDice()
             };
 
             if (subclassData) {
@@ -478,29 +615,29 @@ export class ClassCard {
         characterHandler.currentCharacter.removeProficienciesBySource('Class');
 
         // Add saving throw proficiencies
-        if (classData.savingThrows && classData.savingThrows.length > 0) {
-            for (const save of classData.savingThrows) {
+        if (classData.getSavingThrows() && classData.getSavingThrows().length > 0) {
+            for (const save of classData.getSavingThrows()) {
                 characterHandler.currentCharacter.addProficiency('savingThrows', save, 'Class');
             }
         }
 
         // Add armor proficiencies
-        if (classData.armorProficiencies && classData.armorProficiencies.length > 0) {
-            for (const armor of classData.armorProficiencies) {
+        if (classData.getArmorProficiencies() && classData.getArmorProficiencies().length > 0) {
+            for (const armor of classData.getArmorProficiencies()) {
                 characterHandler.currentCharacter.addProficiency('armor', armor, 'Class');
             }
         }
 
         // Add weapon proficiencies
-        if (classData.weaponProficiencies && classData.weaponProficiencies.length > 0) {
-            for (const weapon of classData.weaponProficiencies) {
+        if (classData.getWeaponProficiencies() && classData.getWeaponProficiencies().length > 0) {
+            for (const weapon of classData.getWeaponProficiencies()) {
                 characterHandler.currentCharacter.addProficiency('weapons', weapon, 'Class');
             }
         }
 
         // Add tool proficiencies
-        if (classData.toolProficiencies && classData.toolProficiencies.length > 0) {
-            for (const tool of classData.toolProficiencies) {
+        if (classData.getToolProficiencies() && classData.getToolProficiencies().length > 0) {
+            for (const tool of classData.getToolProficiencies()) {
                 characterHandler.currentCharacter.addProficiency('tools', tool, 'Class');
             }
         }
@@ -522,12 +659,195 @@ export class ClassCard {
         }
 
         // Get the description from classData
-        const description = classData.description || 'No description available.';
+        const description = classData.getDescription() || 'No description available.';
 
         // Set quick description - add text-content class to let TextProcessor handle it
         this.classQuickDesc.innerHTML = `
             <h5>${classData.name}</h5>
             <p class="text-content">${description}</p>
         `;
+    }
+
+    /**
+     * Update the features section based on class and level
+     * @param {Class} classData - Selected class
+     * @param {Subclass} subclassData - Selected subclass (optional)
+     * @private
+     */
+    async _updateFeatures(classData, subclassData = null) {
+        const featuresSection = this.classDetails.querySelector('.features-section');
+        if (!featuresSection) {
+            console.warn('Features section not found in class details');
+            return;
+        }
+
+        const character = characterHandler.currentCharacter;
+        const level = character?.level || 1;
+
+        console.log(`[ClassCard] Getting features for ${classData.name} at level ${level}`);
+
+        // Get class features for the current level
+        const features = classData.getFeatures(level) || [];
+        console.log('[ClassCard] Found features:', features);
+
+        // Get subclass features for the current level if a subclass is selected
+        let subclassFeatures = [];
+        if (subclassData) {
+            subclassFeatures = subclassData.getFeatures?.(level) || [];
+        }
+
+        // Combine class and subclass features
+        const allFeatures = [...features, ...subclassFeatures];
+
+        if (allFeatures.length > 0) {
+            const processedFeatures = await Promise.all(allFeatures.map(async feature => {
+                if (!feature.name || !feature.entries) {
+                    console.warn('[ClassCard] Feature missing name or entries:', feature);
+                    return '';
+                }
+
+                const name = feature.name;
+                let description = this._formatFeatureEntries(feature.entries);
+
+                // Process the description with the text processor if it exists
+                if (description) {
+                    try {
+                        description = await textProcessor.processString(description);
+                    } catch (error) {
+                        console.error('Error processing feature description:', error);
+                    }
+                }
+
+                // Format source and page info
+                const source = feature.source || classData.source || '';
+                const page = feature.page || '';
+                const sourceInfo = page ? `${source}, page ${page}` : source;
+
+                // Format the tooltip with the feature name as a title and source info at the bottom
+                const tooltipContent = description ?
+                    `<strong>${name}</strong><br>${description}${sourceInfo ? `<div class="tooltip-source">${sourceInfo}</div>` : ''}` : '';
+
+                return `<span class="feature-tag" data-tooltip="${encodeURIComponent(tooltipContent)}">${name}</span>`;
+            }));
+
+            featuresSection.innerHTML = `
+                <h6>Features</h6>
+                <div class="features-grid">
+                    ${processedFeatures.join('')}
+                </div>
+            `;
+        } else {
+            featuresSection.innerHTML = `
+                <h6>Features</h6>
+                <div class="features-grid">
+                    <ul class="mb-0">
+                        <li class="text-content">No features at level ${level}</li>
+                    </ul>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Formats feature entries for display
+     * @param {Array|String} entries - Array of entries or string
+     * @returns {string} Formatted HTML string
+     * @private
+     */
+    _formatFeatureEntries(entries) {
+        // If entries is a string, just return it
+        if (typeof entries === 'string') {
+            return entries;
+        }
+
+        // If entries is not an array, return empty string
+        if (!Array.isArray(entries)) {
+            console.warn('Feature entries is not an array or string:', entries);
+            return '';
+        }
+
+        let result = '';
+
+        // Process each entry in the array
+        for (const entry of entries) {
+            // Handle strings directly
+            if (typeof entry === 'string') {
+                result += `<p>${entry}</p>`;
+                continue;
+            }
+
+            // Handle objects with different types
+            if (typeof entry === 'object') {
+                // Handle lists
+                if (entry.type === 'list') {
+                    result += '<ul class="tooltip-list">';
+
+                    if (Array.isArray(entry.items)) {
+                        for (const item of entry.items) {
+                            if (typeof item === 'string') {
+                                result += `<li>${item}</li>`;
+                            } else if (typeof item === 'object') {
+                                // Handle items with name and entry
+                                if (item.name && item.entry) {
+                                    result += `<li><strong>${item.name}</strong>: ${item.entry}</li>`;
+                                } else if (item.name && item.entries) {
+                                    // Handle items with name and entries array
+                                    result += `<li><strong>${item.name}</strong>: ${this._formatFeatureEntries(item.entries)}</li>`;
+                                } else {
+                                    console.warn('Unhandled list item format:', item);
+                                }
+                            }
+                        }
+                    }
+
+                    result += '</ul>';
+                }
+                // Handle tables
+                else if (entry.type === 'table') {
+                    result += '<div class="table-container">';
+
+                    if (entry.caption) {
+                        result += `<p><strong>${entry.caption}</strong></p>`;
+                    }
+
+                    result += '<table class="tooltip-table"><tbody>';
+
+                    if (Array.isArray(entry.rows)) {
+                        for (const row of entry.rows) {
+                            result += '<tr>';
+
+                            if (Array.isArray(row)) {
+                                for (const cell of row) {
+                                    result += `<td>${typeof cell === 'string' ? cell : JSON.stringify(cell)}</td>`;
+                                }
+                            }
+
+                            result += '</tr>';
+                        }
+                    }
+
+                    result += '</tbody></table></div>';
+                }
+                // Handle entries property (recursive)
+                else if (Array.isArray(entry.entries)) {
+                    result += this._formatFeatureEntries(entry.entries);
+                }
+                // Handle entry property
+                else if (entry.entry) {
+                    result += `<p>${entry.entry}</p>`;
+                }
+                // Handle name and text properties
+                else if (entry.name && entry.text) {
+                    result += `<p><strong>${entry.name}</strong>. ${entry.text}</p>`;
+                }
+                // Fall back to JSON for unhandled formats
+                else {
+                    console.warn('Unhandled entry format:', entry);
+                    result += `<p>${JSON.stringify(entry)}</p>`;
+                }
+            }
+        }
+
+        return result;
     }
 } 

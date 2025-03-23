@@ -1,23 +1,37 @@
+/**
+ * Class.js
+ * Model class for character classes
+ */
 export class Class {
-    constructor(data) {
-        this.id = data.id;
-        this.name = data.name;
-        this.source = data.source;
+    /**
+     * Creates a new Class instance
+     * @param {Object} data - Class data
+     */
+    constructor(data = {}) {
+        this.id = data.id || `${data.name}_${data.source || 'PHB'}`;
+        this.name = data.name || '';
+        this.source = data.source || 'PHB';
         this.level = data.level || 1;
-        this.spellcastingType = data.spellcasting?.type;
-        this.spellcastingService = characterInitializer.spellcastingService;
-        this.hitDice = data.hitDice;
-        this.proficiencies = data.proficiencies || {};
-        this.features = data.features || [];
+        this.description = data.description || '';
+        this.hitDice = data.hitDice || 8;
+
+        // Proficiencies
+        this.skillProficiencies = data.skillProficiencies || [];
+        this.skillChoiceCount = data.skillChoiceCount || 0;
+        this.savingThrows = data.savingThrows || [];
+        this.armorProficiencies = data.armorProficiencies || [];
+        this.weaponProficiencies = data.weaponProficiencies || [];
+        this.toolProficiencies = data.toolProficiencies || [];
+
+        // Features and spellcasting
+        this.classFeatures = data.classFeatures || []; // Detailed feature objects
         this.spellcasting = data.spellcasting || null;
+        this.spellcastingType = data.spellcastingType || null;
+
+        // Subclasses and equipment
         this.subclasses = data.subclasses || [];
         this.startingEquipment = data.startingEquipment || {};
         this.multiclassing = data.multiclassing || {};
-        this.description = data.description || '';
-    }
-
-    calculateSpellSlots(level) {
-        return this.spellcastingService.calculateSpellSlots(level, this.spellcastingType);
     }
 
     // Core getters
@@ -25,23 +39,94 @@ export class Class {
         return this.hitDice;
     }
 
-    getProficiencies() {
-        return this.proficiencies;
+    getDescription() {
+        return this.description;
     }
 
-    getFeatures(level = null) {
-        if (level === null) {
-            return this.features;
-        }
-        return this.features.filter(f => f.level === level);
+    getSkillProficiencies() {
+        return this.skillProficiencies;
     }
 
-    getSpellcasting() {
-        return this.spellcasting;
+    getSkillChoiceCount() {
+        return this.skillChoiceCount;
+    }
+
+    getSavingThrows() {
+        return this.savingThrows;
+    }
+
+    getArmorProficiencies() {
+        return this.armorProficiencies;
+    }
+
+    getWeaponProficiencies() {
+        return this.weaponProficiencies;
+    }
+
+    getToolProficiencies() {
+        return this.toolProficiencies;
     }
 
     getSubclasses() {
         return this.subclasses;
+    }
+
+    /**
+     * Get features for a specific level
+     * @param {number|null} level - Level to get features for, or null for all features
+     * @returns {Array} Array of feature objects
+     */
+    getFeatures(level = null) {
+        // Debug log the features array
+        console.log(`[Class] ${this.name} has ${this.classFeatures?.length || 0} features in total`);
+        if (this.classFeatures?.length > 0) {
+            console.log(`[Class] First feature: ${this.classFeatures[0].name}, level ${this.classFeatures[0].level}`);
+        }
+
+        // Only use detailed class features
+        if (!this.classFeatures || this.classFeatures.length === 0) {
+            console.log(`[Class] No detailed features found for ${this.name}`);
+            return [];
+        }
+
+        console.log(`[Class] Using detailed features for ${this.name} (${this.classFeatures.length} features)`);
+
+        // Filter features by class source
+        const sourceFilteredFeatures = this.classFeatures.filter(feature =>
+            feature.className === this.name &&
+            (feature.classSource === this.source || feature.source === this.source)
+        );
+
+        console.log(`[Class] After source filtering: ${sourceFilteredFeatures.length} features for ${this.name} from ${this.source}`);
+
+        if (level === null) {
+            return sourceFilteredFeatures;
+        }
+
+        // Filter features to the specific level
+        const filteredFeatures = sourceFilteredFeatures.filter(feature => feature.level === level);
+        console.log(`[Class] Found ${filteredFeatures.length} features for level ${level}`);
+        if (filteredFeatures.length > 0) {
+            console.log(`[Class] Feature names: ${filteredFeatures.map(f => f.name).join(', ')}`);
+        }
+        return filteredFeatures;
+    }
+
+    /**
+     * Get a detailed feature by name
+     * @param {string} name - The name of the feature
+     * @returns {Object|null} The detailed feature or null if not found
+     */
+    getDetailedFeature(name) {
+        if (!this.classFeatures || !this.classFeatures.length) {
+            return null;
+        }
+
+        return this.classFeatures.find(f => f.name === name) || null;
+    }
+
+    getSpellcasting() {
+        return this.spellcasting;
     }
 
     // Equipment methods
@@ -86,23 +171,9 @@ export class Class {
         return this.spellcasting?.ability || null;
     }
 
-    getSpellsKnownLevel(level) {
-        if (!this.canCastSpells()) return 0;
-        const progression = this.spellcasting.progression || [];
-        return progression.find(p => p.level === level)?.spellsKnown || 0;
-    }
-
-    getSpellSlots(level) {
-        if (!this.canCastSpells()) return {};
-
-        // Use SpellcastingService for calculations
-        return this.calculateSpellSlots(level);
-    }
-
     getSpellcastingType() {
         if (!this.spellcasting) return null;
 
-        // Determine spellcasting type based on class
         switch (this.name.toLowerCase()) {
             case 'paladin':
             case 'ranger':
@@ -121,5 +192,29 @@ export class Class {
             default:
                 return null;
         }
+    }
+
+    /**
+     * Serializes the class to JSON
+     * @returns {Object} JSON representation of the class
+     */
+    toJSON() {
+        return {
+            id: this.id,
+            name: this.name,
+            source: this.source,
+            level: this.level,
+            description: this.description,
+            hitDice: this.hitDice,
+            skillProficiencies: this.skillProficiencies,
+            skillChoiceCount: this.skillChoiceCount,
+            savingThrows: this.savingThrows,
+            armorProficiencies: this.armorProficiencies,
+            weaponProficiencies: this.weaponProficiencies,
+            toolProficiencies: this.toolProficiencies,
+            classFeatures: this.classFeatures,
+            spellcasting: this.spellcasting,
+            subclasses: this.subclasses
+        };
     }
 } 

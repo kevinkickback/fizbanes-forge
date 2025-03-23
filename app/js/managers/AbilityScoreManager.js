@@ -192,6 +192,15 @@ export class AbilityScoreManager {
     }
 
     /**
+     * Clear all stored ability choices
+     * This should be called when changing races to prevent stale selections
+     */
+    clearStoredChoices() {
+        console.log('[AbilityScoreManager] Clearing all stored ability choices');
+        this.abilityChoices.clear();
+    }
+
+    /**
      * Get pending ability score choices
      * @returns {Array} Array of pending ability score choices
      */

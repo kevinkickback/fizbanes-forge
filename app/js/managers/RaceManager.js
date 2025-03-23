@@ -4,6 +4,7 @@
  */
 import { Race } from '../models/Race.js';
 import { dataLoader } from '../dataloaders/DataLoader.js';
+import { abilityScoreManager } from './AbilityScoreManager.js';
 
 let instance = null;
 
@@ -17,6 +18,7 @@ export class RaceManager {
         this.races = new Map();
         this.selectedRace = null;
         this.selectedSubrace = null;
+        this.selectedVariant = null;
     }
 
     /**
@@ -180,17 +182,14 @@ export class RaceManager {
      * @returns {Array} Array of ability score improvements
      */
     parseAbility(abilityData) {
-        console.log('[RaceManager] Parsing ability data:', abilityData);
 
         // Handle edge case where ability is empty or undefined
         if (!abilityData) {
-            console.log('[RaceManager] No ability data to parse');
             return [];
         }
 
         // Handle array format
         if (Array.isArray(abilityData)) {
-            console.log('[RaceManager] Parsing array format:', abilityData);
             const improvements = [];
 
             for (const entry of abilityData) {
@@ -303,7 +302,6 @@ export class RaceManager {
             }
         }
 
-        console.log('[RaceManager] Unable to parse ability data, returning empty array');
         return [];
     }
 
@@ -334,6 +332,8 @@ export class RaceManager {
     selectRace(raceName, source = 'PHB') {
         this.selectedRace = this.getRace(raceName, source);
         this.selectedSubrace = null;
+        this.selectedVariant = null;
+        this.clearAbilityChoiceSelections();
         return this.selectedRace;
     }
 
@@ -346,6 +346,8 @@ export class RaceManager {
         if (!this.selectedRace) return null;
 
         this.selectedSubrace = this.selectedRace.getSubrace(subraceName);
+        this.selectedVariant = null;
+        this.clearAbilityChoiceSelections();
         return this.selectedSubrace;
     }
 
@@ -366,6 +368,14 @@ export class RaceManager {
     }
 
     /**
+     * Get the currently selected variant
+     * @returns {Object|null} The selected variant or null if none selected
+     */
+    getSelectedVariant() {
+        return this.selectedVariant;
+    }
+
+    /**
      * Get combined ability score improvements from race and subrace
      * @returns {Array} Combined ability score improvements
      */
@@ -378,6 +388,40 @@ export class RaceManager {
 
         if (this.selectedSubrace) {
             improvements.push(...(this.selectedSubrace.ability || []));
+        }
+
+        return improvements;
+    }
+
+    /**
+     * Get fixed ability score improvements from race and subrace
+     * @returns {Array} Array of fixed ability score improvements
+     */
+    getFixedAbilityImprovements() {
+        const improvements = [];
+
+        if (this.selectedRace) {
+            // Get fixed improvements from main race
+            const raceImprovements = this.selectedRace.getAbilityImprovements()
+                .filter(improvement => !improvement.isChoice)
+                .map(improvement => ({
+                    ability: improvement.ability.toLowerCase(),
+                    value: improvement.amount,
+                    source: 'Race'
+                }));
+            improvements.push(...raceImprovements);
+
+            // Get fixed improvements from subrace if selected
+            if (this.selectedSubrace) {
+                const subraceImprovements = (this.selectedSubrace.ability || [])
+                    .filter(improvement => !improvement.isChoice)
+                    .map(improvement => ({
+                        ability: improvement.ability.toLowerCase(),
+                        value: improvement.amount,
+                        source: 'Subrace'
+                    }));
+                improvements.push(...subraceImprovements);
+            }
         }
 
         return improvements;
@@ -476,7 +520,9 @@ export class RaceManager {
     getFormattedMovementSpeeds() {
         if (!this.selectedRace) return 'None';
         const speeds = [];
-        for (const [type, speed] of Object.entries(this.selectedRace.getSpeeds())) {
+        const speedData = this.selectedRace.getSpeeds();
+
+        for (const [type, speed] of Object.entries(speedData)) {
             speeds.push(`${type.charAt(0).toUpperCase() + type.slice(1)}: ${speed} ft.`);
         }
         return speeds.join('\n');
@@ -528,7 +574,6 @@ export class RaceManager {
      * @returns {Array} Array of ability score choices with source information
      */
     getAbilityScoreChoices() {
-        console.log('[RaceManager] Getting ability score choices');
         const choices = [];
 
         if (this.selectedRace) {
@@ -536,8 +581,6 @@ export class RaceManager {
             const raceChoices = this.selectedRace.getAbilityImprovements()
                 .filter(improvement => improvement.isChoice)
                 .flatMap(improvement => {
-                    console.log('[RaceManager] Race choice improvement:', improvement);
-
                     // For each choice count requested, create separate choice objects
                     const sourceChoices = [];
                     const count = improvement.count || 1;
@@ -551,7 +594,6 @@ export class RaceManager {
                             choices: improvement.choices,
                             source: `Race Choice ${i + 1}` // Differentiate sources
                         });
-                        console.log(`[RaceManager] Created individual choice ${i + 1} of ${count}`);
                     }
 
                     return sourceChoices;
@@ -563,8 +605,6 @@ export class RaceManager {
                 const subraceChoices = (this.selectedSubrace.ability || [])
                     .filter(improvement => improvement.isChoice)
                     .flatMap(improvement => {
-                        console.log('[RaceManager] Subrace choice improvement:', improvement);
-
                         // For each choice count requested, create separate choice objects
                         const sourceChoices = [];
                         const count = improvement.count || 1;
@@ -585,43 +625,7 @@ export class RaceManager {
                 choices.push(...subraceChoices);
             }
         }
-
-        console.log('[RaceManager] Final ability score choices:', choices);
         return choices;
-    }
-
-    /**
-     * Get fixed ability score improvements from race and subrace
-     * @returns {Array} Array of fixed ability score improvements
-     */
-    getFixedAbilityImprovements() {
-        const improvements = [];
-
-        if (this.selectedRace) {
-            // Get fixed improvements from main race
-            const raceImprovements = this.selectedRace.getAbilityImprovements()
-                .filter(improvement => !improvement.isChoice)
-                .map(improvement => ({
-                    ability: improvement.ability.toLowerCase(),
-                    value: improvement.amount,
-                    source: 'Race'
-                }));
-            improvements.push(...raceImprovements);
-
-            // Get fixed improvements from subrace if selected
-            if (this.selectedSubrace) {
-                const subraceImprovements = (this.selectedSubrace.ability || [])
-                    .filter(improvement => !improvement.isChoice)
-                    .map(improvement => ({
-                        ability: improvement.ability.toLowerCase(),
-                        value: improvement.amount,
-                        source: 'Subrace'
-                    }));
-                improvements.push(...subraceImprovements);
-            }
-        }
-
-        return improvements;
     }
 
     /**
@@ -630,12 +634,10 @@ export class RaceManager {
      * @returns {Array<Object>} Array of available races
      */
     getAvailableRaces(filterBySource = true) {
-        console.log('[RaceManager] Getting available races, filter by source:', filterBySource);
         let races = this.races || [];
 
         if (filterBySource) {
             const allowedSources = this.sourceManager.getAllowedSources();
-            console.log('[RaceManager] Filtering races by sources:', Array.from(allowedSources));
 
             // Make sure source names are uppercase for comparison
             const upperAllowedSources = new Set(Array.from(allowedSources).map(s => s.toUpperCase()));
@@ -644,11 +646,34 @@ export class RaceManager {
                 const raceSource = race.source?.toUpperCase();
                 return upperAllowedSources.has(raceSource);
             });
-
-            console.log('[RaceManager] Races after filtering:', races.map(r => r.name));
         }
 
         return races;
+    }
+
+    /**
+     * Clear any stored ability choice selections
+     * This should be called when changing races to prevent stale selections
+     */
+    clearAbilityChoiceSelections() {
+
+        try {
+            if (abilityScoreManager && typeof abilityScoreManager.clearStoredChoices === 'function') {
+                abilityScoreManager.clearStoredChoices();
+            } else {
+                console.warn('[RaceManager] Could not access abilityScoreManager to clear choices');
+            }
+        } catch (error) {
+            console.error('[RaceManager] Error accessing abilityScoreManager:', error);
+        }
+    }
+
+    /**
+     * Process race options to extract ability improvements
+     * @param {Object} raceData - Raw race data to process
+     */
+    processRaceOptions(raceData) {
+        // Implementation of processRaceOptions method
     }
 }
 

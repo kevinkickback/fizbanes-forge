@@ -16,7 +16,9 @@ import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
 import { RaceCard } from '../ui/RaceCard.js';
 import { ClassCard } from '../ui/ClassCard.js';
+import { BackgroundCard } from '../ui/BackgroundCard.js';
 import { AbilityScoreCard } from '../ui/AbilityScoreCard.js';
+import { ProficiencyCard } from '../ui/ProficiencyCard.js';
 
 /**
  * Navigation app with all navigation-related functionality
@@ -143,6 +145,19 @@ export const navigation = {
                 if (buildFields.subclassSelect?.value) {
                     characterHandler.currentCharacter.class.subclass = buildFields.subclassSelect.value;
                 }
+
+                // Save background and variant selections
+                if (buildFields.backgroundSelect?.value) {
+                    const [backgroundName, source] = buildFields.backgroundSelect.value.split('_');
+                    characterHandler.currentCharacter.background = {
+                        ...characterHandler.currentCharacter.background,
+                        name: backgroundName,
+                        source: source
+                    };
+                }
+                if (buildFields.variantSelect?.value) {
+                    characterHandler.currentCharacter.background.variant = buildFields.variantSelect.value;
+                }
                 break;
             }
             // Add cases for other pages that have form inputs to save
@@ -186,9 +201,7 @@ export const navigation = {
             },
             build: () => {
                 if (characterHandler.currentCharacter) {
-                    new RaceCard();
-                    new ClassCard();
-                    new AbilityScoreCard();
+                    // All UI components are now initialized in _initializePageComponents
 
                     // Ensure race selection fields are properly initialized
                     const raceSelect = document.getElementById('raceSelect');
@@ -235,6 +248,34 @@ export const navigation = {
                             }
                         }, 150);
                     }
+
+                    // Ensure background selection field is properly initialized
+                    const backgroundSelect = document.getElementById('backgroundSelect');
+                    const variantSelect = document.getElementById('variantSelect');
+
+                    if (backgroundSelect && characterHandler.currentCharacter.background &&
+                        characterHandler.currentCharacter.background.name &&
+                        characterHandler.currentCharacter.background.source) {
+                        const backgroundValue = `${characterHandler.currentCharacter.background.name}_${characterHandler.currentCharacter.background.source}`;
+                        // Set after a small delay to ensure the dropdown is fully initialized
+                        setTimeout(() => {
+                            if (backgroundSelect.querySelector(`option[value="${backgroundValue}"]`)) {
+                                backgroundSelect.value = backgroundValue;
+                                // Trigger change event to update variant options
+                                backgroundSelect.dispatchEvent(new Event('change'));
+
+                                // If there's a variant, select it after a small delay
+                                if (variantSelect && characterHandler.currentCharacter.background.variant) {
+                                    setTimeout(() => {
+                                        if (variantSelect.querySelector(`option[value="${characterHandler.currentCharacter.background.variant}"]`)) {
+                                            variantSelect.value = characterHandler.currentCharacter.background.variant;
+                                            variantSelect.dispatchEvent(new Event('change'));
+                                        }
+                                    }, 100);
+                                }
+                            }
+                        }, 200);
+                    }
                 }
             },
             equipment: () => {
@@ -252,5 +293,130 @@ export const navigation = {
         if (initializer) {
             initializer();
         }
+
+        // Initialize page-specific components
+        this._initializePageComponents(pageName);
+    },
+
+    /**
+     * Initialize page-specific components
+     * @param {string} pageName - The name of the page
+     * @private
+     */
+    async _initializePageComponents(pageName) {
+        console.log(`[Navigation] Initializing components for "${pageName}" page`);
+
+        try {
+            switch (pageName) {
+                case 'home':
+                    await this._initializeHomePage();
+                    break;
+                case 'build':
+                    await this._initializeBuildPage();
+                    break;
+                case 'equipment':
+                    await this._initializeEquipmentPage();
+                    break;
+                case 'details':
+                    await this._initializeDetailsPage();
+                    break;
+                case 'tooltipTest':
+                    await this._initializeTooltipTestPage();
+                    break;
+                case 'settings':
+                    await this._initializeSettingsPage();
+                    break;
+            }
+        } catch (error) {
+            console.error(`[Navigation] Error initializing components for "${pageName}" page:`, error);
+        }
+    },
+
+    /**
+     * Initialize the build page
+     */
+    async _initializeBuildPage() {
+        console.log('[Navigation] Initializing build page components');
+
+        try {
+            // Initialize the race card
+            if (!this.raceCard) {
+                const RaceCard = (await import('../ui/RaceCard.js')).RaceCard;
+                this.raceCard = new RaceCard();
+                await this.raceCard.initialize();
+            }
+
+            // Initialize the class card
+            if (!this.classCard) {
+                const ClassCard = (await import('../ui/ClassCard.js')).ClassCard;
+                this.classCard = new ClassCard();
+                await this.classCard.initialize();
+            }
+
+            // Initialize the background card
+            if (!this.backgroundCard) {
+                const BackgroundCard = (await import('../ui/BackgroundCard.js')).BackgroundCard;
+                this.backgroundCard = new BackgroundCard();
+                await this.backgroundCard.initialize();
+            }
+
+            // Initialize the ability score card
+            if (!this.abilityScoreCard) {
+                const AbilityScoreCard = (await import('../ui/AbilityScoreCard.js')).AbilityScoreCard;
+                this.abilityScoreCard = new AbilityScoreCard();
+                await this.abilityScoreCard.initialize();
+            }
+
+            // Initialize the proficiency card
+            if (!this.proficiencyCard) {
+                this.proficiencyCard = new ProficiencyCard();
+                await this.proficiencyCard.initialize();
+            }
+
+            // Note: We don't automatically show unsaved changes just for navigating to the build page
+            // The individual components will show the indicator when actual changes are made
+        } catch (error) {
+            console.error('[Navigation] Error initializing build page components:', error);
+        }
+    },
+
+    /**
+     * Initialize the home page
+     */
+    async _initializeHomePage() {
+        console.log('[Navigation] Initializing home page components');
+        // No special components to initialize for home page yet
+    },
+
+    /**
+     * Initialize the equipment page
+     */
+    async _initializeEquipmentPage() {
+        console.log('[Navigation] Initializing equipment page components');
+        // Equipment page components will be initialized here
+    },
+
+    /**
+     * Initialize the details page
+     */
+    async _initializeDetailsPage() {
+        console.log('[Navigation] Initializing details page components');
+        // Details page components will be initialized here
+    },
+
+    /**
+     * Initialize the tooltip test page
+     */
+    async _initializeTooltipTestPage() {
+        console.log('[Navigation] Initializing tooltip test page components');
+        // Tooltip test page components will be initialized here
+    },
+
+    /**
+     * Initialize the settings page
+     */
+    async _initializeSettingsPage() {
+        console.log('[Navigation] Initializing settings page components');
+        // Settings page components will be initialized here
     }
 }; 

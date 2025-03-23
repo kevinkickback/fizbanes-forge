@@ -71,9 +71,10 @@ class TextProcessor {
      * 
      * @param {HTMLElement} container - The container element to process
      * @param {TextProcessingOptions} [options] - Processing options to override defaults
+     * @param {boolean} [forceReprocess=false] - Whether to reprocess elements even if already processed
      * @returns {Promise<void>}
      */
-    async processPageContent(container, options = {}) {
+    async processPageContent(container, options = {}, forceReprocess = false) {
         const mergedOptions = { ...this.defaultOptions, ...options };
 
         // Find all text nodes that might contain references
@@ -82,8 +83,8 @@ class TextProcessor {
         for (const element of textElements) {
             try {
                 const originalText = element.innerHTML;
-                // Skip if already processed or empty
-                if (!originalText || element.hasAttribute('data-processed')) continue;
+                // Skip if already processed or empty, unless force reprocessing
+                if (!originalText || (element.hasAttribute('data-processed') && !forceReprocess)) continue;
 
                 const processedText = await this.processString(originalText, mergedOptions);
                 if (processedText !== originalText) {
@@ -178,6 +179,19 @@ class TextProcessor {
             this.observer.disconnect();
             this.observer = null;
         }
+    }
+
+    /**
+     * Explicitly process a specific DOM element
+     * Use this method when you need to immediately process content that was just added
+     * @param {HTMLElement} element - The element to process 
+     * @param {boolean} [forceReprocess=true] - Whether to reprocess already processed elements
+     * @returns {Promise<void>}
+     */
+    async processElement(element) {
+        if (!element) return;
+        console.log('[TextProcessor] Explicitly processing element:', element);
+        await this.processPageContent(element, {}, true);
     }
 }
 

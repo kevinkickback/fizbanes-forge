@@ -1,63 +1,88 @@
-import { characterInitializer } from '../utils/Initialize.js';
+/**
+ * ProficiencyCard.js
+ * UI component that manages the display and interaction of character proficiencies.
+ * Handles all proficiency types: skills, saving throws, languages, tools, armor, and weapons.
+ */
 
+import { textProcessor } from '../utils/TextProcessor.js';
+import { dataLoader } from '../dataloaders/DataLoader.js';
+import { characterHandler } from '../utils/characterHandler.js';
+import { ProficiencyManager } from '../managers/ProficiencyManager.js';
+
+/**
+ * Manages the proficiency card UI component and related functionality
+ */
 export class ProficiencyCard {
-    constructor(character) {
-        this.character = character;
+    /**
+     * Creates a new ProficiencyCard instance
+     */
+    constructor() {
+        this.character = null;
+        this.proficiencyManager = new ProficiencyManager(dataLoader);
         this.proficiencyTypes = ['skills', 'savingThrows', 'languages', 'tools', 'armor', 'weapons'];
-        this.proficiencyManager = characterInitializer.proficiencyService;
 
         // Define default proficiencies that all characters have
         this.defaultProficiencies = {
             languages: ['Common'],
-            weapons: ['Simple Weapons'],
+            weapons: [],
             armor: [],
             tools: [],
             skills: [],
             savingThrows: []
         };
 
-        // Define all available options
-        this.availableOptions = {
-            skills: [
-                'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
-                'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine',
-                'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion',
-                'Sleight of Hand', 'Stealth', 'Survival'
-            ],
-            savingThrows: [
-                'Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'
-            ],
-            weapons: [
-                'Simple Weapons', 'Martial Weapons', 'Crossbows', 'Longswords',
-                'Rapiers', 'Shortswords', 'Hand Crossbows'
-            ],
-            armor: [
-                'Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'
-            ],
-            tools: [
-                'Alchemist\'s supplies', 'Brewer\'s supplies', 'Calligrapher\'s supplies',
-                'Carpenter\'s tools', 'Cartographer\'s tools', 'Cobbler\'s tools',
-                'Cook\'s utensils', 'Glassblower\'s tools', 'Jeweler\'s tools',
-                'Leatherworker\'s tools', 'Mason\'s tools', 'Painter\'s supplies',
-                'Potter\'s tools', 'Smith\'s tools', 'Tinker\'s tools',
-                'Weaver\'s tools', 'Woodcarver\'s tools', 'Disguise kit',
-                'Forgery kit', 'Herbalism kit', 'Navigator\'s tools',
-                'Poisoner\'s kit', 'Thieves\' tools', 'Dice set',
-                'Dragonchess set', 'Playing card set', 'Musical instrument'
-            ],
-            languages: {
-                normal: [
-                    'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
-                    'Halfling', 'Orc'
-                ],
-                exotic: [
-                    'Abyssal', 'Celestial', 'Draconic', 'Deep Speech', 'Infernal',
-                    'Primordial', 'Sylvan', 'Undercommon'
-                ]
-            }
-        };
+        // DOM element references
+        this.proficiencyContainers = {};
+        this.proficiencyNotesContainer = null;
+    }
 
-        // Initialize character proficiency structures
+    /**
+     * Initialize the proficiency card UI and data
+     * @returns {Promise<void>}
+     */
+    async initialize() {
+        console.log('[ProficiencyCard] Initializing');
+
+        // Get the current character
+        this.character = characterHandler.currentCharacter;
+        if (!this.character) {
+            console.error('[ProficiencyCard] No active character found');
+            return;
+        }
+
+        // Initialize DOM element references
+        for (const type of this.proficiencyTypes) {
+            const containerId = `${type}Container`;
+            this.proficiencyContainers[type] = document.getElementById(containerId);
+
+            if (!this.proficiencyContainers[type]) {
+                console.warn(`[ProficiencyCard] Container for ${type} not found: #${containerId}`);
+            }
+        }
+
+        this.proficiencyNotesContainer = document.getElementById('proficiencyNotes');
+
+        // Set up event listeners
+        this.setupEventListeners();
+
+        // Initialize character proficiency structures if needed
+        this.initializeCharacterProficiencies();
+
+        // Populate UI elements
+        await this.populateProficiencyContainers();
+
+        // Update notes display
+        this.updateProficiencyNotes();
+    }
+
+    /**
+     * Initialize character proficiency structures if they don't exist
+     * @private
+     */
+    initializeCharacterProficiencies() {
+        if (!this.character) return;
+
+        // Initialize proficiencies object if it doesn't exist
         if (!this.character.proficiencies) {
             this.character.proficiencies = {};
         }
@@ -69,16 +94,16 @@ export class ProficiencyCard {
             }
         }
 
-        // Add default proficiencies
+        // Add default proficiencies if not already present
         for (const [type, defaults] of Object.entries(this.defaultProficiencies)) {
             for (const prof of defaults) {
                 if (!this.character.proficiencies[type].includes(prof)) {
-                    this.character.proficiencies[type].push(prof);
+                    this.character.addProficiency(type, prof, 'Default');
                 }
             }
         }
 
-        // Initialize optional proficiencies
+        // Initialize optional proficiencies structure
         if (!this.character.optionalProficiencies) {
             this.character.optionalProficiencies = {};
         }
@@ -95,58 +120,90 @@ export class ProficiencyCard {
     }
 
     /**
-     * Initialize all proficiency-related UI elements
+     * Set up event listeners for proficiency containers
+     * @private
      */
-    async initialize() {
-        await this.populateProficiencyContainers();
-        this.setupProficiencyContainers();
-        this.updateProficiencyNotes();
+    setupEventListeners() {
+        for (const type of this.proficiencyTypes) {
+            const container = this.proficiencyContainers[type];
+            if (!container) continue;
+
+            container.addEventListener('click', (e) => {
+                const item = e.target.closest('.proficiency-item');
+                if (!item) return;
+
+                const proficiency = item.dataset.proficiency;
+                const typeAttr = item.dataset.type || type;
+                const isOptional = item.classList.contains('selectable');
+                const isSelected = item.classList.contains('proficient');
+
+                if (isOptional) {
+                    this.toggleOptionalProficiency(typeAttr, proficiency, item);
+                } else if (!isSelected) {
+                    this.character?.addProficiency(typeAttr, proficiency, 'Character');
+                    item.classList.add('proficient');
+                    this.markUnsavedChanges();
+                    this.updateProficiencyNotes();
+                }
+            });
+        }
+
+        // Listen for character changes
+        document.addEventListener('characterChanged', this.handleCharacterChanged.bind(this));
     }
 
     /**
-     * Check if a proficiency is available for selection based on character's class/race/background
+     * Handle character change events
+     * @private
      */
-    isProficiencyAvailable(type, proficiency) {
-        // Default proficiencies are always selected but not selectable
-        if (this.defaultProficiencies[type]?.includes(proficiency)) {
-            return false;
+    handleCharacterChanged() {
+        this.character = characterHandler.currentCharacter;
+
+        if (this.character) {
+            this.initializeCharacterProficiencies();
+            this.populateProficiencyContainers();
+            this.updateProficiencyNotes();
         }
-
-        // Check if proficiency is granted by class/race/background
-        const isGranted = this.character?.proficiencySources?.[type]?.[proficiency];
-        const isOptionallyAvailable = this.character?.optionalProficiencies?.[type]?.allowed > 0;
-
-        return isGranted || isOptionallyAvailable;
     }
 
     /**
      * Populate the proficiency containers with available options
+     * @returns {Promise<void>}
      */
     async populateProficiencyContainers() {
+        if (!this.character) return;
+
         for (const type of this.proficiencyTypes) {
-            const container = document.getElementById(`${type}Container`);
+            const container = this.proficiencyContainers[type];
             if (!container) continue;
 
-            // Special handling for languages which are categorized
-            const items = type === 'languages' ?
-                [...this.availableOptions[type].normal, ...this.availableOptions[type].exotic] :
-                this.availableOptions[type] || [];
-            const icon = this.getIconForType(type);
+            // Get available options for this proficiency type
+            const availableOptions = await this.getAvailableOptions(type);
 
-            // Handle selection counter
-            const header = container.previousElementSibling;
+            // Handle selection counter in section header
+            const header = container.closest('.proficiency-section')?.querySelector('h6');
             if (header && type !== 'savingThrows') {
                 const optionalCount = this.character?.optionalProficiencies?.[type]?.allowed || 0;
                 if (optionalCount > 0) {
                     const selectedCount = this.character?.optionalProficiencies?.[type]?.selected?.length || 0;
-                    header.innerHTML = `${this.getTypeLabel(type)} <span class="selection-counter">(${selectedCount}/${optionalCount} ${type} selected)</span>`;
+                    if (!header.querySelector('.selection-counter')) {
+                        const counter = document.createElement('span');
+                        counter.className = 'selection-counter';
+                        header.appendChild(counter);
+                    }
+                    header.querySelector('.selection-counter').textContent = ` (${selectedCount}/${optionalCount} selected)`;
+                } else if (header.querySelector('.selection-counter')) {
+                    header.querySelector('.selection-counter').remove();
                 }
             }
 
-            // Populate items
-            container.innerHTML = items.map(item => {
-                const isProficient = Array.isArray(this.character?.proficiencies?.[type]) &&
-                    this.character.proficiencies[type].includes(item);
+            // Special handling for languages which may be categorized
+            const items = availableOptions || [];
+
+            // Build the container HTML
+            let containerHtml = '';
+            for (const item of items) {
+                const isProficient = this.character.proficiencies[type].includes(item);
                 const isOptionallySelected = Array.isArray(this.character?.optionalProficiencies?.[type]?.selected) &&
                     this.character.optionalProficiencies[type].selected.includes(item);
                 const isDefault = this.defaultProficiencies[type]?.includes(item);
@@ -156,30 +213,85 @@ export class ProficiencyCard {
                 const canSelect = type !== 'savingThrows' && !isDefault && isAvailable &&
                     optionalCount > selectedCount && !isProficient && !isOptionallySelected;
 
-                // Add class for normal/exotic languages
-                const isNormalLanguage = type === 'languages' && this.availableOptions.languages.normal.includes(item);
-                const languageClass = type === 'languages' ? (isNormalLanguage ? 'normal-language' : 'exotic-language') : '';
+                // Special handling for language categories
+                let languageClass = '';
+                if (type === 'languages') {
+                    const isStandard = ['Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc'].includes(item);
+                    languageClass = isStandard ? 'normal-language' : 'exotic-language';
+                }
 
-                return `
+                containerHtml += `
                     <div class="proficiency-item ${isProficient || isDefault ? 'proficient' : ''} 
-                         ${isOptionallySelected ? 'proficient optional-selected' : ''} 
-                         ${canSelect ? 'selectable' : ''} 
-                         ${!isAvailable && !isDefault ? 'disabled' : ''}
-                         ${languageClass}"
-                         data-proficiency="${item}"
-                         data-type="${type}">
-                        <i class="fas ${icon} ${isOptionallySelected ? 'optional' : ''}"></i>
+                        ${isOptionallySelected ? 'proficient optional-selected' : ''} 
+                        ${canSelect ? 'selectable' : ''} 
+                        ${!isAvailable && !isDefault ? 'disabled' : ''}
+                        ${languageClass}"
+                        data-proficiency="${item}"
+                        data-type="${type}">
+                        <i class="fas ${this.getIconForType(type)} ${isOptionallySelected ? 'optional' : ''}"></i>
                         ${item}
                         ${type === 'skills' ? `<span class="ability">(${this.proficiencyManager.getSkillAbility(item)})</span>` : ''}
                         ${isOptionallySelected ? '<span class="unselect-hint"><i class="fas fa-times"></i></span>' : ''}
                     </div>
                 `;
-            }).join('');
+            }
+
+            container.innerHTML = containerHtml;
         }
     }
 
     /**
+     * Get available options for a proficiency type
+     * @param {string} type - The proficiency type
+     * @returns {Promise<string[]>} Array of available options
+     * @private
+     */
+    async getAvailableOptions(type) {
+        switch (type) {
+            case 'skills':
+                return this.proficiencyManager.getAvailableSkills();
+            case 'savingThrows':
+                return ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'];
+            case 'languages':
+                return this.proficiencyManager.getAvailableLanguages();
+            case 'tools':
+                return this.proficiencyManager.getAvailableTools();
+            case 'armor':
+                return ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'];
+            case 'weapons':
+                return ['Simple Weapons', 'Martial Weapons', 'Crossbows', 'Longswords',
+                    'Rapiers', 'Shortswords', 'Hand Crossbows'];
+            default:
+                return [];
+        }
+    }
+
+    /**
+     * Check if a proficiency is available for selection based on character's class/race/background
+     * @param {string} type - Proficiency type
+     * @param {string} proficiency - Proficiency name
+     * @returns {boolean} Whether the proficiency is available
+     */
+    isProficiencyAvailable(type, proficiency) {
+        if (!this.character) return false;
+
+        // Default proficiencies are always selected but not selectable
+        if (this.defaultProficiencies[type]?.includes(proficiency)) {
+            return false;
+        }
+
+        // Check if proficiency is granted by class/race/background
+        const isGranted = !!this.character?.proficiencySources?.[type]?.get(proficiency)?.size;
+        const isOptionallyAvailable = this.character?.optionalProficiencies?.[type]?.allowed > 0;
+
+        return isGranted || isOptionallyAvailable;
+    }
+
+    /**
      * Get the appropriate icon class for a proficiency type
+     * @param {string} type - Proficiency type
+     * @returns {string} Font Awesome icon class
+     * @private
      */
     getIconForType(type) {
         switch (type) {
@@ -201,6 +313,9 @@ export class ProficiencyCard {
 
     /**
      * Get the label for a proficiency type
+     * @param {string} type - Proficiency type
+     * @returns {string} User-friendly label
+     * @private
      */
     getTypeLabel(type) {
         switch (type) {
@@ -222,35 +337,11 @@ export class ProficiencyCard {
     }
 
     /**
-     * Setup the main proficiency containers and their event listeners
-     */
-    setupProficiencyContainers() {
-        for (const type of this.proficiencyTypes) {
-            const container = document.getElementById(`${type}Container`);
-            if (!container) continue;
-
-            container.addEventListener('click', (e) => {
-                const item = e.target.closest('.proficiency-item');
-                if (!item) return;
-
-                const proficiency = item.dataset.proficiency;
-                const isOptional = item.classList.contains('selectable');
-                const isSelected = item.classList.contains('proficient');
-
-                if (isOptional) {
-                    this.toggleOptionalProficiency(type, proficiency, item);
-                } else if (!isSelected) {
-                    this.character?.addProficiency(type, proficiency, 'Character');
-                    item.classList.add('proficient');
-                    this.markUnsavedChanges();
-                    this.updateProficiencyNotes();
-                }
-            });
-        }
-    }
-
-    /**
      * Toggle an optional proficiency
+     * @param {string} type - Proficiency type
+     * @param {string} proficiency - Proficiency name
+     * @param {HTMLElement} item - The DOM element
+     * @private
      */
     toggleOptionalProficiency(type, proficiency, item) {
         if (!this.character?.optionalProficiencies?.[type]) return;
@@ -275,15 +366,16 @@ export class ProficiencyCard {
 
     /**
      * Update selection counters for optional proficiencies
+     * @private
      */
     updateSelectionCounters() {
         for (const type of this.proficiencyTypes) {
-            const container = document.getElementById(`${type}Container`);
+            const container = this.proficiencyContainers[type];
             if (!container) continue;
 
-            const header = container.previousElementSibling;
+            const header = container.closest('.proficiency-section')?.querySelector('h6');
             const counter = header?.querySelector('.selection-counter');
-            if (!counter) return;
+            if (!counter) continue;
 
             const allowed = this.character?.optionalProficiencies?.[type]?.allowed || 0;
             const selected = this.character?.optionalProficiencies?.[type]?.selected?.length || 0;
@@ -292,66 +384,90 @@ export class ProficiencyCard {
     }
 
     /**
-     * Update proficiency notes section
+     * Update proficiency notes section to show source for each proficiency
+     * @private
      */
     updateProficiencyNotes() {
-        const notesContainer = document.getElementById('proficiencyNotes');
-        if (!notesContainer || !this.character) return;
-
-        if (!this.character.proficiencySources?.length) {
-            notesContainer.innerHTML = '<p>No proficiencies applied.</p>';
-            return;
-        }
+        if (!this.proficiencyNotesContainer || !this.character) return;
 
         // Group proficiencies by source
         const sourceGroups = {};
-        for (const source of this.character.proficiencySources) {
-            if (!sourceGroups[source.source]) {
-                sourceGroups[source.source] = [];
+
+        // Process each proficiency type
+        for (const type of this.proficiencyTypes) {
+            if (!this.character.proficiencySources[type]) continue;
+
+            // Iterate through each proficiency and its sources
+            for (const [proficiency, sources] of this.character.proficiencySources[type].entries()) {
+                // For each source of this proficiency
+                for (const source of sources) {
+                    if (!sourceGroups[source]) {
+                        sourceGroups[source] = {};
+                    }
+
+                    if (!sourceGroups[source][type]) {
+                        sourceGroups[source][type] = [];
+                    }
+
+                    sourceGroups[source][type].push(proficiency);
+                }
             }
-            sourceGroups[source.source].push({
-                type: source.type,
-                proficiency: source.proficiency
-            });
         }
 
+        // Add optionally selected proficiencies
+        for (const type of this.proficiencyTypes) {
+            if (!this.character.optionalProficiencies?.[type]?.selected) continue;
+
+            const selected = this.character.optionalProficiencies[type].selected;
+            if (selected.length > 0) {
+                if (!sourceGroups.Selected) {
+                    sourceGroups.Selected = {};
+                }
+
+                if (!sourceGroups.Selected[type]) {
+                    sourceGroups.Selected[type] = [];
+                }
+
+                for (const prof of selected) {
+                    sourceGroups.Selected[type].push(prof);
+                }
+            }
+        }
+
+        // If no proficiencies, show a message
+        if (Object.keys(sourceGroups).length === 0) {
+            this.proficiencyNotesContainer.innerHTML = '<p>No proficiencies applied.</p>';
+            return;
+        }
+
+        // Build the notes HTML
         let notesHTML = '<p><strong>Proficiency Sources:</strong></p>';
 
         for (const source in sourceGroups) {
             notesHTML += `<div class="proficiency-note"><strong>${source}:</strong> `;
 
-            const profsByType = {};
-            for (const prof of sourceGroups[source]) {
-                if (!profsByType[prof.type]) {
-                    profsByType[prof.type] = [];
-                }
-                profsByType[prof.type].push(prof.proficiency);
-            }
-
-            const typeLabels = {
-                'skills': 'Skills',
-                'tools': 'Tools',
-                'languages': 'Languages',
-                'armor': 'Armor',
-                'weapons': 'Weapons'
-            };
-
             const profStrings = [];
-            for (const type in profsByType) {
-                profStrings.push(`${typeLabels[type]}: ${profsByType[type].join(', ')}`);
+            for (const type in sourceGroups[source]) {
+                const typeLabel = this.getTypeLabel(type);
+                const profs = sourceGroups[source][type].sort();
+                profStrings.push(`${typeLabel}: ${profs.join(', ')}`);
             }
 
             notesHTML += profStrings.join('; ');
             notesHTML += '</div>';
         }
 
-        notesContainer.innerHTML = notesHTML;
+        this.proficiencyNotesContainer.innerHTML = notesHTML;
+
+        // Process the notes container to resolve reference tags
+        textProcessor.processElement(this.proficiencyNotesContainer);
     }
 
     /**
      * Mark that there are unsaved changes
+     * @private
      */
     markUnsavedChanges() {
-        document.dispatchEvent(new CustomEvent('unsavedChanges'));
+        characterHandler.showUnsavedChanges();
     }
 } 

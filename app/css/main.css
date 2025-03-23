@@ -1091,6 +1091,30 @@ body[data-current-page="details"] .floating-actions {
 	color: var(--accent-color);
 }
 
+/* Multi-column list for proficiencies */
+.multi-column-list {
+	column-count: 2;
+	column-gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+	.multi-column-list.many-items {
+		column-count: 3;
+	}
+}
+
+.multi-column-list li {
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+/* Skill proficiency choose text */
+.choose-text {
+	color: var(--text-color);
+	font-size: 0.9rem;
+	margin-top: 0.25rem;
+}
+
 /* Improve race card layout */
 .card-body .d-flex.gap-3 {
 	display: flex;
@@ -2184,6 +2208,35 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .trait-tag:hover {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	transform: translateY(-1px);
+}
+
+/* Background features styling */
+.features-section {
+	grid-column: 1 / -1;
+}
+
+.features-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.feature-tag {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 0.25rem 0.75rem;
+	color: var(--text-color);
+	font-size: 0.85rem;
+	cursor: help;
+	transition: var(--transition);
+}
+
+.feature-tag:hover {
 	background: var(--accent-color);
 	border-color: var(--accent-color);
 	transform: translateY(-1px);

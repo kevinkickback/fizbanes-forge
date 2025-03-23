@@ -68,6 +68,10 @@ export class DataLoader {
         return this.deityLoader.loadDeities();
     }
 
+    /**
+     * Load class data from JSON files
+     * @returns {Promise<Object>} - Promise resolving to combined class data
+     */
     async loadClasses() {
         return this.classLoader.loadClasses();
     }

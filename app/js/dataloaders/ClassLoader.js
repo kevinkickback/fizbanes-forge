@@ -145,6 +145,7 @@ export class ClassLoader extends BaseLoader {
                     fluff: []
                 };
 
+                // Process class data
                 classDataResults.forEach((classData, index) => {
                     if (!classData) return;
 
@@ -153,6 +154,16 @@ export class ClassLoader extends BaseLoader {
                     }
                     if (classData.subclass) {
                         data.subclass.push(...classData.subclass);
+                    }
+
+                    // Associate classFeature array with its class
+                    if (classData.classFeature && Array.isArray(classData.classFeature) && classData.class && classData.class.length > 0) {
+                        // Find the main class
+                        const mainClass = classData.class.find(c => c.name && c.source === 'PHB');
+                        if (mainClass) {
+                            console.log(`[ClassLoader] Associating ${classData.classFeature.length} features with ${mainClass.name}`);
+                            mainClass.classFeature = classData.classFeature;
+                        }
                     }
                 });
 

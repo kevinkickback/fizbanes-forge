@@ -21,6 +21,8 @@
  */
 
 import { abilityScoreManager } from '../managers/AbilityScoreManager.js';
+import { characterHandler } from '../utils/characterHandler.js';
+import { textProcessor } from '../utils/TextProcessor.js';
 
 export class AbilityScoreCard {
     /**
@@ -183,7 +185,7 @@ export class AbilityScoreCard {
     }
 
     /**
-     * Renders the bonus notes section showing all ability score bonuses
+     * Renders the bonus notes section that explains all active ability score bonuses
      * @private
      */
     _renderBonusNotes() {
@@ -204,6 +206,8 @@ export class AbilityScoreCard {
 
         // Process remaining bonus groups
         for (const [source, bonusList] of bonusGroups.entries()) {
+            if (source.startsWith('Race')) continue; // Skip race bonuses as they're handled separately
+
             const bonusText = bonusList.map(b =>
                 `${this._getAbilityAbbreviation(b.ability)} ${b.value >= 0 ? '+' : ''}${b.value}`
             ).join(', ');
@@ -211,6 +215,9 @@ export class AbilityScoreCard {
         }
 
         this.bonusesContainer.innerHTML = bonusContent;
+
+        // Process the bonuses container to resolve any reference tags
+        textProcessor.processElement(this.bonusesContainer);
     }
 
     /**

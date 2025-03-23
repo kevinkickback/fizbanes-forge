@@ -220,7 +220,11 @@ export class CharacterHandler {
             gender: document.getElementById('gender'),
             backstory: document.getElementById('backstory'),
             raceSelect: document.getElementById('raceSelect'),
-            subraceSelect: document.getElementById('subraceSelect')
+            subraceSelect: document.getElementById('subraceSelect'),
+            classSelect: document.getElementById('classSelect'),
+            subclassSelect: document.getElementById('subclassSelect'),
+            backgroundSelect: document.getElementById('backgroundSelect'),
+            variantSelect: document.getElementById('variantSelect')
         };
     }
 
@@ -248,28 +252,50 @@ export class CharacterHandler {
                 const [raceName, source] = fields.raceSelect.value.split('_');
                 this.currentCharacter.race = {
                     ...this.currentCharacter.race,
-                    name: raceName || '',
-                    source: source || '',
-                    subrace: fields.subraceSelect?.value || ''
+                    name: raceName,
+                    source: source
                 };
             }
+            if (fields.subraceSelect?.value) {
+                this.currentCharacter.race.subrace = fields.subraceSelect.value;
+            }
+
+            // Update class information if available
+            if (fields.classSelect?.value) {
+                const [className, source] = fields.classSelect.value.split('_');
+                this.currentCharacter.class = {
+                    ...this.currentCharacter.class,
+                    name: className,
+                    source: source
+                };
+            }
+            if (fields.subclassSelect?.value) {
+                this.currentCharacter.class.subclass = fields.subclassSelect.value;
+            }
+
+            // Update background information if available
+            if (fields.backgroundSelect?.value) {
+                const [backgroundName, source] = fields.backgroundSelect.value.split('_');
+                this.currentCharacter.background = {
+                    ...this.currentCharacter.background,
+                    name: backgroundName,
+                    source: source
+                };
+            }
+            if (fields.variantSelect?.value) {
+                this.currentCharacter.background.variant = fields.variantSelect.value;
+            }
+
+            // Mark as having unsaved changes
+            this.showUnsavedChanges();
         } else {
-            // Populate fields with character data
+            // Update UI fields from character data
             if (fields.characterName) fields.characterName.value = this.currentCharacter.name || '';
             if (fields.playerName) fields.playerName.value = this.currentCharacter.playerName || '';
             if (fields.height) fields.height.value = this.currentCharacter.height || '';
             if (fields.weight) fields.weight.value = this.currentCharacter.weight || '';
             if (fields.gender) fields.gender.value = this.currentCharacter.gender || '';
             if (fields.backstory) fields.backstory.value = this.currentCharacter.backstory || '';
-        }
-
-        // Add input event listeners if populating
-        if (!isSaving) {
-            for (const field of Object.values(fields)) {
-                if (field) {
-                    field.addEventListener('input', () => this.showUnsavedChanges());
-                }
-            }
         }
     }
 

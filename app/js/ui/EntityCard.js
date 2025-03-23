@@ -3,28 +3,131 @@
  * Unified card component for displaying entity information
  */
 
+import { textProcessor } from '../utils/TextProcessor.js';
+
 export class EntityCard {
     /**
      * Create a new EntityCard
+     * @param {Object} options - Configuration options
+     * @param {string} options.entityType - Type of entity this card represents
+     * @param {string} options.selectElementId - ID of the select element
+     * @param {string} options.imageElementId - ID of the image container element
+     * @param {string} options.quickDescElementId - ID of the quick description element
+     * @param {string} options.detailsElementId - ID of the details container element
+     * @param {string} options.placeholderTitle - Title to show when no entity is selected
+     * @param {string} options.placeholderDesc - Description to show when no entity is selected
+     */
+    constructor(options) {
+        this.entityType = options.entityType;
+        this.selectElementId = options.selectElementId;
+        this.imageElementId = options.imageElementId;
+        this.quickDescElementId = options.quickDescElementId;
+        this.detailsElementId = options.detailsElementId;
+        this.placeholderTitle = options.placeholderTitle;
+        this.placeholderDesc = options.placeholderDesc;
+    }
+
+    /**
+     * Update the entity image
+     * @param {string} imageUrl - URL to the entity image
+     */
+    updateEntityImage(imageUrl) {
+        const imageElement = document.getElementById(this.imageElementId);
+        if (!imageElement) return;
+
+        if (imageUrl) {
+            imageElement.innerHTML = `<img src="${imageUrl}" alt="Entity image" class="entity-image">`;
+        } else {
+            imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+        }
+    }
+
+    /**
+     * Update the quick description section
+     * @param {string} title - Title for the entity
+     * @param {string} description - Description text
+     */
+    updateQuickDescription(title, description) {
+        const descElement = document.getElementById(this.quickDescElementId);
+        if (!descElement) return;
+
+        descElement.innerHTML = `
+            <h5>${title}</h5>
+            <p>${description || `${title} features and characteristics.`}</p>`;
+    }
+
+    /**
+     * Set placeholder content when no entity is selected
+     */
+    setPlaceholderContent() {
+        // Set placeholder image
+        const imageElement = document.getElementById(this.imageElementId);
+        if (imageElement) {
+            imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+        }
+
+        // Set placeholder quick description
+        const descElement = document.getElementById(this.quickDescElementId);
+        if (descElement) {
+            descElement.innerHTML = `
+                <div class="placeholder-content">
+                    <h5>${this.placeholderTitle}</h5>
+                    <p>${this.placeholderDesc}</p>
+                </div>`;
+        }
+
+        // Set placeholder details
+        const detailsElement = document.getElementById(this.detailsElementId);
+        if (detailsElement) {
+            detailsElement.innerHTML = this.getPlaceholderDetailsContent();
+        }
+    }
+
+    /**
+     * Get placeholder content for details section
+     * @returns {string} HTML for placeholder details
+     */
+    getPlaceholderDetailsContent() {
+        return `<div class="placeholder-details">Select ${this.entityType} to see details</div>`;
+    }
+
+    /**
+     * Create a new EntityCard with container and entity
      * @param {HTMLElement} container - The container element to render the card in
      * @param {Object} entity - The processed entity data
      * @param {Object} manager - The manager object for this entity type
      */
-    constructor(container, entity, manager) {
-        this.container = container;
-        this.entity = entity;
-        this.manager = manager;
-        this.character = window.currentCharacter;
+    static withContainerAndEntity(container, entity, manager) {
+        const card = new EntityCard({
+            entityType: entity.type,
+            selectElementId: '',
+            imageElementId: '',
+            quickDescElementId: '',
+            detailsElementId: '',
+            placeholderTitle: '',
+            placeholderDesc: ''
+        });
+
+        card.container = container;
+        card.entity = entity;
+        card.manager = manager;
+        card.character = window.currentCharacter;
+
+        return card;
     }
 
     /**
      * Render the card
-     * @returns {string} HTML string for the card
+     * @returns {HTMLElement} The rendered card element
      */
     render() {
         const card = document.createElement('div');
         card.className = 'entity-card';
         card.innerHTML = this.getCardContent();
+
+        // Process the card content to resolve reference tags
+        setTimeout(() => textProcessor.processElement(card), 0);
+
         return card;
     }
 
@@ -260,19 +363,15 @@ export class EntityCard {
         if (!features?.length) return '';
 
         return `
-            <div class="features">
+            <div class="features-section">
                 <h6>Features</h6>
-                ${features.map(level => `
-                    <div class="feature-level">
-                        <h6>Level ${level.level}</h6>
-                        ${level.features.map(feature => `
-                            <div class="feature">
-                                <strong>${feature.name}:</strong>
-                                <div class="feature-description">${feature.description}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `).join('')}
+                <div class="features-grid">
+                    ${features.map(level =>
+            level.features.map(feature =>
+                `<span class="feature-tag" data-tooltip="${encodeURIComponent(feature.description)}">${feature.name}</span>`
+            ).join('')
+        ).join('')}
+                </div>
             </div>
         `;
     }

@@ -30,7 +30,8 @@
  * @property {string} id - Unique identifier combining name and source
  * @property {number} hitDie - Hit dice value (e.g., 8, 10, 12)
  * @property {string} description - Processed class description
- * @property {Array<string>} primaryAbility - Primary ability score abbreviations
+ * @property {Array<string>} skillProficiencies - Available skill proficiencies
+ * @property {number} skillChoiceCount - Number of skills to choose
  * @property {Array<string>} savingThrows - Saving throw proficiencies as full ability names
  * @property {Array<string>} armorProficiencies - Processed armor proficiencies
  * @property {Array<string>} weaponProficiencies - Processed weapon proficiencies
@@ -114,27 +115,35 @@ export class ClassManager {
             return;
         }
 
+        console.log(`[ClassManager] Processing ${classData.class.length} classes`);
+
         // Process each class
         for (const rawClass of classData.class) {
             try {
-                // Create standardized class object
-                const processedClass = {
+
+                // Create standardized class object with processed data
+                const processedData = {
                     id: `${rawClass.name}_${rawClass.source || 'PHB'}`,
                     name: rawClass.name,
                     source: rawClass.source || 'PHB',
                     description: this.getClassDescription(rawClass, classData.fluff),
                     hitDice: rawClass.hd?.faces || rawClass.hd || 8, // Support both formats
-                    primaryAbility: this.getPrimaryAbility(rawClass),
+                    skillProficiencies: this.getSkillProficiencies(rawClass),
+                    skillChoiceCount: this.getSkillChoiceCount(rawClass),
                     savingThrows: this.getSavingThrows(rawClass),
                     armorProficiencies: this.getArmorProficiencies(rawClass),
                     weaponProficiencies: this.getWeaponProficiencies(rawClass),
                     toolProficiencies: this.getToolProficiencies(rawClass),
                     subclasses: [],
-                    features: []
+                    // Handle both "classFeature" (singular) and "classFeatures" (plural) property names from raw data
+                    classFeatures: rawClass.classFeature || rawClass.classFeatures || []
                 };
 
+                // Create a Class model instance
+                const classInstance = new Class(processedData);
+
                 // Store in map for quick access
-                this.classes.set(processedClass.id, processedClass);
+                this.classes.set(classInstance.id, classInstance);
             } catch (error) {
                 console.error(`Error processing class ${rawClass.name}:`, error);
             }
@@ -149,22 +158,24 @@ export class ClassManager {
 
                     if (parentClass) {
                         // Create standardized subclass object
-                        const processedSubclass = new Subclass(
-                            rawSubclass.name,
-                            rawSubclass.source || 'PHB',
-                            rawSubclass.shortName || rawSubclass.name
-                        );
+                        const subclassData = {
+                            id: `${rawSubclass.name}_${rawSubclass.source || 'PHB'}`,
+                            name: rawSubclass.name,
+                            source: rawSubclass.source || 'PHB',
+                            shortName: rawSubclass.shortName || rawSubclass.name,
+                            className: rawSubclass.className,
+                            classSource: rawSubclass.classSource || 'PHB',
+                            features: []
+                        };
 
                         // Add to parent class
-                        parentClass.subclasses.push(processedSubclass);
+                        parentClass.subclasses.push(subclassData);
                     }
                 } catch (error) {
                     console.error(`Error processing subclass ${rawSubclass.name}:`, error);
                 }
             }
         }
-
-        console.log('Processed class data:', this.classes);
     }
 
     /**
@@ -207,30 +218,83 @@ export class ClassManager {
     }
 
     /**
-     * Extracts primary abilities for a class
+     * Extracts skill proficiencies for a class
      * @param {RawClassData} classData - Raw class data
-     * @returns {string[]} Array of primary ability abbreviations
+     * @returns {string[]} Array of available skill proficiencies
      */
-    getPrimaryAbility(classData) {
-        // For simplicity, using a mapping of classes to their primary abilities
-        const classAbilities = {
-            'barbarian': ['str'],
-            'bard': ['cha'],
-            'cleric': ['wis'],
-            'druid': ['wis'],
-            'fighter': ['str', 'dex'],
-            'monk': ['dex', 'wis'],
-            'paladin': ['str', 'cha'],
-            'ranger': ['dex', 'wis'],
-            'rogue': ['dex'],
-            'sorcerer': ['cha'],
-            'warlock': ['cha'],
-            'wizard': ['int'],
-            'artificer': ['int']
-        };
+    getSkillProficiencies(classData) {
+        // Check if skills are in the startingProficiencies structure
+        if (classData.startingProficiencies?.skills) {
+            // For structure where it's an array with a 'choose' object inside
+            const skillsData = classData.startingProficiencies.skills;
 
-        const className = classData.name.toLowerCase();
-        return classAbilities[className] || [];
+            // Handle array of skill objects with 'choose' property
+            if (Array.isArray(skillsData)) {
+                for (const skillItem of skillsData) {
+                    if (skillItem.choose && Array.isArray(skillItem.choose.from)) {
+                        return skillItem.choose.from.map(skill => {
+                            // Capitalize first letter of each word for consistent formatting
+                            return skill.split(' ')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
+                        });
+                    }
+                }
+            }
+
+            // Handle direct array of skill strings
+            if (Array.isArray(skillsData) && typeof skillsData[0] === 'string') {
+                return skillsData;
+            }
+        }
+
+        // Fallback to the older 'skills' structure if it exists
+        if (classData.skills && Array.isArray(classData.skills)) {
+            for (const skillData of classData.skills) {
+                if (skillData.choose && Array.isArray(skillData.choose.from)) {
+                    return skillData.choose.from.map(skill => {
+                        return skill.split(' ')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                    });
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Gets the number of skills a character can choose
+     * @param {RawClassData} classData - Raw class data
+     * @returns {number} Number of skills to choose
+     */
+    getSkillChoiceCount(classData) {
+        // Check if skills are in the startingProficiencies structure
+        if (classData.startingProficiencies?.skills) {
+            // For structure where it's an array with a 'choose' object inside
+            const skillsData = classData.startingProficiencies.skills;
+
+            // Handle array of skill objects with 'choose' property
+            if (Array.isArray(skillsData)) {
+                for (const skillItem of skillsData) {
+                    if (skillItem.choose && typeof skillItem.choose.count === 'number') {
+                        return skillItem.choose.count;
+                    }
+                }
+            }
+        }
+
+        // Fallback to the older 'skills' structure if it exists
+        if (classData.skills && Array.isArray(classData.skills)) {
+            for (const skillData of classData.skills) {
+                if (skillData.choose && typeof skillData.choose.count === 'number') {
+                    return skillData.choose.count;
+                }
+            }
+        }
+
+        return 0;
     }
 
     /**
@@ -332,14 +396,16 @@ export class ClassManager {
      * @returns {ProcessedSubclass|null} The selected subclass or null if not found
      */
     selectSubclass(subclassName) {
-        if (!this.selectedClass || !this.selectedClass.subclasses) {
+        if (!this.selectedClass) {
             return null;
         }
 
-        this.selectedSubclass = this.selectedClass.subclasses.find(
-            subclass => subclass.name === subclassName
-        );
+        const subclasses = this.selectedClass.getSubclasses();
+        if (!subclasses || subclasses.length === 0) {
+            return null;
+        }
 
+        this.selectedSubclass = subclasses.find(subclass => subclass.name === subclassName);
         return this.selectedSubclass;
     }
 
@@ -366,17 +432,25 @@ export class ClassManager {
      */
     getFormattedHitDie(classData) {
         if (!classData) return '';
-        return `d${classData.hitDice}`;
+        return `d${classData.getHitDice()}`;
     }
 
     /**
-     * Get formatted primary ability string for display
+     * Get formatted skill proficiencies string for display
      * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted primary ability string
+     * @returns {string} Formatted skill proficiencies string
      */
-    getFormattedPrimaryAbility(classData) {
-        if (!classData || !classData.primaryAbility?.length) return 'None';
-        return classData.primaryAbility.join(', ');
+    getFormattedSkillProficiencies(classData) {
+        if (!classData) return 'None';
+
+        const skillProficiencies = classData.getSkillProficiencies();
+        const skillChoiceCount = classData.getSkillChoiceCount();
+
+        if (!skillProficiencies || !skillProficiencies.length) return 'None';
+
+        // Handle cases where count might be missing but we still have skills
+        const count = skillChoiceCount || 'any';
+        return `Choose ${count} from: ${skillProficiencies.join(', ')}`;
     }
 
     /**
@@ -385,8 +459,12 @@ export class ClassManager {
      * @returns {string} Formatted saving throws string
      */
     getFormattedSavingThrows(classData) {
-        if (!classData || !classData.savingThrows?.length) return 'None';
-        return classData.savingThrows.join(', ');
+        if (!classData) return 'None';
+
+        const savingThrows = classData.getSavingThrows();
+        if (!savingThrows || !savingThrows.length) return 'None';
+
+        return savingThrows.join(', ');
     }
 
     /**
@@ -395,8 +473,12 @@ export class ClassManager {
      * @returns {string} Formatted armor proficiencies string
      */
     getFormattedArmorProficiencies(classData) {
-        if (!classData || !classData.armorProficiencies?.length) return 'None';
-        return classData.armorProficiencies.join(', ');
+        if (!classData) return 'None';
+
+        const armorProficiencies = classData.getArmorProficiencies();
+        if (!armorProficiencies || !armorProficiencies.length) return 'None';
+
+        return armorProficiencies.join(', ');
     }
 
     /**
@@ -405,8 +487,12 @@ export class ClassManager {
      * @returns {string} Formatted weapon proficiencies string
      */
     getFormattedWeaponProficiencies(classData) {
-        if (!classData || !classData.weaponProficiencies?.length) return 'None';
-        return classData.weaponProficiencies.join(', ');
+        if (!classData) return 'None';
+
+        const weaponProficiencies = classData.getWeaponProficiencies();
+        if (!weaponProficiencies || !weaponProficiencies.length) return 'None';
+
+        return weaponProficiencies.join(', ');
     }
 
     /**
@@ -415,8 +501,12 @@ export class ClassManager {
      * @returns {string} Formatted tool proficiencies string
      */
     getFormattedToolProficiencies(classData) {
-        if (!classData || !classData.toolProficiencies?.length) return 'None';
-        return classData.toolProficiencies.join(', ');
+        if (!classData) return 'None';
+
+        const toolProficiencies = classData.getToolProficiencies();
+        if (!toolProficiencies || !toolProficiencies.length) return 'None';
+
+        return toolProficiencies.join(', ');
     }
 }
 

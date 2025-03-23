@@ -1,262 +1,404 @@
 /**
- * BackgroundUI.js
+ * BackgroundCard.js
  * UI class for handling background selection and display
  */
 
+import { backgroundManager } from '../managers/BackgroundManager.js';
 import { EntityCard } from './EntityCard.js';
-import { BackgroundManager } from '../managers/BackgroundManager.js';
-import { characterInitializer } from '../utils/Initialize.js';
+import { textProcessor } from '../utils/TextProcessor.js';
+import { characterHandler } from '../utils/characterHandler.js';
 
-export class BackgroundCard {
-    constructor(character) {
-        this.character = character;
-        this.backgroundManager = new BackgroundManager(character);
-        this.textProcessor = characterInitializer.textProcessor;
+export class BackgroundCard extends EntityCard {
+    constructor() {
+        super({
+            entityType: 'background',
+            selectElementId: 'backgroundSelect',
+            imageElementId: 'backgroundImage',
+            quickDescElementId: 'backgroundQuickDesc',
+            detailsElementId: 'backgroundDetails',
+            placeholderTitle: 'Select a Background',
+            placeholderDesc: 'Choose a background to see details about their traits, proficiencies, and other characteristics.'
+        });
+
+        this.variantContainer = document.querySelector('#variantContainer');
+        if (!this.variantContainer) {
+            this._createVariantContainer();
+        }
+
         this.initialize();
     }
 
+    /**
+     * Initialize the background card
+     */
     async initialize() {
-        await this.renderBackgroundSelection();
+        await backgroundManager.initialize();
+        this.renderBackgroundSelection();
+        this.attachSelectionListeners();
+        await this.loadSavedBackgroundSelection();
     }
 
-    async renderBackgroundSelection() {
-        const backgrounds = await this.backgroundManager.getAvailableBackgrounds();
-        const selection = document.querySelector('#backgroundSelect');
+    /**
+     * Creates the variant selection container if it doesn't exist
+     */
+    _createVariantContainer() {
+        const selectors = document.querySelector('.background-selectors');
+        if (!selectors) return;
 
-        // Update the select options
-        selection.innerHTML = `
-            <option value="">Choose a background...</option>
-            ${backgrounds.map(bg => `
-                <option value="${bg.id}">${bg.name}</option>
-            `).join('')}
+        this.variantContainer = document.createElement('div');
+        this.variantContainer.id = 'variantContainer';
+        this.variantContainer.className = 'background-select-container';
+        this.variantContainer.style.display = 'none';
+        this.variantContainer.innerHTML = `
+            <label for="variantSelect">Variant</label>
+            <select class="form-select" id="variantSelect">
+                <option value="">Standard background</option>
+            </select>
         `;
+        selectors.appendChild(this.variantContainer);
+    }
 
-        // Add variant container if not exists
-        let variantContainer = document.querySelector('#variantContainer');
-        if (!variantContainer) {
-            const selectors = document.querySelector('.background-selectors');
-            variantContainer = document.createElement('div');
-            variantContainer.id = 'variantContainer';
-            variantContainer.className = 'background-select-container';
-            variantContainer.style.display = 'none';
-            variantContainer.innerHTML = `
-                <label for="variantSelect">Variant</label>
-                <select class="form-select" id="variantSelect">
-                    <option value="">Standard background</option>
-                </select>
-            `;
-            selectors.appendChild(variantContainer);
+    /**
+     * Update the quick description
+     * @param {string} title - The title to display
+     * @param {string} description - The description text
+     */
+    updateQuickDescription(title, description) {
+        if (!this.quickDescElement) {
+            this.quickDescElement = document.getElementById(this.quickDescElementId);
+            if (!this.quickDescElement) return;
         }
 
-        this.attachSelectionListeners();
-    }
-
-    async renderBackgroundDetails(background) {
-        const backgroundImage = document.getElementById('backgroundImage');
-        const backgroundQuickDesc = document.getElementById('backgroundQuickDesc');
-        const backgroundDetails = document.getElementById('backgroundDetails');
-
-        if (!backgroundImage || !backgroundQuickDesc || !backgroundDetails) return;
-
-        if (!background) {
-            this.setBackgroundPlaceholderContent();
+        if (!title && !description) {
+            this.setPlaceholderContent();
             return;
         }
 
-        try {
-            // Update background image
-            if (background.imageUrl) {
-                backgroundImage.innerHTML = `<img src="${background.imageUrl}" alt="${background.name}" class="background-image">`;
-            } else {
-                backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-            }
+        // For debugging
+        console.log(`Updating quick description for ${title}:`, description);
 
-            // Update quick description
-            backgroundQuickDesc.innerHTML = `
-                <h5>${background.name}</h5>
-                <p>${this.getQuickDescription(background)}</p>`;
-
-            // Process skill proficiencies
-            let skillProficiencies = '<li>None</li>';
-            if (background.proficiencies?.skills) {
-                const skills = Array.isArray(background.proficiencies.skills)
-                    ? background.proficiencies.skills
-                    : Object.keys(background.proficiencies.skills);
-
-                if (skills.length > 0) {
-                    skillProficiencies = skills
-                        .map(skill => `<li>${typeof skill === 'string' ? skill.charAt(0).toUpperCase() + skill.slice(1) : skill}</li>`)
-                        .join('');
-                }
-            }
-
-            // Process tool proficiencies
-            let toolProficiencies = '<li>None</li>';
-            if (background.proficiencies?.tools) {
-                const tools = Array.isArray(background.proficiencies.tools)
-                    ? background.proficiencies.tools
-                    : Object.keys(background.proficiencies.tools);
-
-                if (tools.length > 0) {
-                    toolProficiencies = tools
-                        .map(tool => `<li>${typeof tool === 'string' ? tool.charAt(0).toUpperCase() + tool.slice(1) : tool}</li>`)
-                        .join('');
-                }
-            }
-
-            // Process languages
-            let languages = '<li>None</li>';
-            if (background.languages?.length > 0) {
-                languages = background.languages
-                    .map(lang => `<li>${typeof lang === 'string' ? lang.charAt(0).toUpperCase() + lang.slice(1) : lang}</li>`)
-                    .join('');
-            }
-
-            // Process equipment
-            let equipment = '<li>None</li>';
-            if (background.equipment?.length > 0) {
-                equipment = background.equipment
-                    .map(item => `<li>${typeof item === 'string' ? item.charAt(0).toUpperCase() + item.slice(1) : item}</li>`)
-                    .join('');
-            }
-
-            // Update background details
-            backgroundDetails.innerHTML = `
-                <div class="background-details-grid">
-                    <div class="detail-section">
-                        <h6>Skill Proficiencies</h6>
-                        <ul class="mb-0">
-                            ${skillProficiencies}
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Tool Proficiencies</h6>
-                        <ul class="mb-0">
-                            ${toolProficiencies}
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Languages</h6>
-                        <ul class="mb-0">
-                            ${languages}
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h6>Equipment</h6>
-                        <ul class="mb-0">
-                            ${equipment}
-                        </ul>
-                    </div>
-                </div>`;
-
-            // Process tooltips for the newly added content
-            const textToProcess = [backgroundQuickDesc, backgroundDetails];
-            for (const element of textToProcess) {
-                const textNodes = element.querySelectorAll('p, li');
-                for (const node of textNodes) {
-                    const originalText = node.innerHTML;
-                    const processedText = await this.processText(originalText);
-                    node.innerHTML = processedText;
-                }
-            }
-        } catch (error) {
-            console.error('Error rendering background details:', error);
-            this.setBackgroundPlaceholderContent();
-        }
+        // Replace placeholder with actual content
+        this.quickDescElement.innerHTML = `
+            <h5>${title}</h5>
+            <p>${description}</p>
+        `;
     }
 
-    getQuickDescription(background) {
-        if (!background) return '';
+    /**
+     * Render the background selection dropdown
+     */
+    renderBackgroundSelection() {
+        const backgrounds = backgroundManager.getAllBackgrounds();
+        const selection = document.querySelector('#backgroundSelect');
 
-        // Try to find a description in the entries
-        if (background.entries) {
-            const desc = background.entries.find(entry =>
-                (typeof entry === 'string') ||
-                (typeof entry === 'object' && entry.type === 'entries' && !entry.name)
-            );
+        if (!selection) return;
 
-            if (desc) {
-                if (typeof desc === 'string') {
-                    return desc;
-                }
-                if (Array.isArray(desc.entries)) {
-                    return desc.entries.join(' ');
-                }
-                if (typeof desc.entries === 'string') {
-                    return desc.entries;
-                }
-            }
-        }
+        // Filter backgrounds by allowed sources
+        const currentCharacter = characterHandler.currentCharacter;
+        const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
+        const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
-        // Fallback to a generic description
-        return `${background.name} background features and characteristics.`;
+        const filteredBackgrounds = backgrounds.filter(bg => {
+            const bgSource = bg.source?.toUpperCase();
+            return upperAllowedSources.has(bgSource);
+        });
+
+        console.log('[BackgroundCard] Filtered backgrounds:', filteredBackgrounds.length);
+
+        // Update the select options with source in parentheses
+        selection.innerHTML = `
+            <option value="">Choose a background...</option>
+            ${filteredBackgrounds.map(bg => `
+                <option value="${bg.id}">${bg.name} (${bg.source})</option>
+            `).join('')}
+        `;
+
+        // Reset display to placeholder
+        this.setPlaceholderContent();
     }
 
+    /**
+     * Attach event listeners to the background and variant selectors
+     */
     attachSelectionListeners() {
         const backgroundSelect = document.querySelector('#backgroundSelect');
         const variantSelect = document.querySelector('#variantSelect');
-        const variantContainer = document.querySelector('#variantContainer');
 
-        backgroundSelect?.addEventListener('change', async () => {
+        backgroundSelect?.addEventListener('change', () => {
             const backgroundId = backgroundSelect.value;
             if (!backgroundId) {
-                variantContainer.style.display = 'none';
-                this.setBackgroundPlaceholderContent();
+                this._hideVariantSelector();
+                this.setPlaceholderContent();
+                this._updateCharacterBackground(null, null);
                 return;
             }
 
-            const background = await this.backgroundManager.loadBackground(backgroundId);
+            // Extract name and source from ID
+            const [name, source] = backgroundId.split('_');
+            const background = backgroundManager.selectBackground(name, source);
 
-            // Update variant options
-            if (background.variants?.length > 0) {
-                variantSelect.innerHTML = `
-                    <option value="">Standard background</option>
-                    ${background.variants.map(v => `
-                        <option value="${v.name}">${v.name}</option>
-                    `).join('')}
-                `;
-                variantContainer.style.display = 'block';
+            if (background) {
+                // Update variant options
+                this._updateVariantOptions(background);
+
+                // Render the background details
+                this.renderEntityDetails(background);
+
+                // Update character model
+                this._updateCharacterBackground(background, null);
             } else {
-                variantContainer.style.display = 'none';
+                this._hideVariantSelector();
+                this.setPlaceholderContent();
+                this._updateCharacterBackground(null, null);
             }
-
-            // Update background
-            await this.backgroundManager.setBackground(backgroundId);
-            await this.renderBackgroundDetails(background);
         });
 
-        variantSelect?.addEventListener('change', async () => {
-            const backgroundId = backgroundSelect.value;
+        variantSelect?.addEventListener('change', () => {
             const variantName = variantSelect.value;
-            if (backgroundId) {
-                await this.backgroundManager.setBackground(backgroundId, variantName);
-                await this.renderBackgroundDetails(backgroundId);
+            const background = backgroundManager.getSelectedBackground();
+
+            if (!variantName) {
+                // Show standard background
+                this.renderEntityDetails(background);
+                this._updateCharacterBackground(background, null);
+                return;
+            }
+
+            // Select and render the variant
+            const variant = backgroundManager.selectVariant(variantName);
+            if (variant) {
+                this.renderEntityDetails(variant);
+                this._updateCharacterBackground(background, variant);
             }
         });
     }
 
     /**
-     * Set placeholder content for background
+     * Update the variant selection dropdown based on available variants
+     * @param {Object} background - The selected background
      */
-    setBackgroundPlaceholderContent() {
-        const backgroundImage = document.getElementById('backgroundImage');
-        const backgroundQuickDesc = document.getElementById('backgroundQuickDesc');
-        const backgroundDetails = document.getElementById('backgroundDetails');
+    _updateVariantOptions(background) {
+        const variantSelect = document.querySelector('#variantSelect');
+        if (!variantSelect) return;
 
-        if (!backgroundImage || !backgroundQuickDesc || !backgroundDetails) return;
+        if (background.variants?.length > 0) {
+            variantSelect.innerHTML = `
+                <option value="">Standard background</option>
+                ${background.variants.map(v => `
+                    <option value="${v.name}">${v.name} (${v.source})</option>
+                `).join('')}
+            `;
+            this._showVariantSelector();
+        } else {
+            this._hideVariantSelector();
+        }
+    }
 
-        // Set placeholder image
-        backgroundImage.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+    /**
+     * Show the variant selector
+     */
+    _showVariantSelector() {
+        if (this.variantContainer) {
+            this.variantContainer.style.display = 'block';
+        }
+    }
 
-        // Set placeholder quick description
-        backgroundQuickDesc.innerHTML = `
-            <div class="placeholder-content">
-                <h5>Select a Background</h5>
-                <p>Choose a background to see details about their traits, proficiencies, and other characteristics.</p>
-            </div>`;
+    /**
+     * Hide the variant selector
+     */
+    _hideVariantSelector() {
+        if (this.variantContainer) {
+            this.variantContainer.style.display = 'none';
+        }
+    }
 
-        // Set placeholder details with grid layout
+    /**
+     * Render the details of a specific background
+     * @param {Object} background - The background to render
+     */
+    async renderEntityDetails(background) {
+        if (!background) {
+            this.setPlaceholderContent();
+            return;
+        }
+
+        console.log("Rendering background details:", background);
+
+        // Update image (if we have an image later)
+        this.updateEntityImage(background.imageUrl);
+
+        // Update quick description
+        this.updateQuickDescription(background.name, background.getDescription());
+
+        // Update background details
+        await this._updateBackgroundDetails(background);
+    }
+
+    /**
+     * Update the background details content
+     * @param {Background} background - The background to display
+     * @private
+     */
+    async _updateBackgroundDetails(background) {
+        const backgroundDetails = document.getElementById(this.detailsElementId);
+        if (!backgroundDetails) return;
+
+        console.log("Updating background details:", {
+            id: background.id,
+            proficiencies: background.proficiencies,
+            languages: background.languages,
+            equipment: background.equipment
+        });
+
+        // Process skill proficiencies
+        const skillProficiencies = backgroundManager.getFormattedSkillProficiencies(background);
+        console.log("Formatted skill proficiencies:", skillProficiencies);
+
+        // Process tool proficiencies
+        const toolProficiencies = backgroundManager.getFormattedToolProficiencies(background);
+        console.log("Formatted tool proficiencies:", toolProficiencies);
+
+        // Process languages
+        const languages = backgroundManager.getFormattedLanguages(background);
+        console.log("Formatted languages:", languages);
+
+        // Process equipment
+        const equipment = backgroundManager.getFormattedEquipment(background);
+        console.log("Formatted equipment:", equipment);
+
+        // Get the feature text
+        const featureHtml = await this._renderFeature(background);
+        console.log("Feature HTML:", featureHtml);
+
+        // Update background details
         backgroundDetails.innerHTML = `
+            <div class="background-details-grid">
+                <div class="detail-section">
+                    <h6>Skill Proficiencies</h6>
+                    <ul class="mb-0">
+                        <li class="text-content">${skillProficiencies}</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Tool Proficiencies</h6>
+                    <ul class="mb-0">
+                        <li class="text-content">${toolProficiencies}</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Languages</h6>
+                    <ul class="mb-0">
+                        <li class="text-content">${languages}</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Equipment</h6>
+                    <ul class="mb-0">
+                        <li class="text-content">${equipment}</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="traits-section detail-section" style="margin-top: 1rem;">
+                <h6>Feature</h6>
+                <div class="feature-content">
+                    <ul class="mb-0">
+                        ${featureHtml}
+                    </ul>
+                </div>
+            </div>
+        `;
+
+        // Process the entire background details container to resolve reference tags
+        await textProcessor.processElement(backgroundDetails);
+    }
+
+    /**
+     * Renders a background's feature as plain text
+     * @param {Object} background - The background object
+     * @returns {string} HTML for the feature text
+     * @private
+     */
+    async _renderFeature(background) {
+        const feature = background.getFeature();
+        if (!feature || !feature.name) {
+            return '<li class="text-content">No features available</li>';
+        }
+
+        let description = feature.description || '';
+        // Process description with textProcessor if available
+        if (textProcessor) {
+            try {
+                description = await textProcessor.processString(description);
+            } catch (error) {
+                console.error('Error processing feature description:', error);
+            }
+        }
+
+        // Clean up feature name by removing any "Feature:" prefix
+        const cleanName = feature.name.replace(/^Feature:?\s*/i, '').trim();
+
+        // Return formatted feature with name and description as a list item
+        return `<li class="text-content"><strong>${cleanName}:</strong> ${description}</li>`;
+    }
+
+    /**
+     * Process tooltips for embedded content
+     * @param {HTMLElement} element - The element to process tooltips for
+     */
+    async _processTooltips(element) {
+        if (!element || !textProcessor) return;
+
+        try {
+            const textNodes = element.querySelectorAll('p, li');
+            for (const node of textNodes) {
+                const originalText = node.innerHTML;
+                const processedText = await textProcessor.processString(originalText);
+                node.innerHTML = processedText;
+            }
+        } catch (error) {
+            console.error('Error processing tooltips:', error);
+        }
+    }
+
+    /**
+     * Load and set the saved background selection
+     */
+    async loadSavedBackgroundSelection() {
+        try {
+            const character = characterHandler?.currentCharacter;
+            if (character?.background?.name && character?.background?.source) {
+                const backgroundId = `${character.background.name}_${character.background.source}`;
+                const backgroundSelect = document.querySelector('#backgroundSelect');
+                const backgroundExists = Array.from(backgroundSelect.options).some(option => option.value === backgroundId);
+
+                if (backgroundExists) {
+                    backgroundSelect.value = backgroundId;
+                    backgroundSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    if (character.background.variant) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        const variantSelect = document.querySelector('#variantSelect');
+                        const variantExists = Array.from(variantSelect.options).some(option => option.value === character.background.variant);
+                        if (variantExists) {
+                            variantSelect.value = character.background.variant;
+                            variantSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                } else {
+                    console.warn(`Saved background "${backgroundId}" not found in available options. Character might use a source that's not currently allowed.`);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading saved background selection:', error);
+        }
+    }
+
+    /**
+     * Override placeholder details to match the HTML structure
+     * @returns {string} HTML structure that matches the placeholder in index.html
+     */
+    getPlaceholderDetailsContent() {
+        return `
             <div class="background-details-grid">
                 <div class="detail-section">
                     <h6>Skill Proficiencies</h6>
@@ -282,15 +424,78 @@ export class BackgroundCard {
                         <li class="placeholder-text">—</li>
                     </ul>
                 </div>
+            </div>
+            <div class="traits-section detail-section" style="margin-top: 1rem;">
+                <h6>Feature</h6>
+                <div class="feature-content">
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
             </div>`;
     }
 
     /**
-     * Process text content
-     * @param {string} originalText - The text to process
-     * @returns {Promise<string>} The processed text
+     * Update character's background information
+     * @param {Object} background - Selected background
+     * @param {Object} variant - Selected variant
+     * @private
      */
-    async processText(originalText) {
-        return await this.textProcessor.processString(originalText);
+    _updateCharacterBackground(background, variant) {
+        const character = characterHandler.currentCharacter;
+        if (!character) return;
+
+        if (!background) {
+            // Clear background
+            character.background = {};
+        } else {
+            // Set background
+            character.background = {
+                name: background.name,
+                source: background.source
+            };
+
+            // Add variant if selected
+            if (variant) {
+                character.background.variant = variant.name;
+            } else {
+                character.background.variant = null;
+            }
+
+            // Show unsaved changes
+            characterHandler.showUnsavedChanges();
+        }
+    }
+
+    /**
+     * Set placeholder content when no entity is selected
+     */
+    setPlaceholderContent() {
+        console.log("Setting placeholder content");
+
+        // Set placeholder image
+        const imageElement = document.getElementById(this.imageElementId);
+        if (imageElement) {
+            imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+        }
+
+        // Set placeholder quick description
+        if (!this.quickDescElement) {
+            this.quickDescElement = document.getElementById(this.quickDescElementId);
+        }
+
+        if (this.quickDescElement) {
+            this.quickDescElement.innerHTML = `
+                <div class="placeholder-content">
+                    <h5>${this.placeholderTitle}</h5>
+                    <p>${this.placeholderDesc}</p>
+                </div>`;
+        }
+
+        // Set placeholder details
+        const detailsElement = document.getElementById(this.detailsElementId);
+        if (detailsElement) {
+            detailsElement.innerHTML = this.getPlaceholderDetailsContent();
+        }
     }
 } 
