@@ -217,26 +217,16 @@ export class ClassCard {
      * Updates the skill proficiencies information display
      */
     _updateSkillProficiencies(classData) {
-        const skillProficienciesSection = this.classDetails.querySelector('.detail-section:nth-child(2)');
-        if (skillProficienciesSection) {
-            // Find or create the list container
-            let skillList = skillProficienciesSection.querySelector('ul');
-            if (!skillList) {
-                skillList = document.createElement('ul');
-                skillProficienciesSection.appendChild(skillList);
-            }
+        // Skip if no skill section exists
+        const skillProficienciesSection = document.getElementById('classSkillProficiencies');
+        if (!skillProficienciesSection) return;
 
-            // Clear previous content
-            skillList.innerHTML = '';
-            skillList.className = ''; // Reset classes
+        // Clear previous content
+        skillProficienciesSection.innerHTML = '<ul id="classSkillList"></ul>';
+        const skillList = document.getElementById('classSkillList');
 
-            // Remove any previous choose text header
-            const existingChooseText = skillProficienciesSection.querySelector('.choose-text');
-            if (existingChooseText) {
-                existingChooseText.remove();
-            }
-
-            // Check if we have skills to display
+        // If we have a class and it has skill proficiencies
+        if (classData) {
             const skills = classData.getSkillProficiencies();
             if (skills?.length) {
                 // Get the formatted string from the class manager
@@ -280,6 +270,12 @@ export class ClassCard {
                             li.textContent = skill.trim();
                             skillList.appendChild(li);
                         }
+
+                        // Set available skills in the character's optional proficiencies
+                        if (characterHandler.currentCharacter) {
+                            // Set the skill options list in the character (needed for ProficiencyCard to enable selection)
+                            characterHandler.currentCharacter.optionalProficiencies.skills.options = skills;
+                        }
                     } else {
                         // Fallback if the pattern matching fails
                         const li = document.createElement('li');
@@ -288,27 +284,25 @@ export class ClassCard {
                         skillList.appendChild(li);
                     }
                 } else {
-                    // For fixed skills, display each as a separate item
-                    // Apply multi-column if more than 3 skills
-                    if (skills.length > 3) {
-                        skillList.className = 'multi-column-list';
-                        if (skills.length > 6) {
-                            skillList.classList.add('many-items');
-                        }
-                    }
-
-                    for (const skill of skills) {
-                        const li = document.createElement('li');
-                        li.className = 'text-content';
-                        li.textContent = skill;
-                        skillList.appendChild(li);
-                    }
+                    // For fixed proficiencies without choices
+                    const li = document.createElement('li');
+                    li.className = 'text-content';
+                    li.textContent = formattedString;
+                    skillList.appendChild(li);
                 }
             } else {
+                // No skill proficiencies for this class
                 const li = document.createElement('li');
+                li.className = 'text-content';
                 li.textContent = 'None';
                 skillList.appendChild(li);
             }
+        } else {
+            // No class data available
+            const li = document.createElement('li');
+            li.className = 'text-content';
+            li.textContent = 'None';
+            skillList.appendChild(li);
         }
     }
 
@@ -641,6 +635,16 @@ export class ClassCard {
                 characterHandler.currentCharacter.addProficiency('tools', tool, 'Class');
             }
         }
+
+        // Set up optional skill proficiencies
+        const skillChoiceCount = classData.getSkillChoiceCount();
+        if (skillChoiceCount && skillChoiceCount > 0) {
+            characterHandler.currentCharacter.optionalProficiencies.skills.allowed = skillChoiceCount;
+            characterHandler.currentCharacter.optionalProficiencies.skills.selected = [];
+        }
+
+        // Trigger an event to update the UI
+        document.dispatchEvent(new CustomEvent('characterChanged'));
     }
 
     /**

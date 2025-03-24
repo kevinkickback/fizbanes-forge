@@ -55,6 +55,15 @@ export class Character {
             languages: new Map(),
             savingThrows: new Map()
         };
+        // Add structure for optional proficiencies
+        this.optionalProficiencies = {
+            armor: { allowed: 0, selected: [] },
+            weapons: { allowed: 0, selected: [] },
+            tools: { allowed: 0, selected: [] },
+            skills: { allowed: 0, selected: [], options: [] },
+            languages: { allowed: 0, selected: [] },
+            savingThrows: { allowed: 0, selected: [] }
+        };
         this.pendingChoices = new Map(); // Map to store pending choices
         this.height = '';
         this.weight = '';
@@ -166,6 +175,8 @@ export class Character {
 
     // Methods for proficiencies
     addProficiency(type, proficiency, source) {
+        console.log(`[Character] Adding proficiency: ${type} - ${proficiency} from ${source}`);
+
         // Ensure the proficiency array exists
         if (!this.proficiencies[type]) {
             this.proficiencies[type] = [];
@@ -186,6 +197,15 @@ export class Character {
 
         // Add the source
         this.proficiencySources[type].get(proficiency).add(source);
+
+        // Debug log proficiency sources for weapons and armor
+        if (type === 'weapons' || type === 'armor') {
+            console.log(`[Character] Current ${type} proficiency sources:`,
+                Array.from(this.proficiencySources[type].entries()).map(([prof, sources]) =>
+                    `${prof}: [${Array.from(sources).join(', ')}]`
+                ).join(', ')
+            );
+        }
     }
 
     removeProficienciesBySource(source) {

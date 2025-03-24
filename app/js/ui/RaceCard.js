@@ -357,6 +357,10 @@ export class RaceCard {
 
             // Clear any ability choice selections stored in the ability score manager
             this.raceManager.clearAbilityChoiceSelections();
+
+            // Clear race-sourced proficiencies
+            character.removeProficienciesBySource('Race');
+            character.removeProficienciesBySource('Subrace');
         }
 
         if (hasChanged) {
@@ -374,8 +378,88 @@ export class RaceCard {
             characterHandler.showUnsavedChanges();
         }
 
-        // Add the new race's ability bonuses (this remains the same)
+        // Add the new race's ability bonuses
         this._updateAbilityBonuses(race, subrace);
+
+        // Add the new race's proficiencies
+        this._updateRaceProficiencies(race, subrace);
+
+        // Trigger an event to update the UI
+        document.dispatchEvent(new CustomEvent('characterChanged'));
+    }
+
+    /**
+     * Update character's proficiencies based on race and subrace
+     * @param {Race} race - Selected race
+     * @param {Subrace} subrace - Selected subrace
+     * @private
+     */
+    _updateRaceProficiencies(race, subrace) {
+        const character = characterHandler.currentCharacter;
+        if (!character || !race) return;
+
+        console.log(`[RaceCard] Adding proficiencies for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
+
+        // Add language proficiencies
+        const languageProficiencies = race.getLanguageProficiencies();
+        if (languageProficiencies) {
+            for (const proficiency of languageProficiencies) {
+                // Handle standard languages
+                for (const [language, value] of Object.entries(proficiency)) {
+                    if (value === true && language !== 'anyStandard' && language !== 'other') {
+                        const capitalizedLanguage = language.charAt(0).toUpperCase() + language.slice(1);
+                        character.addProficiency('languages', capitalizedLanguage, 'Race');
+                    }
+                }
+
+                // Handle choices
+                if (proficiency.anyStandard && proficiency.anyStandard > 0) {
+                    character.optionalProficiencies.languages.allowed = proficiency.anyStandard;
+                    character.optionalProficiencies.languages.selected = [];
+                }
+            }
+        }
+
+        // Handle weapon proficiencies if available
+        if (race.weaponProficiencies && Array.isArray(race.weaponProficiencies)) {
+            for (const profObj of race.weaponProficiencies) {
+                for (const [weapon, hasProf] of Object.entries(profObj)) {
+                    if (hasProf === true) {
+                        // Extract the weapon name without the source
+                        const weaponName = weapon.split('|')[0];
+                        const capitalizedWeapon = weaponName.charAt(0).toUpperCase() + weaponName.slice(1);
+                        character.addProficiency('weapons', capitalizedWeapon, 'Race');
+                    }
+                }
+            }
+        }
+
+        // Handle skill proficiencies if available
+        if (race.skillProficiencies && Array.isArray(race.skillProficiencies)) {
+            for (const profObj of race.skillProficiencies) {
+                for (const [skill, hasProf] of Object.entries(profObj)) {
+                    if (hasProf === true && skill !== 'choose') {
+                        const capitalizedSkill = skill.charAt(0).toUpperCase() + skill.slice(1);
+                        character.addProficiency('skills', capitalizedSkill, 'Race');
+                    }
+                }
+
+                // Handle skill choices
+                if (profObj.choose && profObj.choose.count > 0) {
+                    character.optionalProficiencies.skills.allowed = profObj.choose.count;
+                    character.optionalProficiencies.skills.selected = [];
+
+                    // Set available skill options if they exist in the race data
+                    if (profObj.choose.from && Array.isArray(profObj.choose.from)) {
+                        character.optionalProficiencies.skills.options = profObj.choose.from.map(skill => {
+                            // Capitalize first letter to maintain consistency
+                            return skill.charAt(0).toUpperCase() + skill.slice(1);
+                        });
+                        console.log(`[RaceCard] Set skill options for race: ${character.optionalProficiencies.skills.options.join(', ')}`);
+                    }
+                }
+            }
+        }
     }
 
     /**

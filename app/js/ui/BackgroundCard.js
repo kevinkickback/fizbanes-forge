@@ -445,25 +445,94 @@ export class BackgroundCard extends EntityCard {
         const character = characterHandler.currentCharacter;
         if (!character) return;
 
-        if (!background) {
-            // Clear background
-            character.background = {};
-        } else {
-            // Set background
-            character.background = {
-                name: background.name,
-                source: background.source
-            };
+        // Check if background has changed
+        const hasChanged = !background ?
+            (character.background?.name || character.background?.source) :
+            (character.background?.name !== background.name ||
+                character.background?.source !== background.source ||
+                character.background?.variant !== (variant?.name || null));
 
-            // Add variant if selected
-            if (variant) {
-                character.background.variant = variant.name;
+        if (hasChanged) {
+            // Clear previous background proficiencies
+            character.removeProficienciesBySource('Background');
+
+            if (!background) {
+                // Clear background
+                character.background = {};
             } else {
-                character.background.variant = null;
+                // Set background
+                character.background = {
+                    name: background.name,
+                    source: background.source
+                };
+
+                // Add variant if selected
+                if (variant) {
+                    character.background.variant = variant.name;
+                } else {
+                    character.background.variant = null;
+                }
+
+                // Add background proficiencies
+                this._updateBackgroundProficiencies(background, variant);
+
+                // Show unsaved changes
+                characterHandler.showUnsavedChanges();
             }
 
-            // Show unsaved changes
-            characterHandler.showUnsavedChanges();
+            // Trigger an event to update the UI
+            document.dispatchEvent(new CustomEvent('characterChanged'));
+        }
+    }
+
+    /**
+     * Update character's proficiencies based on background
+     * @param {Background} background - The selected background
+     * @param {Object} variant - Selected variant
+     * @private
+     */
+    _updateBackgroundProficiencies(background, variant) {
+        const character = characterHandler.currentCharacter;
+        if (!character || !background) return;
+
+        console.log(`[BackgroundCard] Adding proficiencies for ${background.name}`);
+
+        // Get fixed proficiencies from background
+        const fixedProfs = background.getFixedProficiencies();
+
+        // Add fixed skill proficiencies
+        for (const skill of fixedProfs.skills) {
+            character.addProficiency('skills', skill, 'Background');
+        }
+
+        // Add fixed tool proficiencies
+        for (const tool of fixedProfs.tools) {
+            character.addProficiency('tools', tool, 'Background');
+        }
+
+        // Set up optional proficiencies
+        if (background.proficiencies?.skills?.choices?.count > 0) {
+            character.optionalProficiencies.skills.allowed = background.proficiencies.skills.choices.count;
+            character.optionalProficiencies.skills.selected = [];
+        }
+
+        if (background.proficiencies?.tools?.choices?.count > 0) {
+            character.optionalProficiencies.tools.allowed = background.proficiencies.tools.choices.count;
+            character.optionalProficiencies.tools.selected = [];
+        }
+
+        // Handle languages
+        if (background.languages) {
+            // Add fixed languages
+            for (const language of background.languages.fixed || []) {
+                character.addProficiency('languages', language, 'Background');
+            }
+
+            // Set up optional languages
+            if (background.languages.choices?.count > 0) {
+                character.optionalProficiencies.languages.allowed = background.languages.choices.count;
+                character.optionalProficiencies.languages.selected = [];
+            }
         }
     }
 

@@ -1384,6 +1384,23 @@ body[data-current-page="details"] .floating-actions {
 	color: var(--accent-color);
 }
 
+.proficiency-item.proficient.default {
+	background-color: rgba(25, 118, 210, 0.075);
+	border-left: 3px solid var(--accent-color);
+	color: var(--text-color);
+	opacity: 0.85;
+}
+
+.proficiency-item.proficient.granted {
+	background-color: rgba(0, 184, 148, 0.15);
+	border-left: 3px solid var(--success-color);
+	color: var(--text-color);
+}
+
+.proficiency-item.proficient.granted i {
+	color: var(--success-color);
+}
+
 .proficiency-item.proficient.optional-selected {
 	background-color: rgba(253, 203, 110, 0.15);
 	border-left: 3px solid var(--warning-color);
