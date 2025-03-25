@@ -217,13 +217,21 @@ export class ClassCard {
      * Updates the skill proficiencies information display
      */
     _updateSkillProficiencies(classData) {
-        // Skip if no skill section exists
-        const skillProficienciesSection = document.getElementById('classSkillProficiencies');
+        // Find the skill proficiencies section by its position in the HTML structure
+        const skillProficienciesSection = this.classDetails.querySelector('.detail-section:nth-child(2)');
         if (!skillProficienciesSection) return;
 
         // Clear previous content
-        skillProficienciesSection.innerHTML = '<ul id="classSkillList"></ul>';
-        const skillList = document.getElementById('classSkillList');
+        const skillList = skillProficienciesSection.querySelector('ul');
+        if (!skillList) return;
+
+        // Remove any existing choose header
+        const existingChooseHeader = skillProficienciesSection.querySelector('.choose-text');
+        if (existingChooseHeader) {
+            existingChooseHeader.remove();
+        }
+
+        skillList.innerHTML = '';
 
         // If we have a class and it has skill proficiencies
         if (classData) {
@@ -274,7 +282,9 @@ export class ClassCard {
                         // Set available skills in the character's optional proficiencies
                         if (characterHandler.currentCharacter) {
                             // Set the skill options list in the character (needed for ProficiencyCard to enable selection)
-                            characterHandler.currentCharacter.optionalProficiencies.skills.options = skills;
+                            const skillOptions = skillsArray.map(skill => skill.trim());
+                            characterHandler.currentCharacter.optionalProficiencies.skills.options = skillOptions;
+                            console.log(`[ClassCard] Setting skill options from UI: ${skillOptions.join(', ')}`);
                         }
                     } else {
                         // Fallback if the pattern matching fails
@@ -558,93 +568,280 @@ export class ClassCard {
     }
 
     /**
-     * Update character's class and subclass information
+     * Update character's class information
+     * @param {Class} classData - Selected class
+     * @param {Subclass} subclass - Selected subclass
+     * @private
      */
-    _updateCharacterClass(classData, subclassData) {
-        if (!characterHandler.currentCharacter) return;
+    _updateCharacterClass(classData, subclass) {
+        const character = characterHandler.currentCharacter;
+        if (!character) return;
 
-        const currentClass = this.classSelect.value.split('_');
-        const savedClass = characterHandler.currentCharacter.class || {};
-        const savedSubclass = savedClass.subclass || '';
-
-        const hasChanged = !currentClass[0] ?
-            (savedClass.name || savedClass.source) :
-            (savedClass.name !== currentClass[0] || savedClass.source !== currentClass[1] || savedSubclass !== (subclassData?.name || ''));
+        // Check if class has changed
+        const hasChanged = !classData ?
+            (character.class?.name || character.class?.source) :
+            (character.class?.name !== classData.name ||
+                character.class?.source !== classData.source ||
+                character.subclass !== (subclass?.name || ''));
 
         if (hasChanged) {
-            characterHandler.showUnsavedChanges();
-        } else {
-            characterHandler.hideUnsavedChanges();
-        }
+            console.log(`[ClassCard] Class changed from ${character.class?.name || 'none'} to ${classData?.name || 'none'}`);
 
-        if (!classData) {
-            characterHandler.currentCharacter.class = { level: 1 };
-            characterHandler.currentCharacter.class.subclass = '';
-        } else {
-            characterHandler.currentCharacter.class = {
-                name: classData.name,
-                source: classData.source,
-                level: 1,
-                hitDice: classData.getHitDice()
-            };
+            // Clear previous class proficiencies, ability bonuses, and traits
+            character.removeProficienciesBySource('Class');
+            character.clearTraits('Class');
 
-            if (subclassData) {
-                characterHandler.currentCharacter.class.subclass = subclassData.name;
+            // Remove subclass proficiencies and traits
+            character.removeProficienciesBySource('Subclass');
+            character.clearTraits('Subclass');
+
+            // Notify UI to clear optional proficiencies from class
+            document.dispatchEvent(new CustomEvent('proficienciesRemoved', {
+                detail: { source: 'Class' }
+            }));
+
+            if (!classData) {
+                // Clear class
+                character.class = {
+                    level: 1
+                };
+                character.subclass = '';
             } else {
-                characterHandler.currentCharacter.class.subclass = '';
-            }
-        }
+                // Set class
+                character.class = {
+                    name: classData.name,
+                    source: classData.source,
+                    level: 1
+                };
+                character.subclass = subclass?.name || '';
 
-        // Apply proficiencies from class to character
-        this._updateProficiencies(classData);
+                // Add proficiencies
+                this._updateProficiencies(classData);
+
+                // Force a refresh after a short delay to ensure everything is updated
+                setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('proficiencyChanged', {
+                        detail: { triggerCleanup: true, forcedRefresh: true }
+                    }));
+                }, 100);
+            }
+
+            // Trigger an event to update the UI
+            document.dispatchEvent(new CustomEvent('classChanged', { detail: { classData, subclass } }));
+            document.dispatchEvent(new CustomEvent('characterChanged'));
+        }
     }
 
     /**
-     * Update character proficiencies based on class selection
+     * Update proficiencies based on class data
+     * @param {Object} classData - The class data
+     * @private
      */
     _updateProficiencies(classData) {
-        if (!characterHandler.currentCharacter || !classData) return;
+        const character = characterHandler.currentCharacter;
+        if (!character || !classData) return;
 
-        // Clear existing class-sourced proficiencies
-        characterHandler.currentCharacter.removeProficienciesBySource('Class');
+        console.log('[ClassCard] Updating proficiencies for class:', classData.name);
+
+        // Store previous selected proficiencies to restore valid ones later
+        const previousClassSkills = character.optionalProficiencies.skills.class?.selected || [];
+        const previousClassLanguages = character.optionalProficiencies.languages.class?.selected || [];
+        const previousClassTools = character.optionalProficiencies.tools.class?.selected || [];
+
+        // Clear class-specific proficiencies by source
+        character.removeProficienciesBySource('Class');
+
+        // Reset class skill options
+        character.optionalProficiencies.skills.class.allowed = 0;
+        character.optionalProficiencies.skills.class.options = [];
+        character.optionalProficiencies.skills.class.selected = [];
+
+        character.optionalProficiencies.languages.class.allowed = 0;
+        character.optionalProficiencies.languages.class.options = [];
+        character.optionalProficiencies.languages.class.selected = [];
+
+        character.optionalProficiencies.tools.class.allowed = 0;
+        character.optionalProficiencies.tools.class.options = [];
+        character.optionalProficiencies.tools.class.selected = [];
 
         // Add saving throw proficiencies
-        if (classData.getSavingThrows() && classData.getSavingThrows().length > 0) {
-            for (const save of classData.getSavingThrows()) {
-                characterHandler.currentCharacter.addProficiency('savingThrows', save, 'Class');
+        const savingThrows = classData.getSavingThrows();
+        if (savingThrows && savingThrows.length > 0) {
+            for (const save of savingThrows) {
+                character.addProficiency('savingThrows', save, 'Class');
+                console.log(`[ClassCard] Added saving throw proficiency: ${save}`);
             }
         }
 
         // Add armor proficiencies
-        if (classData.getArmorProficiencies() && classData.getArmorProficiencies().length > 0) {
-            for (const armor of classData.getArmorProficiencies()) {
-                characterHandler.currentCharacter.addProficiency('armor', armor, 'Class');
+        const armorProficiencies = classData.getArmorProficiencies();
+        if (armorProficiencies && armorProficiencies.length > 0) {
+            for (const armor of armorProficiencies) {
+                character.addProficiency('armor', armor, 'Class');
+                console.log(`[ClassCard] Added armor proficiency: ${armor}`);
             }
         }
 
         // Add weapon proficiencies
-        if (classData.getWeaponProficiencies() && classData.getWeaponProficiencies().length > 0) {
-            for (const weapon of classData.getWeaponProficiencies()) {
-                characterHandler.currentCharacter.addProficiency('weapons', weapon, 'Class');
+        const weaponProficiencies = classData.getWeaponProficiencies();
+        if (weaponProficiencies && weaponProficiencies.length > 0) {
+            for (const weapon of weaponProficiencies) {
+                character.addProficiency('weapons', weapon, 'Class');
+                console.log(`[ClassCard] Added weapon proficiency: ${weapon}`);
             }
         }
 
         // Add tool proficiencies
-        if (classData.getToolProficiencies() && classData.getToolProficiencies().length > 0) {
-            for (const tool of classData.getToolProficiencies()) {
-                characterHandler.currentCharacter.addProficiency('tools', tool, 'Class');
+        const toolProficiencies = classData.getToolProficiencies();
+        if (toolProficiencies && toolProficiencies.length > 0) {
+            for (const tool of toolProficiencies) {
+                character.addProficiency('tools', tool, 'Class');
+                console.log(`[ClassCard] Added tool proficiency: ${tool}`);
             }
         }
 
-        // Set up optional skill proficiencies
+        // Handle skill proficiencies
+        const skills = classData.getSkillProficiencies();
         const skillChoiceCount = classData.getSkillChoiceCount();
-        if (skillChoiceCount && skillChoiceCount > 0) {
-            characterHandler.currentCharacter.optionalProficiencies.skills.allowed = skillChoiceCount;
-            characterHandler.currentCharacter.optionalProficiencies.skills.selected = [];
+
+        if (skills && skills.length > 0 && skillChoiceCount > 0) {
+            // Set up skill choices
+            character.optionalProficiencies.skills.class.allowed = skillChoiceCount;
+            character.optionalProficiencies.skills.class.options = skills;
+
+            // Restore valid selections
+            character.optionalProficiencies.skills.class.selected = previousClassSkills.filter(
+                skill => skills.includes(skill)
+            );
+
+            console.log(`[ClassCard] Added skill choice: ${skillChoiceCount} from ${skills.join(', ')}`);
         }
 
-        // Trigger an event to update the UI
+        // Update combined options for all proficiency types
+        this._updateCombinedProficiencyOptions(character);
+
+        // Notify UI to update proficiencies
+        document.dispatchEvent(new CustomEvent('proficiencyChanged'));
         document.dispatchEvent(new CustomEvent('characterChanged'));
+    }
+
+    /**
+     * Updates the combined proficiency options from race, class, and background
+     * @param {Character} character - The character object
+     * @private
+     */
+    _updateCombinedProficiencyOptions(character) {
+        if (!character) return;
+
+        // Update skill options
+        this._updateCombinedSkillOptions(character);
+
+        // Update language options
+        const raceLanguageAllowed = character.optionalProficiencies.languages.race?.allowed || 0;
+        const classLanguageAllowed = character.optionalProficiencies.languages.class?.allowed || 0;
+        const backgroundLanguageAllowed = character.optionalProficiencies.languages.background?.allowed || 0;
+
+        const raceLanguageOptions = character.optionalProficiencies.languages.race?.options || [];
+        const classLanguageOptions = character.optionalProficiencies.languages.class?.options || [];
+        const backgroundLanguageOptions = character.optionalProficiencies.languages.background?.options || [];
+
+        const raceLanguageSelected = character.optionalProficiencies.languages.race?.selected || [];
+        const classLanguageSelected = character.optionalProficiencies.languages.class?.selected || [];
+        const backgroundLanguageSelected = character.optionalProficiencies.languages.background?.selected || [];
+
+        // Update total allowed count for languages
+        character.optionalProficiencies.languages.allowed = raceLanguageAllowed + classLanguageAllowed + backgroundLanguageAllowed;
+
+        // Combine selected languages from all sources
+        character.optionalProficiencies.languages.selected = [...new Set([...raceLanguageSelected, ...classLanguageSelected, ...backgroundLanguageSelected])];
+
+        // For combined options, include language options from all sources
+        character.optionalProficiencies.languages.options = [...new Set([...raceLanguageOptions, ...classLanguageOptions, ...backgroundLanguageOptions])];
+
+        console.log('[ClassCard] Updated combined language options:', {
+            raceLanguageOptions,
+            classLanguageOptions,
+            backgroundLanguageOptions,
+            combinedOptions: character.optionalProficiencies.languages.options,
+            allowed: character.optionalProficiencies.languages.allowed,
+            selected: character.optionalProficiencies.languages.selected
+        });
+
+        // Update tool options
+        const raceToolAllowed = character.optionalProficiencies.tools.race?.allowed || 0;
+        const classToolAllowed = character.optionalProficiencies.tools.class?.allowed || 0;
+        const backgroundToolAllowed = character.optionalProficiencies.tools.background?.allowed || 0;
+
+        const raceToolOptions = character.optionalProficiencies.tools.race?.options || [];
+        const classToolOptions = character.optionalProficiencies.tools.class?.options || [];
+        const backgroundToolOptions = character.optionalProficiencies.tools.background?.options || [];
+
+        const raceToolSelected = character.optionalProficiencies.tools.race?.selected || [];
+        const classToolSelected = character.optionalProficiencies.tools.class?.selected || [];
+        const backgroundToolSelected = character.optionalProficiencies.tools.background?.selected || [];
+
+        // Update total allowed count for tools
+        character.optionalProficiencies.tools.allowed = raceToolAllowed + classToolAllowed + backgroundToolAllowed;
+
+        // Combine selected tools from all sources
+        character.optionalProficiencies.tools.selected = [...new Set([...raceToolSelected, ...classToolSelected, ...backgroundToolSelected])];
+
+        // For combined options, include tool options from all sources
+        character.optionalProficiencies.tools.options = [...new Set([...raceToolOptions, ...classToolOptions, ...backgroundToolOptions])];
+
+        console.log('[ClassCard] Updated combined tool options:', {
+            raceToolOptions,
+            classToolOptions,
+            backgroundToolOptions,
+            combinedOptions: character.optionalProficiencies.tools.options,
+            allowed: character.optionalProficiencies.tools.allowed,
+            selected: character.optionalProficiencies.tools.selected
+        });
+    }
+
+    /**
+     * Updates the combined skill options from race, class, and background
+     * @param {Character} character - The character object
+     * @private
+     */
+    _updateCombinedSkillOptions(character) {
+        if (!character) return;
+
+        const raceAllowed = character.optionalProficiencies.skills.race?.allowed || 0;
+        const classAllowed = character.optionalProficiencies.skills.class?.allowed || 0;
+        const backgroundAllowed = character.optionalProficiencies.skills.background?.allowed || 0;
+
+        const raceOptions = character.optionalProficiencies.skills.race?.options || [];
+        const classOptions = character.optionalProficiencies.skills.class?.options || [];
+        const backgroundOptions = character.optionalProficiencies.skills.background?.options || [];
+
+        const raceSelected = character.optionalProficiencies.skills.race?.selected || [];
+        const classSelected = character.optionalProficiencies.skills.class?.selected || [];
+        const backgroundSelected = character.optionalProficiencies.skills.background?.selected || [];
+
+        // Update total allowed count
+        character.optionalProficiencies.skills.allowed = raceAllowed + classAllowed + backgroundAllowed;
+
+        // Combine selected skills from all sources
+        character.optionalProficiencies.skills.selected = [...new Set([...raceSelected, ...classSelected, ...backgroundSelected])];
+
+        // For combined options, include options from all sources
+        character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
+
+        console.log('[ClassCard] Updated combined skill options:', {
+            raceOptions,
+            classOptions,
+            backgroundOptions,
+            combinedOptions: character.optionalProficiencies.skills.options,
+            raceAllowed,
+            classAllowed,
+            backgroundAllowed,
+            combinedAllowed: character.optionalProficiencies.skills.allowed,
+            raceSelected,
+            classSelected,
+            backgroundSelected,
+            combinedSelected: character.optionalProficiencies.skills.selected
+        });
     }
 
     /**

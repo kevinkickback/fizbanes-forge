@@ -453,8 +453,15 @@ export class BackgroundCard extends EntityCard {
                 character.background?.variant !== (variant?.name || null));
 
         if (hasChanged) {
+            console.log(`[BackgroundCard] Background changed from ${character.background?.name || 'none'} to ${background?.name || 'none'}`);
+
             // Clear previous background proficiencies
             character.removeProficienciesBySource('Background');
+
+            // Notify UI to clear optional proficiencies from background
+            document.dispatchEvent(new CustomEvent('proficienciesRemoved', {
+                detail: { source: 'Background' }
+            }));
 
             if (!background) {
                 // Clear background
@@ -476,6 +483,13 @@ export class BackgroundCard extends EntityCard {
                 // Add background proficiencies
                 this._updateBackgroundProficiencies(background, variant);
 
+                // Force a refresh after a short delay to ensure everything is updated
+                setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('proficiencyChanged', {
+                        detail: { triggerCleanup: true, forcedRefresh: true }
+                    }));
+                }, 100);
+
                 // Show unsaved changes
                 characterHandler.showUnsavedChanges();
             }
@@ -486,7 +500,7 @@ export class BackgroundCard extends EntityCard {
     }
 
     /**
-     * Update character's proficiencies based on background
+     * Update character proficiencies based on selected background
      * @param {Background} background - The selected background
      * @param {Object} variant - Selected variant
      * @private
@@ -497,10 +511,13 @@ export class BackgroundCard extends EntityCard {
 
         console.log(`[BackgroundCard] Adding proficiencies for ${background.name}`);
 
+        // Store previous skill selections to restore valid ones
+        const prevBackgroundSelected = character.optionalProficiencies.skills.background?.selected || [];
+
         // Get fixed proficiencies from background
         const fixedProfs = background.getFixedProficiencies();
 
-        // Add fixed skill proficiencies
+        // Add fixed skill proficiencies - this will automatically refund any selected skills
         for (const skill of fixedProfs.skills) {
             character.addProficiency('skills', skill, 'Background');
         }
@@ -510,12 +527,42 @@ export class BackgroundCard extends EntityCard {
             character.addProficiency('tools', tool, 'Background');
         }
 
+        // Reset background skill options
+        character.optionalProficiencies.skills.background.allowed = 0;
+        character.optionalProficiencies.skills.background.options = [];
+        character.optionalProficiencies.skills.background.selected = [];
+
         // Set up optional proficiencies
         if (background.proficiencies?.skills?.choices?.count > 0) {
-            character.optionalProficiencies.skills.allowed = background.proficiencies.skills.choices.count;
-            character.optionalProficiencies.skills.selected = [];
+            // Set the background skill choice count and options
+            character.optionalProficiencies.skills.background.allowed = background.proficiencies.skills.choices.count;
+
+            // Set options - either specific list or 'any' skills
+            if (background.proficiencies.skills.choices.from && background.proficiencies.skills.choices.from.length > 0) {
+                // Background specifies specific skills to choose from
+                character.optionalProficiencies.skills.background.options = [...background.proficiencies.skills.choices.from];
+            } else if (background.proficiencies.skills.choices.anyCount) {
+                // Background allows any skills - get all skills
+                const allSkills = this._getAllSkills();
+                character.optionalProficiencies.skills.background.options = allSkills;
+            }
+
+            // Restore valid skill selections if any, excluding now-fixed skills
+            if (prevBackgroundSelected.length > 0) {
+                const newBackgroundOptions = character.optionalProficiencies.skills.background.options;
+                const validSelections = prevBackgroundSelected.filter(skill =>
+                    newBackgroundOptions.includes(skill) &&
+                    !character.proficiencies.skills.includes(skill) &&
+                    !fixedProfs.skills.includes(skill));
+
+                character.optionalProficiencies.skills.background.selected =
+                    validSelections.slice(0, character.optionalProficiencies.skills.background.allowed);
+
+                console.log(`[BackgroundCard] Restored ${character.optionalProficiencies.skills.background.selected.length} background skill selections`);
+            }
         }
 
+        // Set up optional tool proficiencies
         if (background.proficiencies?.tools?.choices?.count > 0) {
             character.optionalProficiencies.tools.allowed = background.proficiencies.tools.choices.count;
             character.optionalProficiencies.tools.selected = [];
@@ -534,6 +581,85 @@ export class BackgroundCard extends EntityCard {
                 character.optionalProficiencies.languages.selected = [];
             }
         }
+
+        // Update combined skill options
+        this._updateCombinedSkillOptions(character);
+
+        // Notify UI to update proficiencies
+        document.dispatchEvent(new CustomEvent('proficiencyChanged', {
+            detail: { triggerCleanup: true }
+        }));
+    }
+
+    /**
+     * Get all available skills for 'any' selection
+     * @returns {string[]} Array of skill names
+     * @private
+     */
+    _getAllSkills() {
+        // Try to get skills from a ProficiencyManager if available
+        if (window.proficiencyManager && typeof window.proficiencyManager.getAvailableSkills === 'function') {
+            // Get skills synchronously if possible
+            try {
+                return window.proficiencyManager.getAvailableSkills();
+            } catch (e) {
+                console.warn('[BackgroundCard] Error getting skills from proficiencyManager:', e);
+            }
+        }
+
+        // Fallback to hardcoded list
+        return [
+            'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics',
+            'Deception', 'History', 'Insight', 'Intimidation',
+            'Investigation', 'Medicine', 'Nature', 'Perception',
+            'Performance', 'Persuasion', 'Religion', 'Sleight of Hand',
+            'Stealth', 'Survival'
+        ];
+    }
+
+    /**
+     * Updates the combined skill options from race, class and background
+     * @param {Character} character - The character object
+     * @private
+     */
+    _updateCombinedSkillOptions(character) {
+        if (!character) return;
+
+        const raceAllowed = character.optionalProficiencies.skills.race?.allowed || 0;
+        const classAllowed = character.optionalProficiencies.skills.class?.allowed || 0;
+        const backgroundAllowed = character.optionalProficiencies.skills.background?.allowed || 0;
+
+        const raceOptions = character.optionalProficiencies.skills.race?.options || [];
+        const classOptions = character.optionalProficiencies.skills.class?.options || [];
+        const backgroundOptions = character.optionalProficiencies.skills.background?.options || [];
+
+        const raceSelected = character.optionalProficiencies.skills.race?.selected || [];
+        const classSelected = character.optionalProficiencies.skills.class?.selected || [];
+        const backgroundSelected = character.optionalProficiencies.skills.background?.selected || [];
+
+        // Update total allowed count
+        character.optionalProficiencies.skills.allowed = raceAllowed + classAllowed + backgroundAllowed;
+
+        // Combine selected skills from all sources
+        character.optionalProficiencies.skills.selected = [...new Set([...raceSelected, ...classSelected, ...backgroundSelected])];
+
+        // For combined options, include options from all sources
+        character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
+
+        console.log('[BackgroundCard] Updated combined skill options:', {
+            raceOptions,
+            classOptions,
+            backgroundOptions,
+            combinedOptions: character.optionalProficiencies.skills.options,
+            raceAllowed,
+            classAllowed,
+            backgroundAllowed,
+            combinedAllowed: character.optionalProficiencies.skills.allowed,
+            raceSelected,
+            classSelected,
+            backgroundSelected,
+            combinedSelected: character.optionalProficiencies.skills.selected
+        });
     }
 
     /**

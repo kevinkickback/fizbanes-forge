@@ -59,10 +59,67 @@ export class Character {
         this.optionalProficiencies = {
             armor: { allowed: 0, selected: [] },
             weapons: { allowed: 0, selected: [] },
-            tools: { allowed: 0, selected: [] },
-            skills: { allowed: 0, selected: [], options: [] },
-            languages: { allowed: 0, selected: [] },
-            savingThrows: { allowed: 0, selected: [] }
+            savingThrows: { allowed: 0, selected: [] },
+            skills: {
+                allowed: 0,
+                options: [],
+                selected: [],
+                race: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                },
+                class: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                },
+                background: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                }
+            },
+            languages: {
+                allowed: 0,
+                options: [],
+                selected: [],
+                race: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                },
+                class: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                },
+                background: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                }
+            },
+            tools: {
+                allowed: 0,
+                options: [],
+                selected: [],
+                race: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                },
+                class: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                },
+                background: {
+                    allowed: 0,
+                    options: [],
+                    selected: []
+                }
+            }
         };
         this.pendingChoices = new Map(); // Map to store pending choices
         this.height = '';
@@ -74,7 +131,7 @@ export class Character {
             armor: [],
             items: []
         };
-        this.pendingAbilityChoices = []; // Array to store pending ability score choices
+        this.pendingAbilityChoices = []; // Array to store pending ability choices
 
         // Add Common as a default language
         this.addLanguage('Common', 'Default');
@@ -157,6 +214,7 @@ export class Character {
     }
 
     clearPendingAbilityChoices() {
+        console.log('[Character] Clearing pending ability choices');
         this.pendingAbilityChoices = [];
     }
 
@@ -175,6 +233,42 @@ export class Character {
 
     // Methods for proficiencies
     addProficiency(type, proficiency, source) {
+        // Special debug for skills from background
+        if (type === 'skills' && source === 'Background') {
+            console.log(`[Character] ADDING BACKGROUND SKILL: ${proficiency}`);
+
+            // Check if this skill is already selected as an optional skill
+            const raceSelected = this.optionalProficiencies?.skills?.race?.selected || [];
+            const classSelected = this.optionalProficiencies?.skills?.class?.selected || [];
+            const backgroundSelected = this.optionalProficiencies?.skills?.background?.selected || [];
+
+            // Log any potential conflicts (case insensitive)
+            const normalizedSkill = proficiency.toLowerCase().trim();
+            const conflicts = [];
+
+            for (const s of raceSelected) {
+                if (s.toLowerCase().trim() === normalizedSkill) {
+                    conflicts.push({ source: 'race', skill: s });
+                }
+            }
+
+            for (const s of classSelected) {
+                if (s.toLowerCase().trim() === normalizedSkill) {
+                    conflicts.push({ source: 'class', skill: s });
+                }
+            }
+
+            for (const s of backgroundSelected) {
+                if (s.toLowerCase().trim() === normalizedSkill) {
+                    conflicts.push({ source: 'background', skill: s });
+                }
+            }
+
+            if (conflicts.length > 0) {
+                console.log(`[Character] CONFLICT DETECTED: ${proficiency} conflicts with: `, conflicts);
+            }
+        }
+
         console.log(`[Character] Adding proficiency: ${type} - ${proficiency} from ${source}`);
 
         // Ensure the proficiency array exists
@@ -198,6 +292,12 @@ export class Character {
         // Add the source
         this.proficiencySources[type].get(proficiency).add(source);
 
+        // Handle auto-refunding when adding a fixed proficiency
+        // Skip if the source itself indicates it's from a choice
+        if (type === 'skills' && !source.includes('Choice')) {
+            this._refundOptionalSkillIfFixed(proficiency, source);
+        }
+
         // Debug log proficiency sources for weapons and armor
         if (type === 'weapons' || type === 'armor') {
             console.log(`[Character] Current ${type} proficiency sources:`,
@@ -205,6 +305,69 @@ export class Character {
                     `${prof}: [${Array.from(sources).join(', ')}]`
                 ).join(', ')
             );
+        }
+    }
+
+    /**
+     * Automatically refund a skill selection if it's now granted as a fixed proficiency
+     * @param {string} skill - The skill being added as a fixed proficiency
+     * @param {string} source - The source adding the fixed proficiency
+     * @private
+     */
+    _refundOptionalSkillIfFixed(skill, source) {
+        // Don't refund if optional proficiencies aren't initialized yet
+        if (!this.optionalProficiencies?.skills) return;
+
+        // Normalize the skill name for case-insensitive comparison
+        const normalizedSkill = skill.toLowerCase().trim();
+
+        console.log(`[Character] Checking if ${skill} needs to be refunded (normalized: ${normalizedSkill})`);
+
+        // Check each source of optional skill selections
+        const sources = ['race', 'class', 'background'];
+        let refunded = false;
+
+        for (const src of sources) {
+            // Skip the source that's adding the fixed proficiency
+            if ((src === 'race' && source === 'Race') ||
+                (src === 'class' && source === 'Class') ||
+                (src === 'background' && source === 'Background')) {
+                continue;
+            }
+
+            // Check if this skill is in the selected list for this source (case-insensitive)
+            const selected = this.optionalProficiencies.skills[src]?.selected || [];
+            const matchingSkill = selected.find(s => s.toLowerCase().trim() === normalizedSkill);
+
+            if (matchingSkill) {
+                console.log(`[Character] Auto-refunding ${matchingSkill} from ${src} (now granted by ${source})`);
+
+                // Remove from this source's selected list
+                this.optionalProficiencies.skills[src].selected =
+                    selected.filter(s => s !== matchingSkill);
+
+                refunded = true;
+            }
+        }
+
+        // If we refunded anything, update the combined selected list
+        if (refunded) {
+            const raceSelected = this.optionalProficiencies.skills.race?.selected || [];
+            const classSelected = this.optionalProficiencies.skills.class?.selected || [];
+            const backgroundSelected = this.optionalProficiencies.skills.background?.selected || [];
+
+            this.optionalProficiencies.skills.selected =
+                [...new Set([...raceSelected, ...classSelected, ...backgroundSelected])];
+
+            // Dispatch an event to update the UI, but do it after a small delay
+            // to ensure the DOM has updated with the new proficiency
+            if (typeof document !== 'undefined') {
+                setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('proficiencyChanged', {
+                        detail: { triggerCleanup: true, refundedSkill: skill }
+                    }));
+                }, 50);
+            }
         }
     }
 
@@ -417,15 +580,11 @@ export class Character {
 
     /**
      * Add a pending ability choice
-     * @param {Object} choice - The ability choice
+     * @param {Object} choice - The ability choice object
      */
     addPendingAbilityChoice(choice) {
         console.log('[Character] Adding pending ability choice:', choice);
-        if (!this.pendingAbilityChoices) {
-            this.pendingAbilityChoices = [];
-        }
         this.pendingAbilityChoices.push(choice);
-        console.log('[Character] Current pending choices:', this.pendingAbilityChoices);
     }
 
     /**
@@ -433,12 +592,6 @@ export class Character {
      * @returns {Array} Array of pending ability choices
      */
     getPendingAbilityChoices() {
-        console.log('[Character] Getting pending ability choices');
-        if (!this.pendingAbilityChoices) {
-            console.log('[Character] No pending choices found');
-            return [];
-        }
-        console.log('[Character] Found pending choices:', this.pendingAbilityChoices);
         return this.pendingAbilityChoices;
     }
 } 

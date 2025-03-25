@@ -394,74 +394,15 @@ export class RaceManager {
     }
 
     /**
-     * Get fixed ability score improvements from race and subrace
-     * @returns {Array} Array of fixed ability score improvements
-     */
-    getFixedAbilityImprovements() {
-        const improvements = [];
-
-        if (this.selectedRace) {
-            // Get fixed improvements from main race
-            const raceImprovements = this.selectedRace.getAbilityImprovements()
-                .filter(improvement => !improvement.isChoice)
-                .map(improvement => ({
-                    ability: improvement.ability.toLowerCase(),
-                    value: improvement.amount,
-                    source: 'Race'
-                }));
-            improvements.push(...raceImprovements);
-
-            // Get fixed improvements from subrace if selected
-            if (this.selectedSubrace) {
-                const subraceImprovements = (this.selectedSubrace.ability || [])
-                    .filter(improvement => !improvement.isChoice)
-                    .map(improvement => ({
-                        ability: improvement.ability.toLowerCase(),
-                        value: improvement.amount,
-                        source: 'Subrace'
-                    }));
-                improvements.push(...subraceImprovements);
-            }
-        }
-
-        return improvements;
-    }
-
-    /**
-     * Get combined traits from race and subrace
-     * @returns {Array} Combined traits
-     */
-    getCombinedTraits() {
-        const traits = [];
-
-        if (this.selectedRace) {
-            // Filter out traits that are displayed elsewhere
-            const filteredTraits = this.selectedRace.getTraits().filter(trait => {
-                const name = trait.name?.toLowerCase() || '';
-                return !name.includes('age') && !name.includes('speed') &&
-                    !name.includes('language') && !name.includes('size');
-            });
-            traits.push(...filteredTraits);
-        }
-
-        if (this.selectedSubrace) {
-            // Filter out traits that are displayed elsewhere
-            const filteredSubraceTraits = (this.selectedSubrace.entries || []).filter(trait => {
-                const name = trait.name?.toLowerCase() || '';
-                return !name.includes('age') && !name.includes('speed') &&
-                    !name.includes('language') && !name.includes('size');
-            });
-            traits.push(...filteredSubraceTraits);
-        }
-
-        return traits;
-    }
-
-    /**
      * Get formatted ability score improvements
      * @returns {string} Formatted ability score improvements
      */
     getFormattedAbilityImprovements() {
+        // Special case for Human (PHB)
+        if (this.selectedRace?.name === 'Human' && this.selectedRace?.source === 'PHB' && !this.selectedSubrace) {
+            return '+1 all ability scores';
+        }
+
         const improvements = this.getCombinedAbilityImprovements();
         if (!improvements || improvements.length === 0) {
             return 'None';
@@ -625,6 +566,8 @@ export class RaceManager {
                 choices.push(...subraceChoices);
             }
         }
+
+        console.log('[RaceManager] Ability score choices:', choices);
         return choices;
     }
 
@@ -674,6 +617,80 @@ export class RaceManager {
      */
     processRaceOptions(raceData) {
         // Implementation of processRaceOptions method
+    }
+
+    /**
+     * Get fixed ability score improvements from race and subrace
+     * @returns {Array} Array of fixed ability score improvements
+     */
+    getFixedAbilityImprovements() {
+        const improvements = [];
+
+        // Special case for Human (PHB)
+        if (this.selectedRace?.name === 'Human' && this.selectedRace?.source === 'PHB' && !this.selectedSubrace) {
+            const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+            return abilities.map(ability => ({
+                ability: ability.toLowerCase(),
+                value: 1,
+                source: 'Race'
+            }));
+        }
+
+        if (this.selectedRace) {
+            // Get fixed improvements from main race
+            const raceImprovements = this.selectedRace.getAbilityImprovements()
+                .filter(improvement => !improvement.isChoice)
+                .map(improvement => ({
+                    ability: improvement.ability.toLowerCase(),
+                    value: improvement.amount,
+                    source: 'Race'
+                }));
+            improvements.push(...raceImprovements);
+
+            // Get fixed improvements from subrace if selected
+            if (this.selectedSubrace) {
+                const subraceImprovements = (this.selectedSubrace.ability || [])
+                    .filter(improvement => !improvement.isChoice)
+                    .map(improvement => ({
+                        ability: improvement.ability.toLowerCase(),
+                        value: improvement.amount,
+                        source: 'Subrace'
+                    }));
+                improvements.push(...subraceImprovements);
+            }
+        }
+
+        return improvements;
+    }
+
+    /**
+     * Get combined traits from race and subrace
+     * @returns {Array} Combined traits
+     */
+    getCombinedTraits() {
+        const traits = [];
+
+        if (this.selectedRace) {
+            // Filter out traits that are displayed elsewhere
+            const filteredTraits = this.selectedRace.getTraits().filter(trait => {
+                const name = trait.name?.toLowerCase() || '';
+                return !name.includes('age') && !name.includes('speed') &&
+                    !name.includes('language') && !name.includes('size');
+            });
+            traits.push(...filteredTraits);
+        }
+
+        if (this.selectedSubrace) {
+            // Filter out traits that are displayed elsewhere
+            const filteredSubraceTraits = (this.selectedSubrace.entries || []).filter(trait => {
+                const name = trait.name?.toLowerCase() || '';
+                return !name.includes('age') && !name.includes('speed') &&
+                    !name.includes('language') && !name.includes('size');
+            });
+            traits.push(...filteredSubraceTraits);
+        }
+
+        return traits;
     }
 }
 

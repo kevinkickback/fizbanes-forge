@@ -79,8 +79,19 @@ export class Background {
     getFixedProficiencies() {
         console.log(`Getting fixed proficiencies for ${this.name}:`, this.proficiencies);
 
+        // Normalize skill names to ensure consistent capitalization
+        const normalizedSkills = (this.proficiencies?.skills?.fixed || []).map(skill => {
+            // Convert lowercase "sleight of hand" to "Sleight of Hand"
+            if (skill.toLowerCase() === 'sleight of hand') {
+                return 'Sleight of Hand';
+            }
+
+            // Make sure first letter is capitalized
+            return skill.charAt(0).toUpperCase() + skill.slice(1);
+        });
+
         const result = {
-            skills: this.proficiencies?.skills?.fixed || [],
+            skills: normalizedSkills,
             tools: this.proficiencies?.tools?.fixed || []
         };
 

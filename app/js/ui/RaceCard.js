@@ -314,7 +314,7 @@ export class RaceCard {
     }
 
     /**
-     * Update character's race and subrace information
+     * Update character's race information
      * @param {Race} race - Selected race
      * @param {Subrace} subrace - Selected subrace
      * @private
@@ -323,69 +323,79 @@ export class RaceCard {
         const character = characterHandler.currentCharacter;
         if (!character) return;
 
-        const currentRace = this.raceSelect.value.split('_');
-        const savedRace = character.race || {};
-        const savedSubrace = savedRace.subrace || '';
-
-        const hasChanged = !currentRace[0] ?
-            (savedRace.name || savedRace.source) :
-            (savedRace.name !== currentRace[0] || savedRace.source !== currentRace[1] || savedSubrace !== (subrace?.name || ''));
-
-        // If race changed, clear all ability score related data
-        if (hasChanged && savedRace.name) {
-            console.log(`[RaceCard] Race changed from ${savedRace.name} to ${race?.name || 'none'}, cleaning up previous race data`);
-
-            // Log current ability bonuses before clearing
-            console.log('[RaceCard] Ability bonuses BEFORE clearing:', JSON.parse(JSON.stringify(character.abilityBonuses)));
-
-            // Clear ability bonuses from race and subrace
-            character.clearAbilityBonuses('Race');
-            character.clearAbilityBonuses('Subrace');
-
-            // Clear ALL race and subrace choice bonuses (including numbered ones)
-            for (const ability in character.abilityBonuses) {
-                character.abilityBonuses[ability] = character.abilityBonuses[ability].filter(
-                    bonus => !bonus.source.startsWith('Race Choice') && !bonus.source.startsWith('Subrace Choice')
-                );
-            }
-
-            // Log ability bonuses after clearing
-            console.log('[RaceCard] Ability bonuses AFTER clearing:', JSON.parse(JSON.stringify(character.abilityBonuses)));
-
-            // Clear pending ability choices
-            character.clearPendingAbilityChoices();
-
-            // Clear any ability choice selections stored in the ability score manager
-            this.raceManager.clearAbilityChoiceSelections();
-
-            // Clear race-sourced proficiencies
-            character.removeProficienciesBySource('Race');
-            character.removeProficienciesBySource('Subrace');
-        }
+        // Check if race has changed
+        const hasChanged = !race ?
+            (character.race?.name || character.race?.source) :
+            (character.race?.name !== race.name ||
+                character.race?.source !== race.source ||
+                character.race?.subrace !== (subrace?.name || ''));
 
         if (hasChanged) {
-            // Update the character's race information
+            console.log(`[RaceCard] Race changed from ${character.race?.name || 'none'} to ${race?.name || 'none'}`);
+
+            // Clear previous race proficiencies, ability bonuses, and traits
+            character.removeProficienciesBySource('Race');
+            character.clearAbilityBonuses('Race');
+            character.clearTraits('Race');
+
+            // Remove subrace proficiencies, ability bonuses, and traits
+            character.removeProficienciesBySource('Subrace');
+            character.clearAbilityBonuses('Subrace');
+            character.clearTraits('Subrace');
+
+            // Notify UI to clear optional proficiencies from race
+            document.dispatchEvent(new CustomEvent('proficienciesRemoved', {
+                detail: { source: 'Race' }
+            }));
+
             if (!race) {
-                character.race = {};
+                // Clear race
+                character.race = {
+                    name: '',
+                    source: '',
+                    subrace: ''
+                };
+
+                // Clear racial traits
+                character.features.darkvision = 0;
+                character.features.resistances.clear();
             } else {
+                // Set race
                 character.race = {
                     name: race.name,
                     source: race.source,
-                    subrace: subrace?.name || null
+                    subrace: subrace?.name || ''
                 };
+
+                // Update character size and speed
+                character.size = race.size;
+                character.speed = { ...race.speed };
+
+                // Update ability scores
+                this._updateAbilityBonuses(race, subrace);
+
+                // Add traits
+                this._updateRacialTraits(race, subrace);
+
+                // Add proficiencies
+                this._updateRaceProficiencies(race, subrace);
+
+                // Force a refresh after a short delay to ensure everything is updated
+                setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('proficiencyChanged', {
+                        detail: { triggerCleanup: true, forcedRefresh: true }
+                    }));
+                }, 100);
             }
 
-            characterHandler.showUnsavedChanges();
+            // Trigger an event to update the UI
+            document.dispatchEvent(new CustomEvent('raceChanged', { detail: { race, subrace } }));
+            document.dispatchEvent(new CustomEvent('characterChanged'));
+            document.dispatchEvent(new CustomEvent('abilityScoresChanged', { detail: { character } }));
+
+            // Clear pending ability choices from race
+            character.clearPendingChoicesByType('ability');
         }
-
-        // Add the new race's ability bonuses
-        this._updateAbilityBonuses(race, subrace);
-
-        // Add the new race's proficiencies
-        this._updateRaceProficiencies(race, subrace);
-
-        // Trigger an event to update the UI
-        document.dispatchEvent(new CustomEvent('characterChanged'));
     }
 
     /**
@@ -400,23 +410,54 @@ export class RaceCard {
 
         console.log(`[RaceCard] Adding proficiencies for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
 
-        // Add language proficiencies
-        const languageProficiencies = race.getLanguageProficiencies();
-        if (languageProficiencies) {
-            for (const proficiency of languageProficiencies) {
-                // Handle standard languages
-                for (const [language, value] of Object.entries(proficiency)) {
-                    if (value === true && language !== 'anyStandard' && language !== 'other') {
-                        const capitalizedLanguage = language.charAt(0).toUpperCase() + language.slice(1);
-                        character.addProficiency('languages', capitalizedLanguage, 'Race');
-                    }
-                }
+        // Store previously selected proficiencies to restore valid ones later
+        const previousRaceSkills = character.optionalProficiencies.skills.race?.selected || [];
+        const previousRaceLanguages = character.optionalProficiencies.languages.race?.selected || [];
+        const previousRaceTools = character.optionalProficiencies.tools.race?.selected || [];
 
-                // Handle choices
-                if (proficiency.anyStandard && proficiency.anyStandard > 0) {
-                    character.optionalProficiencies.languages.allowed = proficiency.anyStandard;
-                    character.optionalProficiencies.languages.selected = [];
+        // Reset race proficiency options
+        character.optionalProficiencies.skills.race.allowed = 0;
+        character.optionalProficiencies.skills.race.options = [];
+        character.optionalProficiencies.skills.race.selected = [];
+
+        character.optionalProficiencies.languages.race.allowed = 0;
+        character.optionalProficiencies.languages.race.options = [];
+        character.optionalProficiencies.languages.race.selected = [];
+
+        character.optionalProficiencies.tools.race.allowed = 0;
+        character.optionalProficiencies.tools.race.options = [];
+        character.optionalProficiencies.tools.race.selected = [];
+
+        // Add language proficiencies
+        if (race.languages) {
+            // Handle fixed languages
+            for (const [language, value] of Object.entries(race.languages)) {
+                if (value === true && language !== 'anyStandard' && language !== 'any') {
+                    const capitalizedLanguage = language.charAt(0).toUpperCase() + language.slice(1);
+                    character.addProficiency('languages', capitalizedLanguage, 'Race');
+                    console.log(`[RaceCard] Added language: ${capitalizedLanguage}`);
                 }
+            }
+
+            // Handle any language choices
+            if ((race.languages.anyStandard && race.languages.anyStandard > 0) ||
+                (race.languages.any && race.languages.any > 0)) {
+                const languageCount = race.languages.anyStandard || race.languages.any || 0;
+                const languageOptions = [
+                    'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
+                    'Halfling', 'Orc', 'Abyssal', 'Celestial', 'Draconic',
+                    'Deep Speech', 'Infernal', 'Primordial', 'Sylvan', 'Undercommon'
+                ];
+
+                character.optionalProficiencies.languages.race.allowed = languageCount;
+                character.optionalProficiencies.languages.race.options = languageOptions;
+
+                // Restore valid selections
+                character.optionalProficiencies.languages.race.selected = previousRaceLanguages.filter(
+                    lang => languageOptions.includes(lang)
+                );
+
+                console.log(`[RaceCard] Added ${languageCount} language choices`);
             }
         }
 
@@ -429,37 +470,206 @@ export class RaceCard {
                         const weaponName = weapon.split('|')[0];
                         const capitalizedWeapon = weaponName.charAt(0).toUpperCase() + weaponName.slice(1);
                         character.addProficiency('weapons', capitalizedWeapon, 'Race');
+                        console.log(`[RaceCard] Added weapon proficiency: ${capitalizedWeapon}`);
                     }
                 }
             }
         }
+
+        // Handle tool proficiencies if available
+        if (race.toolProficiencies && Array.isArray(race.toolProficiencies)) {
+            for (const profObj of race.toolProficiencies) {
+                // Handle fixed tool proficiencies
+                for (const [tool, hasProf] of Object.entries(profObj)) {
+                    if (hasProf === true && tool !== 'any') {
+                        const capitalizedTool = tool.charAt(0).toUpperCase() + tool.slice(1);
+                        character.addProficiency('tools', capitalizedTool, 'Race');
+                        console.log(`[RaceCard] Added tool proficiency: ${capitalizedTool}`);
+                    }
+                }
+
+                // Handle "any" tool proficiency choice
+                if (profObj.any && profObj.any > 0) {
+                    character.optionalProficiencies.tools.race.allowed = profObj.any;
+
+                    // Set standard tools as options
+                    character.optionalProficiencies.tools.race.options = [
+                        'Alchemist\'s supplies', 'Brewer\'s supplies', 'Calligrapher\'s supplies',
+                        'Carpenter\'s tools', 'Cartographer\'s tools', 'Cobbler\'s tools',
+                        'Cook\'s utensils', 'Glassblower\'s tools', 'Jeweler\'s tools',
+                        'Leatherworker\'s tools', 'Mason\'s tools', 'Painter\'s supplies',
+                        'Potter\'s tools', 'Smith\'s tools', 'Tinker\'s tools',
+                        'Weaver\'s tools', 'Woodcarver\'s tools', 'Disguise kit',
+                        'Forgery kit', 'Herbalism kit', 'Navigator\'s tools',
+                        'Poisoner\'s kit', 'Thieves\' tools', 'Musical instrument'
+                    ];
+
+                    // Restore valid selections
+                    character.optionalProficiencies.tools.race.selected = previousRaceTools.filter(
+                        tool => character.optionalProficiencies.tools.race.options.includes(tool)
+                    );
+
+                    console.log(`[RaceCard] Added ${profObj.any} tool choices`);
+                }
+            }
+        }
+
+        // Calculate race skill proficiency count and options
+        let raceSkillCount = 0;
+        let raceSkillOptions = [];
 
         // Handle skill proficiencies if available
         if (race.skillProficiencies && Array.isArray(race.skillProficiencies)) {
             for (const profObj of race.skillProficiencies) {
+                // Handle "any" skill proficiency choice
+                if (profObj.any) {
+                    raceSkillCount += profObj.any;
+
+                    // Add all skills as options for "any" choice
+                    raceSkillOptions = [
+                        'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
+                        'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine',
+                        'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion',
+                        'Sleight of Hand', 'Stealth', 'Survival'
+                    ];
+                    console.log(`[RaceCard] Adding "any" skill choice for ${race.name}: allowed=${profObj.any}`);
+                    continue;
+                }
+
+                // Handle fixed skill proficiencies
                 for (const [skill, hasProf] of Object.entries(profObj)) {
                     if (hasProf === true && skill !== 'choose') {
                         const capitalizedSkill = skill.charAt(0).toUpperCase() + skill.slice(1);
                         character.addProficiency('skills', capitalizedSkill, 'Race');
+                        console.log(`[RaceCard] Added skill proficiency: ${capitalizedSkill}`);
                     }
                 }
 
-                // Handle skill choices
+                // Handle skill choices with specific options
                 if (profObj.choose && profObj.choose.count > 0) {
-                    character.optionalProficiencies.skills.allowed = profObj.choose.count;
-                    character.optionalProficiencies.skills.selected = [];
+                    raceSkillCount += profObj.choose.count;
 
                     // Set available skill options if they exist in the race data
                     if (profObj.choose.from && Array.isArray(profObj.choose.from)) {
-                        character.optionalProficiencies.skills.options = profObj.choose.from.map(skill => {
+                        const capitalizedOptions = profObj.choose.from.map(skill => {
                             // Capitalize first letter to maintain consistency
                             return skill.charAt(0).toUpperCase() + skill.slice(1);
                         });
-                        console.log(`[RaceCard] Set skill options for race: ${character.optionalProficiencies.skills.options.join(', ')}`);
+                        raceSkillOptions.push(...capitalizedOptions);
+                        console.log(`[RaceCard] Adding specific skill options for race: ${capitalizedOptions.join(', ')}`);
                     }
                 }
             }
         }
+
+        // Special case for Human Variant - always 1 skill of any choice
+        if (race.name === "Human" && race.source === "PHB" && subrace && subrace.name === "Variant") {
+            console.log('[RaceCard] Setting up Human Variant skill proficiency');
+
+            // Human Variant has 1 skill of any choice
+            raceSkillCount = 1;
+
+            // All skills are valid options
+            raceSkillOptions = [
+                'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
+                'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine',
+                'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion',
+                'Sleight of Hand', 'Stealth', 'Survival'
+            ];
+
+            console.log('[RaceCard] Human Variant skill options set:', raceSkillOptions);
+        }
+
+        // Update race-specific skill options and count
+        if (raceSkillCount > 0) {
+            character.optionalProficiencies.skills.race.allowed = raceSkillCount;
+            character.optionalProficiencies.skills.race.options = raceSkillOptions;
+
+            // Restore any valid race selections
+            character.optionalProficiencies.skills.race.selected = previousRaceSkills.filter(
+                skill => raceSkillOptions.includes(skill)
+            );
+        }
+
+        // Update combined options for all proficiency types
+        this._updateCombinedProficiencyOptions(character);
+
+        // Notify UI to update proficiencies
+        document.dispatchEvent(new CustomEvent('proficiencyChanged'));
+    }
+
+    /**
+     * Updates the combined proficiency options from race, class, and background
+     * @param {Character} character - The character object
+     * @private
+     */
+    _updateCombinedProficiencyOptions(character) {
+        if (!character) return;
+
+        // Update skill options
+        this._updateCombinedSkillOptions(character);
+
+        // Update language options
+        const raceLanguageAllowed = character.optionalProficiencies.languages.race?.allowed || 0;
+        const classLanguageAllowed = character.optionalProficiencies.languages.class?.allowed || 0;
+        const backgroundLanguageAllowed = character.optionalProficiencies.languages.background?.allowed || 0;
+
+        const raceLanguageOptions = character.optionalProficiencies.languages.race?.options || [];
+        const classLanguageOptions = character.optionalProficiencies.languages.class?.options || [];
+        const backgroundLanguageOptions = character.optionalProficiencies.languages.background?.options || [];
+
+        const raceLanguageSelected = character.optionalProficiencies.languages.race?.selected || [];
+        const classLanguageSelected = character.optionalProficiencies.languages.class?.selected || [];
+        const backgroundLanguageSelected = character.optionalProficiencies.languages.background?.selected || [];
+
+        // Update total allowed count for languages
+        character.optionalProficiencies.languages.allowed = raceLanguageAllowed + classLanguageAllowed + backgroundLanguageAllowed;
+
+        // Combine selected languages from all sources
+        character.optionalProficiencies.languages.selected = [...new Set([...raceLanguageSelected, ...classLanguageSelected, ...backgroundLanguageSelected])];
+
+        // For combined options, include language options from all sources
+        character.optionalProficiencies.languages.options = [...new Set([...raceLanguageOptions, ...classLanguageOptions, ...backgroundLanguageOptions])];
+
+        console.log('[RaceCard] Updated combined language options:', {
+            raceLanguageOptions,
+            classLanguageOptions,
+            backgroundLanguageOptions,
+            combinedOptions: character.optionalProficiencies.languages.options,
+            allowed: character.optionalProficiencies.languages.allowed,
+            selected: character.optionalProficiencies.languages.selected
+        });
+
+        // Update tool options
+        const raceToolAllowed = character.optionalProficiencies.tools.race?.allowed || 0;
+        const classToolAllowed = character.optionalProficiencies.tools.class?.allowed || 0;
+        const backgroundToolAllowed = character.optionalProficiencies.tools.background?.allowed || 0;
+
+        const raceToolOptions = character.optionalProficiencies.tools.race?.options || [];
+        const classToolOptions = character.optionalProficiencies.tools.class?.options || [];
+        const backgroundToolOptions = character.optionalProficiencies.tools.background?.options || [];
+
+        const raceToolSelected = character.optionalProficiencies.tools.race?.selected || [];
+        const classToolSelected = character.optionalProficiencies.tools.class?.selected || [];
+        const backgroundToolSelected = character.optionalProficiencies.tools.background?.selected || [];
+
+        // Update total allowed count for tools
+        character.optionalProficiencies.tools.allowed = raceToolAllowed + classToolAllowed + backgroundToolAllowed;
+
+        // Combine selected tools from all sources
+        character.optionalProficiencies.tools.selected = [...new Set([...raceToolSelected, ...classToolSelected, ...backgroundToolSelected])];
+
+        // For combined options, include tool options from all sources
+        character.optionalProficiencies.tools.options = [...new Set([...raceToolOptions, ...classToolOptions, ...backgroundToolOptions])];
+
+        console.log('[RaceCard] Updated combined tool options:', {
+            raceToolOptions,
+            classToolOptions,
+            backgroundToolOptions,
+            combinedOptions: character.optionalProficiencies.tools.options,
+            allowed: character.optionalProficiencies.tools.allowed,
+            selected: character.optionalProficiencies.tools.selected
+        });
     }
 
     /**
@@ -474,10 +684,20 @@ export class RaceCard {
 
         console.log(`[RaceCard] Adding ability bonuses for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
 
+        // Clear existing ability bonuses from race and subrace
+        character.clearAbilityBonuses('Race');
+        character.clearAbilityBonuses('Subrace');
+        character.clearPendingAbilityChoices();
+
         // Add fixed ability improvements
         const fixedImprovements = this.raceManager.getFixedAbilityImprovements();
         for (const improvement of fixedImprovements) {
-            if (!subrace || improvement.source !== 'Subrace') {
+            // Always apply race improvements
+            if (improvement.source === 'Race') {
+                character.addAbilityBonus(improvement.ability, improvement.value, improvement.source);
+            }
+            // Apply subrace improvements if there is a subrace
+            if (subrace && improvement.source === 'Subrace') {
                 character.addAbilityBonus(improvement.ability, improvement.value, improvement.source);
             }
         }
@@ -485,7 +705,12 @@ export class RaceCard {
         // Add ability score choices
         const choices = this.raceManager.getAbilityScoreChoices();
         for (const choice of choices) {
-            if (!subrace || choice.source !== 'Subrace Choice') {
+            // Always apply race choices
+            if (choice.source.startsWith('Race Choice')) {
+                character.addPendingAbilityChoice(choice);
+            }
+            // Apply subrace choices if there is a subrace
+            if (subrace && choice.source.startsWith('Subrace Choice')) {
                 character.addPendingAbilityChoice(choice);
             }
         }
@@ -494,5 +719,98 @@ export class RaceCard {
         document.dispatchEvent(new CustomEvent('abilityScoresChanged', {
             detail: { character }
         }));
+    }
+
+    /**
+     * Update character's traits based on race and subrace
+     * @param {Race} race - Selected race
+     * @param {Subrace} subrace - Selected subrace
+     * @private
+     */
+    _updateRacialTraits(race, subrace) {
+        const character = characterHandler.currentCharacter;
+        if (!character || !race) return;
+
+        console.log(`[RaceCard] Adding traits for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
+
+        // Update darkvision if applicable
+        if (race.darkvision) {
+            const darkvisionRange = typeof race.darkvision === 'number' ? race.darkvision : 60;
+            character.features.darkvision = darkvisionRange;
+            console.log(`[RaceCard] Added darkvision with range ${darkvisionRange}`);
+        }
+
+        // Add resistances if applicable
+        if (race.resist) {
+            const resistances = Array.isArray(race.resist) ? race.resist : [race.resist];
+            for (const resistance of resistances) {
+                character.addResistance(resistance, 'Race');
+                console.log(`[RaceCard] Added resistance: ${resistance}`);
+            }
+        }
+
+        // Add traits
+        const traits = this.raceManager.getCombinedTraits();
+        if (traits && traits.length > 0) {
+            for (const trait of traits) {
+                // Handle different trait formats
+                if (typeof trait === 'string') {
+                    character.addTrait(trait, trait, 'Race');
+                    console.log(`[RaceCard] Added trait: ${trait}`);
+                } else if (trait.name || trait.text) {
+                    const name = trait.name || trait.text;
+                    const description = trait.entries ?
+                        (Array.isArray(trait.entries) ? trait.entries.join('\n') : trait.entries) :
+                        name;
+                    character.addTrait(name, description, 'Race');
+                    console.log(`[RaceCard] Added trait: ${name}`);
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates the combined skill options from race, class, and background
+     * @param {Character} character - The character object
+     * @private
+     */
+    _updateCombinedSkillOptions(character) {
+        if (!character) return;
+
+        const raceAllowed = character.optionalProficiencies.skills.race?.allowed || 0;
+        const classAllowed = character.optionalProficiencies.skills.class?.allowed || 0;
+        const backgroundAllowed = character.optionalProficiencies.skills.background?.allowed || 0;
+
+        const raceOptions = character.optionalProficiencies.skills.race?.options || [];
+        const classOptions = character.optionalProficiencies.skills.class?.options || [];
+        const backgroundOptions = character.optionalProficiencies.skills.background?.options || [];
+
+        const raceSelected = character.optionalProficiencies.skills.race?.selected || [];
+        const classSelected = character.optionalProficiencies.skills.class?.selected || [];
+        const backgroundSelected = character.optionalProficiencies.skills.background?.selected || [];
+
+        // Update total allowed count
+        character.optionalProficiencies.skills.allowed = raceAllowed + classAllowed + backgroundAllowed;
+
+        // Combine selected skills from all sources
+        character.optionalProficiencies.skills.selected = [...new Set([...raceSelected, ...classSelected, ...backgroundSelected])];
+
+        // For combined options, include options from all sources
+        character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
+
+        console.log('[RaceCard] Updated combined skill options:', {
+            raceOptions,
+            classOptions,
+            backgroundOptions,
+            combinedOptions: character.optionalProficiencies.skills.options,
+            raceAllowed,
+            classAllowed,
+            backgroundAllowed,
+            combinedAllowed: character.optionalProficiencies.skills.allowed,
+            raceSelected,
+            classSelected,
+            backgroundSelected,
+            combinedSelected: character.optionalProficiencies.skills.selected
+        });
     }
 }

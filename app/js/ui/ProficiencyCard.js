@@ -156,7 +156,7 @@ export class ProficiencyCard {
                 const isDefault = item.classList.contains('default');
 
                 if ((isSelectable || isOptionalSelected) && !isDefault) {
-                    this.toggleOptionalProficiency(typeAttr, proficiency, item);
+                    this.toggleOptionalProficiency(item);
                 }
             });
         }
@@ -228,78 +228,206 @@ export class ProficiencyCard {
     }
 
     /**
-     * Handle proficiency change events
-     * @private
+     * Handle proficiency changed event
+     * @param {Event} event - Event object
      */
     handleProficiencyChanged(event) {
         if (!this.character) return;
 
-        // If this is a proficiency removal event, clean up optional proficiencies
-        if (event.type === 'proficienciesRemoved') {
-            const source = event.detail?.source;
-            if (source) {
-                this.clearOptionalProficienciesBySource(source);
+        console.log('[ProficiencyCard] Proficiency changed event received', {
+            type: event.type,
+            detail: event.detail,
+            currentSkillOptions: this.character.optionalProficiencies?.skills?.options || [],
+            skillsAllowed: this.character.optionalProficiencies?.skills?.allowed || 0,
+            skillsSelected: this.character.optionalProficiencies?.skills?.selected || []
+        });
+
+        try {
+            // If this is a proficiency removal event, clean up optional proficiencies
+            if (event.type === 'proficienciesRemoved') {
+                const source = event.detail?.source;
+                if (source) {
+                    console.log(`[ProficiencyCard] Handling proficienciesRemoved event for source: ${source}`);
+                    this.clearOptionalProficienciesBySource(source);
+                }
             }
+
+            // If a skill was refunded, show a notification
+            if (event.detail?.refundedSkill) {
+                const skill = event.detail.refundedSkill;
+                console.log(`[ProficiencyCard] Skill ${skill} was automatically granted and has been refunded. User can select a different skill.`);
+                this._showRefundNotification(skill);
+            }
+
+            // If event detail includes triggerCleanup flag, first clean up any proficiencies
+            // that might have become fixed
+            if (event.detail?.triggerCleanup) {
+                console.log('[ProficiencyCard] Trigger cleanup requested, cleaning optional proficiencies');
+                this.cleanupOptionalProficiencies();
+            }
+
+            // If a forced refresh was requested, recalculate everything
+            if (event.detail?.forcedRefresh) {
+                console.log('[ProficiencyCard] Forced refresh requested, updating combined skill options');
+                this._updateCombinedSkillOptions();
+            }
+
+            // Update proficiency containers
+            this.populateProficiencyContainers();
+            this.updateProficiencyNotes();
+        } catch (error) {
+            console.error('Error handling proficiency changed event:', error);
         }
-
-        // First check if any optionally selected proficiencies should be removed
-        this.cleanupOptionalProficiencies();
-
-        // Then update the UI
-        this.populateProficiencyContainers();
-        this.updateProficiencyNotes();
     }
 
     /**
-     * Clear optional proficiency selections associated with a specific source
-     * @param {string} source - The source to clear (e.g., 'Background', 'Race', 'Class')
+     * Show a notification when a skill has been refunded
+     * @param {string} skill - The skill that was refunded
      * @private
      */
+    _showRefundNotification(skill) {
+        console.log(`[ProficiencyCard] Skill ${skill} was automatically granted and has been refunded. User can select a different skill.`);
+
+        // We don't need animations or visual notifications as requested by the user
+        // Just make sure we refresh the display
+        this.populateProficiencyContainers();
+    }
+
+    /**
+     * Clear optional proficiencies from a specific source
+     * @param {string} source - The source to clear (Race, Class, Background)
+     */
     clearOptionalProficienciesBySource(source) {
-        if (!this.character || !this.character.optionalProficiencies) return;
+        if (!this.character) return;
 
-        console.log(`[ProficiencyCard] Clearing optional proficiencies for source: ${source}`);
+        console.log(`[ProficiencyCard] Clearing optional proficiencies for ${source}`);
 
-        // Check if we need to reset allowed count and selected proficiencies
-        // For background and race changes, clear their optional proficiencies
-        if (source === 'Background') {
-            // Clear background optional proficiencies (languages, tools, skills)
-            for (const type of ['languages', 'tools', 'skills']) {
-                if (this.character.optionalProficiencies[type]) {
-                    console.log(`[ProficiencyCard] Clearing ${type} optional proficiencies for ${source}`);
-                    // Reset allowed count to 0 and clear selections
-                    this.character.optionalProficiencies[type].allowed = 0;
-                    this.character.optionalProficiencies[type].selected = [];
-                }
+        // Handle each source type specifically
+        if (source === 'Race' || source === 'Subrace') {
+            // Clear race optional proficiencies
+            // For skills, only clear race skill options and selections
+            if (this.character.optionalProficiencies.skills) {
+                console.log('[ProficiencyCard] Clearing race skill proficiencies');
+
+                // Reset race skill options and selections
+                this.character.optionalProficiencies.skills.race.allowed = 0;
+                this.character.optionalProficiencies.skills.race.options = [];
+                this.character.optionalProficiencies.skills.race.selected = [];
+
+                // Update combined options
+                this._updateCombinedSkillOptions();
             }
-        } else if (source === 'Race' || source === 'Subrace') {
-            // Clear race optional proficiencies (typically languages, sometimes skills)
-            for (const type of ['languages', 'skills']) {
-                if (this.character.optionalProficiencies[type]) {
-                    console.log(`[ProficiencyCard] Clearing ${type} optional proficiencies for ${source}`);
-                    // Only reset Race (not Subrace) optional proficiencies
-                    // This is so we don't clear language choices when the race has its own
-                    if (source === 'Race') {
-                        // We're only clearing the selections, not setting allowed to 0
-                        // because the new race might set a new allowed count right afterward
-                        this.character.optionalProficiencies[type].selected = [];
-                    }
-                }
+
+            // Reset languages
+            if (this.character.optionalProficiencies.languages) {
+                this.character.optionalProficiencies.languages.allowed = 0;
+                this.character.optionalProficiencies.languages.selected = [];
             }
-        } else if (source === 'Class') {
-            // Clear class optional proficiencies (typically skills, sometimes tools)
-            for (const type of ['skills', 'tools']) {
+        }
+        else if (source === 'Class' || source === 'Subclass') {
+            // Clear class optional proficiencies
+            // For skills, only clear class skill options
+            if (this.character.optionalProficiencies.skills) {
+                console.log('[ProficiencyCard] Clearing class skill proficiencies');
+
+                // Reset class skill options and selections
+                this.character.optionalProficiencies.skills.class.allowed = 0;
+                this.character.optionalProficiencies.skills.class.options = [];
+                this.character.optionalProficiencies.skills.class.selected = [];
+
+                // Update combined options
+                this._updateCombinedSkillOptions();
+            }
+
+            // Reset tools
+            if (this.character.optionalProficiencies.tools) {
+                this.character.optionalProficiencies.tools.allowed = 0;
+                this.character.optionalProficiencies.tools.selected = [];
+            }
+
+            // Clear armor and weapon choices too
+            if (this.character.optionalProficiencies.armor) {
+                this.character.optionalProficiencies.armor.allowed = 0;
+                this.character.optionalProficiencies.armor.selected = [];
+            }
+
+            if (this.character.optionalProficiencies.weapons) {
+                this.character.optionalProficiencies.weapons.allowed = 0;
+                this.character.optionalProficiencies.weapons.selected = [];
+            }
+        }
+        else if (source === 'Background') {
+            // Clear background optional proficiencies
+            // For skills, only clear background skill choices
+            if (this.character.optionalProficiencies.skills) {
+                console.log('[ProficiencyCard] Clearing background skill proficiencies');
+
+                // Reset background skill options
+                this.character.optionalProficiencies.skills.background.allowed = 0;
+                this.character.optionalProficiencies.skills.background.options = [];
+                this.character.optionalProficiencies.skills.background.selected = [];
+
+                // Update combined options
+                this._updateCombinedSkillOptions();
+            }
+
+            // Clear tool and language choices
+            for (const type of ['languages', 'tools']) {
                 if (this.character.optionalProficiencies[type]) {
-                    console.log(`[ProficiencyCard] Clearing ${type} optional proficiencies for ${source}`);
-                    // Reset allowed count to 0 and clear selections
                     this.character.optionalProficiencies[type].allowed = 0;
                     this.character.optionalProficiencies[type].selected = [];
                 }
             }
         }
 
-        // Mark unsaved changes if we modified anything
+        // Mark unsaved changes
         this.markUnsavedChanges();
+    }
+
+    /**
+     * Updates the combined skill options from race, class, and background
+     * @private
+     */
+    _updateCombinedSkillOptions() {
+        if (!this.character) return;
+
+        const raceAllowed = this.character.optionalProficiencies.skills.race?.allowed || 0;
+        const classAllowed = this.character.optionalProficiencies.skills.class?.allowed || 0;
+        const backgroundAllowed = this.character.optionalProficiencies.skills.background?.allowed || 0;
+
+        const raceOptions = this.character.optionalProficiencies.skills.race?.options || [];
+        const classOptions = this.character.optionalProficiencies.skills.class?.options || [];
+        const backgroundOptions = this.character.optionalProficiencies.skills.background?.options || [];
+
+        const raceSelected = this.character.optionalProficiencies.skills.race?.selected || [];
+        const classSelected = this.character.optionalProficiencies.skills.class?.selected || [];
+        const backgroundSelected = this.character.optionalProficiencies.skills.background?.selected || [];
+
+        // Update total allowed count
+        this.character.optionalProficiencies.skills.allowed = raceAllowed + classAllowed + backgroundAllowed;
+
+        // Combine selected skills from all sources
+        this.character.optionalProficiencies.skills.selected =
+            [...new Set([...raceSelected, ...classSelected, ...backgroundSelected])];
+
+        // For combined options, include options from all sources
+        this.character.optionalProficiencies.skills.options =
+            [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
+
+        console.log('[ProficiencyCard] Updated combined skill options:', {
+            raceOptions,
+            classOptions,
+            backgroundOptions,
+            combinedOptions: this.character.optionalProficiencies.skills.options,
+            raceAllowed,
+            classAllowed,
+            backgroundAllowed,
+            combinedAllowed: this.character.optionalProficiencies.skills.allowed,
+            raceSelected,
+            classSelected,
+            backgroundSelected,
+            combinedSelected: this.character.optionalProficiencies.skills.selected
+        });
     }
 
     /**
@@ -315,6 +443,18 @@ export class ProficiencyCard {
 
             // Get available options for this proficiency type
             const availableOptions = await this.getAvailableOptions(type);
+
+            // Debug logging for skill options
+            if (type === 'weapons' || type === 'armor') {
+                console.log(`[ProficiencyCard] Current ${type} proficiencies:`, this.character.proficiencies[type]);
+                if (this.character.proficiencySources[type]) {
+                    console.log(`[ProficiencyCard] Current ${type} sources:`,
+                        Array.from(this.character.proficiencySources[type].entries()).map(([prof, sources]) =>
+                            `${prof}: [${Array.from(sources).join(', ')}]`
+                        ).join(', ')
+                    );
+                }
+            }
 
             // Handle selection counter in section header
             const header = container.closest('.proficiency-section')?.querySelector('h6');
@@ -333,15 +473,19 @@ export class ProficiencyCard {
                 }
             }
 
-            // Build the container HTML
+            // Build the container content
             let containerHtml = '';
-            for (const item of availableOptions || []) {
+            for (const item of availableOptions) {
+                // Check if this proficiency is already selected
                 const isProficient = this.character.proficiencies[type].includes(item);
-                const isOptionallySelected = Array.isArray(this.character?.optionalProficiencies?.[type]?.selected) &&
-                    this.character.optionalProficiencies[type].selected.includes(item);
+
+                // Check if this is an optionally selected proficiency
+                const isOptionallySelected = this.character?.optionalProficiencies?.[type]?.selected?.includes(item) || false;
+
+                // Check if this is a default proficiency (always selected)
                 const isDefault = this.defaultProficiencies[type]?.includes(item);
 
-                // Check if this proficiency is granted by race/class/background
+                // Check if this proficiency is granted by a source like race/background
                 const isGranted = this.isGrantedBySource(type, item);
 
                 // Check if there are optional proficiencies allowed for this type
@@ -349,24 +493,104 @@ export class ProficiencyCard {
                 const selectedCount = this.character?.optionalProficiencies?.[type]?.selected?.length || 0;
                 const allSlotsFilled = optionalCount > 0 && selectedCount >= optionalCount;
 
-                let canSelect = optionalCount > 0 &&
-                    !isDefault &&
-                    !isGranted &&
-                    !isOptionallySelected &&
-                    !allSlotsFilled;
+                // Default value for canSelect - will be updated for skills below
+                let canSelect = this.isProficiencyAvailable(type, item) && !isDefault && !isGranted && !isOptionallySelected;
 
-                // For skills, also check if it's in the options list
-                if (canSelect && type === 'skills' &&
-                    Array.isArray(this.character.optionalProficiencies?.skills?.options) &&
-                    this.character.optionalProficiencies.skills.options.length > 0) {
-                    canSelect = this.character.optionalProficiencies.skills.options.includes(item);
-                }
+                // For skills, we need to check both race and class options
+                if (type === 'skills') {
+                    // Get race, class, and background skill info
+                    const raceOptions = this.character.optionalProficiencies.skills.race?.options || [];
+                    const classOptions = this.character.optionalProficiencies.skills.class?.options || [];
+                    const backgroundOptions = this.character.optionalProficiencies.skills.background?.options || [];
 
-                // Special handling for language categories
-                let languageClass = '';
-                if (type === 'languages') {
-                    const isStandard = ['Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc'].includes(item);
-                    languageClass = isStandard ? 'normal-language' : 'exotic-language';
+                    const raceSelected = this.character.optionalProficiencies.skills.race?.selected || [];
+                    const classSelected = this.character.optionalProficiencies.skills.class?.selected || [];
+                    const backgroundSelected = this.character.optionalProficiencies.skills.background?.selected || [];
+
+                    const raceAllowed = this.character.optionalProficiencies.skills.race?.allowed || 0;
+                    const classAllowed = this.character.optionalProficiencies.skills.class?.allowed || 0;
+                    const backgroundAllowed = this.character.optionalProficiencies.skills.background?.allowed || 0;
+
+                    // Check if all slots for each source are filled
+                    const raceSlotsFilled = raceSelected.length >= raceAllowed;
+                    const classSlotsFilled = classSelected.length >= classAllowed;
+                    const backgroundSlotsFilled = backgroundSelected.length >= backgroundAllowed;
+
+                    // Determine which set of options should be available
+                    let availableOptions = [];
+
+                    // If all slots are filled, no options are available
+                    if (raceSlotsFilled && classSlotsFilled && backgroundSlotsFilled) {
+                        availableOptions = [];
+                    }
+                    // If race slots are filled but others are not
+                    else if (raceSlotsFilled && !classSlotsFilled && !backgroundSlotsFilled) {
+                        availableOptions = [...new Set([...classOptions, ...backgroundOptions])];
+                    }
+                    // If class slots are filled but others are not
+                    else if (classSlotsFilled && !raceSlotsFilled && !backgroundSlotsFilled) {
+                        availableOptions = [...new Set([...raceOptions, ...backgroundOptions])];
+                    }
+                    // If background slots are filled but others are not
+                    else if (backgroundSlotsFilled && !raceSlotsFilled && !classSlotsFilled) {
+                        availableOptions = [...new Set([...raceOptions, ...classOptions])];
+                    }
+                    // If only race slots are available
+                    else if (!raceSlotsFilled && classSlotsFilled && backgroundSlotsFilled) {
+                        availableOptions = [...raceOptions];
+                    }
+                    // If only class slots are available
+                    else if (raceSlotsFilled && !classSlotsFilled && backgroundSlotsFilled) {
+                        availableOptions = [...classOptions];
+                    }
+                    // If only background slots are available
+                    else if (raceSlotsFilled && classSlotsFilled && !backgroundSlotsFilled) {
+                        availableOptions = [...backgroundOptions];
+                    }
+                    // If multiple sources have available slots
+                    else {
+                        // Include options from all sources that have available slots
+                        availableOptions = [...new Set([
+                            ...(raceSlotsFilled ? [] : raceOptions),
+                            ...(classSlotsFilled ? [] : classOptions),
+                            ...(backgroundSlotsFilled ? [] : backgroundOptions)
+                        ])];
+                    }
+
+                    // Check if this skill is in the available options
+                    const isAvailableOption = availableOptions.includes(item);
+
+                    // A skill is selectable if:
+                    // 1. It's in the available options
+                    // 2. It's not already selected
+                    // 3. It's not a default or granted proficiency
+                    canSelect = isAvailableOption &&
+                        !isDefault &&
+                        !isGranted &&
+                        !isOptionallySelected;
+
+                    // Debugging for key skills
+                    if (['Athletics', 'Acrobatics', 'Stealth', 'Perception', 'Animal Handling', 'Intimidation', 'Nature', 'Survival'].includes(item)) {
+                        console.log(`[ProficiencyCard] Skill ${item} details:`, {
+                            inRaceOptions: raceOptions.includes(item),
+                            inClassOptions: classOptions.includes(item),
+                            inBackgroundOptions: backgroundOptions.includes(item),
+                            isAvailableOption,
+                            raceSlotsFilled,
+                            classSlotsFilled,
+                            backgroundSlotsFilled,
+                            isDefault,
+                            isGranted,
+                            isOptionallySelected,
+                            canSelect,
+                            raceAllowed,
+                            classAllowed,
+                            backgroundAllowed,
+                            raceSelected: [...raceSelected],
+                            classSelected: [...classSelected],
+                            backgroundSelected: [...backgroundSelected]
+                        });
+                    }
                 }
 
                 // Build CSS classes for the proficiency item
@@ -380,24 +604,32 @@ export class ProficiencyCard {
                 } else if (isGranted) {
                     cssClasses.push('proficient', 'default'); // Use default style for granted proficiencies
                 } else if (isOptionallySelected) {
-                    cssClasses.push('proficient', 'optional-selected');
+                    cssClasses.push('proficient', 'selected', 'optional-selected');
                 }
 
                 if (canSelect) {
                     cssClasses.push('selectable');
+
+                    // Add special classes for race, class, and background options
+                    if (type === 'skills') {
+                        const raceOptions = this.character.optionalProficiencies?.skills?.race?.options || [];
+                        const classOptions = this.character.optionalProficiencies?.skills?.class?.options || [];
+                        const backgroundOptions = this.character.optionalProficiencies?.skills?.background?.options || [];
+
+                        if (raceOptions.includes(item) && !classOptions.includes(item) && !backgroundOptions.includes(item)) {
+                            cssClasses.push('race-only');
+                        }
+                        else if (!raceOptions.includes(item) && classOptions.includes(item) && !backgroundOptions.includes(item)) {
+                            cssClasses.push('class-only');
+                        }
+                        else if (!raceOptions.includes(item) && !classOptions.includes(item) && backgroundOptions.includes(item)) {
+                            cssClasses.push('background-only');
+                        }
+                    }
                 }
 
                 if (!canSelect && !isProficient && !isDefault && !isGranted && !isOptionallySelected) {
                     cssClasses.push('disabled');
-                }
-
-                if (languageClass) {
-                    cssClasses.push(languageClass);
-                }
-
-                // Debug for weapons, armor and saving throws
-                if ((type === 'weapons' || type === 'armor' || type === 'savingThrows')) {
-                    console.log(`${type} - ${item}: isDefault=${isDefault}, isGranted=${isGranted}, cssClasses="${cssClasses.join(' ')}"`);
                 }
 
                 containerHtml += `
@@ -491,11 +723,41 @@ export class ProficiencyCard {
             return false;
         }
 
-        // For skills, check if the proficiency is in the options list
-        if (type === 'skills' &&
-            Array.isArray(this.character.optionalProficiencies?.skills?.options) &&
-            this.character.optionalProficiencies.skills.options.length > 0) {
-            return this.character.optionalProficiencies.skills.options.includes(proficiency);
+        // For skills, check if the skill is in either race or class options
+        if (type === 'skills') {
+            const raceOptions = this.character.optionalProficiencies.skills.race.options || [];
+            const classOptions = this.character.optionalProficiencies.skills.class.options || [];
+            const raceAllowed = this.character.optionalProficiencies.skills.race.allowed || 0;
+            const classAllowed = this.character.optionalProficiencies.skills.class.allowed || 0;
+
+            // If we have race options and race slots available
+            if (raceOptions.length > 0 && raceAllowed > 0) {
+                // Is this a race skill option?
+                const isRaceOption = raceOptions.includes(proficiency);
+                // Are race slots filled?
+                const raceSelected = this.character.optionalProficiencies.skills.race.selected || [];
+                const raceSlotsFull = raceSelected.length >= raceAllowed;
+
+                if (isRaceOption && !raceSlotsFull) {
+                    return true;
+                }
+            }
+
+            // If we have class options and class slots available
+            if (classOptions.length > 0 && classAllowed > 0) {
+                // Is this a class skill option?
+                const isClassOption = classOptions.includes(proficiency);
+                // Are class slots filled?
+                const classSelected = this.character.optionalProficiencies.skills.class.selected || [];
+                const classSlotsFull = classSelected.length >= classAllowed;
+
+                if (isClassOption && !classSlotsFull) {
+                    return true;
+                }
+            }
+
+            // If the skill is not in either race or class options, or all slots are filled
+            return false;
         }
 
         // For other types, allow any proficiency to be selected
@@ -553,44 +815,471 @@ export class ProficiencyCard {
     }
 
     /**
-     * Toggle an optional proficiency
-     * @param {string} type - Proficiency type
-     * @param {string} proficiency - Proficiency name
-     * @param {HTMLElement} item - The DOM element
-     * @private
+     * Toggle optional proficiency selection
+     * @param {HTMLElement} profItem - The proficiency item element
      */
-    toggleOptionalProficiency(type, proficiency, item) {
-        if (!this.character?.optionalProficiencies?.[type]) return;
+    toggleOptionalProficiency(profItem) {
+        if (!this.character) return;
 
-        const isSelected = item.classList.contains('optional-selected');
-        const allowed = this.character.optionalProficiencies[type].allowed;
-        const selected = this.character.optionalProficiencies[type].selected;
+        const proficiency = profItem.dataset.proficiency;
+        const profType = profItem.dataset.type;
 
-        // Store the count before making changes
-        const wasFullBeforeDeselection = selected.length === allowed;
+        if (!proficiency || !profType) return;
 
-        if (isSelected) {
-            this.character.optionalProficiencies[type].selected =
-                selected.filter(p => p !== proficiency);
-            item.classList.remove('optional-selected', 'proficient');
-        } else if (selected.length < allowed) {
-            this.character.optionalProficiencies[type].selected.push(proficiency);
-            item.classList.add('optional-selected', 'proficient');
+        try {
+            if (profType === 'skills') {
+                // Determine if the proficiency is part of race, class, or background options
+                const isRaceOption = this.character.optionalProficiencies.skills.race?.options?.includes(proficiency);
+                const isClassOption = this.character.optionalProficiencies.skills.class?.options?.includes(proficiency);
+                const isBackgroundOption = this.character.optionalProficiencies.skills.background?.options?.includes(proficiency);
+
+                console.log(`[ProficiencyCard] Toggle skill ${proficiency}:`, {
+                    isRaceOption,
+                    isClassOption,
+                    isBackgroundOption,
+                    raceAllowed: this.character.optionalProficiencies.skills.race?.allowed || 0,
+                    classAllowed: this.character.optionalProficiencies.skills.class?.allowed || 0,
+                    backgroundAllowed: this.character.optionalProficiencies.skills.background?.allowed || 0,
+                    raceSelected: this.character.optionalProficiencies.skills.race?.selected || [],
+                    classSelected: this.character.optionalProficiencies.skills.class?.selected || [],
+                    backgroundSelected: this.character.optionalProficiencies.skills.background?.selected || []
+                });
+
+                // Handle selection or deselection
+                if (profItem.classList.contains('selected') || profItem.classList.contains('optional-selected')) {
+                    // Remove from the appropriate source selection
+                    if (isRaceOption && this.character.optionalProficiencies.skills.race?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.skills.race.selected =
+                            this.character.optionalProficiencies.skills.race.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from race selections`);
+                    } else if (isClassOption && this.character.optionalProficiencies.skills.class?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.skills.class.selected =
+                            this.character.optionalProficiencies.skills.class.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from class selections`);
+                    } else if (isBackgroundOption && this.character.optionalProficiencies.skills.background?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.skills.background.selected =
+                            this.character.optionalProficiencies.skills.background.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from background selections`);
+                    }
+
+                    // Update combined selection
+                    this.character.optionalProficiencies.skills.selected =
+                        this.character.optionalProficiencies.skills.selected.filter(p => p !== proficiency);
+
+                    // Update UI
+                    profItem.classList.remove('selected', 'optional-selected');
+                    const icon = profItem.querySelector('.proficiency-icon');
+                    if (icon) {
+                        icon.textContent = 'radio_button_unchecked';
+                    }
+                } else {
+                    // Check if we can add the proficiency based on available slots
+                    const canAdd = (
+                        (isRaceOption && (this.character.optionalProficiencies.skills.race?.selected?.length || 0) < (this.character.optionalProficiencies.skills.race?.allowed || 0)) ||
+                        (isClassOption && (this.character.optionalProficiencies.skills.class?.selected?.length || 0) < (this.character.optionalProficiencies.skills.class?.allowed || 0)) ||
+                        (isBackgroundOption && (this.character.optionalProficiencies.skills.background?.selected?.length || 0) < (this.character.optionalProficiencies.skills.background?.allowed || 0))
+                    );
+
+                    if (canAdd) {
+                        // Check if this skill is ONLY available in one source
+                        // This helps us prioritize restricted sources over general ones
+                        if (isRaceOption && !isClassOption && !isBackgroundOption &&
+                            (this.character.optionalProficiencies.skills.race?.selected?.length || 0) < (this.character.optionalProficiencies.skills.race?.allowed || 0)) {
+                            // Only in race options
+                            this.character.optionalProficiencies.skills.race.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to race selections (exclusive)`);
+                        }
+                        else if (!isRaceOption && isClassOption && !isBackgroundOption &&
+                            (this.character.optionalProficiencies.skills.class?.selected?.length || 0) < (this.character.optionalProficiencies.skills.class?.allowed || 0)) {
+                            // Only in class options
+                            this.character.optionalProficiencies.skills.class.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to class selections (exclusive)`);
+                        }
+                        else if (!isRaceOption && !isClassOption && isBackgroundOption &&
+                            (this.character.optionalProficiencies.skills.background?.selected?.length || 0) < (this.character.optionalProficiencies.skills.background?.allowed || 0)) {
+                            // Only in background options
+                            this.character.optionalProficiencies.skills.background.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to background selections (exclusive)`);
+                        }
+                        else {
+                            // Appears in multiple sources - prioritize based on which is MOST restrictive
+                            // Class and background lists are usually more restricted than race
+
+                            // 1. Check if race allows "any" skill (large options list - standard skills)
+                            const raceAllowsAny = isRaceOption &&
+                                (this.character.optionalProficiencies.skills.race?.options?.length || 0) > 10 &&
+                                (this.character.optionalProficiencies.skills.race?.selected?.length || 0) < (this.character.optionalProficiencies.skills.race?.allowed || 0);
+
+                            // 2. Check if class has available slots with restricted options
+                            const classIsRestricted = isClassOption &&
+                                (this.character.optionalProficiencies.skills.class?.options?.length || 0) < 10 &&
+                                (this.character.optionalProficiencies.skills.class?.selected?.length || 0) < (this.character.optionalProficiencies.skills.class?.allowed || 0);
+
+                            // 3. Check if background has available slots with restricted options
+                            const bgIsRestricted = isBackgroundOption &&
+                                (this.character.optionalProficiencies.skills.background?.options?.length || 0) < 10 &&
+                                (this.character.optionalProficiencies.skills.background?.selected?.length || 0) < (this.character.optionalProficiencies.skills.background?.allowed || 0);
+
+                            if (classIsRestricted) {
+                                // Prioritize class if it's restricted
+                                this.character.optionalProficiencies.skills.class.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to class selections (prioritized)`);
+                            }
+                            else if (bgIsRestricted) {
+                                // Next prioritize background if it's restricted
+                                this.character.optionalProficiencies.skills.background.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to background selections (prioritized)`);
+                            }
+                            else if (raceAllowsAny) {
+                                // If race allows any skill, use that
+                                this.character.optionalProficiencies.skills.race.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to race selections (any skill)`);
+                            }
+                            else {
+                                // Default priority: class > background > race
+                                if (isClassOption && (this.character.optionalProficiencies.skills.class?.selected?.length || 0) < (this.character.optionalProficiencies.skills.class?.allowed || 0)) {
+                                    this.character.optionalProficiencies.skills.class.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to class selections (default)`);
+                                } else if (isBackgroundOption && (this.character.optionalProficiencies.skills.background?.selected?.length || 0) < (this.character.optionalProficiencies.skills.background?.allowed || 0)) {
+                                    this.character.optionalProficiencies.skills.background.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to background selections (default)`);
+                                } else if (isRaceOption && (this.character.optionalProficiencies.skills.race?.selected?.length || 0) < (this.character.optionalProficiencies.skills.race?.allowed || 0)) {
+                                    this.character.optionalProficiencies.skills.race.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to race selections (default)`);
+                                }
+                            }
+                        }
+
+                        // Update combined selection
+                        if (!this.character.optionalProficiencies.skills.selected.includes(proficiency)) {
+                            this.character.optionalProficiencies.skills.selected.push(proficiency);
+                        }
+
+                        // Update UI
+                        profItem.classList.add('selected', 'optional-selected');
+                        const icon = profItem.querySelector('.proficiency-icon');
+                        if (icon) {
+                            icon.textContent = 'radio_button_checked';
+                        }
+                    } else {
+                        console.log(`[ProficiencyCard] Cannot add ${proficiency} - no slots available`);
+                    }
+                }
+            } else if (profType === 'languages') {
+                // Determine if the language is part of race, class, or background options
+                const isRaceOption = this.character.optionalProficiencies.languages.race?.options?.includes(proficiency);
+                const isClassOption = this.character.optionalProficiencies.languages.class?.options?.includes(proficiency);
+                const isBackgroundOption = this.character.optionalProficiencies.languages.background?.options?.includes(proficiency);
+
+                console.log(`[ProficiencyCard] Toggle language ${proficiency}:`, {
+                    isRaceOption,
+                    isClassOption,
+                    isBackgroundOption,
+                    raceAllowed: this.character.optionalProficiencies.languages.race?.allowed || 0,
+                    classAllowed: this.character.optionalProficiencies.languages.class?.allowed || 0,
+                    backgroundAllowed: this.character.optionalProficiencies.languages.background?.allowed || 0,
+                    raceSelected: this.character.optionalProficiencies.languages.race?.selected || [],
+                    classSelected: this.character.optionalProficiencies.languages.class?.selected || [],
+                    backgroundSelected: this.character.optionalProficiencies.languages.background?.selected || []
+                });
+
+                // Handle selection or deselection
+                if (profItem.classList.contains('selected') || profItem.classList.contains('optional-selected')) {
+                    // Remove from the appropriate source selection
+                    if (isRaceOption && this.character.optionalProficiencies.languages.race?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.languages.race.selected =
+                            this.character.optionalProficiencies.languages.race.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from race language selections`);
+                    } else if (isClassOption && this.character.optionalProficiencies.languages.class?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.languages.class.selected =
+                            this.character.optionalProficiencies.languages.class.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from class language selections`);
+                    } else if (isBackgroundOption && this.character.optionalProficiencies.languages.background?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.languages.background.selected =
+                            this.character.optionalProficiencies.languages.background.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from background language selections`);
+                    }
+
+                    // Update combined selection
+                    this.character.optionalProficiencies.languages.selected =
+                        this.character.optionalProficiencies.languages.selected.filter(p => p !== proficiency);
+
+                    // Update UI
+                    profItem.classList.remove('selected', 'optional-selected');
+                    const icon = profItem.querySelector('.proficiency-icon');
+                    if (icon) {
+                        icon.textContent = 'radio_button_unchecked';
+                    }
+                } else {
+                    // Check if we can add the language based on available slots
+                    const canAdd = (
+                        (isRaceOption && (this.character.optionalProficiencies.languages.race?.selected?.length || 0) < (this.character.optionalProficiencies.languages.race?.allowed || 0)) ||
+                        (isClassOption && (this.character.optionalProficiencies.languages.class?.selected?.length || 0) < (this.character.optionalProficiencies.languages.class?.allowed || 0)) ||
+                        (isBackgroundOption && (this.character.optionalProficiencies.languages.background?.selected?.length || 0) < (this.character.optionalProficiencies.languages.background?.allowed || 0))
+                    );
+
+                    if (canAdd) {
+                        // Check if this language is ONLY available in one source
+                        // This helps us prioritize restricted sources over general ones
+                        if (isRaceOption && !isClassOption && !isBackgroundOption &&
+                            (this.character.optionalProficiencies.languages.race?.selected?.length || 0) < (this.character.optionalProficiencies.languages.race?.allowed || 0)) {
+                            // Only in race options
+                            this.character.optionalProficiencies.languages.race.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to race language selections (exclusive)`);
+                        }
+                        else if (!isRaceOption && isClassOption && !isBackgroundOption &&
+                            (this.character.optionalProficiencies.languages.class?.selected?.length || 0) < (this.character.optionalProficiencies.languages.class?.allowed || 0)) {
+                            // Only in class options
+                            this.character.optionalProficiencies.languages.class.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to class language selections (exclusive)`);
+                        }
+                        else if (!isRaceOption && !isClassOption && isBackgroundOption &&
+                            (this.character.optionalProficiencies.languages.background?.selected?.length || 0) < (this.character.optionalProficiencies.languages.background?.allowed || 0)) {
+                            // Only in background options
+                            this.character.optionalProficiencies.languages.background.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to background language selections (exclusive)`);
+                        }
+                        else {
+                            // Appears in multiple sources - prioritize based on which is MOST restrictive
+                            // Class and background lists are usually more restricted than race
+
+                            // 1. Check if race allows "any" language (large options list - standard languages)
+                            const raceAllowsAny = isRaceOption &&
+                                (this.character.optionalProficiencies.languages.race?.options?.length || 0) > 10 &&
+                                (this.character.optionalProficiencies.languages.race?.selected?.length || 0) < (this.character.optionalProficiencies.languages.race?.allowed || 0);
+
+                            // 2. Check if class has available slots with restricted options
+                            const classIsRestricted = isClassOption &&
+                                (this.character.optionalProficiencies.languages.class?.options?.length || 0) < 10 &&
+                                (this.character.optionalProficiencies.languages.class?.selected?.length || 0) < (this.character.optionalProficiencies.languages.class?.allowed || 0);
+
+                            // 3. Check if background has available slots with restricted options
+                            const bgIsRestricted = isBackgroundOption &&
+                                (this.character.optionalProficiencies.languages.background?.options?.length || 0) < 10 &&
+                                (this.character.optionalProficiencies.languages.background?.selected?.length || 0) < (this.character.optionalProficiencies.languages.background?.allowed || 0);
+
+                            if (classIsRestricted) {
+                                // Prioritize class if it's restricted
+                                this.character.optionalProficiencies.languages.class.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to class language selections (prioritized)`);
+                            }
+                            else if (bgIsRestricted) {
+                                // Next prioritize background if it's restricted
+                                this.character.optionalProficiencies.languages.background.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to background language selections (prioritized)`);
+                            }
+                            else if (raceAllowsAny) {
+                                // If race allows any language, use that
+                                this.character.optionalProficiencies.languages.race.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to race language selections (any language)`);
+                            }
+                            else {
+                                // Default priority: class > background > race
+                                if (isClassOption && (this.character.optionalProficiencies.languages.class?.selected?.length || 0) < (this.character.optionalProficiencies.languages.class?.allowed || 0)) {
+                                    this.character.optionalProficiencies.languages.class.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to class language selections (default)`);
+                                } else if (isBackgroundOption && (this.character.optionalProficiencies.languages.background?.selected?.length || 0) < (this.character.optionalProficiencies.languages.background?.allowed || 0)) {
+                                    this.character.optionalProficiencies.languages.background.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to background language selections (default)`);
+                                } else if (isRaceOption && (this.character.optionalProficiencies.languages.race?.selected?.length || 0) < (this.character.optionalProficiencies.languages.race?.allowed || 0)) {
+                                    this.character.optionalProficiencies.languages.race.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to race language selections (default)`);
+                                }
+                            }
+                        }
+
+                        // Update combined selection
+                        if (!this.character.optionalProficiencies.languages.selected.includes(proficiency)) {
+                            this.character.optionalProficiencies.languages.selected.push(proficiency);
+                        }
+
+                        // Update UI for languages
+                        profItem.classList.add('selected', 'optional-selected');
+                        const icon = profItem.querySelector('.proficiency-icon');
+                        if (icon) {
+                            icon.textContent = 'radio_button_checked';
+                        }
+                    } else {
+                        console.log(`[ProficiencyCard] Cannot add ${proficiency} language - no slots available`);
+                    }
+                }
+            } else if (profType === 'tools') {
+                // Determine if the tool is part of race, class, or background options
+                const isRaceOption = this.character.optionalProficiencies.tools.race?.options?.includes(proficiency);
+                const isClassOption = this.character.optionalProficiencies.tools.class?.options?.includes(proficiency);
+                const isBackgroundOption = this.character.optionalProficiencies.tools.background?.options?.includes(proficiency);
+
+                console.log(`[ProficiencyCard] Toggle tool ${proficiency}:`, {
+                    isRaceOption,
+                    isClassOption,
+                    isBackgroundOption,
+                    raceAllowed: this.character.optionalProficiencies.tools.race?.allowed || 0,
+                    classAllowed: this.character.optionalProficiencies.tools.class?.allowed || 0,
+                    backgroundAllowed: this.character.optionalProficiencies.tools.background?.allowed || 0,
+                    raceSelected: this.character.optionalProficiencies.tools.race?.selected || [],
+                    classSelected: this.character.optionalProficiencies.tools.class?.selected || [],
+                    backgroundSelected: this.character.optionalProficiencies.tools.background?.selected || []
+                });
+
+                // Handle selection or deselection
+                if (profItem.classList.contains('selected') || profItem.classList.contains('optional-selected')) {
+                    // Remove from the appropriate source selection
+                    if (isRaceOption && this.character.optionalProficiencies.tools.race?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.tools.race.selected =
+                            this.character.optionalProficiencies.tools.race.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from race tool selections`);
+                    } else if (isClassOption && this.character.optionalProficiencies.tools.class?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.tools.class.selected =
+                            this.character.optionalProficiencies.tools.class.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from class tool selections`);
+                    } else if (isBackgroundOption && this.character.optionalProficiencies.tools.background?.selected?.includes(proficiency)) {
+                        this.character.optionalProficiencies.tools.background.selected =
+                            this.character.optionalProficiencies.tools.background.selected.filter(p => p !== proficiency);
+                        console.log(`[ProficiencyCard] Removed ${proficiency} from background tool selections`);
+                    }
+
+                    // Update combined selection
+                    this.character.optionalProficiencies.tools.selected =
+                        this.character.optionalProficiencies.tools.selected.filter(p => p !== proficiency);
+
+                    // Update UI
+                    profItem.classList.remove('selected', 'optional-selected');
+                    const icon = profItem.querySelector('.proficiency-icon');
+                    if (icon) {
+                        icon.textContent = 'radio_button_unchecked';
+                    }
+                } else {
+                    // Check if we can add the tool based on available slots
+                    const canAdd = (
+                        (isRaceOption && (this.character.optionalProficiencies.tools.race?.selected?.length || 0) < (this.character.optionalProficiencies.tools.race?.allowed || 0)) ||
+                        (isClassOption && (this.character.optionalProficiencies.tools.class?.selected?.length || 0) < (this.character.optionalProficiencies.tools.class?.allowed || 0)) ||
+                        (isBackgroundOption && (this.character.optionalProficiencies.tools.background?.selected?.length || 0) < (this.character.optionalProficiencies.tools.background?.allowed || 0))
+                    );
+
+                    if (canAdd) {
+                        // Check if this tool is ONLY available in one source
+                        // This helps us prioritize restricted sources over general ones
+                        if (isRaceOption && !isClassOption && !isBackgroundOption &&
+                            (this.character.optionalProficiencies.tools.race?.selected?.length || 0) < (this.character.optionalProficiencies.tools.race?.allowed || 0)) {
+                            // Only in race options
+                            this.character.optionalProficiencies.tools.race.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to race tool selections (exclusive)`);
+                        }
+                        else if (!isRaceOption && isClassOption && !isBackgroundOption &&
+                            (this.character.optionalProficiencies.tools.class?.selected?.length || 0) < (this.character.optionalProficiencies.tools.class?.allowed || 0)) {
+                            // Only in class options
+                            this.character.optionalProficiencies.tools.class.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to class tool selections (exclusive)`);
+                        }
+                        else if (!isRaceOption && !isClassOption && isBackgroundOption &&
+                            (this.character.optionalProficiencies.tools.background?.selected?.length || 0) < (this.character.optionalProficiencies.tools.background?.allowed || 0)) {
+                            // Only in background options
+                            this.character.optionalProficiencies.tools.background.selected.push(proficiency);
+                            console.log(`[ProficiencyCard] Added ${proficiency} to background tool selections (exclusive)`);
+                        }
+                        else {
+                            // Appears in multiple sources - prioritize based on which is MOST restrictive
+
+                            // 1. Check if race allows "any" tool (large options list)
+                            const raceAllowsAny = isRaceOption &&
+                                (this.character.optionalProficiencies.tools.race?.options?.length || 0) > 15 &&
+                                (this.character.optionalProficiencies.tools.race?.selected?.length || 0) < (this.character.optionalProficiencies.tools.race?.allowed || 0);
+
+                            // 2. Check if class has available slots with restricted options
+                            const classIsRestricted = isClassOption &&
+                                (this.character.optionalProficiencies.tools.class?.options?.length || 0) < 15 &&
+                                (this.character.optionalProficiencies.tools.class?.selected?.length || 0) < (this.character.optionalProficiencies.tools.class?.allowed || 0);
+
+                            // 3. Check if background has available slots with restricted options
+                            const bgIsRestricted = isBackgroundOption &&
+                                (this.character.optionalProficiencies.tools.background?.options?.length || 0) < 15 &&
+                                (this.character.optionalProficiencies.tools.background?.selected?.length || 0) < (this.character.optionalProficiencies.tools.background?.allowed || 0);
+
+                            if (classIsRestricted) {
+                                // Prioritize class if it's restricted
+                                this.character.optionalProficiencies.tools.class.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to class tool selections (prioritized)`);
+                            }
+                            else if (bgIsRestricted) {
+                                // Next prioritize background if it's restricted
+                                this.character.optionalProficiencies.tools.background.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to background tool selections (prioritized)`);
+                            }
+                            else if (raceAllowsAny) {
+                                // If race allows any tool, use that
+                                this.character.optionalProficiencies.tools.race.selected.push(proficiency);
+                                console.log(`[ProficiencyCard] Added ${proficiency} to race tool selections (any tool)`);
+                            }
+                            else {
+                                // Default priority: class > background > race
+                                if (isClassOption && (this.character.optionalProficiencies.tools.class?.selected?.length || 0) < (this.character.optionalProficiencies.tools.class?.allowed || 0)) {
+                                    this.character.optionalProficiencies.tools.class.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to class tool selections (default)`);
+                                } else if (isBackgroundOption && (this.character.optionalProficiencies.tools.background?.selected?.length || 0) < (this.character.optionalProficiencies.tools.background?.allowed || 0)) {
+                                    this.character.optionalProficiencies.tools.background.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to background tool selections (default)`);
+                                } else if (isRaceOption && (this.character.optionalProficiencies.tools.race?.selected?.length || 0) < (this.character.optionalProficiencies.tools.race?.allowed || 0)) {
+                                    this.character.optionalProficiencies.tools.race.selected.push(proficiency);
+                                    console.log(`[ProficiencyCard] Added ${proficiency} to race tool selections (default)`);
+                                }
+                            }
+                        }
+
+                        // Update combined selection
+                        if (!this.character.optionalProficiencies.tools.selected.includes(proficiency)) {
+                            this.character.optionalProficiencies.tools.selected.push(proficiency);
+                        }
+
+                        // Update UI for tools
+                        profItem.classList.add('selected', 'optional-selected');
+                        const icon = profItem.querySelector('.proficiency-icon');
+                        if (icon) {
+                            icon.textContent = 'radio_button_checked';
+                        }
+                    } else {
+                        console.log(`[ProficiencyCard] Cannot add ${proficiency} tool - no slots available`);
+                    }
+                }
+            } else {
+                // Handle other proficiency types (armor, weapons) using the original logic
+                const selectedProfs = this.character.optionalProficiencies[profType].selected;
+                const allowedCount = this.character.optionalProficiencies[profType].allowed;
+
+                if (profItem.classList.contains('selected') || profItem.classList.contains('optional-selected')) {
+                    // Remove proficiency from selection
+                    this.character.optionalProficiencies[profType].selected = selectedProfs.filter(p => p !== proficiency);
+
+                    // Update UI
+                    profItem.classList.remove('selected', 'optional-selected');
+                    const icon = profItem.querySelector('.proficiency-icon');
+                    if (icon) {
+                        icon.textContent = 'radio_button_unchecked';
+                    }
+                } else {
+                    // Check if we can add more proficiencies
+                    if (selectedProfs.length < allowedCount) {
+                        // Add proficiency to selection
+                        this.character.optionalProficiencies[profType].selected.push(proficiency);
+
+                        // Update UI
+                        profItem.classList.add('selected', 'optional-selected');
+                        const icon = profItem.querySelector('.proficiency-icon');
+                        if (icon) {
+                            icon.textContent = 'radio_button_checked';
+                        }
+                    }
+                }
+            }
+
+            // Update proficiency count displays
+            this.updateSelectionCounters();
+
+            // Trigger character change event
+            document.dispatchEvent(new CustomEvent('characterChanged'));
+
+        } catch (error) {
+            console.error(`[ProficiencyCard] Error toggling proficiency ${proficiency}:`, error);
         }
-
-        this.updateSelectionCounters();
-
-        // Check if this toggle filled or freed up a slot
-        // refresh the display if needed to update selectable items
-        const selectedCount = this.character.optionalProficiencies[type].selected.length;
-        if (selectedCount === allowed || // slots are full now
-            (!isSelected && selectedCount === allowed - 1) || // selecting second-to-last slot
-            (isSelected && wasFullBeforeDeselection)) { // deselecting when previously full
-            this.populateProficiencyContainers();
-        }
-
-        this.markUnsavedChanges();
-        this.updateProficiencyNotes();
     }
 
     /**
@@ -720,22 +1409,56 @@ export class ProficiencyCard {
     }
 
     /**
-     * Check if a proficiency is granted by a character source (race, class, background)
+     * Check if a proficiency is granted by a fixed source (not a choice)
      * @param {string} type - Proficiency type
-     * @param {string} proficiency - Proficiency name
-     * @returns {boolean} Whether the proficiency is granted by a source
+     * @param {string} proficiency - The proficiency to check
+     * @returns {boolean} True if granted by a fixed source
      */
     isGrantedBySource(type, proficiency) {
-        const sources = this.character?.proficiencySources?.[type]?.get(proficiency);
-        const isGranted = sources && sources.size > 0 && !sources.has('Default');
-
-        // Debug for weapon and armor proficiencies
-        if (type === 'weapons' || type === 'armor') {
-            const allSources = sources ? Array.from(sources) : [];
-            console.log(`[ProficiencyCard] Checking ${type} - ${proficiency}: isGranted=${isGranted}, sources=${allSources.join(', ')}`);
+        if (!this.character?.proficiencySources?.[type]) {
+            return false;
         }
 
-        return isGranted;
+        // Normalize the proficiency name for case-insensitive comparison
+        const normalizedProf = proficiency.toLowerCase().trim();
+
+        // Find the matching proficiency by case-insensitive comparison
+        let matchingProf = null;
+        for (const [prof, _] of this.character.proficiencySources[type].entries()) {
+            if (prof.toLowerCase().trim() === normalizedProf) {
+                matchingProf = prof;
+                break;
+            }
+        }
+
+        if (!matchingProf) {
+            return false;
+        }
+
+        const sources = this.character.proficiencySources[type].get(matchingProf);
+
+        // Add extra debug log for specific skills we're having trouble with
+        if (type === 'skills' && ['Sleight of Hand', 'sleight of hand', 'Deception'].some(s =>
+            s.toLowerCase() === normalizedProf)) {
+            console.log(`[ProficiencyCard] Checking sources for ${proficiency} (normalized: ${normalizedProf}, matched: ${matchingProf}):`,
+                Array.from(sources));
+        }
+
+        // If there are no sources, the proficiency is not granted
+        if (!sources || sources.size === 0) {
+            return false;
+        }
+
+        // Check if any of the sources are fixed sources
+        const fixedSources = Array.from(sources).filter(source =>
+            source !== 'Race Choice' &&
+            source !== 'Class Choice' &&
+            source !== 'Background Choice' &&
+            !source.includes('Choice')
+        );
+
+        // If there are any fixed sources, the proficiency is granted
+        return fixedSources.length > 0;
     }
 
     /**
@@ -752,27 +1475,155 @@ export class ProficiencyCard {
         for (const type of this.proficiencyTypes) {
             if (!this.character.optionalProficiencies[type]?.selected) continue;
 
-            const selectedOptional = [...this.character.optionalProficiencies[type].selected];
+            // Special handling for skills to manage race, class, and background sources separately
+            if (type === 'skills') {
+                // Get all the fixed proficiencies for this type
+                const fixedProficiencies = this.character.proficiencies[type] || [];
 
-            // Check if any of the selected optional proficiencies are now granted by a fixed source
-            for (const prof of selectedOptional) {
-                // Skip if not in the character's proficiencies list
-                if (!this.character.proficiencies[type].includes(prof)) continue;
+                // Clean up race skills
+                if (this.character.optionalProficiencies.skills.race?.selected) {
+                    const raceSelected = [...this.character.optionalProficiencies.skills.race.selected];
+                    for (const skill of raceSelected) {
+                        // Check if this skill is now a fixed proficiency
+                        if (fixedProficiencies.includes(skill)) {
+                            // Check if it's granted by a fixed source (not from optional selection)
+                            const sources = this.character.proficiencySources?.skills?.get(skill);
+                            if (sources && Array.from(sources).some(source =>
+                                source !== 'Race Choice' &&
+                                source !== 'Class Choice' &&
+                                source !== 'Background Choice')) {
 
-                // Check if it's now granted by a source (race, class, background)
-                if (this.isGrantedBySource(type, prof)) {
-                    // Remove from optional selection since it's now fixed
-                    this.character.optionalProficiencies[type].selected =
-                        this.character.optionalProficiencies[type].selected.filter(p => p !== prof);
-                    console.log(`[ProficiencyCard] Removed ${prof} from optional ${type} since it's now granted by another source`);
+                                // Remove from race selection
+                                this.character.optionalProficiencies.skills.race.selected =
+                                    this.character.optionalProficiencies.skills.race.selected.filter(s => s !== skill);
+                                console.log('[ProficiencyCard] Removed', skill, 'from race selected skills (now granted by another source)');
+                                changesDetected = true;
+                            }
+                        }
+                    }
+
+                    // Ensure race doesn't have more selections than allowed
+                    const raceAllowed = this.character.optionalProficiencies.skills.race.allowed || 0;
+                    if (this.character.optionalProficiencies.skills.race.selected.length > raceAllowed) {
+                        console.log('[ProficiencyCard] Too many race skills selected, removing excess');
+                        this.character.optionalProficiencies.skills.race.selected =
+                            this.character.optionalProficiencies.skills.race.selected.slice(0, raceAllowed);
+                        changesDetected = true;
+                    }
+                }
+
+                // Clean up class skills
+                if (this.character.optionalProficiencies.skills.class?.selected) {
+                    const classSelected = [...this.character.optionalProficiencies.skills.class.selected];
+                    for (const skill of classSelected) {
+                        // Check if this skill is now a fixed proficiency
+                        if (fixedProficiencies.includes(skill)) {
+                            // Check if it's granted by a fixed source (not from optional selection)
+                            const sources = this.character.proficiencySources?.skills?.get(skill);
+                            if (sources && Array.from(sources).some(source =>
+                                source !== 'Race Choice' &&
+                                source !== 'Class Choice' &&
+                                source !== 'Background Choice')) {
+
+                                // Remove from class selection
+                                this.character.optionalProficiencies.skills.class.selected =
+                                    this.character.optionalProficiencies.skills.class.selected.filter(s => s !== skill);
+                                console.log('[ProficiencyCard] Removed', skill, 'from class selected skills (now granted by another source)');
+                                changesDetected = true;
+                            }
+                        }
+                    }
+
+                    // Ensure class doesn't have more selections than allowed
+                    const classAllowed = this.character.optionalProficiencies.skills.class.allowed || 0;
+                    if (this.character.optionalProficiencies.skills.class.selected.length > classAllowed) {
+                        console.log('[ProficiencyCard] Too many class skills selected, removing excess');
+                        this.character.optionalProficiencies.skills.class.selected =
+                            this.character.optionalProficiencies.skills.class.selected.slice(0, classAllowed);
+                        changesDetected = true;
+                    }
+                }
+
+                // Clean up background skills
+                if (this.character.optionalProficiencies.skills.background?.selected) {
+                    const backgroundSelected = [...this.character.optionalProficiencies.skills.background.selected];
+                    for (const skill of backgroundSelected) {
+                        // Check if this skill is now a fixed proficiency
+                        if (fixedProficiencies.includes(skill)) {
+                            // Check if it's granted by a fixed source (not from optional selection)
+                            const sources = this.character.proficiencySources?.skills?.get(skill);
+                            if (sources && Array.from(sources).some(source =>
+                                source !== 'Race Choice' &&
+                                source !== 'Class Choice' &&
+                                source !== 'Background Choice')) {
+
+                                // Remove from background selection
+                                this.character.optionalProficiencies.skills.background.selected =
+                                    this.character.optionalProficiencies.skills.background.selected.filter(s => s !== skill);
+                                console.log('[ProficiencyCard] Removed', skill, 'from background selected skills (now granted by another source)');
+                                changesDetected = true;
+                            }
+                        }
+                    }
+
+                    // Ensure background doesn't have more selections than allowed
+                    const backgroundAllowed = this.character.optionalProficiencies.skills.background.allowed || 0;
+                    if (this.character.optionalProficiencies.skills.background.selected.length > backgroundAllowed) {
+                        console.log('[ProficiencyCard] Too many background skills selected, removing excess');
+                        this.character.optionalProficiencies.skills.background.selected =
+                            this.character.optionalProficiencies.skills.background.selected.slice(0, backgroundAllowed);
+                        changesDetected = true;
+                    }
+                }
+
+                // Update combined selected list
+                if (changesDetected) {
+                    const raceSelected = this.character.optionalProficiencies.skills.race.selected || [];
+                    const classSelected = this.character.optionalProficiencies.skills.class.selected || [];
+                    const backgroundSelected = this.character.optionalProficiencies.skills.background.selected || [];
+                    this.character.optionalProficiencies.skills.selected = [...raceSelected, ...classSelected, ...backgroundSelected];
+                }
+            }
+            // Regular cleanup for non-skill proficiencies
+            else {
+                const selectedOptional = [...this.character.optionalProficiencies[type].selected];
+
+                // Check if any of the selected optional proficiencies are now granted by a fixed source
+                for (const prof of selectedOptional) {
+                    // Skip if not in the character's proficiencies list
+                    if (!this.character.proficiencies[type].includes(prof)) continue;
+
+                    // Check if it's now granted by a source (race, class, background)
+                    if (this.isGrantedBySource(type, prof)) {
+                        // Remove from optional selection since it's now fixed
+                        this.character.optionalProficiencies[type].selected =
+                            this.character.optionalProficiencies[type].selected.filter(p => p !== prof);
+                        console.log('[ProficiencyCard] Removed', prof, 'from optional', type, 'since it\'s now granted by another source');
+                        changesDetected = true;
+                    }
+                }
+
+                // Ensure we don't have more selections than allowed
+                const allowed = this.character.optionalProficiencies[type].allowed || 0;
+                const selected = this.character.optionalProficiencies[type].selected || [];
+
+                if (selected.length > allowed) {
+                    console.log('[ProficiencyCard] Too many', type, 'selected (', selected.length, '/', allowed, '), removing excess');
+                    // Keep only the first 'allowed' number of selections
+                    this.character.optionalProficiencies[type].selected = selected.slice(0, allowed);
                     changesDetected = true;
                 }
             }
         }
 
-        // Mark unsaved changes if we modified anything
         if (changesDetected) {
+            // Refresh the display to show changes
+            this.populateProficiencyContainers();
+
+            // Mark unsaved changes
             this.markUnsavedChanges();
         }
+
+        return changesDetected;
     }
 } 

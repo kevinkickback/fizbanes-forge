@@ -122,10 +122,11 @@ export class AbilityScoreCard {
         const availableAbilities = abilityScoreManager.getAvailableAbilities(index);
         const selectedAbility = abilityScoreManager.abilityChoices.get(index);
 
-        console.log(`[AbilityScoreCard] Choice ${index}:`, {
+        console.log(`[AbilityScoreCard] Creating dropdown for choice ${index}:`, {
             source: choice.source,
             amount: choice.amount,
-            availableAbilities
+            availableAbilities,
+            selectedAbility
         });
 
         return `
@@ -227,7 +228,7 @@ export class AbilityScoreCard {
      * @private
      */
     _processRaceBonuses(bonusGroups) {
-        const raceRelatedSources = ['Race', 'Race Choice 1', 'Race Choice 2', 'Race Choice 3'];
+        const raceRelatedSources = ['Race', 'Subrace', 'Race Choice 1', 'Race Choice 2', 'Race Choice 3', 'Subrace Choice 1', 'Subrace Choice 2', 'Subrace Choice 3'];
         const raceBonuses = new Map();
         const allRaceBonuses = [];
 
@@ -239,17 +240,24 @@ export class AbilityScoreCard {
             }
         }
 
-        // Process fixed race bonuses
-        if (raceBonuses.has('Race')) {
-            const fixedBonuses = raceBonuses.get('Race').filter(b => !b.isChoice);
-            for (const bonus of fixedBonuses) {
-                allRaceBonuses.push(
-                    `${this._getAbilityAbbreviation(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`
-                );
+        // Process all fixed race and subrace bonuses together
+        const fixedBonuses = [];
+        for (const [source, bonusList] of raceBonuses.entries()) {
+            if (source === 'Race' || source === 'Subrace') {
+                const bonuses = bonusList.filter(b => !b.isChoice);
+                fixedBonuses.push(...bonuses);
             }
         }
 
-        // Process race choice bonuses
+        // Format all fixed bonuses into a single line
+        if (fixedBonuses.length > 0) {
+            const formattedBonuses = fixedBonuses.map(bonus =>
+                `${this._getAbilityAbbreviation(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`
+            ).join(', ');
+            allRaceBonuses.push(formattedBonuses);
+        }
+
+        // Process choice bonuses separately
         for (const [source, bonusList] of raceBonuses.entries()) {
             if (source.includes('Choice')) {
                 for (const bonus of bonusList) {
