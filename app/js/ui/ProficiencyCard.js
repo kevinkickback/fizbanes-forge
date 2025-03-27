@@ -117,9 +117,44 @@ export class ProficiencyCard {
                 };
             }
 
-            // For skills, ensure we have an options array
-            if (type === 'skills' && !this.character.optionalProficiencies.skills.options) {
-                this.character.optionalProficiencies.skills.options = [];
+            // For skills and languages, ensure we have all the nested structures
+            if (type === 'skills' || type === 'languages') {
+                // Make sure top level options array exists
+                if (!this.character.optionalProficiencies[type].options) {
+                    this.character.optionalProficiencies[type].options = [];
+                }
+
+                // Initialize race, class, and background structures
+                const sources = ['race', 'class', 'background'];
+                for (const source of sources) {
+                    if (!this.character.optionalProficiencies[type][source]) {
+                        this.character.optionalProficiencies[type][source] = {
+                            allowed: 0,
+                            options: [],
+                            selected: []
+                        };
+                    } else {
+                        // Ensure all properties exist if the object itself does
+                        if (typeof this.character.optionalProficiencies[type][source].allowed === 'undefined') {
+                            this.character.optionalProficiencies[type][source].allowed = 0;
+                        }
+                        if (!Array.isArray(this.character.optionalProficiencies[type][source].options)) {
+                            this.character.optionalProficiencies[type][source].options = [];
+                        }
+                        if (!Array.isArray(this.character.optionalProficiencies[type][source].selected)) {
+                            this.character.optionalProficiencies[type][source].selected = [];
+                        }
+                    }
+                }
+
+                // Log the state for debugging
+                if (type === 'languages') {
+                    console.log('[ProficiencyCard] Initialized language structures:', {
+                        background: this.character.optionalProficiencies.languages.background,
+                        backgroundOptions: this.character.optionalProficiencies.languages.background.options,
+                        combined: this.character.optionalProficiencies.languages
+                    });
+                }
             }
         }
 
@@ -488,109 +523,39 @@ export class ProficiencyCard {
                 // Check if this proficiency is granted by a source like race/background
                 const isGranted = this.isGrantedBySource(type, item);
 
-                // Check if there are optional proficiencies allowed for this type
-                const optionalCount = this.character?.optionalProficiencies?.[type]?.allowed || 0;
-                const selectedCount = this.character?.optionalProficiencies?.[type]?.selected?.length || 0;
-                const allSlotsFilled = optionalCount > 0 && selectedCount >= optionalCount;
+                // Directly use isProficiencyAvailable method to determine if this item is selectable
+                let canSelect = false;
 
-                // Default value for canSelect - will be updated for skills below
-                let canSelect = this.isProficiencyAvailable(type, item) && !isDefault && !isGranted && !isOptionallySelected;
+                // Special handling for languages and skills - use our isProficiencyAvailable method
+                if (type === 'languages' || type === 'skills') {
+                    canSelect = this.isProficiencyAvailable(type, item) && !isDefault && !isGranted && !isOptionallySelected;
 
-                // For skills, we need to check both race and class options
-                if (type === 'skills') {
-                    // Get race, class, and background skill info
-                    const raceOptions = this.character.optionalProficiencies.skills.race?.options || [];
-                    const classOptions = this.character.optionalProficiencies.skills.class?.options || [];
-                    const backgroundOptions = this.character.optionalProficiencies.skills.background?.options || [];
+                    // For debugging languages
+                    if (type === 'languages' && ['Dwarvish', 'Elvish', 'Common', 'Abyssal', 'Celestial'].includes(item)) {
+                        // Check background language options in detail
+                        const bgOptions = this.character.optionalProficiencies?.languages?.background?.options || [];
+                        const bgAllowed = this.character.optionalProficiencies?.languages?.background?.allowed || 0;
+                        const isBackgroundOption = bgOptions.includes(item);
+                        const bgSelected = this.character.optionalProficiencies?.languages?.background?.selected || [];
+                        const bgSlotsFull = bgSelected.length >= bgAllowed;
 
-                    const raceSelected = this.character.optionalProficiencies.skills.race?.selected || [];
-                    const classSelected = this.character.optionalProficiencies.skills.class?.selected || [];
-                    const backgroundSelected = this.character.optionalProficiencies.skills.background?.selected || [];
-
-                    const raceAllowed = this.character.optionalProficiencies.skills.race?.allowed || 0;
-                    const classAllowed = this.character.optionalProficiencies.skills.class?.allowed || 0;
-                    const backgroundAllowed = this.character.optionalProficiencies.skills.background?.allowed || 0;
-
-                    // Check if all slots for each source are filled
-                    const raceSlotsFilled = raceSelected.length >= raceAllowed;
-                    const classSlotsFilled = classSelected.length >= classAllowed;
-                    const backgroundSlotsFilled = backgroundSelected.length >= backgroundAllowed;
-
-                    // Determine which set of options should be available
-                    let availableOptions = [];
-
-                    // If all slots are filled, no options are available
-                    if (raceSlotsFilled && classSlotsFilled && backgroundSlotsFilled) {
-                        availableOptions = [];
-                    }
-                    // If race slots are filled but others are not
-                    else if (raceSlotsFilled && !classSlotsFilled && !backgroundSlotsFilled) {
-                        availableOptions = [...new Set([...classOptions, ...backgroundOptions])];
-                    }
-                    // If class slots are filled but others are not
-                    else if (classSlotsFilled && !raceSlotsFilled && !backgroundSlotsFilled) {
-                        availableOptions = [...new Set([...raceOptions, ...backgroundOptions])];
-                    }
-                    // If background slots are filled but others are not
-                    else if (backgroundSlotsFilled && !raceSlotsFilled && !classSlotsFilled) {
-                        availableOptions = [...new Set([...raceOptions, ...classOptions])];
-                    }
-                    // If only race slots are available
-                    else if (!raceSlotsFilled && classSlotsFilled && backgroundSlotsFilled) {
-                        availableOptions = [...raceOptions];
-                    }
-                    // If only class slots are available
-                    else if (raceSlotsFilled && !classSlotsFilled && backgroundSlotsFilled) {
-                        availableOptions = [...classOptions];
-                    }
-                    // If only background slots are available
-                    else if (raceSlotsFilled && classSlotsFilled && !backgroundSlotsFilled) {
-                        availableOptions = [...backgroundOptions];
-                    }
-                    // If multiple sources have available slots
-                    else {
-                        // Include options from all sources that have available slots
-                        availableOptions = [...new Set([
-                            ...(raceSlotsFilled ? [] : raceOptions),
-                            ...(classSlotsFilled ? [] : classOptions),
-                            ...(backgroundSlotsFilled ? [] : backgroundOptions)
-                        ])];
-                    }
-
-                    // Check if this skill is in the available options
-                    const isAvailableOption = availableOptions.includes(item);
-
-                    // A skill is selectable if:
-                    // 1. It's in the available options
-                    // 2. It's not already selected
-                    // 3. It's not a default or granted proficiency
-                    canSelect = isAvailableOption &&
-                        !isDefault &&
-                        !isGranted &&
-                        !isOptionallySelected;
-
-                    // Debugging for key skills
-                    if (['Athletics', 'Acrobatics', 'Stealth', 'Perception', 'Animal Handling', 'Intimidation', 'Nature', 'Survival'].includes(item)) {
-                        console.log(`[ProficiencyCard] Skill ${item} details:`, {
-                            inRaceOptions: raceOptions.includes(item),
-                            inClassOptions: classOptions.includes(item),
-                            inBackgroundOptions: backgroundOptions.includes(item),
-                            isAvailableOption,
-                            raceSlotsFilled,
-                            classSlotsFilled,
-                            backgroundSlotsFilled,
+                        console.log('[ProficiencyCard] DETAILED Language debug:', {
+                            language: item,
+                            inBgOptions: isBackgroundOption,
+                            bgOptions,
                             isDefault,
                             isGranted,
                             isOptionallySelected,
                             canSelect,
-                            raceAllowed,
-                            classAllowed,
-                            backgroundAllowed,
-                            raceSelected: [...raceSelected],
-                            classSelected: [...classSelected],
-                            backgroundSelected: [...backgroundSelected]
+                            bgAllowed,
+                            bgSelected,
+                            bgSlotsFull,
+                            isProficiencyAvailable: this.isProficiencyAvailable('languages', item)
                         });
                     }
+                } else {
+                    // For other types, just check if there are slots available
+                    canSelect = this.isProficiencyAvailable(type, item) && !isDefault && !isGranted && !isOptionallySelected;
                 }
 
                 // Build CSS classes for the proficiency item
@@ -611,10 +576,10 @@ export class ProficiencyCard {
                     cssClasses.push('selectable');
 
                     // Add special classes for race, class, and background options
-                    if (type === 'skills') {
-                        const raceOptions = this.character.optionalProficiencies?.skills?.race?.options || [];
-                        const classOptions = this.character.optionalProficiencies?.skills?.class?.options || [];
-                        const backgroundOptions = this.character.optionalProficiencies?.skills?.background?.options || [];
+                    if (type === 'skills' || type === 'languages') {
+                        const raceOptions = this.character.optionalProficiencies?.[type]?.race?.options || [];
+                        const classOptions = this.character.optionalProficiencies?.[type]?.class?.options || [];
+                        const backgroundOptions = this.character.optionalProficiencies?.[type]?.background?.options || [];
 
                         if (raceOptions.includes(item) && !classOptions.includes(item) && !backgroundOptions.includes(item)) {
                             cssClasses.push('race-only');
@@ -674,8 +639,24 @@ export class ProficiencyCard {
                 return this.proficiencyManager.getAvailableSkills();
             case 'savingThrows':
                 return ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'];
-            case 'languages':
-                return this.proficiencyManager.getAvailableLanguages();
+            case 'languages': {
+                // Make sure to log the language options
+                const availableLanguages = [
+                    'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
+                    'Halfling', 'Orc', 'Abyssal', 'Celestial', 'Draconic',
+                    'Deep Speech', 'Infernal', 'Primordial', 'Sylvan', 'Undercommon'
+                ];
+
+                // Check if we have languages in background options and log them
+                if (this.character?.optionalProficiencies?.languages?.background?.options) {
+                    console.log('[ProficiencyCard] Background language options:',
+                        this.character.optionalProficiencies.languages.background.options);
+                    console.log('[ProficiencyCard] Background language allowed:',
+                        this.character.optionalProficiencies.languages.background.allowed);
+                }
+
+                return availableLanguages;
+            }
             case 'tools':
                 return this.proficiencyManager.getAvailableTools();
             case 'armor':
@@ -723,19 +704,69 @@ export class ProficiencyCard {
             return false;
         }
 
-        // For skills, check if the skill is in either race or class options
+        // Special handling for languages
+        if (type === 'languages') {
+            // Get the options and allowed counts from background
+            const backgroundOptions = this.character.optionalProficiencies.languages.background?.options || [];
+            const backgroundAllowed = this.character.optionalProficiencies.languages.background?.allowed || 0;
+            const backgroundSelected = this.character.optionalProficiencies.languages.background?.selected || [];
+
+            // Special case: If background options contains 'Any', it means any language can be selected
+            const backgroundAllowsAny = backgroundOptions.includes('Any');
+
+            // Check if this language is in the background options and there are slots available
+            // OR if background allows any language and there are slots available
+            if ((backgroundAllowsAny || backgroundOptions.includes(proficiency)) &&
+                backgroundSelected.length < backgroundAllowed) {
+                // Skip if it's Common (default language) or already granted
+                if (proficiency === 'Common' || this.isGrantedBySource('languages', proficiency)) {
+                    return false;
+                }
+                return true;
+            }
+
+            // Also check race and class options
+            const raceOptions = this.character.optionalProficiencies.languages.race?.options || [];
+            const raceAllowed = this.character.optionalProficiencies.languages.race?.allowed || 0;
+            const raceSelected = this.character.optionalProficiencies.languages.race?.selected || [];
+
+            const raceAllowsAny = raceOptions.includes('Any');
+
+            if ((raceAllowsAny || raceOptions.includes(proficiency)) &&
+                raceSelected.length < raceAllowed) {
+                return true;
+            }
+
+            const classOptions = this.character.optionalProficiencies.languages.class?.options || [];
+            const classAllowed = this.character.optionalProficiencies.languages.class?.allowed || 0;
+            const classSelected = this.character.optionalProficiencies.languages.class?.selected || [];
+
+            const classAllowsAny = classOptions.includes('Any');
+
+            if ((classAllowsAny || classOptions.includes(proficiency)) &&
+                classSelected.length < classAllowed) {
+                return true;
+            }
+
+            // If it's not in any of the option lists or all slots are filled, it's not available
+            return false;
+        }
+
+        // For skills and languages, check if the item is in either race, class, or background options
         if (type === 'skills') {
-            const raceOptions = this.character.optionalProficiencies.skills.race.options || [];
-            const classOptions = this.character.optionalProficiencies.skills.class.options || [];
-            const raceAllowed = this.character.optionalProficiencies.skills.race.allowed || 0;
-            const classAllowed = this.character.optionalProficiencies.skills.class.allowed || 0;
+            const raceOptions = this.character.optionalProficiencies[type].race?.options || [];
+            const classOptions = this.character.optionalProficiencies[type].class?.options || [];
+            const backgroundOptions = this.character.optionalProficiencies[type].background?.options || [];
+            const raceAllowed = this.character.optionalProficiencies[type].race?.allowed || 0;
+            const classAllowed = this.character.optionalProficiencies[type].class?.allowed || 0;
+            const backgroundAllowed = this.character.optionalProficiencies[type].background?.allowed || 0;
 
             // If we have race options and race slots available
             if (raceOptions.length > 0 && raceAllowed > 0) {
-                // Is this a race skill option?
+                // Is this a race option?
                 const isRaceOption = raceOptions.includes(proficiency);
                 // Are race slots filled?
-                const raceSelected = this.character.optionalProficiencies.skills.race.selected || [];
+                const raceSelected = this.character.optionalProficiencies[type].race?.selected || [];
                 const raceSlotsFull = raceSelected.length >= raceAllowed;
 
                 if (isRaceOption && !raceSlotsFull) {
@@ -745,10 +776,10 @@ export class ProficiencyCard {
 
             // If we have class options and class slots available
             if (classOptions.length > 0 && classAllowed > 0) {
-                // Is this a class skill option?
+                // Is this a class option?
                 const isClassOption = classOptions.includes(proficiency);
                 // Are class slots filled?
-                const classSelected = this.character.optionalProficiencies.skills.class.selected || [];
+                const classSelected = this.character.optionalProficiencies[type].class?.selected || [];
                 const classSlotsFull = classSelected.length >= classAllowed;
 
                 if (isClassOption && !classSlotsFull) {
@@ -756,12 +787,26 @@ export class ProficiencyCard {
                 }
             }
 
-            // If the skill is not in either race or class options, or all slots are filled
+            // If we have background options and background slots available
+            if (backgroundOptions.length > 0 && backgroundAllowed > 0) {
+                // Is this a background option?
+                const isBackgroundOption = backgroundOptions.includes(proficiency);
+                // Are background slots filled?
+                const backgroundSelected = this.character.optionalProficiencies[type].background?.selected || [];
+                const backgroundSlotsFull = backgroundSelected.length >= backgroundAllowed;
+
+                if (isBackgroundOption && !backgroundSlotsFull) {
+                    return true;
+                }
+            }
+
+            // If none of the above conditions are met, the proficiency is not available
             return false;
         }
 
-        // For other types, allow any proficiency to be selected
-        return true;
+        // For other types, just check if there are slots available
+        return this.character.optionalProficiencies?.[type]?.allowed > 0 &&
+            this.character.optionalProficiencies?.[type]?.selected?.length < this.character.optionalProficiencies?.[type]?.allowed;
     }
 
     /**
@@ -967,9 +1012,12 @@ export class ProficiencyCard {
                 }
             } else if (profType === 'languages') {
                 // Determine if the language is part of race, class, or background options
-                const isRaceOption = this.character.optionalProficiencies.languages.race?.options?.includes(proficiency);
-                const isClassOption = this.character.optionalProficiencies.languages.class?.options?.includes(proficiency);
-                const isBackgroundOption = this.character.optionalProficiencies.languages.background?.options?.includes(proficiency);
+                const isRaceOption = this.character.optionalProficiencies.languages.race?.options?.includes(proficiency) ||
+                    this.character.optionalProficiencies.languages.race?.options?.includes('Any');
+                const isClassOption = this.character.optionalProficiencies.languages.class?.options?.includes(proficiency) ||
+                    this.character.optionalProficiencies.languages.class?.options?.includes('Any');
+                const isBackgroundOption = this.character.optionalProficiencies.languages.background?.options?.includes(proficiency) ||
+                    this.character.optionalProficiencies.languages.background?.options?.includes('Any');
 
                 console.log(`[ProficiencyCard] Toggle language ${proficiency}:`, {
                     isRaceOption,
@@ -978,6 +1026,9 @@ export class ProficiencyCard {
                     raceAllowed: this.character.optionalProficiencies.languages.race?.allowed || 0,
                     classAllowed: this.character.optionalProficiencies.languages.class?.allowed || 0,
                     backgroundAllowed: this.character.optionalProficiencies.languages.background?.allowed || 0,
+                    raceOptions: this.character.optionalProficiencies.languages.race?.options || [],
+                    classOptions: this.character.optionalProficiencies.languages.class?.options || [],
+                    backgroundOptions: this.character.optionalProficiencies.languages.background?.options || [],
                     raceSelected: this.character.optionalProficiencies.languages.race?.selected || [],
                     classSelected: this.character.optionalProficiencies.languages.class?.selected || [],
                     backgroundSelected: this.character.optionalProficiencies.languages.background?.selected || []

@@ -511,8 +511,9 @@ export class BackgroundCard extends EntityCard {
 
         console.log(`[BackgroundCard] Adding proficiencies for ${background.name}`);
 
-        // Store previous skill selections to restore valid ones
-        const prevBackgroundSelected = character.optionalProficiencies.skills.background?.selected || [];
+        // Store previous skill and language selections to restore valid ones
+        const prevBackgroundSkillsSelected = character.optionalProficiencies.skills.background?.selected || [];
+        const prevBackgroundLanguagesSelected = character.optionalProficiencies.languages.background?.selected || [];
 
         // Get fixed proficiencies from background
         const fixedProfs = background.getFixedProficiencies();
@@ -532,7 +533,12 @@ export class BackgroundCard extends EntityCard {
         character.optionalProficiencies.skills.background.options = [];
         character.optionalProficiencies.skills.background.selected = [];
 
-        // Set up optional proficiencies
+        // Reset background language options
+        character.optionalProficiencies.languages.background.allowed = 0;
+        character.optionalProficiencies.languages.background.options = [];
+        character.optionalProficiencies.languages.background.selected = [];
+
+        // Set up optional skill proficiencies
         if (background.proficiencies?.skills?.choices?.count > 0) {
             // Set the background skill choice count and options
             character.optionalProficiencies.skills.background.allowed = background.proficiencies.skills.choices.count;
@@ -548,9 +554,9 @@ export class BackgroundCard extends EntityCard {
             }
 
             // Restore valid skill selections if any, excluding now-fixed skills
-            if (prevBackgroundSelected.length > 0) {
+            if (prevBackgroundSkillsSelected.length > 0) {
                 const newBackgroundOptions = character.optionalProficiencies.skills.background.options;
-                const validSelections = prevBackgroundSelected.filter(skill =>
+                const validSelections = prevBackgroundSkillsSelected.filter(skill =>
                     newBackgroundOptions.includes(skill) &&
                     !character.proficiencies.skills.includes(skill) &&
                     !fixedProfs.skills.includes(skill));
@@ -564,8 +570,9 @@ export class BackgroundCard extends EntityCard {
 
         // Set up optional tool proficiencies
         if (background.proficiencies?.tools?.choices?.count > 0) {
-            character.optionalProficiencies.tools.allowed = background.proficiencies.tools.choices.count;
-            character.optionalProficiencies.tools.selected = [];
+            character.optionalProficiencies.tools.background.allowed = background.proficiencies.tools.choices.count;
+            character.optionalProficiencies.tools.background.options = background.proficiencies.tools.choices.from || [];
+            character.optionalProficiencies.tools.background.selected = [];
         }
 
         // Handle languages
@@ -577,8 +584,36 @@ export class BackgroundCard extends EntityCard {
 
             // Set up optional languages
             if (background.languages.choices?.count > 0) {
-                character.optionalProficiencies.languages.allowed = background.languages.choices.count;
-                character.optionalProficiencies.languages.selected = [];
+                console.log(`[BackgroundCard] Setting up language choices: count=${background.languages.choices.count}`);
+                character.optionalProficiencies.languages.background.allowed = background.languages.choices.count;
+
+                // Set options - either specific list or 'any' languages
+                if (background.languages.choices.from && background.languages.choices.from.length > 0) {
+                    // Background specifies specific languages to choose from
+                    character.optionalProficiencies.languages.background.options = [...background.languages.choices.from];
+                    console.log('[BackgroundCard] Background allows specific languages:',
+                        character.optionalProficiencies.languages.background.options);
+                } else {
+                    // Background allows ANY language - use the special 'Any' indicator
+                    character.optionalProficiencies.languages.background.options = ['Any'];
+                    console.log('[BackgroundCard] Background allows ANY language:',
+                        character.optionalProficiencies.languages.background.options);
+                }
+
+                // Restore valid language selections if any, excluding now-fixed languages
+                if (prevBackgroundLanguagesSelected.length > 0) {
+                    const validSelections = prevBackgroundLanguagesSelected.filter(lang =>
+                        !character.proficiencies.languages.includes(lang) &&
+                        !(background.languages.fixed || []).includes(lang));
+
+                    character.optionalProficiencies.languages.background.selected =
+                        validSelections.slice(0, character.optionalProficiencies.languages.background.allowed);
+
+                    console.log(`[BackgroundCard] Restored ${character.optionalProficiencies.languages.background.selected.length} background language selections`);
+                }
+
+                // Update combined language options
+                this._updateCombinedLanguageOptions(character);
             }
         }
 
@@ -659,6 +694,51 @@ export class BackgroundCard extends EntityCard {
             classSelected,
             backgroundSelected,
             combinedSelected: character.optionalProficiencies.skills.selected
+        });
+    }
+
+    /**
+     * Updates the combined language options from race, class and background
+     * @param {Character} character - The character object
+     * @private
+     */
+    _updateCombinedLanguageOptions(character) {
+        if (!character) return;
+
+        const raceAllowed = character.optionalProficiencies.languages.race?.allowed || 0;
+        const classAllowed = character.optionalProficiencies.languages.class?.allowed || 0;
+        const backgroundAllowed = character.optionalProficiencies.languages.background?.allowed || 0;
+
+        const raceOptions = character.optionalProficiencies.languages.race?.options || [];
+        const classOptions = character.optionalProficiencies.languages.class?.options || [];
+        const backgroundOptions = character.optionalProficiencies.languages.background?.options || [];
+
+        const raceSelected = character.optionalProficiencies.languages.race?.selected || [];
+        const classSelected = character.optionalProficiencies.languages.class?.selected || [];
+        const backgroundSelected = character.optionalProficiencies.languages.background?.selected || [];
+
+        // Update total allowed count
+        character.optionalProficiencies.languages.allowed = raceAllowed + classAllowed + backgroundAllowed;
+
+        // Combine selected languages from all sources
+        character.optionalProficiencies.languages.selected = [...new Set([...raceSelected, ...classSelected, ...backgroundSelected])];
+
+        // For combined options, include options from all sources
+        character.optionalProficiencies.languages.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
+
+        console.log('[BackgroundCard] Updated combined language options:', {
+            raceOptions,
+            classOptions,
+            backgroundOptions,
+            combinedOptions: character.optionalProficiencies.languages.options,
+            raceAllowed,
+            classAllowed,
+            backgroundAllowed,
+            combinedAllowed: character.optionalProficiencies.languages.allowed,
+            raceSelected,
+            classSelected,
+            backgroundSelected,
+            combinedSelected: character.optionalProficiencies.languages.selected
         });
     }
 

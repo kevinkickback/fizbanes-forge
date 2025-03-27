@@ -17,12 +17,12 @@ export class Character {
         this.level = 1;
         this.allowedSources = new Set(['PHB']); // Initialize with PHB as default
         this.abilityScores = {
-            strength: 10,
-            dexterity: 10,
-            constitution: 10,
-            intelligence: 10,
-            wisdom: 10,
-            charisma: 10
+            strength: 8,
+            dexterity: 8,
+            constitution: 8,
+            intelligence: 8,
+            wisdom: 8,
+            charisma: 8
         };
         this.abilityBonuses = {
             strength: [],
@@ -132,6 +132,13 @@ export class Character {
             items: []
         };
         this.pendingAbilityChoices = []; // Array to store pending ability choices
+
+        // Initialize variant rules with defaults
+        this.variantRules = {
+            feats: true,
+            multiclassing: true,
+            abilityScoreMethod: 'custom' // Options: 'custom', 'pointBuy', 'standardArray'
+        };
 
         // Add Common as a default language
         this.addLanguage('Common', 'Default');
@@ -511,6 +518,69 @@ export class Character {
             savingThrows: Array.isArray(data.proficiencies?.savingThrows) ? [...data.proficiencies.savingThrows] : []
         };
 
+        // Restore proficiency sources (convert serialized objects back to Maps)
+        if (data.proficiencySources) {
+            for (const type of Object.keys(character.proficiencySources)) {
+                if (data.proficiencySources[type]) {
+                    character.proficiencySources[type] = new Map(
+                        Object.entries(data.proficiencySources[type]).map(
+                            ([key, value]) => [key, new Set(value)]
+                        )
+                    );
+                }
+            }
+        }
+
+        // Restore optional proficiencies
+        if (data.optionalProficiencies) {
+            // Simple types (armor, weapons, savingThrows)
+            for (const type of ['armor', 'weapons', 'savingThrows']) {
+                if (data.optionalProficiencies[type]) {
+                    character.optionalProficiencies[type] = {
+                        allowed: data.optionalProficiencies[type].allowed || 0,
+                        selected: Array.isArray(data.optionalProficiencies[type].selected) ?
+                            [...data.optionalProficiencies[type].selected] : []
+                    };
+                }
+            }
+
+            // Complex types with source-specific details (skills, languages, tools)
+            for (const type of ['skills', 'languages', 'tools']) {
+                if (data.optionalProficiencies[type]) {
+                    // Copy top-level properties
+                    character.optionalProficiencies[type].allowed = data.optionalProficiencies[type].allowed || 0;
+                    character.optionalProficiencies[type].options = Array.isArray(data.optionalProficiencies[type].options) ?
+                        [...data.optionalProficiencies[type].options] : [];
+                    character.optionalProficiencies[type].selected = Array.isArray(data.optionalProficiencies[type].selected) ?
+                        [...data.optionalProficiencies[type].selected] : [];
+
+                    // Copy source-specific details
+                    for (const source of ['race', 'class', 'background']) {
+                        if (data.optionalProficiencies[type][source]) {
+                            character.optionalProficiencies[type][source] = {
+                                allowed: data.optionalProficiencies[type][source].allowed || 0,
+                                options: Array.isArray(data.optionalProficiencies[type][source].options) ?
+                                    [...data.optionalProficiencies[type][source].options] : [],
+                                selected: Array.isArray(data.optionalProficiencies[type][source].selected) ?
+                                    [...data.optionalProficiencies[type][source].selected] : []
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        // Restore pendingAbilityChoices if present
+        if (Array.isArray(data.pendingAbilityChoices)) {
+            character.pendingAbilityChoices = [...data.pendingAbilityChoices];
+        }
+
+        // Copy variant rules if present
+        if (data.variantRules) {
+            character.variantRules = { ...data.variantRules };
+            console.log('[Character] Restored variant rules:', character.variantRules);
+        }
+
         // Copy race information
         character.race = {
             name: data.race?.name || '',
@@ -521,7 +591,15 @@ export class Character {
         // Copy class information
         character.class = data.class || { level: 1 };
         character.subclass = data.subclass || '';
-        character.background = data.background || '';
+
+        // Copy background information (with better object handling)
+        if (typeof data.background === 'object' && data.background !== null) {
+            character.background = { ...data.background };
+        } else if (typeof data.background === 'string') {
+            character.background = { name: data.background };
+        } else {
+            character.background = {};
+        }
 
         return character;
     }
@@ -532,50 +610,191 @@ export class Character {
      */
     toJSON() {
         console.log('[Character] Converting to JSON, allowedSources:', Array.from(this.allowedSources));
-        return {
+
+        // Helper function to safely convert a Map to an object
+        const mapToObject = (map) => {
+            if (!map || typeof map !== 'object') return {};
+
+            try {
+                return Object.fromEntries(
+                    Array.from(map.entries()).map(([key, value]) => {
+                        // Convert Set values to arrays
+                        if (value instanceof Set) {
+                            return [key, Array.from(value)];
+                        }
+                        return [key, value];
+                    })
+                );
+            } catch (error) {
+                console.error('[Character] Error converting Map to object:', error);
+                return {}; // Return empty object on error
+            }
+        };
+
+        // Helper function to ensure arrays are safe for serialization
+        const safeArray = (arr) => {
+            if (!arr) return [];
+            if (Array.isArray(arr)) return [...arr];
+            if (arr instanceof Set) return Array.from(arr);
+            return [];
+        };
+
+        // Create a clean object with just the data we need
+        const serializedData = {
             id: this.id,
             name: this.name,
-            allowedSources: Array.from(this.allowedSources),
+            allowedSources: Array.from(this.allowedSources || []),
             playerName: this.playerName,
             level: this.level,
             lastModified: new Date().toISOString(),
-            height: this.height,
-            weight: this.weight,
-            gender: this.gender,
-            backstory: this.backstory,
+            height: this.height || '',
+            weight: this.weight || '',
+            gender: this.gender || '',
+            backstory: this.backstory || '',
 
             // Ability scores and bonuses
             abilityScores: { ...this.abilityScores },
             abilityBonuses: { ...this.abilityBonuses },
 
             // Race, class, background
-            race: { ...this.race },
-            class: { ...this.class },
-            subclass: this.subclass,
-            background: this.background,
+            race: this.race ? { ...this.race } : { name: '', source: '', subrace: '' },
+            class: this.class ? { ...this.class } : { level: 1 },
+            subclass: this.subclass || '',
+            background: this.background ? (typeof this.background === 'object' ? { ...this.background } : { name: this.background }) : {},
 
             // Size and speed
-            size: this.size,
-            speed: { ...this.speed },
+            size: this.size || 'M',
+            speed: this.speed ? { ...this.speed } : { walk: 30 },
 
             // Features and proficiencies
             features: {
-                darkvision: this.features.darkvision,
-                resistances: Array.from(this.features.resistances),
-                traits: Object.fromEntries(this.features.traits)
-            },
-            proficiencies: {
-                armor: [...this.proficiencies.armor],
-                weapons: [...this.proficiencies.weapons],
-                tools: [...this.proficiencies.tools],
-                skills: [...this.proficiencies.skills],
-                languages: [...this.proficiencies.languages],
-                savingThrows: [...this.proficiencies.savingThrows]
+                darkvision: this.features?.darkvision || 0,
+                resistances: Array.from(this.features?.resistances || []),
+                traits: mapToObject(this.features?.traits)
             },
 
-            // Variant rules
-            variantRules: { ...this.variantRules }
+            proficiencies: {
+                armor: safeArray(this.proficiencies?.armor),
+                weapons: safeArray(this.proficiencies?.weapons),
+                tools: safeArray(this.proficiencies?.tools),
+                skills: safeArray(this.proficiencies?.skills),
+                languages: safeArray(this.proficiencies?.languages),
+                savingThrows: safeArray(this.proficiencies?.savingThrows)
+            },
+
+            // Proficiency sources (convert Maps to serializable objects)
+            proficiencySources: {
+                armor: mapToObject(this.proficiencySources?.armor),
+                weapons: mapToObject(this.proficiencySources?.weapons),
+                tools: mapToObject(this.proficiencySources?.tools),
+                skills: mapToObject(this.proficiencySources?.skills),
+                languages: mapToObject(this.proficiencySources?.languages),
+                savingThrows: mapToObject(this.proficiencySources?.savingThrows)
+            }
         };
+
+        // Handle optional proficiencies separately with careful error handling
+        try {
+            if (this.optionalProficiencies) {
+                serializedData.optionalProficiencies = {
+                    // Simple types
+                    armor: this.optionalProficiencies.armor ? {
+                        allowed: this.optionalProficiencies.armor.allowed || 0,
+                        selected: safeArray(this.optionalProficiencies.armor.selected)
+                    } : { allowed: 0, selected: [] },
+
+                    weapons: this.optionalProficiencies.weapons ? {
+                        allowed: this.optionalProficiencies.weapons.allowed || 0,
+                        selected: safeArray(this.optionalProficiencies.weapons.selected)
+                    } : { allowed: 0, selected: [] },
+
+                    savingThrows: this.optionalProficiencies.savingThrows ? {
+                        allowed: this.optionalProficiencies.savingThrows.allowed || 0,
+                        selected: safeArray(this.optionalProficiencies.savingThrows.selected)
+                    } : { allowed: 0, selected: [] },
+
+                    // Complex types with source-specific details
+                    skills: this._serializeComplexProficiency('skills'),
+                    languages: this._serializeComplexProficiency('languages'),
+                    tools: this._serializeComplexProficiency('tools')
+                };
+            }
+        } catch (error) {
+            console.error('[Character] Error serializing optionalProficiencies:', error);
+            // Provide empty default structure
+            serializedData.optionalProficiencies = {
+                armor: { allowed: 0, selected: [] },
+                weapons: { allowed: 0, selected: [] },
+                savingThrows: { allowed: 0, selected: [] },
+                skills: { allowed: 0, options: [], selected: [] },
+                languages: { allowed: 0, options: [], selected: [] },
+                tools: { allowed: 0, options: [], selected: [] }
+            };
+        }
+
+        // Add pendingAbilityChoices if they exist
+        if (this.pendingAbilityChoices && Array.isArray(this.pendingAbilityChoices)) {
+            serializedData.pendingAbilityChoices = [...this.pendingAbilityChoices];
+        } else {
+            serializedData.pendingAbilityChoices = [];
+        }
+
+        // Add variant rules if they exist
+        if (this.variantRules) {
+            serializedData.variantRules = { ...this.variantRules };
+        }
+
+        return serializedData;
+    }
+
+    /**
+     * Helper method to serialize complex proficiency types (skills, languages, tools)
+     * @param {string} type - The proficiency type (skills, languages, tools)
+     * @returns {Object} The serialized proficiency object
+     * @private
+     */
+    _serializeComplexProficiency(type) {
+        // Helper function to ensure arrays are safe for serialization
+        const safeArray = (arr) => {
+            if (!arr) return [];
+            if (Array.isArray(arr)) return [...arr];
+            if (arr instanceof Set) return Array.from(arr);
+            return [];
+        };
+
+        if (!this.optionalProficiencies || !this.optionalProficiencies[type]) {
+            // Return default structure if missing
+            return {
+                allowed: 0,
+                options: [],
+                selected: [],
+                race: { allowed: 0, options: [], selected: [] },
+                class: { allowed: 0, options: [], selected: [] },
+                background: { allowed: 0, options: [], selected: [] }
+            };
+        }
+
+        const result = {
+            allowed: this.optionalProficiencies[type].allowed || 0,
+            options: safeArray(this.optionalProficiencies[type].options),
+            selected: safeArray(this.optionalProficiencies[type].selected)
+        };
+
+        // Add source-specific details
+        for (const source of ['race', 'class', 'background']) {
+            if (this.optionalProficiencies[type][source]) {
+                result[source] = {
+                    allowed: this.optionalProficiencies[type][source].allowed || 0,
+                    options: safeArray(this.optionalProficiencies[type][source].options),
+                    selected: safeArray(this.optionalProficiencies[type][source].selected)
+                };
+            } else {
+                // Default empty structure
+                result[source] = { allowed: 0, options: [], selected: [] };
+            }
+        }
+
+        return result;
     }
 
     /**

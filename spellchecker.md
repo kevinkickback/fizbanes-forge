@@ -1,0 +1,1 @@
+ability scores increase/decrease by 2 instead of 1 when using +/- buttons. there is no visual counter in ability score card to keep track of points spent when using point buy method. Increase/decrease buttons should be removed when using array method and replaced with a different method to select which ability gets which predetermined score. Maybe dropdown boxes?

@@ -111,8 +111,11 @@ async function moveCharacterFiles(oldPath, newPath) {
 }
 
 // Save character data
-ipcMain.handle("saveCharacter", async (event, character) => {
+ipcMain.handle("saveCharacter", async (event, serializedCharacter) => {
   try {
+    // Parse the pre-serialized character data
+    const character = JSON.parse(serializedCharacter);
+
     console.log('[CharacterStorage] Starting character save:', {
       id: character.id,
       name: character.name,
@@ -150,7 +153,7 @@ ipcMain.handle("saveCharacter", async (event, character) => {
     character.lastModified = new Date().toISOString();
     console.log('[CharacterStorage] Updated lastModified date:', character.lastModified);
 
-    // Save the character
+    // Save the character with the updated lastModified date
     const characterData = JSON.stringify(character, null, 2);
     fs.writeFileSync(targetFilePath, characterData);
     console.log('[CharacterStorage] Character saved successfully');

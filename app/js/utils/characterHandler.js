@@ -70,6 +70,18 @@ export class CharacterHandler {
      */
     set currentCharacter(character) {
         this._currentCharacter = character;
+
+        // Initialize ability scores based on the selected method
+        if (character?.variantRules?.abilityScoreMethod) {
+            // Handle async import with promise
+            import('../managers/AbilityScoreManager.js').then(({ abilityScoreManager }) => {
+                abilityScoreManager.updateAssignedStandardArrayValues();
+            }).catch(err => {
+                console.error('[CharacterHandler] Error initializing ability scores:', err);
+            });
+        }
+
+        // Notify listeners of the character change
         this._notifyCharacterChanged();
     }
 
@@ -480,6 +492,7 @@ export class CharacterHandler {
     async handleCharacterSelect(character) {
         try {
             console.log('[CharacterHandler] Selecting character:', character?.id, 'with sources:', character?.allowedSources);
+            console.log('[CharacterHandler] Character variant rules:', character?.variantRules);
 
             // Don't reload if it's the same character
             if (this.currentCharacter?.id === character.id) {
@@ -492,8 +505,30 @@ export class CharacterHandler {
             console.log('[CharacterHandler] Character selected, allowed sources:',
                 Array.from(this.currentCharacter.allowedSources));
 
+            // Log the ability score method
+            const abilityScoreMethod = this.currentCharacter.variantRules?.abilityScoreMethod || 'custom';
+            console.log('[CharacterHandler] Ability score method:', abilityScoreMethod);
+
             // Update UI to reflect selection
             this.updateCharacterSelectionUI(character.id);
+
+            // Initialize ability scores based on the selected method if available
+            try {
+                const abilityScoreManagerModule = await import('../managers/AbilityScoreManager.js');
+                const abilityScoreManager = abilityScoreManagerModule.abilityScoreManager;
+
+                if (!abilityScoreManager) {
+                    throw new Error('abilityScoreManager is undefined after import');
+                }
+
+                // Reset the ability score manager with the current character's settings
+                abilityScoreManager.resetAbilityScoreMethod();
+
+                console.log('[CharacterHandler] Ability score method initialized:',
+                    this.currentCharacter.variantRules?.abilityScoreMethod);
+            } catch (e) {
+                console.error('[CharacterHandler] Error initializing ability scores:', e);
+            }
 
             // Populate the details page if we're on it
             await this.populateDetailsPage();
@@ -506,6 +541,8 @@ export class CharacterHandler {
                     existingCard.remove();
                 }
 
+                // Dynamically import and initialize the AbilityScoreCard
+                const { AbilityScoreCard } = await import('../ui/AbilityScoreCard.js');
                 const abilityScoreCard = new AbilityScoreCard();
                 container.__card = abilityScoreCard;
                 abilityScoreCard.initialize();

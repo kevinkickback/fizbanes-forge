@@ -45,7 +45,9 @@ export class Storage {
      */
     async saveCharacter(character) {
         try {
-            return await window.characterStorage.saveCharacter(character);
+            // Pre-serialize the character to avoid IPC cloning issues
+            const serializedCharacter = JSON.stringify(character);
+            return await window.characterStorage.saveCharacter(serializedCharacter);
         } catch (error) {
             console.error('Error saving character to storage:', error);
             return {
