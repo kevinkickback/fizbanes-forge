@@ -1,3 +1,5 @@
+import { TextProcessor } from '../utils/TextProcessor.js';
+
 export class Item {
     constructor(data) {
         this.id = `${data.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${(data.source || 'phb').toLowerCase()}` || '';
@@ -8,12 +10,37 @@ export class Item {
         this.rarity = data.rarity || 'common';
         this.value = this.constructor.processValue(data.value);
         this.weight = data.weight || 0;
-        this.description = data.description || '';
+        this.description = '';
         this.properties = this.constructor.processProperties(data.property);
         this.attunement = this.constructor.processAttunement(data.reqAttune);
         this.quantity = data.quantity || 1;
         this.equipped = false;
         this.attuned = false;
+
+        // Process the entries asynchronously if they exist
+        if (data.entries) {
+            this.processDescription(data.entries);
+        } else if (data.description) {
+            this.description = data.description;
+        }
+    }
+
+    /**
+     * Process entries into a description string
+     * @param {Array} entries - The entries array from the data
+     */
+    async processDescription(entries) {
+        if (!entries) return;
+
+        try {
+            const textProcessor = new TextProcessor();
+            this.description = await textProcessor.processEntries(entries);
+        } catch (error) {
+            console.error('Error processing item description:', error);
+            this.description = Array.isArray(entries)
+                ? entries.map(e => typeof e === 'string' ? e : JSON.stringify(e)).join('\n')
+                : JSON.stringify(entries);
+        }
     }
 
     static getItemType(data) {
