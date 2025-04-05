@@ -30,11 +30,11 @@ export class InventoryManager {
 
             if (!item) {
                 console.error(`Item not found: ${itemId}`);
-                console.log('Available items:', items.map(i => ({
+                console.debug('Available items:', items.map(i => ({
                     id: i.id,
-                    groupId: i.groupId,
                     name: i.name,
-                    type: i.type
+                    type: i.type,
+                    rarity: i.rarity
                 })));
                 return false;
             }

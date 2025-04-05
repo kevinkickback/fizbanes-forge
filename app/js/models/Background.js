@@ -77,8 +77,6 @@ export class Background {
      * @returns {Object} Object containing skill and tool fixed proficiencies
      */
     getFixedProficiencies() {
-        console.log(`Getting fixed proficiencies for ${this.name}:`, this.proficiencies);
-
         // Normalize skill names to ensure consistent capitalization
         const normalizedSkills = (this.proficiencies?.skills?.fixed || []).map(skill => {
             // Convert lowercase "sleight of hand" to "Sleight of Hand"

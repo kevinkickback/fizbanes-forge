@@ -65,7 +65,7 @@ export class DeityLoader extends BaseLoader {
                     deity: deityData.deity || []
                 };
 
-                console.log(`Loaded ${data.deity.length} deities`);
+                console.debug(`Loaded ${data.deity.length} deities`);
                 return data;
             } catch (error) {
                 console.error('Error loading deities:', error);

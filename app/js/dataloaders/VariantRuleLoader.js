@@ -32,7 +32,7 @@ export class VariantRuleLoader extends BaseLoader {
                     maxRetries: 3
                 });
 
-                console.log(`Loaded ${data.variantrule?.length || 0} variant rules`);
+                console.debug(`Loaded ${data.variantrule?.length || 0} variant rules`);
                 return data;
             } catch (error) {
                 console.error('Error loading variant rules:', error);

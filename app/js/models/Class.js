@@ -77,19 +77,14 @@ export class Class {
      * @returns {Array} Array of feature objects
      */
     getFeatures(level = null) {
-        // Debug log the features array
-        console.log(`[Class] ${this.name} has ${this.classFeatures?.length || 0} features in total`);
-        if (this.classFeatures?.length > 0) {
-            console.log(`[Class] First feature: ${this.classFeatures[0].name}, level ${this.classFeatures[0].level}`);
-        }
+        // Keep only essential debug logs
+        console.debug(`[Class] Getting features for ${this.name}${level ? ` at level ${level}` : ''}`);
 
         // Only use detailed class features
         if (!this.classFeatures || this.classFeatures.length === 0) {
-            console.log(`[Class] No detailed features found for ${this.name}`);
+            console.debug(`[Class] No detailed features found for ${this.name}`);
             return [];
         }
-
-        console.log(`[Class] Using detailed features for ${this.name} (${this.classFeatures.length} features)`);
 
         // Filter features by class source
         const sourceFilteredFeatures = this.classFeatures.filter(feature =>
@@ -97,18 +92,13 @@ export class Class {
             (feature.classSource === this.source || feature.source === this.source)
         );
 
-        console.log(`[Class] After source filtering: ${sourceFilteredFeatures.length} features for ${this.name} from ${this.source}`);
-
         if (level === null) {
             return sourceFilteredFeatures;
         }
 
         // Filter features to the specific level
         const filteredFeatures = sourceFilteredFeatures.filter(feature => feature.level === level);
-        console.log(`[Class] Found ${filteredFeatures.length} features for level ${level}`);
-        if (filteredFeatures.length > 0) {
-            console.log(`[Class] Feature names: ${filteredFeatures.map(f => f.name).join(', ')}`);
-        }
+        console.debug(`[Class] Found ${filteredFeatures.length} features for ${this.name} at level ${level}`);
         return filteredFeatures;
     }
 

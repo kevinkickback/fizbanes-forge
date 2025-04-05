@@ -14,32 +14,43 @@
 import { showNotification } from './notifications.js';
 import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
-import { RaceCard } from '../ui/RaceCard.js';
-import { ClassCard } from '../ui/ClassCard.js';
-import { BackgroundCard } from '../ui/BackgroundCard.js';
-import { AbilityScoreCard } from '../ui/AbilityScoreCard.js';
-import { ProficiencyCard } from '../ui/ProficiencyCard.js';
 
-/**
- * Navigation app with all navigation-related functionality
- * @type {NavigationState & {
- *   initialize: () => Promise<void>,
- *   loadPage: (pageName: string) => Promise<void>,
- *   _initializePageContent: (pageName: string) => Promise<void>
- * }}
- */
-export const navigation = {
-    currentPage: 'home',
-    _initialized: false,
+let instance = null;
 
-    /** @type {readonly string[]} Pages that require a character to be selected */
-    _CHARACTER_PAGES: Object.freeze(['build', 'equipment', 'details']),
+export class Navigation {
+    /**
+     * Creates a new Navigation instance.
+     * Private constructor enforcing the singleton pattern.
+     * @throws {Error} If trying to instantiate more than once
+     */
+    constructor() {
+        if (instance) {
+            throw new Error('Navigation is a singleton. Use Navigation.getInstance() instead.');
+        }
+        instance = this;
+
+        this.currentPage = 'home';
+        this._initialized = false;
+        this._CHARACTER_PAGES = Object.freeze(['build', 'equipment', 'details']);
+    }
+
+    /**
+     * Gets the singleton instance of Navigation
+     * @returns {Navigation} The singleton instance
+     * @static
+     */
+    static getInstance() {
+        if (!instance) {
+            instance = new Navigation();
+        }
+        return instance;
+    }
 
     /**
      * Initialize the navigation system
      * @returns {Promise<void>}
      */
-    initialize() {
+    async initialize() {
         if (this._initialized) return;
 
         // Set up navigation buttons
@@ -60,8 +71,7 @@ export const navigation = {
         // Load initial page
         this.loadPage('home');
         this._initialized = true;
-        console.log('Navigation initialized');
-    },
+    }
 
     /**
      * Checks if a page requires a character to be selected
@@ -71,14 +81,14 @@ export const navigation = {
      */
     _requiresCharacter(pageName) {
         return this._CHARACTER_PAGES.includes(pageName);
-    },
+    }
 
     /**
      * Loads and displays a specific page
      * @param {string} pageName - The name of the page to load
      * @returns {Promise<void>}
      */
-    loadPage(pageName) {
+    async loadPage(pageName) {
         // Prevent navigation to character pages if no character is selected
         if (this._requiresCharacter(pageName) && (!characterHandler.currentCharacter || !characterHandler.currentCharacter.id)) {
             showNotification('Please select or create a character first', 'warning');
@@ -102,7 +112,7 @@ export const navigation = {
             this.currentPage = pageName;
             this._initializePageContent(pageName);
         }
-    },
+    }
 
     /**
      * Saves changes from the current page before navigating away
@@ -110,6 +120,9 @@ export const navigation = {
      */
     _saveCurrentPageChanges() {
         if (!characterHandler.currentCharacter) return;
+
+        // Track if any actual changes were made
+        let changesMade = false;
 
         // Save changes based on the current page
         switch (this.currentPage) {
@@ -123,40 +136,62 @@ export const navigation = {
                 const buildFields = characterHandler.getCharacterDetailFields();
                 if (buildFields.raceSelect?.value) {
                     const [raceName, source] = buildFields.raceSelect.value.split('_');
-                    characterHandler.currentCharacter.race = {
-                        ...characterHandler.currentCharacter.race,
-                        name: raceName,
-                        source: source
-                    };
+                    // Only update if the values are different
+                    if (characterHandler.currentCharacter.race?.name !== raceName ||
+                        characterHandler.currentCharacter.race?.source !== source) {
+                        characterHandler.currentCharacter.race = {
+                            ...characterHandler.currentCharacter.race,
+                            name: raceName,
+                            source: source
+                        };
+                        changesMade = true;
+                    }
                 }
                 if (buildFields.subraceSelect?.value) {
-                    characterHandler.currentCharacter.race.subrace = buildFields.subraceSelect.value;
+                    if (characterHandler.currentCharacter.race?.subrace !== buildFields.subraceSelect.value) {
+                        characterHandler.currentCharacter.race.subrace = buildFields.subraceSelect.value;
+                        changesMade = true;
+                    }
                 }
 
                 // Save class and subclass selections
                 if (buildFields.classSelect?.value) {
                     const [className, source] = buildFields.classSelect.value.split('_');
-                    characterHandler.currentCharacter.class = {
-                        ...characterHandler.currentCharacter.class,
-                        name: className,
-                        source: source
-                    };
+                    if (characterHandler.currentCharacter.class?.name !== className ||
+                        characterHandler.currentCharacter.class?.source !== source) {
+                        characterHandler.currentCharacter.class = {
+                            ...characterHandler.currentCharacter.class,
+                            name: className,
+                            source: source
+                        };
+                        changesMade = true;
+                    }
                 }
                 if (buildFields.subclassSelect?.value) {
-                    characterHandler.currentCharacter.class.subclass = buildFields.subclassSelect.value;
+                    if (characterHandler.currentCharacter.class?.subclass !== buildFields.subclassSelect.value) {
+                        characterHandler.currentCharacter.class.subclass = buildFields.subclassSelect.value;
+                        changesMade = true;
+                    }
                 }
 
                 // Save background and variant selections
                 if (buildFields.backgroundSelect?.value) {
                     const [backgroundName, source] = buildFields.backgroundSelect.value.split('_');
-                    characterHandler.currentCharacter.background = {
-                        ...characterHandler.currentCharacter.background,
-                        name: backgroundName,
-                        source: source
-                    };
+                    if (characterHandler.currentCharacter.background?.name !== backgroundName ||
+                        characterHandler.currentCharacter.background?.source !== source) {
+                        characterHandler.currentCharacter.background = {
+                            ...characterHandler.currentCharacter.background,
+                            name: backgroundName,
+                            source: source
+                        };
+                        changesMade = true;
+                    }
                 }
                 if (buildFields.variantSelect?.value) {
-                    characterHandler.currentCharacter.background.variant = buildFields.variantSelect.value;
+                    if (characterHandler.currentCharacter.background?.variant !== buildFields.variantSelect.value) {
+                        characterHandler.currentCharacter.background.variant = buildFields.variantSelect.value;
+                        changesMade = true;
+                    }
                 }
                 break;
             }
@@ -167,9 +202,11 @@ export const navigation = {
             }
         }
 
-        // Show the unsaved changes indicator since we just captured changes
-        characterHandler.showUnsavedChanges();
-    },
+        // Only show unsaved changes if actual changes were made
+        if (changesMade) {
+            characterHandler.showUnsavedChanges();
+        }
+    }
 
     /**
      * Updates the navigation state and UI
@@ -185,7 +222,7 @@ export const navigation = {
                 link.classList.toggle('disabled', !characterHandler.currentCharacter);
             }
         }
-    },
+    }
 
     /**
      * Initializes the content for a specific page
@@ -193,7 +230,7 @@ export const navigation = {
      * @returns {Promise<void>}
      * @private
      */
-    _initializePageContent(pageName) {
+    async _initializePageContent(pageName) {
         const pageInitializers = {
             home: () => {
                 characterHandler.loadCharacters();
@@ -284,6 +321,9 @@ export const navigation = {
             details: () => {
                 characterHandler.populateDetailsPage();
             },
+            tooltipTest: () => {
+                // Initialize tooltip test page
+            },
             settings: () => {
                 settingsManager.updateSavePathDisplay();
             }
@@ -296,16 +336,15 @@ export const navigation = {
 
         // Initialize page-specific components
         this._initializePageComponents(pageName);
-    },
+    }
 
     /**
      * Initialize page-specific components
      * @param {string} pageName - The name of the page
+     * @returns {Promise<void>}
      * @private
      */
     async _initializePageComponents(pageName) {
-        console.log(`[Navigation] Initializing components for "${pageName}" page`);
-
         try {
             switch (pageName) {
                 case 'home':
@@ -330,14 +369,14 @@ export const navigation = {
         } catch (error) {
             console.error(`[Navigation] Error initializing components for "${pageName}" page:`, error);
         }
-    },
+    }
 
     /**
      * Initialize the build page
+     * @returns {Promise<void>}
+     * @private
      */
     async _initializeBuildPage() {
-        console.log('[Navigation] Initializing build page components');
-
         try {
             // Initialize the race card
             if (!this.raceCard) {
@@ -369,6 +408,7 @@ export const navigation = {
 
             // Initialize the proficiency card
             if (!this.proficiencyCard) {
+                const ProficiencyCard = (await import('../ui/ProficiencyCard.js')).ProficiencyCard;
                 this.proficiencyCard = new ProficiencyCard();
                 await this.proficiencyCard.initialize();
             }
@@ -378,45 +418,56 @@ export const navigation = {
         } catch (error) {
             console.error('[Navigation] Error initializing build page components:', error);
         }
-    },
+    }
 
     /**
      * Initialize the home page
+     * @returns {Promise<void>}
+     * @private
      */
     async _initializeHomePage() {
-        console.log('[Navigation] Initializing home page components');
         // No special components to initialize for home page yet
-    },
+    }
 
     /**
      * Initialize the equipment page
+     * @returns {Promise<void>}
+     * @private
      */
     async _initializeEquipmentPage() {
-        console.log('[Navigation] Initializing equipment page components');
         // Equipment page components will be initialized here
-    },
+    }
 
     /**
      * Initialize the details page
+     * @returns {Promise<void>}
+     * @private
      */
     async _initializeDetailsPage() {
-        console.log('[Navigation] Initializing details page components');
         // Details page components will be initialized here
-    },
+    }
 
     /**
      * Initialize the tooltip test page
+     * @returns {Promise<void>}
+     * @private
      */
     async _initializeTooltipTestPage() {
-        console.log('[Navigation] Initializing tooltip test page components');
         // Tooltip test page components will be initialized here
-    },
+    }
 
     /**
      * Initialize the settings page
+     * @returns {Promise<void>}
+     * @private
      */
     async _initializeSettingsPage() {
-        console.log('[Navigation] Initializing settings page components');
         // Settings page components will be initialized here
     }
-}; 
+}
+
+/**
+ * Export the singleton instance
+ * @type {Navigation}
+ */
+export const navigation = Navigation.getInstance(); 

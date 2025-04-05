@@ -162,8 +162,6 @@ export class Character {
      * @param {string} source - The source of the bonus
      */
     addAbilityBonus(ability, value, source) {
-        console.log(`[Character] Adding ability bonus: ${ability} +${value} from ${source}`);
-
         // Normalize the ability name
         const normalizedAbility = ability.toLowerCase()
             .replace(/^str$/, 'strength')
@@ -173,8 +171,6 @@ export class Character {
             .replace(/^wis$/, 'wisdom')
             .replace(/^cha$/, 'charisma');
 
-        console.log(`[Character] Normalized ability name: ${normalizedAbility}`);
-
         if (!this.abilityBonuses[normalizedAbility]) {
             this.abilityBonuses[normalizedAbility] = [];
         }
@@ -183,15 +179,11 @@ export class Character {
         const existingBonus = this.abilityBonuses[normalizedAbility].find(bonus => bonus.source === source);
         if (existingBonus) {
             // Update existing bonus
-            console.log(`[Character] Updating existing bonus for ${normalizedAbility} from ${source}: ${existingBonus.value} -> ${value}`);
             existingBonus.value = value;
         } else {
             // Add new bonus
-            console.log(`[Character] Adding new bonus for ${normalizedAbility} from ${source}: +${value}`);
             this.abilityBonuses[normalizedAbility].push({ value, source });
         }
-
-        console.log(`[Character] Current ability bonuses for ${normalizedAbility}:`, this.abilityBonuses[normalizedAbility]);
     }
 
     clearAbilityBonuses(source) {
@@ -204,7 +196,6 @@ export class Character {
 
     // Methods for pending choices
     addPendingChoice(type, choice) {
-        console.log("[Character] Adding pending choice:", { type, choice });
         if (!this.pendingChoices.has(type)) {
             this.pendingChoices.set(type, []);
         }
@@ -221,7 +212,6 @@ export class Character {
     }
 
     clearPendingAbilityChoices() {
-        console.log('[Character] Clearing pending ability choices');
         this.pendingAbilityChoices = [];
     }
 
@@ -240,44 +230,6 @@ export class Character {
 
     // Methods for proficiencies
     addProficiency(type, proficiency, source) {
-        // Special debug for skills from background
-        if (type === 'skills' && source === 'Background') {
-            console.log(`[Character] ADDING BACKGROUND SKILL: ${proficiency}`);
-
-            // Check if this skill is already selected as an optional skill
-            const raceSelected = this.optionalProficiencies?.skills?.race?.selected || [];
-            const classSelected = this.optionalProficiencies?.skills?.class?.selected || [];
-            const backgroundSelected = this.optionalProficiencies?.skills?.background?.selected || [];
-
-            // Log any potential conflicts (case insensitive)
-            const normalizedSkill = proficiency.toLowerCase().trim();
-            const conflicts = [];
-
-            for (const s of raceSelected) {
-                if (s.toLowerCase().trim() === normalizedSkill) {
-                    conflicts.push({ source: 'race', skill: s });
-                }
-            }
-
-            for (const s of classSelected) {
-                if (s.toLowerCase().trim() === normalizedSkill) {
-                    conflicts.push({ source: 'class', skill: s });
-                }
-            }
-
-            for (const s of backgroundSelected) {
-                if (s.toLowerCase().trim() === normalizedSkill) {
-                    conflicts.push({ source: 'background', skill: s });
-                }
-            }
-
-            if (conflicts.length > 0) {
-                console.log(`[Character] CONFLICT DETECTED: ${proficiency} conflicts with: `, conflicts);
-            }
-        }
-
-        console.log(`[Character] Adding proficiency: ${type} - ${proficiency} from ${source}`);
-
         // Ensure the proficiency array exists
         if (!this.proficiencies[type]) {
             this.proficiencies[type] = [];
@@ -304,15 +256,6 @@ export class Character {
         if (type === 'skills' && !source.includes('Choice')) {
             this._refundOptionalSkillIfFixed(proficiency, source);
         }
-
-        // Debug log proficiency sources for weapons and armor
-        if (type === 'weapons' || type === 'armor') {
-            console.log(`[Character] Current ${type} proficiency sources:`,
-                Array.from(this.proficiencySources[type].entries()).map(([prof, sources]) =>
-                    `${prof}: [${Array.from(sources).join(', ')}]`
-                ).join(', ')
-            );
-        }
     }
 
     /**
@@ -327,8 +270,6 @@ export class Character {
 
         // Normalize the skill name for case-insensitive comparison
         const normalizedSkill = skill.toLowerCase().trim();
-
-        console.log(`[Character] Checking if ${skill} needs to be refunded (normalized: ${normalizedSkill})`);
 
         // Check each source of optional skill selections
         const sources = ['race', 'class', 'background'];
@@ -347,8 +288,6 @@ export class Character {
             const matchingSkill = selected.find(s => s.toLowerCase().trim() === normalizedSkill);
 
             if (matchingSkill) {
-                console.log(`[Character] Auto-refunding ${matchingSkill} from ${src} (now granted by ${source})`);
-
                 // Remove from this source's selected list
                 this.optionalProficiencies.skills[src].selected =
                     selected.filter(s => s !== matchingSkill);
@@ -426,41 +365,32 @@ export class Character {
 
     // Methods for source management
     addAllowedSource(source) {
-        console.log('[Character] Adding allowed source:', source);
         if (source) {
             this.allowedSources.add(source.toUpperCase());
-            console.log('[Character] Current allowed sources:', Array.from(this.allowedSources));
         }
     }
 
     removeAllowedSource(source) {
-        console.log('[Character] Removing allowed source:', source);
         if (source) {
             this.allowedSources.delete(source.toUpperCase());
-            console.log('[Character] Current allowed sources:', Array.from(this.allowedSources));
         }
     }
 
     isSourceAllowed(source) {
         const isAllowed = source ? this.allowedSources.has(source.toUpperCase()) : false;
-        console.log('[Character] Checking if source is allowed:', source, isAllowed);
         return isAllowed;
     }
 
     setAllowedSources(sources) {
-        console.log('[Character] Setting allowed sources:', Array.from(sources));
         this.allowedSources = new Set(sources);
-        console.log('[Character] Allowed sources after setting:', Array.from(this.allowedSources));
     }
 
     getAllowedSources() {
-        console.log('[Character] Getting allowed sources:', Array.from(this.allowedSources));
         return new Set(this.allowedSources);
     }
 
     // Static method to create a Character instance from JSON data
     static fromJSON(data) {
-        console.log('[Character] Creating from JSON, allowedSources:', data.allowedSources);
         const character = new Character();
 
         // Copy basic properties
@@ -483,10 +413,8 @@ export class Character {
 
             // Ensure all sources are uppercase
             character.allowedSources = new Set(sources.map(source => source.toUpperCase()));
-            console.log('[Character] Set allowed sources from data:', Array.from(character.allowedSources));
         } else {
             character.allowedSources = new Set(['PHB']);
-            console.log('[Character] Using default PHB source:', Array.from(character.allowedSources));
         }
 
         // Copy ability scores and bonuses
@@ -578,7 +506,6 @@ export class Character {
         // Copy variant rules if present
         if (data.variantRules) {
             character.variantRules = { ...data.variantRules };
-            console.log('[Character] Restored variant rules:', character.variantRules);
         }
 
         // Copy race information
@@ -609,8 +536,6 @@ export class Character {
      * @returns {Object} JSON representation of the character
      */
     toJSON() {
-        console.log('[Character] Converting to JSON, allowedSources:', Array.from(this.allowedSources));
-
         // Helper function to safely convert a Map to an object
         const mapToObject = (map) => {
             if (!map || typeof map !== 'object') return {};
@@ -626,7 +551,6 @@ export class Character {
                     })
                 );
             } catch (error) {
-                console.error('[Character] Error converting Map to object:', error);
                 return {}; // Return empty object on error
             }
         };
@@ -720,7 +644,6 @@ export class Character {
                 };
             }
         } catch (error) {
-            console.error('[Character] Error serializing optionalProficiencies:', error);
             // Provide empty default structure
             serializedData.optionalProficiencies = {
                 armor: { allowed: 0, selected: [] },
@@ -802,7 +725,6 @@ export class Character {
      * @param {Object} choice - The ability choice object
      */
     addPendingAbilityChoice(choice) {
-        console.log('[Character] Adding pending ability choice:', choice);
         this.pendingAbilityChoices.push(choice);
     }
 

@@ -82,7 +82,6 @@ export class RaceCard {
      * Populate the race select dropdown
      */
     populateRaceSelect() {
-        console.log('[RaceCard] Populating race select dropdown');
         this.raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
         const races = this.raceManager.getAllRaces();
@@ -108,8 +107,6 @@ export class RaceCard {
      * @param {Race} race - Selected race
      */
     populateSubraceSelect(race) {
-        console.log('[RaceCard] Populating subrace select for race:', race?.name);
-
         if (!race) {
             this.subraceSelect.innerHTML = '<option value="">No Subraces</option>';
             this.subraceSelect.disabled = true;
@@ -331,7 +328,6 @@ export class RaceCard {
                 character.race?.subrace !== (subrace?.name || ''));
 
         if (hasChanged) {
-            console.log(`[RaceCard] Race changed from ${character.race?.name || 'none'} to ${race?.name || 'none'}`);
 
             // Clear previous race proficiencies, ability bonuses, and traits
             character.removeProficienciesBySource('Race');
@@ -408,8 +404,6 @@ export class RaceCard {
         const character = characterHandler.currentCharacter;
         if (!character || !race) return;
 
-        console.log(`[RaceCard] Adding proficiencies for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
-
         // Store previously selected proficiencies to restore valid ones later
         const previousRaceSkills = character.optionalProficiencies.skills.race?.selected || [];
         const previousRaceLanguages = character.optionalProficiencies.languages.race?.selected || [];
@@ -435,7 +429,6 @@ export class RaceCard {
                 if (value === true && language !== 'anyStandard' && language !== 'any') {
                     const capitalizedLanguage = language.charAt(0).toUpperCase() + language.slice(1);
                     character.addProficiency('languages', capitalizedLanguage, 'Race');
-                    console.log(`[RaceCard] Added language: ${capitalizedLanguage}`);
                 }
             }
 
@@ -456,8 +449,6 @@ export class RaceCard {
                 character.optionalProficiencies.languages.race.selected = previousRaceLanguages.filter(
                     lang => languageOptions.includes(lang)
                 );
-
-                console.log(`[RaceCard] Added ${languageCount} language choices`);
             }
         }
 
@@ -470,7 +461,6 @@ export class RaceCard {
                         const weaponName = weapon.split('|')[0];
                         const capitalizedWeapon = weaponName.charAt(0).toUpperCase() + weaponName.slice(1);
                         character.addProficiency('weapons', capitalizedWeapon, 'Race');
-                        console.log(`[RaceCard] Added weapon proficiency: ${capitalizedWeapon}`);
                     }
                 }
             }
@@ -484,7 +474,6 @@ export class RaceCard {
                     if (hasProf === true && tool !== 'any') {
                         const capitalizedTool = tool.charAt(0).toUpperCase() + tool.slice(1);
                         character.addProficiency('tools', capitalizedTool, 'Race');
-                        console.log(`[RaceCard] Added tool proficiency: ${capitalizedTool}`);
                     }
                 }
 
@@ -508,8 +497,6 @@ export class RaceCard {
                     character.optionalProficiencies.tools.race.selected = previousRaceTools.filter(
                         tool => character.optionalProficiencies.tools.race.options.includes(tool)
                     );
-
-                    console.log(`[RaceCard] Added ${profObj.any} tool choices`);
                 }
             }
         }
@@ -532,7 +519,6 @@ export class RaceCard {
                         'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion',
                         'Sleight of Hand', 'Stealth', 'Survival'
                     ];
-                    console.log(`[RaceCard] Adding "any" skill choice for ${race.name}: allowed=${profObj.any}`);
                     continue;
                 }
 
@@ -541,7 +527,6 @@ export class RaceCard {
                     if (hasProf === true && skill !== 'choose') {
                         const capitalizedSkill = skill.charAt(0).toUpperCase() + skill.slice(1);
                         character.addProficiency('skills', capitalizedSkill, 'Race');
-                        console.log(`[RaceCard] Added skill proficiency: ${capitalizedSkill}`);
                     }
                 }
 
@@ -556,7 +541,6 @@ export class RaceCard {
                             return skill.charAt(0).toUpperCase() + skill.slice(1);
                         });
                         raceSkillOptions.push(...capitalizedOptions);
-                        console.log(`[RaceCard] Adding specific skill options for race: ${capitalizedOptions.join(', ')}`);
                     }
                 }
             }
@@ -564,7 +548,6 @@ export class RaceCard {
 
         // Special case for Human Variant - always 1 skill of any choice
         if (race.name === "Human" && race.source === "PHB" && subrace && subrace.name === "Variant") {
-            console.log('[RaceCard] Setting up Human Variant skill proficiency');
 
             // Human Variant has 1 skill of any choice
             raceSkillCount = 1;
@@ -577,7 +560,6 @@ export class RaceCard {
                 'Sleight of Hand', 'Stealth', 'Survival'
             ];
 
-            console.log('[RaceCard] Human Variant skill options set:', raceSkillOptions);
         }
 
         // Update race-specific skill options and count
@@ -631,15 +613,6 @@ export class RaceCard {
         // For combined options, include language options from all sources
         character.optionalProficiencies.languages.options = [...new Set([...raceLanguageOptions, ...classLanguageOptions, ...backgroundLanguageOptions])];
 
-        console.log('[RaceCard] Updated combined language options:', {
-            raceLanguageOptions,
-            classLanguageOptions,
-            backgroundLanguageOptions,
-            combinedOptions: character.optionalProficiencies.languages.options,
-            allowed: character.optionalProficiencies.languages.allowed,
-            selected: character.optionalProficiencies.languages.selected
-        });
-
         // Update tool options
         const raceToolAllowed = character.optionalProficiencies.tools.race?.allowed || 0;
         const classToolAllowed = character.optionalProficiencies.tools.class?.allowed || 0;
@@ -662,14 +635,6 @@ export class RaceCard {
         // For combined options, include tool options from all sources
         character.optionalProficiencies.tools.options = [...new Set([...raceToolOptions, ...classToolOptions, ...backgroundToolOptions])];
 
-        console.log('[RaceCard] Updated combined tool options:', {
-            raceToolOptions,
-            classToolOptions,
-            backgroundToolOptions,
-            combinedOptions: character.optionalProficiencies.tools.options,
-            allowed: character.optionalProficiencies.tools.allowed,
-            selected: character.optionalProficiencies.tools.selected
-        });
     }
 
     /**
@@ -681,8 +646,6 @@ export class RaceCard {
     _updateAbilityBonuses(race, subrace) {
         const character = characterHandler.currentCharacter;
         if (!character || !race) return;
-
-        console.log(`[RaceCard] Adding ability bonuses for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
 
         // Clear existing ability bonuses from race and subrace
         character.clearAbilityBonuses('Race');
@@ -704,21 +667,28 @@ export class RaceCard {
 
         // Add ability score choices
         const choices = this.raceManager.getAbilityScoreChoices();
+        let hasAddedChoices = false;
+
         for (const choice of choices) {
             // Always apply race choices
             if (choice.source.startsWith('Race Choice')) {
                 character.addPendingAbilityChoice(choice);
+                hasAddedChoices = true;
             }
             // Apply subrace choices if there is a subrace
             if (subrace && choice.source.startsWith('Subrace Choice')) {
                 character.addPendingAbilityChoice(choice);
+                hasAddedChoices = true;
             }
         }
 
-        // Notify ability score card to update
-        document.dispatchEvent(new CustomEvent('abilityScoresChanged', {
-            detail: { character }
-        }));
+        // Only dispatch the event if we actually added choices
+        if (hasAddedChoices) {
+            // Notify ability score card to update
+            document.dispatchEvent(new CustomEvent('abilityScoresChanged', {
+                detail: { character }
+            }));
+        }
     }
 
     /**
@@ -731,13 +701,10 @@ export class RaceCard {
         const character = characterHandler.currentCharacter;
         if (!character || !race) return;
 
-        console.log(`[RaceCard] Adding traits for ${race.name}${subrace ? ` (${subrace.name})` : ''}`);
-
         // Update darkvision if applicable
         if (race.darkvision) {
             const darkvisionRange = typeof race.darkvision === 'number' ? race.darkvision : 60;
             character.features.darkvision = darkvisionRange;
-            console.log(`[RaceCard] Added darkvision with range ${darkvisionRange}`);
         }
 
         // Add resistances if applicable
@@ -745,7 +712,6 @@ export class RaceCard {
             const resistances = Array.isArray(race.resist) ? race.resist : [race.resist];
             for (const resistance of resistances) {
                 character.addResistance(resistance, 'Race');
-                console.log(`[RaceCard] Added resistance: ${resistance}`);
             }
         }
 
@@ -756,14 +722,12 @@ export class RaceCard {
                 // Handle different trait formats
                 if (typeof trait === 'string') {
                     character.addTrait(trait, trait, 'Race');
-                    console.log(`[RaceCard] Added trait: ${trait}`);
                 } else if (trait.name || trait.text) {
                     const name = trait.name || trait.text;
                     const description = trait.entries ?
                         (Array.isArray(trait.entries) ? trait.entries.join('\n') : trait.entries) :
                         name;
                     character.addTrait(name, description, 'Race');
-                    console.log(`[RaceCard] Added trait: ${name}`);
                 }
             }
         }
@@ -797,20 +761,5 @@ export class RaceCard {
 
         // For combined options, include options from all sources
         character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
-
-        console.log('[RaceCard] Updated combined skill options:', {
-            raceOptions,
-            classOptions,
-            backgroundOptions,
-            combinedOptions: character.optionalProficiencies.skills.options,
-            raceAllowed,
-            classAllowed,
-            backgroundAllowed,
-            combinedAllowed: character.optionalProficiencies.skills.allowed,
-            raceSelected,
-            classSelected,
-            backgroundSelected,
-            combinedSelected: character.optionalProficiencies.skills.selected
-        });
     }
 }

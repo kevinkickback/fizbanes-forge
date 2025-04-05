@@ -131,13 +131,10 @@ export class AbilityScoreManager {
         const pendingChoices = character.getPendingAbilityChoices().filter(choice => choice.type === 'ability');
         const currentChoice = pendingChoices[currentChoiceIndex];
 
-        console.log(`[AbilityScoreManager] Getting available abilities for choice ${currentChoiceIndex}:`, currentChoice);
-
         // Collect all selected abilities except the current one
         for (const [index, ability] of this.abilityChoices.entries()) {
             if (index !== currentChoiceIndex && ability) {
                 selectedAbilities.add(ability);
-                console.log(`[AbilityScoreManager] Excluding already selected ability: ${ability} from choice ${index}`);
             }
         }
 
@@ -149,7 +146,6 @@ export class AbilityScoreManager {
                 // Check if the bonus is from a racial source (Race, Subrace, but not Race Choice)
                 if ((bonus.source === 'Race' || bonus.source === 'Subrace') && !bonus.source.includes('Choice')) {
                     abilitiesWithRacialBonuses.add(ability);
-                    console.log(`[AbilityScoreManager] Excluding ability with racial bonus: ${ability}`);
                 }
             }
         }
@@ -167,7 +163,6 @@ export class AbilityScoreManager {
                 if (a === 'cha') return 'charisma';
                 return a;
             });
-            console.log("[AbilityScoreManager] Choice limited to specific abilities:", availableAbilities);
         }
 
         // Return abilities that:
@@ -211,109 +206,82 @@ export class AbilityScoreManager {
      * This should be called when changing races to prevent stale selections
      */
     clearStoredChoices() {
-        console.log('[AbilityScoreManager] Clearing all stored ability choices');
         this.abilityChoices.clear();
     }
 
     /**
      * Get pending ability score choices
-     * @returns {Array} Array of pending ability score choices
+     * @returns {Array<Object>} Array of pending choices
      */
     getPendingChoices() {
         const character = characterHandler.currentCharacter;
-        console.log('[AbilityScoreManager] Getting pending choices for character:', character?.id);
-
         if (!character) {
-            console.log('[AbilityScoreManager] No character found');
             return [];
         }
 
-        const pendingChoices = character.getPendingAbilityChoices()
-            .filter(choice => choice.type === 'ability');
+        // Get all ability-related pending choices
+        const pendingChoices = character.getPendingAbilityChoices().filter(choice => {
+            return choice.type === 'ability';
+        });
 
-        console.log('[AbilityScoreManager] Filtered pending choices:', pendingChoices);
         return pendingChoices;
     }
 
     /**
      * Get ability score bonuses grouped by source
-     * @returns {Map<string, Array>} Map of bonuses grouped by source
      */
     getBonusGroups() {
         const character = characterHandler.currentCharacter;
-        console.log('[AbilityScoreManager] Getting bonus groups for character:', character?.id);
-
         if (!character) {
-            console.log('[AbilityScoreManager] No character found, returning empty map');
             return new Map();
         }
 
-        // Group ability bonuses by source
-        const bonusGroups = new Map();
+        const groups = new Map();
 
+        // Group bonuses by source for each ability
         for (const ability of this.abilityScores) {
-            const bonuses = character.abilityBonuses[ability] || [];
+            const bonuses = character.abilityBonuses?.[ability] || [];
+            if (bonuses.length === 0) continue;
 
-            if (bonuses.length > 0) {
-                console.log(`[AbilityScoreManager] Found ${bonuses.length} bonuses for ${ability}:`, bonuses);
-            }
-
+            // Group by source
             for (const bonus of bonuses) {
-                if (!bonusGroups.has(bonus.source)) {
-                    bonusGroups.set(bonus.source, []);
+                const source = bonus.source;
+                if (!groups.has(source)) {
+                    groups.set(source, new Map());
                 }
-                bonusGroups.get(bonus.source).push({
-                    ability,
-                    value: bonus.value,
-                    isChoice: bonus.isChoice || false
-                });
+                const sourceGroup = groups.get(source);
+                sourceGroup.set(ability, bonus.value);
             }
         }
 
-        if (bonusGroups.size > 0) {
-            console.log('[AbilityScoreManager] Grouped bonuses by source:',
-                Array.from(bonusGroups.entries()).map(([source, bonuses]) =>
-                    `${source}: ${bonuses.length} bonuses`
-                )
-            );
-        } else {
-            console.log('[AbilityScoreManager] No bonus groups found');
-        }
-
-        return bonusGroups;
+        return groups;
     }
 
     /**
-     * Gets the character's ability score method
-     * @returns {string} The ability score method ('pointBuy', 'standardArray', or 'custom')
+     * Get the current ability score method
+     * @returns {string} The current method ('pointbuy', 'standardarray', or 'custom')
      */
     getAbilityScoreMethod() {
         const character = characterHandler.currentCharacter;
-        if (!character || !character.variantRules) return 'custom';
-        const method = character.variantRules.abilityScoreMethod || 'custom';
-        console.log('[AbilityScoreManager] Current ability score method:', method);
+        const method = character?.abilityScoreMethod || 'pointbuy';
         return method;
     }
 
     /**
-     * Checks if the current ability score method is Point Buy
-     * @returns {boolean} True if using Point Buy
+     * Check if the current ability score method is Point Buy
+     * @returns {boolean} Whether Point Buy is the current method
      */
     isPointBuy() {
-        const method = this.getAbilityScoreMethod();
-        const result = method === 'pointBuy';
-        console.log('[AbilityScoreManager] isPointBuy check:', result);
+        const result = this.getAbilityScoreMethod() === 'pointbuy';
         return result;
     }
 
     /**
-     * Checks if the current ability score method is Standard Array
-     * @returns {boolean} True if using Standard Array
+     * Check if the current ability score method is Standard Array
+     * @returns {boolean} Whether Standard Array is the current method
      */
     isStandardArray() {
-        const method = this.getAbilityScoreMethod();
-        const result = method === 'standardArray';
-        console.log('[AbilityScoreManager] isStandardArray check:', result);
+        const result = this.getAbilityScoreMethod() === 'standardarray';
         return result;
     }
 
@@ -371,29 +339,29 @@ export class AbilityScoreManager {
         if (!character) return;
 
         const method = this.getAbilityScoreMethod();
-        console.log('[AbilityScoreManager] Initializing ability scores using method:', method);
 
-        switch (method) {
-            case 'pointBuy':
-                // Default all scores to 8 (0 points)
-                for (const ability of this.abilityScores) {
-                    character.abilityScores[ability] = 8;
+        // Initialize based on the method
+        if (method === 'pointbuy') {
+            // Default Point Buy values (all 8's)
+            for (const ability of this.abilityScores) {
+                character.abilityScores[ability] = 8;
+            }
+            this.usedPoints = 0;
+        } else if (method === 'standardarray') {
+            // Initialize with standard array values
+            this.initializeStandardArrayAssignment();
+        } else {
+            // Custom: Just ensure all abilities have a valid value
+            for (const ability of this.abilityScores) {
+                if (!character.abilityScores[ability]) {
+                    character.abilityScores[ability] = 10;
                 }
-                break;
+            }
+        }
 
-            case 'standardArray':
-                // Clear tracking of assigned values
-                this.assignedStandardValues = new Set();
-                // Immediately initialize the standard array
-                this.initializeStandardArrayAssignment();
-                break;
-
-            default:
-                // Default all scores to 8 for custom method as well
-                for (const ability of this.abilityScores) {
-                    character.abilityScores[ability] = 8;
-                }
-                break;
+        // Recalculate used points if using Point Buy
+        if (method === 'pointbuy') {
+            this.calculateUsedPoints();
         }
 
         this._notifyAbilityScoresChanged();
@@ -406,103 +374,100 @@ export class AbilityScoreManager {
      */
     updateBaseScore(ability, value) {
         const character = characterHandler.currentCharacter;
-        if (!character) return;
+        if (!character) return false;
 
         const method = this.getAbilityScoreMethod();
-        const currentValue = character.abilityScores[ability];
+        const normalizedAbility = this._normalizeAbilityName(ability);
+        if (!normalizedAbility) return false;
 
-        console.log(`[AbilityScoreManager] Updating ${ability} from ${currentValue} to ${value} with method ${method}`);
+        // Get current value
+        const currentValue = character.abilityScores[normalizedAbility] || 10;
 
-        if (method === 'pointBuy') {
-            // Check if the new value is valid for Point Buy
-            if (value < 8 || value > 15) {
-                const message = '[AbilityScoreManager] Invalid value for Point Buy';
-                console.log(message, value);
-                return;
-            }
+        // Validate input
+        if (value === undefined || value === null || Number.isNaN(value)) {
+            console.warn(`Invalid value for ${ability}:`, value);
+            return false;
+        }
 
-            // Calculate point change
+        // Different validation and handling based on the method
+        if (method === 'pointbuy') {
+            // Point Buy validation:
+            // 1. Check if the change would exceed available points
+            // 2. Check if the value is within allowed range (8-15)
             const currentCost = this.getPointCost(currentValue);
             const newCost = this.getPointCost(value);
             const pointChange = newCost - currentCost;
-
-            // Calculate total used points
             const currentUsedPoints = this.calculateUsedPoints();
 
-            console.log(`[AbilityScoreManager] Point Buy - Current cost: ${currentCost}, New cost: ${newCost}, Change: ${pointChange}, Total used: ${currentUsedPoints}/${this.maxPoints}`);
-
-            // Check if we have enough points
             if (currentUsedPoints + pointChange > this.maxPoints) {
-                console.log('[AbilityScoreManager] Not enough points for this change, would exceed maximum');
-                return;
+                console.warn('Not enough points for this change, would exceed maximum');
+                return false;
+            }
+
+            // Check if value is within allowed range (8-15)
+            if (value < 8 || value > 15) {
+                return false;
             }
 
             // Update the score
-            character.abilityScores[ability] = value;
-
-            // Recalculate used points
+            character.abilityScores[normalizedAbility] = value;
             this.calculateUsedPoints();
+        } else if (method === 'standardarray') {
+            // Standard Array validation:
+            // 1. Check if the value is in the standard array
+            // 2. Handle assigning/swapping values
 
-        } else if (method === 'standardArray') {
-            // First, check if we're removing a value (setting to a non-standard array value)
+            // Remove current value from assigned values if it's part of standard array
             if (this.standardArray.includes(currentValue)) {
                 this.assignedStandardValues.delete(currentValue);
-                console.log(`[AbilityScoreManager] Standard Array - Removed ${currentValue} from assigned values`);
             }
 
-            // Check if the new value is in the standard array
+            // Validate input
             if (!this.standardArray.includes(value)) {
-                const message = '[AbilityScoreManager] Value is not in the standard array';
-                console.log(message, value);
-                return;
+                console.warn("Invalid standard array value:", value);
+                return false;
             }
 
-            // Check if the value is already assigned to another ability
-            if (this.assignedStandardValues.has(value) && character.abilityScores[ability] !== value) {
-                // Find which ability currently has this value and swap it
+            // If the value is already assigned to another ability, we need to swap
+            if (this.assignedStandardValues.has(value)) {
+                // Find which ability has this value
                 let otherAbility = null;
-                for (const ab of this.abilityScores) {
-                    if (ab !== ability && character.abilityScores[ab] === value) {
-                        otherAbility = ab;
+                for (const ability of this.abilityScores) {
+                    if (ability !== normalizedAbility && character.abilityScores[ability] === value) {
+                        otherAbility = ability;
                         break;
                     }
                 }
 
                 if (otherAbility) {
-                    console.log(`[AbilityScoreManager] Swapping ${value} from ${otherAbility} to ${ability}, and ${currentValue} to ${otherAbility}`);
-
-                    // Swap the values between the two abilities
+                    // Swap the values
                     character.abilityScores[otherAbility] = currentValue;
-                    character.abilityScores[ability] = value;
 
-                    // The assigned values set doesn't change, just the assignments
+                    // Update assigned values set
                     if (this.standardArray.includes(currentValue)) {
                         this.assignedStandardValues.add(currentValue);
                     }
-                    this.assignedStandardValues.add(value);
-
-                    console.log('[AbilityScoreManager] Standard Array - After swap:',
-                        Object.entries(character.abilityScores).map(([ab, val]) => `${ab}: ${val}`).join(', '));
                 } else {
-                    console.log('[AbilityScoreManager] Could not find ability with value', value);
-                    return;
+                    console.warn('Could not find ability with value', value);
+                    return false;
                 }
-            } else {
-                // Update the score and track the assigned value
-                character.abilityScores[ability] = value;
-                this.assignedStandardValues.add(value);
-                console.log('[AbilityScoreManager] Standard Array - Assigned value to ability:', value, ability);
-                console.log('[AbilityScoreManager] Standard Array - Assigned values:', Array.from(this.assignedStandardValues));
             }
 
+            // Assign the value to the ability
+            character.abilityScores[normalizedAbility] = value;
+            this.assignedStandardValues.add(value);
         } else {
-            // For custom method, just enforce the normal limits (3-20)
-            if (value >= 3 && value <= 20) {
-                character.abilityScores[ability] = value;
+            // Custom validation
+            // Allow any value within sane limits
+            if (value < 1 || value > 30) {
+                return false;
             }
+
+            character.abilityScores[normalizedAbility] = value;
         }
 
         this._notifyAbilityScoresChanged();
+        return true;
     }
 
     /**
@@ -532,9 +497,11 @@ export class AbilityScoreManager {
      */
     updateAssignedStandardArrayValues() {
         const character = characterHandler.currentCharacter;
-        if (!character) return;
+        if (!character || !this.isStandardArray()) return;
 
-        this.assignedStandardValues = new Set();
+        // Clear and update the assigned values set
+        this.assignedStandardValues.clear();
+
         for (const ability of this.abilityScores) {
             const value = character.abilityScores[ability];
             if (this.standardArray.includes(value)) {
@@ -542,51 +509,48 @@ export class AbilityScoreManager {
             }
         }
 
-        console.log('[AbilityScoreManager] Updated assigned standard array values:',
+        console.debug('[AbilityScoreManager] Updated assigned standard array values:',
             Array.from(this.assignedStandardValues));
-        console.log('[AbilityScoreManager] Available standard array values:',
-            this.getAvailableStandardArrayValues());
     }
 
     /**
      * Resets state for the currently selected ability score method
      * This should be called when a character is loaded to ensure UI elements reflect the correct method
      */
-    resetAbilityScoreMethod() {
+    resetAbilityScoreMethod(method) {
         const character = characterHandler.currentCharacter;
         if (!character) return;
 
-        const method = character.variantRules?.abilityScoreMethod;
-        console.log('[AbilityScoreManager] Resetting for ability score method:', method);
+        // Set the new method
+        character.abilityScoreMethod = method;
 
-        // Clear tracking data
-        this.assignedStandardValues = new Set();
-        this.usedPoints = 0;
+        // Reset appropriate things based on the method
+        if (method === 'standardarray') {
+            // Reset standard array
+            this.assignedStandardValues.clear();
+            const availableValues = [...this.standardArray];
 
-        // Initialize based on method
-        if (method === 'standardArray') {
-            this.updateAssignedStandardArrayValues();
+            // Set each ability to the next available standard array value
+            for (const ability of this.abilityScores) {
+                // If we've used all standard array values, just use 10
+                const value = availableValues.length > 0 ? availableValues.shift() : 10;
+                character.abilityScores[ability] = value;
 
-            // Check if all standard array values are assigned correctly
-            const allValuesAssigned = this.standardArray.every(value =>
-                Array.from(this.abilityScores).some(ability =>
-                    character.abilityScores[ability] === value
-                )
-            );
-
-            // If not all values are assigned correctly, do initial assignment
-            if (!allValuesAssigned) {
-                this.initializeStandardArrayAssignment();
+                // Add to assigned values if it's a real standard array value
+                if (this.standardArray.includes(value)) {
+                    this.assignedStandardValues.add(value);
+                }
             }
-
-            console.log('[AbilityScoreManager] Reset standard array with values:',
-                Array.from(this.assignedStandardValues));
-        } else if (method === 'pointBuy') {
-            const points = this.calculateUsedPoints();
-            console.log('[AbilityScoreManager] Reset point buy with points:', points);
+        } else if (method === 'pointbuy') {
+            // Reset point buy to all 8's
+            for (const ability of this.abilityScores) {
+                character.abilityScores[ability] = 8;
+            }
+            this.calculateUsedPoints();
+        } else {
+            // Custom method - keep existing values
         }
 
-        // Notify listeners of the reset
         this._notifyAbilityScoresChanged();
     }
 
@@ -598,32 +562,29 @@ export class AbilityScoreManager {
         const character = characterHandler.currentCharacter;
         if (!character) return;
 
-        console.log('[AbilityScoreManager] Initializing standard array assignment');
+        // Clear any existing assignments
+        this.assignedStandardValues.clear();
 
-        // Copy values to avoid modifying original array
-        const valuesToAssign = [...this.standardArray];
+        // Get our sorted array of standard values (highest first)
+        const sortedValues = [...this.standardArray].sort((a, b) => b - a);
 
-        // Simple default assignment - sorted from highest to lowest values
-        const defaultAssignment = {
-            'strength': valuesToAssign[0],     // 15
-            'dexterity': valuesToAssign[1],    // 14
-            'constitution': valuesToAssign[2], // 13
-            'wisdom': valuesToAssign[3],       // 12
-            'intelligence': valuesToAssign[4], // 10
-            'charisma': valuesToAssign[5]      // 8
-        };
+        // Set initial assignments - this is a very simplistic approach
+        // These would be adjustable by the player later
+        const assignments = [
+            // Default is STR, DEX, CON, INT, WIS, CHA in that priority
+            ['strength', sortedValues[0] || 10],     // Highest to STR
+            ['dexterity', sortedValues[1] || 10],    // 2nd highest to DEX
+            ['constitution', sortedValues[2] || 10], // 3rd highest to CON
+            ['intelligence', sortedValues[3] || 10], // 4th highest to INT
+            ['wisdom', sortedValues[4] || 10],       // 5th highest to WIS
+            ['charisma', sortedValues[5] || 10]      // Lowest to CHA
+        ];
 
-        // Apply the default assignment
-        for (const [ability, value] of Object.entries(defaultAssignment)) {
+        // Apply the assignments
+        for (const [ability, value] of assignments) {
             character.abilityScores[ability] = value;
             this.assignedStandardValues.add(value);
         }
-
-        console.log('[AbilityScoreManager] Standard array initialized:',
-            Object.entries(character.abilityScores).map(([ab, val]) => `${ab}: ${val}`).join(', '));
-
-        // Make sure the change is reflected in the UI
-        this._notifyAbilityScoresChanged();
     }
 }
 

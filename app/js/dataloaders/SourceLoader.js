@@ -61,7 +61,7 @@ export class SourceLoader extends BaseLoader {
                     isDefault: book.isDefault || false
                 }));
 
-                console.log(`Loaded ${sources.length} sources`);
+                console.debug(`Loaded ${sources.length} sources`);
                 return { source: sources };
             } catch (error) {
                 console.error('Error loading sources:', error);

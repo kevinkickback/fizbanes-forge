@@ -170,11 +170,9 @@ export class Modal {
     getSelectedSources() {
         const selectedSources = new Set();
         const selectedToggles = this.sourceCard.container.querySelectorAll('.source-toggle.selected');
-        console.log('[Modal] Selected source toggles:', selectedToggles.length);
 
         for (const toggle of selectedToggles) {
             const source = toggle.getAttribute('data-source').toUpperCase();
-            console.log('[Modal] Adding source:', source);
             selectedSources.add(source);
         }
 
@@ -186,7 +184,7 @@ export class Modal {
      */
     async createCharacterFromModal() {
         try {
-            console.log('[Modal] Starting character creation from modal');
+            console.debug('[Modal] Starting character creation from modal');
 
             // Get form data
             const formData = this.getFormData();
@@ -195,13 +193,12 @@ export class Modal {
             // Get selected sources
             const selectedSources = this.getSelectedSources();
             if (!this.sourceCard.validateSourceSelection(selectedSources)) {
-                console.log('[Modal] Source selection validation failed');
+                console.warn('[Modal] Source selection validation failed');
                 return;
             }
 
             // Generate a UUID for the new character
             const id = await storage.generateUUID();
-            console.log('[Modal] Generated character ID:', id);
 
             // Create a new Character instance
             const character = new Character();
@@ -209,7 +206,6 @@ export class Modal {
             character.name = formData.name;
             character.level = formData.level;
             character.gender = formData.gender;
-            console.log('[Modal] Setting allowed sources:', Array.from(selectedSources));
             character.allowedSources = selectedSources;
             character.variantRules = {
                 feats: formData.feats,
@@ -217,7 +213,7 @@ export class Modal {
                 abilityScoreMethod: formData.abilityScoreMethod
             };
 
-            console.log('[Modal] Character before save:', {
+            console.debug('[Modal] Character before save:', {
                 id: character.id,
                 name: character.name,
                 allowedSources: Array.from(character.allowedSources),
@@ -226,7 +222,6 @@ export class Modal {
 
             // Create character in storage
             const result = await storage.saveCharacter(character);
-            console.log('[Modal] Save result:', result);
 
             if (result.success) {
                 // Close modal and reset form

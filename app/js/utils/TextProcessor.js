@@ -61,8 +61,6 @@ class TextProcessor {
 
         // Process initial page content
         this.processPageContent(document.body);
-
-        console.log('TextProcessor initialized successfully');
     }
 
     /**
@@ -190,7 +188,6 @@ class TextProcessor {
      */
     async processElement(element) {
         if (!element) return;
-        console.log('[TextProcessor] Explicitly processing element:', element);
         await this.processPageContent(element, {}, true);
     }
 }

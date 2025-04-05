@@ -43,7 +43,7 @@ export class ActionLoader extends BaseLoader {
                     action: actionData.action || []
                 };
 
-                console.log(`Loaded ${data.action.length} actions`);
+                console.debug(`Loaded ${data.action.length} actions`);
                 return data;
             } catch (error) {
                 console.error('Error loading actions:', error);

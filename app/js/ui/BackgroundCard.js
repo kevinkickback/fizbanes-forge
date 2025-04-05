@@ -74,9 +74,6 @@ export class BackgroundCard extends EntityCard {
             return;
         }
 
-        // For debugging
-        console.log(`Updating quick description for ${title}:`, description);
-
         // Replace placeholder with actual content
         this.quickDescElement.innerHTML = `
             <h5>${title}</h5>
@@ -102,8 +99,6 @@ export class BackgroundCard extends EntityCard {
             const bgSource = bg.source?.toUpperCase();
             return upperAllowedSources.has(bgSource);
         });
-
-        console.log('[BackgroundCard] Filtered backgrounds:', filteredBackgrounds.length);
 
         // Update the select options with source in parentheses
         selection.innerHTML = `
@@ -222,8 +217,6 @@ export class BackgroundCard extends EntityCard {
             return;
         }
 
-        console.log("Rendering background details:", background);
-
         // Update image (if we have an image later)
         this.updateEntityImage(background.imageUrl);
 
@@ -243,32 +236,20 @@ export class BackgroundCard extends EntityCard {
         const backgroundDetails = document.getElementById(this.detailsElementId);
         if (!backgroundDetails) return;
 
-        console.log("Updating background details:", {
-            id: background.id,
-            proficiencies: background.proficiencies,
-            languages: background.languages,
-            equipment: background.equipment
-        });
-
         // Process skill proficiencies
         const skillProficiencies = backgroundManager.getFormattedSkillProficiencies(background);
-        console.log("Formatted skill proficiencies:", skillProficiencies);
 
         // Process tool proficiencies
         const toolProficiencies = backgroundManager.getFormattedToolProficiencies(background);
-        console.log("Formatted tool proficiencies:", toolProficiencies);
 
         // Process languages
         const languages = backgroundManager.getFormattedLanguages(background);
-        console.log("Formatted languages:", languages);
 
         // Process equipment
         const equipment = backgroundManager.getFormattedEquipment(background);
-        console.log("Formatted equipment:", equipment);
 
         // Get the feature text
         const featureHtml = await this._renderFeature(background);
-        console.log("Feature HTML:", featureHtml);
 
         // Update background details
         backgroundDetails.innerHTML = `
@@ -453,7 +434,7 @@ export class BackgroundCard extends EntityCard {
                 character.background?.variant !== (variant?.name || null));
 
         if (hasChanged) {
-            console.log(`[BackgroundCard] Background changed from ${character.background?.name || 'none'} to ${background?.name || 'none'}`);
+            console.debug(`[BackgroundCard] Background changed to ${background?.name || 'none'}`);
 
             // Clear previous background proficiencies
             character.removeProficienciesBySource('Background');
@@ -509,7 +490,7 @@ export class BackgroundCard extends EntityCard {
         const character = characterHandler.currentCharacter;
         if (!character || !background) return;
 
-        console.log(`[BackgroundCard] Adding proficiencies for ${background.name}`);
+        console.debug(`[BackgroundCard] Adding proficiencies for background: ${background.name}`);
 
         // Store previous skill and language selections to restore valid ones
         const prevBackgroundSkillsSelected = character.optionalProficiencies.skills.background?.selected || [];
@@ -564,7 +545,7 @@ export class BackgroundCard extends EntityCard {
                 character.optionalProficiencies.skills.background.selected =
                     validSelections.slice(0, character.optionalProficiencies.skills.background.allowed);
 
-                console.log(`[BackgroundCard] Restored ${character.optionalProficiencies.skills.background.selected.length} background skill selections`);
+                console.debug(`[BackgroundCard] Restored ${character.optionalProficiencies.skills.background.selected.length} background skill selections`);
             }
         }
 
@@ -584,19 +565,19 @@ export class BackgroundCard extends EntityCard {
 
             // Set up optional languages
             if (background.languages.choices?.count > 0) {
-                console.log(`[BackgroundCard] Setting up language choices: count=${background.languages.choices.count}`);
+                console.debug(`[BackgroundCard] Setting up language choices: count=${background.languages.choices.count}`);
                 character.optionalProficiencies.languages.background.allowed = background.languages.choices.count;
 
                 // Set options - either specific list or 'any' languages
                 if (background.languages.choices.from && background.languages.choices.from.length > 0) {
                     // Background specifies specific languages to choose from
                     character.optionalProficiencies.languages.background.options = [...background.languages.choices.from];
-                    console.log('[BackgroundCard] Background allows specific languages:',
+                    console.debug('[BackgroundCard] Background allows specific languages:',
                         character.optionalProficiencies.languages.background.options);
                 } else {
                     // Background allows ANY language - use the special 'Any' indicator
                     character.optionalProficiencies.languages.background.options = ['Any'];
-                    console.log('[BackgroundCard] Background allows ANY language:',
+                    console.debug('[BackgroundCard] Background allows ANY language:',
                         character.optionalProficiencies.languages.background.options);
                 }
 
@@ -609,7 +590,7 @@ export class BackgroundCard extends EntityCard {
                     character.optionalProficiencies.languages.background.selected =
                         validSelections.slice(0, character.optionalProficiencies.languages.background.allowed);
 
-                    console.log(`[BackgroundCard] Restored ${character.optionalProficiencies.languages.background.selected.length} background language selections`);
+                    console.debug(`[BackgroundCard] Restored ${character.optionalProficiencies.languages.background.selected.length} background language selections`);
                 }
 
                 // Update combined language options
@@ -681,7 +662,7 @@ export class BackgroundCard extends EntityCard {
         // For combined options, include options from all sources
         character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
 
-        console.log('[BackgroundCard] Updated combined skill options:', {
+        console.debug('[BackgroundCard] Updated combined skill options:', {
             raceOptions,
             classOptions,
             backgroundOptions,
@@ -726,7 +707,7 @@ export class BackgroundCard extends EntityCard {
         // For combined options, include options from all sources
         character.optionalProficiencies.languages.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
 
-        console.log('[BackgroundCard] Updated combined language options:', {
+        console.debug('[BackgroundCard] Updated combined language options:', {
             raceOptions,
             classOptions,
             backgroundOptions,
@@ -746,8 +727,6 @@ export class BackgroundCard extends EntityCard {
      * Set placeholder content when no entity is selected
      */
     setPlaceholderContent() {
-        console.log("Setting placeholder content");
-
         // Set placeholder image
         const imageElement = document.getElementById(this.imageElementId);
         if (imageElement) {

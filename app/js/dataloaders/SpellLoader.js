@@ -139,7 +139,7 @@ export class SpellLoader extends BaseLoader {
                     throw new Error('No valid spell data loaded');
                 }
 
-                console.log(`Loaded ${data.spell.length} spells`);
+                console.debug(`Loaded ${data.spell.length} spells`);
                 return data;
             } catch (error) {
                 console.error('Error loading spells:', error);

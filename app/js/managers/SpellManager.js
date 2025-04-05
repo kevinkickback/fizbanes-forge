@@ -115,13 +115,13 @@ export class SpellManager {
             const spells = await this.loadSpells();
             const spell = spells.find(s => s.id === spellId);
             if (!spell) {
-                console.error(`Spell ${spellId} not found`);
+                console.warn(`Spell ${spellId} not found`);
                 return false;
             }
 
             // Check if character can learn this spell
             if (!this.canLearnSpell(spell)) {
-                console.error(`Character cannot learn spell ${spell.name}`);
+                console.warn(`Character cannot learn spell ${spell.name}`);
                 return false;
             }
 
@@ -151,13 +151,13 @@ export class SpellManager {
     prepareSpell(spellId) {
         // Check if spell is known
         if (!this.knownSpells.has(spellId)) {
-            console.error(`Spell ${spellId} not known`);
+            console.warn(`Spell ${spellId} not known`);
             return false;
         }
 
         // Check if character can prepare more spells
         if (!this.canPrepareMoreSpells()) {
-            console.error('Cannot prepare more spells');
+            console.warn('Cannot prepare more spells');
             return false;
         }
 
@@ -172,13 +172,13 @@ export class SpellManager {
     castSpell(spellId, level = null) {
         const spell = this.knownSpells.get(spellId);
         if (!spell) {
-            console.error(`Spell ${spellId} not known`);
+            console.warn(`Spell ${spellId} not known`);
             return false;
         }
 
         // Check if spell needs to be prepared
         if (this.character.class?.requiresSpellPreparation && !this.preparedSpells.has(spellId)) {
-            console.error(`Spell ${spell.name} not prepared`);
+            console.warn(`Spell ${spell.name} not prepared`);
             return false;
         }
 
@@ -188,13 +188,13 @@ export class SpellManager {
         // Determine casting level
         const castingLevel = level || spell.level;
         if (castingLevel < spell.level) {
-            console.error('Cannot cast spell at lower level than base level');
+            console.warn('Cannot cast spell at lower level than base level');
             return false;
         }
 
         // Check available slots
         if (this.slotsUsed[castingLevel] >= this.spellSlots[castingLevel]) {
-            console.error(`No ${castingLevel}-level slots available`);
+            console.warn(`No ${castingLevel}-level slots available`);
             return false;
         }
 

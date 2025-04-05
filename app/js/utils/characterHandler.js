@@ -131,8 +131,6 @@ export class CharacterHandler {
 
         // Initialize event listeners
         this.initializeEventListeners();
-
-        console.log('Character Handler initialized');
     }
 
     /**
@@ -491,44 +489,16 @@ export class CharacterHandler {
      */
     async handleCharacterSelect(character) {
         try {
-            console.log('[CharacterHandler] Selecting character:', character?.id, 'with sources:', character?.allowedSources);
-            console.log('[CharacterHandler] Character variant rules:', character?.variantRules);
-
             // Don't reload if it's the same character
             if (this.currentCharacter?.id === character.id) {
-                console.log('[CharacterHandler] Same character already selected, skipping');
                 return;
             }
 
             // Convert character data to a Character object
             this.currentCharacter = Character.fromJSON(character);
-            console.log('[CharacterHandler] Character selected, allowed sources:',
-                Array.from(this.currentCharacter.allowedSources));
-
-            // Log the ability score method
-            const abilityScoreMethod = this.currentCharacter.variantRules?.abilityScoreMethod || 'custom';
-            console.log('[CharacterHandler] Ability score method:', abilityScoreMethod);
 
             // Update UI to reflect selection
             this.updateCharacterSelectionUI(character.id);
-
-            // Initialize ability scores based on the selected method if available
-            try {
-                const abilityScoreManagerModule = await import('../managers/AbilityScoreManager.js');
-                const abilityScoreManager = abilityScoreManagerModule.abilityScoreManager;
-
-                if (!abilityScoreManager) {
-                    throw new Error('abilityScoreManager is undefined after import');
-                }
-
-                // Reset the ability score manager with the current character's settings
-                abilityScoreManager.resetAbilityScoreMethod();
-
-                console.log('[CharacterHandler] Ability score method initialized:',
-                    this.currentCharacter.variantRules?.abilityScoreMethod);
-            } catch (e) {
-                console.error('[CharacterHandler] Error initializing ability scores:', e);
-            }
 
             // Populate the details page if we're on it
             await this.populateDetailsPage();
@@ -551,7 +521,22 @@ export class CharacterHandler {
             // Hide unsaved changes icon when selecting a character
             this.hideUnsavedChanges();
 
-            console.log('[CharacterHandler] Character selection complete');
+            // Replace the character selection log with a comprehensive log of all character values
+            console.log('Character loaded:', {
+                id: this.currentCharacter.id,
+                name: this.currentCharacter.name,
+                playerName: this.currentCharacter.playerName,
+                level: this.currentCharacter.level,
+                race: this.currentCharacter.race,
+                class: this.currentCharacter.class,
+                background: this.currentCharacter.background,
+                abilityScores: this.currentCharacter.abilityScores,
+                abilityBonuses: this.currentCharacter.abilityBonuses,
+                proficiencies: this.currentCharacter.proficiencies,
+                features: this.currentCharacter.features,
+                allowedSources: Array.from(this.currentCharacter.allowedSources),
+                variantRules: this.currentCharacter.variantRules
+            });
 
         } catch (error) {
             console.error('[CharacterHandler] Error selecting character:', error);

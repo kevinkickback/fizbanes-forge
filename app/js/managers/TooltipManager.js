@@ -57,7 +57,6 @@ export class TooltipManager {
         document.addEventListener('mouseout', this.handleMouseOut.bind(this));
 
         this._initialized = true;
-        console.log('Tooltip system initialized');
     }
 
     /**

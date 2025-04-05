@@ -134,17 +134,17 @@ export class MagicItemManager {
 
     async applyMagicVariant(baseItem, variantId) {
         const variant = await this.getMagicVariant(variantId);
-        console.log('Found variant:', variant);
+        console.debug('Found variant:', variant);
         if (!variant) {
-            console.log('No variant found with ID:', variantId);
+            console.warn('No variant found with ID:', variantId);
             return null;
         }
 
         // Check if the base item meets the variant requirements
-        console.log('Checking requirements for base item:', baseItem);
-        console.log('Against variant requirements:', variant.requires);
+        console.debug('Checking requirements for base item:', baseItem);
+        console.debug('Against variant requirements:', variant.requires);
         if (!this.checkVariantRequirements(baseItem, variant)) {
-            console.log('Failed variant requirements check');
+            console.warn('Failed variant requirements check');
             return null;
         }
 
@@ -166,7 +166,7 @@ export class MagicItemManager {
 
     checkVariantRequirements(item, variant) {
         if (!variant.requires || variant.requires.length === 0) {
-            console.log('No requirements to check');
+            console.debug('No requirements to check');
             return true;
         }
 
@@ -179,7 +179,7 @@ export class MagicItemManager {
                     item.properties?.some(p =>
                         ['melee', 'ranged', 'thrown', 'ammunition', 'finesse', 'heavy', 'light', 'loading', 'reach', 'versatile'].includes(p?.name || p)
                     );
-                console.log('Checking weapon requirement:', { isWeapon, itemType: item.type, itemProperties: item.properties });
+                console.debug('Checking weapon requirement:', { isWeapon, itemType: item.type, itemProperties: item.properties });
                 return isWeapon;
             }
 
@@ -188,7 +188,7 @@ export class MagicItemManager {
                 const isArmor = item.type === 'armor' ||
                     item.armorCategory ||
                     item.armor === true;
-                console.log('Checking armor requirement:', { isArmor, itemType: item.type, itemCategory: item.armorCategory });
+                console.debug('Checking armor requirement:', { isArmor, itemType: item.type, itemCategory: item.armorCategory });
                 return isArmor;
             }
 
@@ -197,28 +197,28 @@ export class MagicItemManager {
                 const isAmmo = item.type === 'ammunition' ||
                     item.ammoType ||
                     item.ammunition === true;
-                console.log('Checking ammunition requirement:', { isAmmo, itemType: item.type, itemAmmoType: item.ammoType });
+                console.debug('Checking ammunition requirement:', { isAmmo, itemType: item.type, itemAmmoType: item.ammoType });
                 return isAmmo;
             }
 
             // Handle other requirements
             switch (req.type) {
                 case 'type': {
-                    console.log('Checking type requirement:', { required: req.value, actual: item.type });
+                    console.debug('Checking type requirement:', { required: req.value, actual: item.type });
                     return item.type === req.value;
                 }
                 case 'category': {
-                    console.log('Checking category requirement:', { required: req.value, actual: item.category });
+                    console.debug('Checking category requirement:', { required: req.value, actual: item.category });
                     return item.category === req.value;
                 }
                 case 'property': {
                     const hasProperty = item.properties?.some(p => (p?.name || p) === req.value);
-                    console.log('Checking property requirement:', { required: req.value, properties: item.properties, hasProperty });
+                    console.debug('Checking property requirement:', { required: req.value, properties: item.properties, hasProperty });
                     return hasProperty;
                 }
                 default: {
                     // If we don't recognize the requirement type, assume it's met
-                    console.log('Unknown requirement type:', req);
+                    console.warn('Unknown requirement type:', req);
                     return true;
                 }
             }

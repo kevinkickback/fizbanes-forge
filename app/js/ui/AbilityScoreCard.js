@@ -40,8 +40,6 @@ export class AbilityScoreCard {
      * Initializes the ability score card by rendering content and setting up event listeners
      */
     initialize() {
-        console.log('[AbilityScoreCard] Initializing');
-
         // Add the custom CSS for the new UI elements
         this.addStyles();
 
@@ -64,13 +62,6 @@ export class AbilityScoreCard {
      * Renders the entire ability score card, including scores, choices, and bonus notes
      */
     render() {
-        console.log('[AbilityScoreCard] Rendering ability score card');
-
-        if (!this.container) {
-            console.log('[AbilityScoreCard] Container not found, skipping render');
-            return;
-        }
-
         // Initialize scoring method system if needed
         this._initializeAbilityScoreMethod();
 
@@ -89,10 +80,6 @@ export class AbilityScoreCard {
     _initializeAbilityScoreMethod() {
         const character = characterHandler.currentCharacter;
         if (!character) return;
-
-        // Log the current ability score method for debugging
-        console.log('[AbilityScoreCard] Character variant rules:', character.variantRules);
-        console.log('[AbilityScoreCard] Current ability score method:', character.variantRules?.abilityScoreMethod);
 
         // Only reset ability score method when actually needed (e.g., on first load)
         // This prevents constant resets that trigger abilityScoresChanged events
@@ -117,7 +104,6 @@ export class AbilityScoreCard {
         // Get the character and method directly
         const character = characterHandler.currentCharacter;
         if (!character) {
-            console.log('[AbilityScoreCard] No character found for method info');
             return;
         }
 
@@ -125,12 +111,6 @@ export class AbilityScoreCard {
         const methodFromCharacter = character.variantRules?.abilityScoreMethod || 'custom';
         const isPointBuy = methodFromCharacter === 'pointBuy';
         const isStandardArray = methodFromCharacter === 'standardArray';
-
-        console.log('[AbilityScoreCard] Rendering method info:', {
-            isPointBuy,
-            isStandardArray,
-            method: methodFromCharacter
-        });
 
         // Create a new container
         infoContainer = document.createElement('div');
@@ -141,8 +121,6 @@ export class AbilityScoreCard {
             const usedPoints = abilityScoreManager.calculateUsedPoints();
             const remainingPoints = abilityScoreManager.getRemainingPoints();
             const maxPoints = abilityScoreManager.maxPoints;
-
-            console.log('[AbilityScoreCard] Point Buy:', { usedPoints, remainingPoints, maxPoints });
 
             infoContainer.innerHTML = `
                 <div class="d-flex justify-content-end mb-2">
@@ -156,11 +134,6 @@ export class AbilityScoreCard {
             // Get the available values
             const availableValues = abilityScoreManager.getAvailableStandardArrayValues();
             const assignedValues = Array.from(abilityScoreManager.assignedStandardValues);
-
-            console.log('[AbilityScoreCard] Standard Array:', {
-                availableValues,
-                assignedValues
-            });
 
             infoContainer.innerHTML = `
                 <div class="card">
@@ -187,36 +160,27 @@ export class AbilityScoreCard {
      * @private
      */
     _renderAbilityScores() {
-        console.log('[AbilityScoreCard] Rendering ability scores');
-
         // Get the ability score method directly from character
         const character = characterHandler.currentCharacter;
         if (!character) {
-            console.log('[AbilityScoreCard] No character found, using default rendering');
             return;
         }
 
         // Always get the method directly from character.variantRules to ensure consistency
         const methodFromCharacter = character.variantRules?.abilityScoreMethod || 'custom';
-        console.log('[AbilityScoreCard] Method from character:', methodFromCharacter);
 
         const isStandardArray = methodFromCharacter === 'standardArray';
         const isPointBuy = methodFromCharacter === 'pointBuy';
-
-        console.log('[AbilityScoreCard] Using methods:', { isStandardArray, isPointBuy });
 
         // Process each ability score
         for (const ability of abilityScoreManager.getAllAbilities()) {
             const box = this.container.querySelector(`[data-ability="${ability}"]`);
             if (!box) {
-                console.log(`[AbilityScoreCard] Box for ${ability} not found, skipping`);
                 continue;
             }
 
             const baseScore = abilityScoreManager.getBaseScore(ability);
             const totalScore = abilityScoreManager.getTotalScore(ability);
-
-            console.log(`[AbilityScoreCard] Updating ${ability}: base=${baseScore}, total=${totalScore}, method=${methodFromCharacter}`);
 
             // Update score and modifier displays
             box.querySelector('.score').textContent = totalScore;
@@ -239,8 +203,6 @@ export class AbilityScoreCard {
 
             // Add appropriate controls based on the ability score method
             if (isStandardArray) {
-                console.log(`[AbilityScoreCard] Adding standard array dropdown for ${ability}`);
-
                 // Update the standard array tracking before rendering
                 abilityScoreManager.updateAssignedStandardArrayValues();
 
@@ -249,12 +211,6 @@ export class AbilityScoreCard {
 
                 // Sort values in descending order
                 allStandardArrayValues.sort((a, b) => b - a);
-
-                console.log(`[AbilityScoreCard] Standard Array dropdown for ${ability}:`, {
-                    baseScore,
-                    allValues: allStandardArrayValues,
-                    assignedValues: Array.from(abilityScoreManager.assignedStandardValues)
-                });
 
                 // Create the dropdown
                 const select = document.createElement('select');
@@ -278,7 +234,6 @@ export class AbilityScoreCard {
                 select.addEventListener('change', (e) => {
                     const newValue = Number.parseInt(e.target.value, 10);
                     if (!Number.isNaN(newValue)) {
-                        console.log(`[AbilityScoreCard] Standard Array selection changed for ${ability}: ${newValue}`);
                         abilityScoreManager.updateBaseScore(ability, newValue);
                     }
                 });
@@ -290,8 +245,6 @@ export class AbilityScoreCard {
                 }
             } else {
                 // For Point Buy or Custom methods, add +/- buttons
-                console.log(`[AbilityScoreCard] Adding +/- buttons for ${ability}`);
-
                 // Create decrease button
                 const decreaseBtn = document.createElement('button');
                 decreaseBtn.className = 'btn btn-sm btn-light me-1';
@@ -316,12 +269,8 @@ export class AbilityScoreCard {
 
                 // For point buy, add the cost indicator
                 if (isPointBuy) {
-                    // Log available costs
-                    console.log('[AbilityScoreCard] PointBuyCosts map:',
-                        Array.from(abilityScoreManager.pointBuyCosts.entries()));
 
                     const cost = abilityScoreManager.getPointCost(baseScore);
-                    console.log(`[AbilityScoreCard] Point cost for ${ability} (score ${baseScore}): ${cost}`);
 
                     // Determine cost level for styling
                     let costClass = 'low';
@@ -347,8 +296,6 @@ export class AbilityScoreCard {
      */
     _renderAbilityChoices() {
         const pendingChoices = abilityScoreManager.getPendingChoices();
-        console.log('[AbilityScoreCard] Pending ability choices:', pendingChoices);
-
         if (pendingChoices.length === 0) {
             this._removeChoicesContainer();
             return;
@@ -383,13 +330,6 @@ export class AbilityScoreCard {
     _createChoiceDropdown(choice, index) {
         const availableAbilities = abilityScoreManager.getAvailableAbilities(index);
         const selectedAbility = abilityScoreManager.abilityChoices.get(index);
-
-        console.log(`[AbilityScoreCard] Creating dropdown for choice ${index}:`, {
-            source: choice.source,
-            amount: choice.amount,
-            availableAbilities,
-            selectedAbility
-        });
 
         return `
             <div class="ability-choice-group">
@@ -453,8 +393,6 @@ export class AbilityScoreCard {
      */
     _renderBonusNotes() {
         const bonusGroups = abilityScoreManager.getBonusGroups();
-        console.log('[AbilityScoreCard] Bonus groups:', Array.from(bonusGroups.entries()));
-
         if (bonusGroups.size === 0) {
             this.bonusesContainer.innerHTML = '<div class="text-muted">No ability score bonuses applied.</div>';
             return;
@@ -504,10 +442,12 @@ export class AbilityScoreCard {
 
         // Process all fixed race and subrace bonuses together
         const fixedBonuses = [];
-        for (const [source, bonusList] of raceBonuses.entries()) {
+        for (const [source, bonusMap] of raceBonuses.entries()) {
             if (source === 'Race' || source === 'Subrace') {
-                const bonuses = bonusList.filter(b => !b.isChoice);
-                fixedBonuses.push(...bonuses);
+                // Convert Map entries to array of bonus objects
+                for (const [ability, value] of bonusMap.entries()) {
+                    fixedBonuses.push({ ability, value });
+                }
             }
         }
 
@@ -520,11 +460,11 @@ export class AbilityScoreCard {
         }
 
         // Process choice bonuses separately
-        for (const [source, bonusList] of raceBonuses.entries()) {
+        for (const [source, bonusMap] of raceBonuses.entries()) {
             if (source.includes('Choice')) {
-                for (const bonus of bonusList) {
+                for (const [ability, value] of bonusMap.entries()) {
                     allRaceBonuses.push(
-                        `${this._getAbilityAbbreviation(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value} (choice)`
+                        `${this._getAbilityAbbreviation(ability)} ${value >= 0 ? '+' : ''}${value} (choice)`
                     );
                 }
             }
@@ -590,8 +530,6 @@ export class AbilityScoreCard {
 
         if (!ability) return;
 
-        console.log(`[AbilityScoreCard] Button clicked: ${action} for ${ability}`);
-
         const currentScore = abilityScoreManager.getBaseScore(ability);
         let newScore = currentScore;
 
@@ -620,8 +558,6 @@ export class AbilityScoreCard {
 
             return;
         }
-
-        console.log(`[AbilityScoreCard] Updating score from ${currentScore} to ${newScore}`);
 
         // Update the score
         abilityScoreManager.updateBaseScore(ability, newScore);
@@ -664,11 +600,6 @@ export class AbilityScoreCard {
      * Sets up event listeners for the ability score card
      */
     setupEventListeners() {
-        console.log('[AbilityScoreCard] Setting up event listeners');
-
-        // Add the custom CSS for the new UI elements
-        this.addStyles();
-
         // Remove existing listeners first (to prevent duplicates)
         document.removeEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
 
@@ -694,16 +625,18 @@ export class AbilityScoreCard {
 
         // Store a reference to the listener for later removal
         this.abilityScoresChangedListener = (event) => {
-            console.log('[AbilityScoreCard] Received abilityScoresChanged event:', event.detail);
-
             // Use targeted updates when possible instead of full re-renders
             const character = characterHandler.currentCharacter;
             const methodFromCharacter = character?.variantRules?.abilityScoreMethod;
+
+            // Always render ability choices first
+            this._renderAbilityChoices();
 
             if (methodFromCharacter === 'pointBuy') {
                 // For point buy, just update the counter and the specific ability score
                 this._updatePointBuyCounter();
                 this._updateAbilityScoreValues();
+                this._renderBonusNotes();
             } else {
                 // For other methods, use the debounced targeted updates
                 this.debouncedRender();
@@ -712,8 +645,6 @@ export class AbilityScoreCard {
 
         // Add the listener
         document.addEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
-
-        console.log('[AbilityScoreCard] Event listeners set up successfully');
     }
 
     /**
@@ -750,7 +681,6 @@ export class AbilityScoreCard {
 
                     // Get updated cost
                     const cost = abilityScoreManager.getPointCost(baseScore);
-                    console.log(`[AbilityScoreCard] Updating point cost for ${ability} (score ${baseScore}): ${cost}`);
 
                     // Determine cost level for styling
                     let costClass = 'low';
@@ -992,7 +922,6 @@ export class AbilityScoreCard {
 
         // Get the ability score method from the character
         const method = character.variantRules?.abilityScoreMethod || 'custom';
-        console.log('[AbilityScoreCard] Initializing for character with method:', method);
 
         // Update the ability score manager based on the method
         if (method === 'standardArray') {

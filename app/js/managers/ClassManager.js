@@ -111,16 +111,13 @@ export class ClassManager {
         this.classes = new Map();
 
         if (!classData || !classData.class || !Array.isArray(classData.class)) {
-            console.error('Invalid class data structure', classData);
+            console.error('Invalid class data structure:', classData);
             return;
         }
-
-        console.log(`[ClassManager] Processing ${classData.class.length} classes`);
 
         // Process each class
         for (const rawClass of classData.class) {
             try {
-
                 // Create standardized class object with processed data
                 const processedData = {
                     id: `${rawClass.name}_${rawClass.source || 'PHB'}`,

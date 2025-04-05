@@ -109,7 +109,7 @@ export class FeatureLoader extends BaseLoader {
                     optionalfeatureFluff: optionalFluffData.optionalfeatureFluff || []
                 };
 
-                console.log(`Loaded ${data.feat.length} feats and ${data.optionalfeature.length} optional features`);
+                console.debug(`Loaded ${data.feat.length} feats and ${data.optionalfeature.length} optional features`);
                 return data;
             } catch (error) {
                 console.error('Error loading features:', error);

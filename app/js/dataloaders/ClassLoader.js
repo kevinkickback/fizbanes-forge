@@ -161,7 +161,6 @@ export class ClassLoader extends BaseLoader {
                         // Find the main class
                         const mainClass = classData.class.find(c => c.name && c.source === 'PHB');
                         if (mainClass) {
-                            console.log(`[ClassLoader] Associating ${classData.classFeature.length} features with ${mainClass.name}`);
                             mainClass.classFeature = classData.classFeature;
                         }
                     }
@@ -174,7 +173,7 @@ export class ClassLoader extends BaseLoader {
                     }
                 }
 
-                console.log(`Loaded ${data.class.length} classes, ${data.subclass.length} subclasses, and ${data.fluff.length} fluff entries`);
+                console.debug(`Loaded ${data.class.length} classes, ${data.subclass.length} subclasses, and ${data.fluff.length} fluff entries`);
                 return data;
             } catch (error) {
                 console.error('Error loading classes:', error);

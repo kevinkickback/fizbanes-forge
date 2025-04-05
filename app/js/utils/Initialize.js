@@ -98,7 +98,7 @@ export async function initializeAll(options = {}) {
         result.success = result.errors.length === 0;
 
         if (result.success) {
-            console.log('Application initialized successfully');
+            // console.log('Application initialized successfully');
         } else {
             console.warn('Application initialized with some errors:', result.errors);
         }

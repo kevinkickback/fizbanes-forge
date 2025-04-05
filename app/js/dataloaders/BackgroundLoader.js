@@ -69,7 +69,7 @@ export class BackgroundLoader extends BaseLoader {
                     fluff: fluffData.backgroundFluff || []
                 };
 
-                console.log(`Loaded ${data.background.length} backgrounds`);
+                console.debug(`Loaded ${data.background.length} backgrounds`);
                 return data;
             } catch (error) {
                 console.error('Error loading backgrounds:', error);

@@ -98,7 +98,6 @@ export class ClassCard {
      * Populates the class selection dropdown with all available classes
      */
     async populateClassSelect() {
-        console.log('[ClassCard] Populating class select dropdown');
         this.classSelect.innerHTML = '<option value="">Select a Class</option>';
 
         try {
@@ -141,7 +140,6 @@ export class ClassCard {
      * Populates the subclass selection dropdown based on the currently selected class
      */
     async populateSubclassSelect(classData) {
-        console.log('[ClassCard] Populating subclass select dropdown');
         this.subclassSelect.innerHTML = '<option value="">Select a Subclass</option>';
         this.subclassSelect.disabled = true;
 
@@ -284,7 +282,6 @@ export class ClassCard {
                             // Set the skill options list in the character (needed for ProficiencyCard to enable selection)
                             const skillOptions = skillsArray.map(skill => skill.trim());
                             characterHandler.currentCharacter.optionalProficiencies.skills.options = skillOptions;
-                            console.log(`[ClassCard] Setting skill options from UI: ${skillOptions.join(', ')}`);
                         }
                     } else {
                         // Fallback if the pattern matching fails
@@ -585,7 +582,7 @@ export class ClassCard {
                 character.subclass !== (subclass?.name || ''));
 
         if (hasChanged) {
-            console.log(`[ClassCard] Class changed from ${character.class?.name || 'none'} to ${classData?.name || 'none'}`);
+            console.debug(`[ClassCard] Class changed from ${character.class?.name || 'none'} to ${classData?.name || 'none'}`);
 
             // Clear previous class proficiencies, ability bonuses, and traits
             character.removeProficienciesBySource('Class');
@@ -641,7 +638,7 @@ export class ClassCard {
         const character = characterHandler.currentCharacter;
         if (!character || !classData) return;
 
-        console.log('[ClassCard] Updating proficiencies for class:', classData.name);
+        console.debug('[ClassCard] Updating proficiencies for class:', classData.name);
 
         // Store previous selected proficiencies to restore valid ones later
         const previousClassSkills = character.optionalProficiencies.skills.class?.selected || [];
@@ -669,7 +666,6 @@ export class ClassCard {
         if (savingThrows && savingThrows.length > 0) {
             for (const save of savingThrows) {
                 character.addProficiency('savingThrows', save, 'Class');
-                console.log(`[ClassCard] Added saving throw proficiency: ${save}`);
             }
         }
 
@@ -678,7 +674,6 @@ export class ClassCard {
         if (armorProficiencies && armorProficiencies.length > 0) {
             for (const armor of armorProficiencies) {
                 character.addProficiency('armor', armor, 'Class');
-                console.log(`[ClassCard] Added armor proficiency: ${armor}`);
             }
         }
 
@@ -687,7 +682,6 @@ export class ClassCard {
         if (weaponProficiencies && weaponProficiencies.length > 0) {
             for (const weapon of weaponProficiencies) {
                 character.addProficiency('weapons', weapon, 'Class');
-                console.log(`[ClassCard] Added weapon proficiency: ${weapon}`);
             }
         }
 
@@ -696,7 +690,6 @@ export class ClassCard {
         if (toolProficiencies && toolProficiencies.length > 0) {
             for (const tool of toolProficiencies) {
                 character.addProficiency('tools', tool, 'Class');
-                console.log(`[ClassCard] Added tool proficiency: ${tool}`);
             }
         }
 
@@ -713,8 +706,6 @@ export class ClassCard {
             character.optionalProficiencies.skills.class.selected = previousClassSkills.filter(
                 skill => skills.includes(skill)
             );
-
-            console.log(`[ClassCard] Added skill choice: ${skillChoiceCount} from ${skills.join(', ')}`);
         }
 
         // Update combined options for all proficiency types
@@ -757,46 +748,6 @@ export class ClassCard {
 
         // For combined options, include language options from all sources
         character.optionalProficiencies.languages.options = [...new Set([...raceLanguageOptions, ...classLanguageOptions, ...backgroundLanguageOptions])];
-
-        console.log('[ClassCard] Updated combined language options:', {
-            raceLanguageOptions,
-            classLanguageOptions,
-            backgroundLanguageOptions,
-            combinedOptions: character.optionalProficiencies.languages.options,
-            allowed: character.optionalProficiencies.languages.allowed,
-            selected: character.optionalProficiencies.languages.selected
-        });
-
-        // Update tool options
-        const raceToolAllowed = character.optionalProficiencies.tools.race?.allowed || 0;
-        const classToolAllowed = character.optionalProficiencies.tools.class?.allowed || 0;
-        const backgroundToolAllowed = character.optionalProficiencies.tools.background?.allowed || 0;
-
-        const raceToolOptions = character.optionalProficiencies.tools.race?.options || [];
-        const classToolOptions = character.optionalProficiencies.tools.class?.options || [];
-        const backgroundToolOptions = character.optionalProficiencies.tools.background?.options || [];
-
-        const raceToolSelected = character.optionalProficiencies.tools.race?.selected || [];
-        const classToolSelected = character.optionalProficiencies.tools.class?.selected || [];
-        const backgroundToolSelected = character.optionalProficiencies.tools.background?.selected || [];
-
-        // Update total allowed count for tools
-        character.optionalProficiencies.tools.allowed = raceToolAllowed + classToolAllowed + backgroundToolAllowed;
-
-        // Combine selected tools from all sources
-        character.optionalProficiencies.tools.selected = [...new Set([...raceToolSelected, ...classToolSelected, ...backgroundToolSelected])];
-
-        // For combined options, include tool options from all sources
-        character.optionalProficiencies.tools.options = [...new Set([...raceToolOptions, ...classToolOptions, ...backgroundToolOptions])];
-
-        console.log('[ClassCard] Updated combined tool options:', {
-            raceToolOptions,
-            classToolOptions,
-            backgroundToolOptions,
-            combinedOptions: character.optionalProficiencies.tools.options,
-            allowed: character.optionalProficiencies.tools.allowed,
-            selected: character.optionalProficiencies.tools.selected
-        });
     }
 
     /**
@@ -827,21 +778,6 @@ export class ClassCard {
 
         // For combined options, include options from all sources
         character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
-
-        console.log('[ClassCard] Updated combined skill options:', {
-            raceOptions,
-            classOptions,
-            backgroundOptions,
-            combinedOptions: character.optionalProficiencies.skills.options,
-            raceAllowed,
-            classAllowed,
-            backgroundAllowed,
-            combinedAllowed: character.optionalProficiencies.skills.allowed,
-            raceSelected,
-            classSelected,
-            backgroundSelected,
-            combinedSelected: character.optionalProficiencies.skills.selected
-        });
     }
 
     /**
@@ -885,11 +821,10 @@ export class ClassCard {
         const character = characterHandler.currentCharacter;
         const level = character?.level || 1;
 
-        console.log(`[ClassCard] Getting features for ${classData.name} at level ${level}`);
+        console.debug('[ClassCard] Getting features for class:', classData?.name, 'at level:', level);
 
         // Get class features for the current level
         const features = classData.getFeatures(level) || [];
-        console.log('[ClassCard] Found features:', features);
 
         // Get subclass features for the current level if a subclass is selected
         let subclassFeatures = [];

@@ -567,7 +567,7 @@ export class RaceManager {
             }
         }
 
-        console.log('[RaceManager] Ability score choices:', choices);
+        console.debug('[RaceManager] Ability score choices:', choices);
         return choices;
     }
 

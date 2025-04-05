@@ -42,7 +42,7 @@ export class ConditionLoader extends BaseLoader {
                     condition: conditionData.condition || []
                 };
 
-                console.log(`Loaded ${data.condition.length} conditions`);
+                console.debug(`Loaded ${data.condition.length} conditions`);
                 return data;
             } catch (error) {
                 console.error('Error loading conditions:', error);

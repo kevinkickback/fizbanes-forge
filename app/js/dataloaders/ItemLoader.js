@@ -97,7 +97,7 @@ export class ItemLoader extends BaseLoader {
                     fluff: fluffData.itemFluff || []
                 };
 
-                console.log(`Loaded ${data.item.length} items, ${data.baseitem.length} base items, and ${data.magicvariant.length} variants`);
+                console.debug(`Loaded ${data.item.length} items, ${data.baseitem.length} base items, and ${data.magicvariant.length} variants`);
                 return data;
             } catch (error) {
                 console.error('Error loading items:', error);

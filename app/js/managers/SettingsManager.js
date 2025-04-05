@@ -5,15 +5,36 @@
 import { showNotification } from '../utils/notifications.js';
 import { storage } from '../utils/Storage.js';
 
+let instance = null;
+
 export class SettingsManager {
+    /**
+     * Creates a new SettingsManager instance.
+     * Private constructor enforcing the singleton pattern.
+     * @throws {Error} If trying to instantiate more than once
+     */
     constructor() {
+        if (instance) {
+            throw new Error('SettingsManager is a singleton. Use SettingsManager.getInstance() instead.');
+        }
+        instance = this;
         this.initialize();
+    }
+
+    /**
+     * Gets the singleton instance of SettingsManager
+     * @returns {SettingsManager} The singleton instance
+     * @static
+     */
+    static getInstance() {
+        if (!instance) {
+            instance = new SettingsManager();
+        }
+        return instance;
     }
 
     async initialize() {
         try {
-            console.log('Initializing settings manager');
-
             // Update save path display
             await this.updateSavePathDisplay();
 
@@ -86,4 +107,8 @@ export class SettingsManager {
     }
 }
 
-export const settingsManager = new SettingsManager(); 
+/**
+ * Export the singleton instance
+ * @type {SettingsManager}
+ */
+export const settingsManager = SettingsManager.getInstance(); 

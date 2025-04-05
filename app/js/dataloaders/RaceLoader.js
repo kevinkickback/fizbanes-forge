@@ -86,7 +86,7 @@ export class RaceLoader extends BaseLoader {
                     fluff: fluffData.raceFluff || []
                 };
 
-                console.log(`Loaded ${filteredData.race.length} races and ${filteredData.subrace.length} subraces`);
+                console.debug(`Loaded ${filteredData.race.length} races and ${filteredData.subrace.length} subraces`);
                 return filteredData;
             } catch (error) {
                 console.error('Error loading races:', error);
