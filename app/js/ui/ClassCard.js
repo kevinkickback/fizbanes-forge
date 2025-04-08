@@ -37,57 +37,128 @@ export class ClassCard {
      * @param {HTMLElement} container - The container element for the class card UI
      */
     constructor(container) {
-        this.classManager = classManager;
-        this.classSelect = document.getElementById('classSelect');
-        this.subclassSelect = document.getElementById('subclassSelect');
-        this.classQuickDesc = document.getElementById('classQuickDesc');
-        this.classDetails = document.getElementById('classDetails');
+        /**
+         * Reference to the class manager singleton
+         * @type {ClassManager}
+         * @private
+         */
+        this._classManager = classManager;
 
+        /**
+         * The main class selection dropdown element
+         * @type {HTMLSelectElement}
+         * @private
+         */
+        this._classSelect = document.getElementById('classSelect');
+
+        /**
+         * The subclass selection dropdown element
+         * @type {HTMLSelectElement}
+         * @private
+         */
+        this._subclassSelect = document.getElementById('subclassSelect');
+
+        /**
+         * The quick description element for displaying class summary
+         * @type {HTMLElement}
+         * @private
+         */
+        this._classQuickDesc = document.getElementById('classQuickDesc');
+
+        /**
+         * The container element for class details
+         * @type {HTMLElement}
+         * @private
+         */
+        this._classDetails = document.getElementById('classDetails');
+
+        // Initialize the component
         this.initialize();
     }
 
+    //-------------------------------------------------------------------------
+    // Initialization Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Initializes the class card UI components and event listeners
+     * @returns {Promise<void>}
      */
     async initialize() {
         try {
-            await this.classManager.initialize();
+            // Initialize required dependencies
+            await this._classManager.initialize();
             await textProcessor.initialize();
             tooltipManager.initialize();
-            this.setupEventListeners();
-            await this.loadSavedClassSelection();
+
+            // Set up event listeners
+            this._setupEventListeners();
+
+            // Load saved class selection from character data
+            await this._loadSavedClassSelection();
         } catch (error) {
             console.error('Failed to initialize class card:', error);
         }
     }
 
     /**
-     * Load and set the saved class selection
+     * Sets up event listeners for class and subclass selection changes
+     * @private
      */
-    async loadSavedClassSelection() {
+    _setupEventListeners() {
+        this._classSelect.addEventListener('change', event => this._handleClassChange(event));
+        this._subclassSelect.addEventListener('change', event => this._handleSubclassChange(event));
+        document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
+
+        // Add direct listener for class:selected event
+        document.addEventListener('class:selected', event => {
+            console.log('DEBUG ClassCard - Received class:selected event', event.detail);
+            this.updateClassDetails(event.detail).catch(err =>
+                console.error('Error handling class:selected event:', err)
+            );
+        });
+    }
+
+    //-------------------------------------------------------------------------
+    // Data Loading Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Loads and sets the saved class selection from the character data
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _loadSavedClassSelection() {
         try {
-            await this.populateClassSelect();
+            // Populate class dropdown first
+            await this._populateClassSelect();
 
             const character = characterHandler?.currentCharacter;
-            if (character?.class?.name && character?.class?.source) {
-                const classValue = `${character.class.name}_${character.class.source}`;
-                const classExists = Array.from(this.classSelect.options).some(option => option.value === classValue);
+            if (!character?.class?.name || !character?.class?.source) {
+                return; // No saved class to load
+            }
 
-                if (classExists) {
-                    this.classSelect.value = classValue;
-                    this.classSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            // Set the class selection if it exists in available options
+            const classValue = `${character.class.name}_${character.class.source}`;
+            const classExists = Array.from(this._classSelect.options).some(option => option.value === classValue);
 
-                    if (character.class.subclass) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        const subclassExists = Array.from(this.subclassSelect.options).some(option => option.value === character.class.subclass);
-                        if (subclassExists) {
-                            this.subclassSelect.value = character.class.subclass;
-                            this.subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
+            if (classExists) {
+                this._classSelect.value = classValue;
+                this._classSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // Also set subclass if one was selected
+                if (character.class.subclass) {
+                    // Wait for subclass options to populate
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const subclassExists = Array.from(this._subclassSelect.options).some(option => option.value === character.class.subclass);
+
+                    if (subclassExists) {
+                        this._subclassSelect.value = character.class.subclass;
+                        this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
                     }
-                } else {
-                    console.warn(`Saved class "${classValue}" not found in available options. Character might use a source that's not currently allowed.`);
                 }
+            } else {
+                console.warn(`Saved class "${classValue}" not found in available options. Character might use a source that's not currently allowed.`);
             }
         } catch (error) {
             console.error('Error loading saved class selection:', error);
@@ -96,12 +167,15 @@ export class ClassCard {
 
     /**
      * Populates the class selection dropdown with all available classes
+     * filtered by allowed sources
+     * @returns {Promise<void>}
+     * @private
      */
-    async populateClassSelect() {
-        this.classSelect.innerHTML = '<option value="">Select a Class</option>';
+    async _populateClassSelect() {
+        this._classSelect.innerHTML = '<option value="">Select a Class</option>';
 
         try {
-            const classes = this.classManager.getAllClasses();
+            const classes = this._classManager.getAllClasses();
             if (!classes || classes.length === 0) {
                 console.error('No classes available to populate dropdown');
                 return;
@@ -111,6 +185,7 @@ export class ClassCard {
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
+            // Filter classes by allowed sources
             const filteredClasses = classes.filter(cls => {
                 const classSource = cls.source?.toUpperCase();
                 return upperAllowedSources.has(classSource);
@@ -129,7 +204,7 @@ export class ClassCard {
                 const option = document.createElement('option');
                 option.value = `${classData.name}_${classData.source}`;
                 option.textContent = `${classData.name} (${classData.source})`;
-                this.classSelect.appendChild(option);
+                this._classSelect.appendChild(option);
             }
         } catch (error) {
             console.error('Error populating class dropdown:', error);
@@ -138,10 +213,14 @@ export class ClassCard {
 
     /**
      * Populates the subclass selection dropdown based on the currently selected class
+     * filtered by allowed sources
+     * @param {Object} classData - The selected class data
+     * @returns {Promise<void>}
+     * @private
      */
-    async populateSubclassSelect(classData) {
-        this.subclassSelect.innerHTML = '<option value="">Select a Subclass</option>';
-        this.subclassSelect.disabled = true;
+    async _populateSubclassSelect(classData) {
+        this._subclassSelect.innerHTML = '<option value="">Select a Subclass</option>';
+        this._subclassSelect.disabled = true;
 
         if (!classData || !classData.subclasses || classData.subclasses.length === 0) {
             return;
@@ -152,29 +231,157 @@ export class ClassCard {
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
+            // Filter subclasses by allowed sources
             const filteredSubclasses = classData.subclasses.filter(subclass => {
                 const subclassSource = subclass.source?.toUpperCase();
                 return upperAllowedSources.has(subclassSource);
             });
 
             if (filteredSubclasses.length > 0) {
+                // Sort subclasses by name
+                filteredSubclasses.sort((a, b) => a.name.localeCompare(b.name));
+
+                // Add options to select
                 for (const subclass of filteredSubclasses) {
                     const option = document.createElement('option');
                     option.value = subclass.name;
                     option.textContent = `${subclass.name} (${subclass.source})`;
-                    this.subclassSelect.appendChild(option);
+                    this._subclassSelect.appendChild(option);
                 }
-                this.subclassSelect.disabled = false;
+                this._subclassSelect.disabled = false;
             }
         } catch (error) {
             console.error('Error loading subclasses for dropdown:', error);
         }
     }
 
+    //-------------------------------------------------------------------------
+    // Event Handlers
+    //-------------------------------------------------------------------------
+
     /**
-     * Updates the display of class details for the selected class
+     * Handles class selection change events
+     * @param {Event} event - The change event
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _handleClassChange(event) {
+        try {
+            const [className, source] = event.target.value.split('_');
+
+            if (!className || !source) {
+                this.resetClassDetails();
+                this._populateSubclassSelect(null);
+                return;
+            }
+
+            const classData = this._classManager.getClass(className, source);
+            if (!classData) {
+                console.error(`Class not found: ${className} (${source})`);
+                return;
+            }
+
+            // Update the UI with the selected class data
+            await this.updateQuickDescription(classData);
+            await this.updateClassDetails(classData);
+            await this._populateSubclassSelect(classData);
+
+            // Update character data
+            this._updateCharacterClass(classData);
+
+        } catch (error) {
+            console.error('Error handling class change:', error);
+        }
+    }
+
+    /**
+     * Handles subclass selection change events
+     * @param {Event} event - The change event
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _handleSubclassChange(event) {
+        try {
+            const subclassName = event.target.value;
+            const classValue = this._classSelect.value;
+            const [className, source] = classValue.split('_');
+
+            if (!className || !source) {
+                return;
+            }
+
+            const classData = this._classManager.getClass(className, source);
+            if (!classData) {
+                console.error(`Class not found: ${className} (${source})`);
+                return;
+            }
+
+            let subclassData = null;
+            if (subclassName) {
+                subclassData = classData.subclasses.find(sc => sc.name === subclassName);
+            }
+
+            // Update the UI with the subclass data
+            await this.updateClassDetails(classData, subclassData);
+
+            // Update character data
+            this._updateCharacterClass(classData, subclassName);
+
+        } catch (error) {
+            console.error('Error handling subclass change:', error);
+        }
+    }
+
+    /**
+     * Handles character changed events
+     * @param {Event} event - The character changed event
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _handleCharacterChanged(event) {
+        try {
+            const character = event.detail?.character;
+            if (!character) return;
+
+            // Reload class selection to match character's class
+            await this._loadSavedClassSelection();
+
+        } catch (error) {
+            console.error('Error handling character changed event:', error);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // UI Update Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Updates the quick description for the selected class
+     * @param {Object} classData - The class data
+     * @returns {Promise<void>}
+     */
+    async updateQuickDescription(classData) {
+        if (!classData || !this._classQuickDesc) {
+            return;
+        }
+
+        // Create placeholder for description if not specified
+        const description = classData.description || `${classData.name} class features and characteristics.`;
+
+        this._classQuickDesc.innerHTML = `
+            <h5>${classData.name}</h5>
+            <p>${description}</p>
+        `;
+
+        // Process reference tags in the description
+        await textProcessor.processElement(this._classQuickDesc);
+    }
+
+    /**
+     * Updates the display of class details for the selected class and subclass
      * @param {Object} classData - The class data to display
      * @param {Object} subclassData - The optional subclass data
+     * @returns {Promise<void>}
      */
     async updateClassDetails(classData, subclassData = null) {
         if (!classData) {
@@ -191,7 +398,7 @@ export class ClassCard {
         await this._updateToolProficiencies(classData);
 
         // Process the entire details container at once to resolve all reference tags
-        await textProcessor.processElement(this.classDetails);
+        await textProcessor.processElement(this._classDetails);
 
         // Update features
         await this._updateFeatures(classData, subclassData);
@@ -201,12 +408,15 @@ export class ClassCard {
      * Updates the hit die information display
      */
     _updateHitDie(classData) {
-        const hitDieSection = this.classDetails.querySelector('.detail-section:nth-child(1) ul');
+        console.log('DEBUG _updateHitDie - Input:', classData);
+        const hitDieSection = this._classDetails.querySelector('.detail-section:nth-child(1) ul');
         if (hitDieSection) {
             hitDieSection.innerHTML = '';
             const li = document.createElement('li');
             li.className = 'text-content';
-            li.textContent = `d${classData.getHitDice()}`;
+            const hitDieText = this._classManager.getFormattedHitDie(classData);
+            console.log('DEBUG _updateHitDie - From classManager:', hitDieText);
+            li.textContent = hitDieText;
             hitDieSection.appendChild(li);
         }
     }
@@ -215,8 +425,9 @@ export class ClassCard {
      * Updates the skill proficiencies information display
      */
     _updateSkillProficiencies(classData) {
+        console.log('DEBUG _updateSkillProficiencies - Input:', classData);
         // Find the skill proficiencies section by its position in the HTML structure
-        const skillProficienciesSection = this.classDetails.querySelector('.detail-section:nth-child(2)');
+        const skillProficienciesSection = this._classDetails.querySelector('.detail-section:nth-child(2)');
         if (!skillProficienciesSection) return;
 
         // Clear previous content
@@ -230,86 +441,90 @@ export class ClassCard {
         }
 
         skillList.innerHTML = '';
+        skillList.className = ''; // Reset classes
 
         // If we have a class and it has skill proficiencies
         if (classData) {
-            const skills = classData.getSkillProficiencies();
-            if (skills?.length) {
-                // Get the formatted string from the class manager
-                const formattedString = this.classManager.getFormattedSkillProficiencies(classData);
-                const hasChoices = formattedString.includes('Choose');
+            const formattedString = this._classManager.getFormattedSkillProficiencies(classData);
+            console.log('DEBUG _updateSkillProficiencies - Formatted string:', formattedString);
+            const hasChoices = formattedString.includes('Choose');
 
-                if (hasChoices) {
+            if (hasChoices) {
+                // Check for "any skills" format first 
+                if (formattedString.includes('Choose any')) {
+                    // For "Choose any X skills" format
+                    const anySkillPattern = /(Choose any \d+ skills)/;
+                    const anyMatches = formattedString.match(anySkillPattern);
+                    console.log('DEBUG _updateSkillProficiencies - Any skill pattern matches:', anyMatches);
+
+                    if (anyMatches && anyMatches.length >= 1) {
+                        // Add as a single list item
+                        const li = document.createElement('li');
+                        li.className = 'text-content';
+                        li.textContent = anyMatches[1];
+                        skillList.appendChild(li);
+                    }
+                } else {
                     // For "Choose X from Y" format, split into header and skills list
                     // Extract the "Choose X from:" part from the string
                     const choosePattern = /(Choose \d+ from:)\s+(.*)/;
                     const matches = formattedString.match(choosePattern);
+                    console.log('DEBUG _updateSkillProficiencies - Pattern matches:', matches);
 
                     if (matches && matches.length >= 3) {
                         const chooseText = matches[1]; // "Choose X from:"
                         const skillsText = matches[2]; // The list of skills
 
-                        // Add the "Choose X from:" as a header above the list
+                        // Add the "Choose X from:" header
                         const chooseHeader = document.createElement('div');
-                        chooseHeader.className = 'choose-text font-weight-bold';
-                        chooseHeader.style.marginBottom = '0.5rem';
+                        chooseHeader.className = 'choose-text';
                         chooseHeader.textContent = chooseText;
-
-                        // Insert the header before the list
                         skillProficienciesSection.insertBefore(chooseHeader, skillList);
 
-                        // Split the skills by comma and create a list item for each
-                        const skillsArray = skillsText.split(', ');
+                        // Add the skills list
+                        const skills = skillsText.split(', ');
 
                         // Apply multi-column if more than 3 skills
-                        if (skillsArray.length > 3) {
+                        if (skills.length > 3) {
                             skillList.className = 'multi-column-list';
-                            if (skillsArray.length > 6) {
+                            if (skills.length > 6) {
                                 skillList.classList.add('many-items');
                             }
                         }
 
-                        // Add each skill as a separate list item
-                        for (const skill of skillsArray) {
+                        for (const skill of skills) {
                             const li = document.createElement('li');
                             li.className = 'text-content';
-                            li.textContent = skill.trim();
+                            li.textContent = skill;
                             skillList.appendChild(li);
                         }
-
-                        // Set available skills in the character's optional proficiencies
-                        if (characterHandler.currentCharacter) {
-                            // Set the skill options list in the character (needed for ProficiencyCard to enable selection)
-                            const skillOptions = skillsArray.map(skill => skill.trim());
-                            characterHandler.currentCharacter.optionalProficiencies.skills.options = skillOptions;
-                        }
                     } else {
-                        // Fallback if the pattern matching fails
+                        // Fallback for other formats
                         const li = document.createElement('li');
                         li.className = 'text-content';
                         li.textContent = formattedString;
                         skillList.appendChild(li);
                     }
-                } else {
-                    // For fixed proficiencies without choices
-                    const li = document.createElement('li');
-                    li.className = 'text-content';
-                    li.textContent = formattedString;
-                    skillList.appendChild(li);
                 }
             } else {
-                // No skill proficiencies for this class
-                const li = document.createElement('li');
-                li.className = 'text-content';
-                li.textContent = 'None';
-                skillList.appendChild(li);
+                // For simple list format
+                const skills = formattedString.split(', ');
+
+                // Apply multi-column if more than 3 skills
+                if (skills.length > 3) {
+                    skillList.className = 'multi-column-list';
+                    if (skills.length > 6) {
+                        skillList.classList.add('many-items');
+                    }
+                }
+
+                for (const skill of skills) {
+                    const li = document.createElement('li');
+                    li.className = 'text-content';
+                    li.textContent = skill;
+                    skillList.appendChild(li);
+                }
             }
-        } else {
-            // No class data available
-            const li = document.createElement('li');
-            li.className = 'text-content';
-            li.textContent = 'None';
-            skillList.appendChild(li);
         }
     }
 
@@ -317,7 +532,7 @@ export class ClassCard {
      * Updates the saving throws information display
      */
     _updateSavingThrows(classData) {
-        const savingThrowsSection = this.classDetails.querySelector('.detail-section:nth-child(3) ul');
+        const savingThrowsSection = this._classDetails.querySelector('.detail-section:nth-child(3) ul');
         if (savingThrowsSection) {
             savingThrowsSection.innerHTML = '';
 
@@ -342,7 +557,7 @@ export class ClassCard {
      * @private
      */
     async _updateArmorProficiencies(classData) {
-        const armorSection = this.classDetails.querySelector('.detail-section:nth-child(4) ul');
+        const armorSection = this._classDetails.querySelector('.detail-section:nth-child(4) ul');
         if (armorSection) {
             armorSection.innerHTML = '';
             armorSection.className = ''; // Reset classes
@@ -376,7 +591,7 @@ export class ClassCard {
      * @private
      */
     async _updateWeaponProficiencies(classData) {
-        const weaponSection = this.classDetails.querySelector('.detail-section:nth-child(5) ul');
+        const weaponSection = this._classDetails.querySelector('.detail-section:nth-child(5) ul');
         if (weaponSection) {
             weaponSection.innerHTML = '';
             weaponSection.className = ''; // Reset classes
@@ -410,7 +625,7 @@ export class ClassCard {
      * @private
      */
     async _updateToolProficiencies(classData) {
-        const toolSection = this.classDetails.querySelector('.detail-section:nth-child(6) ul');
+        const toolSection = this._classDetails.querySelector('.detail-section:nth-child(6) ul');
         if (toolSection) {
             toolSection.innerHTML = '';
             toolSection.className = ''; // Reset classes
@@ -443,14 +658,14 @@ export class ClassCard {
      * Reset class details to placeholder state
      */
     resetClassDetails() {
-        this.classQuickDesc.innerHTML = `
+        this._classQuickDesc.innerHTML = `
             <div class="placeholder-content">
                 <h5>Select a Class</h5>
                 <p>Choose a class to see details about their abilities, proficiencies, and other characteristics.</p>
             </div>
         `;
 
-        const detailSections = this.classDetails.querySelectorAll('.detail-section');
+        const detailSections = this._classDetails.querySelectorAll('.detail-section');
         for (const section of detailSections) {
             const list = section.querySelector('ul');
             const paragraph = section.querySelector('p');
@@ -466,7 +681,7 @@ export class ClassCard {
         }
 
         // Specifically update the features section to use a list item
-        const featuresSection = this.classDetails.querySelector('.features-section');
+        const featuresSection = this._classDetails.querySelector('.features-section');
         if (featuresSection) {
             featuresSection.innerHTML = `
                 <h6>Features</h6>
@@ -476,91 +691,6 @@ export class ClassCard {
                     </ul>
                 </div>
             `;
-        }
-    }
-
-    /**
-     * Setup event listeners for class selection
-     */
-    setupEventListeners() {
-        this.classSelect.addEventListener('change', this._handleClassChange.bind(this));
-        this.subclassSelect.addEventListener('change', this._handleSubclassChange.bind(this));
-
-        // Listen for character changes (level, etc.) to update features
-        document.addEventListener('characterChanged', this._handleCharacterChanged.bind(this));
-    }
-
-    /**
-     * Event handler for class selection change
-     * @param {Event} event - The change event
-     * @private
-     */
-    async _handleClassChange(event) {
-        const classValue = event.target.value;
-
-        if (!classValue) {
-            this.resetClassDetails();
-            this._updateCharacterClass(null, null);
-            return;
-        }
-
-        try {
-            const [className, source] = classValue.split('_');
-            const selectedClass = this.classManager.selectClass(className, source);
-
-            if (selectedClass) {
-                await this.updateQuickDescription(selectedClass);
-                await this.updateClassDetails(selectedClass);
-                await this.populateSubclassSelect(selectedClass);
-                this._updateCharacterClass(selectedClass, null);
-            } else {
-                console.error('Selected class not found:', className, source);
-                this.resetClassDetails();
-            }
-        } catch (error) {
-            console.error('Error handling class change:', error);
-        }
-    }
-
-    /**
-     * Event handler for subclass selection change
-     * @param {Event} event - The change event
-     * @private
-     */
-    async _handleSubclassChange(event) {
-        const subclassValue = event.target.value;
-
-        if (!this.classManager.getSelectedClass()) {
-            return;
-        }
-
-        try {
-            const selectedSubclass = this.classManager.selectSubclass(subclassValue);
-            await this.updateClassDetails(
-                this.classManager.getSelectedClass(),
-                selectedSubclass
-            );
-            this._updateCharacterClass(
-                this.classManager.getSelectedClass(),
-                selectedSubclass
-            );
-        } catch (error) {
-            console.error('Error handling subclass change:', error);
-        }
-    }
-
-    /**
-     * Handle character changes (like level changes)
-     * @param {Event} event - The character changed event
-     * @private
-     */
-    async _handleCharacterChanged(event) {
-        const classData = this.classManager.getSelectedClass();
-        const subclassData = this.classManager.getSelectedSubclass();
-
-        if (classData) {
-            // Only update the features section, not the entire card
-            await this._updateFeatures(classData, subclassData);
         }
     }
 
@@ -582,7 +712,7 @@ export class ClassCard {
                 character.subclass !== (subclass?.name || ''));
 
         if (hasChanged) {
-            console.debug(`[ClassCard] Class changed from ${character.class?.name || 'none'} to ${classData?.name || 'none'}`);
+            console.debug(`Class changed from ${character.class?.name || 'none'} to ${classData?.name || 'none'}`);
 
             // Clear previous class proficiencies, ability bonuses, and traits
             character.removeProficienciesBySource('Class');
@@ -638,7 +768,7 @@ export class ClassCard {
         const character = characterHandler.currentCharacter;
         if (!character || !classData) return;
 
-        console.debug('[ClassCard] Updating proficiencies for class:', classData.name);
+        console.debug('Updating proficiencies for class:', classData.name);
 
         // Store previous selected proficiencies to restore valid ones later
         const previousClassSkills = character.optionalProficiencies.skills.class?.selected || [];
@@ -781,38 +911,13 @@ export class ClassCard {
     }
 
     /**
-     * Updates the quick description area based on the selected class
-     * @param {Object} classData - The selected class data
-     */
-    async updateQuickDescription(classData) {
-        if (!classData) {
-            this.classQuickDesc.innerHTML = `
-                <div class="placeholder-content">
-                    <h5>Select a Class</h5>
-                    <p>Choose a class to see details about their abilities, proficiencies, and other characteristics.</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Get the description from classData
-        const description = classData.getDescription() || 'No description available.';
-
-        // Set quick description - add text-content class to let TextProcessor handle it
-        this.classQuickDesc.innerHTML = `
-            <h5>${classData.name}</h5>
-            <p class="text-content">${description}</p>
-        `;
-    }
-
-    /**
      * Update the features section based on class and level
      * @param {Class} classData - Selected class
      * @param {Subclass} subclassData - Selected subclass (optional)
      * @private
      */
     async _updateFeatures(classData, subclassData = null) {
-        const featuresSection = this.classDetails.querySelector('.features-section');
+        const featuresSection = this._classDetails.querySelector('.features-section');
         if (!featuresSection) {
             console.warn('Features section not found in class details');
             return;
@@ -821,29 +926,45 @@ export class ClassCard {
         const character = characterHandler.currentCharacter;
         const level = character?.level || 1;
 
-        console.debug('[ClassCard] Getting features for class:', classData?.name, 'at level:', level);
+        console.debug('Getting features for class:', classData?.name, 'at level:', level);
 
         // Get class features for the current level
         const features = classData.getFeatures(level) || [];
+        console.debug('Class features:', features);
 
         // Get subclass features for the current level if a subclass is selected
         let subclassFeatures = [];
         if (subclassData) {
             subclassFeatures = subclassData.getFeatures?.(level) || [];
+            console.debug('Subclass features:', subclassFeatures);
         }
 
         // Combine class and subclass features
         const allFeatures = [...features, ...subclassFeatures];
+        console.debug('All features:', allFeatures);
 
         if (allFeatures.length > 0) {
             const processedFeatures = await Promise.all(allFeatures.map(async feature => {
-                if (!feature.name || !feature.entries) {
-                    console.warn('[ClassCard] Feature missing name or entries:', feature);
+                if (!feature.name) {
+                    console.warn('Feature missing name:', feature);
                     return '';
                 }
 
                 const name = feature.name;
-                let description = this._formatFeatureEntries(feature.entries);
+                let description = '';
+
+                // Handle different entry formats
+                if (typeof feature.entries === 'string') {
+                    description = feature.entries;
+                } else if (Array.isArray(feature.entries)) {
+                    description = this._formatFeatureEntries(feature.entries);
+                } else if (feature.entry) {
+                    description = feature.entry;
+                } else if (feature.text) {
+                    description = feature.text;
+                } else {
+                    console.warn('Feature missing entries:', feature);
+                }
 
                 // Process the description with the text processor if it exists
                 if (description) {

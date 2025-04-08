@@ -1,22 +1,69 @@
+/**
+ * Character.js
+ * Model class representing a character in the D&D Character Creator
+ */
+
+/**
+ * Represents a character with all its attributes, abilities, proficiencies, and features
+ */
 export class Character {
-    constructor() {
-        this.id = null;
-        this.name = '';
-        this.playerName = '';
-        this.race = {
+    /**
+     * Creates a new Character instance
+     * @param {Object} [data] - Optional character data to initialize with
+     */
+    constructor(data = {}) {
+        /**
+         * Unique identifier for the character
+         * @type {string|null}
+         */
+        this.id = data.id || null;
+
+        /**
+         * Character's name
+         * @type {string}
+         */
+        this.name = data.name || '';
+
+        /**
+         * Player's name
+         * @type {string}
+         */
+        this.playerName = data.playerName || '';
+
+        /**
+         * Character's race information
+         * @type {Object}
+         */
+        this.race = data.race || {
             name: '',
             source: '',
             subrace: ''
-        }; // Store race info as an object with name and source
+        };
 
-        this.class = {
+        /**
+         * Character's class information
+         * @type {Object}
+         */
+        this.class = data.class || {
             level: 1
         };
-        this.subclass = '';
-        this.background = '';
-        this.level = 1;
-        this.allowedSources = new Set(['PHB']); // Initialize with PHB as default
-        this.abilityScores = {
+
+        this.subclass = data.subclass || '';
+        this.background = data.background || '';
+        this.level = data.level || 1;
+        this.lastModified = data.lastModified || new Date().toISOString();
+
+        // Initialize allowed sources with PHB by default, or from data
+        this.allowedSources = new Set(
+            Array.isArray(data.allowedSources)
+                ? data.allowedSources
+                : (data.allowedSources instanceof Set
+                    ? Array.from(data.allowedSources)
+                    : ['PHB'])
+        );
+
+        // Initialize ability scores
+        this.abilityScores = data.abilityScores || {
             strength: 8,
             dexterity: 8,
             constitution: 8,
@@ -24,7 +71,9 @@ export class Character {
             wisdom: 8,
             charisma: 8
         };
-        this.abilityBonuses = {
+
+        // Initialize ability bonuses
+        this.abilityBonuses = data.abilityBonuses || {
             strength: [],
             dexterity: [],
             constitution: [],
@@ -32,14 +81,22 @@ export class Character {
             wisdom: [],
             charisma: []
         };
-        this.size = 'M';
-        this.speed = { walk: 30 };
+
+        // Initialize pending ability choices
+        this.pendingAbilityChoices = data.pendingAbilityChoices || [];
+
+        this.size = data.size || 'M';
+        this.speed = data.speed || { walk: 30 };
+
+        // Initialize features
         this.features = {
-            darkvision: 0,
-            resistances: new Set(),
-            traits: new Map()  // Map of trait name to { description, source }
+            darkvision: data.features?.darkvision || 0,
+            resistances: new Set(data.features?.resistances || []),
+            traits: new Map(data.features?.traits ? Object.entries(data.features.traits) : [])
         };
-        this.proficiencies = {
+
+        // Initialize proficiencies
+        this.proficiencies = data.proficiencies || {
             armor: [],
             weapons: [],
             tools: [],
@@ -47,6 +104,8 @@ export class Character {
             languages: [],
             savingThrows: []
         };
+
+        // Initialize proficiency sources
         this.proficiencySources = {
             armor: new Map(),
             weapons: new Map(),
@@ -55,8 +114,28 @@ export class Character {
             languages: new Map(),
             savingThrows: new Map()
         };
+
+        // Restore proficiency sources if available in the data
+        if (data.proficiencySources) {
+            for (const type in this.proficiencySources) {
+                if (data.proficiencySources[type]) {
+                    // Handle serialized Map data
+                    if (typeof data.proficiencySources[type] === 'object') {
+                        for (const [key, sourceList] of Object.entries(data.proficiencySources[type])) {
+                            // Convert the source list to a Set
+                            if (Array.isArray(sourceList)) {
+                                this.proficiencySources[type].set(key, new Set(sourceList));
+                            } else {
+                                this.proficiencySources[type].set(key, new Set([sourceList]));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Add structure for optional proficiencies
-        this.optionalProficiencies = {
+        this.optionalProficiencies = data.optionalProficiencies || {
             armor: { allowed: 0, selected: [] },
             weapons: { allowed: 0, selected: [] },
             savingThrows: { allowed: 0, selected: [] },
@@ -121,47 +200,65 @@ export class Character {
                 }
             }
         };
-        this.pendingChoices = new Map(); // Map to store pending choices
-        this.height = '';
-        this.weight = '';
-        this.gender = '';
-        this.backstory = '';
-        this.equipment = {
+
+        this.pendingChoices = new Map(data.pendingChoices ? Object.entries(data.pendingChoices) : []);
+        this.height = data.height || '';
+        this.weight = data.weight || '';
+        this.gender = data.gender || '';
+        this.backstory = data.backstory || '';
+
+        this.equipment = data.equipment || {
             weapons: [],
             armor: [],
             items: []
         };
-        this.pendingAbilityChoices = []; // Array to store pending ability choices
 
-        // Initialize variant rules with defaults
-        this.variantRules = {
+        // Initialize variant rules with defaults or from data
+        this.variantRules = data.variantRules || {
             feats: true,
             multiclassing: true,
             abilityScoreMethod: 'custom' // Options: 'custom', 'pointBuy', 'standardArray'
         };
 
-        // Add Common as a default language
-        this.addLanguage('Common', 'Default');
+        // Add Common as a default language if no languages are provided
+        if (!this.proficiencies.languages || this.proficiencies.languages.length === 0) {
+            this.addLanguage('Common', 'Default');
+        }
     }
 
-    // Methods for ability scores
+    /**
+     * Gets an ability score value
+     * @param {string} ability - Ability score name
+     * @returns {number} The ability score value
+     */
     getAbilityScore(ability) {
         // Simple getter without manager dependency
         return this.abilityScores[ability] || 0;
     }
 
+    /**
+     * Gets an ability score modifier
+     * @param {string} ability - Ability score name
+     * @returns {number} The ability score modifier
+     */
     getAbilityModifier(ability) {
         const score = this.getAbilityScore(ability);
         return Math.floor((score - 10) / 2);
     }
 
     /**
-     * Add an ability score bonus
+     * Adds an ability score bonus from a source
      * @param {string} ability - The ability to add the bonus to
      * @param {number} value - The bonus value
      * @param {string} source - The source of the bonus
      */
     addAbilityBonus(ability, value, source) {
+        // Handle null or undefined ability
+        if (!ability) {
+            console.warn(`Attempted to add ability bonus with undefined ability name (value: ${value}, source: ${source})`);
+            return;
+        }
+
         // Normalize the ability name
         const normalizedAbility = ability.toLowerCase()
             .replace(/^str$/, 'strength')
@@ -186,6 +283,10 @@ export class Character {
         }
     }
 
+    /**
+     * Clears ability bonuses from a specific source
+     * @param {string} source - Source to clear bonuses from
+     */
     clearAbilityBonuses(source) {
         for (const ability in this.abilityBonuses) {
             this.abilityBonuses[ability] = this.abilityBonuses[ability].filter(
@@ -194,7 +295,11 @@ export class Character {
         }
     }
 
-    // Methods for pending choices
+    /**
+     * Adds a pending choice of a specific type
+     * @param {string} type - Choice type
+     * @param {Object} choice - Choice details
+     */
     addPendingChoice(type, choice) {
         if (!this.pendingChoices.has(type)) {
             this.pendingChoices.set(type, []);
@@ -207,28 +312,54 @@ export class Character {
         }
     }
 
+    /**
+     * Gets simple pending ability choices
+     * @returns {Array} Pending ability choices
+     */
     getSimplePendingAbilityChoices() {
         return this.pendingAbilityChoices;
     }
 
+    /**
+     * Clears all pending ability choices
+     */
     clearPendingAbilityChoices() {
         this.pendingAbilityChoices = [];
     }
 
-    // Rename the duplicate methods to be more specific
+    /**
+     * Gets pending choices of a specific type
+     * @param {string} type - Choice type to get
+     * @returns {Array} Choices of the specified type
+     */
     getPendingChoicesByType(type) {
         return this.pendingChoices.get(type) || [];
     }
 
+    /**
+     * Clears pending choices of a specific type or all types
+     * @param {string} [type] - Choice type to clear (omit to clear all)
+     */
     clearPendingChoicesByType(type) {
-        if (type) {
+        if (type === 'ability') {
+            // Clear ability choices array
+            this.pendingAbilityChoices = [];
+        } else if (type) {
+            // Clear specific type from pendingChoices Map
             this.pendingChoices.delete(type);
         } else {
+            // Clear all choices
             this.pendingChoices.clear();
+            this.pendingAbilityChoices = [];
         }
     }
 
-    // Methods for proficiencies
+    /**
+     * Adds a proficiency with its source
+     * @param {string} type - Proficiency type
+     * @param {string} proficiency - Proficiency name
+     * @param {string} source - Source of the proficiency
+     */
     addProficiency(type, proficiency, source) {
         // Ensure the proficiency array exists
         if (!this.proficiencies[type]) {
@@ -317,6 +448,10 @@ export class Character {
         }
     }
 
+    /**
+     * Removes proficiencies from a specific source
+     * @param {string} source - Source to remove proficiencies from
+     */
     removeProficienciesBySource(source) {
         for (const type in this.proficiencySources) {
             for (const [proficiency, sources] of this.proficiencySources[type].entries()) {
@@ -332,29 +467,54 @@ export class Character {
         }
     }
 
-    // Methods for languages
+    /**
+     * Adds a language proficiency
+     * @param {string} language - Language name
+     * @param {string} source - Source of the proficiency
+     */
     addLanguage(language, source) {
         this.addProficiency('languages', language, source);
     }
 
+    /**
+     * Removes languages from a specific source
+     * @param {string} source - Source to remove languages from
+     */
     removeLanguagesBySource(source) {
         this.removeProficienciesBySource(source);
     }
 
-    // Methods for resistances
+    /**
+     * Adds a damage resistance
+     * @param {string} resistance - Resistance type
+     * @param {string} source - Source of the resistance
+     */
     addResistance(resistance, source) {
         this.features.resistances.add(resistance);
     }
 
+    /**
+     * Clears all resistances
+     * @param {string} source - Source to clear resistances from
+     */
     clearResistances(source) {
         this.features.resistances.clear();
     }
 
-    // Methods for traits
+    /**
+     * Adds a trait to the character
+     * @param {string} name - Trait name
+     * @param {string} description - Trait description
+     * @param {string} source - Source of the trait
+     */
     addTrait(name, description, source) {
         this.features.traits.set(name, { description, source });
     }
 
+    /**
+     * Clears traits from a specific source
+     * @param {string} source - Source to clear traits from
+     */
     clearTraits(source) {
         for (const [name, trait] of this.features.traits.entries()) {
             if (trait.source === source) {
@@ -363,176 +523,64 @@ export class Character {
         }
     }
 
-    // Methods for source management
+    /**
+     * Adds an allowed source book
+     * @param {string} source - Source book to allow
+     */
     addAllowedSource(source) {
         if (source) {
             this.allowedSources.add(source.toUpperCase());
         }
     }
 
+    /**
+     * Removes an allowed source book
+     * @param {string} source - Source book to disallow
+     */
     removeAllowedSource(source) {
         if (source) {
             this.allowedSources.delete(source.toUpperCase());
         }
     }
 
+    /**
+     * Checks if a source book is allowed
+     * @param {string} source - Source book to check
+     * @returns {boolean} Whether the source is allowed
+     */
     isSourceAllowed(source) {
         const isAllowed = source ? this.allowedSources.has(source.toUpperCase()) : false;
         return isAllowed;
     }
 
+    /**
+     * Sets the entire list of allowed source books
+     * @param {Array<string>} sources - List of source books to allow
+     */
     setAllowedSources(sources) {
         this.allowedSources = new Set(sources);
     }
 
+    /**
+     * Gets all allowed source books
+     * @returns {Set<string>} Set of allowed source books
+     */
     getAllowedSources() {
         return new Set(this.allowedSources);
     }
 
-    // Static method to create a Character instance from JSON data
+    /**
+     * Creates a Character instance from JSON data
+     * @param {Object} data - Serialized character data
+     * @returns {Character} New Character instance
+     * @static
+     */
     static fromJSON(data) {
-        const character = new Character();
-
-        // Copy basic properties
-        character.id = data.id;
-        character.name = data.name;
-        character.playerName = data.playerName;
-        character.level = data.level;
-        character.lastModified = data.lastModified;
-        character.height = data.height;
-        character.weight = data.weight;
-        character.gender = data.gender;
-        character.backstory = data.backstory;
-
-        // Set allowed sources from data
-        if (data.allowedSources) {
-            // Handle both Set and Array formats
-            const sources = Array.isArray(data.allowedSources)
-                ? data.allowedSources
-                : Array.from(data.allowedSources);
-
-            // Ensure all sources are uppercase
-            character.allowedSources = new Set(sources.map(source => source.toUpperCase()));
-        } else {
-            character.allowedSources = new Set(['PHB']);
-        }
-
-        // Copy ability scores and bonuses
-        if (data.abilityScores) {
-            character.abilityScores = { ...data.abilityScores };
-        }
-        if (data.abilityBonuses) {
-            character.abilityBonuses = { ...data.abilityBonuses };
-        }
-
-        // Copy size and speed
-        character.size = data.size || 'M';
-        character.speed = { ...data.speed } || { walk: 30 };
-
-        // Copy features
-        character.features = {
-            darkvision: data.features?.darkvision || 0,
-            resistances: new Set(Array.isArray(data.features?.resistances) ? data.features.resistances : []),
-            traits: new Map(Object.entries(data.features?.traits || {}))
-        };
-
-        // Copy proficiencies
-        character.proficiencies = {
-            armor: Array.isArray(data.proficiencies?.armor) ? [...data.proficiencies.armor] : [],
-            weapons: Array.isArray(data.proficiencies?.weapons) ? [...data.proficiencies.weapons] : [],
-            tools: Array.isArray(data.proficiencies?.tools) ? [...data.proficiencies.tools] : [],
-            skills: Array.isArray(data.proficiencies?.skills) ? [...data.proficiencies.skills] : [],
-            languages: Array.isArray(data.proficiencies?.languages) ? [...data.proficiencies.languages] : ['Common'],
-            savingThrows: Array.isArray(data.proficiencies?.savingThrows) ? [...data.proficiencies.savingThrows] : []
-        };
-
-        // Restore proficiency sources (convert serialized objects back to Maps)
-        if (data.proficiencySources) {
-            for (const type of Object.keys(character.proficiencySources)) {
-                if (data.proficiencySources[type]) {
-                    character.proficiencySources[type] = new Map(
-                        Object.entries(data.proficiencySources[type]).map(
-                            ([key, value]) => [key, new Set(value)]
-                        )
-                    );
-                }
-            }
-        }
-
-        // Restore optional proficiencies
-        if (data.optionalProficiencies) {
-            // Simple types (armor, weapons, savingThrows)
-            for (const type of ['armor', 'weapons', 'savingThrows']) {
-                if (data.optionalProficiencies[type]) {
-                    character.optionalProficiencies[type] = {
-                        allowed: data.optionalProficiencies[type].allowed || 0,
-                        selected: Array.isArray(data.optionalProficiencies[type].selected) ?
-                            [...data.optionalProficiencies[type].selected] : []
-                    };
-                }
-            }
-
-            // Complex types with source-specific details (skills, languages, tools)
-            for (const type of ['skills', 'languages', 'tools']) {
-                if (data.optionalProficiencies[type]) {
-                    // Copy top-level properties
-                    character.optionalProficiencies[type].allowed = data.optionalProficiencies[type].allowed || 0;
-                    character.optionalProficiencies[type].options = Array.isArray(data.optionalProficiencies[type].options) ?
-                        [...data.optionalProficiencies[type].options] : [];
-                    character.optionalProficiencies[type].selected = Array.isArray(data.optionalProficiencies[type].selected) ?
-                        [...data.optionalProficiencies[type].selected] : [];
-
-                    // Copy source-specific details
-                    for (const source of ['race', 'class', 'background']) {
-                        if (data.optionalProficiencies[type][source]) {
-                            character.optionalProficiencies[type][source] = {
-                                allowed: data.optionalProficiencies[type][source].allowed || 0,
-                                options: Array.isArray(data.optionalProficiencies[type][source].options) ?
-                                    [...data.optionalProficiencies[type][source].options] : [],
-                                selected: Array.isArray(data.optionalProficiencies[type][source].selected) ?
-                                    [...data.optionalProficiencies[type][source].selected] : []
-                            };
-                        }
-                    }
-                }
-            }
-        }
-
-        // Restore pendingAbilityChoices if present
-        if (Array.isArray(data.pendingAbilityChoices)) {
-            character.pendingAbilityChoices = [...data.pendingAbilityChoices];
-        }
-
-        // Copy variant rules if present
-        if (data.variantRules) {
-            character.variantRules = { ...data.variantRules };
-        }
-
-        // Copy race information
-        character.race = {
-            name: data.race?.name || '',
-            source: data.race?.source || '',
-            subrace: data.race?.subrace || ''
-        };
-
-        // Copy class information
-        character.class = data.class || { level: 1 };
-        character.subclass = data.subclass || '';
-
-        // Copy background information (with better object handling)
-        if (typeof data.background === 'object' && data.background !== null) {
-            character.background = { ...data.background };
-        } else if (typeof data.background === 'string') {
-            character.background = { name: data.background };
-        } else {
-            character.background = {};
-        }
-
-        return character;
+        return new Character(data);
     }
 
     /**
-     * Convert the character to a JSON object for saving
+     * Converts the character to a JSON object for saving
      * @returns {Object} JSON representation of the character
      */
     toJSON() {

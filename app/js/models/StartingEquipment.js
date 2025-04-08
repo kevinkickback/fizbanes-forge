@@ -1,20 +1,51 @@
 /**
  * StartingEquipment.js
- * Model class for starting equipment choices
+ * Model class representing starting equipment options in the D&D Character Creator
  */
 
+/**
+ * Represents the starting equipment options for a class or background
+ */
 export class StartingEquipment {
+    /**
+     * Creates a new StartingEquipment instance
+     * @param {Object} data - Raw starting equipment data
+     */
     constructor(data) {
+        /**
+         * Unique identifier for the starting equipment set
+         * @type {string}
+         */
         this.id = data.id;
+
+        /**
+         * Source book for the equipment
+         * @type {string}
+         */
         this.source = data.source || 'PHB';
+
+        /**
+         * Default items that are always provided
+         * @type {Array}
+         */
         this.defaultItems = data.default || [];
+
+        /**
+         * Equipment choices that can be made
+         * @type {Array}
+         */
         this.choices = this.processChoices(data.choices || []);
     }
+
+    //-------------------------------------------------------------------------
+    // Data processing methods
+    //-------------------------------------------------------------------------
 
     /**
      * Process equipment choices into a standardized format
      * @param {Array} choices - Raw equipment choices data
      * @returns {Array} Processed equipment choices
+     * @private
      */
     processChoices(choices) {
         return choices.map((choice, index) => ({
@@ -30,10 +61,14 @@ export class StartingEquipment {
         }));
     }
 
+    //-------------------------------------------------------------------------
+    // Validation methods
+    //-------------------------------------------------------------------------
+
     /**
      * Validate a set of equipment choices
      * @param {Object} selections - Map of choice IDs to selected item IDs
-     * @returns {boolean} True if the selections are valid
+     * @returns {boolean} Whether the selections are valid
      */
     validateChoices(selections) {
         for (const choice of this.choices) {
@@ -59,6 +94,10 @@ export class StartingEquipment {
         }
         return true;
     }
+
+    //-------------------------------------------------------------------------
+    // Item retrieval methods
+    //-------------------------------------------------------------------------
 
     /**
      * Get all items that would be granted by a set of choices
@@ -88,6 +127,10 @@ export class StartingEquipment {
         return items;
     }
 
+    //-------------------------------------------------------------------------
+    // Choice retrieval methods
+    //-------------------------------------------------------------------------
+
     /**
      * Get a specific choice by ID
      * @param {string} choiceId - ID of the choice to get
@@ -107,6 +150,22 @@ export class StartingEquipment {
         return choice ? choice.items : [];
     }
 
+    //-------------------------------------------------------------------------
+    // Utility methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Returns a string representation of the starting equipment
+     * @returns {string} String representation
+     */
+    toString() {
+        return `Starting Equipment (${this.choices.length} choices)`;
+    }
+
+    /**
+     * Converts the starting equipment to a JSON object
+     * @returns {Object} JSON representation of the starting equipment
+     */
     toJSON() {
         return {
             id: this.id,

@@ -1,7 +1,7 @@
 import { BaseLoader } from './BaseLoader.js';
 
 /**
- * SourceLoader.js
+ * SourceLoader
  * Handles loading and caching of source book data
  * 
  * @typedef {Object} RawSource
@@ -9,16 +9,23 @@ import { BaseLoader } from './BaseLoader.js';
  * @property {string} name - Source name
  * @property {string} abbreviation - Source abbreviation
  * @property {string} group - Source group
+ * @property {boolean} isCore - Whether the source is a core rulebook
  * @property {string} version - Source version
  * @property {boolean} hasErrata - Whether the source has errata
  * @property {string} targetLanguage - Source language
- * @property {string|null} url - Source URL
- * @property {string|null} description - Source description
- * @property {Object|null} contents - Source contents
  * @property {boolean} isDefault - Whether source is default
  */
 
+/**
+ * Handles loading and caching of source book data
+ */
 export class SourceLoader extends BaseLoader {
+    /**
+     * Creates a new SourceLoader instance
+     * @param {Object} options - Loader configuration options
+     * @param {number} [options.maxCacheSize] - Maximum cache size (defaults to 50)
+     * @param {number} [options.defaultExpiry] - Default cache expiry in ms (defaults to 2 hours)
+     */
     constructor(options = {}) {
         super({
             ...options,
@@ -27,14 +34,22 @@ export class SourceLoader extends BaseLoader {
         });
     }
 
+    //------------------------------------------------
+    // Source Data Loading Methods
+    //------------------------------------------------
+
     /**
      * Load all source data
      * @param {Object} options - Loading options
+     * @param {number} [options.maxRetries] - Maximum number of retries
+     * @param {boolean} [options.forceRefresh] - Force cache refresh
      * @returns {Promise<{source: RawSource[]}>} Raw source data
+     * @throws {Error} If data loading fails
      */
     async loadSources(options = {}) {
         return this.getOrLoadData('sources', async () => {
             try {
+                console.debug('Loading source book data...');
                 // Note: BaseLoader's loadJsonFile already prepends 'data/' to the path
                 const data = await this.loadJsonFile('books.json', {
                     ...options,
@@ -72,34 +87,27 @@ export class SourceLoader extends BaseLoader {
 
     /**
      * Load sources in chunks for better performance
-     * @param {number} chunkSize - Size of each chunk
+     * @param {number} chunkSize - Size of each chunk (defaults to 20)
      * @param {Object} options - Loading options
+     * @param {boolean} [options.forceRefresh] - Force cache refresh
      * @returns {AsyncGenerator<{type: string, items: RawSource[]}>} Generator yielding chunks of source data
+     * @throws {Error} If data loading fails
      */
     async *loadSourcesInChunks(chunkSize = 20, options = {}) {
-        const data = await this.loadSources(options);
-
-        if (data.source && Array.isArray(data.source)) {
-            for (let i = 0; i < data.source.length; i += chunkSize) {
-                yield {
-                    type: 'source',
-                    items: data.source.slice(i, i + chunkSize)
-                };
-            }
-        }
-    }
-
-    /**
-     * Get source by ID
-     * @param {string} sourceId - Source identifier
-     * @param {Object} options - Loading options
-     * @returns {Promise<RawSource|null>} Raw source data or null if not found
-     */
-    async getSourceById(sourceId, options = {}) {
-        const cacheKey = `source_${sourceId}`;
-        return this.getOrLoadData(cacheKey, async () => {
+        try {
             const data = await this.loadSources(options);
-            return data.source.find(s => s.id?.toLowerCase() === sourceId.toLowerCase()) || null;
-        }, options);
+
+            if (data.source && Array.isArray(data.source)) {
+                for (let i = 0; i < data.source.length; i += chunkSize) {
+                    yield {
+                        type: 'source',
+                        items: data.source.slice(i, i + chunkSize)
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('Error loading sources in chunks:', error);
+            throw error;
+        }
     }
 } 

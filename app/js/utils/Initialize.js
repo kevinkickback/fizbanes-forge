@@ -1,6 +1,7 @@
 /**
  * Initialize.js
- * Core initialization utilities
+ * Core initialization utilities for application bootstrap process.
+ * Manages the initialization sequence of all critical application components.
  * 
  * @typedef {Object} InitializationOptions
  * @property {boolean} [loadAllData=true] - Whether to load all data sources
@@ -24,6 +25,10 @@ import { characterHandler } from './characterHandler.js';
 import { dataLoader } from '../dataloaders/DataLoader.js';
 import { textProcessor } from './TextProcessor.js';
 
+//-------------------------------------------------------------------------
+// Data Loading Functions
+//-------------------------------------------------------------------------
+
 /**
  * Wrapper for data loader calls that handles errors consistently
  * @param {Promise<any>} promise - The data loader promise to execute
@@ -31,22 +36,80 @@ import { textProcessor } from './TextProcessor.js';
  * @returns {Promise<any|null>} The loaded data or null if loading failed
  * @private
  */
-async function loadDataWithErrorHandling(promise, component) {
+async function _loadDataWithErrorHandling(promise, component) {
     try {
-        return await promise;
+        const result = await promise;
+        console.debug(`Successfully loaded ${component} data`);
+        return result;
     } catch (error) {
-        console.warn(`Failed to load ${component}:`, error);
+        console.warn(`Failed to load ${component} data:`, error);
         return null;
     }
 }
 
 /**
- * Initializes all core components of the application in the correct order
- * @param {InitializationOptions} [options] - Initialization options (currently reserved for future use)
- * @returns {Promise<InitializationResult>} The result of initialization
- * @throws {Error} If initialization fails catastrophically
+ * Loads all required game data in parallel
+ * @returns {Promise<{success: boolean, errors: Array<Error>}>} Result of data loading operations
+ * @private
  */
-export async function initializeAll(options = {}) {
+async function _loadAllGameData() {
+    const errors = [];
+    try {
+        console.debug('Starting data loading process');
+
+        const dataLoadPromises = [
+            _loadDataWithErrorHandling(dataLoader.loadSpells(), 'spells'),
+            _loadDataWithErrorHandling(dataLoader.loadSources(), 'sources'),
+            _loadDataWithErrorHandling(dataLoader.loadFeatures(), 'features'),
+            _loadDataWithErrorHandling(dataLoader.loadDeities(), 'deities'),
+            _loadDataWithErrorHandling(dataLoader.loadClasses(), 'classes'),
+            _loadDataWithErrorHandling(dataLoader.loadBackgrounds(), 'backgrounds'),
+            _loadDataWithErrorHandling(dataLoader.loadItems(), 'items'),
+            _loadDataWithErrorHandling(dataLoader.loadRaces(), 'races'),
+            _loadDataWithErrorHandling(dataLoader.loadConditions(), 'conditions'),
+            _loadDataWithErrorHandling(dataLoader.loadActions(), 'actions'),
+            _loadDataWithErrorHandling(dataLoader.loadVariantRules(), 'variant rules')
+        ];
+
+        await Promise.all(dataLoadPromises);
+        console.debug('All data loaded successfully');
+        return { success: true, errors };
+    } catch (error) {
+        console.error('Error during game data loading:', error);
+        errors.push(error);
+        return { success: false, errors };
+    }
+}
+
+//-------------------------------------------------------------------------
+// Core Component Initialization
+//-------------------------------------------------------------------------
+
+/**
+ * Initializes a single core component with error handling
+ * @param {string} name - The name of the component
+ * @param {Function} initFunction - The initialization function to call
+ * @returns {Promise<{success: boolean, error: Error|null}>} Result of the initialization
+ * @private
+ */
+async function _initializeComponent(name, initFunction) {
+    try {
+        console.debug(`Initializing ${name}`);
+        await initFunction();
+        console.debug(`Successfully initialized ${name}`);
+        return { success: true, error: null };
+    } catch (error) {
+        console.error(`Error initializing ${name}:`, error);
+        return { success: false, error };
+    }
+}
+
+/**
+ * Initializes all core application components in the correct sequence
+ * @returns {Promise<{success: boolean, loadedComponents: Array<string>, errors: Array<Error>}>} Result of component initialization
+ * @private
+ */
+async function _initializeCoreComponents() {
     const result = {
         success: true,
         loadedComponents: [],
@@ -54,29 +117,7 @@ export async function initializeAll(options = {}) {
     };
 
     try {
-        // Initialize data loaders and reference resolver
-        try {
-            const dataLoadPromises = [
-                loadDataWithErrorHandling(dataLoader.loadSpells(), 'spells'),
-                loadDataWithErrorHandling(dataLoader.loadSources(), 'sources'),
-                loadDataWithErrorHandling(dataLoader.loadFeatures(), 'features'),
-                loadDataWithErrorHandling(dataLoader.loadDeities(), 'deities'),
-                loadDataWithErrorHandling(dataLoader.loadClasses(), 'classes'),
-                loadDataWithErrorHandling(dataLoader.loadBackgrounds(), 'backgrounds'),
-                loadDataWithErrorHandling(dataLoader.loadItems(), 'items'),
-                loadDataWithErrorHandling(dataLoader.loadRaces(), 'races'),
-                loadDataWithErrorHandling(dataLoader.loadConditions(), 'conditions'),
-                loadDataWithErrorHandling(dataLoader.loadActions(), 'actions'),
-                loadDataWithErrorHandling(dataLoader.loadVariantRules(), 'variant rules')
-            ];
-
-            await Promise.all(dataLoadPromises);
-        } catch (error) {
-            console.error('Error initializing data loaders:', error);
-            result.errors.push(error);
-        }
-
-        // Initialize core components
+        // Define components and their initialization sequence
         const components = [
             { name: 'tooltip manager', init: () => tooltipManager.initialize() },
             { name: 'text processor', init: () => textProcessor.initialize() },
@@ -84,28 +125,71 @@ export async function initializeAll(options = {}) {
             { name: 'navigation', init: () => navigation.initialize() }
         ];
 
+        // Initialize each component in sequence
         for (const component of components) {
-            try {
-                await component.init();
+            const initResult = await _initializeComponent(component.name, component.init);
+
+            if (initResult.success) {
                 result.loadedComponents.push(component.name);
-            } catch (error) {
-                console.error(`Error initializing ${component.name}:`, error);
-                result.errors.push(error);
+            } else {
+                result.errors.push(initResult.error);
             }
         }
 
         // Set overall success based on whether any critical errors occurred
         result.success = result.errors.length === 0;
+        return result;
+    } catch (error) {
+        console.error('Unexpected error during core component initialization:', error);
+        result.success = false;
+        result.errors.push(error);
+        return result;
+    }
+}
+
+//-------------------------------------------------------------------------
+// Public API
+//-------------------------------------------------------------------------
+
+/**
+ * Initializes all core components of the application in the correct order
+ * @param {InitializationOptions} [options={}] - Initialization options
+ * @returns {Promise<InitializationResult>} The result of initialization
+ * @throws {Error} If initialization fails catastrophically
+ */
+export async function initializeAll(options = {}) {
+    console.debug('Starting application initialization');
+
+    const result = {
+        success: true,
+        loadedComponents: [],
+        errors: []
+    };
+
+    try {
+        // Step 1: Load all game data
+        const dataLoadResult = await _loadAllGameData();
+        if (!dataLoadResult.success) {
+            result.errors.push(...dataLoadResult.errors);
+        }
+
+        // Step 2: Initialize core components
+        const componentsResult = await _initializeCoreComponents();
+        result.loadedComponents = componentsResult.loadedComponents;
+        result.errors.push(...componentsResult.errors);
+
+        // Set overall success based on whether any critical errors occurred
+        result.success = result.errors.length === 0;
 
         if (result.success) {
-            // console.log('Application initialized successfully');
+            console.debug('Application initialized successfully');
         } else {
-            console.warn('Application initialized with some errors:', result.errors);
+            console.warn('Application initialized with errors:', result.errors);
         }
 
         return result;
     } catch (error) {
-        console.error('Failed to initialize application:', error);
+        console.error('Fatal error during application initialization:', error);
         result.success = false;
         result.errors.push(error);
         throw error;

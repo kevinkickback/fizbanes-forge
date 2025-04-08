@@ -4,48 +4,57 @@
  */
 import { showNotification } from '../utils/notifications.js';
 import { storage } from '../utils/Storage.js';
+import { eventEmitter } from '../utils/EventEmitter.js';
 
-let instance = null;
-
+/**
+ * Manages application settings and configuration
+ */
 export class SettingsManager {
     /**
-     * Creates a new SettingsManager instance.
-     * Private constructor enforcing the singleton pattern.
-     * @throws {Error} If trying to instantiate more than once
+     * Creates a new SettingsManager instance
+     * @private
      */
     constructor() {
-        if (instance) {
-            throw new Error('SettingsManager is a singleton. Use SettingsManager.getInstance() instead.');
-        }
-        instance = this;
-        this.initialize();
+        /**
+         * Flag to track initialization state
+         * @type {boolean}
+         * @private
+         */
+        this._initialized = false;
     }
 
     /**
-     * Gets the singleton instance of SettingsManager
-     * @returns {SettingsManager} The singleton instance
-     * @static
+     * Initializes the settings manager
+     * @returns {Promise<void>}
      */
-    static getInstance() {
-        if (!instance) {
-            instance = new SettingsManager();
-        }
-        return instance;
-    }
-
     async initialize() {
+        if (this._initialized) {
+            return;
+        }
+
         try {
+            console.debug('Initializing settings manager');
+
             // Update save path display
             await this.updateSavePathDisplay();
 
             // Set up event listeners
             this.initializeEventListeners();
+
+            this._initialized = true;
+            eventEmitter.emit('settingsManager:initialized', this);
         } catch (error) {
             console.error('Error initializing settings manager:', error);
             showNotification('Failed to initialize settings', 'danger');
+            throw error;
         }
     }
 
+    /**
+     * Updates the save path display in the UI
+     * @returns {Promise<void>}
+     * @private
+     */
     async updateSavePathDisplay() {
         try {
             const saveLocationElement = document.getElementById('currentSaveLocation');
@@ -60,6 +69,10 @@ export class SettingsManager {
         }
     }
 
+    /**
+     * Initializes event listeners for settings controls
+     * @private
+     */
     initializeEventListeners() {
         try {
             // Set up settings buttons
@@ -76,6 +89,7 @@ export class SettingsManager {
                             if (saveResult.success) {
                                 showNotification('Save path updated successfully', 'success');
                                 await this.updateSavePathDisplay();
+                                eventEmitter.emit('settings:savePathChanged', result.path);
                             }
                         }
                     } catch (error) {
@@ -93,6 +107,7 @@ export class SettingsManager {
                         if (saveResult.success) {
                             showNotification('Save path reset successfully', 'success');
                             await this.updateSavePathDisplay();
+                            eventEmitter.emit('settings:savePathReset');
                         }
                     } catch (error) {
                         console.error('Error resetting save path:', error);
@@ -111,4 +126,4 @@ export class SettingsManager {
  * Export the singleton instance
  * @type {SettingsManager}
  */
-export const settingsManager = SettingsManager.getInstance(); 
+export const settingsManager = new SettingsManager(); 

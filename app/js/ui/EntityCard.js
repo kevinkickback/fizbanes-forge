@@ -1,454 +1,284 @@
 /**
  * EntityCard.js
- * Unified card component for displaying entity information
+ * Base UI component for displaying entity information in card format.
+ * This serves as a foundation for more specific entity cards like ClassCard, RaceCard, etc.
  */
 
 import { textProcessor } from '../utils/TextProcessor.js';
 
+/**
+ * Base class for entity cards that provides common functionality for displaying
+ * entity information in a standardized card format.
+ */
 export class EntityCard {
     /**
-     * Create a new EntityCard
-     * @param {Object} options - Configuration options
-     * @param {string} options.entityType - Type of entity this card represents
-     * @param {string} options.selectElementId - ID of the select element
-     * @param {string} options.imageElementId - ID of the image container element
-     * @param {string} options.quickDescElementId - ID of the quick description element
-     * @param {string} options.detailsElementId - ID of the details container element
-     * @param {string} options.placeholderTitle - Title to show when no entity is selected
-     * @param {string} options.placeholderDesc - Description to show when no entity is selected
+     * Creates a new EntityCard instance
+     * @param {string} cardId - The ID of the HTML element containing the card
      */
-    constructor(options) {
-        this.entityType = options.entityType;
-        this.selectElementId = options.selectElementId;
-        this.imageElementId = options.imageElementId;
-        this.quickDescElementId = options.quickDescElementId;
-        this.detailsElementId = options.detailsElementId;
-        this.placeholderTitle = options.placeholderTitle;
-        this.placeholderDesc = options.placeholderDesc;
-    }
-
-    /**
-     * Update the entity image
-     * @param {string} imageUrl - URL to the entity image
-     */
-    updateEntityImage(imageUrl) {
-        const imageElement = document.getElementById(this.imageElementId);
-        if (!imageElement) return;
-
-        if (imageUrl) {
-            imageElement.innerHTML = `<img src="${imageUrl}" alt="Entity image" class="entity-image">`;
-        } else {
-            imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
-        }
-    }
-
-    /**
-     * Update the quick description section
-     * @param {string} title - Title for the entity
-     * @param {string} description - Description text
-     */
-    updateQuickDescription(title, description) {
-        const descElement = document.getElementById(this.quickDescElementId);
-        if (!descElement) return;
-
-        descElement.innerHTML = `
-            <h5>${title}</h5>
-            <p>${description || `${title} features and characteristics.`}</p>`;
-    }
-
-    /**
-     * Set placeholder content when no entity is selected
-     */
-    setPlaceholderContent() {
-        // Set placeholder image
-        const imageElement = document.getElementById(this.imageElementId);
-        if (imageElement) {
-            imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+    constructor(cardId) {
+        if (!cardId) {
+            console.error('EntityCard constructor called without card ID');
+            return;
         }
 
-        // Set placeholder quick description
-        const descElement = document.getElementById(this.quickDescElementId);
-        if (descElement) {
-            descElement.innerHTML = `
-                <div class="placeholder-content">
-                    <h5>${this.placeholderTitle}</h5>
-                    <p>${this.placeholderDesc}</p>
-                </div>`;
+        /**
+         * The root element of the card
+         * @type {HTMLElement}
+         * @private
+         */
+        this._card = document.getElementById(cardId);
+
+        if (!this._card) {
+            console.error(`Card element with ID "${cardId}" not found`);
+            return;
         }
 
-        // Set placeholder details
-        const detailsElement = document.getElementById(this.detailsElementId);
-        if (detailsElement) {
-            detailsElement.innerHTML = this.getPlaceholderDetailsContent();
+        /**
+         * The element displaying the entity image
+         * @type {HTMLElement}
+         * @private
+         */
+        this._entityImage = this._card.querySelector('.entity-image');
+
+        /**
+         * The element displaying a quick description of the entity
+         * @type {HTMLElement}
+         * @private
+         */
+        this._quickDesc = this._card.querySelector('.quick-description');
+
+        /**
+         * The element containing detailed information about the entity
+         * @type {HTMLElement}
+         * @private
+         */
+        this._details = this._card.querySelector('.details');
+    }
+
+    //-------------------------------------------------------------------------
+    // Image Management Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Updates the entity image in the card
+     * @param {string} imagePath - The path to the image
+     * @param {string} altText - Alternative text for the image
+     * @returns {void}
+     */
+    updateEntityImage(imagePath, altText) {
+        if (!this._entityImage) {
+            return;
         }
-    }
 
-    /**
-     * Get placeholder content for details section
-     * @returns {string} HTML for placeholder details
-     */
-    getPlaceholderDetailsContent() {
-        return `<div class="placeholder-details">Select ${this.entityType} to see details</div>`;
-    }
+        try {
+            // Clear existing content
+            this._entityImage.innerHTML = '';
 
-    /**
-     * Create a new EntityCard with container and entity
-     * @param {HTMLElement} container - The container element to render the card in
-     * @param {Object} entity - The processed entity data
-     * @param {Object} manager - The manager object for this entity type
-     */
-    static withContainerAndEntity(container, entity, manager) {
-        const card = new EntityCard({
-            entityType: entity.type,
-            selectElementId: '',
-            imageElementId: '',
-            quickDescElementId: '',
-            detailsElementId: '',
-            placeholderTitle: '',
-            placeholderDesc: ''
-        });
-
-        card.container = container;
-        card.entity = entity;
-        card.manager = manager;
-        card.character = window.currentCharacter;
-
-        return card;
-    }
-
-    /**
-     * Render the card
-     * @returns {HTMLElement} The rendered card element
-     */
-    render() {
-        const card = document.createElement('div');
-        card.className = 'entity-card';
-        card.innerHTML = this.getCardContent();
-
-        // Process the card content to resolve reference tags
-        setTimeout(() => textProcessor.processElement(card), 0);
-
-        return card;
-    }
-
-    getCardContent() {
-        const level = this.character?.level || 1;
-        return `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">${this.entity.name}</h3>
-                    <span class="level">Level ${level}</span>
-                </div>
-                <div class="card-body">
-                    ${this.getCardBody()}
-                </div>
-            </div>
-        `;
-    }
-
-    getCardBody() {
-        return `
-            <p class="description">${this.entity.description || ''}</p>
-            ${this.getAdditionalContent()}
-        `;
-    }
-
-    getAdditionalContent() {
-        return '';
-    }
-
-    /**
-     * Render the card body
-     * Render extra header content
-     * @returns {string} HTML string for extra header content
-     */
-    renderHeaderExtras() {
-        switch (this.entity.type) {
-            case 'pack':
-                return `<span class="quantity">×${this.entity.quantity || 1}</span>`;
-            case 'feat':
-                return this.entity.count > 1 ? `<span class="count">×${this.entity.count}</span>` : '';
-            case 'class':
-                return `<span class="level">Level ${this.character?.level}</span>`;
-            default:
-                return '';
-        }
-    }
-
-    /**
-     * Render the card body
-     * @returns {string} HTML string for the card body
-     */
-    renderBody() {
-        const description = this.entity.description ?
-            `<div class="description">${this.entity.description}</div>` : '';
-
-        switch (this.entity.type) {
-            case 'race':
-                return `
-                    ${description}
-                    <div class="race-details">
-                        <p>Size: ${this.entity.size}</p>
-                        ${this.renderSpeed(this.entity.speed)}
-                        ${this.renderAbilityScores(this.entity.ability)}
-                        ${this.renderTraits(this.entity.traits)}
-                        ${this.entity.features.darkvision ? `<p>Darkvision: ${this.entity.features.darkvision} feet</p>` : ''}
-                    </div>
-                `;
-            case 'class':
-                return `
-                    ${description}
-                    <div class="class-details">
-                        <p>Hit Dice: ${this.entity.hitDice}</p>
-                        ${this.renderProficiencies(this.entity.proficiencies)}
-                        ${this.renderFeatures(this.entity.features)}
-                        ${this.entity.spellcasting ? this.renderSpellcasting(this.entity.spellcasting) : ''}
-                    </div>
-                `;
-            case 'background':
-                return `
-                    ${description}
-                    <div class="background-details">
-                        ${this.renderProficiencies(this.entity.proficiencies)}
-                        ${this.renderCharacteristics(this.entity.characteristics)}
-                    </div>
-                `;
-            case 'feat':
-                return `
-                    ${description}
-                    ${this.entity.prerequisite ?
-                        `<div class="prerequisite">Prerequisite: ${this.entity.prerequisite}</div>` :
-                        ''}
-                    ${this.entity.ability ? this.renderAbilityScores(this.entity.ability) : ''}
-                `;
-            case 'item':
-            case 'equipment':
-                return `
-                    ${description}
-                    <div class="item-details">
-                        ${this.entity.value ? `<p>Value: ${this.entity.value.amount} ${this.entity.value.coin}</p>` : ''}
-                        ${this.entity.weight ? `<p>Weight: ${this.entity.weight} lb.</p>` : ''}
-                        ${this.entity.properties?.length ?
-                        `<p>Properties: ${this.entity.properties.join(', ')}</p>` : ''}
-                        ${this.entity.attunement ?
-                        `<p class="attunement">Requires Attunement${typeof this.entity.attunement === 'object' ?
-                            ` by ${this.entity.attunement.by}` : ''}</p>` : ''}
-                    </div>
-                `;
-            case 'pack':
-                return `
-                    ${description}
-                    <div class="pack-contents">
-                        ${this.renderPackContents()}
-                    </div>
-                `;
-            default:
-                return description;
-        }
-    }
-
-    /**
-     * Render the card footer
-     * @returns {string} HTML string for the card footer
-     */
-    renderFooter() {
-        return `
-            <div class="actions">
-                ${this.renderActions()}
-            </div>
-        `;
-    }
-
-    /**
-     * Render action buttons
-     * @returns {string} HTML string for action buttons
-     */
-    renderActions() {
-        switch (this.entity.type) {
-            case 'pack':
-                return `
-                    <button class="btn btn-sm btn-primary unpack-btn">Unpack</button>
-                    <button class="btn btn-sm btn-danger remove-btn">Remove</button>
-                `;
-            case 'item':
-            case 'equipment':
-                return `
-                    <button class="btn btn-sm btn-primary equip-btn">
-                        ${this.entity.equipped ? 'Unequip' : 'Equip'}
-                    </button>
-                    <button class="btn btn-sm btn-danger remove-btn">Remove</button>
-                `;
-            case 'feat':
-                return `
-                    <button class="btn btn-sm btn-danger remove-btn">Remove</button>
-                `;
-            default:
-                return '';
-        }
-    }
-
-    /**
-     * Render speed information
-     * @param {Object} speed - Speed data
-     * @returns {string} HTML string for speed information
-     */
-    renderSpeed(speed) {
-        return `
-            <div class="speed">
-                ${Object.entries(speed).map(([type, value]) =>
-            `<p>${type.charAt(0).toUpperCase() + type.slice(1)} Speed: ${value} feet</p>`
-        ).join('')}
-            </div>
-        `;
-    }
-
-    /**
-     * Render ability score information
-     * @param {Object} ability - Ability score data
-     * @returns {string} HTML string for ability score information
-     */
-    renderAbilityScores(ability) {
-        if (!ability) return '';
-
-        return `
-            <div class="ability-scores">
-                <h6>Ability Score Increase</h6>
-                <ul>
-                    ${ability.map(a => {
-            if (a.mode === 'fixed') {
-                return a.scores.map(score =>
-                    `<li>${score} +${a.amount}</li>`
-                ).join('');
+            // Create and append the image element
+            if (imagePath) {
+                const img = document.createElement('img');
+                img.src = imagePath;
+                img.alt = altText || 'Entity image';
+                img.classList.add('entity-img');
+                this._entityImage.appendChild(img);
+            } else {
+                this._setDefaultImage(altText);
             }
-            return `<li>Choose ${a.scores.length} different abilities to increase by ${a.amount}</li>`;
-        }).join('')}
-                </ul>
-            </div>
-        `;
+        } catch (error) {
+            console.error('Error updating entity image:', error);
+            this._setDefaultImage(altText);
+        }
     }
 
     /**
-     * Render proficiency information
-     * @param {Object} proficiencies - Proficiency data
-     * @returns {string} HTML string for proficiency information
+     * Sets a default placeholder image when no image is available
+     * @param {string} altText - Alternative text for the placeholder
+     * @private
      */
-    renderProficiencies(proficiencies) {
-        if (!proficiencies) return '';
+    _setDefaultImage(altText) {
+        const placeholder = document.createElement('div');
+        placeholder.classList.add('placeholder-image');
+        placeholder.textContent = altText ? altText.charAt(0) : '?';
+        this._entityImage.appendChild(placeholder);
+    }
 
-        return `
-            <div class="proficiencies">
-                <h6>Proficiencies</h6>
-                <ul>
-                    ${proficiencies.armor?.length ?
-                `<li><strong>Armor:</strong> ${proficiencies.armor.join(', ')}</li>` : ''}
-                    ${proficiencies.weapons?.length ?
-                `<li><strong>Weapons:</strong> ${proficiencies.weapons.join(', ')}</li>` : ''}
-                    ${proficiencies.tools?.length ?
-                `<li><strong>Tools:</strong> ${proficiencies.tools.join(', ')}</li>` : ''}
-                    ${proficiencies.languages?.length ?
-                `<li><strong>Languages:</strong> ${proficiencies.languages.join(', ')}</li>` : ''}
-                    ${proficiencies.skills?.choices?.length ?
-                `<li><strong>Skills:</strong> Choose ${proficiencies.skills.choices[0].count} from ${proficiencies.skills.choices[0].from.join(', ')}</li>` : ''}
-                </ul>
-            </div>
-        `;
+    //-------------------------------------------------------------------------
+    // Description Management Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Updates the quick description section of the card
+     * @param {string} title - The title to display
+     * @param {string} description - The description text
+     * @returns {Promise<void>}
+     */
+    async updateQuickDescription(title, description) {
+        if (!this._quickDesc) {
+            return;
+        }
+
+        try {
+            this._quickDesc.innerHTML = '';
+
+            if (title && description) {
+                const titleElem = document.createElement('h5');
+                titleElem.textContent = title;
+
+                const descElem = document.createElement('p');
+                descElem.classList.add('text-content');
+                descElem.textContent = description;
+
+                this._quickDesc.appendChild(titleElem);
+                this._quickDesc.appendChild(descElem);
+
+                // Process any reference tags in the description
+                await textProcessor.processElement(this._quickDesc);
+            } else {
+                this.setPlaceholderContent();
+            }
+        } catch (error) {
+            console.error('Error updating quick description:', error);
+            this.setPlaceholderContent();
+        }
     }
 
     /**
-     * Render feature information
-     * @param {Array} features - Feature data
-     * @returns {string} HTML string for feature information
+     * Sets placeholder content when no entity is selected
+     * @param {string} title - Optional custom title for the placeholder
+     * @param {string} message - Optional custom message for the placeholder
+     * @returns {void}
      */
-    renderFeatures(features) {
-        if (!features?.length) return '';
+    setPlaceholderContent(title = 'Select an Entity', message = 'Choose an entity to view its details.') {
+        if (!this._quickDesc) {
+            return;
+        }
 
-        return `
-            <div class="features-section">
-                <h6>Features</h6>
-                <div class="features-grid">
-                    ${features.map(level =>
-            level.features.map(feature =>
-                `<span class="feature-tag" data-tooltip="${encodeURIComponent(feature.description)}">${feature.name}</span>`
-            ).join('')
-        ).join('')}
-                </div>
-            </div>
-        `;
+        const placeholderDiv = document.createElement('div');
+        placeholderDiv.classList.add('placeholder-content');
+
+        const titleElem = document.createElement('h5');
+        titleElem.textContent = title;
+
+        const messageElem = document.createElement('p');
+        messageElem.textContent = message;
+
+        placeholderDiv.appendChild(titleElem);
+        placeholderDiv.appendChild(messageElem);
+
+        this._quickDesc.innerHTML = '';
+        this._quickDesc.appendChild(placeholderDiv);
+    }
+
+    //-------------------------------------------------------------------------
+    // Details Management Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Creates a section in the details area with the given title
+     * @param {string} title - The title of the section
+     * @param {boolean} asList - Whether to create a list container in the section
+     * @returns {HTMLElement} The created section element
+     */
+    createDetailSection(title, asList = true) {
+        if (!this._details) {
+            console.warn('Details element not found in card');
+            return null;
+        }
+
+        const section = document.createElement('div');
+        section.classList.add('detail-section');
+
+        const titleElem = document.createElement('h6');
+        titleElem.textContent = title;
+        section.appendChild(titleElem);
+
+        if (asList) {
+            const list = document.createElement('ul');
+            section.appendChild(list);
+        }
+
+        this._details.appendChild(section);
+        return section;
     }
 
     /**
-     * Render spellcasting information
-     * @param {Object} spellcasting - Spellcasting data
-     * @returns {string} HTML string for spellcasting information
+     * Adds an item to a section list
+     * @param {HTMLElement} section - The section to add the item to
+     * @param {string} content - The content of the item
+     * @returns {HTMLElement} The created list item
      */
-    renderSpellcasting(spellcasting) {
-        return `
-            <div class="spellcasting">
-                <h6>Spellcasting</h6>
-                <p>Ability: ${spellcasting.ability}</p>
-                <p>Progression: ${spellcasting.progression}</p>
-            </div>
-        `;
+    addDetailItem(section, content) {
+        if (!section) {
+            console.warn('Invalid section provided to addDetailItem');
+            return null;
+        }
+
+        let list = section.querySelector('ul');
+        if (!list) {
+            list = document.createElement('ul');
+            section.appendChild(list);
+        }
+
+        const item = document.createElement('li');
+        item.textContent = content;
+        list.appendChild(item);
+
+        return item;
     }
 
     /**
-     * Render trait information
-     * @param {Array} traits - Trait data
-     * @returns {string} HTML string for trait information
+     * Adds a text paragraph to a section
+     * @param {HTMLElement} section - The section to add the paragraph to
+     * @param {string} content - The content of the paragraph
+     * @returns {HTMLElement} The created paragraph element
      */
-    renderTraits(traits) {
-        if (!traits?.length) return '';
+    addDetailParagraph(section, content) {
+        if (!section) {
+            console.warn('Invalid section provided to addDetailParagraph');
+            return null;
+        }
 
-        return `
-            <div class="traits">
-                <h6>Traits</h6>
-                ${traits.map(trait => `
-                    <div class="trait">
-                        <strong>${trait.name}:</strong>
-                        <div class="trait-description">${trait.description}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+        const para = document.createElement('p');
+        para.classList.add('text-content');
+        para.textContent = content;
+        section.appendChild(para);
+
+        return para;
     }
 
     /**
-     * Render pack contents
-     * @returns {string} HTML string for pack contents
+     * Clears all content from the details area
+     * @returns {void}
      */
-    renderPackContents() {
-        if (!this.entity.contents?.length) return '';
+    clearDetails() {
+        if (this._details) {
+            this._details.innerHTML = '';
+        }
+    }
 
-        return `
-            <h6>Contents</h6>
-            <ul>
-                ${this.entity.contents.map(item =>
-            `<li>${item.quantity || 1}× ${item.name}</li>`
-        ).join('')}
-            </ul>
-        `;
+    //-------------------------------------------------------------------------
+    // Utility Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Processes all text content in the card for reference tags and formatting
+     * @returns {Promise<void>}
+     */
+    async processCardText() {
+        if (!textProcessor.isInitialized) {
+            await textProcessor.initialize();
+        }
+
+        if (this._card) {
+            await textProcessor.processElement(this._card);
+        }
     }
 
     /**
-     * Render characteristics information
-     * @param {Object} characteristics - Characteristics data
-     * @returns {string} HTML string for characteristics information
+     * Checks if the card is fully initialized and ready to use
+     * @returns {boolean} True if the card is ready, false otherwise
      */
-    renderCharacteristics(characteristics) {
-        if (!characteristics) return '';
-
-        return `
-            <div class="characteristics">
-                <h6>Characteristics</h6>
-                ${Object.entries(characteristics).map(([type, options]) => `
-                    <div class="characteristic-section">
-                        <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong>
-                        <ul>
-                            ${options.map(option => `<li>${option}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+    isReady() {
+        return !!(this._card && this._entityImage && this._quickDesc && this._details);
     }
 } 

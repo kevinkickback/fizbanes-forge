@@ -24,52 +24,565 @@ import { abilityScoreManager } from '../managers/AbilityScoreManager.js';
 import { characterHandler } from '../utils/characterHandler.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 
+/**
+ * Manages the ability score UI component and related functionality
+ */
 export class AbilityScoreCard {
     /**
      * Creates a new AbilityScoreCard instance
-     * @constructor
      */
     constructor() {
-        this.container = document.querySelector('.ability-score-container');
-        this.bonusesContainer = document.getElementById('abilityBonusesNotes');
-        this.abilityScoresChangedListener = () => this.render();
+        /**
+         * Container element for ability score boxes
+         * @type {HTMLElement}
+         * @private
+         */
+        this._container = document.querySelector('.ability-score-container');
+
+        /**
+         * Container element for ability bonus notes
+         * @type {HTMLElement}
+         * @private
+         */
+        this._bonusesContainer = document.getElementById('abilityBonusesNotes');
+
+        /**
+         * Event listener for ability score changes
+         * @type {Function}
+         * @private
+         */
+        this._abilityScoresChangedListener = () => this.render();
+
+        /**
+         * Whether the ability score method has been initialized
+         * @type {boolean}
+         * @private
+         */
+        this._initializedMethod = false;
+
+        /**
+         * The last ability score method that was initialized
+         * @type {string}
+         * @private
+         */
+        this._lastInitializedMethod = '';
+
+        // Initialize the component
         this.initialize();
     }
 
+    //-------------------------------------------------------------------------
+    // Initialization Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Initializes the ability score card by rendering content and setting up event listeners
+     * @returns {void}
      */
     initialize() {
-        // Add the custom CSS for the new UI elements
-        this.addStyles();
+        try {
+            // Add the custom CSS for the UI elements
+            this._addStyles();
 
-        // Force synchronization of the ability score manager with the current character first
-        const character = characterHandler.currentCharacter;
-        if (character) {
-            // Force the abilityScoreManager to sync with current character method
-            if (character.variantRules?.abilityScoreMethod === 'standardArray') {
-                abilityScoreManager.updateAssignedStandardArrayValues();
-            } else if (character.variantRules?.abilityScoreMethod === 'pointBuy') {
-                abilityScoreManager.calculateUsedPoints();
-            }
+            // Set up event listeners before rendering
+            this._setupEventListeners();
+
+            // Force synchronization of the ability score manager with the current character
+            this._syncWithCurrentCharacter();
+
+            // Render initial state
+            this.render();
+        } catch (error) {
+            console.error('Failed to initialize ability score card:', error);
         }
-
-        this.render();
-        this.setupEventListeners();
     }
 
     /**
+     * Synchronizes the ability score manager with the current character
+     * @private
+     */
+    _syncWithCurrentCharacter() {
+        const character = characterHandler.getCurrentCharacter();
+        if (!character) return;
+
+        // Set default ability score method if not already set
+        if (!character.variantRules) {
+            character.variantRules = {};
+        }
+
+        if (!character.variantRules.abilityScoreMethod) {
+            character.variantRules.abilityScoreMethod = 'custom';
+        }
+
+        // Force the abilityScoreManager to reset based on current character method
+        abilityScoreManager.resetAbilityScoreMethod();
+
+        // Update UI element to reflect current method
+        const methodSelect = document.getElementById('abilityScoreMethod');
+        if (methodSelect) {
+            methodSelect.value = character.variantRules.abilityScoreMethod;
+        }
+
+        console.debug("Synchronized ability score manager with character using method:",
+            character.variantRules.abilityScoreMethod);
+    }
+
+    /**
+     * Sets up event listeners for ability score card interactions
+     * @private
+     */
+    _setupEventListeners() {
+        try {
+            // Remove any existing listeners first to prevent duplicates
+            document.removeEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
+            document.removeEventListener('characterChanged', this._handleCharacterChanged);
+
+            // Listen for ability score changes events from various sources
+            document.addEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
+            document.addEventListener('characterChanged', this._handleCharacterChanged.bind(this));
+
+            // Handle method changes
+            const methodSelect = document.getElementById('abilityScoreMethod');
+            if (methodSelect) {
+                methodSelect.removeEventListener('change', this._handleMethodChange);
+                methodSelect.addEventListener('change', this._handleMethodChange.bind(this));
+            }
+
+            // Remove existing click handlers on the container to prevent duplicates
+            if (this._container) {
+                this._container.removeEventListener('click', this._handleContainerClicks);
+                this._container.removeEventListener('change', this._handleContainerChanges);
+
+                // Create bound handler references for delegation
+                this._handleContainerClicks = this._handleContainerClickEvent.bind(this);
+                this._handleContainerChanges = this._handleContainerChangeEvent.bind(this);
+
+                // Use delegation for all clicks and changes within the container
+                this._container.addEventListener('click', this._handleContainerClicks);
+                this._container.addEventListener('change', this._handleContainerChanges);
+            }
+
+            // Custom inputs - use delegation rather than individual listeners
+            this._debouncedCustomInput = this._debounce(this._handleCustomInput.bind(this), 300);
+
+            // Listen for ability score changes
+            this._container.addEventListener('change', (e) => {
+                if (e.target.classList.contains('ability-choice-select')) {
+                    const index = Number.parseInt(e.target.dataset.choiceIndex, 10);
+                    const ability = e.target.value;
+                    const bonus = Number.parseInt(e.target.dataset.bonus, 10);
+                    const source = e.target.dataset.source;
+
+                    console.debug('Ability choice selected:', {
+                        index,
+                        ability,
+                        bonus,
+                        source
+                    });
+
+                    if (ability) {
+                        abilityScoreManager.handleAbilityChoice(ability, index, bonus, source);
+                        this._updateAbilityScores();
+                    }
+                }
+            });
+
+            // Listen for race changes
+            document.addEventListener('raceChanged', () => {
+                this._updateAbilityScores();
+            });
+
+            // Listen for subrace changes
+            document.addEventListener('subraceChanged', () => {
+                this._updateAbilityScores();
+            });
+        } catch (error) {
+            console.error('Error setting up event listeners:', error);
+        }
+    }
+
+    /**
+     * Handles all click events within the ability score container (delegation)
+     * @param {Event} event - The click event
+     * @private
+     */
+    _handleContainerClickEvent(event) {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+
+        const action = button.dataset.action;
+        const ability = button.dataset.ability;
+
+        // Handle increase/decrease button clicks
+        if (action === 'increase') {
+            this._handlePointBuyIncrease(button);
+        }
+        else if (action === 'decrease') {
+            this._handlePointBuyDecrease(button);
+        }
+        // Allow for other click handlers as needed
+    }
+
+    /**
+     * Handles all change events within the ability score container (delegation)
+     * @param {Event} event - The change event
+     * @private
+     */
+    _handleContainerChangeEvent(event) {
+        if (event.target.classList.contains('ability-choice-select')) {
+            this._handleAbilityChoice(event);
+        }
+        else if (event.target.classList.contains('standard-array-select')) {
+            this._handleStandardArraySelection(event);
+        }
+        else if (event.target.classList.contains('ability-custom-input')) {
+            this._debouncedCustomInput(event);
+        }
+    }
+
+    /**
+     * Handles character change events
+     * @param {Event} event - The character changed event
+     * @private
+     */
+    _handleCharacterChanged(event) {
+        const character = characterHandler.getCurrentCharacter();
+        if (!character) return;
+
+        console.debug("Character changed, syncing ability score manager");
+
+        // Sync with current character first
+        this._syncWithCurrentCharacter();
+
+        // Then render the UI
+        this.render();
+    }
+
+    /**
+     * Handles method change events
+     * @param {Event} event - The change event
+     * @private
+     */
+    _handleMethodChange(event) {
+        const method = event.target.value;
+        const character = characterHandler.currentCharacter;
+        if (!character) return;
+
+        // Update character's variant rules
+        if (!character.variantRules) {
+            character.variantRules = {};
+        }
+        character.variantRules.abilityScoreMethod = method;
+
+        // Reset method and render
+        abilityScoreManager.resetAbilityScoreMethod();
+        this.render();
+
+        // Notify that ability scores have changed
+        document.dispatchEvent(new CustomEvent('abilityScoresChanged', {
+            detail: { character }
+        }));
+    }
+
+    /**
+     * Handles standard array selection change
+     * @param {Event} event - The change event
+     * @private
+     */
+    _handleStandardArraySelection(event) {
+        const ability = event.target.dataset.ability;
+        const newValue = Number.parseInt(event.target.value, 10);
+
+        if (!ability || Number.isNaN(newValue)) {
+            return;
+        }
+
+        console.debug(`Standard array selection: ${ability} = ${newValue}`);
+
+        // Find if this value is already assigned to another ability
+        const currentAbilityScore = abilityScoreManager.getBaseScore(ability);
+
+        // Check all abilities to see if any have this value assigned
+        let otherAbility = null;
+        for (const checkAbility of abilityScoreManager.getAllAbilities()) {
+            // Skip the current ability
+            if (checkAbility === ability) {
+                continue;
+            }
+
+            // Check if this ability has the value we want to assign
+            if (abilityScoreManager.getBaseScore(checkAbility) === newValue) {
+                otherAbility = checkAbility;
+                break;
+            }
+        }
+
+        // If value is already assigned to another ability, swap them
+        if (otherAbility) {
+            console.debug(`Swapping values: ${ability}=${newValue}, ${otherAbility}=${currentAbilityScore}`);
+            abilityScoreManager.updateAbilityScore(otherAbility, currentAbilityScore);
+        }
+
+        // Update the current ability score with the new value
+        abilityScoreManager.updateAbilityScore(ability, newValue);
+
+        // Update all standard array dropdowns to reflect the new assignments
+        this._updateAllStandardArrayOptions();
+    }
+
+    /**
+     * Updates all standard array option dropdowns
+     * @private
+     */
+    _updateAllStandardArrayOptions() {
+        for (const ability of abilityScoreManager.getAllAbilities()) {
+            const box = this._container.querySelector(`[data-ability="${ability}"]`);
+            if (!box) continue;
+
+            const select = box.querySelector('.standard-array-select');
+            if (!select) continue;
+
+            this._updateStandardArrayOptions(select, ability);
+        }
+    }
+
+    /**
+     * Updates options in a standard array select dropdown
+     * @param {HTMLSelectElement} select - The select element to update
+     * @param {string} ability - The ability name
+     * @private
+     */
+    _updateStandardArrayOptions(select, ability) {
+        const currentValue = abilityScoreManager.getBaseScore(ability);
+        console.debug(`Updating standard array options for ${ability}, current value=${currentValue}`);
+
+        // Clear all existing options
+        select.innerHTML = '';
+
+        // Add options for all standard array values
+        for (const value of abilityScoreManager.getStandardArrayValues()) {
+            const option = document.createElement('option');
+            option.value = String(value);
+            option.textContent = String(value);
+
+            // Never disable options - allow selection of any value
+            option.disabled = false;
+
+            // Set as selected if it matches the current value
+            if (Number(value) === Number(currentValue)) {
+                option.selected = true;
+            }
+
+            select.appendChild(option);
+        }
+
+        // Force the select value to match the current value
+        select.value = String(currentValue);
+    }
+
+    /**
+     * Handles increasing ability scores for point buy
+     * @param {HTMLElement} btn - The button element
+     * @private
+     */
+    _handlePointBuyIncrease(btn) {
+        const ability = btn.dataset.ability;
+        if (!ability) return;
+
+        const character = characterHandler.getCurrentCharacter();
+        if (!character) return;
+
+        const currentScore = abilityScoreManager.getBaseScore(ability);
+        const newScore = currentScore + 1;
+
+        // Get the ability score box
+        const box = this._container.querySelector(`[data-ability="${ability}"]`);
+        if (!box) return;
+
+        // Determine method
+        const method = character.variantRules?.abilityScoreMethod || 'custom';
+        const isPointBuy = method === 'pointBuy';
+
+        // Apply different constraints based on the method
+        if (isPointBuy) {
+            // For point buy, enforce 8-15 range and check remaining points
+            const currentCost = abilityScoreManager.getPointCost(currentScore) || 0;
+            const newCost = abilityScoreManager.getPointCost(newScore) || 0;
+            const costDifference = newCost - currentCost;
+            const remainingPoints = abilityScoreManager.getRemainingPoints();
+
+            // Check if score is at max or not enough points
+            if (newScore > 15 || costDifference > remainingPoints) {
+                // Flash the border to indicate limit reached
+                box.classList.add('flash-border');
+                setTimeout(() => {
+                    box.classList.remove('flash-border');
+                }, 500);
+                return;
+            }
+        } else {
+            // For other methods, enforce general max of 20
+            if (newScore > 20) {
+                // Flash the border to indicate limit reached
+                box.classList.add('flash-border');
+                setTimeout(() => {
+                    box.classList.remove('flash-border');
+                }, 500);
+                return;
+            }
+        }
+
+        // Update the score
+        abilityScoreManager.updateAbilityScore(ability, newScore);
+
+        // Only update points counter if using point buy (to reduce lag)
+        if (isPointBuy) {
+            this._updatePointBuyCounter();
+        }
+
+        // Update the UI to show the new score
+        this._updateAbilityScoreValues();
+    }
+
+    /**
+     * Handles decreasing ability scores for point buy
+     * @param {HTMLElement} btn - The button element
+     * @private
+     */
+    _handlePointBuyDecrease(btn) {
+        const ability = btn.dataset.ability;
+        if (!ability) return;
+
+        const character = characterHandler.getCurrentCharacter();
+        if (!character) return;
+
+        const currentScore = abilityScoreManager.getBaseScore(ability);
+        const newScore = currentScore - 1;
+
+        // Get the ability score box
+        const box = this._container.querySelector(`[data-ability="${ability}"]`);
+        if (!box) return;
+
+        // Determine method
+        const method = character.variantRules?.abilityScoreMethod || 'custom';
+        const isPointBuy = method === 'pointBuy';
+
+        // Apply different constraints based on the method
+        if (isPointBuy) {
+            // For point buy, enforce 8-15 range
+            if (newScore < 8) {
+                // Flash the border to indicate limit reached
+                box.classList.add('flash-border');
+                setTimeout(() => {
+                    box.classList.remove('flash-border');
+                }, 500);
+                return;
+            }
+        } else {
+            // For other methods, enforce general min of 3
+            if (newScore < 3) {
+                // Flash the border to indicate limit reached
+                box.classList.add('flash-border');
+                setTimeout(() => {
+                    box.classList.remove('flash-border');
+                }, 500);
+                return;
+            }
+        }
+
+        // Update the score
+        abilityScoreManager.updateAbilityScore(ability, newScore);
+
+        // Only update points counter if using point buy (to reduce lag)
+        if (isPointBuy) {
+            this._updatePointBuyCounter();
+        }
+
+        // Update the UI to show the new score
+        this._updateAbilityScoreValues();
+    }
+
+    /**
+     * Updates only the point buy counter display without re-rendering everything
+     * @private
+     */
+    _updatePointBuyCounter() {
+        const counter = this._container.querySelector('.point-buy-badge');
+        if (!counter) return;
+
+        const usedPoints = abilityScoreManager.getUsedPoints();
+        const remainingPoints = abilityScoreManager.getRemainingPoints();
+        const maxPoints = abilityScoreManager.getMaxPoints();
+
+        counter.innerHTML = `<span class="label">Point Buy</span>${usedPoints}/${maxPoints} 
+                            (<strong>${remainingPoints}</strong> remaining)`;
+
+        // Apply danger color only if over the limit
+        if (remainingPoints < 0) {
+            counter.classList.add('danger');
+        } else {
+            counter.classList.remove('danger');
+        }
+    }
+
+    /**
+     * Handles custom ability score input
+     * @param {Event} event - The input event
+     * @private
+     */
+    _handleCustomInput(event) {
+        const ability = event.target.dataset.ability;
+        if (!ability) return;
+
+        const newValue = Number.parseInt(event.target.value, 10);
+        if (!Number.isNaN(newValue)) {
+            abilityScoreManager.updateAbilityScore(ability, newValue);
+            // No need to render here as it will cause input focus loss
+            this._updateAbilityScoreValues();
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Rendering Methods
+    //-------------------------------------------------------------------------
+
+    /**
      * Renders the entire ability score card, including scores, choices, and bonus notes
+     * @returns {void}
      */
     render() {
-        // Initialize scoring method system if needed
-        this._initializeAbilityScoreMethod();
+        try {
+            // Initialize scoring method system if needed
+            this._initializeAbilityScoreMethod();
 
-        // Render point buy info or standard array selection if needed
-        this._renderAbilityScoreMethodInfo();
+            // Make sure assigned standard array values are updated
+            if (characterHandler.getCurrentCharacter()?.variantRules?.abilityScoreMethod === 'standardArray') {
+                abilityScoreManager.updateAssignedStandardArrayValues();
+            }
 
-        this._renderAbilityScores();
-        this._renderAbilityChoices();
+            // Render point buy info or standard array selection if needed
+            this._renderAbilityScoreMethodInfo();
+
+            // Render the ability score boxes
+            this._renderAbilityScores();
+
+            // Render any pending ability choices
+            this._renderAbilityChoices();
+
+            // Render bonus notes explaining where bonuses come from
+            this._renderBonusNotes();
+        } catch (error) {
+            console.error('Error rendering ability score card:', error);
+        }
+    }
+
+    /**
+     * Updates the UI without full re-render
+     * Useful for changes that should not disrupt user input
+     * @returns {void}
+     */
+    update() {
+        this._updateAbilityScoreValues();
         this._renderBonusNotes();
     }
 
@@ -78,15 +591,34 @@ export class AbilityScoreCard {
      * @private
      */
     _initializeAbilityScoreMethod() {
-        const character = characterHandler.currentCharacter;
+        const character = characterHandler.getCurrentCharacter();
         if (!character) return;
 
-        // Only reset ability score method when actually needed (e.g., on first load)
-        // This prevents constant resets that trigger abilityScoresChanged events
-        if (!this.initializedMethod || this.lastInitializedMethod !== character.variantRules?.abilityScoreMethod) {
-            this.lastInitializedMethod = character.variantRules?.abilityScoreMethod;
-            this.initializedMethod = true;
+        // Only initialize if not already done for this method
+        if (!this._initializedMethod || this._lastInitializedMethod !== character.variantRules?.abilityScoreMethod) {
+            this._lastInitializedMethod = character.variantRules?.abilityScoreMethod || 'custom';
+            this._initializedMethod = true;
+
+            // Update UI element to reflect current method
+            const methodSelect = document.getElementById('abilityScoreMethod');
+            if (methodSelect) {
+                methodSelect.value = this._lastInitializedMethod;
+            }
+
+            console.debug("Initializing ability score method:", this._lastInitializedMethod);
+
+            // Ensure ability scores are properly initialized for the selected method
             abilityScoreManager.resetAbilityScoreMethod();
+
+            // For standard array, make sure the assignments are tracked properly
+            if (this._lastInitializedMethod === 'standardArray') {
+                abilityScoreManager.updateAssignedStandardArrayValues();
+
+                // Manually update all dropdowns to ensure they show correct values
+                setTimeout(() => {
+                    this._updateAllStandardArrayOptions();
+                }, 100);
+            }
         }
     }
 
@@ -95,34 +627,35 @@ export class AbilityScoreCard {
      * @private
      */
     _renderAbilityScoreMethodInfo() {
-        // Remove existing info container if it exists
-        let infoContainer = this.container.querySelector('.ability-score-method-info');
-        if (infoContainer) {
-            infoContainer.remove();
-        }
+        try {
+            // Remove existing info container if it exists
+            let infoContainer = this._container.querySelector('.ability-score-method-info');
+            if (infoContainer) {
+                infoContainer.remove();
+            }
 
-        // Get the character and method directly
-        const character = characterHandler.currentCharacter;
-        if (!character) {
-            return;
-        }
+            // Get the character and method directly
+            const character = characterHandler.getCurrentCharacter();
+            if (!character) {
+                return;
+            }
 
-        // Always use the method directly from character.variantRules
-        const methodFromCharacter = character.variantRules?.abilityScoreMethod || 'custom';
-        const isPointBuy = methodFromCharacter === 'pointBuy';
-        const isStandardArray = methodFromCharacter === 'standardArray';
+            // Always use the method directly from character.variantRules
+            const methodFromCharacter = character.variantRules?.abilityScoreMethod || 'custom';
+            const isPointBuy = methodFromCharacter === 'pointBuy';
+            const isStandardArray = methodFromCharacter === 'standardArray';
 
-        // Create a new container
-        infoContainer = document.createElement('div');
-        infoContainer.className = 'ability-score-method-info mb-3';
+            // Create a new container
+            infoContainer = document.createElement('div');
+            infoContainer.className = 'ability-score-method-info mb-3';
 
-        // Populate based on current method
-        if (isPointBuy) {
-            const usedPoints = abilityScoreManager.calculateUsedPoints();
-            const remainingPoints = abilityScoreManager.getRemainingPoints();
-            const maxPoints = abilityScoreManager.maxPoints;
+            // Populate based on current method
+            if (isPointBuy) {
+                const usedPoints = abilityScoreManager.getUsedPoints();
+                const remainingPoints = abilityScoreManager.getRemainingPoints();
+                const maxPoints = abilityScoreManager.getMaxPoints();
 
-            infoContainer.innerHTML = `
+                infoContainer.innerHTML = `
                 <div class="d-flex justify-content-end mb-2">
                     <div class="point-buy-badge">
                         <span class="label">Point Buy</span>${usedPoints}/${maxPoints} 
@@ -130,28 +663,40 @@ export class AbilityScoreCard {
                     </div>
                 </div>
             `;
-        } else if (isStandardArray) {
-            // Get the available values
-            const availableValues = abilityScoreManager.getAvailableStandardArrayValues();
-            const assignedValues = Array.from(abilityScoreManager.assignedStandardValues);
+            } else if (isStandardArray) {
+                // Get the available values
+                const availableValues = abilityScoreManager.getAvailableStandardArrayValues();
+                const standardArray = abilityScoreManager.getStandardArrayValues();
+                const usedCount = 6 - availableValues.length;
 
-            infoContainer.innerHTML = `
-                <div class="card">
-                    <div class="card-header py-2">
-                        <h6 class="mb-0">Standard Array (15, 14, 13, 12, 10, 8)</h6>
+                infoContainer.innerHTML = `
+                    <div class="d-flex justify-content-end mb-2">
+                        <div class="point-buy-badge">
+                            <span class="label">Standard Array</span>${usedCount}/6 assigned
                     </div>
-                    <div>
-                        <div class="alert alert-info mb-2 py-1 small">
-                            Select which ability gets which value from the dropdown menus below each ability score.
                         </div>
+                    <div class="d-flex justify-content-center mb-2">
+                        <div class="standard-array-values">
+                            ${standardArray.map(value =>
+                    `<span class="standard-array-value ${availableValues.includes(value) ? 'available' : 'used'}">${value}</span>`
+                ).join('')}
                     </div>
                 </div>
             `;
-        }
+            } else if (methodFromCharacter === 'custom') {
+                infoContainer.innerHTML = `
+                    <div class="alert alert-info mb-2 py-2 small">
+                        <strong>Custom Scores:</strong> Enter your ability scores directly.
+                    </div>
+                `;
+            }
 
-        // Add the container only if we have content
-        if (infoContainer.innerHTML.trim()) {
-            this.container.prepend(infoContainer);
+            // Add the container only if we have content
+            if (infoContainer.innerHTML.trim()) {
+                this._container.prepend(infoContainer);
+            }
+        } catch (error) {
+            console.error('Error rendering ability score method info:', error);
         }
     }
 
@@ -160,134 +705,90 @@ export class AbilityScoreCard {
      * @private
      */
     _renderAbilityScores() {
-        // Get the ability score method directly from character
-        const character = characterHandler.currentCharacter;
-        if (!character) {
+        try {
+            // Get the ability score method directly from character
+            const character = characterHandler.getCurrentCharacter();
+            if (!character) {
+                return;
+            }
+
+            // Always get the method directly from character.variantRules to ensure consistency
+            const methodFromCharacter = character.variantRules?.abilityScoreMethod || 'custom';
+
+            const isStandardArray = methodFromCharacter === 'standardArray';
+            const isPointBuy = methodFromCharacter === 'pointBuy';
+            const isCustom = methodFromCharacter === 'custom';
+
+            // Process each ability score
+            for (const ability of abilityScoreManager.getAllAbilities()) {
+                this._renderAbilityScoreBox(ability, isStandardArray, isPointBuy, isCustom);
+            }
+        } catch (error) {
+            console.error('Error rendering ability scores:', error);
+        }
+    }
+
+    /**
+     * Renders a single ability score box
+     * @param {string} ability - The ability name (str, dex, etc.)
+     * @param {boolean} isStandardArray - Whether standard array method is being used
+     * @param {boolean} isPointBuy - Whether point buy method is being used
+     * @param {boolean} isCustom - Whether custom method is being used
+     * @private
+     */
+    _renderAbilityScoreBox(ability, isStandardArray, isPointBuy, isCustom) {
+        const box = this._container.querySelector(`[data-ability="${ability}"]`);
+        if (!box) {
             return;
         }
 
-        // Always get the method directly from character.variantRules to ensure consistency
-        const methodFromCharacter = character.variantRules?.abilityScoreMethod || 'custom';
-
-        const isStandardArray = methodFromCharacter === 'standardArray';
-        const isPointBuy = methodFromCharacter === 'pointBuy';
-
-        // Process each ability score
-        for (const ability of abilityScoreManager.getAllAbilities()) {
-            const box = this.container.querySelector(`[data-ability="${ability}"]`);
-            if (!box) {
-                continue;
-            }
-
-            const baseScore = abilityScoreManager.getBaseScore(ability);
-            const totalScore = abilityScoreManager.getTotalScore(ability);
-
-            // Update score and modifier displays
-            box.querySelector('.score').textContent = totalScore;
-            box.querySelector('.modifier').textContent = abilityScoreManager.getModifier(totalScore);
-
-            // Update bonus display
-            const bonusDiv = box.querySelector('.bonus');
-            bonusDiv.innerHTML = this.renderBonus(ability);
-
-            // Remove any existing original buttons that were in HTML
-            const existingButtonsContainer = box.querySelector('.ability-controls, .mt-2');
-            if (existingButtonsContainer) {
-                existingButtonsContainer.remove();
-            }
-
-            // Create new controls container
-            const controlsContainer = document.createElement('div');
-            controlsContainer.className = 'ability-controls mt-2';
-            box.appendChild(controlsContainer);
-
-            // Add appropriate controls based on the ability score method
-            if (isStandardArray) {
-                // Update the standard array tracking before rendering
-                abilityScoreManager.updateAssignedStandardArrayValues();
-
-                // For Standard Array, show a dropdown selector
-                const allStandardArrayValues = [...abilityScoreManager.standardArray];
-
-                // Sort values in descending order
-                allStandardArrayValues.sort((a, b) => b - a);
-
-                // Create the dropdown
-                const select = document.createElement('select');
-                select.className = 'form-select form-select-sm standard-array-select text-center';
-                select.dataset.ability = ability;
-
-                // Add value options directly - show all standard array values
-                for (const value of allStandardArrayValues) {
-                    const option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = `${value}`;
-                    option.selected = (baseScore === value);
-
-                    select.appendChild(option);
-                }
-
-                // Add the dropdown to the controls container
-                controlsContainer.appendChild(select);
-
-                // Add event listener for selection changes
-                select.addEventListener('change', (e) => {
-                    const newValue = Number.parseInt(e.target.value, 10);
-                    if (!Number.isNaN(newValue)) {
-                        abilityScoreManager.updateBaseScore(ability, newValue);
-                    }
-                });
-
-                // Remove any cost indicators that might exist
-                const standardArrayCostIndicators = box.querySelectorAll('.point-cost');
-                for (const indicator of standardArrayCostIndicators) {
-                    indicator.remove();
-                }
-            } else {
-                // For Point Buy or Custom methods, add +/- buttons
-                // Create decrease button
-                const decreaseBtn = document.createElement('button');
-                decreaseBtn.className = 'btn btn-sm btn-light me-1';
-                decreaseBtn.dataset.action = 'decrease';
-                decreaseBtn.dataset.ability = ability;
-                decreaseBtn.textContent = '-';
-                controlsContainer.appendChild(decreaseBtn);
-
-                // Create increase button
-                const increaseBtn = document.createElement('button');
-                increaseBtn.className = 'btn btn-sm btn-light';
-                increaseBtn.dataset.action = 'increase';
-                increaseBtn.dataset.ability = ability;
-                increaseBtn.textContent = '+';
-                controlsContainer.appendChild(increaseBtn);
-
-                // Remove any existing cost indicators first
-                const existingCostIndicators = box.querySelectorAll('.point-cost');
-                for (const indicator of existingCostIndicators) {
-                    indicator.remove();
-                }
-
-                // For point buy, add the cost indicator
-                if (isPointBuy) {
-
-                    const cost = abilityScoreManager.getPointCost(baseScore);
-
-                    // Determine cost level for styling
-                    let costClass = 'low';
-                    if (cost >= 7) {
-                        costClass = 'high';
-                    } else if (cost >= 4) {
-                        costClass = 'medium';
-                    }
-
-                    // Add cost indicator to controls container instead of box
-                    const costIndicator = document.createElement('div');
-                    costIndicator.className = `point-cost ${costClass}`;
-                    costIndicator.textContent = `${cost} pts`;
-                    controlsContainer.appendChild(costIndicator);
-                }
-            }
+        // Remove any existing buttons that might be in the HTML template
+        const existingButtons = box.querySelectorAll('button');
+        for (const button of existingButtons) {
+            button.remove();
         }
+
+        const baseScore = abilityScoreManager.getBaseScore(ability);
+        const totalScore = abilityScoreManager.getTotalScore(ability);
+
+        // Update score and modifier displays
+        box.querySelector('.score').textContent = totalScore;
+        box.querySelector('.modifier').textContent = abilityScoreManager.getModifierString(ability);
+
+        // Update bonus display
+        const bonusDiv = box.querySelector('.bonus');
+        const totalBonus = totalScore - baseScore;
+
+        if (totalBonus !== 0) {
+            bonusDiv.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
+            bonusDiv.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
+            bonusDiv.style.display = 'block';
+        } else {
+            bonusDiv.textContent = '';
+            bonusDiv.style.display = 'none';
+        }
+
+        // Remove any existing method-specific controls
+        const existingControlsContainer = box.querySelector('.ability-controls');
+        if (existingControlsContainer) {
+            existingControlsContainer.remove();
+        }
+
+        // Create new controls container
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'ability-controls mt-2';
+
+        // Add appropriate controls based on the ability score method
+        if (isStandardArray) {
+            this._renderStandardArrayControls(controlsContainer, ability, baseScore);
+        } else if (isPointBuy) {
+            this._renderPointBuyControls(controlsContainer, ability, baseScore);
+        } else if (isCustom) {
+            this._renderCustomControls(controlsContainer, ability, baseScore);
+        }
+
+        // Append the controls
+        box.appendChild(controlsContainer);
     }
 
     /**
@@ -296,6 +797,8 @@ export class AbilityScoreCard {
      */
     _renderAbilityChoices() {
         const pendingChoices = abilityScoreManager.getPendingChoices();
+        console.debug('Rendering ability choices:', pendingChoices);
+
         if (pendingChoices.length === 0) {
             this._removeChoicesContainer();
             return;
@@ -331,6 +834,12 @@ export class AbilityScoreCard {
         const availableAbilities = abilityScoreManager.getAvailableAbilities(index);
         const selectedAbility = abilityScoreManager.abilityChoices.get(index);
 
+        console.debug(`Creating dropdown for choice ${index}:`, {
+            choice,
+            availableAbilities,
+            selectedAbility
+        });
+
         return `
             <div class="ability-choice-group">
                 <label class="form-label">+${choice.amount} bonus (${choice.source.replace(/\s+\d+$/, '')})</label>
@@ -355,11 +864,11 @@ export class AbilityScoreCard {
      * @private
      */
     _getOrCreateChoicesContainer() {
-        let container = this.container.querySelector('.ability-choices-container');
+        let container = this._container.querySelector('.ability-choices-container');
         if (!container) {
             container = document.createElement('div');
             container.className = 'ability-choices-container';
-            this.container.appendChild(container);
+            this._container.appendChild(container);
         }
         return container;
     }
@@ -369,7 +878,7 @@ export class AbilityScoreCard {
      * @private
      */
     _removeChoicesContainer() {
-        const container = this.container.querySelector('.ability-choices-container');
+        const container = this._container.querySelector('.ability-choices-container');
         if (container) {
             container.remove();
         }
@@ -383,7 +892,7 @@ export class AbilityScoreCard {
     _setupChoiceEventListeners(container) {
         const dropdowns = container.querySelectorAll('.ability-choice-select');
         for (const dropdown of dropdowns) {
-            dropdown.addEventListener('change', (e) => this.handleAbilityChoice(e));
+            dropdown.addEventListener('change', (e) => this._handleAbilityChoice(e));
         }
     }
 
@@ -392,38 +901,47 @@ export class AbilityScoreCard {
      * @private
      */
     _renderBonusNotes() {
-        const bonusGroups = abilityScoreManager.getBonusGroups();
-        if (bonusGroups.size === 0) {
-            this.bonusesContainer.innerHTML = '<div class="text-muted">No ability score bonuses applied.</div>';
-            return;
+        try {
+            const bonusGroups = abilityScoreManager.getBonusGroups();
+            if (bonusGroups.size === 0) {
+                this._bonusesContainer.innerHTML = '<div class="text-muted">No ability score bonuses applied.</div>';
+                return;
+            }
+
+            let bonusContent = '<h6 class="mb-2">Ability Score Bonuses</h6>';
+            const raceBonuses = this._processRaceBonuses(bonusGroups);
+
+            if (raceBonuses.length > 0) {
+                bonusContent += this._createBonusNote('Race', raceBonuses.join(', '));
+            }
+
+            // Process remaining bonus groups
+            for (const [source, bonusMap] of bonusGroups.entries()) {
+                if (source.startsWith('Race')) continue; // Skip race bonuses as they're handled separately
+
+                // Format the bonuses for this source
+                const bonusText = [];
+                for (const [ability, value] of bonusMap.entries()) {
+                    bonusText.push(`${this._getAbilityAbbreviation(ability)} ${value >= 0 ? '+' : ''}${value}`);
+                }
+
+                bonusContent += this._createBonusNote(source, bonusText.join(', '));
+            }
+
+            this._bonusesContainer.innerHTML = bonusContent;
+
+            // Process the bonuses container to resolve any reference tags
+            if (textProcessor && typeof textProcessor.processElement === 'function') {
+                textProcessor.processElement(this._bonusesContainer);
+            }
+        } catch (error) {
+            console.error('Error rendering bonus notes:', error);
         }
-
-        let bonusContent = '<h6 class="mb-2">Ability Score Bonuses</h6>';
-        const raceBonuses = this._processRaceBonuses(bonusGroups);
-
-        if (raceBonuses.length > 0) {
-            bonusContent += this._createBonusNote('Race', raceBonuses.join(', '));
-        }
-
-        // Process remaining bonus groups
-        for (const [source, bonusList] of bonusGroups.entries()) {
-            if (source.startsWith('Race')) continue; // Skip race bonuses as they're handled separately
-
-            const bonusText = bonusList.map(b =>
-                `${this._getAbilityAbbreviation(b.ability)} ${b.value >= 0 ? '+' : ''}${b.value}`
-            ).join(', ');
-            bonusContent += this._createBonusNote(source, bonusText);
-        }
-
-        this.bonusesContainer.innerHTML = bonusContent;
-
-        // Process the bonuses container to resolve any reference tags
-        textProcessor.processElement(this.bonusesContainer);
     }
 
     /**
      * Processes race-related bonuses and formats them for display
-     * @param {Map<string, Array<BonusGroup>>} bonusGroups - Map of all bonus groups
+     * @param {Map<string, Map<string, number>>} bonusGroups - Map of all bonus groups
      * @returns {Array<string>} Array of formatted race bonus strings
      * @private
      */
@@ -487,164 +1005,26 @@ export class AbilityScoreCard {
     }
 
     /**
-     * Renders the bonus display for a specific ability
-     * @param {string} ability - The ability name
-     * @returns {string} HTML for the bonus display
-     */
-    renderBonus(ability) {
-        const score = abilityScoreManager.getTotalScore(ability);
-        const baseScore = abilityScoreManager.getBaseScore(ability);
-        const totalBonus = score - baseScore;
-
-        if (totalBonus === 0) return '';
-
-        const bonusClass = totalBonus >= 0 ? 'bonus' : 'bonus negative';
-        return `<div class="${bonusClass}">${totalBonus >= 0 ? '+' : ''}${totalBonus}</div>`;
-    }
-
-    /**
      * Handles the selection of an ability choice from a dropdown
      * @param {Event} event - The change event from the dropdown
+     * @private
      */
-    handleAbilityChoice(event) {
+    _handleAbilityChoice(event) {
         const select = event.target;
         const choiceIndex = Number.parseInt(select.dataset.choiceIndex, 10);
         const bonus = Number.parseInt(select.dataset.bonus, 10);
         const source = select.dataset.source;
         const selectedAbility = select.value;
 
+        // Use the AbilityScoreManager to handle the choice
         abilityScoreManager.handleAbilityChoice(selectedAbility, choiceIndex, bonus, source);
-    }
 
-    /**
-     * Handles clicks on ability score buttons for increasing/decreasing scores
-     * @param {Event} event - The click event
-     * @private
-     */
-    _handleAbilityScoreClick(event) {
-        const button = event.target.closest('button[data-action]');
-        if (!button) return;
+        // Refresh the ability choices UI
+        this._renderAbilityChoices();
 
-        const action = button.dataset.action;
-        const ability = button.dataset.ability;
-
-        if (!ability) return;
-
-        const currentScore = abilityScoreManager.getBaseScore(ability);
-        let newScore = currentScore;
-
-        if (action === 'increase') {
-            newScore = currentScore + 1;
-        } else if (action === 'decrease') {
-            newScore = currentScore - 1;
-        }
-
-        // Get the ability score box
-        const box = this.container.querySelector(`[data-ability="${ability}"]`);
-        if (!box) return;
-
-        // Check for limits and flash border if needed
-        const isPointBuy = characterHandler.currentCharacter?.variantRules?.abilityScoreMethod === 'pointBuy';
-        if (newScore === currentScore ||
-            (isPointBuy && ((newScore > 15 && action === 'increase') || (newScore < 8 && action === 'decrease'))) ||
-            (newScore > 20 && action === 'increase') ||
-            (newScore < 3 && action === 'decrease')) {
-
-            // Flash the border to indicate limit reached
-            box.classList.add('flash-border');
-            setTimeout(() => {
-                box.classList.remove('flash-border');
-            }, 500);
-
-            return;
-        }
-
-        // Update the score
-        abilityScoreManager.updateBaseScore(ability, newScore);
-
-        // Only update points counter if using point buy (to reduce lag)
-        const character = characterHandler.currentCharacter;
-        if (character?.variantRules?.abilityScoreMethod === 'pointBuy') {
-            // Just update the points counter instead of re-rendering everything
-            this._updatePointBuyCounter();
-        }
-
-        // Update the UI to show the new score
-        this._updateAbilityScoreValues();
-    }
-
-    /**
-     * Updates only the point buy counter display without re-rendering everything
-     * @private
-     */
-    _updatePointBuyCounter() {
-        const counter = this.container.querySelector('.point-buy-badge');
-        if (!counter) return;
-
-        const usedPoints = abilityScoreManager.calculateUsedPoints();
-        const remainingPoints = abilityScoreManager.getRemainingPoints();
-        const maxPoints = abilityScoreManager.maxPoints;
-
-        counter.innerHTML = `<span class="label">Point Buy</span>${usedPoints}/${maxPoints} 
-                           (<strong>${remainingPoints}</strong> remaining)`;
-
-        // Apply danger color only if over the limit
-        if (remainingPoints < 0) {
-            counter.classList.add('danger');
-        } else {
-            counter.classList.remove('danger');
-        }
-    }
-
-    /**
-     * Sets up event listeners for the ability score card
-     */
-    setupEventListeners() {
-        // Remove existing listeners first (to prevent duplicates)
-        document.removeEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
-
-        // Remove any existing click listener to prevent duplicate handling
-        if (this.container) {
-            // Instead of replacing the entire container, just remove the click event
-            if (this.clickHandler) {
-                this.container.removeEventListener('click', this.clickHandler);
-            }
-
-            // Create a bound reference to the handler that we can store for later removal
-            this.clickHandler = this._handleAbilityScoreClick.bind(this);
-            this.container.addEventListener('click', this.clickHandler);
-        }
-
-        // Create debounced render function to prevent too many updates
-        this.debouncedRender = this._debounce(() => {
-            // Don't trigger a full re-render in the event handler to avoid loops
-            this._updateAbilityScoreValues();
-            this._renderAbilityChoices();
-            this._renderBonusNotes();
-        }, 30); // 30ms debounce
-
-        // Store a reference to the listener for later removal
-        this.abilityScoresChangedListener = (event) => {
-            // Use targeted updates when possible instead of full re-renders
-            const character = characterHandler.currentCharacter;
-            const methodFromCharacter = character?.variantRules?.abilityScoreMethod;
-
-            // Always render ability choices first
-            this._renderAbilityChoices();
-
-            if (methodFromCharacter === 'pointBuy') {
-                // For point buy, just update the counter and the specific ability score
-                this._updatePointBuyCounter();
-                this._updateAbilityScoreValues();
-                this._renderBonusNotes();
-            } else {
-                // For other methods, use the debounced targeted updates
-                this.debouncedRender();
-            }
-        };
-
-        // Add the listener
-        document.addEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
+        // Update all score display and bonus notes
+        this._renderAbilityScores();
+        this._renderBonusNotes();
     }
 
     /**
@@ -655,7 +1035,7 @@ export class AbilityScoreCard {
         const isPointBuy = characterHandler.currentCharacter?.variantRules?.abilityScoreMethod === 'pointBuy';
 
         for (const ability of abilityScoreManager.getAllAbilities()) {
-            const box = this.container.querySelector(`[data-ability="${ability}"]`);
+            const box = this._container.querySelector(`[data-ability="${ability}"]`);
             if (!box) continue;
 
             const baseScore = abilityScoreManager.getBaseScore(ability);
@@ -663,11 +1043,20 @@ export class AbilityScoreCard {
 
             // Update score and modifier displays
             box.querySelector('.score').textContent = totalScore;
-            box.querySelector('.modifier').textContent = abilityScoreManager.getModifier(totalScore);
+            box.querySelector('.modifier').textContent = abilityScoreManager.getModifierString(ability);
 
             // Update bonus display
             const bonusDiv = box.querySelector('.bonus');
-            bonusDiv.innerHTML = this.renderBonus(ability);
+            const totalBonus = totalScore - baseScore;
+
+            if (totalBonus !== 0) {
+                bonusDiv.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
+                bonusDiv.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
+                bonusDiv.style.display = 'block';
+            } else {
+                bonusDiv.textContent = '';
+                bonusDiv.style.display = 'none';
+            }
 
             // Update point cost indicator if this is point buy method
             if (isPointBuy) {
@@ -745,7 +1134,7 @@ export class AbilityScoreCard {
     }
 
     // Add this CSS to the document
-    addStyles() {
+    _addStyles() {
         const style = document.createElement('style');
         style.id = 'ability-score-methods-styles';
 
@@ -758,6 +1147,36 @@ export class AbilityScoreCard {
                 background-color: var(--card-bg-color, #f8f9fa);
                 border-color: var(--border-color, #dee2e6);
                 border-radius: var(--border-radius, 4px);
+            }
+            
+            .standard-array-values {
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            
+            .standard-array-value {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                font-weight: bold;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                transition: all 0.2s;
+            }
+            
+            .standard-array-value.available {
+                background-color: var(--accent-color, #007bff);
+                color: white;
+            }
+            
+            .standard-array-value.used {
+                background-color: #dee2e6;
+                color: #888;
+                opacity: 0.6;
             }
             
             .point-buy-counter {
@@ -841,6 +1260,7 @@ export class AbilityScoreCard {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                flex-direction: column;
             }
             
             .standard-array-select {
@@ -895,20 +1315,17 @@ export class AbilityScoreCard {
      * Removes event listeners when the card is destroyed
      */
     remove() {
-        if (this.abilityScoresChangedListener) {
-            document.removeEventListener('abilityScoresChanged', this.abilityScoresChangedListener);
+        if (this._abilityScoresChangedListener) {
+            document.removeEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
         }
 
-        if (this.container && this.clickHandler) {
-            this.container.removeEventListener('click', this.clickHandler);
+        if (this._container && this._handleContainerClicks) {
+            this._container.removeEventListener('click', this._handleContainerClicks);
         }
-    }
 
-    /**
-     * Updates the ability score card display
-     */
-    update() {
-        this.render();
+        if (this._container && this._handleContainerChanges) {
+            this._container.removeEventListener('change', this._handleContainerChanges);
+        }
     }
 
     /**
@@ -927,7 +1344,166 @@ export class AbilityScoreCard {
         if (method === 'standardArray') {
             abilityScoreManager.updateAssignedStandardArrayValues();
         } else if (method === 'pointBuy') {
-            abilityScoreManager.calculateUsedPoints();
+            abilityScoreManager.getUsedPoints();
+        }
+    }
+
+    /**
+     * Renders standard array controls for an ability score
+     * @param {HTMLElement} container - The container element
+     * @param {string} ability - The ability name
+     * @param {number} baseScore - The base score
+     * @private
+     */
+    _renderStandardArrayControls(container, ability, baseScore) {
+        // Clear any existing content in the container
+        container.innerHTML = '';
+
+        // Create the select dropdown
+        const select = document.createElement('select');
+        select.className = 'form-select form-select-sm standard-array-select';
+        select.dataset.ability = ability;
+
+        // Update the options in the select to reflect current state
+        this._updateStandardArrayOptions(select, ability);
+
+        // Add change event listener
+        select.addEventListener('change', this._handleStandardArraySelection.bind(this));
+
+        // Add the select to the container
+        container.appendChild(select);
+    }
+
+    /**
+     * Renders point buy controls for an ability score
+     * @param {HTMLElement} container - The container element
+     * @param {string} ability - The ability name
+     * @param {number} baseScore - The base score
+     * @private
+     */
+    _renderPointBuyControls(container, ability, baseScore) {
+        // Create button group for +/- controls
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'd-flex align-items-center justify-content-center';
+
+        // Create decrease button using the requested format
+        const decreaseBtn = document.createElement('button');
+        decreaseBtn.className = 'btn btn-sm btn-light me-1';
+        decreaseBtn.dataset.action = 'decrease';
+        decreaseBtn.dataset.ability = ability;
+        decreaseBtn.textContent = '-';
+        // Don't disable buttons, we'll handle limits with border flashing
+        // decreaseBtn.disabled = baseScore <= abilityScoreManager.minScore;
+
+        // Create value display
+        const valueDisplay = document.createElement('span');
+        valueDisplay.className = 'mx-2 fw-bold';
+        valueDisplay.textContent = baseScore;
+
+        // Create increase button using the requested format
+        const increaseBtn = document.createElement('button');
+        increaseBtn.className = 'btn btn-sm btn-light';
+        increaseBtn.dataset.action = 'increase';
+        increaseBtn.dataset.ability = ability;
+        increaseBtn.textContent = '+';
+        // Don't disable buttons, we'll handle limits with border flashing
+        // increaseBtn.disabled = baseScore >= 15 || abilityScoreManager.getRemainingPoints() <= 0;
+
+        // Add cost indicator
+        const cost = abilityScoreManager.getPointCost(baseScore);
+        let costClass = 'low';
+        if (cost >= 7) {
+            costClass = 'high';
+        } else if (cost >= 4) {
+            costClass = 'medium';
+        }
+
+        const costIndicator = document.createElement('div');
+        costIndicator.className = `point-cost ${costClass}`;
+        costIndicator.textContent = `${cost} pts`;
+
+        // Assemble the controls
+        buttonGroup.appendChild(decreaseBtn);
+        buttonGroup.appendChild(valueDisplay);
+        buttonGroup.appendChild(increaseBtn);
+
+        container.appendChild(buttonGroup);
+        container.appendChild(costIndicator);
+    }
+
+    /**
+     * Renders custom controls for an ability score
+     * @param {HTMLElement} container - The container element
+     * @param {string} ability - The ability name
+     * @param {number} baseScore - The base score
+     * @private
+     */
+    _renderCustomControls(container, ability, baseScore) {
+        // Create number input for direct value entry
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'form-control form-control-sm ability-custom-input';
+        input.min = abilityScoreManager.minScore;
+        input.max = abilityScoreManager.maxScore;
+        input.value = baseScore;
+        input.dataset.ability = ability;
+
+        // Add to container
+        container.appendChild(input);
+    }
+
+    _updateAbilityScores() {
+        try {
+            // Get the current ability scores from the manager
+            const scores = {};
+            for (const ability of abilityScoreManager._allAbilities) {
+                scores[ability] = abilityScoreManager.getTotalScore(ability);
+            }
+
+            console.debug('Updating ability scores:', scores);
+
+            // Update each ability score box
+            for (const [ability, score] of Object.entries(scores)) {
+                const box = this._container.querySelector(`[data-ability="${ability}"]`);
+                if (box) {
+                    // Update the score display
+                    const scoreElement = box.querySelector('.score');
+                    if (scoreElement) {
+                        scoreElement.textContent = score;
+                    }
+
+                    // Update the modifier
+                    const modifierElement = box.querySelector('.modifier');
+                    if (modifierElement) {
+                        modifierElement.textContent = abilityScoreManager.getModifierString(ability);
+                    }
+
+                    // Update the bonus display
+                    const bonusElement = box.querySelector('.bonus');
+                    if (bonusElement) {
+                        const baseScore = abilityScoreManager.getBaseScore(ability);
+                        const totalBonus = score - baseScore;
+                        if (totalBonus !== 0) {
+                            bonusElement.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
+                            bonusElement.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
+                            bonusElement.style.display = 'block';
+                        } else {
+                            bonusElement.textContent = '';
+                            bonusElement.style.display = 'none';
+                        }
+                    }
+                }
+            }
+
+            // Re-render ability choices
+            this._renderAbilityChoices();
+
+            // Dispatch event to notify other components
+            document.dispatchEvent(new CustomEvent('abilityScoresUpdated', {
+                detail: { scores }
+            }));
+        } catch (error) {
+            console.error('Error updating ability scores:', error);
         }
     }
 } 

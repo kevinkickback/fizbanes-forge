@@ -1,28 +1,87 @@
 /**
  * Race.js
- * Pure data model for representing a D&D race
+ * Model class representing a playable race in the D&D Character Creator
+ */
+
+/**
+ * Represents a playable race with its attributes, traits, and subraces
  */
 export class Race {
+    /**
+     * Creates a new Race instance
+     * @param {Object} data - Raw race data
+     */
     constructor(data) {
-        // Core properties
+        /**
+         * Name of the race
+         * @type {string}
+         */
         this.name = data.name || '';
+
+        /**
+         * Source book for the race
+         * @type {string}
+         */
         this.source = data.source || 'PHB';
+
+        /**
+         * Page number in the source book
+         * @type {number}
+         */
         this.page = data.page;
 
-        // Basic attributes
+        /**
+         * Size information
+         * @type {Object}
+         */
         this.size = data.size || { value: 'Medium', choices: ['Medium'] };
+
+        /**
+         * Movement speeds
+         * @type {Object}
+         */
         this.speed = data.speed || { walk: 30 };
+
+        /**
+         * Ability score improvements
+         * @type {Array}
+         */
         this.ability = data.ability || [];
+
+        /**
+         * Age description
+         * @type {string}
+         */
         this.age = data.age;
+
+        /**
+         * Alignment tendencies
+         * @type {string}
+         */
         this.alignment = data.alignment;
 
-        // Proficiencies and features
+        /**
+         * Language proficiencies
+         * @type {Array}
+         */
         this.languageProficiencies = data.languageProficiencies || [];
+
+        /**
+         * Race description and traits
+         * @type {Array}
+         */
         this.entries = data.entries || [];
 
-        // Relationships
+        /**
+         * Subraces belonging to this race
+         * @type {Array}
+         */
         this.subraces = [];
     }
+
+    //-------------------------------------------------------------------------
+    // Subrace management
+    //-------------------------------------------------------------------------
 
     /**
      * Add a subrace to this race
@@ -49,6 +108,10 @@ export class Race {
         return this.subraces.find(subrace => subrace.name === name) || null;
     }
 
+    //-------------------------------------------------------------------------
+    // Race descriptions and traits
+    //-------------------------------------------------------------------------
+
     /**
      * Get the first description entry
      * @returns {string} The first description entry or empty string
@@ -64,6 +127,10 @@ export class Race {
     getTraits() {
         return this.entries.filter(entry => typeof entry === 'object');
     }
+
+    //-------------------------------------------------------------------------
+    // Race attributes
+    //-------------------------------------------------------------------------
 
     /**
      * Get ability score improvements
@@ -94,6 +161,79 @@ export class Race {
      * @returns {Object} Object containing size information
      */
     getSize() {
+        // Ensure size is an object with a value property
+        if (!this.size) {
+            return { value: 'Medium', choices: ['Medium'] };
+        }
+
+        // Handle array format (common in the data)
+        if (Array.isArray(this.size)) {
+            const sizeCode = this.size[0] || 'M';
+            const sizeValue = this._getSizeFromCode(sizeCode);
+            return { value: sizeValue, choices: [sizeValue] };
+        }
+
+        // Handle string format
+        if (typeof this.size === 'string') {
+            return { value: this.size, choices: [this.size] };
+        }
+
+        // Handle missing value in object
+        if (typeof this.size === 'object' && !this.size.value) {
+            return { value: 'Medium', choices: ['Medium'] };
+        }
+
         return this.size;
+    }
+
+    /**
+     * Convert size code to full size name
+     * @param {string} code - Size code (e.g., "M" for Medium)
+     * @returns {string} Full size name
+     * @private
+     */
+    _getSizeFromCode(code) {
+        const sizeMap = {
+            'T': 'Tiny',
+            'S': 'Small',
+            'M': 'Medium',
+            'L': 'Large',
+            'H': 'Huge',
+            'G': 'Gargantuan'
+        };
+
+        return sizeMap[code] || 'Medium';
+    }
+
+    //-------------------------------------------------------------------------
+    // Utility methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Returns a string representation of the race
+     * @returns {string} String representation
+     */
+    toString() {
+        return `${this.name} (${this.source})`;
+    }
+
+    /**
+     * Converts the race to a JSON object
+     * @returns {Object} JSON representation of the race
+     */
+    toJSON() {
+        return {
+            name: this.name,
+            source: this.source,
+            page: this.page,
+            size: this.size,
+            speed: this.speed,
+            ability: this.ability,
+            age: this.age,
+            alignment: this.alignment,
+            languageProficiencies: this.languageProficiencies,
+            entries: this.entries,
+            subraces: this.subraces
+        };
     }
 }

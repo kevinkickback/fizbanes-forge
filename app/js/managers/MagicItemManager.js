@@ -1,42 +1,115 @@
+/**
+ * MagicItemManager.js
+ * Manager for handling magic items and variants
+ */
+
+import { eventEmitter } from '../utils/EventEmitter.js';
+import { characterInitializer } from '../utils/Initialize.js';
+
+/**
+ * Manages magic items and variants
+ */
 export class MagicItemManager {
-    constructor(dataLoader) {
-        this.dataLoader = dataLoader;
-        this.cache = {
+    /**
+     * Creates a new MagicItemManager instance
+     * @private
+     */
+    constructor() {
+        /**
+         * Data loader for fetching item data
+         * @type {DataLoader}
+         * @private
+         */
+        this._dataLoader = characterInitializer.dataLoader;
+
+        /**
+         * Cache for loaded data
+         * @type {Object}
+         * @private
+         */
+        this._cache = {
             magicItems: null,
             variants: null
         };
+
+        /**
+         * Flag to track initialization state
+         * @type {boolean}
+         * @private
+         */
+        this._initialized = false;
     }
 
-    async loadMagicItems() {
-        if (this.cache.magicItems) {
-            return this.cache.magicItems;
+    /**
+     * Initializes the magic item manager
+     * @returns {Promise<void>}
+     */
+    async initialize() {
+        if (this._initialized) {
+            return;
         }
 
         try {
-            const items = await this.dataLoader.loadItems();
-            this.cache.magicItems = items.filter(item => item.magical);
-            return this.cache.magicItems;
+            console.debug('Initializing magic item manager');
+
+            // Pre-load data into cache
+            await Promise.all([
+                this.loadMagicItems(),
+                this.loadMagicVariants()
+            ]);
+
+            this._initialized = true;
+            eventEmitter.emit('magicItemManager:initialized', this);
+        } catch (error) {
+            console.error('Failed to initialize magic item manager:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Loads all available magic items
+     * @returns {Promise<Array>} Array of magic items
+     */
+    async loadMagicItems() {
+        if (this._cache.magicItems) {
+            return this._cache.magicItems;
+        }
+
+        try {
+            const itemData = await this._dataLoader.loadItems();
+            this._cache.magicItems = itemData.item.filter(item => item.magical);
+            return this._cache.magicItems;
         } catch (error) {
             console.error('Error loading magic items:', error);
             return [];
         }
     }
 
+    /**
+     * Loads all available magic variants
+     * @returns {Promise<Array>} Array of magic variants
+     */
     async loadMagicVariants() {
-        if (this.cache.variants) {
-            return this.cache.variants;
+        if (this._cache.variants) {
+            return this._cache.variants;
         }
 
         try {
-            const variants = await this.dataLoader.loadJsonFile('magicvariants.json');
-            this.cache.variants = this.processMagicVariants(variants.magicvariant || []);
-            return this.cache.variants;
+            const itemData = await this._dataLoader.loadItems();
+            this._cache.variants = this.processMagicVariants(itemData.magicvariant || []);
+            return this._cache.variants;
         } catch (error) {
             console.error('Error loading magic variants:', error);
             return [];
         }
     }
 
+    /**
+     * Processes magic variants data 
+     * @param {Array} variants - Raw magic variants data
+     * @returns {Array} Processed magic variants
+     * @private
+     */
     processMagicVariants(variants) {
         return variants.map(variant => {
             // Generate a consistent ID for the variant
@@ -110,6 +183,12 @@ export class MagicItemManager {
         });
     }
 
+    /**
+     * Processes magic properties
+     * @param {Array} properties - Raw properties data
+     * @returns {Array} Processed properties
+     * @private
+     */
     processMagicProperties(properties) {
         if (!properties) return [];
 
@@ -122,16 +201,60 @@ export class MagicItemManager {
         });
     }
 
+    /**
+     * Gets a magic item by ID
+     * @param {string} itemId - ID of the magic item
+     * @returns {Promise<Object|undefined>} Magic item object or undefined if not found
+     */
     async getMagicItem(itemId) {
         const items = await this.loadMagicItems();
         return items.find(item => item.id === itemId);
     }
 
+    /**
+     * Gets a magic variant by ID
+     * @param {string} variantId - ID of the magic variant
+     * @returns {Promise<Object|undefined>} Magic variant object or undefined if not found
+     */
     async getMagicVariant(variantId) {
         const variants = await this.loadMagicVariants();
         return variants.find(variant => variant.id === variantId);
     }
 
+    /**
+     * Gets a base item by name and source
+     * @param {string} name - Base item name
+     * @param {string} [source='PHB'] - Source book 
+     * @returns {Promise<Object|undefined>} Base item object or undefined if not found
+     */
+    async getBaseItem(name, source = 'PHB') {
+        const itemData = await this._dataLoader.loadItems();
+        return itemData.baseitem.find(item =>
+            item.name.toLowerCase() === name.toLowerCase() &&
+            (item.source === source || !source)
+        );
+    }
+
+    /**
+     * Gets item fluff by name and source
+     * @param {string} name - Item name
+     * @param {string} [source='PHB'] - Source book
+     * @returns {Promise<Object|undefined>} Item fluff object or undefined if not found
+     */
+    async getItemFluff(name, source = 'PHB') {
+        const itemData = await this._dataLoader.loadItems();
+        return itemData.fluff.find(f =>
+            f.name.toLowerCase() === name.toLowerCase() &&
+            (f.source === source || !source)
+        );
+    }
+
+    /**
+     * Applies a magic variant to a base item
+     * @param {Object} baseItem - Base item object
+     * @param {string} variantId - ID of the magic variant to apply
+     * @returns {Promise<Object|null>} Modified item with magic properties or null if invalid
+     */
     async applyMagicVariant(baseItem, variantId) {
         const variant = await this.getMagicVariant(variantId);
         console.debug('Found variant:', variant);
@@ -164,6 +287,13 @@ export class MagicItemManager {
         };
     }
 
+    /**
+     * Checks if an item meets variant requirements
+     * @param {Object} item - Item to check
+     * @param {Object} variant - Variant with requirements
+     * @returns {boolean} True if requirements are met
+     * @private
+     */
     checkVariantRequirements(item, variant) {
         if (!variant.requires || variant.requires.length === 0) {
             console.debug('No requirements to check');
@@ -225,6 +355,13 @@ export class MagicItemManager {
         });
     }
 
+    /**
+     * Generates a name for a magic item
+     * @param {Object} baseItem - Base item object
+     * @param {Object} variant - Magic variant object
+     * @returns {string} Generated name
+     * @private
+     */
     generateMagicItemName(baseItem, variant) {
         if (variant.namePattern) {
             return variant.namePattern.replace('{base}', baseItem.name);
@@ -232,8 +369,18 @@ export class MagicItemManager {
         return `${variant.name} ${baseItem.name}`;
     }
 
+    /**
+     * Clears the cache
+     */
     clearCache() {
-        this.cache.magicItems = null;
-        this.cache.variants = null;
+        this._cache.magicItems = null;
+        this._cache.variants = null;
+        console.debug('Magic item manager cache cleared');
     }
-} 
+}
+
+/**
+ * Export the singleton instance
+ * @type {MagicItemManager}
+ */
+export const magicItemManager = new MagicItemManager(); 

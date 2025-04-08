@@ -51,37 +51,20 @@
 
 import { Class } from '../models/Class.js';
 import { dataLoader } from '../dataloaders/DataLoader.js';
+import { eventEmitter } from '../utils/EventEmitter.js';
 
-let instance = null;
-
-export class ClassManager {
+/**
+ * Manages character classes and subclasses
+ */
+class ClassManager {
     /**
      * Creates a new ClassManager instance.
-     * Private constructor enforcing the singleton pattern.
-     * @throws {Error} If trying to instantiate more than once
      */
     constructor() {
-        if (instance) {
-            throw new Error('ClassManager is a singleton. Use ClassManager.getInstance() instead.');
-        }
-        instance = this;
-
-        this.classes = new Map();
-        this.subclasses = new Map();
-        this.selectedClass = null;
-        this.selectedSubclass = null;
-    }
-
-    /**
-     * Gets the singleton instance of ClassManager
-     * @returns {ClassManager} The singleton instance
-     * @static
-     */
-    static getInstance() {
-        if (!instance) {
-            instance = new ClassManager();
-        }
-        return instance;
+        this._classes = new Map();
+        this._subclasses = new Map();
+        this._selectedClass = null;
+        this._selectedSubclass = null;
     }
 
     /**
@@ -91,7 +74,8 @@ export class ClassManager {
     async initialize() {
         try {
             const classData = await dataLoader.loadClasses();
-            this.processClassData(classData);
+            this._processClassData(classData);
+            eventEmitter.emit('classes:loaded', Array.from(this._classes.values()));
             return true;
         } catch (error) {
             console.error('Failed to initialize class data:', error);
@@ -100,76 +84,57 @@ export class ClassManager {
     }
 
     /**
-     * Process raw class data into standardized format
-     * @param {Object} classData - Raw class data from the data loader
-     * @param {Array<RawClassData>} classData.class - Array of raw class data
-     * @param {Array<RawSubclassData>} [classData.subclass] - Array of raw subclass data
-     * @param {Array<Object>} [classData.fluff] - Array of descriptive fluff text for classes
+     * Process raw class data into structured format
+     * @param {Object} classData - Raw class data from API
+     * @private
      */
-    processClassData(classData) {
-        // Initialize collections
-        this.classes = new Map();
-
-        if (!classData || !classData.class || !Array.isArray(classData.class)) {
-            console.error('Invalid class data structure:', classData);
+    _processClassData(classData) {
+        if (!classData || !classData.class) {
+            console.warn('No class data to process');
             return;
         }
 
-        // Process each class
-        for (const rawClass of classData.class) {
-            try {
-                // Create standardized class object with processed data
-                const processedData = {
-                    id: `${rawClass.name}_${rawClass.source || 'PHB'}`,
-                    name: rawClass.name,
-                    source: rawClass.source || 'PHB',
-                    description: this.getClassDescription(rawClass, classData.fluff),
-                    hitDice: rawClass.hd?.faces || rawClass.hd || 8, // Support both formats
-                    skillProficiencies: this.getSkillProficiencies(rawClass),
-                    skillChoiceCount: this.getSkillChoiceCount(rawClass),
-                    savingThrows: this.getSavingThrows(rawClass),
-                    armorProficiencies: this.getArmorProficiencies(rawClass),
-                    weaponProficiencies: this.getWeaponProficiencies(rawClass),
-                    toolProficiencies: this.getToolProficiencies(rawClass),
-                    subclasses: [],
-                    // Handle both "classFeature" (singular) and "classFeatures" (plural) property names from raw data
-                    classFeatures: rawClass.classFeature || rawClass.classFeatures || []
-                };
+        // Process main classes
+        for (const classItem of classData.class) {
+            const classId = this._generateClassId(classItem);
 
-                // Create a Class model instance
-                const classInstance = new Class(processedData);
+            // Find associated class fluff
+            const fluff = classData.fluff?.find(f =>
+                f.name === classItem.name && f.source === classItem.source
+            );
 
-                // Store in map for quick access
-                this.classes.set(classInstance.id, classInstance);
-            } catch (error) {
-                console.error(`Error processing class ${rawClass.name}:`, error);
-            }
+            // Create enriched class object
+            const enrichedClass = {
+                ...classItem,
+                id: classId,
+                fluff: fluff || null,
+                subclasses: []
+            };
+
+            this._classes.set(classId, enrichedClass);
         }
 
-        // Process subclasses if available
-        if (classData.subclass && Array.isArray(classData.subclass)) {
-            for (const rawSubclass of classData.subclass) {
-                try {
-                    const classId = `${rawSubclass.className}_${rawSubclass.classSource || 'PHB'}`;
-                    const parentClass = this.classes.get(classId);
+        // Process subclasses and associate with parent classes
+        if (classData.subclass) {
+            for (const subclass of classData.subclass) {
+                const parentClassId = this._findParentClassId(subclass);
 
-                    if (parentClass) {
-                        // Create standardized subclass object
-                        const subclassData = {
-                            id: `${rawSubclass.name}_${rawSubclass.source || 'PHB'}`,
-                            name: rawSubclass.name,
-                            source: rawSubclass.source || 'PHB',
-                            shortName: rawSubclass.shortName || rawSubclass.name,
-                            className: rawSubclass.className,
-                            classSource: rawSubclass.classSource || 'PHB',
-                            features: []
-                        };
+                if (parentClassId && this._classes.has(parentClassId)) {
+                    const subclassId = this._generateSubclassId(subclass);
 
-                        // Add to parent class
-                        parentClass.subclasses.push(subclassData);
-                    }
-                } catch (error) {
-                    console.error(`Error processing subclass ${rawSubclass.name}:`, error);
+                    // Create enriched subclass object
+                    const enrichedSubclass = {
+                        ...subclass,
+                        id: subclassId,
+                        parentClassId
+                    };
+
+                    // Add to subclasses map
+                    this._subclasses.set(subclassId, enrichedSubclass);
+
+                    // Add to parent class's subclasses array
+                    const parentClass = this._classes.get(parentClassId);
+                    parentClass.subclasses.push(enrichedSubclass);
                 }
             }
         }
@@ -180,8 +145,9 @@ export class ClassManager {
      * @param {RawClassData} classData - Raw class data
      * @param {Array<Object>} [fluffArray] - Array of fluff entries
      * @returns {string} The class description
+     * @private
      */
-    getClassDescription(classData, fluffArray) {
+    _getClassDescription(classData, fluffArray) {
         // Try to find matching fluff
         if (Array.isArray(fluffArray)) {
             const fluff = fluffArray.find(f =>
@@ -200,109 +166,102 @@ export class ClassManager {
             }
         }
 
-        // Fallback to entries in the class data
-        if (classData.entries?.length) {
-            const firstEntry = classData.entries[0];
-            if (typeof firstEntry === 'string') {
-                return firstEntry;
-            }
-            if (firstEntry.entries && Array.isArray(firstEntry.entries)) {
-                return firstEntry.entries[0] || '';
-            }
+        // Fall back to class description if available
+        if (classData.description) {
+            return classData.description;
         }
 
-        return `The ${classData.name} class.`;
+        // Return empty string if no description found
+        return '';
     }
 
     /**
-     * Extracts skill proficiencies for a class
+     * Gets skill proficiencies from class data
      * @param {RawClassData} classData - Raw class data
-     * @returns {string[]} Array of available skill proficiencies
+     * @returns {Array<string>} Array of skill proficiencies
+     * @private
      */
-    getSkillProficiencies(classData) {
-        // Check if skills are in the startingProficiencies structure
-        if (classData.startingProficiencies?.skills) {
-            // For structure where it's an array with a 'choose' object inside
-            const skillsData = classData.startingProficiencies.skills;
+    _getSkillProficiencies(classData) {
+        const skills = [];
 
-            // Handle array of skill objects with 'choose' property
-            if (Array.isArray(skillsData)) {
-                for (const skillItem of skillsData) {
-                    if (skillItem.choose && Array.isArray(skillItem.choose.from)) {
-                        return skillItem.choose.from.map(skill => {
-                            // Capitalize first letter of each word for consistent formatting
-                            return skill.split(' ')
-                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                .join(' ');
-                        });
-                    }
+        // Check for "choose" format
+        if (classData.startingProficiencies?.skills?.choose) {
+            const choose = classData.startingProficiencies.skills.choose;
+
+            // Handle number format (e.g., { choose: 2, from: [...] })
+            if (typeof choose === 'number' && classData.startingProficiencies.skills.from) {
+                if (Array.isArray(classData.startingProficiencies.skills.from)) {
+                    return classData.startingProficiencies.skills.from;
                 }
             }
-
-            // Handle direct array of skill strings
-            if (Array.isArray(skillsData) && typeof skillsData[0] === 'string') {
-                return skillsData;
+            // Handle object format (e.g., { choose: { count: 2, from: [...] } })
+            else if (typeof choose === 'object' && choose.from) {
+                return Array.isArray(choose.from) ? choose.from : [];
             }
         }
 
-        // Fallback to the older 'skills' structure if it exists
-        if (classData.skills && Array.isArray(classData.skills)) {
-            for (const skillData of classData.skills) {
-                if (skillData.choose && Array.isArray(skillData.choose.from)) {
-                    return skillData.choose.from.map(skill => {
-                        return skill.split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                    });
-                }
+        // Direct skills array
+        if (Array.isArray(classData.startingProficiencies?.skills)) {
+            return classData.startingProficiencies.skills;
+        }
+
+        // Handle older format
+        if (classData.proficiency?.skillchoice) {
+            if (Array.isArray(classData.proficiency.skillchoice)) {
+                return classData.proficiency.skillchoice;
             }
         }
 
-        return [];
+        return skills;
     }
 
     /**
-     * Gets the number of skills a character can choose
+     * Gets number of skills to choose from the proficiency list
      * @param {RawClassData} classData - Raw class data
      * @returns {number} Number of skills to choose
+     * @private
      */
-    getSkillChoiceCount(classData) {
-        // Check if skills are in the startingProficiencies structure
-        if (classData.startingProficiencies?.skills) {
-            // For structure where it's an array with a 'choose' object inside
-            const skillsData = classData.startingProficiencies.skills;
+    _getSkillChoiceCount(classData) {
+        // Handle newer format with startingProficiencies.skills.choose
+        if (classData.startingProficiencies?.skills?.choose) {
+            const choose = classData.startingProficiencies.skills.choose;
 
-            // Handle array of skill objects with 'choose' property
-            if (Array.isArray(skillsData)) {
-                for (const skillItem of skillsData) {
-                    if (skillItem.choose && typeof skillItem.choose.count === 'number') {
-                        return skillItem.choose.count;
-                    }
-                }
+            // Handle number format (e.g., { choose: 2, from: [...] })
+            if (typeof choose === 'number') {
+                return choose;
+            }
+            // Handle object format (e.g., { choose: { count: 2, from: [...] } })
+            if (typeof choose === 'object' && choose.count) {
+                return choose.count;
             }
         }
 
-        // Fallback to the older 'skills' structure if it exists
-        if (classData.skills && Array.isArray(classData.skills)) {
-            for (const skillData of classData.skills) {
-                if (skillData.choose && typeof skillData.choose.count === 'number') {
-                    return skillData.choose.count;
-                }
-            }
+        // Handle older format with proficiency.skillChoiceCount
+        if (classData.proficiency?.skillChoiceCount !== undefined) {
+            return classData.proficiency.skillChoiceCount;
         }
 
-        return 0;
+        // Default based on class
+        // Most classes offer 2 skills, but specific classes offer more
+        switch (classData.name) {
+            case 'Bard': case 'Ranger': return 3;
+            case 'Rogue': return 4;
+            default: return 2;
+        }
     }
 
     /**
-     * Extracts saving throw proficiencies from class data
+     * Gets saving throw proficiencies from class data
      * @param {RawClassData} classData - Raw class data
-     * @returns {string[]} Array of saving throw names (full names, not abbreviations)
+     * @returns {Array<string>} Array of saving throw proficiencies
+     * @private
      */
-    getSavingThrows(classData) {
-        // Extract saving throws from proficiency array
-        if (!classData.proficiency) return [];
+    _getSavingThrows(classData) {
+        if (!classData.proficiency || !Array.isArray(classData.proficiency)) {
+            return [];
+        }
 
+        // Map abbreviations to full ability names
         const abilityMap = {
             'str': 'Strength',
             'dex': 'Dexterity',
@@ -312,203 +271,475 @@ export class ClassManager {
             'cha': 'Charisma'
         };
 
-        return classData.proficiency.map(p => abilityMap[p] || p);
+        // Convert abbreviations to full names
+        return classData.proficiency
+            .filter(p => typeof p === 'string')
+            .map(p => abilityMap[p.toLowerCase()] || p);
     }
 
     /**
-     * Extracts armor proficiencies from class data
+     * Gets armor proficiencies from class data
      * @param {RawClassData} classData - Raw class data
-     * @returns {string[]} Array of armor proficiency names
+     * @returns {Array<string>} Array of armor proficiencies
+     * @private
      */
-    getArmorProficiencies(classData) {
-        if (!classData.startingProficiencies?.armor) return [];
+    _getArmorProficiencies(classData) {
+        if (Array.isArray(classData.startingProficiencies?.armor)) {
+            return classData.startingProficiencies.armor;
+        }
 
-        return classData.startingProficiencies.armor.map(armor => {
-            if (typeof armor === 'string') return armor;
-            return armor.proficiency || armor.name || '';
-        }).filter(Boolean);
+        return [];
     }
 
     /**
-     * Extracts weapon proficiencies from class data
+     * Gets weapon proficiencies from class data
      * @param {RawClassData} classData - Raw class data
-     * @returns {string[]} Array of weapon proficiency names
+     * @returns {Array<string>} Array of weapon proficiencies
+     * @private
      */
-    getWeaponProficiencies(classData) {
-        if (!classData.startingProficiencies?.weapons) return [];
+    _getWeaponProficiencies(classData) {
+        if (Array.isArray(classData.startingProficiencies?.weapons)) {
+            return classData.startingProficiencies.weapons;
+        }
 
-        return classData.startingProficiencies.weapons.map(weapon => {
-            if (typeof weapon === 'string') return weapon;
-            return weapon.proficiency || weapon.name || '';
-        }).filter(Boolean);
+        return [];
     }
 
     /**
-     * Extracts tool proficiencies from class data
+     * Gets tool proficiencies from class data
      * @param {RawClassData} classData - Raw class data
-     * @returns {string[]} Array of tool proficiency names
+     * @returns {Array<string>} Array of tool proficiencies
+     * @private
      */
-    getToolProficiencies(classData) {
-        if (!classData.startingProficiencies?.tools) return [];
+    _getToolProficiencies(classData) {
+        if (Array.isArray(classData.startingProficiencies?.tools)) {
+            return classData.startingProficiencies.tools;
+        }
 
-        return classData.startingProficiencies.tools.map(tool => {
-            if (typeof tool === 'string') return tool;
-            return tool.proficiency || tool.name || '';
-        }).filter(Boolean);
+        return [];
     }
 
     /**
      * Get all available classes
-     * @returns {Array<ProcessedClass>} Array of all processed classes
+     * @returns {Array<Class>} Array of Class objects
      */
     getAllClasses() {
-        return Array.from(this.classes.values());
+        return Array.from(this._classes.values());
     }
 
     /**
-     * Get class by name and source
+     * Get a specific class by name and source
      * @param {string} name - Class name
-     * @param {string} [source='PHB'] - Class source book
-     * @returns {ProcessedClass|null} Class object or null if not found
+     * @param {string} source - Source book
+     * @returns {Class|null} Class object or null if not found
      */
     getClass(name, source = 'PHB') {
-        return this.classes.get(`${name}_${source}`) || null;
+        // Generate the correct ID format for lookup
+        const classId = `${name}_${source}`;
+        console.log('DEBUG getClass - Looking for class ID:', classId);
+
+        // Get the raw class data from the map
+        const rawClassData = this._classes.get(classId);
+
+        if (!rawClassData) {
+            console.debug(`Class not found: ${name} (${source})`);
+            return null;
+        }
+
+        console.log('DEBUG getClass - Raw class data found:', rawClassData);
+        console.log('DEBUG getClass - Raw hitDice value:', rawClassData.hd || 8);
+        console.log('DEBUG getClass - Raw skillProficiencies:', this._getSkillProficiencies(rawClassData));
+
+        // Create a Class instance from the raw data
+        const classInstance = new Class({
+            id: rawClassData.id,
+            name: rawClassData.name,
+            source: rawClassData.source,
+            description: rawClassData.description || '',
+            hitDice: rawClassData.hd || 8,
+            skillProficiencies: this._getSkillProficiencies(rawClassData),
+            skillChoiceCount: this._getSkillChoiceCount(rawClassData),
+            savingThrows: this._getSavingThrows(rawClassData),
+            armorProficiencies: this._getArmorProficiencies(rawClassData),
+            weaponProficiencies: this._getWeaponProficiencies(rawClassData),
+            toolProficiencies: this._getToolProficiencies(rawClassData),
+            // Handle both "classFeature" (singular) and "classFeatures" (plural) property names from raw data
+            classFeatures: rawClassData.classFeature || rawClassData.classFeatures || [],
+            spellcasting: rawClassData.spellcasting || null,
+            // Attach any subclasses
+            subclasses: rawClassData.subclasses || []
+        });
+
+        console.log('DEBUG getClass - Created Class instance:', classInstance);
+        console.log('DEBUG getClass - Instance hitDice:', classInstance.hitDice);
+        console.log('DEBUG getClass - Instance getHitDice() returns:', classInstance.getHitDice());
+        console.log('DEBUG getClass - Instance skillProficiencies:', classInstance.skillProficiencies);
+        console.log('DEBUG getClass - Instance getSkillProficiencies() returns:', classInstance.getSkillProficiencies());
+
+        return classInstance;
     }
 
     /**
-     * Select a class by name and source
-     * @param {string} className - Name of the class
-     * @param {string} [source='PHB'] - Source book of the class
-     * @returns {ProcessedClass|null} The selected class or null if not found
+     * Select a class
+     * @param {string} className - Name of the class to select
+     * @param {string} source - Source of the class
+     * @returns {Class|null} The selected class or null if not found
      */
     selectClass(className, source = 'PHB') {
-        this.selectedClass = this.getClass(className, source);
-        this.selectedSubclass = null; // Reset subclass when changing class
-        return this.selectedClass;
+        console.log('DEBUG selectClass - Called with:', className, source);
+        this._selectedClass = this.getClass(className, source);
+        this._selectedSubclass = null;
+
+        console.log('DEBUG selectClass - Selected class:', this._selectedClass);
+
+        if (this._selectedClass) {
+            console.log('DEBUG selectClass - About to emit class:selected event');
+            eventEmitter.emit('class:selected', this._selectedClass);
+            console.log('DEBUG selectClass - Event emitted');
+        }
+
+        return this._selectedClass;
     }
 
     /**
-     * Select a subclass by name
-     * @param {string} subclassName - Name of the subclass
-     * @returns {ProcessedSubclass|null} The selected subclass or null if not found
+     * Select a subclass for the currently selected class
+     * @param {string} subclassName - Name of the subclass to select
+     * @returns {Object|null} The selected subclass or null if not found
      */
     selectSubclass(subclassName) {
-        if (!this.selectedClass) {
+        if (!this._selectedClass || !Array.isArray(this._selectedClass.subclasses)) {
             return null;
         }
 
-        const subclasses = this.selectedClass.getSubclasses();
-        if (!subclasses || subclasses.length === 0) {
-            return null;
+        this._selectedSubclass = this._selectedClass.subclasses.find(sc =>
+            sc.name === subclassName || sc.shortName === subclassName
+        ) || null;
+
+        if (this._selectedSubclass) {
+            eventEmitter.emit('subclass:selected', this._selectedSubclass);
         }
 
-        this.selectedSubclass = subclasses.find(subclass => subclass.name === subclassName);
-        return this.selectedSubclass;
+        return this._selectedSubclass;
     }
 
     /**
      * Get the currently selected class
-     * @returns {ProcessedClass|null} The selected class or null if none selected
+     * @returns {Class|null} Currently selected class
      */
     getSelectedClass() {
-        return this.selectedClass;
+        return this._selectedClass;
     }
 
     /**
      * Get the currently selected subclass
-     * @returns {ProcessedSubclass|null} The selected subclass or null if none selected
+     * @returns {Object|null} Currently selected subclass
      */
     getSelectedSubclass() {
-        return this.selectedSubclass;
+        return this._selectedSubclass;
     }
 
     /**
-     * Get formatted hit die string for display
-     * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted hit die string (e.g., "d8")
+     * Gets the hit dice size
+     * @param {Class|Object} classData - Class data or Class instance
+     * @returns {string} Hit dice size (d6, d8, d10, or d12)
      */
     getFormattedHitDie(classData) {
-        if (!classData) return '';
-        return `d${classData.getHitDice()}`;
+        console.log('DEBUG getFormattedHitDie - Input:', classData);
+        console.log('DEBUG getFormattedHitDie - Type:', typeof classData);
+        console.log('DEBUG getFormattedHitDie - Is Class instance?', classData instanceof Class);
+        console.log('DEBUG getFormattedHitDie - Has getHitDice method?', typeof classData?.getHitDice === 'function');
+        console.log('DEBUG getFormattedHitDie - hitDice property:', classData?.hitDice);
+        console.log('DEBUG getFormattedHitDie - hd property:', classData?.hd);
+
+        if (!classData) {
+            console.log('DEBUG getFormattedHitDie - No classData, returning d8');
+            return 'd8';
+        }
+
+        // Handle Class instance
+        if (classData && typeof classData.getHitDice === 'function') {
+            const hitDice = classData.getHitDice();
+
+            // If hitDice is an object with faces property
+            if (hitDice && typeof hitDice === 'object' && hitDice.faces) {
+                const result = `d${hitDice.faces}`;
+                console.log('DEBUG getFormattedHitDie - Using hitDice.faces, result:', result);
+                return result;
+            }
+
+            // If hitDice is a number
+            if (typeof hitDice === 'number') {
+                const result = `d${hitDice}`;
+                console.log('DEBUG getFormattedHitDie - Using hitDice number, result:', result);
+                return result;
+            }
+        }
+
+        // Handle raw class data
+        let hitDie = classData.hitDice || classData.hd || 8;
+
+        // If hitDie is an object with faces
+        if (hitDie && typeof hitDie === 'object') {
+            hitDie = hitDie.faces || 8;
+        }
+
+        const result = `d${hitDie}`;
+        console.log('DEBUG getFormattedHitDie - Using parsed value, result:', result);
+        return result;
     }
 
     /**
-     * Get formatted skill proficiencies string for display
-     * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted skill proficiencies string
+     * Get formatted skill proficiencies string
+     * @param {Class|Object} classData - Class data or Class instance
+     * @returns {string} Formatted skill proficiencies
      */
     getFormattedSkillProficiencies(classData) {
-        if (!classData) return 'None';
+        console.log('DEBUG getFormattedSkillProficiencies - Input:', classData);
+        console.log('DEBUG getFormattedSkillProficiencies - Type:', typeof classData);
+        console.log('DEBUG getFormattedSkillProficiencies - Is Class instance?', classData instanceof Class);
+        console.log('DEBUG getFormattedSkillProficiencies - Has getSkillProficiencies method?', typeof classData?.getSkillProficiencies === 'function');
+        console.log('DEBUG getFormattedSkillProficiencies - Has getSkillChoiceCount method?', typeof classData?.getSkillChoiceCount === 'function');
+        console.log('DEBUG getFormattedSkillProficiencies - skillProficiencies property:', classData?.skillProficiencies);
 
-        const skillProficiencies = classData.getSkillProficiencies();
-        const skillChoiceCount = classData.getSkillChoiceCount();
+        if (!classData) {
+            console.log('DEBUG getFormattedSkillProficiencies - No classData, returning None');
+            return 'None';
+        }
 
-        if (!skillProficiencies || !skillProficiencies.length) return 'None';
+        let skills = [];
+        let count = 2;
+        let anySkills = false;
 
-        // Handle cases where count might be missing but we still have skills
-        const count = skillChoiceCount || 'any';
-        return `Choose ${count} from: ${skillProficiencies.join(', ')}`;
+        // Handle Class instance
+        if (typeof classData.getSkillProficiencies === 'function') {
+            const rawSkills = classData.getSkillProficiencies();
+            console.log('DEBUG getFormattedSkillProficiencies - Raw skills from method:', rawSkills);
+
+            // Check for "any" skill format
+            if (Array.isArray(rawSkills) && rawSkills.length === 1 && typeof rawSkills[0] === 'object' && rawSkills[0].any !== undefined) {
+                anySkills = true;
+                count = rawSkills[0].any || 2;
+                skills = ["any skill"];
+                console.log('DEBUG getFormattedSkillProficiencies - Found "any" skill format with count:', count);
+            } else {
+                // Process the skills - extract names if they're objects
+                if (Array.isArray(rawSkills)) {
+                    skills = extractSkillNames(rawSkills);
+                    // Check if skills array contains "any skill" indicator
+                    if (skills.length === 1 && skills[0] === "any skill") {
+                        anySkills = true;
+                    }
+                }
+                console.log('DEBUG getFormattedSkillProficiencies - Processed skills:', skills);
+
+                if (!anySkills && typeof classData.getSkillChoiceCount === 'function') {
+                    count = classData.getSkillChoiceCount() || 2;
+                    console.log('DEBUG getFormattedSkillProficiencies - Count from method:', count);
+                }
+            }
+        }
+        // Handle raw class data
+        else {
+            const rawSkills = this._getSkillProficiencies(classData);
+            console.log('DEBUG getFormattedSkillProficiencies - Raw skills from _getSkillProficiencies:', rawSkills);
+
+            // Check for "any" skill format
+            if (Array.isArray(rawSkills) && rawSkills.length === 1 && typeof rawSkills[0] === 'object' && rawSkills[0].any !== undefined) {
+                anySkills = true;
+                count = rawSkills[0].any || 2;
+                skills = ["any skill"];
+                console.log('DEBUG getFormattedSkillProficiencies - Found "any" skill format with count:', count);
+            } else {
+                // Process the skills - extract names if they're objects
+                if (Array.isArray(rawSkills)) {
+                    skills = extractSkillNames(rawSkills);
+                    // Check if skills array contains "any skill" indicator
+                    if (skills.length === 1 && skills[0] === "any skill") {
+                        anySkills = true;
+                    }
+                }
+                console.log('DEBUG getFormattedSkillProficiencies - Processed skills:', skills);
+
+                if (!anySkills) {
+                    count = this._getSkillChoiceCount(classData) || 2;
+                    console.log('DEBUG getFormattedSkillProficiencies - Count from _getSkillChoiceCount:', count);
+                }
+            }
+        }
+
+        if (!skills || !skills.length) {
+            console.log('DEBUG getFormattedSkillProficiencies - No skills, returning None');
+            return 'None';
+        }
+
+        // Special handling for "any skill" case
+        if (anySkills) {
+            const result = `Choose any ${count} skills`;
+            console.log('DEBUG getFormattedSkillProficiencies - Final result (any skills):', result);
+            return result;
+        }
+
+        const result = `Choose ${count} from: ${skills.join(', ')}`;
+        console.log('DEBUG getFormattedSkillProficiencies - Final result:', result);
+        return result;
+
+        // Helper function to extract skill names from various data structures
+        function extractSkillNames(skillsArray) {
+            if (!Array.isArray(skillsArray)) return [];
+
+            let extractedSkills = [];
+
+            for (const skill of skillsArray) {
+                // Case 1: Plain string
+                if (typeof skill === 'string') {
+                    extractedSkills.push(skill);
+                    continue;
+                }
+
+                // Case 2: Object with 'choose' property containing a 'from' array
+                if (skill && typeof skill === 'object') {
+                    // Handle {"any": X} format - means any X skills
+                    if (skill.any !== undefined) {
+                        return ["any skill"];
+                    }
+
+                    if (skill.choose && Array.isArray(skill.choose.from)) {
+                        extractedSkills = extractedSkills.concat(skill.choose.from);
+                        continue;
+                    }
+
+                    // Case 3: Object with direct 'from' array
+                    if (Array.isArray(skill.from)) {
+                        extractedSkills = extractedSkills.concat(skill.from);
+                        continue;
+                    }
+
+                    // Case 4: Object with name property
+                    if (skill.name) {
+                        extractedSkills.push(skill.name);
+                        continue;
+                    }
+
+                    // Case 5: Object with skillName property
+                    if (skill.skillName) {
+                        extractedSkills.push(skill.skillName);
+                        continue;
+                    }
+
+                    // Default: Convert to string as fallback
+                    try {
+                        console.log('DEBUG extractSkillNames - Unhandled skill format:', skill);
+                        extractedSkills.push(JSON.stringify(skill));
+                    } catch (e) {
+                        extractedSkills.push(String(skill));
+                    }
+                }
+            }
+
+            return extractedSkills;
+        }
     }
 
     /**
-     * Get formatted saving throws string for display
-     * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted saving throws string
+     * Get formatted saving throws string
+     * @param {Class} classData - Class data
+     * @returns {string} Formatted saving throws
      */
     getFormattedSavingThrows(classData) {
-        if (!classData) return 'None';
+        if (!classData || !classData.savingThrows || !classData.savingThrows.length) {
+            return 'None';
+        }
 
-        const savingThrows = classData.getSavingThrows();
-        if (!savingThrows || !savingThrows.length) return 'None';
-
-        return savingThrows.join(', ');
+        return classData.savingThrows.join(', ');
     }
 
     /**
-     * Get formatted armor proficiencies string for display
-     * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted armor proficiencies string
+     * Get formatted armor proficiencies string
+     * @param {Class} classData - Class data
+     * @returns {string} Formatted armor proficiencies
      */
     getFormattedArmorProficiencies(classData) {
-        if (!classData) return 'None';
+        if (!classData || !classData.armorProficiencies || !classData.armorProficiencies.length) {
+            return 'None';
+        }
 
-        const armorProficiencies = classData.getArmorProficiencies();
-        if (!armorProficiencies || !armorProficiencies.length) return 'None';
-
-        return armorProficiencies.join(', ');
+        return classData.armorProficiencies.join(', ');
     }
 
     /**
-     * Get formatted weapon proficiencies string for display
-     * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted weapon proficiencies string
+     * Get formatted weapon proficiencies string
+     * @param {Class} classData - Class data
+     * @returns {string} Formatted weapon proficiencies
      */
     getFormattedWeaponProficiencies(classData) {
-        if (!classData) return 'None';
+        if (!classData || !classData.weaponProficiencies || !classData.weaponProficiencies.length) {
+            return 'None';
+        }
 
-        const weaponProficiencies = classData.getWeaponProficiencies();
-        if (!weaponProficiencies || !weaponProficiencies.length) return 'None';
-
-        return weaponProficiencies.join(', ');
+        return classData.weaponProficiencies.join(', ');
     }
 
     /**
-     * Get formatted tool proficiencies string for display
-     * @param {ProcessedClass} classData - The class data
-     * @returns {string} Formatted tool proficiencies string
+     * Get formatted tool proficiencies string
+     * @param {Class} classData - Class data
+     * @returns {string} Formatted tool proficiencies
      */
     getFormattedToolProficiencies(classData) {
-        if (!classData) return 'None';
+        if (!classData || !classData.toolProficiencies || !classData.toolProficiencies.length) {
+            return 'None';
+        }
 
-        const toolProficiencies = classData.getToolProficiencies();
-        if (!toolProficiencies || !toolProficiencies.length) return 'None';
+        return classData.toolProficiencies.join(', ');
+    }
 
-        return toolProficiencies.join(', ');
+    /**
+     * Generates a unique class ID
+     * @param {Object} classItem - Class data object
+     * @returns {string} Unique class identifier
+     * @private
+     */
+    _generateClassId(classItem) {
+        return `${classItem.name}_${(classItem.source || 'PHB')}`;
+    }
+
+    /**
+     * Generates a unique subclass ID
+     * @param {Object} subclass - Subclass data object
+     * @returns {string} Unique subclass identifier
+     * @private
+     */
+    _generateSubclassId(subclass) {
+        return `${subclass.className}_${subclass.name}_${(subclass.source || 'PHB')}`;
+    }
+
+    /**
+     * Finds the parent class ID for a subclass
+     * @param {Object} subclass - Subclass data object
+     * @returns {string|null} Parent class ID or null if not found
+     * @private
+     */
+    _findParentClassId(subclass) {
+        if (!subclass.className) return null;
+
+        // Try to find with exact class source
+        const classSource = subclass.classSource || 'PHB';
+        const classId = `${subclass.className}_${classSource}`;
+
+        // If classes has this ID, return it
+        if (this._classes.has(classId)) {
+            return classId;
+        }
+
+        // Otherwise, try to find a class with the same name but different source
+        for (const [id, classData] of this._classes.entries()) {
+            if (classData.name === subclass.className) {
+                return id;
+            }
+        }
+
+        return null;
     }
 }
 
-/**
- * Export the singleton instance
- * @type {ClassManager}
- */
-export const classManager = ClassManager.getInstance(); 
+// Create and export singleton instance
+export const classManager = new ClassManager(); 

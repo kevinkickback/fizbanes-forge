@@ -1,20 +1,45 @@
 /**
  * Background.js
- * Model class for character backgrounds
+ * Model class representing a character background in the D&D Character Creator
  */
 
+/**
+ * Represents a character background with its proficiencies, languages, and features
+ */
 export class Background {
     /**
      * Creates a new Background instance
      * @param {Object} data - Background data
      */
     constructor(data = {}) {
+        /**
+         * Unique identifier for the background
+         * @type {string}
+         */
         this.id = data.id || `${data.name}_${data.source || 'PHB'}`;
+
+        /**
+         * Name of the background
+         * @type {string}
+         */
         this.name = data.name || '';
+
+        /**
+         * Source book for the background
+         * @type {string}
+         */
         this.source = data.source || 'PHB';
+
+        /**
+         * Background description
+         * @type {string}
+         */
         this.description = data.description || '';
 
-        // Ensure proficiencies has the correct structure
+        /**
+         * Proficiencies granted by this background
+         * @type {Object}
+         */
         this.proficiencies = {
             skills: {
                 fixed: (data.proficiencies?.skills?.fixed || []).slice(),
@@ -26,37 +51,72 @@ export class Background {
             }
         };
 
-        // Ensure languages has the correct structure
+        /**
+         * Languages granted by this background
+         * @type {Object}
+         */
         this.languages = {
             fixed: (data.languages?.fixed || []).slice(),
             choices: data.languages?.choices || { count: 0, from: [] }
         };
 
+        /**
+         * Starting equipment provided by this background
+         * @type {Array}
+         */
         this.equipment = Array.isArray(data.equipment) ? data.equipment.slice() : [];
+
+        /**
+         * Special feature granted by this background
+         * @type {Object}
+         */
         this.feature = data.feature || { name: '', description: '' };
+
+        /**
+         * Character characteristics tables (personality, ideals, bonds, flaws)
+         * @type {Object}
+         */
         this.characteristics = data.characteristics || {
             personalityTraits: [],
             ideals: [],
             bonds: [],
             flaws: []
         };
-        this.variants = data.variants || [];
-        this.imageUrl = data.imageUrl || '';
 
+        /**
+         * Alternative variants of this background
+         * @type {Array}
+         */
+        this.variants = data.variants || [];
+
+        /**
+         * URL to an image representing this background
+         * @type {string}
+         */
+        this.imageUrl = data.imageUrl || '';
     }
+
+    //-------------------------------------------------------------------------
+    // Factory methods
+    //-------------------------------------------------------------------------
 
     /**
      * Creates a new Background instance from processed background data
      * @param {Object} backgroundData - Processed background data from BackgroundManager
      * @returns {Background} A new Background instance
+     * @static
      */
     static fromProcessedData(backgroundData) {
         return new Background(backgroundData);
     }
 
+    //-------------------------------------------------------------------------
+    // Choice availability
+    //-------------------------------------------------------------------------
+
     /**
-     * Returns whether this background has any proficiency choices
-     * @returns {boolean} True if the background has skill or tool choices
+     * Checks if this background has any proficiency choices
+     * @returns {boolean} Whether the background has skill or tool choices
      */
     hasProficiencyChoice() {
         const skillChoices = this.proficiencies?.skills?.choices?.count || 0;
@@ -65,12 +125,16 @@ export class Background {
     }
 
     /**
-     * Returns whether this background has any language choices
-     * @returns {boolean} True if the background has language choices
+     * Checks if this background has any language choices
+     * @returns {boolean} Whether the background has language choices
      */
     hasLanguageChoice() {
         return (this.languages?.choices?.count || 0) > 0;
     }
+
+    //-------------------------------------------------------------------------
+    // Fixed proficiencies and languages
+    //-------------------------------------------------------------------------
 
     /**
      * Gets the fixed proficiencies for this background
@@ -104,6 +168,10 @@ export class Background {
         return this.languages?.fixed || [];
     }
 
+    //-------------------------------------------------------------------------
+    // Features and characteristics
+    //-------------------------------------------------------------------------
+
     /**
      * Gets available variants for this background
      * @returns {Array} Array of variant objects
@@ -114,7 +182,7 @@ export class Background {
 
     /**
      * Gets the feature for this background
-     * @returns {Object} The background feature
+     * @returns {Object} The background feature with name and description
      */
     getFeature() {
         return this.feature || { name: '', description: '' };
@@ -138,9 +206,12 @@ export class Background {
      * @returns {string} The background description
      */
     getDescription() {
-        // For debugging
         return this.description || '';
     }
+
+    //-------------------------------------------------------------------------
+    // Utility methods
+    //-------------------------------------------------------------------------
 
     /**
      * Serializes the background to JSON
@@ -157,7 +228,16 @@ export class Background {
             equipment: this.equipment,
             feature: this.feature,
             characteristics: this.characteristics,
-            variants: this.variants
+            variants: this.variants,
+            imageUrl: this.imageUrl
         };
+    }
+
+    /**
+     * Returns a string representation of the background
+     * @returns {string} String representation
+     */
+    toString() {
+        return `${this.name} (${this.source})`;
     }
 } 

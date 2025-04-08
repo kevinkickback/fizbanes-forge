@@ -1,43 +1,81 @@
 /**
- * SpellLoader.js
+ * SpellLoader
  * Handles loading and caching of spell data
  * 
  * @typedef {Object} RawSpell
- * @property {string} name - Name of the spell
- * @property {string} source - Source book identifier
- * @property {number} level - Spell level
- * @property {Object} school - School of magic
- * @property {Object} range - Range and targeting information
+ * @property {string} name - Spell name
+ * @property {string} source - Source book (e.g., "PHB")
+ * @property {number} page - Page number
+ * @property {boolean} [srd] - Whether spell is in SRD
+ * @property {boolean} [basicRules] - Whether spell is in Basic Rules
+ * @property {Array<string>} [reprintedAs] - References to reprints
+ * @property {number|string} level - Spell level (0-9)
+ * @property {string} school - Magic school code (e.g., "C" for Conjuration)
+ * @property {Array<Object>} time - Casting time details
+ * @property {Object} range - Range information
+ * @property {string} range.type - Range type (e.g., "point")
+ * @property {Object} range.distance - Distance details
  * @property {Object} components - Spell components
+ * @property {boolean} components.v - Verbal component
+ * @property {boolean} components.s - Somatic component
+ * @property {string} [components.m] - Material component description
  * @property {Array<Object>} duration - Duration details
- * @property {Array<Object>} entries - Description entries
- * @property {Object} classes - Classes that can cast the spell
+ * @property {Array<string>} entries - Spell description text
+ * @property {Object} [scalingLevelDice] - Scaling damage information
+ * @property {Array<string>} [damageInflict] - Types of damage inflicted
+ * @property {Array<string>} [savingThrow] - Required saving throws
+ * @property {Array<string>} [miscTags] - Miscellaneous tags
+ * @property {Array<string>} [areaTags] - Area of effect tags
+ * @property {Object} [meta] - Metadata like ritual status
+ * @property {Array<Object>} [entriesHigherLevel] - Higher level casting entries
+ * 
+ * @typedef {Object} RawFluff
+ * @property {string} name - Spell name
+ * @property {string} source - Source book
+ * @property {Array<Object>} entries - Spell fluff entries
+ * 
+ * @typedef {Object} SpellData
+ * @property {Array<RawSpell>} spell - Array of spells
+ * @property {Array<RawFluff>} [spellFluff] - Array of spell fluff
  */
 
 import { BaseLoader } from './BaseLoader.js';
 
 /**
- * SpellLoader.js
  * Handles loading and caching of spell data
  */
 export class SpellLoader extends BaseLoader {
+    /**
+     * Creates a new SpellLoader instance
+     * @param {Object} [options={}] - Loader options
+     */
     constructor(options = {}) {
         super({
             ...options,
             maxCacheSize: options.maxCacheSize || 200,
             defaultExpiry: options.defaultExpiry || 3600000 // 1 hour
         });
-        this.baseDir = 'spells';
+
+        /**
+         * Base directory for spell data
+         * @type {string}
+         * @private
+         */
+        this._baseDir = 'spells';
     }
+
+    //-------------------------------------------------------------------------
+    // Index Loading Methods
+    //-------------------------------------------------------------------------
 
     /**
      * Load spell index data
-     * @private
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @returns {Promise<Object>} Index data mapping sources to files
+     * @private
      */
-    async loadIndex(options = {}) {
-        return this.loadJsonFile(`${this.baseDir}/index.json`, {
+    async _loadIndex(options = {}) {
+        return this.loadJsonFile(`${this._baseDir}/index.json`, {
             ...options,
             maxRetries: 3
         });
@@ -45,26 +83,30 @@ export class SpellLoader extends BaseLoader {
 
     /**
      * Load fluff index data
-     * @private
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @returns {Promise<Object>} Index data mapping sources to fluff files
+     * @private
      */
-    async loadFluffIndex(options = {}) {
-        return this.loadJsonFile(`${this.baseDir}/fluff-index.json`, {
+    async _loadFluffIndex(options = {}) {
+        return this.loadJsonFile(`${this._baseDir}/fluff-index.json`, {
             ...options,
             maxRetries: 2
         }).catch(() => ({}));
     }
 
+    //-------------------------------------------------------------------------
+    // Spell Data Loading Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Load spell data from a source file
-     * @private
      * @param {string} filePath - Source file path
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @returns {Promise<Object>} Raw spell data from source
+     * @private
      */
-    async loadSourceFile(filePath, options = {}) {
-        return this.loadJsonFile(`${this.baseDir}/${filePath}`, {
+    async _loadSourceFile(filePath, options = {}) {
+        return this.loadJsonFile(`${this._baseDir}/${filePath}`, {
             ...options,
             maxRetries: 3
         });
@@ -72,41 +114,44 @@ export class SpellLoader extends BaseLoader {
 
     /**
      * Load spell fluff data from a source file
-     * @private
      * @param {string} filePath - Source file path
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @returns {Promise<Object>} Raw fluff data from source
+     * @private
      */
-    async loadFluffFile(filePath, options = {}) {
-        return this.loadJsonFile(`${this.baseDir}/${filePath}`, {
+    async _loadFluffFile(filePath, options = {}) {
+        return this.loadJsonFile(`${this._baseDir}/${filePath}`, {
             ...options,
             maxRetries: 2
         }).catch(() => ({ spellFluff: [] }));
     }
 
+    //-------------------------------------------------------------------------
+    // Public API Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Load all spell data
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @returns {Promise<{spell: RawSpell[], spellFluff: RawFluff[]}>} Raw spell data
      */
     async loadSpells(options = {}) {
         return this.getOrLoadData('spells', async () => {
             try {
-
                 // Load indexes
                 const [index, fluffIndex] = await Promise.all([
-                    this.loadIndex(options),
-                    this.loadFluffIndex(options)
+                    this._loadIndex(options),
+                    this._loadFluffIndex(options)
                 ]);
 
                 // Load all spell data files
                 const spellPromises = Object.entries(index).map(([source, file]) =>
-                    this.loadSourceFile(file, options)
+                    this._loadSourceFile(file, options)
                 );
 
                 // Load all fluff data files
                 const fluffPromises = Object.entries(fluffIndex).map(([source, file]) =>
-                    this.loadFluffFile(file, options)
+                    this._loadFluffFile(file, options)
                 );
 
                 // Wait for all data to load
@@ -150,8 +195,8 @@ export class SpellLoader extends BaseLoader {
 
     /**
      * Load spells in chunks for better performance
-     * @param {number} chunkSize - Size of each chunk
-     * @param {Object} options - Loading options
+     * @param {number} [chunkSize=20] - Size of each chunk
+     * @param {Object} [options={}] - Loading options
      * @returns {AsyncGenerator<{type: string, items: RawSpell[]}>} Generator yielding chunks of spell data
      */
     async *loadSpellsInChunks(chunkSize = 20, options = {}) {
@@ -165,41 +210,5 @@ export class SpellLoader extends BaseLoader {
                 };
             }
         }
-    }
-
-    /**
-     * Get spell by ID
-     * @param {string} spellId - Spell identifier (format: "name_source" in lowercase)
-     * @param {Object} options - Loading options
-     * @returns {Promise<RawSpell|null>} Raw spell data or null if not found
-     */
-    async getSpellById(spellId, options = {}) {
-        const cacheKey = `spell_${spellId}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadSpells(options);
-            return data.spell.find(s => {
-                const source = (s.source || 'phb').toLowerCase();
-                const name = s.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                return `${name}_${source}` === spellId.toLowerCase();
-            }) || null;
-        }, options);
-    }
-
-    /**
-     * Get spell fluff data
-     * @param {string} name - Spell name
-     * @param {string} source - Source book
-     * @param {Object} options - Loading options
-     * @returns {Promise<RawFluff|null>} Raw fluff data or null if not found
-     */
-    async getSpellFluff(name, source, options = {}) {
-        const cacheKey = `spell_fluff_${name}_${source}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadSpells(options);
-            return data.spellFluff.find(f =>
-                f.name === name &&
-                (f.source || 'phb').toLowerCase() === source.toLowerCase()
-            ) || null;
-        }, options);
     }
 } 

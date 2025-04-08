@@ -18,60 +18,130 @@ import { raceManager } from '../managers/RaceManager.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 import { tooltipManager } from '../managers/TooltipManager.js';
 import { characterHandler } from '../utils/characterHandler.js';
+import { abilityScoreManager } from '../managers/AbilityScoreManager.js';
 
+/**
+ * Manages the race selection UI component and related functionality
+ */
 export class RaceCard {
+    /**
+     * Creates a new RaceCard instance
+     */
     constructor() {
-        this.raceManager = raceManager;
-        this.raceSelect = document.getElementById('raceSelect');
-        this.subraceSelect = document.getElementById('subraceSelect');
-        this.raceQuickDesc = document.getElementById('raceQuickDesc');
-        this.raceDetails = document.getElementById('raceDetails');
+        /**
+         * Reference to the race manager singleton
+         * @type {RaceManager}
+         * @private
+         */
+        this._raceManager = raceManager;
 
+        /**
+         * The main race selection dropdown element
+         * @type {HTMLSelectElement}
+         * @private
+         */
+        this._raceSelect = document.getElementById('raceSelect');
+
+        /**
+         * The subrace selection dropdown element
+         * @type {HTMLSelectElement}
+         * @private
+         */
+        this._subraceSelect = document.getElementById('subraceSelect');
+
+        /**
+         * The quick description element for displaying race summary
+         * @type {HTMLElement}
+         * @private
+         */
+        this._raceQuickDesc = document.getElementById('raceQuickDesc');
+
+        /**
+         * The container element for race details
+         * @type {HTMLElement}
+         * @private
+         */
+        this._raceDetails = document.getElementById('raceDetails');
+
+        // Initialize the component
         this.initialize();
     }
 
+    //-------------------------------------------------------------------------
+    // Initialization Methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Initialize the race card
+     * Initializes the race card UI components and event listeners
+     * @returns {Promise<void>}
      */
     async initialize() {
         try {
-            await this.raceManager.initialize();
+            // Initialize required dependencies
+            await this._raceManager.initialize();
             await textProcessor.initialize();
             tooltipManager.initialize();
-            this.setupEventListeners();
-            await this.loadSavedRaceSelection();
+
+            // Set up event listeners
+            this._setupEventListeners();
+
+            // Load saved race selection from character data
+            await this._loadSavedRaceSelection();
         } catch (error) {
             console.error('Failed to initialize race card:', error);
         }
     }
 
     /**
-     * Load and set the saved race selection
+     * Sets up event listeners for race and subrace selection changes
+     * @private
      */
-    async loadSavedRaceSelection() {
+    _setupEventListeners() {
+        this._raceSelect.addEventListener('change', event => this._handleRaceChange(event));
+        this._subraceSelect.addEventListener('change', event => this._handleSubraceChange(event));
+        document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
+    }
+
+    //-------------------------------------------------------------------------
+    // Data Loading Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Loads and sets the saved race selection from the character data
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _loadSavedRaceSelection() {
         try {
-            this.populateRaceSelect();
+            // Populate race dropdown first
+            this._populateRaceSelect();
 
             const character = characterHandler?.currentCharacter;
-            if (character?.race?.name && character?.race?.source) {
-                const raceValue = `${character.race.name}_${character.race.source}`;
-                const raceExists = Array.from(this.raceSelect.options).some(option => option.value === raceValue);
+            if (!character?.race?.name || !character?.race?.source) {
+                return; // No saved race to load
+            }
 
-                if (raceExists) {
-                    this.raceSelect.value = raceValue;
-                    this.raceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            // Set the race selection if it exists in available options
+            const raceValue = `${character.race.name}_${character.race.source}`;
+            const raceExists = Array.from(this._raceSelect.options).some(option => option.value === raceValue);
 
-                    if (character.race.subrace) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        const subraceExists = Array.from(this.subraceSelect.options).some(option => option.value === character.race.subrace);
-                        if (subraceExists) {
-                            this.subraceSelect.value = character.race.subrace;
-                            this.subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
+            if (raceExists) {
+                this._raceSelect.value = raceValue;
+                this._raceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // Also set subrace if one was selected
+                if (character.race.subrace) {
+                    // Wait for subrace options to populate
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const subraceExists = Array.from(this._subraceSelect.options).some(option => option.value === character.race.subrace);
+
+                    if (subraceExists) {
+                        this._subraceSelect.value = character.race.subrace;
+                        this._subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
                     }
-                } else {
-                    console.warn(`Saved race "${raceValue}" not found in available options. Character might use a source that's not currently allowed.`);
                 }
+            } else {
+                console.warn(`Saved race "${raceValue}" not found in available options. Character might use a source that's not currently allowed.`);
             }
         } catch (error) {
             console.error('Error loading saved race selection:', error);
@@ -79,37 +149,56 @@ export class RaceCard {
     }
 
     /**
-     * Populate the race select dropdown
+     * Populates the race selection dropdown with all available races
+     * filtered by allowed sources
+     * @private
      */
-    populateRaceSelect() {
-        this.raceSelect.innerHTML = '<option value="">Select a Race</option>';
+    _populateRaceSelect() {
+        this._raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
-        const races = this.raceManager.getAllRaces();
+        const races = this._raceManager.getAllRaces();
+        if (!races || races.length === 0) {
+            console.error('No races available to populate dropdown');
+            return;
+        }
+
         const currentCharacter = characterHandler.currentCharacter;
         const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
         const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
+        // Filter races by allowed sources
         const filteredRaces = races.filter(race => {
             const raceSource = race.source?.toUpperCase();
             return upperAllowedSources.has(raceSource);
         });
 
+        // Sort races by name
+        filteredRaces.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Add options to select
         for (const race of filteredRaces) {
             const option = document.createElement('option');
             option.value = `${race.name}_${race.source}`;
             option.textContent = `${race.name} (${race.source})`;
-            this.raceSelect.appendChild(option);
+            this._raceSelect.appendChild(option);
         }
     }
 
     /**
-     * Populate the subrace select dropdown
-     * @param {Race} race - Selected race
+     * Populates the subrace selection dropdown based on the currently selected race
+     * filtered by allowed sources
+     * @param {Race} race - The selected race data
+     * @private
      */
-    populateSubraceSelect(race) {
+    _populateSubraceSelect(race) {
+        this._subraceSelect.innerHTML = '<option value="">No Subraces</option>';
+        this._subraceSelect.disabled = true;
+
         if (!race) {
-            this.subraceSelect.innerHTML = '<option value="">No Subraces</option>';
-            this.subraceSelect.disabled = true;
+            return;
+        }
+
+        if (!race.subraces || race.subraces.length === 0) {
             return;
         }
 
@@ -117,40 +206,144 @@ export class RaceCard {
         const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
         const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
-        if (!race.subraces || race.subraces.length === 0) {
-            this.subraceSelect.innerHTML = '<option value="">No Subraces</option>';
-            this.subraceSelect.disabled = true;
-            return;
-        }
-
+        // Filter subraces by allowed sources and validate they have names
         const filteredSubraces = race.subraces.filter(subrace => {
             const subraceSource = subrace.source?.toUpperCase() || race.source.toUpperCase();
             return upperAllowedSources.has(subraceSource) && subrace.name && subrace.name.trim() !== '';
         });
 
         if (filteredSubraces.length === 0) {
-            this.subraceSelect.innerHTML = '<option value="">No Subraces</option>';
-            this.subraceSelect.disabled = true;
             return;
         }
 
-        this.subraceSelect.innerHTML = '<option value="">Select Subrace</option>';
-        this.subraceSelect.disabled = false;
+        // Sort subraces by name
+        filteredSubraces.sort((a, b) => a.name.localeCompare(b.name));
+
+        this._subraceSelect.innerHTML = '<option value="">Select Subrace</option>';
+        this._subraceSelect.disabled = false;
+
+        // Add options to select
         for (const subrace of filteredSubraces) {
             const option = document.createElement('option');
             option.value = subrace.name;
             option.textContent = subrace.name;
-            this.subraceSelect.appendChild(option);
+            this._subraceSelect.appendChild(option);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Handlers
+    //-------------------------------------------------------------------------
+
+    /**
+     * Handles race selection change events
+     * @param {Event} event - The change event
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _handleRaceChange(event) {
+        try {
+            const [raceName, source] = event.target.value.split('_');
+
+            if (!raceName || !source) {
+                this.resetRaceDetails();
+                this._populateSubraceSelect(null);
+                return;
+            }
+
+            const raceData = this._raceManager.getRace(raceName, source);
+            if (!raceData) {
+                console.error(`Race not found: ${raceName} (${source})`);
+                return;
+            }
+
+            // Set this race as the selected race in the race manager
+            this._raceManager.selectRace(raceName, source);
+
+            // Update the UI with the selected race data
+            await this.updateQuickDescription(raceData);
+            await this.updateRaceDetails(raceData);
+            this._populateSubraceSelect(raceData);
+
+            // Update character data
+            this._updateCharacterRace(raceData);
+
+        } catch (error) {
+            console.error('Error handling race change:', error);
         }
     }
 
     /**
-     * Update the race quick description
-     * @param {Race} race - Selected race
+     * Handles subrace selection change events
+     * @param {Event} event - The change event
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _handleSubraceChange(event) {
+        try {
+            const subraceName = event.target.value;
+            const raceValue = this._raceSelect.value;
+            const [raceName, source] = raceValue.split('_');
+
+            if (!raceName || !source) {
+                return;
+            }
+
+            const raceData = this._raceManager.getRace(raceName, source);
+            if (!raceData) {
+                console.error(`Race not found: ${raceName} (${source})`);
+                return;
+            }
+
+            let subraceData = null;
+            if (subraceName) {
+                subraceData = raceData.getSubrace(subraceName);
+                // Also set the subrace in the race manager
+                this._raceManager.selectSubrace(subraceName);
+            }
+
+            // Update the UI with the subrace data
+            await this.updateRaceDetails(raceData, subraceData);
+
+            // Update character data
+            this._updateCharacterRace(raceData, subraceData);
+
+        } catch (error) {
+            console.error('Error handling subrace change:', error);
+        }
+    }
+
+    /**
+     * Handles character changed events
+     * @param {Event} event - The character changed event
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _handleCharacterChanged(event) {
+        try {
+            const character = event.detail?.character;
+            if (!character) return;
+
+            // Reload race selection to match character's race
+            await this._loadSavedRaceSelection();
+
+        } catch (error) {
+            console.error('Error handling character changed event:', error);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // UI Update Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Updates the quick description for the selected race
+     * @param {Race} race - The race data
+     * @returns {Promise<void>}
      */
     async updateQuickDescription(race) {
         if (!race) {
-            this.raceQuickDesc.innerHTML = `
+            this._raceQuickDesc.innerHTML = `
                 <div class="placeholder-content">
                     <h5>Select a Race</h5>
                     <p>Choose a race to see details about their traits, abilities, and other characteristics.</p>
@@ -159,20 +352,53 @@ export class RaceCard {
             return;
         }
 
-        const firstEntry = race.entries.find(entry => typeof entry === 'string');
-        const description = firstEntry || 'No description available.';
+        // Get the description from the race entries
+        // First look for any string entry, which is typically the description
+        let description = '';
+
+        // Try to get the first string entry which is a description
+        if (race.entries && Array.isArray(race.entries)) {
+            // Find the first string entry (typical race description)
+            const firstStringEntry = race.entries.find(entry => typeof entry === 'string');
+            if (firstStringEntry) {
+                description = firstStringEntry;
+            }
+            // If no string entry, look for entries with type "entries" which may contain the description
+            else {
+                const entriesObj = race.entries.find(entry =>
+                    entry && typeof entry === 'object' && entry.type === 'entries' && Array.isArray(entry.entries));
+
+                if (entriesObj && entriesObj.entries.length > 0) {
+                    const firstEntry = entriesObj.entries[0];
+                    if (typeof firstEntry === 'string') {
+                        description = firstEntry;
+                    }
+                }
+            }
+        }
+
+        // Fallback if no description was found
+        if (!description) {
+            if (race.getDescription && typeof race.getDescription === 'function') {
+                description = race.getDescription();
+            } else {
+                description = `${race.name} are a playable race in D&D.`;
+            }
+        }
+
         const processedDescription = await textProcessor.processString(description);
 
-        this.raceQuickDesc.innerHTML = `
+        this._raceQuickDesc.innerHTML = `
             <h5>${race.name}</h5>
             <p>${processedDescription}</p>
         `;
     }
 
     /**
-     * Update the race details section
-     * @param {Race} race - Selected race
-     * @param {Subrace} subrace - Selected subrace
+     * Updates the display of race details for the selected race and subrace
+     * @param {Race} race - The race data to display
+     * @param {Subrace} subrace - The optional subrace data
+     * @returns {Promise<void>}
      */
     async updateRaceDetails(race, subrace) {
         if (!race) {
@@ -180,23 +406,24 @@ export class RaceCard {
             return;
         }
 
-        await this._updateAbilityScores(race);
+        await this._updateAbilityScores(race, subrace);
         await this._updateSizeAndSpeed(race);
         await this._updateLanguages(race);
-        await this._updateTraits(race);
+        await this._updateTraits(race, subrace);
 
         // Process the entire details container to resolve reference tags
-        await textProcessor.processElement(this.raceDetails);
+        await textProcessor.processElement(this._raceDetails);
     }
 
     /**
      * Update ability scores section
      * @param {Race} race - Selected race
+     * @param {Object} subrace - Selected subrace
      * @private
      */
-    async _updateAbilityScores(race) {
-        const abilitySection = this.raceDetails.querySelector('.detail-section:nth-child(1) ul');
-        const abilityImprovements = this.raceManager.getFormattedAbilityImprovements().split('\n');
+    async _updateAbilityScores(race, subrace) {
+        const abilitySection = this._raceDetails.querySelector('.detail-section:nth-child(1) ul');
+        const abilityImprovements = this._raceManager.getFormattedAbilityImprovements(race, subrace).split('\n');
         abilitySection.innerHTML = abilityImprovements.map(improvement => `<li>${improvement}</li>`).join('');
     }
 
@@ -206,12 +433,46 @@ export class RaceCard {
      * @private
      */
     async _updateSizeAndSpeed(race) {
-        const sizeSection = this.raceDetails.querySelector('.detail-section:nth-child(2) ul');
-        sizeSection.innerHTML = `<li>${race.getSize().value}</li>`;
+        try {
+            const sizeSection = this._raceDetails.querySelector('.detail-section:nth-child(2) ul');
 
-        const speedSection = this.raceDetails.querySelector('.detail-section:nth-child(3) ul');
-        const speeds = this.raceManager.getFormattedMovementSpeeds().split('\n');
-        speedSection.innerHTML = speeds.map(speed => `<li>${speed}</li>`).join('') || '<li>None</li>';
+            // Safely get size value
+            let sizeValue = 'Medium';
+            try {
+                // Get size information, handling multiple sizes
+                const sizeInfo = race.getSize();
+
+                if (sizeInfo) {
+                    if (sizeInfo.value?.includes(' or ')) {
+                        // Handle multiple size options (e.g., "Medium or Small")
+                        sizeValue = sizeInfo.value;
+                    } else if (sizeInfo.value) {
+                        // Single size value
+                        sizeValue = sizeInfo.value;
+                    } else if (sizeInfo.choices && Array.isArray(sizeInfo.choices) && sizeInfo.choices.length > 0) {
+                        // Use choices if value is missing but choices exist
+                        sizeValue = sizeInfo.choices.join(' or ');
+                    }
+                }
+            } catch (e) {
+                console.warn('Error getting race size:', e);
+            }
+
+            sizeSection.innerHTML = `<li>${sizeValue}</li>`;
+
+            const speedSection = this._raceDetails.querySelector('.detail-section:nth-child(3) ul');
+            const speeds = this._raceManager.getFormattedMovementSpeeds(race).split('\n');
+            speedSection.innerHTML = speeds.map(speed => `<li>${speed}</li>`).join('') || '<li>None</li>';
+        } catch (error) {
+            console.error('Error updating size and speed:', error);
+
+            // Set default values if there's an error
+            const sizeSection = this._raceDetails.querySelector('.detail-section:nth-child(2) ul');
+            sizeSection.innerHTML = '<li>Medium</li>';
+
+            const speedSection = this._raceDetails.querySelector('.detail-section:nth-child(3) ul');
+            speedSection.innerHTML = '<li>Walk: 30 ft.</li>';
+        }
     }
 
     /**
@@ -220,19 +481,20 @@ export class RaceCard {
      * @private
      */
     async _updateLanguages(race) {
-        const languageSection = this.raceDetails.querySelector('.detail-section:nth-child(4) ul');
-        const languages = this.raceManager.getFormattedLanguages().split('\n');
+        const languageSection = this._raceDetails.querySelector('.detail-section:nth-child(4) ul');
+        const languages = this._raceManager.getFormattedLanguages(race).split('\n');
         languageSection.innerHTML = languages.map(language => `<li>${language}</li>`).join('');
     }
 
     /**
      * Update traits section
      * @param {Race} race - Selected race
+     * @param {Object} subrace - Selected subrace
      * @private
      */
-    async _updateTraits(race) {
-        const traitsSection = this.raceDetails.querySelector('.traits-section');
-        const traits = this.raceManager.getCombinedTraits();
+    async _updateTraits(race, subrace) {
+        const traitsSection = this._raceDetails.querySelector('.traits-section');
+        const traits = this._raceManager.getCombinedTraits(race, subrace);
 
         if (traits.length > 0) {
             const processedTraits = await Promise.all(traits.map(async trait => {
@@ -266,48 +528,10 @@ export class RaceCard {
      * Reset the race details section to placeholder state
      */
     resetRaceDetails() {
-        const sections = this.raceDetails.querySelectorAll('.detail-section ul');
+        const sections = this._raceDetails.querySelectorAll('.detail-section ul');
         for (const section of sections) {
             section.innerHTML = '<li class="placeholder-text">—</li>';
         }
-    }
-
-    /**
-     * Setup event listeners for race selection
-     */
-    setupEventListeners() {
-        this.raceSelect.addEventListener('change', this._handleRaceChange.bind(this));
-        this.subraceSelect.addEventListener('change', this._handleSubraceChange.bind(this));
-    }
-
-    /**
-     * Handle race selection change
-     * @param {Event} event - The change event
-     * @private
-     */
-    async _handleRaceChange(event) {
-        const [raceName, source] = event.target.value.split('_');
-        const race = this.raceManager.selectRace(raceName, source);
-
-        this.populateSubraceSelect(race);
-        await this.updateQuickDescription(race);
-        await this.updateRaceDetails(race, null);
-
-        this._updateCharacterRace(race, null);
-    }
-
-    /**
-     * Handle subrace selection change
-     * @param {Event} event - The change event
-     * @private
-     */
-    async _handleSubraceChange(event) {
-        const subraceName = event.target.value;
-        const subrace = this.raceManager.selectSubrace(subraceName);
-        const race = this.raceManager.getSelectedRace();
-
-        await this.updateRaceDetails(race, subrace);
-        this._updateCharacterRace(race, subrace);
     }
 
     /**
@@ -321,14 +545,12 @@ export class RaceCard {
         if (!character) return;
 
         // Check if race has changed
-        const hasChanged = !race ?
-            (character.race?.name || character.race?.source) :
+        const hasChanged =
             (character.race?.name !== race.name ||
                 character.race?.source !== race.source ||
                 character.race?.subrace !== (subrace?.name || ''));
 
         if (hasChanged) {
-
             // Clear previous race proficiencies, ability bonuses, and traits
             character.removeProficienciesBySource('Race');
             character.clearAbilityBonuses('Race');
@@ -355,6 +577,9 @@ export class RaceCard {
                 // Clear racial traits
                 character.features.darkvision = 0;
                 character.features.resistances.clear();
+
+                // Clear ability choices since there's no race
+                character.clearPendingChoicesByType('ability');
             } else {
                 // Set race
                 character.race = {
@@ -367,7 +592,10 @@ export class RaceCard {
                 character.size = race.size;
                 character.speed = { ...race.speed };
 
-                // Update ability scores
+                // Clear old ability choices before updating bonuses
+                character.clearPendingChoicesByType('ability');
+
+                // Update ability scores and get new choices
                 this._updateAbilityBonuses(race, subrace);
 
                 // Add traits
@@ -384,13 +612,10 @@ export class RaceCard {
                 }, 100);
             }
 
-            // Trigger an event to update the UI
+            // Trigger events to update the UI
             document.dispatchEvent(new CustomEvent('raceChanged', { detail: { race, subrace } }));
             document.dispatchEvent(new CustomEvent('characterChanged'));
             document.dispatchEvent(new CustomEvent('abilityScoresChanged', { detail: { character } }));
-
-            // Clear pending ability choices from race
-            character.clearPendingChoicesByType('ability');
         }
     }
 
@@ -638,9 +863,9 @@ export class RaceCard {
     }
 
     /**
-     * Update character's ability bonuses based on race and subrace
+     * Updates ability bonuses based on race and subrace
      * @param {Race} race - Selected race
-     * @param {Subrace} subrace - Selected subrace
+     * @param {Object} subrace - Selected subrace
      * @private
      */
     _updateAbilityBonuses(race, subrace) {
@@ -652,42 +877,65 @@ export class RaceCard {
         character.clearAbilityBonuses('Subrace');
         character.clearPendingAbilityChoices();
 
-        // Add fixed ability improvements
-        const fixedImprovements = this.raceManager.getFixedAbilityImprovements();
-        for (const improvement of fixedImprovements) {
-            // Always apply race improvements
-            if (improvement.source === 'Race') {
-                character.addAbilityBonus(improvement.ability, improvement.value, improvement.source);
+        try {
+            // Special handling for Half-Elf (PHB)
+            if (race.name === 'Half-Elf' && race.source === 'PHB') {
+                // Add fixed +2 Charisma bonus
+                character.addAbilityBonus('charisma', 2, 'Race');
             }
-            // Apply subrace improvements if there is a subrace
-            if (subrace && improvement.source === 'Subrace') {
-                character.addAbilityBonus(improvement.ability, improvement.value, improvement.source);
-            }
-        }
 
-        // Add ability score choices
-        const choices = this.raceManager.getAbilityScoreChoices();
-        let hasAddedChoices = false;
+            // Add fixed ability improvements (passing race and subrace directly)
+            const fixedImprovements = this._raceManager.getFixedAbilityImprovements(race, subrace);
+            console.debug('Fixed ability improvements:', JSON.stringify(fixedImprovements));
 
-        for (const choice of choices) {
-            // Always apply race choices
-            if (choice.source.startsWith('Race Choice')) {
-                character.addPendingAbilityChoice(choice);
-                hasAddedChoices = true;
-            }
-            // Apply subrace choices if there is a subrace
-            if (subrace && choice.source.startsWith('Subrace Choice')) {
-                character.addPendingAbilityChoice(choice);
-                hasAddedChoices = true;
-            }
-        }
+            for (const improvement of fixedImprovements) {
+                if (!improvement || !improvement.ability) {
+                    console.warn('Invalid ability improvement:', improvement);
+                    continue;
+                }
 
-        // Only dispatch the event if we actually added choices
-        if (hasAddedChoices) {
-            // Notify ability score card to update
+                // Skip Half-Elf's Charisma bonus as it's already handled
+                if (race.name === 'Half-Elf' && race.source === 'PHB' &&
+                    improvement.ability === 'charisma' && improvement.source === 'Race') {
+                    continue;
+                }
+
+                // Apply race improvements
+                if (improvement.source === 'Race') {
+                    console.debug(`Adding race bonus: ${improvement.ability} +${improvement.value || improvement.amount || 1}`);
+                    character.addAbilityBonus(improvement.ability, improvement.value || improvement.amount || 1, improvement.source);
+                }
+                // Apply subrace improvements
+                else if (improvement.source === 'Subrace') {
+                    console.debug(`Adding subrace bonus: ${improvement.ability} +${improvement.value || improvement.amount || 1}`);
+                    character.addAbilityBonus(improvement.ability, improvement.value || improvement.amount || 1, improvement.source);
+                }
+            }
+
+            // Add ability score choices
+            const choices = this._raceManager.getAbilityScoreChoices();
+            console.debug('Ability score choices from RaceManager:', JSON.stringify(choices));
+
+            // If we have any choices, process them
+            if (choices && choices.length > 0) {
+                for (const choice of choices) {
+                    if (!choice) continue;
+
+                    // Add the ability choice directly to the character
+                    character.addPendingAbilityChoice(choice);
+                }
+
+                console.debug('Added pending ability choices:', character.pendingAbilityChoices);
+            } else {
+                console.debug('No ability choices found for this race/subrace');
+            }
+
+            // Always dispatch event to ensure UI updates
             document.dispatchEvent(new CustomEvent('abilityScoresChanged', {
                 detail: { character }
             }));
+        } catch (error) {
+            console.error('Error updating ability bonuses:', error);
         }
     }
 
@@ -701,35 +949,43 @@ export class RaceCard {
         const character = characterHandler.currentCharacter;
         if (!character || !race) return;
 
-        // Update darkvision if applicable
-        if (race.darkvision) {
-            const darkvisionRange = typeof race.darkvision === 'number' ? race.darkvision : 60;
-            character.features.darkvision = darkvisionRange;
-        }
-
-        // Add resistances if applicable
-        if (race.resist) {
-            const resistances = Array.isArray(race.resist) ? race.resist : [race.resist];
-            for (const resistance of resistances) {
-                character.addResistance(resistance, 'Race');
+        try {
+            // Update darkvision if applicable
+            if (race.darkvision) {
+                const darkvisionRange = typeof race.darkvision === 'number' ? race.darkvision : 60;
+                character.features.darkvision = darkvisionRange;
             }
-        }
 
-        // Add traits
-        const traits = this.raceManager.getCombinedTraits();
-        if (traits && traits.length > 0) {
-            for (const trait of traits) {
-                // Handle different trait formats
-                if (typeof trait === 'string') {
-                    character.addTrait(trait, trait, 'Race');
-                } else if (trait.name || trait.text) {
-                    const name = trait.name || trait.text;
-                    const description = trait.entries ?
-                        (Array.isArray(trait.entries) ? trait.entries.join('\n') : trait.entries) :
-                        name;
-                    character.addTrait(name, description, 'Race');
+            // Add resistances if applicable
+            if (race.resist) {
+                const resistances = Array.isArray(race.resist) ? race.resist : [race.resist];
+                for (const resistance of resistances) {
+                    if (resistance) {
+                        character.addResistance(resistance, 'Race');
+                    }
                 }
             }
+
+            // Add traits (pass race and subrace directly)
+            const traits = this._raceManager.getCombinedTraits(race, subrace);
+            if (traits && traits.length > 0) {
+                for (const trait of traits) {
+                    if (!trait) continue;
+
+                    // Handle different trait formats
+                    if (typeof trait === 'string') {
+                        character.addTrait(trait, trait, 'Race');
+                    } else if (trait.name || trait.text) {
+                        const name = trait.name || trait.text;
+                        const description = trait.entries ?
+                            (Array.isArray(trait.entries) ? trait.entries.join('\n') : trait.entries) :
+                            name;
+                        character.addTrait(name, description, 'Race');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error updating racial traits:', error);
         }
     }
 

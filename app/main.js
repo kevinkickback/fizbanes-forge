@@ -18,12 +18,12 @@ try {
     userPreferences = { ...userPreferences, ...loadedPreferences };
   }
 } catch (error) {
-  console.error("Error loading user preferences:", error);
+  console.error("[App] Error loading user preferences:", error);
 }
 
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1600,
     height: 800,
     minWidth: 1000,
     minHeight: 700,
@@ -79,7 +79,7 @@ function saveUserPreferences() {
     const userPreferencesPath = path.join(app.getPath("userData"), "preferences.json");
     fs.writeFileSync(userPreferencesPath, JSON.stringify(userPreferences, null, 2));
   } catch (error) {
-    console.error("Error saving user preferences:", error);
+    console.error("[App] Error saving user preferences:", error);
   }
 }
 
@@ -89,7 +89,7 @@ async function moveCharacterFiles(oldPath, newPath) {
     const files = await fs.readdir(oldPath);
     const ffpFiles = files.filter(file => file.endsWith('.ffp'));
 
-    console.log(`File Migration: ${oldPath} → ${newPath} (${ffpFiles.length} files)`);
+    console.log("[FileMigration] Moving files from ${oldPath} to ${newPath} (${ffpFiles.length} files)");
 
     for (const file of ffpFiles) {
       const oldFilePath = path.join(oldPath, file);
@@ -99,13 +99,13 @@ async function moveCharacterFiles(oldPath, newPath) {
         await fs.copyFile(oldFilePath, newFilePath);
         await fs.unlink(oldFilePath);
       } catch (err) {
-        console.error(`Migration failed for ${file}:`, err.message);
+        console.error("[FileMigration] Error for ${file}:", err.message);
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error moving character files:", error);
+    console.error("[FileMigration] Error moving character files:", error);
     return { success: false, error: error.message };
   }
 }

@@ -9,7 +9,8 @@ import { Subrace } from '../models/Subrace.js';
 import { Spell } from '../models/Spell.js';
 import { characterInitializer } from '../utils/Initialize.js';
 import { showNotification } from '../utils/notifications.js';
-import { markUnsavedChanges } from '../utils/characterHandler.js';
+import { characterHandler } from '../utils/characterHandler.js';
+import { eventEmitter } from '../utils/EventEmitter.js';
 
 export class SpellManager {
     constructor(character) {
@@ -33,7 +34,7 @@ export class SpellManager {
         } catch (error) {
             console.error('Error loading spells:', error);
             showNotification('Error loading spells', 'error');
-            return [];
+            return { spell: [], spellFluff: [] };
         }
     }
 
@@ -43,7 +44,9 @@ export class SpellManager {
             return false;
         }
         this.knownSpells.add(spellId);
-        markUnsavedChanges();
+        characterHandler.showUnsavedChanges();
+        // Emit an event that spells have changed
+        eventEmitter.emit('character:spellsChanged', this.character);
         return true;
     }
 
@@ -59,17 +62,23 @@ export class SpellManager {
         }
 
         // Load spell data
-        const spells = await this.loadSpells();
-        const spellData = spells.find(s => s.id === spellId);
+        const spellData = await this.loadSpells();
+        const spell = spellData.spell.find(s => s.id === spellId);
 
-        if (!spellData) {
+        // Find matching fluff data
+        const fluff = spellData.spellFluff?.find(
+            f => f.name === spell?.name && f.source === spell?.source
+        );
+
+        if (!spell) {
             throw new Error(`Spell not found: ${spellId}`);
         }
 
-        // Create spell instance
-        const spell = new Spell(spellData);
-        this.spellCache.set(spellId, spell);
-        return spell;
+        // Create spell instance with combined data
+        const spellWithFluff = { ...spell, fluff };
+        const spellInstance = new Spell(spellWithFluff);
+        this.spellCache.set(spellId, spellInstance);
+        return spellInstance;
     }
 
     /**
@@ -79,9 +88,9 @@ export class SpellManager {
      * @returns {Promise<Spell[]>} - Array of available spells
      */
     async getSpellsForClass(classId, level = null) {
-        const spells = await this.loadSpells();
-        const filtered = spells.filter(s =>
-            s.classes.includes(classId) &&
+        const spellData = await this.loadSpells();
+        const filtered = spellData.spell.filter(s =>
+            s.classes?.includes(classId) &&
             (level === null || s.level === level)
         );
         return filtered.map(spellData => new Spell(spellData));
@@ -112,8 +121,8 @@ export class SpellManager {
     async addSpell(spellId) {
         try {
             // Load spell data
-            const spells = await this.loadSpells();
-            const spell = spells.find(s => s.id === spellId);
+            const spellData = await this.loadSpells();
+            const spell = spellData.spell.find(s => s.id === spellId);
             if (!spell) {
                 console.warn(`Spell ${spellId} not found`);
                 return false;

@@ -8,55 +8,110 @@
  * @property {boolean} isSelected - Whether the source is currently selected
  */
 
-import { SourceManager } from '../managers/SourceManager.js';
+import { sourceManager } from '../managers/SourceManager.js';
 import { showNotification } from '../utils/notifications.js';
 
+/**
+ * Manages the source book selection UI component
+ */
 export class SourceCard {
+    /**
+     * Creates a new SourceCard instance
+     */
     constructor() {
-        this.container = null;
-        this.headerContainer = null;
-        this.sourceManager = new SourceManager();
+        /**
+         * Container for source toggles
+         * @type {HTMLElement|null}
+         * @private
+         */
+        this._container = null;
+
+        /**
+         * Container for the header
+         * @type {HTMLElement|null}
+         * @private
+         */
+        this._headerContainer = null;
+
+        /**
+         * Source manager instance
+         * @type {SourceManager}
+         * @private
+         */
+        this._sourceManager = sourceManager;
+
+        /**
+         * Set of currently selected sources
+         * @type {Set<string>}
+         * @private
+         */
         this._selectedSources = new Set();
+
+        /**
+         * Whether the component has been initialized
+         * @type {boolean}
+         * @private
+         */
         this._initialized = false;
     }
+
+    //-------------------------------------------------------------------------
+    // Initialization Methods
+    //-------------------------------------------------------------------------
 
     /**
      * Initializes the source book selection UI
      * @returns {Promise<void>}
      */
     async initializeSourceSelection() {
-        if (!this.container) {
-            console.error('[SourceCard] Source selection container not found');
-            return;
+        try {
+            if (!this._container) {
+                console.error('Source selection container not found');
+                return;
+            }
+
+            this._headerContainer = document.getElementById('sourceBookHeader');
+            if (!this._headerContainer) {
+                console.error('Source book header container not found');
+                return;
+            }
+
+            if (!this._initialized) {
+                await this._sourceManager.initialize();
+                this._initialized = true;
+            }
+
+            this._container.innerHTML = '';
+            this._headerContainer.innerHTML = '';
+
+            this._headerContainer.appendChild(this._createSourceHeader());
+
+            const availableSources = this._sourceManager.getAvailableSources();
+            for (const source of availableSources) {
+                this._container.appendChild(this._createSourceToggle(source));
+            }
+
+            // Pre-select PHB
+            this._preselectDefaultSources();
+        } catch (error) {
+            console.error('Error initializing source selection:', error);
         }
+    }
 
-        this.headerContainer = document.getElementById('sourceBookHeader');
-        if (!this.headerContainer) {
-            console.error('[SourceCard] Source book header container not found');
-            return;
-        }
-
-        if (!this._initialized) {
-            await this.sourceManager.initialize();
-            this._initialized = true;
-        }
-
-        this.container.innerHTML = '';
-        this.headerContainer.innerHTML = '';
-
-        this.headerContainer.appendChild(this._createSourceHeader());
-
-        const availableSources = this.sourceManager.getAvailableSources();
-        for (const source of availableSources) {
-            this.container.appendChild(this._createSourceToggle(source));
-        }
-
-        // Pre-select PHB
-        const phbToggle = this.container.querySelector('[data-source="PHB"]');
+    /**
+     * Pre-selects default sources like the Player's Handbook
+     * @private
+     */
+    _preselectDefaultSources() {
+        const phbToggle = this._container.querySelector('[data-source="PHB"]');
         if (phbToggle) {
             this._handleSourceClick(phbToggle);
         }
     }
+
+    //-------------------------------------------------------------------------
+    // UI Creation Methods
+    //-------------------------------------------------------------------------
 
     /**
      * Creates the source selection header with links
@@ -107,30 +162,6 @@ export class SourceCard {
     }
 
     /**
-     * Selects all available source books
-     */
-    selectAllSources() {
-        const toggles = this.container.querySelectorAll('.source-toggle');
-        for (const toggle of toggles) {
-            if (!toggle.classList.contains('selected')) {
-                this._handleSourceClick(toggle);
-            }
-        }
-    }
-
-    /**
-     * Deselects all source books
-     */
-    deselectAllSources() {
-        const toggles = this.container.querySelectorAll('.source-toggle');
-        for (const toggle of toggles) {
-            if (toggle.classList.contains('selected')) {
-                this._handleSourceClick(toggle);
-            }
-        }
-    }
-
-    /**
      * Creates a toggle button for a source book
      * @param {string} source - The source book identifier
      * @returns {HTMLElement} The created toggle button
@@ -150,12 +181,16 @@ export class SourceCard {
         toggle.appendChild(icon);
 
         const name = document.createElement('span');
-        name.textContent = this.sourceManager.formatSourceName(source);
+        name.textContent = this._sourceManager.formatSourceName(source);
         toggle.appendChild(name);
 
         this._setupToggleEventListeners(toggle);
         return toggle;
     }
+
+    //-------------------------------------------------------------------------
+    // Event Handling Methods
+    //-------------------------------------------------------------------------
 
     /**
      * Sets up event listeners for a source toggle
@@ -181,21 +216,61 @@ export class SourceCard {
      * @private
      */
     _handleSourceClick(toggle) {
-        toggle.preventDefault?.();
+        try {
+            toggle.preventDefault?.();
 
-        const source = toggle.getAttribute('data-source');
-        const isSelected = toggle.classList.contains('selected');
+            const source = toggle.getAttribute('data-source');
+            const isSelected = toggle.classList.contains('selected');
 
-        toggle.classList.toggle('selected', !isSelected);
-        toggle.setAttribute('aria-checked', !isSelected);
+            toggle.classList.toggle('selected', !isSelected);
+            toggle.setAttribute('aria-checked', !isSelected);
 
-        if (!isSelected) {
-            this._selectedSources.add(source);
-        } else {
-            this._selectedSources.delete(source);
+            if (!isSelected) {
+                this._selectedSources.add(source);
+            } else {
+                this._selectedSources.delete(source);
+            }
+
+            this._validateSourceSelection();
+        } catch (error) {
+            console.error('Error handling source click:', error);
         }
+    }
 
-        this._validateSourceSelection();
+    //-------------------------------------------------------------------------
+    // Selection Management Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Selects all available source books
+     */
+    selectAllSources() {
+        try {
+            const toggles = this._container.querySelectorAll('.source-toggle');
+            for (const toggle of toggles) {
+                if (!toggle.classList.contains('selected')) {
+                    this._handleSourceClick(toggle);
+                }
+            }
+        } catch (error) {
+            console.error('Error selecting all sources:', error);
+        }
+    }
+
+    /**
+     * Deselects all source books
+     */
+    deselectAllSources() {
+        try {
+            const toggles = this._container.querySelectorAll('.source-toggle');
+            for (const toggle of toggles) {
+                if (toggle.classList.contains('selected')) {
+                    this._handleSourceClick(toggle);
+                }
+            }
+        } catch (error) {
+            console.error('Error deselecting all sources:', error);
+        }
     }
 
     /**
@@ -221,13 +296,17 @@ export class SourceCard {
         }
     }
 
+    //-------------------------------------------------------------------------
+    // Source Data Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Loads available source books
      * @returns {Promise<Array>} Array of available sources
      */
     async loadSources() {
         try {
-            return await this.sourceManager.loadSources();
+            return await this._sourceManager.loadSources();
         } catch (error) {
             console.error('Error loading sources:', error);
             showNotification('Error loading sources', 'error');
@@ -240,8 +319,12 @@ export class SourceCard {
      * @param {string} sourceId - The source book identifier
      */
     addSource(sourceId) {
-        this._selectedSources.add(sourceId);
-        this.sourceManager.addSource(sourceId);
+        try {
+            this._selectedSources.add(sourceId);
+            this._sourceManager.addSource(sourceId);
+        } catch (error) {
+            console.error('Error adding source:', error);
+        }
     }
 
     /**
@@ -250,46 +333,64 @@ export class SourceCard {
      * @returns {boolean} Whether the source was removed
      */
     removeSource(sourceId) {
-        if (sourceId === 'PHB') {
-            showNotification('Cannot remove Player\'s Handbook', 'warning');
+        try {
+            if (this._selectedSources.has(sourceId)) {
+                this._selectedSources.delete(sourceId);
+                this._sourceManager.removeSource(sourceId);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error removing source:', error);
             return false;
         }
-        const removed = this._selectedSources.delete(sourceId);
-        if (removed) {
-            this.sourceManager.removeSource(sourceId);
-        }
-        return removed;
     }
 
     /**
      * Clears all selected sources
      */
     clearSources() {
-        this._selectedSources = new Set();
-        this.sourceManager.clearSources();
+        try {
+            this._selectedSources.clear();
+            this._sourceManager.clearSources();
+        } catch (error) {
+            console.error('Error clearing sources:', error);
+        }
     }
 
+    //-------------------------------------------------------------------------
+    // Getters and Setters
+    //-------------------------------------------------------------------------
+
     /**
-     * Get the currently selected sources
-     * @returns {Set<string>} Set of selected source codes
+     * Gets the currently selected sources
+     * @returns {Array<string>} Array of selected source IDs
      */
     get selectedSources() {
-        return this._selectedSources;
+        return Array.from(this._selectedSources);
     }
 
     /**
-     * Set the selected sources
-     * @param {Set<string>} sources - Set of source codes to select
+     * Sets the selected sources
+     * @param {Array<string>} sources - Array of source IDs to select
      */
     set selectedSources(sources) {
         this._selectedSources = new Set(sources);
-        if (this.container) {
-            const toggles = this.container.querySelectorAll('.source-toggle');
-            for (const toggle of toggles) {
-                const source = toggle.getAttribute('data-source');
-                toggle.classList.toggle('selected', sources.has(source));
-                toggle.setAttribute('aria-checked', sources.has(source));
-            }
-        }
+    }
+
+    /**
+     * Sets the container element for source toggles
+     * @param {HTMLElement} container - The container element
+     */
+    set container(container) {
+        this._container = container;
+    }
+
+    /**
+     * Gets the container element for source toggles
+     * @returns {HTMLElement|null} The container element
+     */
+    get container() {
+        return this._container;
     }
 } 

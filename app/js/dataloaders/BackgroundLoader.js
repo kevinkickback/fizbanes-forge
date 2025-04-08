@@ -1,44 +1,67 @@
 /**
- * BackgroundLoader.js
+ * BackgroundLoader
  * Handles loading and caching of background data
  * 
  * @typedef {Object} RawBackground
  * @property {string} name - Background name
- * @property {string} [source] - Source book
- * @property {number} [page] - Page number
- * @property {Array<Object>} [entries] - Background description entries
- * @property {Object} [proficiencies] - Background proficiencies
+ * @property {string} source - Source book
+ * @property {number} page - Page number
+ * @property {boolean} [srd] - Whether background is in SRD
+ * @property {boolean} [basicRules] - Whether background is in Basic Rules
+ * @property {Array<string>} [reprintedAs] - Reprinted versions
+ * @property {Array<Object>} [skillProficiencies] - Skill proficiencies
+ * @property {Array<Object>} [languageProficiencies] - Language proficiencies
  * @property {Array<Object>} [startingEquipment] - Starting equipment
- * @property {Array<Object>} [feature] - Background features
+ * @property {Array<Object>} entries - Background description entries
+ * @property {boolean} [hasFluff] - Whether background has fluff text
+ * @property {boolean} [hasFluffImages] - Whether background has fluff images
  * 
  * @typedef {Object} RawFluff
  * @property {string} name - Background name
- * @property {string} [source] - Source book
- * @property {Array<Object>} entries - Descriptive entries
+ * @property {string} source - Source book
+ * @property {Array<Object>} entries - Background fluff entries
+ * @property {Array<Object>} [images] - Background images
  * 
  * @typedef {Object} BackgroundData
  * @property {Array<RawBackground>} background - Array of backgrounds
- * @property {Array<RawFluff>} fluff - Array of background fluff data
+ * @property {Array<RawFluff>} backgroundFluff - Array of background fluff
  */
 
 import { BaseLoader } from './BaseLoader.js';
 
+/**
+ * Handles loading and caching of background data
+ */
 export class BackgroundLoader extends BaseLoader {
+    /**
+     * Creates a new BackgroundLoader instance
+     * @param {Object} [options={}] - Loader options
+     */
     constructor(options = {}) {
         super({
             ...options,
             maxCacheSize: options.maxCacheSize || 50,
             defaultExpiry: options.defaultExpiry || 3600000 // 1 hour
         });
-        this.dataFiles = {
+
+        /**
+         * Paths to background data files
+         * @type {Object}
+         * @private
+         */
+        this._dataFiles = {
             backgrounds: 'backgrounds.json',
             fluff: 'fluff-backgrounds.json'
         };
     }
 
+    //-------------------------------------------------------------------------
+    // Background Data Loading Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Load all background data
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @param {number} [options.maxRetries] - Maximum number of retries
      * @param {boolean} [options.forceRefresh] - Force cache refresh
      * @returns {Promise<BackgroundData>} Raw background data
@@ -47,14 +70,14 @@ export class BackgroundLoader extends BaseLoader {
         return this.getOrLoadData('backgrounds', async () => {
             try {
                 const [backgroundData, fluffData] = await Promise.all([
-                    this.loadJsonFile(this.dataFiles.backgrounds, {
+                    this.loadJsonFile(this._dataFiles.backgrounds, {
                         ...options,
                         maxRetries: 3
                     }).catch(error => {
                         console.error('Failed to load background data:', error);
                         throw new Error('Failed to load background data');
                     }),
-                    this.loadJsonFile(this.dataFiles.fluff, {
+                    this.loadJsonFile(this._dataFiles.fluff, {
                         ...options,
                         maxRetries: 2
                     }).catch(() => ({ backgroundFluff: [] }))
@@ -80,8 +103,8 @@ export class BackgroundLoader extends BaseLoader {
 
     /**
      * Load backgrounds in chunks for better performance
-     * @param {number} chunkSize - Size of each chunk
-     * @param {Object} options - Loading options
+     * @param {number} [chunkSize=5] - Size of each chunk
+     * @param {Object} [options={}] - Loading options
      * @returns {AsyncGenerator<Array<RawBackground>>} Generator yielding chunks of raw background data
      */
     async *loadBackgroundsInChunks(chunkSize = 5, options = {}) {
@@ -94,39 +117,37 @@ export class BackgroundLoader extends BaseLoader {
         }
     }
 
+    //-------------------------------------------------------------------------
+    // Background Retrieval Methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Get raw background data by ID
-     * @param {string} backgroundId - Background identifier (format: "name_source" in lowercase)
-     * @param {Object} options - Loading options
+     * Get a specific background by name and source
+     * @param {string} name - Background name
+     * @param {string} [source='PHB'] - Source book
      * @returns {Promise<RawBackground|null>} Raw background data or null if not found
      */
-    async getBackgroundById(backgroundId, options = {}) {
-        const cacheKey = `background_${backgroundId}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadBackgrounds(options);
-            return data.background.find(bg => {
-                const source = (bg.source || 'phb').toLowerCase();
-                const name = bg.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                return `${name}_${source}` === backgroundId.toLowerCase();
-            }) || null;
-        }, options);
+    async getBackground(name, source = 'PHB') {
+        const data = await this.loadBackgrounds();
+
+        return data.background.find(bg =>
+            bg.name.toLowerCase() === name.toLowerCase() &&
+            (bg.source === source || !source)
+        ) || null;
     }
 
     /**
      * Get raw fluff data for a background
      * @param {string} backgroundName - Background name
-     * @param {string} source - Source book
-     * @param {Object} options - Loading options
+     * @param {string} [source='PHB'] - Source book
      * @returns {Promise<RawFluff|null>} Raw fluff data or null if not found
      */
-    async getBackgroundFluff(backgroundName, source, options = {}) {
-        const cacheKey = `fluff_${backgroundName}_${source}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadBackgrounds(options);
-            return data.fluff.find(f =>
-                f.name === backgroundName &&
-                (f.source === source || !f.source)
-            ) || null;
-        }, options);
+    async getBackgroundFluff(backgroundName, source = 'PHB') {
+        const data = await this.loadBackgrounds();
+
+        return data.fluff.find(f =>
+            f.name.toLowerCase() === backgroundName.toLowerCase() &&
+            (f.source === source || !source)
+        ) || null;
     }
 } 

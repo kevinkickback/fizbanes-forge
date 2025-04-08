@@ -4,68 +4,85 @@
  * 
  * @typedef {Object} RawClass
  * @property {string} name - Class name
- * @property {string} [source] - Source book
- * @property {number} [page] - Page number
- * @property {boolean} [srd] - Whether it's in the SRD
- * @property {boolean} [basicRules] - Whether it's in the Basic Rules
+ * @property {string} source - Source book
+ * @property {number} page - Page number
+ * @property {boolean} [srd] - Whether class is in SRD
+ * @property {Array<string>} [reprintedAs] - Reprinted versions
+ * @property {string} [edition] - Edition (e.g., "classic", "one")
  * @property {Object} hd - Hit die information
  * @property {number} hd.number - Number of dice
  * @property {number} hd.faces - Number of faces on the die
- * @property {Array<string>} [proficiency] - Proficiency bonus progression
- * @property {Object} [spellcasting] - Spellcasting information
- * @property {Array<Object>} [startingProficiencies] - Starting proficiencies
- * @property {Array<Object>} [startingEquipment] - Starting equipment
- * @property {Object} [multiclassing] - Multiclassing requirements
+ * @property {Array<string>} proficiency - Saving throw proficiencies
+ * @property {Object} startingProficiencies - Starting proficiencies
+ * @property {Array<string>} [startingProficiencies.armor] - Armor proficiencies
+ * @property {Array<string>} [startingProficiencies.weapons] - Weapon proficiencies
+ * @property {Array<Object>} [startingProficiencies.skills] - Skill proficiencies
+ * @property {Object} startingEquipment - Starting equipment
+ * @property {Object} multiclassing - Multiclassing requirements and proficiencies
  * @property {Array<Object>} [classFeatures] - Class features
- * @property {string} [subclassTitle] - Title for subclasses
+ * @property {Array<Object>} [classTableGroups] - Class table information
  * 
  * @typedef {Object} RawSubclass
  * @property {string} name - Subclass name
- * @property {string} [shortName] - Short display name
- * @property {string} [source] - Source book
+ * @property {string} source - Source book
  * @property {string} className - Parent class name
  * @property {string} [classSource] - Parent class source
- * @property {number} [page] - Page number
- * @property {Object} [spellcasting] - Spellcasting information
- * @property {Object} [additionalSpells] - Additional spells granted
+ * @property {number} page - Page number
+ * @property {string} [shortName] - Short display name
  * @property {Array<Object>} [features] - Subclass features
  * 
  * @typedef {Object} RawFluff
  * @property {string} name - Class name
- * @property {string} [source] - Source book
- * @property {Array<Object>} entries - Descriptive entries
+ * @property {string} source - Source book
+ * @property {Array<Object>} entries - Class fluff entries
+ * @property {Array<Object>} [images] - Class images
  * 
  * @typedef {Object} ClassData
  * @property {Array<RawClass>} class - Array of classes
  * @property {Array<RawSubclass>} subclass - Array of subclasses
- * @property {Array<RawFluff>} fluff - Array of class fluff data
+ * @property {Array<RawFluff>} classFluff - Array of class fluff data
  */
 
 import { BaseLoader } from './BaseLoader.js';
 
 /**
- * ClassLoader.js
  * Handles loading and caching of class data
  */
 export class ClassLoader extends BaseLoader {
+    /**
+     * Creates a new ClassLoader instance
+     * @param {Object} [options={}] - Loader options
+     */
     constructor(options = {}) {
         super({
             ...options,
             maxCacheSize: options.maxCacheSize || 100,
             defaultExpiry: options.defaultExpiry || 3600000 // 1 hour
         });
-        this.dataFiles = {
+
+        /**
+         * Data file paths for class data
+         * @type {Object}
+         * @private
+         */
+        this._dataFiles = {
             index: 'class/index.json',
             fluffIndex: 'class/fluff-index.json'
         };
     }
 
+    //-------------------------------------------------------------------------
+    // Index Loading Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Load class index data
+     * @param {Object} [options={}] - Loading options
+     * @returns {Promise<Object>} Class index data
      * @private
      */
-    async loadClassIndex(options = {}) {
-        return this.loadJsonFile(this.dataFiles.index, {
+    async _loadClassIndex(options = {}) {
+        return this.loadJsonFile(this._dataFiles.index, {
             ...options,
             maxRetries: 3
         });
@@ -73,21 +90,30 @@ export class ClassLoader extends BaseLoader {
 
     /**
      * Load fluff index data
+     * @param {Object} [options={}] - Loading options
+     * @returns {Promise<Object>} Fluff index data or empty object if not found
      * @private
      */
-    async loadFluffIndex(options = {}) {
-        return this.loadJsonFile(this.dataFiles.fluffIndex, {
+    async _loadFluffIndex(options = {}) {
+        return this.loadJsonFile(this._dataFiles.fluffIndex, {
             ...options,
             maxRetries: 2
         }).catch(() => ({}));
     }
 
+    //-------------------------------------------------------------------------
+    // Class Data Loading Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Load individual class data
+     * @param {string} classKey - The class key in the index
+     * @param {Object} [options={}] - Loading options
+     * @returns {Promise<Object|null>} Class data or null if not found
      * @private
      */
-    async loadClassData(classKey, options = {}) {
-        const index = await this.loadClassIndex(options);
+    async _loadClassData(classKey, options = {}) {
+        const index = await this._loadClassIndex(options);
         if (!index[classKey]) return null;
 
         return this.loadJsonFile(`class/${index[classKey]}`, {
@@ -98,10 +124,13 @@ export class ClassLoader extends BaseLoader {
 
     /**
      * Load individual class fluff data
+     * @param {string} classKey - The class key in the fluff index
+     * @param {Object} [options={}] - Loading options
+     * @returns {Promise<Object|null>} Fluff data or null if not found
      * @private
      */
-    async loadClassFluff(classKey, options = {}) {
-        const fluffIndex = await this.loadFluffIndex(options);
+    async _loadClassFluff(classKey, options = {}) {
+        const fluffIndex = await this._loadFluffIndex(options);
         if (!fluffIndex[classKey]) return null;
 
         const fluffData = await this.loadJsonFile(`class/${fluffIndex[classKey]}`, {
@@ -112,9 +141,13 @@ export class ClassLoader extends BaseLoader {
         return fluffData?.classFluff?.[0] || null;
     }
 
+    //-------------------------------------------------------------------------
+    // Public API Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Load all class data
-     * @param {Object} options - Loading options
+     * @param {Object} [options={}] - Loading options
      * @param {number} [options.maxRetries] - Maximum number of retries
      * @param {boolean} [options.forceRefresh] - Force cache refresh
      * @returns {Promise<ClassData>} Raw class data
@@ -122,15 +155,15 @@ export class ClassLoader extends BaseLoader {
     async loadClasses(options = {}) {
         return this.getOrLoadData('classes', async () => {
             try {
-                const index = await this.loadClassIndex(options);
+                const index = await this._loadClassIndex(options);
                 const classKeys = Object.keys(index);
 
                 // Load all class data in parallel
                 const classDataPromises = classKeys.map(key =>
-                    this.loadClassData(key, options)
+                    this._loadClassData(key, options)
                 );
                 const fluffDataPromises = classKeys.map(key =>
-                    this.loadClassFluff(key, options)
+                    this._loadClassFluff(key, options)
                 );
 
                 const [classDataResults, fluffDataResults] = await Promise.all([
@@ -184,8 +217,8 @@ export class ClassLoader extends BaseLoader {
 
     /**
      * Load classes in chunks for better performance
-     * @param {number} chunkSize - Size of each chunk
-     * @param {Object} options - Loading options
+     * @param {number} [chunkSize=5] - Size of each chunk
+     * @param {Object} [options={}] - Loading options
      * @returns {AsyncGenerator<Array<RawClass|RawSubclass>>} Generator yielding chunks of raw class data
      */
     async *loadClassesInChunks(chunkSize = 5, options = {}) {
@@ -204,65 +237,5 @@ export class ClassLoader extends BaseLoader {
                 yield data.subclass.slice(i, i + chunkSize);
             }
         }
-    }
-
-    /**
-     * Get raw class data by ID
-     * @param {string} classId - Class identifier (format: "name_source" in lowercase)
-     * @param {Object} options - Loading options
-     * @returns {Promise<RawClass|null>} Raw class data or null if not found
-     */
-    async getClassById(classId, options = {}) {
-        const cacheKey = `class_${classId}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadClasses(options);
-            return data.class.find(cls => {
-                const source = (cls.source || 'phb').toLowerCase();
-                const name = cls.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                return `${name}_${source}` === classId.toLowerCase();
-            }) || null;
-        }, options);
-    }
-
-    /**
-     * Get raw subclass data for a class
-     * @param {string} classId - Class identifier (format: "name_source" in lowercase)
-     * @param {Object} options - Loading options
-     * @returns {Promise<Array<RawSubclass>>} Array of raw subclass data
-     */
-    async getSubclasses(classId, options = {}) {
-        const cacheKey = `subclasses_${classId}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadClasses(options);
-            const cls = await this.getClassById(classId);
-            if (!cls) return [];
-
-            return data.subclass.filter(sub =>
-                sub.className === cls.name &&
-                (sub.classSource || 'phb').toLowerCase() === (cls.source || 'phb').toLowerCase()
-            );
-        }, options);
-    }
-
-    /**
-     * Get raw fluff data for a class
-     * @param {string} className - Class name
-     * @param {string} source - Source book
-     * @param {Object} options - Loading options
-     * @returns {Promise<RawFluff|null>} Raw fluff data or null if not found
-     */
-    async getClassFluff(className, source, options = {}) {
-        const cacheKey = `fluff_${className}_${source}`;
-        return this.getOrLoadData(cacheKey, async () => {
-            const data = await this.loadClasses(options);
-            const fluff = data.fluff.find(f =>
-                f.name.toLowerCase() === className.toLowerCase() &&
-                (f.source?.toLowerCase() === source.toLowerCase() || (!f.source && source.toLowerCase() === 'phb'))
-            );
-            if (!fluff) {
-                console.log(`No fluff found for class ${className} from source ${source}`);
-            }
-            return fluff || null;
-        }, options);
     }
 } 

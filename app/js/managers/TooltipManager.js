@@ -15,48 +15,91 @@
  * @property {boolean} hasActiveChild - Whether the tooltip has active child tooltips
  */
 
-let instance = null;
+import { eventEmitter } from '../utils/EventEmitter.js';
 
+/**
+ * Manages the display and behavior of tooltips throughout the application
+ */
 export class TooltipManager {
     /**
-     * Creates a new TooltipManager instance.
-     * This is a singleton class - use TooltipManager.getInstance() instead.
-     * 
-     * @throws {Error} If instance already exists
+     * Creates a new TooltipManager instance
+     * @private
      */
     constructor() {
-        if (instance) {
-            throw new Error('TooltipManager is a singleton. Use TooltipManager.getInstance() instead.');
-        }
-        this.tooltipDelay = 200;
-        this.tooltipTimeout = null;
-        this.tooltipOffset = 10;
+        /**
+         * Delay before showing tooltips (ms)
+         * @type {number}
+         * @private
+         */
+        this._tooltipDelay = 200;
+
+        /**
+         * Current tooltip timeout ID
+         * @type {number|null}
+         * @private
+         */
+        this._tooltipTimeout = null;
+
+        /**
+         * Offset distance from trigger (px)
+         * @type {number}
+         * @private
+         */
+        this._tooltipOffset = 10;
+
+        /**
+         * Whether the manager has been initialized
+         * @type {boolean}
+         * @private
+         */
         this._initialized = false;
-        this.activeTooltips = new Map();
-        instance = this;
+
+        /**
+         * Map of trigger elements to their tooltip elements
+         * @type {Map<HTMLElement, HTMLElement>}
+         * @private
+         */
+        this._activeTooltips = new Map();
+
+        /**
+         * Container element for all tooltips
+         * @type {HTMLElement|null}
+         * @private
+         */
+        this._container = null;
     }
 
     /**
      * Initializes the tooltip system by creating necessary DOM elements and event listeners.
      * This method should be called once when the application starts.
+     * @returns {boolean} Whether initialization was successful
      */
     initialize() {
-        if (this._initialized) return;
+        if (this._initialized) return true;
 
-        // Get or create tooltip container
-        this.container = document.getElementById('tooltipContainer');
-        if (!this.container) {
-            this.container = document.createElement('div');
-            this.container.id = 'tooltipContainer';
-            this.container.className = 'tooltip-container';
-            document.body.appendChild(this.container);
+        try {
+            console.debug('Initializing tooltip manager');
+
+            // Get or create tooltip container
+            this._container = document.getElementById('tooltipContainer');
+            if (!this._container) {
+                this._container = document.createElement('div');
+                this._container.id = 'tooltipContainer';
+                this._container.className = 'tooltip-container';
+                document.body.appendChild(this._container);
+            }
+
+            // Add event listeners for tooltip triggers
+            document.addEventListener('mouseover', this.handleMouseOver.bind(this));
+            document.addEventListener('mouseout', this.handleMouseOut.bind(this));
+
+            this._initialized = true;
+            eventEmitter.emit('tooltipManager:initialized', this);
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize tooltip manager:', error);
+            return false;
         }
-
-        // Add event listeners for tooltip triggers
-        document.addEventListener('mouseover', this.handleMouseOver.bind(this));
-        document.addEventListener('mouseout', this.handleMouseOut.bind(this));
-
-        this._initialized = true;
     }
 
     /**
@@ -64,24 +107,26 @@ export class TooltipManager {
      * Hides tooltips after a delay when the mouse leaves the trigger.
      * 
      * @param {MouseEvent} event - The mouse out event
+     * @private
      */
     handleMouseOut(event) {
         const tooltipTarget = event.target.closest('[data-tooltip]');
         if (!tooltipTarget) return;
 
         // Clear any existing timeout
-        if (this.tooltipTimeout) {
-            clearTimeout(this.tooltipTimeout);
+        if (this._tooltipTimeout) {
+            clearTimeout(this._tooltipTimeout);
         }
 
         // Set a timeout to hide the tooltip
-        this.tooltipTimeout = setTimeout(() => {
-            const tooltip = this.activeTooltips.get(tooltipTarget);
+        this._tooltipTimeout = setTimeout(() => {
+            const tooltip = this._activeTooltips.get(tooltipTarget);
             if (tooltip && !tooltip.matches(':hover')) {
                 tooltip.classList.remove('show');
-                this.activeTooltips.delete(tooltip);
+                this._activeTooltips.delete(tooltip);
+                eventEmitter.emit('tooltip:hidden', { target: tooltipTarget });
             }
-        }, this.tooltipDelay);
+        }, this._tooltipDelay);
     }
 
     /**
@@ -90,6 +135,7 @@ export class TooltipManager {
      * 
      * @param {MouseEvent} event - The mouse event that triggered the tooltip
      * @param {HTMLElement} tooltip - The tooltip element to position
+     * @private
      */
     positionTooltip(event, tooltip) {
         const tooltipRect = tooltip.getBoundingClientRect();
@@ -98,12 +144,12 @@ export class TooltipManager {
         const viewportHeight = window.innerHeight;
 
         // Calculate position relative to the viewport (since container is fixed)
-        let left = triggerRect.right + this.tooltipOffset;
+        let left = triggerRect.right + this._tooltipOffset;
         let top = triggerRect.top;
 
         // If tooltip would overflow viewport on the right, try positioning on the left
         if (left + tooltipRect.width > viewportWidth) {
-            left = triggerRect.left - tooltipRect.width - this.tooltipOffset;
+            left = triggerRect.left - tooltipRect.width - this._tooltipOffset;
         }
 
         // If tooltip would overflow viewport on the left, position it at the left edge
@@ -131,20 +177,21 @@ export class TooltipManager {
      * Shows tooltips after a delay when the mouse enters the trigger.
      * 
      * @param {MouseEvent} event - The mouse over event
+     * @private
      */
     handleMouseOver(event) {
         const tooltipTarget = event.target.closest('[data-tooltip]');
         if (!tooltipTarget) return;
 
         // Clear any existing timeout
-        if (this.tooltipTimeout) {
-            clearTimeout(this.tooltipTimeout);
+        if (this._tooltipTimeout) {
+            clearTimeout(this._tooltipTimeout);
         }
 
         // Set a timeout to show the tooltip
-        this.tooltipTimeout = setTimeout(() => {
+        this._tooltipTimeout = setTimeout(() => {
             this.createTooltip(tooltipTarget, tooltipTarget.closest('.tooltip'), event);
-        }, this.tooltipDelay);
+        }, this._tooltipDelay);
     }
 
     /**
@@ -153,13 +200,14 @@ export class TooltipManager {
      * @param {HTMLElement} target - The trigger element
      * @param {HTMLElement} parentTooltip - Optional parent tooltip for nested tooltips
      * @param {MouseEvent} event - The mouse event that triggered the tooltip
+     * @private
      */
     createTooltip(target, parentTooltip, event) {
         // Clear any existing tooltip for this target
-        const existingTooltip = this.activeTooltips.get(target);
+        const existingTooltip = this._activeTooltips.get(target);
         if (existingTooltip) {
             existingTooltip.remove();
-            this.activeTooltips.delete(existingTooltip);
+            this._activeTooltips.delete(existingTooltip);
         }
 
         const tooltip = document.createElement('div');
@@ -244,7 +292,7 @@ export class TooltipManager {
             if (e.propertyName === 'opacity' && !tooltip.classList.contains('show')) {
                 const parentTooltip = this.getParentTooltip(tooltip);
                 tooltip.remove();
-                this.activeTooltips.delete(tooltip);
+                this._activeTooltips.delete(tooltip);
 
                 // Check if parent tooltip should also be removed
                 if (parentTooltip) {
@@ -276,15 +324,16 @@ export class TooltipManager {
         });
 
         // Add to DOM and position
-        this.container.appendChild(tooltip);
+        this._container.appendChild(tooltip);
         this.positionTooltip(event, tooltip);
 
         // Trigger show animation after positioning
         requestAnimationFrame(() => {
             tooltip.classList.add('show');
+            eventEmitter.emit('tooltip:shown', { target, tooltip });
         });
 
-        this.activeTooltips.set(target, tooltip);
+        this._activeTooltips.set(target, tooltip);
     }
 
     /**
@@ -313,7 +362,7 @@ export class TooltipManager {
      * @returns {boolean} True if the tooltip has active children
      */
     hasChildTooltips(tooltip) {
-        return Array.from(this.activeTooltips.values())
+        return Array.from(this._activeTooltips.values())
             .some(t => t.dataset.parentTooltip === tooltip.id && t.classList.contains('show'));
     }
 
@@ -325,21 +374,45 @@ export class TooltipManager {
      */
     getParentTooltip(tooltip) {
         if (!tooltip.dataset.parentTooltip) return null;
-        return Array.from(this.activeTooltips.values())
+        return Array.from(this._activeTooltips.values())
             .find(t => t.id === tooltip.dataset.parentTooltip);
     }
 
     /**
-     * Gets the singleton instance of TooltipManager.
-     * 
-     * @returns {TooltipManager} The singleton instance
+     * Gets the tooltip delay value
+     * @returns {number} The tooltip delay in milliseconds
      */
-    static getInstance() {
-        if (!instance) {
-            instance = new TooltipManager();
-        }
-        return instance;
+    getTooltipDelay() {
+        return this._tooltipDelay;
+    }
+
+    /**
+     * Sets the tooltip delay value
+     * @param {number} delay - The tooltip delay in milliseconds
+     */
+    setTooltipDelay(delay) {
+        this._tooltipDelay = delay;
+    }
+
+    /**
+     * Gets the tooltip offset value
+     * @returns {number} The tooltip offset in pixels
+     */
+    getTooltipOffset() {
+        return this._tooltipOffset;
+    }
+
+    /**
+     * Sets the tooltip offset value
+     * @param {number} offset - The tooltip offset in pixels
+     */
+    setTooltipOffset(offset) {
+        this._tooltipOffset = offset;
     }
 }
 
-export const tooltipManager = TooltipManager.getInstance(); 
+/**
+ * Export the singleton instance
+ * @type {TooltipManager}
+ */
+export const tooltipManager = new TooltipManager(); 

@@ -1,6 +1,7 @@
 /**
  * Storage.js
- * Storage operations for characters including saving, loading, exporting, and importing
+ * Provides a consistent interface for character data persistence
+ * Handles saving, loading, importing, exporting, and deleting characters
  * 
  * @typedef {Object} CharacterStorageResult
  * @property {boolean} success - Whether the operation was successful
@@ -8,7 +9,12 @@
  * @property {Error} [error] - Optional error if operation failed
  */
 
-let instance = null;
+/**
+ * Singleton instance for Storage class
+ * @type {Storage|null}
+ * @private
+ */
+let _instance = null;
 
 /**
  * Class responsible for managing character storage operations
@@ -19,103 +25,172 @@ export class Storage {
      * @private
      */
     constructor() {
-        if (instance) {
+        if (_instance) {
             throw new Error('Storage is a singleton. Use Storage.getInstance() instead.');
         }
-        instance = this;
+        _instance = this;
     }
 
+    //-------------------------------------------------------------------------
+    // Character Retrieval Methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Load all characters from storage
+     * Gets all characters from storage
      * @returns {Promise<Array>} Array of character objects
      */
-    async loadCharacters() {
+    async getCharacters() {
         try {
-            return await window.characterStorage.loadCharacters();
+            console.debug('Loading all characters from storage');
+            const characters = await window.characterStorage.loadCharacters();
+            return characters || [];
         } catch (error) {
             console.error('Error loading characters from storage:', error);
-            throw error;
+            return [];
         }
     }
 
     /**
-     * Save a character to storage
+     * Gets a specific character by ID
+     * @param {string} characterId - The ID of the character to load
+     * @returns {Promise<Object|null>} The character object or null if not found
+     */
+    async getCharacter(characterId) {
+        try {
+            console.debug(`Loading character with ID: ${characterId}`);
+            const characters = await this.getCharacters();
+            return characters.find(character => character.id === characterId) || null;
+        } catch (error) {
+            console.error(`Error loading character with ID ${characterId}:`, error);
+            return null;
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Character Persistence Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Saves a character to storage
      * @param {Object} character - The character to save
-     * @returns {Promise<CharacterStorageResult>} Result of the save operation
+     * @returns {Promise<boolean>} True if save was successful
      */
     async saveCharacter(character) {
         try {
+            if (!character || !character.id) {
+                console.error('Invalid character object passed to saveCharacter');
+                return false;
+            }
+
+            console.debug(`Saving character: ${character.name} (${character.id})`);
+
             // Pre-serialize the character to avoid IPC cloning issues
             const serializedCharacter = JSON.stringify(character);
-            return await window.characterStorage.saveCharacter(serializedCharacter);
+            const result = await window.characterStorage.saveCharacter(serializedCharacter);
+
+            return result?.success === true;
         } catch (error) {
             console.error('Error saving character to storage:', error);
-            return {
-                success: false,
-                message: 'Failed to save character',
-                error
-            };
+            return false;
         }
     }
 
     /**
-     * Generate a UUID for a new character
-     * @returns {Promise<string>} A new UUID
+     * Deletes a character from storage
+     * @param {string} characterId - The ID of the character to delete
+     * @returns {Promise<boolean>} True if deletion was successful
      */
-    async generateUUID() {
-        return await window.characterStorage.generateUUID();
+    async deleteCharacter(characterId) {
+        try {
+            if (!characterId) {
+                console.error('Invalid character ID passed to deleteCharacter');
+                return false;
+            }
+
+            console.debug(`Deleting character with ID: ${characterId}`);
+            const result = await window.characterStorage.deleteCharacter(characterId);
+
+            return result?.success === true;
+        } catch (error) {
+            console.error(`Error deleting character with ID ${characterId}:`, error);
+            return false;
+        }
     }
 
+    //-------------------------------------------------------------------------
+    // Import/Export Methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Export a character to a JSON file
+     * Exports a character to a JSON file via Electron's file dialog
      * @param {string} characterId - The ID of the character to export
-     * @returns {Promise<CharacterStorageResult>} Result of the export operation
+     * @returns {Promise<boolean>} True if export was successful
      */
     async exportCharacter(characterId) {
         try {
-            return await window.characterStorage.exportCharacter(characterId);
+            if (!characterId) {
+                console.error('Invalid character ID passed to exportCharacter');
+                return false;
+            }
+
+            console.debug(`Exporting character with ID: ${characterId}`);
+            const result = await window.characterStorage.exportCharacter(characterId);
+
+            return result?.success === true;
         } catch (error) {
-            console.error('Error exporting character:', error);
-            return {
-                success: false,
-                message: 'Failed to export character',
-                error
-            };
+            console.error(`Error exporting character with ID ${characterId}:`, error);
+            return false;
         }
     }
 
     /**
-     * Import a character from a JSON file
-     * @returns {Promise<CharacterStorageResult>} Result of the import operation
+     * Imports a character from a JSON file via Electron's file dialog
+     * @returns {Promise<{success: boolean, character: Object|null}>} Object with success status and imported character
      */
     async importCharacter() {
         try {
-            return await window.characterStorage.importCharacter();
+            console.debug('Importing character from file');
+            const result = await window.characterStorage.importCharacter();
+
+            if (result?.success && result.character) {
+                return {
+                    success: true,
+                    character: result.character
+                };
+            }
+
+            return {
+                success: false,
+                character: null
+            };
         } catch (error) {
             console.error('Error importing character:', error);
             return {
                 success: false,
-                message: 'Failed to import character',
-                error
+                character: null
             };
         }
     }
 
+    //-------------------------------------------------------------------------
+    // Utility Methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Delete a character from storage
-     * @param {string} characterId - The ID of the character to delete
-     * @returns {Promise<CharacterStorageResult>} Result of the delete operation
+     * Generates a UUID for a new character
+     * @returns {Promise<string>} A new UUID
      */
-    async deleteCharacter(characterId) {
+    async generateUUID() {
         try {
-            return await window.characterStorage.deleteCharacter(characterId);
+            return await window.characterStorage.generateUUID();
         } catch (error) {
-            console.error('Error deleting character:', error);
-            return {
-                success: false,
-                message: 'Failed to delete character',
-                error
-            };
+            console.error('Error generating UUID:', error);
+            // Fallback to a simple UUID generation if the IPC call fails
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
         }
     }
 
@@ -125,11 +200,12 @@ export class Storage {
      * @static
      */
     static getInstance() {
-        if (!instance) {
-            instance = new Storage();
+        if (!_instance) {
+            _instance = new Storage();
         }
-        return instance;
+        return _instance;
     }
 }
 
+// Export a singleton instance
 export const storage = Storage.getInstance(); 

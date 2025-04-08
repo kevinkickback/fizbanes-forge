@@ -23,7 +23,7 @@ import { eventEmitter } from '../utils/EventEmitter.js';
 /**
  * Manages source book selection and filtering for character creation and data loading
  */
-export class SourceManager {
+class SourceManager {
     /**
      * Create a new SourceManager instance
      */
@@ -359,36 +359,6 @@ export class SourceManager {
     }
 
     /**
-     * Formats a source code into a readable name
-     * @param {string} source - Source code to format
-     * @returns {string} Formatted source name
-     */
-    formatSourceName(source) {
-        // First check if we have this source in our available sources
-        if (this.availableSources.has(source)) {
-            return this.availableSources.get(source).name;
-        }
-
-        // Fall back to known abbreviations
-        const sourceMap = {
-            'PHB': "Player's Handbook",
-            'XPHB': "Player's Handbook (2024)",
-            'DMG': "Dungeon Master's Guide",
-            'MM': "Monster Manual",
-            'XGE': "Xanathar's Guide to Everything",
-            'TCE': "Tasha's Cauldron of Everything",
-            'VGM': "Volo's Guide to Monsters",
-            'MTF': "Mordenkainen's Tome of Foes",
-            'SCAG': "Sword Coast Adventurer's Guide",
-            'ERLW': "Eberron: Rising from the Last War",
-            'EGW': "Explorer's Guide to Wildemount"
-        };
-
-        // Return the mapped name or the original source code with better formatting
-        return sourceMap[source] || source.replace(/([A-Z])/g, ' $1').trim();
-    }
-
-    /**
      * Check if the source manager is initialized
      * @returns {boolean} Whether the source manager is initialized
      */
@@ -397,8 +367,6 @@ export class SourceManager {
     }
 }
 
-/**
- * Export a singleton instance of the SourceManager
- * @type {SourceManager}
- */
+// Create and export a singleton instance
 export const sourceManager = new SourceManager(); 
+} 

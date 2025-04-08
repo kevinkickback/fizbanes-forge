@@ -11,12 +11,6 @@
  * @property {number} [maxRetries=3] - Maximum number of retries for failed loads
  * @property {number} [cacheExpiry=3600000] - Cache expiry in milliseconds (default 1 hour)
  * @property {boolean} [forceRefresh] - Force a cache refresh
- * 
- * @typedef {Object} CacheStats
- * @property {number} totalEntries - Total number of entries in cache
- * @property {number} expiredEntries - Number of expired entries
- * @property {number} pendingLoads - Number of pending load operations
- * @property {number} averageAge - Average age of cache entries in milliseconds
  */
 
 export class BaseLoader {
@@ -26,12 +20,45 @@ export class BaseLoader {
      * @param {number} [options.defaultExpiry=3600000] - Default cache expiry in milliseconds
      */
     constructor(options = {}) {
-        this.dataCache = new Map();
-        this.pendingLoads = new Map();
-        this.maxCacheSize = options.maxCacheSize || 100;
-        this.defaultExpiry = options.defaultExpiry || 3600000; // 1 hour
-        this.retryDelays = [1000, 3000, 5000]; // Retry delays in milliseconds
+        /**
+         * Cache for loaded data
+         * @type {Map<string, CacheEntry>}
+         * @private
+         */
+        this._dataCache = new Map();
+
+        /**
+         * Pending load operations
+         * @type {Map<string, Promise<any>>}
+         * @private
+         */
+        this._pendingLoads = new Map();
+
+        /**
+         * Maximum number of entries to keep in cache
+         * @type {number}
+         * @private
+         */
+        this._maxCacheSize = options.maxCacheSize || 100;
+
+        /**
+         * Default expiry time for cache entries in milliseconds
+         * @type {number}
+         * @private
+         */
+        this._defaultExpiry = options.defaultExpiry || 3600000; // 1 hour
+
+        /**
+         * Retry delays in milliseconds
+         * @type {number[]}
+         * @private
+         */
+        this._retryDelays = [1000, 3000, 5000]; // Retry delays in milliseconds
     }
+
+    //-------------------------------------------------------------------------
+    // Data Loading Methods
+    //-------------------------------------------------------------------------
 
     /**
      * Load a JSON file with retry support
@@ -53,7 +80,7 @@ export class BaseLoader {
             } catch (error) {
                 lastError = error;
                 if (attempt < maxRetries) {
-                    await this.delay(this.retryDelays[attempt]);
+                    await this._delay(this._retryDelays[attempt]);
                 }
             }
         }
@@ -68,11 +95,11 @@ export class BaseLoader {
      * @returns {Promise<any>} Cached or loaded data
      */
     async getOrLoadData(key, loadFn, options = {}) {
-        const { cacheExpiry = this.defaultExpiry, forceRefresh = false } = options;
+        const { cacheExpiry = this._defaultExpiry, forceRefresh = false } = options;
 
         // Check cache and expiry if not forcing refresh
         if (!forceRefresh) {
-            const cached = this.dataCache.get(key);
+            const cached = this._dataCache.get(key);
             if (cached && Date.now() < cached.expiry) {
                 cached.timestamp = Date.now();
                 return cached.data;
@@ -80,34 +107,41 @@ export class BaseLoader {
         }
 
         // Check pending loads
-        if (this.pendingLoads.has(key)) {
-            return this.pendingLoads.get(key);
+        if (this._pendingLoads.has(key)) {
+            return this._pendingLoads.get(key);
         }
 
         // Load the data
         const loadPromise = loadFn().then(data => {
-            this.setCacheEntry(key, data, cacheExpiry);
-            this.pendingLoads.delete(key);
+            this._setCacheEntry(key, data, cacheExpiry);
+            this._pendingLoads.delete(key);
             return data;
         }).catch(error => {
-            this.pendingLoads.delete(key);
+            this._pendingLoads.delete(key);
             throw error;
         });
 
-        this.pendingLoads.set(key, loadPromise);
+        this._pendingLoads.set(key, loadPromise);
         return loadPromise;
     }
 
+    //-------------------------------------------------------------------------
+    // Cache Management Methods
+    //-------------------------------------------------------------------------
+
     /**
      * Set a cache entry with LRU eviction
+     * @param {string} key - Cache key
+     * @param {any} data - Data to cache
+     * @param {number} expiry - Expiry time in milliseconds
      * @private
      */
-    setCacheEntry(key, data, expiry) {
-        if (this.dataCache.size >= this.maxCacheSize) {
+    _setCacheEntry(key, data, expiry) {
+        if (this._dataCache.size >= this._maxCacheSize) {
             let oldestKey = null;
             let oldestTime = Number.POSITIVE_INFINITY;
 
-            for (const [k, entry] of this.dataCache) {
+            for (const [k, entry] of this._dataCache) {
                 if (entry.timestamp < oldestTime) {
                     oldestTime = entry.timestamp;
                     oldestKey = k;
@@ -115,28 +149,15 @@ export class BaseLoader {
             }
 
             if (oldestKey) {
-                this.dataCache.delete(oldestKey);
+                this._dataCache.delete(oldestKey);
             }
         }
 
-        this.dataCache.set(key, {
+        this._dataCache.set(key, {
             data,
             timestamp: Date.now(),
             expiry: Date.now() + expiry
         });
-    }
-
-    /**
-     * Clear expired cache entries
-     * @private
-     */
-    clearExpiredCache() {
-        const now = Date.now();
-        for (const [key, entry] of this.dataCache) {
-            if (now >= entry.expiry) {
-                this.dataCache.delete(key);
-            }
-        }
     }
 
     /**
@@ -146,58 +167,26 @@ export class BaseLoader {
     clearCache(keys) {
         if (keys) {
             for (const key of keys) {
-                this.dataCache.delete(key);
-                this.pendingLoads.delete(key);
+                this._dataCache.delete(key);
+                this._pendingLoads.delete(key);
             }
         } else {
-            this.dataCache.clear();
-            this.pendingLoads.clear();
+            this._dataCache.clear();
+            this._pendingLoads.clear();
         }
     }
 
-    /**
-     * Check if data exists in cache and is not expired
-     * @param {string} key - Cache key to check
-     * @returns {boolean} True if data is cached and valid
-     */
-    isCached(key) {
-        const entry = this.dataCache.get(key);
-        return entry && Date.now() < entry.expiry;
-    }
-
-    /**
-     * Get cache statistics
-     * @returns {Object} Cache statistics
-     */
-    getCacheStats() {
-        const now = Date.now();
-        const stats = {
-            totalEntries: this.dataCache.size,
-            expiredEntries: 0,
-            pendingLoads: this.pendingLoads.size,
-            averageAge: 0
-        };
-
-        let totalAge = 0;
-        for (const entry of this.dataCache.values()) {
-            if (now >= entry.expiry) {
-                stats.expiredEntries++;
-            }
-            totalAge += now - entry.timestamp;
-        }
-
-        if (stats.totalEntries > 0) {
-            stats.averageAge = totalAge / stats.totalEntries;
-        }
-
-        return stats;
-    }
+    //-------------------------------------------------------------------------
+    // Utility Methods
+    //-------------------------------------------------------------------------
 
     /**
      * Delay helper for retry mechanism
+     * @param {number} ms - Milliseconds to delay
+     * @returns {Promise<void>} Promise that resolves after the delay
      * @private
      */
-    delay(ms) {
+    _delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 } 

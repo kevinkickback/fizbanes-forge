@@ -1,6 +1,18 @@
 /**
  * BackgroundCard.js
- * UI class for handling background selection and display
+ * UI component that handles the display and selection of character backgrounds.
+ * 
+ * @typedef {Object} Background
+ * @property {string} id - Unique identifier for the background
+ * @property {string} name - Name of the background
+ * @property {string} source - Source book of the background
+ * @property {string} description - Brief description of the background
+ * @property {Array<Object>} variants - Available background variants
+ * @property {Array<Object>} skillProficiencies - Skill proficiencies provided by the background
+ * @property {Array<Object>} toolProficiencies - Tool proficiencies provided by the background
+ * @property {Array<Object>} languages - Languages provided by the background
+ * @property {Array<Object>} equipment - Starting equipment provided by the background
+ * @property {Object} characteristics - Personality traits, ideals, bonds, and flaws
  */
 
 import { backgroundManager } from '../managers/BackgroundManager.js';
@@ -8,54 +20,393 @@ import { EntityCard } from './EntityCard.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 import { characterHandler } from '../utils/characterHandler.js';
 
+/**
+ * Manages the background selection UI component and related functionality
+ * Extends the base EntityCard class
+ */
 export class BackgroundCard extends EntityCard {
+    /**
+     * Creates a new BackgroundCard instance
+     */
     constructor() {
-        super({
-            entityType: 'background',
-            selectElementId: 'backgroundSelect',
-            imageElementId: 'backgroundImage',
-            quickDescElementId: 'backgroundQuickDesc',
-            detailsElementId: 'backgroundDetails',
-            placeholderTitle: 'Select a Background',
-            placeholderDesc: 'Choose a background to see details about their traits, proficiencies, and other characteristics.'
-        });
+        super('backgroundCard');
 
-        this.variantContainer = document.querySelector('#variantContainer');
-        if (!this.variantContainer) {
+        /**
+         * Container element for variant selection dropdown
+         * @type {HTMLElement}
+         * @private
+         */
+        this._variantContainer = document.querySelector('#variantContainer');
+
+        /**
+         * Reference to the background manager singleton
+         * @type {BackgroundManager}
+         * @private
+         */
+        this._backgroundManager = backgroundManager;
+
+        /**
+         * The main background selection dropdown element
+         * @type {HTMLSelectElement}
+         * @private
+         */
+        this._backgroundSelect = document.getElementById('backgroundSelect');
+
+        /**
+         * The variant selection dropdown element
+         * @type {HTMLSelectElement}
+         * @private
+         */
+        this._variantSelect = document.getElementById('variantSelect');
+
+        // Create variant container if it doesn't exist
+        if (!this._variantContainer) {
             this._createVariantContainer();
         }
 
+        // Initialize the component
         this.initialize();
     }
 
+    //-------------------------------------------------------------------------
+    // Initialization Methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Initialize the background card
+     * Initializes the background card UI components and event listeners
+     * @returns {Promise<void>}
      */
     async initialize() {
-        await backgroundManager.initialize();
-        this.renderBackgroundSelection();
-        this.attachSelectionListeners();
-        await this.loadSavedBackgroundSelection();
+        try {
+            // Initialize required dependencies
+            await this._backgroundManager.initialize();
+            await textProcessor.initialize();
+
+            // Populate background dropdown
+            this._renderBackgroundSelection();
+
+            // Set up event listeners
+            this._attachSelectionListeners();
+
+            // Load saved background selection from character data
+            await this._loadSavedBackgroundSelection();
+        } catch (error) {
+            console.error('Failed to initialize background card:', error);
+        }
     }
 
     /**
      * Creates the variant selection container if it doesn't exist
+     * @private
      */
     _createVariantContainer() {
         const selectors = document.querySelector('.background-selectors');
-        if (!selectors) return;
+        if (!selectors) {
+            console.warn('Background selectors container not found');
+            return;
+        }
 
-        this.variantContainer = document.createElement('div');
-        this.variantContainer.id = 'variantContainer';
-        this.variantContainer.className = 'background-select-container';
-        this.variantContainer.style.display = 'none';
-        this.variantContainer.innerHTML = `
+        this._variantContainer = document.createElement('div');
+        this._variantContainer.id = 'variantContainer';
+        this._variantContainer.className = 'background-select-container';
+        this._variantContainer.style.display = 'none';
+        this._variantContainer.innerHTML = `
             <label for="variantSelect">Variant</label>
             <select class="form-select" id="variantSelect">
                 <option value="">Standard background</option>
             </select>
         `;
-        selectors.appendChild(this.variantContainer);
+        selectors.appendChild(this._variantContainer);
+
+        // Update the reference to the variant select element
+        this._variantSelect = document.getElementById('variantSelect');
+    }
+
+    //-------------------------------------------------------------------------
+    // Data Loading Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Populates the background selection dropdown with available backgrounds
+     * filtered by allowed sources
+     * @private
+     */
+    _renderBackgroundSelection() {
+        if (!this._backgroundSelect) {
+            console.warn('Background select element not found');
+            return;
+        }
+
+        try {
+            const backgrounds = this._backgroundManager.getAllBackgrounds();
+            if (!backgrounds || backgrounds.length === 0) {
+                console.error('No backgrounds available to populate dropdown');
+                return;
+            }
+
+            // Filter backgrounds by allowed sources
+            const currentCharacter = characterHandler.currentCharacter;
+            const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
+            const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
+
+            const filteredBackgrounds = backgrounds.filter(bg => {
+                const bgSource = bg.source?.toUpperCase();
+                return upperAllowedSources.has(bgSource);
+            });
+
+            // Sort backgrounds by name
+            filteredBackgrounds.sort((a, b) => a.name.localeCompare(b.name));
+
+            // Update the select options with source in parentheses
+            this._backgroundSelect.innerHTML = `
+                <option value="">Choose a background...</option>
+                ${filteredBackgrounds.map(bg => `
+                    <option value="${bg.id}">${bg.name} (${bg.source})</option>
+                `).join('')}
+            `;
+
+            // Reset display to placeholder
+            this.setPlaceholderContent('Select a Background',
+                'Choose a background to see details about their traits, proficiencies, and other characteristics.');
+        } catch (error) {
+            console.error('Error populating background dropdown:', error);
+        }
+    }
+
+    /**
+     * Loads and sets the saved background selection from the character data
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _loadSavedBackgroundSelection() {
+        try {
+            const character = characterHandler?.currentCharacter;
+            if (!character?.background?.name) {
+                return; // No saved background to load
+            }
+
+            // Build the background ID from name and source
+            const backgroundId = character.background.name && character.background.source ?
+                `${character.background.name}_${character.background.source}` : '';
+
+            if (!backgroundId) {
+                return;
+            }
+
+            // Check if the background exists in the dropdown
+            const backgroundExists = Array.from(this._backgroundSelect.options).some(
+                option => option.value === backgroundId
+            );
+
+            if (backgroundExists) {
+                // Set the background selection
+                this._backgroundSelect.value = backgroundId;
+                this._backgroundSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // Also set variant if one was selected
+                if (character.background.variant) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    const variantExists = Array.from(this._variantSelect.options).some(
+                        option => option.value === character.background.variant
+                    );
+
+                    if (variantExists) {
+                        this._variantSelect.value = character.background.variant;
+                        this._variantSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            } else {
+                console.warn(`Saved background "${backgroundId}" not found in available options. Character might use a source that's not currently allowed.`);
+            }
+        } catch (error) {
+            console.error('Error loading saved background selection:', error);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Handling Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Attaches event listeners to the background and variant selectors
+     * @private
+     */
+    _attachSelectionListeners() {
+        // Background selection change handler
+        this._backgroundSelect?.addEventListener('change', () => this._handleBackgroundChange());
+
+        // Variant selection change handler
+        this._variantSelect?.addEventListener('change', () => this._handleVariantChange());
+    }
+
+    /**
+     * Handles background selection change events
+     * @private
+     */
+    _handleBackgroundChange() {
+        try {
+            const backgroundId = this._backgroundSelect.value;
+
+            if (!backgroundId) {
+                this._hideVariantSelector();
+                this.setPlaceholderContent('Select a Background',
+                    'Choose a background to see details about their traits, proficiencies, and other characteristics.');
+                this._updateCharacterBackground(null, null);
+                return;
+            }
+
+            // Extract name and source from ID
+            const [name, source] = backgroundId.split('_');
+            const background = this._backgroundManager.selectBackground(name, source);
+
+            if (background) {
+                // Update variant options
+                this._updateVariantOptions(background);
+
+                // Render the background details
+                this._renderEntityDetails(background);
+
+                // Update character model
+                this._updateCharacterBackground(background, null);
+            } else {
+                this._hideVariantSelector();
+                this.setPlaceholderContent('Select a Background',
+                    'Choose a background to see details about their traits, proficiencies, and other characteristics.');
+                this._updateCharacterBackground(null, null);
+            }
+        } catch (error) {
+            console.error('Error handling background change:', error);
+        }
+    }
+
+    /**
+     * Handles variant selection change events
+     * @private
+     */
+    _handleVariantChange() {
+        try {
+            const variantName = this._variantSelect.value;
+            const background = this._backgroundManager.getSelectedBackground();
+
+            if (!background) {
+                return;
+            }
+
+            if (!variantName) {
+                // Show standard background
+                this._renderEntityDetails(background);
+                this._updateCharacterBackground(background, null);
+                return;
+            }
+
+            // Select and render the variant
+            const variant = this._backgroundManager.selectVariant(variantName);
+            if (variant) {
+                this._renderEntityDetails(variant);
+                this._updateCharacterBackground(background, variant);
+            }
+        } catch (error) {
+            console.error('Error handling variant change:', error);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // UI Update Methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Updates the variant selection dropdown based on available variants
+     * @param {Background} background - The selected background
+     * @private
+     */
+    _updateVariantOptions(background) {
+        if (!this._variantSelect) {
+            return;
+        }
+
+        try {
+            if (background.variants?.length > 0) {
+                // Filter variants by allowed sources
+                const currentCharacter = characterHandler.currentCharacter;
+                const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
+                const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
+
+                const filteredVariants = background.variants.filter(variant => {
+                    const variantSource = variant.source?.toUpperCase() || background.source.toUpperCase();
+                    return upperAllowedSources.has(variantSource);
+                });
+
+                if (filteredVariants.length > 0) {
+                    // Sort variants by name
+                    filteredVariants.sort((a, b) => a.name.localeCompare(b.name));
+
+                    this._variantSelect.innerHTML = `
+                        <option value="">Standard background</option>
+                        ${filteredVariants.map(v => `
+                            <option value="${v.name}">${v.name} (${v.source || background.source})</option>
+                        `).join('')}
+                    `;
+                    this._showVariantSelector();
+                    return;
+                }
+            }
+
+            this._hideVariantSelector();
+        } catch (error) {
+            console.error('Error updating variant options:', error);
+            this._hideVariantSelector();
+        }
+    }
+
+    /**
+     * Shows the variant selector dropdown
+     * @private
+     */
+    _showVariantSelector() {
+        if (this._variantContainer) {
+            this._variantContainer.style.display = 'block';
+        }
+    }
+
+    /**
+     * Hides the variant selector dropdown
+     * @private
+     */
+    _hideVariantSelector() {
+        if (this._variantContainer) {
+            this._variantContainer.style.display = 'none';
+        }
+
+        if (this._variantSelect) {
+            this._variantSelect.value = '';
+        }
+    }
+
+    /**
+     * Renders the details of a specific background
+     * @param {Background} background - The background to render
+     * @private
+     */
+    async _renderEntityDetails(background) {
+        if (!background) {
+            this.setPlaceholderContent('Select a Background',
+                'Choose a background to see details about their traits, proficiencies, and other characteristics.');
+            return;
+        }
+
+        try {
+            // Update image (if we have an image later)
+            this.updateEntityImage(background.imageUrl || null, background.name);
+
+            // Update quick description
+            await this.updateQuickDescription(background.name, background.getDescription());
+
+            // Update background details
+            await this._updateBackgroundDetails(background);
+        } catch (error) {
+            console.error('Error rendering background details:', error);
+        }
     }
 
     /**
@@ -82,152 +433,6 @@ export class BackgroundCard extends EntityCard {
     }
 
     /**
-     * Render the background selection dropdown
-     */
-    renderBackgroundSelection() {
-        const backgrounds = backgroundManager.getAllBackgrounds();
-        const selection = document.querySelector('#backgroundSelect');
-
-        if (!selection) return;
-
-        // Filter backgrounds by allowed sources
-        const currentCharacter = characterHandler.currentCharacter;
-        const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
-        const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
-
-        const filteredBackgrounds = backgrounds.filter(bg => {
-            const bgSource = bg.source?.toUpperCase();
-            return upperAllowedSources.has(bgSource);
-        });
-
-        // Update the select options with source in parentheses
-        selection.innerHTML = `
-            <option value="">Choose a background...</option>
-            ${filteredBackgrounds.map(bg => `
-                <option value="${bg.id}">${bg.name} (${bg.source})</option>
-            `).join('')}
-        `;
-
-        // Reset display to placeholder
-        this.setPlaceholderContent();
-    }
-
-    /**
-     * Attach event listeners to the background and variant selectors
-     */
-    attachSelectionListeners() {
-        const backgroundSelect = document.querySelector('#backgroundSelect');
-        const variantSelect = document.querySelector('#variantSelect');
-
-        backgroundSelect?.addEventListener('change', () => {
-            const backgroundId = backgroundSelect.value;
-            if (!backgroundId) {
-                this._hideVariantSelector();
-                this.setPlaceholderContent();
-                this._updateCharacterBackground(null, null);
-                return;
-            }
-
-            // Extract name and source from ID
-            const [name, source] = backgroundId.split('_');
-            const background = backgroundManager.selectBackground(name, source);
-
-            if (background) {
-                // Update variant options
-                this._updateVariantOptions(background);
-
-                // Render the background details
-                this.renderEntityDetails(background);
-
-                // Update character model
-                this._updateCharacterBackground(background, null);
-            } else {
-                this._hideVariantSelector();
-                this.setPlaceholderContent();
-                this._updateCharacterBackground(null, null);
-            }
-        });
-
-        variantSelect?.addEventListener('change', () => {
-            const variantName = variantSelect.value;
-            const background = backgroundManager.getSelectedBackground();
-
-            if (!variantName) {
-                // Show standard background
-                this.renderEntityDetails(background);
-                this._updateCharacterBackground(background, null);
-                return;
-            }
-
-            // Select and render the variant
-            const variant = backgroundManager.selectVariant(variantName);
-            if (variant) {
-                this.renderEntityDetails(variant);
-                this._updateCharacterBackground(background, variant);
-            }
-        });
-    }
-
-    /**
-     * Update the variant selection dropdown based on available variants
-     * @param {Object} background - The selected background
-     */
-    _updateVariantOptions(background) {
-        const variantSelect = document.querySelector('#variantSelect');
-        if (!variantSelect) return;
-
-        if (background.variants?.length > 0) {
-            variantSelect.innerHTML = `
-                <option value="">Standard background</option>
-                ${background.variants.map(v => `
-                    <option value="${v.name}">${v.name} (${v.source})</option>
-                `).join('')}
-            `;
-            this._showVariantSelector();
-        } else {
-            this._hideVariantSelector();
-        }
-    }
-
-    /**
-     * Show the variant selector
-     */
-    _showVariantSelector() {
-        if (this.variantContainer) {
-            this.variantContainer.style.display = 'block';
-        }
-    }
-
-    /**
-     * Hide the variant selector
-     */
-    _hideVariantSelector() {
-        if (this.variantContainer) {
-            this.variantContainer.style.display = 'none';
-        }
-    }
-
-    /**
-     * Render the details of a specific background
-     * @param {Object} background - The background to render
-     */
-    async renderEntityDetails(background) {
-        if (!background) {
-            this.setPlaceholderContent();
-            return;
-        }
-
-        // Update image (if we have an image later)
-        this.updateEntityImage(background.imageUrl);
-
-        // Update quick description
-        this.updateQuickDescription(background.name, background.getDescription());
-
-        // Update background details
-        await this._updateBackgroundDetails(background);
-    }
-
-    /**
      * Update the background details content
      * @param {Background} background - The background to display
      * @private
@@ -237,16 +442,16 @@ export class BackgroundCard extends EntityCard {
         if (!backgroundDetails) return;
 
         // Process skill proficiencies
-        const skillProficiencies = backgroundManager.getFormattedSkillProficiencies(background);
+        const skillProficiencies = this._backgroundManager.getFormattedSkillProficiencies(background);
 
         // Process tool proficiencies
-        const toolProficiencies = backgroundManager.getFormattedToolProficiencies(background);
+        const toolProficiencies = this._backgroundManager.getFormattedToolProficiencies(background);
 
         // Process languages
-        const languages = backgroundManager.getFormattedLanguages(background);
+        const languages = this._backgroundManager.getFormattedLanguages(background);
 
         // Process equipment
-        const equipment = backgroundManager.getFormattedEquipment(background);
+        const equipment = this._backgroundManager.getFormattedEquipment(background);
 
         // Get the feature text
         const featureHtml = await this._renderFeature(background);
@@ -342,81 +547,6 @@ export class BackgroundCard extends EntityCard {
     }
 
     /**
-     * Load and set the saved background selection
-     */
-    async loadSavedBackgroundSelection() {
-        try {
-            const character = characterHandler?.currentCharacter;
-            if (character?.background?.name && character?.background?.source) {
-                const backgroundId = `${character.background.name}_${character.background.source}`;
-                const backgroundSelect = document.querySelector('#backgroundSelect');
-                const backgroundExists = Array.from(backgroundSelect.options).some(option => option.value === backgroundId);
-
-                if (backgroundExists) {
-                    backgroundSelect.value = backgroundId;
-                    backgroundSelect.dispatchEvent(new Event('change', { bubbles: true }));
-
-                    if (character.background.variant) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        const variantSelect = document.querySelector('#variantSelect');
-                        const variantExists = Array.from(variantSelect.options).some(option => option.value === character.background.variant);
-                        if (variantExists) {
-                            variantSelect.value = character.background.variant;
-                            variantSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                    }
-                } else {
-                    console.warn(`Saved background "${backgroundId}" not found in available options. Character might use a source that's not currently allowed.`);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading saved background selection:', error);
-        }
-    }
-
-    /**
-     * Override placeholder details to match the HTML structure
-     * @returns {string} HTML structure that matches the placeholder in index.html
-     */
-    getPlaceholderDetailsContent() {
-        return `
-            <div class="background-details-grid">
-                <div class="detail-section">
-                    <h6>Skill Proficiencies</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Tool Proficiencies</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Languages</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-                <div class="detail-section">
-                    <h6>Equipment</h6>
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="traits-section detail-section" style="margin-top: 1rem;">
-                <h6>Feature</h6>
-                <div class="feature-content">
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-            </div>`;
-    }
-
-    /**
      * Update character's background information
      * @param {Object} background - Selected background
      * @param {Object} variant - Selected variant
@@ -434,7 +564,7 @@ export class BackgroundCard extends EntityCard {
                 character.background?.variant !== (variant?.name || null));
 
         if (hasChanged) {
-            console.debug(`[BackgroundCard] Background changed to ${background?.name || 'none'}`);
+            console.debug(`Background changed to ${background?.name || 'none'}`);
 
             // Clear previous background proficiencies
             character.removeProficienciesBySource('Background');
@@ -490,7 +620,7 @@ export class BackgroundCard extends EntityCard {
         const character = characterHandler.currentCharacter;
         if (!character || !background) return;
 
-        console.debug(`[BackgroundCard] Adding proficiencies for background: ${background.name}`);
+        console.debug(`Adding proficiencies for background: ${background.name}`);
 
         // Store previous skill and language selections to restore valid ones
         const prevBackgroundSkillsSelected = character.optionalProficiencies.skills.background?.selected || [];
@@ -545,7 +675,7 @@ export class BackgroundCard extends EntityCard {
                 character.optionalProficiencies.skills.background.selected =
                     validSelections.slice(0, character.optionalProficiencies.skills.background.allowed);
 
-                console.debug(`[BackgroundCard] Restored ${character.optionalProficiencies.skills.background.selected.length} background skill selections`);
+                console.debug(`Restored ${character.optionalProficiencies.skills.background.selected.length} background skill selections`);
             }
         }
 
@@ -565,20 +695,18 @@ export class BackgroundCard extends EntityCard {
 
             // Set up optional languages
             if (background.languages.choices?.count > 0) {
-                console.debug(`[BackgroundCard] Setting up language choices: count=${background.languages.choices.count}`);
+                console.debug(`Setting up language choices: count=${background.languages.choices.count}`);
                 character.optionalProficiencies.languages.background.allowed = background.languages.choices.count;
 
                 // Set options - either specific list or 'any' languages
                 if (background.languages.choices.from && background.languages.choices.from.length > 0) {
                     // Background specifies specific languages to choose from
                     character.optionalProficiencies.languages.background.options = [...background.languages.choices.from];
-                    console.debug('[BackgroundCard] Background allows specific languages:',
-                        character.optionalProficiencies.languages.background.options);
+                    console.debug('Background allows specific languages:', character.optionalProficiencies.languages.background.options);
                 } else {
                     // Background allows ANY language - use the special 'Any' indicator
                     character.optionalProficiencies.languages.background.options = ['Any'];
-                    console.debug('[BackgroundCard] Background allows ANY language:',
-                        character.optionalProficiencies.languages.background.options);
+                    console.debug('Background allows ANY language:', character.optionalProficiencies.languages.background.options);
                 }
 
                 // Restore valid language selections if any, excluding now-fixed languages
@@ -590,7 +718,7 @@ export class BackgroundCard extends EntityCard {
                     character.optionalProficiencies.languages.background.selected =
                         validSelections.slice(0, character.optionalProficiencies.languages.background.allowed);
 
-                    console.debug(`[BackgroundCard] Restored ${character.optionalProficiencies.languages.background.selected.length} background language selections`);
+                    console.debug(`Restored ${character.optionalProficiencies.languages.background.selected.length} background language selections`);
                 }
 
                 // Update combined language options
@@ -619,7 +747,7 @@ export class BackgroundCard extends EntityCard {
             try {
                 return window.proficiencyManager.getAvailableSkills();
             } catch (e) {
-                console.warn('[BackgroundCard] Error getting skills from proficiencyManager:', e);
+                console.warn('Error getting skills from proficiencyManager:', e);
             }
         }
 
@@ -662,7 +790,7 @@ export class BackgroundCard extends EntityCard {
         // For combined options, include options from all sources
         character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
 
-        console.debug('[BackgroundCard] Updated combined skill options:', {
+        console.debug('Updated combined skill options:', {
             raceOptions,
             classOptions,
             backgroundOptions,
@@ -707,7 +835,7 @@ export class BackgroundCard extends EntityCard {
         // For combined options, include options from all sources
         character.optionalProficiencies.languages.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
 
-        console.debug('[BackgroundCard] Updated combined language options:', {
+        console.debug('Updated combined language options:', {
             raceOptions,
             classOptions,
             backgroundOptions,
@@ -751,5 +879,47 @@ export class BackgroundCard extends EntityCard {
         if (detailsElement) {
             detailsElement.innerHTML = this.getPlaceholderDetailsContent();
         }
+    }
+
+    /**
+     * Override placeholder details to match the HTML structure
+     * @returns {string} HTML structure that matches the placeholder in index.html
+     */
+    getPlaceholderDetailsContent() {
+        return `
+            <div class="background-details-grid">
+                <div class="detail-section">
+                    <h6>Skill Proficiencies</h6>
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Tool Proficiencies</h6>
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Languages</h6>
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h6>Equipment</h6>
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="traits-section detail-section" style="margin-top: 1rem;">
+                <h6>Feature</h6>
+                <div class="feature-content">
+                    <ul class="mb-0">
+                        <li class="placeholder-text">—</li>
+                    </ul>
+                </div>
+            </div>`;
     }
 } 
