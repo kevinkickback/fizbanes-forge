@@ -73,10 +73,6 @@ export class Feature {
         this.options = data.options || [];
     }
 
-    //-------------------------------------------------------------------------
-    // Basic information getters
-    //-------------------------------------------------------------------------
-
     /**
      * Gets the feature name
      * @returns {string} The feature name
@@ -109,10 +105,6 @@ export class Feature {
         return this.type;
     }
 
-    //-------------------------------------------------------------------------
-    // Feature type checks
-    //-------------------------------------------------------------------------
-
     /**
      * Checks if this is a class feature
      * @returns {boolean} Whether this is a class feature
@@ -128,10 +120,6 @@ export class Feature {
     isSubclassFeature() {
         return this.type === 'subclass';
     }
-
-    //-------------------------------------------------------------------------
-    // Requirements handling
-    //-------------------------------------------------------------------------
 
     /**
      * Checks if the feature has any requirements
@@ -180,10 +168,6 @@ export class Feature {
         return true;
     }
 
-    //-------------------------------------------------------------------------
-    // Options handling
-    //-------------------------------------------------------------------------
-
     /**
      * Checks if the feature has any options
      * @returns {boolean} Whether the feature has options
@@ -199,10 +183,6 @@ export class Feature {
     getOptions() {
         return this.options;
     }
-
-    //-------------------------------------------------------------------------
-    // Feature application
-    //-------------------------------------------------------------------------
 
     /**
      * Applies the feature to a character
@@ -223,10 +203,6 @@ export class Feature {
         // Base implementation - override in specific feature types
         return true;
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Returns a string representation of the feature

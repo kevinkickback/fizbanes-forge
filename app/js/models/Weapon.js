@@ -181,10 +181,6 @@ export class Weapon extends Item {
         return formula;
     }
 
-    //-------------------------------------------------------------------------
-    // Display methods
-    //-------------------------------------------------------------------------
-
     /**
      * Gets a formatted description of the weapon's range
      * @returns {string} Range description
@@ -194,10 +190,6 @@ export class Weapon extends Item {
         if (!this.range.long) return `${this.range.normal} ft.`;
         return `${this.range.normal}/${this.range.long} ft.`;
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Converts the weapon to a JSON object

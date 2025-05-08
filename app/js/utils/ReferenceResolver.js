@@ -85,6 +85,13 @@ class ReferenceResolver {
          * @private
          */
         this._processingRefs = new Set();
+
+        /**
+         * Set of circular references already logged to prevent console spam
+         * @type {Set<string>}
+         * @private
+         */
+        this._loggedCircularRefs = new Set();
     }
 
     //-------------------------------------------------------------------------
@@ -99,11 +106,9 @@ class ReferenceResolver {
         try {
             // Return cached data if available
             if (this._skillData) {
-                console.debug('Using cached skill data');
                 return this._skillData;
             }
 
-            console.debug('Loading skill data from file');
             const response = await fetch('data/skills.json');
 
             if (!response.ok) {
@@ -117,7 +122,6 @@ class ReferenceResolver {
             }
 
             this._skillData = new Map(data.skill.map(s => [s.name.toLowerCase(), s]));
-            console.debug(`Loaded ${this._skillData.size} skills`);
 
             return this._skillData;
         } catch (error) {
@@ -135,7 +139,7 @@ class ReferenceResolver {
             this._cache.clear();
             this._skillData = null;
             this._processingRefs.clear();
-            console.debug('ReferenceResolver cache cleared');
+            this._loggedCircularRefs.clear();
         } catch (error) {
             console.error('Error clearing ReferenceResolver cache:', error);
         }
@@ -172,7 +176,6 @@ class ReferenceResolver {
             const entity = spells.find(s => s?.name?.toLowerCase() === name.toLowerCase());
 
             if (!entity) {
-                console.debug(`Spell not found: ${name}`);
                 return {
                     title: name,
                     description: 'Spell details not found.',
@@ -269,7 +272,6 @@ class ReferenceResolver {
             const itemFluff = fluff.find(f => f.name.toLowerCase() === name.toLowerCase());
 
             if (!entity) {
-                console.debug(`Item not found: ${name}`);
                 return null;
             }
 
@@ -438,7 +440,6 @@ class ReferenceResolver {
             const monsterFluff = fluff.find(f => f.name.toLowerCase() === name.toLowerCase());
 
             if (!entity) {
-                console.debug(`Monster not found: ${name}`);
                 return null;
             }
 
@@ -567,7 +568,6 @@ class ReferenceResolver {
             const entity = classes.find(c => c.name.toLowerCase() === name.toLowerCase());
 
             if (!entity) {
-                console.debug(`Class not found: ${name}`);
                 return null;
             }
 
@@ -664,7 +664,6 @@ class ReferenceResolver {
             const entity = races.find(r => r.name.toLowerCase() === name.toLowerCase());
 
             if (!entity) {
-                console.debug(`Race not found: ${name}`);
                 return null;
             }
 
@@ -744,7 +743,6 @@ class ReferenceResolver {
             const entity = backgrounds.find(b => b.name.toLowerCase() === name.toLowerCase());
 
             if (!entity) {
-                console.debug(`Background not found: ${name}`);
                 return null;
             }
 
@@ -830,7 +828,6 @@ class ReferenceResolver {
             const skill = skillData.get(normalizedName);
 
             if (!skill) {
-                console.debug(`Skill not found: ${name}`);
                 return {
                     title: name,
                     description: 'Skill details not found.'
@@ -877,20 +874,22 @@ class ReferenceResolver {
 
             // Check if we already have this reference in cache
             if (this._cache.has(cacheKey)) {
-                console.debug(`Cache hit for reference: ${cacheKey}`);
                 return this._cache.get(cacheKey);
             }
 
             // Check if we're already processing this reference (prevent circular references)
             if (this._processingRefs.has(cacheKey)) {
-                console.warn(`Circular reference detected: ${cacheKey}`);
+                // Only log the warning if this specific circular ref hasn't been logged yet
+                if (!this._loggedCircularRefs.has(cacheKey)) {
+                    console.warn(`Circular reference detected: ${cacheKey}`);
+                    this._loggedCircularRefs.add(cacheKey); // Mark as logged
+                }
                 return {
                     title: name,
                     description: 'Circular reference detected.'
                 };
             }
 
-            console.debug(`Resolving reference: ${type}:${name}`);
 
             // Mark that we're processing this reference
             this._processingRefs.add(cacheKey);
@@ -919,6 +918,15 @@ class ReferenceResolver {
                     break;
                 case 'skill':
                     result = await this._handleSkillRef(name);
+                    break;
+                case 'condition':
+                    result = await this._handleConditionRef(name, source);
+                    break;
+                case 'damage': // Handle damage tags like {@damage 1d6 piercing}
+                    result = {
+                        title: name, // Use the content (e.g., "1d6 piercing") as the title
+                        description: 'Damage expression' // Simple description
+                    };
                     break;
                 default:
                     console.warn(`Unknown reference type: ${type}`);
@@ -952,51 +960,69 @@ class ReferenceResolver {
     }
 
     /**
-     * Resolves a reference to its full data
-     * @param {string} ref - The reference to resolve (format: {@type name|source})
-     * @param {number} [depth=0] - The current depth of reference resolution
-     * @returns {Promise<string|HTMLElement>} The resolved reference as HTML or text
-     * @throws {Error} If the reference cannot be resolved
+     * Resolve a single reference tag like {@spell Fireball|PHB}
+     * @param {string} ref - The reference string (e.g., {@spell Fireball|PHB})
+     * @param {Object} [options={}] - Processing options, including resolveMode
+     * @param {string} [options.resolveMode='tooltip'] - How to resolve ('tooltip' or 'displayName')
+     * @param {number} [depth=0] - Recursion depth tracker
+     * @returns {Promise<string>} The resolved HTML string or display name
      */
-    async resolveRef(ref, depth = 0) {
+    async resolveRef(ref, options = {}, depth = 0) {
+        const resolveMode = options.resolveMode || 'tooltip'; // Default to tooltip
+
         // Check for circular references
         if (this._processingRefs.has(ref)) {
-            console.warn('Circular reference detected:', ref);
-            return ref;
+            // Only log the warning if this specific circular ref hasn't been logged yet
+            if (!this._loggedCircularRefs.has(ref)) {
+                console.warn('Circular reference detected:', ref);
+                this._loggedCircularRefs.add(ref); // Mark as logged
+            }
+            return ref; // Return original tag
         }
 
         // Check maximum depth
         if (depth > 5) {
-            return ref;
+            console.warn('Max reference depth exceeded for:', ref);
+            return ref; // Return original tag
         }
 
         const match = ref.match(/{@(\w+)\s+([^}]+)}/);
-        if (!match) return ref;
+        if (!match) return ref; // Return original tag if regex fails
 
         const [fullMatch, type, content] = match;
+        const parts = content.split('|');
+        const name = parts[0].trim(); // The part before the first pipe is the name/display name
+        const source = parts[1] ? parts[1].trim() : 'PHB'; // Source is optional
+        // Note: parts[2] (potential display text override) is ignored in current simple parsing
+
+        // --- Handle displayName Mode --- 
+        if (resolveMode === 'displayName') {
+            return name; // Return just the extracted name part
+        }
+        // --- End displayName Mode ---
+
+        // --- Handle tooltip Mode (Existing Logic) --- 
         let tooltipData = null;
-
         try {
-            // Add to processing set to prevent circular references
             this._processingRefs.add(ref);
-
-            // Split content into name and source if provided
-            const [name, source = 'PHB'] = content.split('|');
 
             tooltipData = await this.resolveReference(type, name, source);
 
             if (!tooltipData) {
-                return `<span class="reference">${name}</span>`;
+                // If data not found, fallback to a simple span with the name
+                return `<span class="reference not-found">${name}</span>`;
             }
 
-            return this.createTooltipElement(type, name, tooltipData, depth);
+            // Create the tooltip element (passing depth for nested resolution)
+            return await this.createTooltipElement(type, name, tooltipData, depth);
         } catch (error) {
             console.warn(`Error resolving reference ${ref}:`, error);
-            return `<span class="reference">${content.split('|')[0]}</span>`;
+            // Fallback to simple span on error
+            return `<span class="reference error">${name}</span>`;
         } finally {
-            // Remove from processing set
             this._processingRefs.delete(ref);
         }
+        // --- End tooltip Mode ---
     }
 
     /**
@@ -1493,6 +1519,83 @@ class ReferenceResolver {
         } catch (error) {
             console.error('Error determining challenge XP:', error);
             return '??';
+        }
+    }
+
+    /**
+     * Handle condition references
+     * @param {string} name - Name of the condition
+     * @param {string} [source='PHB'] - Source book of the condition
+     * @returns {Promise<Object>} Condition data for tooltips
+     */
+    async _handleConditionRef(name, source = 'PHB') {
+        try {
+            if (!name) {
+                console.warn('Invalid condition reference: name missing');
+                return {
+                    title: 'Unknown Condition',
+                    description: 'Invalid condition reference: name missing'
+                };
+            }
+
+            // Load condition data if not already loaded
+            if (!this._conditionData) {
+                const conditionData = await this._dataLoader.loadConditions();
+                this._conditionData = conditionData;
+            }
+
+            // Extract the condition data
+            const conditionData = this._conditionData;
+            if (!conditionData || !conditionData.condition) {
+                console.warn('Condition data not found');
+                return {
+                    title: name,
+                    description: 'Condition data not found.'
+                };
+            }
+
+            // Find the specific condition by name and source
+            const normalizedName = name.toLowerCase();
+            const condition = conditionData.condition.find(c =>
+                c.name.toLowerCase() === normalizedName &&
+                (!source || !c.source || c.source === source)
+            );
+
+            if (!condition) {
+                console.warn(`Condition not found: ${name} (${source || 'unknown source'})`);
+                return {
+                    title: name,
+                    description: 'Condition not found.'
+                };
+            }
+
+            // Format the description from entries
+            let description = '';
+            if (condition.entries && Array.isArray(condition.entries)) {
+                description = condition.entries.map(entry => {
+                    if (typeof entry === 'string') {
+                        return `<p>${entry}</p>`;
+                    }
+                    if (entry.type === 'list') {
+                        const listItems = entry.items.map(item => `<li>${item}</li>`).join('');
+                        return `<ul>${listItems}</ul>`;
+                    }
+                    return '';
+                }).join('');
+            }
+
+            return {
+                title: condition.name,
+                source: condition.source,
+                description: description || 'No description available',
+                page: condition.page
+            };
+        } catch (error) {
+            console.error('Error handling condition reference:', error);
+            return {
+                title: name,
+                description: 'Error loading condition data.'
+            };
         }
     }
 }

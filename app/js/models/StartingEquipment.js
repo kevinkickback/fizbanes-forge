@@ -37,10 +37,6 @@ export class StartingEquipment {
         this.choices = this.processChoices(data.choices || []);
     }
 
-    //-------------------------------------------------------------------------
-    // Data processing methods
-    //-------------------------------------------------------------------------
-
     /**
      * Process equipment choices into a standardized format
      * @param {Array} choices - Raw equipment choices data
@@ -60,10 +56,6 @@ export class StartingEquipment {
             description: choice.description || ''
         }));
     }
-
-    //-------------------------------------------------------------------------
-    // Validation methods
-    //-------------------------------------------------------------------------
 
     /**
      * Validate a set of equipment choices
@@ -95,10 +87,6 @@ export class StartingEquipment {
         return true;
     }
 
-    //-------------------------------------------------------------------------
-    // Item retrieval methods
-    //-------------------------------------------------------------------------
-
     /**
      * Get all items that would be granted by a set of choices
      * @param {Object} selections - Map of choice IDs to selected item IDs
@@ -127,10 +115,6 @@ export class StartingEquipment {
         return items;
     }
 
-    //-------------------------------------------------------------------------
-    // Choice retrieval methods
-    //-------------------------------------------------------------------------
-
     /**
      * Get a specific choice by ID
      * @param {string} choiceId - ID of the choice to get
@@ -149,10 +133,6 @@ export class StartingEquipment {
         const choice = this.getChoice(choiceId);
         return choice ? choice.items : [];
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Returns a string representation of the starting equipment

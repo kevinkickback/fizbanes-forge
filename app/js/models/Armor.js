@@ -63,10 +63,6 @@ export class Armor extends Item {
         this.stealthDisadvantage = data.armor?.stealth || false;
     }
 
-    //-------------------------------------------------------------------------
-    // Data processing methods
-    //-------------------------------------------------------------------------
-
     /**
      * Determines whether DEX bonus applies to AC based on armor type
      * @param {Object} armor - Armor data object
@@ -79,10 +75,6 @@ export class Armor extends Item {
         if (armor.type === 'medium') return true;
         return false;
     }
-
-    //-------------------------------------------------------------------------
-    // AC calculation methods
-    //-------------------------------------------------------------------------
 
     /**
      * Gets the total AC with DEX modifier applied
@@ -102,10 +94,6 @@ export class Armor extends Item {
         return `${ac} AC`;
     }
 
-    //-------------------------------------------------------------------------
-    // Display methods
-    //-------------------------------------------------------------------------
-
     /**
      * Gets a detailed description of the armor type and properties
      * @returns {string} Formatted armor description
@@ -122,10 +110,6 @@ export class Armor extends Item {
         if (details.length) desc += ` (${details.join(', ')})`;
         return desc;
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Converts the armor to a JSON object

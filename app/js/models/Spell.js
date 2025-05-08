@@ -131,10 +131,6 @@ export class Spell {
         return this.school;
     }
 
-    //-------------------------------------------------------------------------
-    // Casting information
-    //-------------------------------------------------------------------------
-
     /**
      * Gets the casting time
      * @returns {string} The spell's casting time
@@ -166,10 +162,6 @@ export class Spell {
     getDuration() {
         return this.duration;
     }
-
-    //-------------------------------------------------------------------------
-    // Spell properties
-    //-------------------------------------------------------------------------
 
     /**
      * Checks if the spell can be cast as a ritual
@@ -203,10 +195,6 @@ export class Spell {
         return this.higherLevels;
     }
 
-    //-------------------------------------------------------------------------
-    // Class availability
-    //-------------------------------------------------------------------------
-
     /**
      * Checks if the spell is available to a specific class
      * @param {string} className - Name of the class to check
@@ -223,10 +211,6 @@ export class Spell {
     getAvailableClasses() {
         return this.classes;
     }
-
-    //-------------------------------------------------------------------------
-    // Component checks
-    //-------------------------------------------------------------------------
 
     /**
      * Checks if the spell requires a verbal component
@@ -251,10 +235,6 @@ export class Spell {
     requiresMaterialComponent() {
         return this.components.includes('M');
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Returns a string representation of the spell
@@ -297,10 +277,6 @@ export class Spell {
         if (!(other instanceof Spell)) return false;
         return this.id === other.id && this.source === other.source;
     }
-
-    //-------------------------------------------------------------------------
-    // Validation methods
-    //-------------------------------------------------------------------------
 
     /**
      * Checks if the spell is a cantrip

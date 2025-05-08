@@ -85,10 +85,6 @@ export class Feat {
         this.fluff = data.fluff;
     }
 
-    //-------------------------------------------------------------------------
-    // Text formatting methods
-    //-------------------------------------------------------------------------
-
     /**
      * Gets a formatted string describing the feat's prerequisites
      * @returns {string} Formatted prerequisite text
@@ -200,10 +196,6 @@ export class Feat {
             `${feature.name}: ${feature.description}`
         ).join('\n\n');
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Returns a string representation of the feat

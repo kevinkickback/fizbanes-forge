@@ -821,14 +821,16 @@ body {
 		margin: 0 auto; /* Additional centering */
 	}
 
-	.race-image {
-		width: 100%;
-		height: 100%;
-		object-fit: contain; /* Prevent image distortion */
-	}
-
-	.race-image img {
-		object-fit: contain; /* Prevent image distortion */
+	.race-image img,
+	.class-image img,
+	.background-image img {
+		max-width: 100% !important;
+		max-height: 100% !important;
+		width: auto !important;
+		height: auto !important;
+		object-fit: contain !important;
+		display: block;
+		margin: 0 auto;
 	}
 }
 
@@ -976,9 +978,13 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .race-image img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+	max-width: 100% !important;
+	max-height: 100% !important;
+	width: auto !important;
+	height: auto !important;
+	object-fit: contain !important;
+	display: block;
+	margin: 0 auto;
 }
 
 .race-image .placeholder-icon {
@@ -1214,9 +1220,13 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .class-image img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+	max-width: 100% !important;
+	max-height: 100% !important;
+	width: auto !important;
+	height: auto !important;
+	object-fit: contain !important;
+	display: block;
+	margin: 0 auto;
 }
 
 .class-image .placeholder-icon {
@@ -2169,9 +2179,13 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .background-image img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+	max-width: 100% !important;
+	max-height: 100% !important;
+	width: auto !important;
+	height: auto !important;
+	object-fit: contain !important;
+	display: block;
+	margin: 0 auto;
 }
 
 .background-image .placeholder-icon {
@@ -2266,4 +2280,53 @@ body[data-current-page="details"] .floating-actions {
 	background: var(--accent-color);
 	border-color: var(--accent-color);
 	transform: translateY(-1px);
+}
+
+.entity-img {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+
+.entity-img img {
+	max-height: 70%; /* or another value to keep it relative to card height */
+	max-width: 90%;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+	aspect-ratio: 1 / 1;
+	display: block;
+	margin: 0 auto;
+}
+
+@media (max-width: 600px) {
+	.race-image img,
+	.class-image img,
+	.background-image img {
+		display: none !important;
+	}
+}
+
+@media (max-width: 900px) {
+	.race-image-container,
+	.class-image-container,
+	.background-image-container {
+		max-width: 150px;
+		min-width: 100px;
+		height: 120px;
+		position: static;
+		margin: 0 auto 1rem auto;
+		float: none;
+	}
+}
+
+@media (max-width: 600px) {
+	.race-image-container,
+	.class-image-container,
+	.background-image-container {
+		display: none !important;
+	}
 }

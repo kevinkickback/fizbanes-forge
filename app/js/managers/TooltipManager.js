@@ -78,7 +78,6 @@ export class TooltipManager {
         if (this._initialized) return true;
 
         try {
-            console.debug('Initializing tooltip manager');
 
             // Get or create tooltip container
             this._container = document.getElementById('tooltipContainer');

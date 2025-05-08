@@ -42,10 +42,6 @@ export class Pack extends Item {
         this.totalValue = this.calculateTotalValue();
     }
 
-    //-------------------------------------------------------------------------
-    // Calculation methods
-    //-------------------------------------------------------------------------
-
     /**
      * Calculates the total weight of all items in the pack
      * @returns {number} Total weight in pounds
@@ -88,10 +84,6 @@ export class Pack extends Item {
         return value.amount * (rates[value.coin] || 1);
     }
 
-    //-------------------------------------------------------------------------
-    // Content access methods
-    //-------------------------------------------------------------------------
-
     /**
      * Gets the contents of the pack
      * @returns {Array} Array of pack contents with quantities
@@ -121,10 +113,6 @@ export class Pack extends Item {
         const item = this.contents.find(i => i.id === itemId);
         return item ? (item.quantity || 1) : 0;
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Converts the pack to a JSON object

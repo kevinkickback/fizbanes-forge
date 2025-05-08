@@ -296,6 +296,22 @@ export class Character {
     }
 
     /**
+     * Clears ability bonuses from the character model that start with a specific prefix.
+     * @param {string} prefix - The prefix to match against the bonus source (case-insensitive).
+     */
+    clearAbilityBonusesByPrefix(prefix) {
+        if (!prefix) return;
+        const lowerCasePrefix = prefix.toLowerCase();
+        for (const ability in this.abilityBonuses) {
+            if (Array.isArray(this.abilityBonuses[ability])) {
+                this.abilityBonuses[ability] = this.abilityBonuses[ability].filter(bonus =>
+                    !bonus.source || !bonus.source.toLowerCase().startsWith(lowerCasePrefix)
+                );
+            }
+        }
+    }
+
+    /**
      * Adds a pending choice of a specific type
      * @param {string} type - Choice type
      * @param {Object} choice - Choice details

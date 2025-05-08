@@ -53,7 +53,6 @@ export class DeityLoader extends BaseLoader {
     async loadDeities(options = {}) {
         return this.getOrLoadData('deities', async () => {
             try {
-                console.debug('Loading deity data...');
                 const deityData = await this.loadJsonFile(this._dataFiles.deities, {
                     ...options,
                     maxRetries: 3
@@ -70,7 +69,6 @@ export class DeityLoader extends BaseLoader {
                     deity: deityData.deity || []
                 };
 
-                console.debug(`Loaded ${data.deity.length} deities`);
                 return data;
             } catch (error) {
                 console.error('Error loading deities:', error);

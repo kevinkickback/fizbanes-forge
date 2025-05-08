@@ -57,7 +57,6 @@ export class ConditionLoader extends BaseLoader {
     async loadConditions(options = {}) {
         return this.getOrLoadData('conditions', async () => {
             try {
-                console.debug('Loading condition data...');
                 const conditionData = await this.loadJsonFile(this._dataFiles.conditions, {
                     ...options,
                     maxRetries: 3
@@ -74,7 +73,6 @@ export class ConditionLoader extends BaseLoader {
                     condition: conditionData.condition || []
                 };
 
-                console.debug(`Loaded ${data.condition.length} conditions`);
                 return data;
             } catch (error) {
                 console.error('Error loading conditions:', error);

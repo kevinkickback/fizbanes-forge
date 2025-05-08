@@ -49,7 +49,6 @@ export class SourceLoader extends BaseLoader {
     async loadSources(options = {}) {
         return this.getOrLoadData('sources', async () => {
             try {
-                console.debug('Loading source book data...');
                 // Note: BaseLoader's loadJsonFile already prepends 'data/' to the path
                 const data = await this.loadJsonFile('books.json', {
                     ...options,
@@ -76,7 +75,6 @@ export class SourceLoader extends BaseLoader {
                     isDefault: book.isDefault || false
                 }));
 
-                console.debug(`Loaded ${sources.length} sources`);
                 return { source: sources };
             } catch (error) {
                 console.error('Error loading sources:', error);

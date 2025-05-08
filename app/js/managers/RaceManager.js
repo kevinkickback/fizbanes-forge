@@ -178,10 +178,23 @@ class RaceManager {
      * @returns {Race|null} Selected race or null if not found
      */
     selectRace(raceName, source = 'PHB') {
+        // Store previous race for comparison
+        const previousRace = this._selectedRace;
+
+        // Update selected race
         this._selectedRace = this.getRace(raceName, source);
         this._selectedSubrace = null;
         this._selectedVariant = null;
+
+        // Clear ability choice selections
         this._clearAbilityChoiceSelections();
+
+        // Clear race-specific benefits in the character model (if different race)
+        if (previousRace && this._selectedRace &&
+            (previousRace.name !== this._selectedRace.name ||
+                previousRace.source !== this._selectedRace.source)) {
+            this._clearPreviousRaceBenefits();
+        }
 
         eventEmitter.emit('race:selected', this._selectedRace);
         return this._selectedRace;
@@ -195,9 +208,21 @@ class RaceManager {
     selectSubrace(subraceName) {
         if (!this._selectedRace) return null;
 
+        // Store previous subrace for comparison
+        const previousSubrace = this._selectedSubrace;
+
+        // Update selected subrace
         this._selectedSubrace = this._selectedRace.getSubrace(subraceName);
         this._selectedVariant = null;
+
+        // Clear ability choice selections
         this._clearAbilityChoiceSelections();
+
+        // Clear subrace-specific benefits if changing subraces
+        if (previousSubrace && this._selectedSubrace &&
+            previousSubrace.name !== this._selectedSubrace.name) {
+            this._clearPreviousSubraceBenefits();
+        }
 
         eventEmitter.emit('subrace:selected', this._selectedSubrace);
         return this._selectedSubrace;
@@ -574,11 +599,110 @@ class RaceManager {
     getAbilityScoreChoices() {
         const choices = [];
 
-        if (this._selectedRace) {
-            // Special handling for Half-Elf (PHB)
-            if (this._selectedRace.name === 'Half-Elf' && this._selectedRace.source === 'PHB') {
-                // Half-Elf gets +2 Charisma and +1 to two other abilities
-                return [
+        if (!this._selectedRace) return choices;
+
+        try {
+            // Extract race and subrace data for processing
+            const race = this._selectedRace;
+            const subrace = this._selectedSubrace;
+
+            // Step 1: Parse race ability improvements with a generic approach
+            const raceAbilities = race?.getAbilityImprovements?.() || [];
+            const raceChoices = this._processAbilityChoicesGeneric(raceAbilities, 'Race');
+            choices.push(...raceChoices);
+
+            // Step 2: Handle subrace ability improvements if present
+            if (subrace?.ability) {
+                const subraceAbilities = Array.isArray(subrace.ability) ? subrace.ability : [subrace.ability];
+                const subraceChoices = this._processAbilityChoicesGeneric(subraceAbilities, 'Subrace');
+                choices.push(...subraceChoices);
+            }
+
+            // Step 3: Look for any special variant rules from the race or subrace data
+            this._addSpecialVariantChoices(race, subrace, choices);
+
+            return choices;
+        } catch (error) {
+            console.error('Error processing ability score choices:', error);
+            return choices;
+        }
+    }
+
+    /**
+     * Process ability improvements into individual choice objects
+     * @param {Array} abilityData - Array of ability improvements
+     * @param {string} sourcePrefix - Prefix for the source field ('Race' or 'Subrace')
+     * @returns {Array} Array of processed ability choice objects
+     * @private
+     */
+    _processAbilityChoicesGeneric(abilityData, sourcePrefix = 'Race') {
+        // First normalize the ability data
+        const improvements = this._normalizeAbilityImprovements(abilityData);
+
+        // Extract and process choice improvements
+        return improvements
+            .filter(improvement => improvement?.isChoice)
+            .flatMap((improvement, index) => {
+                // For each choice count requested, create separate choice objects
+                const sourceChoices = [];
+                const count = improvement.count || 1;
+
+                // Always create individual choice objects for each selection
+                for (let i = 0; i < count; i++) {
+                    sourceChoices.push({
+                        type: 'ability',
+                        amount: improvement.amount || 1,
+                        count: 1, // Always 1 for individual dropdowns
+                        choices: improvement.choices || [],
+                        source: `${sourcePrefix} Choice ${i + 1}`
+                    });
+                }
+
+                return sourceChoices;
+            });
+    }
+
+    /**
+     * Add special variant choices based on race and subrace data
+     * @param {Race} race - The race object
+     * @param {Object} subrace - The subrace object
+     * @param {Array} choices - Array of choices to append to
+     * @private
+     */
+    _addSpecialVariantChoices(race, subrace, choices) {
+        // Handle Variant Human specifically
+        if (race.name === 'Human' && race.source === 'PHB' &&
+            subrace && subrace.name === 'Variant Human') {
+
+            // Check if choices already exist from the data parsing
+            // If no explicit choices were found in the data, add the default +1 to two abilities
+            if (!choices.some(c => c.source.startsWith('Race Choice'))) {
+                choices.push(
+                    {
+                        type: 'ability',
+                        amount: 1,
+                        count: 1,
+                        choices: ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'],
+                        source: 'Race Choice 1'
+                    },
+                    {
+                        type: 'ability',
+                        amount: 1,
+                        count: 1,
+                        choices: ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'],
+                        source: 'Race Choice 2'
+                    }
+                );
+            }
+            return;
+        }
+
+        // Handle Half-Elf specifically
+        if (race.name === 'Half-Elf' && race.source === 'PHB') {
+            // Check if choices already exist from the data parsing
+            // If no explicit choices were found in the data, add the default +1 to two abilities
+            if (!choices.some(c => c.source.startsWith('Race Choice'))) {
+                choices.push(
                     {
                         type: 'ability',
                         amount: 1,
@@ -593,62 +717,10 @@ class RaceManager {
                         choices: ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom'],
                         source: 'Race Choice 2'
                     }
-                ];
+                );
             }
-
-            // Get choices from main race
-            const raceChoices = this._selectedRace.getAbilityImprovements()
-                .filter(improvement => improvement.isChoice)
-                .flatMap(improvement => {
-                    // For each choice count requested, create separate choice objects
-                    const sourceChoices = [];
-                    const count = improvement.count || 1;
-
-                    // Always create individual choice objects, even for multi-select choices
-                    for (let i = 0; i < count; i++) {
-                        sourceChoices.push({
-                            type: 'ability',
-                            amount: improvement.amount || 1,
-                            count: 1, // Always 1 for individual dropdowns
-                            choices: improvement.choices || [],
-                            source: `Race Choice ${i + 1}` // Differentiate sources
-                        });
-                    }
-
-                    return sourceChoices;
-                });
-
-            choices.push(...raceChoices);
-
-            // Get choices from subrace if selected
-            if (this._selectedSubrace) {
-                const subraceChoices = (this._selectedSubrace.ability || [])
-                    .filter(improvement => improvement.isChoice)
-                    .flatMap(improvement => {
-                        // For each choice count requested, create separate choice objects
-                        const sourceChoices = [];
-                        const count = improvement.count || 1;
-
-                        // Always create individual choice objects
-                        for (let i = 0; i < count; i++) {
-                            sourceChoices.push({
-                                type: 'ability',
-                                amount: improvement.amount || 1,
-                                count: 1, // Always 1 for individual dropdowns
-                                choices: improvement.choices || [],
-                                source: `Subrace Choice ${i + 1}` // Differentiate sources
-                            });
-                        }
-
-                        return sourceChoices;
-                    });
-
-                choices.push(...subraceChoices);
-            }
+            return;
         }
-
-        console.debug('[RaceManager] Ability score choices:', choices);
-        return choices;
     }
 
     /**
@@ -812,6 +884,98 @@ class RaceManager {
         } catch (error) {
             console.error('Error getting combined traits:', error);
             return [];
+        }
+    }
+
+    /**
+     * Clear benefits from previous race when changing races
+     * This ensures no race-specific bonuses remain when switching races
+     * @private
+     */
+    _clearPreviousRaceBenefits() {
+        try {
+            const character = window.characterHandler?.currentCharacter;
+            if (!character) return;
+
+            // Clear racial ability bonuses
+            character.clearAbilityBonuses('Race');
+
+            // Clear racial proficiencies
+            character.removeProficienciesBySource('Race');
+
+            // Clear racial traits
+            character.removeTraitsBySource('Race');
+
+            // Reset racial speed
+            character.speed = { walk: 30 }; // Reset to default
+
+            // Clear resistances granted by race
+            character.removeResistancesBySource('Race');
+
+            // Clear darkvision if granted by race
+            character.features.darkvision = 0;
+
+            // Reset optional proficiencies from race
+            if (character.optionalProficiencies) {
+                // Reset race skill options
+                if (character.optionalProficiencies.skills?.race) {
+                    character.optionalProficiencies.skills.race.allowed = 0;
+                    character.optionalProficiencies.skills.race.options = [];
+                    character.optionalProficiencies.skills.race.selected = [];
+                }
+
+                // Reset race language options
+                if (character.optionalProficiencies.languages?.race) {
+                    character.optionalProficiencies.languages.race.allowed = 0;
+                    character.optionalProficiencies.languages.race.options = [];
+                    character.optionalProficiencies.languages.race.selected = [];
+                }
+
+                // Reset race tool options
+                if (character.optionalProficiencies.tools?.race) {
+                    character.optionalProficiencies.tools.race.allowed = 0;
+                    character.optionalProficiencies.tools.race.options = [];
+                    character.optionalProficiencies.tools.race.selected = [];
+                }
+            }
+
+            // Dispatch event for UI updates
+            document.dispatchEvent(new CustomEvent('proficienciesRemoved', {
+                detail: { source: 'Race' }
+            }));
+        } catch (error) {
+            console.error('Error clearing previous race benefits:', error);
+        }
+    }
+
+    /**
+     * Clear benefits from previous subrace when changing subraces
+     * This ensures no subrace-specific bonuses remain when switching subraces
+     * @private
+     */
+    _clearPreviousSubraceBenefits() {
+        try {
+            const character = window.characterHandler?.currentCharacter;
+            if (!character) return;
+
+            // Clear subrace ability bonuses
+            character.clearAbilityBonuses('Subrace');
+
+            // Clear subrace proficiencies
+            character.removeProficienciesBySource('Subrace');
+
+            // Clear subrace traits
+            character.removeTraitsBySource('Subrace');
+
+            // Clear resistances granted by subrace
+            character.removeResistancesBySource('Subrace');
+
+            // Dispatch event for UI updates
+            document.dispatchEvent(new CustomEvent('proficienciesRemoved', {
+                detail: { source: 'Subrace' }
+            }));
+        } catch (error) {
+            console.error('Error clearing previous subrace benefits:', error);
         }
     }
 }

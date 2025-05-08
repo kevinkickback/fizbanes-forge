@@ -53,7 +53,6 @@ export class VariantRuleLoader extends BaseLoader {
     async loadVariantRules(options = {}) {
         return this.getOrLoadData('variantrules', async () => {
             try {
-                console.debug('Loading variant rule data...');
                 const ruleData = await this.loadJsonFile(this._dataFiles.variantRules, {
                     ...options,
                     maxRetries: 3
@@ -70,7 +69,7 @@ export class VariantRuleLoader extends BaseLoader {
                     variantrule: ruleData.variantrule || []
                 };
 
-                console.debug(`Loaded ${data.variantrule.length} variant rules`);
+
                 return data;
             } catch (error) {
                 console.error('Error loading variant rules:', error);

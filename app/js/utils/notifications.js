@@ -12,9 +12,6 @@
  * @property {boolean} [allowDuplicates=false] - Whether to allow duplicate notifications
  */
 
-//-------------------------------------------------------------------------
-// Notification Configuration
-//-------------------------------------------------------------------------
 
 /**
  * Constants for notification behavior
@@ -36,10 +33,6 @@ const _NOTIFICATION_CONFIG = Object.freeze({
  * @private
  */
 let _lastNotification = { message: '', type: '', timestamp: 0 };
-
-//-------------------------------------------------------------------------
-// DOM Manipulation Functions
-//-------------------------------------------------------------------------
 
 /**
  * Creates the notification container if it doesn't exist
@@ -98,10 +91,6 @@ function _createNotificationElement(message, type) {
         return fallbackNotification;
     }
 }
-
-//-------------------------------------------------------------------------
-// Notification Management Functions
-//-------------------------------------------------------------------------
 
 /**
  * Closes a notification with animation
@@ -170,10 +159,6 @@ function _isDuplicateNotification(message, type, allowDuplicates) {
         (now - _lastNotification.timestamp) < _NOTIFICATION_CONFIG.DEBOUNCE_DELAY
     );
 }
-
-//-------------------------------------------------------------------------
-// Public API
-//-------------------------------------------------------------------------
 
 /**
  * Shows a notification to the user with debouncing and auto-closing

@@ -17,7 +17,6 @@ export class EntityCard {
      */
     constructor(cardId) {
         if (!cardId) {
-            console.error('EntityCard constructor called without card ID');
             return;
         }
 

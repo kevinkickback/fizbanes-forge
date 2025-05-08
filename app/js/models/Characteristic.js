@@ -37,10 +37,6 @@ export class Characteristic {
         this.index = data.index;
     }
 
-    //-------------------------------------------------------------------------
-    // Factory methods
-    //-------------------------------------------------------------------------
-
     /**
      * Creates a new Characteristic from a background
      * @param {string} type - Type of characteristic
@@ -57,10 +53,6 @@ export class Characteristic {
             index
         });
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Converts the characteristic to a JSON object

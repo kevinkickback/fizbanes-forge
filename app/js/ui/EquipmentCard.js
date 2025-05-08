@@ -23,10 +23,6 @@ export class EquipmentCard {
         this._character = character;
     }
 
-    //-------------------------------------------------------------------------
-    // Initialization Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Initialize the equipment page UI and structure
      * @returns {Promise<void>}
@@ -124,10 +120,6 @@ export class EquipmentCard {
         return contentContainer;
     }
 
-    //-------------------------------------------------------------------------
-    // Equipment Display Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Update equipment sections with current character items
      * @param {Object} sections - Object containing the section DOM elements to update
@@ -198,10 +190,6 @@ export class EquipmentCard {
             container.appendChild(new EntityCard(item).render());
         }
     }
-
-    //-------------------------------------------------------------------------
-    // Event Handling Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Set up equipment page event listeners

@@ -9,6 +9,8 @@
  * @property {Error} [error] - Optional error if operation failed
  */
 
+import { eventEmitter } from './EventEmitter.js';
+
 /**
  * Singleton instance for Storage class
  * @type {Storage|null}
@@ -31,9 +33,6 @@ export class Storage {
         _instance = this;
     }
 
-    //-------------------------------------------------------------------------
-    // Character Retrieval Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Gets all characters from storage
@@ -41,7 +40,6 @@ export class Storage {
      */
     async getCharacters() {
         try {
-            console.debug('Loading all characters from storage');
             const characters = await window.characterStorage.loadCharacters();
             return characters || [];
         } catch (error) {
@@ -57,18 +55,18 @@ export class Storage {
      */
     async getCharacter(characterId) {
         try {
-            console.debug(`Loading character with ID: ${characterId}`);
             const characters = await this.getCharacters();
-            return characters.find(character => character.id === characterId) || null;
+            const character = characters.find(character => character.id === characterId) || null;
+            if (character) {
+                eventEmitter.emit('storage:characterLoaded', character);
+            }
+            return character;
         } catch (error) {
             console.error(`Error loading character with ID ${characterId}:`, error);
             return null;
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Character Persistence Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Saves a character to storage
@@ -82,11 +80,14 @@ export class Storage {
                 return false;
             }
 
-            console.debug(`Saving character: ${character.name} (${character.id})`);
 
             // Pre-serialize the character to avoid IPC cloning issues
             const serializedCharacter = JSON.stringify(character);
             const result = await window.characterStorage.saveCharacter(serializedCharacter);
+
+            if (result?.success === true) {
+                eventEmitter.emit('storage:characterSaved', character);
+            }
 
             return result?.success === true;
         } catch (error) {
@@ -107,8 +108,11 @@ export class Storage {
                 return false;
             }
 
-            console.debug(`Deleting character with ID: ${characterId}`);
             const result = await window.characterStorage.deleteCharacter(characterId);
+
+            if (result?.success === true) {
+                eventEmitter.emit('storage:characterDeleted', characterId);
+            }
 
             return result?.success === true;
         } catch (error) {
@@ -117,9 +121,6 @@ export class Storage {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Import/Export Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Exports a character to a JSON file via Electron's file dialog
@@ -133,7 +134,6 @@ export class Storage {
                 return false;
             }
 
-            console.debug(`Exporting character with ID: ${characterId}`);
             const result = await window.characterStorage.exportCharacter(characterId);
 
             return result?.success === true;
@@ -149,7 +149,6 @@ export class Storage {
      */
     async importCharacter() {
         try {
-            console.debug('Importing character from file');
             const result = await window.characterStorage.importCharacter();
 
             if (result?.success && result.character) {
@@ -171,10 +170,6 @@ export class Storage {
             };
         }
     }
-
-    //-------------------------------------------------------------------------
-    // Utility Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Generates a UUID for a new character

@@ -39,7 +39,6 @@ import { textProcessor } from './TextProcessor.js';
 async function _loadDataWithErrorHandling(promise, component) {
     try {
         const result = await promise;
-        console.debug(`Successfully loaded ${component} data`);
         return result;
     } catch (error) {
         console.warn(`Failed to load ${component} data:`, error);
@@ -55,7 +54,6 @@ async function _loadDataWithErrorHandling(promise, component) {
 async function _loadAllGameData() {
     const errors = [];
     try {
-        console.debug('Starting data loading process');
 
         const dataLoadPromises = [
             _loadDataWithErrorHandling(dataLoader.loadSpells(), 'spells'),
@@ -72,7 +70,6 @@ async function _loadAllGameData() {
         ];
 
         await Promise.all(dataLoadPromises);
-        console.debug('All data loaded successfully');
         return { success: true, errors };
     } catch (error) {
         console.error('Error during game data loading:', error);
@@ -80,10 +77,6 @@ async function _loadAllGameData() {
         return { success: false, errors };
     }
 }
-
-//-------------------------------------------------------------------------
-// Core Component Initialization
-//-------------------------------------------------------------------------
 
 /**
  * Initializes a single core component with error handling
@@ -94,9 +87,7 @@ async function _loadAllGameData() {
  */
 async function _initializeComponent(name, initFunction) {
     try {
-        console.debug(`Initializing ${name}`);
         await initFunction();
-        console.debug(`Successfully initialized ${name}`);
         return { success: true, error: null };
     } catch (error) {
         console.error(`Error initializing ${name}:`, error);
@@ -158,7 +149,6 @@ async function _initializeCoreComponents() {
  * @throws {Error} If initialization fails catastrophically
  */
 export async function initializeAll(options = {}) {
-    console.debug('Starting application initialization');
 
     const result = {
         success: true,
@@ -181,9 +171,7 @@ export async function initializeAll(options = {}) {
         // Set overall success based on whether any critical errors occurred
         result.success = result.errors.length === 0;
 
-        if (result.success) {
-            console.debug('Application initialized successfully');
-        } else {
+        if (!result.success) {
             console.warn('Application initialized with errors:', result.errors);
         }
 

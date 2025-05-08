@@ -72,7 +72,6 @@ export class DataLoader {
             this.actionLoader = new ActionLoader();
             this.variantRuleLoader = new VariantRuleLoader();
 
-            console.debug('All data loaders initialized');
         } catch (error) {
             console.error('Failed to initialize data loaders:', error);
         }
@@ -88,7 +87,6 @@ export class DataLoader {
      */
     async loadClasses() {
         try {
-            console.debug('Loading class data');
             return await this.classLoader.loadClasses();
         } catch (error) {
             console.error('Error loading class data:', error);
@@ -102,7 +100,6 @@ export class DataLoader {
      */
     async loadRaces() {
         try {
-            console.debug('Loading race data');
             return await this.raceLoader.loadRaces();
         } catch (error) {
             console.error('Error loading race data:', error);
@@ -116,7 +113,6 @@ export class DataLoader {
      */
     async loadBackgrounds() {
         try {
-            console.debug('Loading background data');
             return await this.backgroundLoader.loadBackgrounds();
         } catch (error) {
             console.error('Error loading background data:', error);
@@ -130,7 +126,6 @@ export class DataLoader {
      */
     async loadDeities() {
         try {
-            console.debug('Loading deity data');
             return await this.deityLoader.loadDeities();
         } catch (error) {
             console.error('Error loading deity data:', error);
@@ -144,7 +139,6 @@ export class DataLoader {
      */
     async loadFeatures() {
         try {
-            console.debug('Loading feature data');
             return await this.featureLoader.loadFeatures();
         } catch (error) {
             console.error('Error loading feature data:', error);
@@ -162,7 +156,6 @@ export class DataLoader {
      */
     async loadItems() {
         try {
-            console.debug('Loading item data');
             return await this.itemLoader.loadItems();
         } catch (error) {
             console.error('Error loading item data:', error);
@@ -180,7 +173,6 @@ export class DataLoader {
      */
     async loadSpells() {
         try {
-            console.debug('Loading spell data');
             return await this.spellLoader.loadSpells();
         } catch (error) {
             console.error('Error loading spell data:', error);
@@ -194,7 +186,6 @@ export class DataLoader {
      */
     async loadSources() {
         try {
-            console.debug('Loading source data');
             return await this.sourceLoader.loadSources();
         } catch (error) {
             console.error('Error loading source data:', error);
@@ -208,7 +199,6 @@ export class DataLoader {
      */
     async loadConditions() {
         try {
-            console.debug('Loading condition data');
             return await this.conditionLoader.loadConditions();
         } catch (error) {
             console.error('Error loading condition data:', error);
@@ -222,7 +212,6 @@ export class DataLoader {
      */
     async loadActions() {
         try {
-            console.debug('Loading action data');
             return await this.actionLoader.loadActions();
         } catch (error) {
             console.error('Error loading action data:', error);
@@ -236,7 +225,6 @@ export class DataLoader {
      */
     async loadVariantRules() {
         try {
-            console.debug('Loading variant rule data');
             return await this.variantRuleLoader.loadVariantRules();
         } catch (error) {
             console.error('Error loading variant rule data:', error);

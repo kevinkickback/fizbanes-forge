@@ -122,9 +122,6 @@ export class AbilityScoreCard {
         if (methodSelect) {
             methodSelect.value = character.variantRules.abilityScoreMethod;
         }
-
-        console.debug("Synchronized ability score manager with character using method:",
-            character.variantRules.abilityScoreMethod);
     }
 
     /**
@@ -172,13 +169,6 @@ export class AbilityScoreCard {
                     const ability = e.target.value;
                     const bonus = Number.parseInt(e.target.dataset.bonus, 10);
                     const source = e.target.dataset.source;
-
-                    console.debug('Ability choice selected:', {
-                        index,
-                        ability,
-                        bonus,
-                        source
-                    });
 
                     if (ability) {
                         abilityScoreManager.handleAbilityChoice(ability, index, bonus, source);
@@ -249,8 +239,6 @@ export class AbilityScoreCard {
         const character = characterHandler.getCurrentCharacter();
         if (!character) return;
 
-        console.debug("Character changed, syncing ability score manager");
-
         // Sync with current character first
         this._syncWithCurrentCharacter();
 
@@ -297,8 +285,6 @@ export class AbilityScoreCard {
             return;
         }
 
-        console.debug(`Standard array selection: ${ability} = ${newValue}`);
-
         // Find if this value is already assigned to another ability
         const currentAbilityScore = abilityScoreManager.getBaseScore(ability);
 
@@ -319,7 +305,6 @@ export class AbilityScoreCard {
 
         // If value is already assigned to another ability, swap them
         if (otherAbility) {
-            console.debug(`Swapping values: ${ability}=${newValue}, ${otherAbility}=${currentAbilityScore}`);
             abilityScoreManager.updateAbilityScore(otherAbility, currentAbilityScore);
         }
 
@@ -354,7 +339,6 @@ export class AbilityScoreCard {
      */
     _updateStandardArrayOptions(select, ability) {
         const currentValue = abilityScoreManager.getBaseScore(ability);
-        console.debug(`Updating standard array options for ${ability}, current value=${currentValue}`);
 
         // Clear all existing options
         select.innerHTML = '';
@@ -605,8 +589,6 @@ export class AbilityScoreCard {
                 methodSelect.value = this._lastInitializedMethod;
             }
 
-            console.debug("Initializing ability score method:", this._lastInitializedMethod);
-
             // Ensure ability scores are properly initialized for the selected method
             abilityScoreManager.resetAbilityScoreMethod();
 
@@ -797,7 +779,6 @@ export class AbilityScoreCard {
      */
     _renderAbilityChoices() {
         const pendingChoices = abilityScoreManager.getPendingChoices();
-        console.debug('Rendering ability choices:', pendingChoices);
 
         if (pendingChoices.length === 0) {
             this._removeChoicesContainer();
@@ -833,12 +814,6 @@ export class AbilityScoreCard {
     _createChoiceDropdown(choice, index) {
         const availableAbilities = abilityScoreManager.getAvailableAbilities(index);
         const selectedAbility = abilityScoreManager.abilityChoices.get(index);
-
-        console.debug(`Creating dropdown for choice ${index}:`, {
-            choice,
-            availableAbilities,
-            selectedAbility
-        });
 
         return `
             <div class="ability-choice-group">
@@ -904,11 +879,11 @@ export class AbilityScoreCard {
         try {
             const bonusGroups = abilityScoreManager.getBonusGroups();
             if (bonusGroups.size === 0) {
-                this._bonusesContainer.innerHTML = '<div class="text-muted">No ability score bonuses applied.</div>';
+                this._bonusesContainer.innerHTML = 'No ability score bonuses applied.';
                 return;
             }
 
-            let bonusContent = '<h6 class="mb-2">Ability Score Bonuses</h6>';
+            let bonusContent = '<h6 class="mb-2">Sources</h6>';
             const raceBonuses = this._processRaceBonuses(bonusGroups);
 
             if (raceBonuses.length > 0) {
@@ -1459,8 +1434,6 @@ export class AbilityScoreCard {
             for (const ability of abilityScoreManager._allAbilities) {
                 scores[ability] = abilityScoreManager.getTotalScore(ability);
             }
-
-            console.debug('Updating ability scores:', scores);
 
             // Update each ability score box
             for (const [ability, score] of Object.entries(scores)) {

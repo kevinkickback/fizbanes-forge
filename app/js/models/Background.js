@@ -96,10 +96,6 @@ export class Background {
         this.imageUrl = data.imageUrl || '';
     }
 
-    //-------------------------------------------------------------------------
-    // Factory methods
-    //-------------------------------------------------------------------------
-
     /**
      * Creates a new Background instance from processed background data
      * @param {Object} backgroundData - Processed background data from BackgroundManager
@@ -109,10 +105,6 @@ export class Background {
     static fromProcessedData(backgroundData) {
         return new Background(backgroundData);
     }
-
-    //-------------------------------------------------------------------------
-    // Choice availability
-    //-------------------------------------------------------------------------
 
     /**
      * Checks if this background has any proficiency choices
@@ -131,10 +123,6 @@ export class Background {
     hasLanguageChoice() {
         return (this.languages?.choices?.count || 0) > 0;
     }
-
-    //-------------------------------------------------------------------------
-    // Fixed proficiencies and languages
-    //-------------------------------------------------------------------------
 
     /**
      * Gets the fixed proficiencies for this background
@@ -167,10 +155,6 @@ export class Background {
     getFixedLanguages() {
         return this.languages?.fixed || [];
     }
-
-    //-------------------------------------------------------------------------
-    // Features and characteristics
-    //-------------------------------------------------------------------------
 
     /**
      * Gets available variants for this background
@@ -208,10 +192,6 @@ export class Background {
     getDescription() {
         return this.description || '';
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Serializes the background to JSON

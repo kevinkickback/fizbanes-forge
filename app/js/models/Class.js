@@ -174,7 +174,19 @@ export class Class {
      * @returns {Array} Array of armor proficiencies
      */
     getArmorProficiencies() {
-        return this.armorProficiencies;
+        // Process the stored array to extract proficiency names
+        return (this.armorProficiencies || []).map(prof => {
+            if (typeof prof === 'string') {
+                return prof; // Return strings directly
+            }
+            if (typeof prof === 'object' && prof !== null && prof.proficiency) {
+                // For objects like { proficiency: "shield", ... }, return the proficiency value
+                return prof.proficiency;
+            }
+            // Log unexpected format and return null for filtering
+            console.warn('Unexpected armor proficiency format:', prof);
+            return null;
+        }).filter(prof => prof !== null); // Filter out any null results
     }
 
     /**

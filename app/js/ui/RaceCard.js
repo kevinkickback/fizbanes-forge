@@ -67,10 +67,6 @@ export class RaceCard {
         this.initialize();
     }
 
-    //-------------------------------------------------------------------------
-    // Initialization Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Initializes the race card UI components and event listeners
      * @returns {Promise<void>}
@@ -101,10 +97,6 @@ export class RaceCard {
         this._subraceSelect.addEventListener('change', event => this._handleSubraceChange(event));
         document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
     }
-
-    //-------------------------------------------------------------------------
-    // Data Loading Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Loads and sets the saved race selection from the character data
@@ -231,10 +223,6 @@ export class RaceCard {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Event Handlers
-    //-------------------------------------------------------------------------
-
     /**
      * Handles race selection change events
      * @param {Event} event - The change event
@@ -331,10 +319,6 @@ export class RaceCard {
             console.error('Error handling character changed event:', error);
         }
     }
-
-    //-------------------------------------------------------------------------
-    // UI Update Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Updates the quick description for the selected race
@@ -544,27 +528,80 @@ export class RaceCard {
         const character = characterHandler.currentCharacter;
         if (!character) return;
 
+        // We want to do a more thorough cleanup, so always treat as changed
+        const forceCleanup = true;
+
         // Check if race has changed
-        const hasChanged =
-            (character.race?.name !== race.name ||
-                character.race?.source !== race.source ||
+        const hasChanged = forceCleanup ||
+            (character.race?.name !== race?.name ||
+                character.race?.source !== race?.source ||
                 character.race?.subrace !== (subrace?.name || ''));
 
         if (hasChanged) {
-            // Clear previous race proficiencies, ability bonuses, and traits
-            character.removeProficienciesBySource('Race');
-            character.clearAbilityBonuses('Race');
-            character.clearTraits('Race');
+            // Perform thorough cleanup of all race-related benefits
 
-            // Remove subrace proficiencies, ability bonuses, and traits
-            character.removeProficienciesBySource('Subrace');
+            // Clear all ability bonuses from race and subrace
+            character.clearAbilityBonuses('Race');
             character.clearAbilityBonuses('Subrace');
+
+            // Clear bonuses added from previous racial choices
+            character.clearAbilityBonusesByPrefix('Race Choice');
+
+            // Clear the AbilityScoreManager's stored choices
+            if (window.abilityScoreManager) {
+                window.abilityScoreManager.clearStoredChoices();
+            }
+
+            // Clear all pending ability choices (configurations)
+            character.clearPendingChoicesByType('ability');
+
+            // Clear all proficiencies from race and subrace
+            character.removeProficienciesBySource('Race');
+            character.removeProficienciesBySource('Subrace');
+
+            // Clear all traits from race and subrace
+            character.clearTraits('Race');
             character.clearTraits('Subrace');
 
-            // Notify UI to clear optional proficiencies from race
+            // Reset racial features
+            character.features.darkvision = 0;
+            character.features.resistances.clear();
+
+            // Clear optional proficiencies for race
+            if (character.optionalProficiencies) {
+                // Clear race skills
+                if (character.optionalProficiencies.skills?.race) {
+                    character.optionalProficiencies.skills.race.allowed = 0;
+                    character.optionalProficiencies.skills.race.options = [];
+                    character.optionalProficiencies.skills.race.selected = [];
+                }
+
+                // Clear race languages
+                if (character.optionalProficiencies.languages?.race) {
+                    character.optionalProficiencies.languages.race.allowed = 0;
+                    character.optionalProficiencies.languages.race.options = [];
+                    character.optionalProficiencies.languages.race.selected = [];
+                }
+
+                // Clear race tools
+                if (character.optionalProficiencies.tools?.race) {
+                    character.optionalProficiencies.tools.race.allowed = 0;
+                    character.optionalProficiencies.tools.race.options = [];
+                    character.optionalProficiencies.tools.race.selected = [];
+                }
+            }
+
+            // Notify UI to clear optional proficiencies from race and trigger full UI refresh
             document.dispatchEvent(new CustomEvent('proficienciesRemoved', {
-                detail: { source: 'Race' }
+                detail: { source: 'Race', triggerRefresh: true }
             }));
+
+            // Reset cached selected ability score choices
+            try {
+                window.abilityScoreManager?.setRacialAbilityChoices([]);
+            } catch (e) {
+                console.error('Error clearing ability score choices:', e);
+            }
 
             if (!race) {
                 // Clear race
@@ -573,13 +610,6 @@ export class RaceCard {
                     source: '',
                     subrace: ''
                 };
-
-                // Clear racial traits
-                character.features.darkvision = 0;
-                character.features.resistances.clear();
-
-                // Clear ability choices since there's no race
-                character.clearPendingChoicesByType('ability');
             } else {
                 // Set race
                 character.race = {
@@ -591,9 +621,6 @@ export class RaceCard {
                 // Update character size and speed
                 character.size = race.size;
                 character.speed = { ...race.speed };
-
-                // Clear old ability choices before updating bonuses
-                character.clearPendingChoicesByType('ability');
 
                 // Update ability scores and get new choices
                 this._updateAbilityBonuses(race, subrace);
@@ -612,10 +639,16 @@ export class RaceCard {
                 }, 100);
             }
 
-            // Trigger events to update the UI
+            // Trigger events to update the UI with longer delays to ensure complete refresh
             document.dispatchEvent(new CustomEvent('raceChanged', { detail: { race, subrace } }));
-            document.dispatchEvent(new CustomEvent('characterChanged'));
-            document.dispatchEvent(new CustomEvent('abilityScoresChanged', { detail: { character } }));
+
+            setTimeout(() => {
+                document.dispatchEvent(new CustomEvent('characterChanged'));
+                document.dispatchEvent(new CustomEvent('abilityScoresChanged', { detail: { character } }));
+
+                // Additional refresh for UI components
+                document.dispatchEvent(new CustomEvent('updateUI', { detail: { fullRefresh: true } }));
+            }, 150);
         }
     }
 
@@ -648,25 +681,55 @@ export class RaceCard {
         character.optionalProficiencies.tools.race.selected = [];
 
         // Add language proficiencies
-        if (race.languages) {
-            // Handle fixed languages
-            for (const [language, value] of Object.entries(race.languages)) {
-                if (value === true && language !== 'anyStandard' && language !== 'any') {
-                    const capitalizedLanguage = language.charAt(0).toUpperCase() + language.slice(1);
-                    character.addProficiency('languages', capitalizedLanguage, 'Race');
+        if (race.languageProficiencies && Array.isArray(race.languageProficiencies)) {
+            let languageCount = 0;
+            let languageOptions = [];
+            const specificLanguageChoices = new Set(); // Track specific options if choose.from is used
+
+            for (const profObj of race.languageProficiencies) {
+                for (const [key, value] of Object.entries(profObj)) {
+                    // Handle fixed languages
+                    if (value === true && key !== 'anyStandard' && key !== 'any' && key !== 'choose' && key !== 'other') {
+                        const capitalizedLanguage = key.charAt(0).toUpperCase() + key.slice(1);
+                        character.addProficiency('languages', capitalizedLanguage, 'Race');
+                    }
+                    // Handle race's unique language ('other')
+                    else if (key === 'other' && value === true) {
+                        // Add the race's name as a language, if not Common
+                        if (race.name !== 'Common') {
+                            character.addProficiency('languages', race.name, 'Race');
+                        }
+                    }
+                    // Handle 'any'/'anyStandard' choices
+                    else if ((key === 'anyStandard' || key === 'any') && typeof value === 'number' && value > 0) {
+                        languageCount += value;
+                        // Use a standard list if 'any' or 'anyStandard' is specified
+                        // (We assume only one 'any'/'anyStandard' definition per race)
+                        languageOptions = [
+                            'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
+                            'Halfling', 'Orc', 'Abyssal', 'Celestial', 'Draconic',
+                            'Deep Speech', 'Infernal', 'Primordial', 'Sylvan', 'Undercommon'
+                        ];
+                    }
+                    // Handle specific 'choose' lists
+                    else if (key === 'choose' && typeof value === 'object' && value.from && value.count > 0) {
+                        languageCount += value.count;
+                        const capitalizedOptions = value.from.map(lang => lang.charAt(0).toUpperCase() + lang.slice(1));
+                        // Use for...of loop as preferred by linter
+                        for (const lang of capitalizedOptions) {
+                            specificLanguageChoices.add(lang);
+                        }
+                    }
                 }
             }
 
-            // Handle any language choices
-            if ((race.languages.anyStandard && race.languages.anyStandard > 0) ||
-                (race.languages.any && race.languages.any > 0)) {
-                const languageCount = race.languages.anyStandard || race.languages.any || 0;
-                const languageOptions = [
-                    'Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin',
-                    'Halfling', 'Orc', 'Abyssal', 'Celestial', 'Draconic',
-                    'Deep Speech', 'Infernal', 'Primordial', 'Sylvan', 'Undercommon'
-                ];
+            // If specific choices were found, use those as options, otherwise use the standard list if 'any' was chosen
+            if (specificLanguageChoices.size > 0) {
+                languageOptions = Array.from(specificLanguageChoices);
+            }
 
+            // Update optional proficiencies if choices were found
+            if (languageCount > 0) {
                 character.optionalProficiencies.languages.race.allowed = languageCount;
                 character.optionalProficiencies.languages.race.options = languageOptions;
 
@@ -886,7 +949,6 @@ export class RaceCard {
 
             // Add fixed ability improvements (passing race and subrace directly)
             const fixedImprovements = this._raceManager.getFixedAbilityImprovements(race, subrace);
-            console.debug('Fixed ability improvements:', JSON.stringify(fixedImprovements));
 
             for (const improvement of fixedImprovements) {
                 if (!improvement || !improvement.ability) {
@@ -902,19 +964,16 @@ export class RaceCard {
 
                 // Apply race improvements
                 if (improvement.source === 'Race') {
-                    console.debug(`Adding race bonus: ${improvement.ability} +${improvement.value || improvement.amount || 1}`);
                     character.addAbilityBonus(improvement.ability, improvement.value || improvement.amount || 1, improvement.source);
                 }
                 // Apply subrace improvements
                 else if (improvement.source === 'Subrace') {
-                    console.debug(`Adding subrace bonus: ${improvement.ability} +${improvement.value || improvement.amount || 1}`);
                     character.addAbilityBonus(improvement.ability, improvement.value || improvement.amount || 1, improvement.source);
                 }
             }
 
             // Add ability score choices
             const choices = this._raceManager.getAbilityScoreChoices();
-            console.debug('Ability score choices from RaceManager:', JSON.stringify(choices));
 
             // If we have any choices, process them
             if (choices && choices.length > 0) {
@@ -924,10 +983,6 @@ export class RaceCard {
                     // Add the ability choice directly to the character
                     character.addPendingAbilityChoice(choice);
                 }
-
-                console.debug('Added pending ability choices:', character.pendingAbilityChoices);
-            } else {
-                console.debug('No ability choices found for this race/subrace');
             }
 
             // Always dispatch event to ensure UI updates

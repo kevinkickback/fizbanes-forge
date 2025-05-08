@@ -106,10 +106,6 @@ export class Item {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Data processing methods
-    //-------------------------------------------------------------------------
-
     /**
      * Process entries into a description string
      * @param {Array} entries - The entries array from the data
@@ -197,10 +193,6 @@ export class Item {
         return false;
     }
 
-    //-------------------------------------------------------------------------
-    // Equipment state methods
-    //-------------------------------------------------------------------------
-
     /**
      * Equips the item if possible
      * @returns {boolean} Whether the equip was successful
@@ -246,10 +238,6 @@ export class Item {
         return false;
     }
 
-    //-------------------------------------------------------------------------
-    // Query methods
-    //-------------------------------------------------------------------------
-
     /**
      * Checks if the item can be equipped
      * @returns {boolean} Whether the item can be equipped
@@ -266,10 +254,6 @@ export class Item {
         return this.attunement !== false;
     }
 
-    //-------------------------------------------------------------------------
-    // Inventory management methods
-    //-------------------------------------------------------------------------
-
     /**
      * Adds or removes quantity of the item
      * @param {number} amount - Amount to add (or negative to remove)
@@ -279,10 +263,6 @@ export class Item {
         this.quantity = Math.max(0, this.quantity + amount);
         return this.quantity;
     }
-
-    //-------------------------------------------------------------------------
-    // Value formatting methods
-    //-------------------------------------------------------------------------
 
     /**
      * Gets the item's value in gold pieces
@@ -303,10 +283,6 @@ export class Item {
         if (this.value >= 10) return `${this.value / 10} sp`;
         return `${this.value} cp`;
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Converts the item to a JSON object

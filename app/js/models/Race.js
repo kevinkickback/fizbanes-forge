@@ -128,10 +128,6 @@ export class Race {
         return this.entries.filter(entry => typeof entry === 'object');
     }
 
-    //-------------------------------------------------------------------------
-    // Race attributes
-    //-------------------------------------------------------------------------
-
     /**
      * Get ability score improvements
      * @returns {Array} Array of ability score improvements

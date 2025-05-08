@@ -29,7 +29,20 @@ export class BackgroundCard extends EntityCard {
      * Creates a new BackgroundCard instance
      */
     constructor() {
-        super('backgroundCard');
+        // Use null for parent constructor - this avoids the EntityCard DOM lookup
+        super(null);
+
+        // Mark _card as initialized to prevent errors in the parent class
+        this._card = document.createElement('div');
+
+        // Override/add our own specific element references
+        this.quickDescElementId = 'backgroundQuickDesc';
+        this.detailsElementId = 'backgroundDetails';
+        this.imageElementId = 'backgroundImage';
+
+        this.quickDescElement = document.getElementById(this.quickDescElementId);
+        this.detailsElement = document.getElementById(this.detailsElementId);
+        this.imageElement = document.getElementById(this.imageElementId);
 
         /**
          * Container element for variant selection dropdown
@@ -59,6 +72,10 @@ export class BackgroundCard extends EntityCard {
          */
         this._variantSelect = document.getElementById('variantSelect');
 
+        // Default placeholder text
+        this.placeholderTitle = 'Select a Background';
+        this.placeholderDesc = 'Choose a background to see details about their traits, proficiencies, and other characteristics.';
+
         // Create variant container if it doesn't exist
         if (!this._variantContainer) {
             this._createVariantContainer();
@@ -67,10 +84,6 @@ export class BackgroundCard extends EntityCard {
         // Initialize the component
         this.initialize();
     }
-
-    //-------------------------------------------------------------------------
-    // Initialization Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Initializes the background card UI components and event listeners
@@ -121,10 +134,6 @@ export class BackgroundCard extends EntityCard {
         // Update the reference to the variant select element
         this._variantSelect = document.getElementById('variantSelect');
     }
-
-    //-------------------------------------------------------------------------
-    // Data Loading Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Populates the background selection dropdown with available backgrounds
@@ -224,10 +233,6 @@ export class BackgroundCard extends EntityCard {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Event Handling Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Attaches event listeners to the background and variant selectors
      * @private
@@ -310,10 +315,6 @@ export class BackgroundCard extends EntityCard {
             console.error('Error handling variant change:', error);
         }
     }
-
-    //-------------------------------------------------------------------------
-    // UI Update Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Updates the variant selection dropdown based on available variants
@@ -417,7 +418,10 @@ export class BackgroundCard extends EntityCard {
     updateQuickDescription(title, description) {
         if (!this.quickDescElement) {
             this.quickDescElement = document.getElementById(this.quickDescElementId);
-            if (!this.quickDescElement) return;
+            if (!this.quickDescElement) {
+                console.error('[BackgroundCard] Quick description element not found!');
+                return;
+            }
         }
 
         if (!title && !description) {
@@ -433,13 +437,65 @@ export class BackgroundCard extends EntityCard {
     }
 
     /**
-     * Update the background details content
+     * Updates the entity image in the card
+     * @param {string} imagePath - The path to the image
+     * @param {string} altText - Alternative text for the image
+     * @returns {void}
+     */
+    updateEntityImage(imagePath, altText) {
+        if (!this.imageElement) {
+            this.imageElement = document.getElementById(this.imageElementId);
+            if (!this.imageElement) {
+                console.error('[BackgroundCard] Image element not found!');
+                return;
+            }
+        }
+
+        try {
+            // Clear existing content
+            this.imageElement.innerHTML = '';
+
+            // Create and append the image element
+            if (imagePath) {
+                const img = document.createElement('img');
+                img.src = imagePath;
+                img.alt = altText || 'Background image';
+                img.classList.add('entity-img');
+                this.imageElement.appendChild(img);
+            } else {
+                // Set a default icon
+                this.imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+            }
+        } catch (error) {
+            console.error('Error updating background image:', error);
+            // Set a default icon on error
+            this.imageElement.innerHTML = '<i class="fas fa-user-circle placeholder-icon"></i>';
+        }
+    }
+
+    /**
+     * Updates the background details content
      * @param {Background} background - The background to display
      * @private
      */
     async _updateBackgroundDetails(background) {
-        const backgroundDetails = document.getElementById(this.detailsElementId);
-        if (!backgroundDetails) return;
+        // Direct access to DOM elements for maximum control
+        const backgroundDetails = document.getElementById('backgroundDetails');
+        if (!backgroundDetails) {
+            console.error('[BackgroundCard] ERROR: Details element with ID "backgroundDetails" not found!');
+            return;
+        }
+
+        // Force direct access to the quick description element
+        const quickDescElement = document.getElementById('backgroundQuickDesc');
+        if (quickDescElement) {
+            quickDescElement.innerHTML = `
+                <h5>${background.name}</h5>
+                <p>${background.getDescription()}</p>
+            `;
+        } else {
+            console.error('[BackgroundCard] Quick description element not found!');
+        }
 
         // Process skill proficiencies
         const skillProficiencies = this._backgroundManager.getFormattedSkillProficiencies(background);
@@ -456,8 +512,8 @@ export class BackgroundCard extends EntityCard {
         // Get the feature text
         const featureHtml = await this._renderFeature(background);
 
-        // Update background details
-        backgroundDetails.innerHTML = `
+        // Construct the HTML
+        const generatedHtml = `
             <div class="background-details-grid">
                 <div class="detail-section">
                     <h6>Skill Proficiencies</h6>
@@ -494,8 +550,15 @@ export class BackgroundCard extends EntityCard {
             </div>
         `;
 
+        // Direct update of background details
+        backgroundDetails.innerHTML = generatedHtml;
+
         // Process the entire background details container to resolve reference tags
-        await textProcessor.processElement(backgroundDetails);
+        try {
+            await textProcessor.processElement(backgroundDetails);
+        } catch (processingError) {
+            console.error('[BackgroundCard] Error during text processing:', processingError);
+        }
     }
 
     /**
@@ -564,8 +627,6 @@ export class BackgroundCard extends EntityCard {
                 character.background?.variant !== (variant?.name || null));
 
         if (hasChanged) {
-            console.debug(`Background changed to ${background?.name || 'none'}`);
-
             // Clear previous background proficiencies
             character.removeProficienciesBySource('Background');
 
@@ -620,8 +681,6 @@ export class BackgroundCard extends EntityCard {
         const character = characterHandler.currentCharacter;
         if (!character || !background) return;
 
-        console.debug(`Adding proficiencies for background: ${background.name}`);
-
         // Store previous skill and language selections to restore valid ones
         const prevBackgroundSkillsSelected = character.optionalProficiencies.skills.background?.selected || [];
         const prevBackgroundLanguagesSelected = character.optionalProficiencies.languages.background?.selected || [];
@@ -674,8 +733,6 @@ export class BackgroundCard extends EntityCard {
 
                 character.optionalProficiencies.skills.background.selected =
                     validSelections.slice(0, character.optionalProficiencies.skills.background.allowed);
-
-                console.debug(`Restored ${character.optionalProficiencies.skills.background.selected.length} background skill selections`);
             }
         }
 
@@ -695,18 +752,15 @@ export class BackgroundCard extends EntityCard {
 
             // Set up optional languages
             if (background.languages.choices?.count > 0) {
-                console.debug(`Setting up language choices: count=${background.languages.choices.count}`);
                 character.optionalProficiencies.languages.background.allowed = background.languages.choices.count;
 
                 // Set options - either specific list or 'any' languages
                 if (background.languages.choices.from && background.languages.choices.from.length > 0) {
                     // Background specifies specific languages to choose from
                     character.optionalProficiencies.languages.background.options = [...background.languages.choices.from];
-                    console.debug('Background allows specific languages:', character.optionalProficiencies.languages.background.options);
                 } else {
                     // Background allows ANY language - use the special 'Any' indicator
                     character.optionalProficiencies.languages.background.options = ['Any'];
-                    console.debug('Background allows ANY language:', character.optionalProficiencies.languages.background.options);
                 }
 
                 // Restore valid language selections if any, excluding now-fixed languages
@@ -717,8 +771,6 @@ export class BackgroundCard extends EntityCard {
 
                     character.optionalProficiencies.languages.background.selected =
                         validSelections.slice(0, character.optionalProficiencies.languages.background.allowed);
-
-                    console.debug(`Restored ${character.optionalProficiencies.languages.background.selected.length} background language selections`);
                 }
 
                 // Update combined language options
@@ -789,21 +841,6 @@ export class BackgroundCard extends EntityCard {
 
         // For combined options, include options from all sources
         character.optionalProficiencies.skills.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
-
-        console.debug('Updated combined skill options:', {
-            raceOptions,
-            classOptions,
-            backgroundOptions,
-            combinedOptions: character.optionalProficiencies.skills.options,
-            raceAllowed,
-            classAllowed,
-            backgroundAllowed,
-            combinedAllowed: character.optionalProficiencies.skills.allowed,
-            raceSelected,
-            classSelected,
-            backgroundSelected,
-            combinedSelected: character.optionalProficiencies.skills.selected
-        });
     }
 
     /**
@@ -834,21 +871,6 @@ export class BackgroundCard extends EntityCard {
 
         // For combined options, include options from all sources
         character.optionalProficiencies.languages.options = [...new Set([...raceOptions, ...classOptions, ...backgroundOptions])];
-
-        console.debug('Updated combined language options:', {
-            raceOptions,
-            classOptions,
-            backgroundOptions,
-            combinedOptions: character.optionalProficiencies.languages.options,
-            raceAllowed,
-            classAllowed,
-            backgroundAllowed,
-            combinedAllowed: character.optionalProficiencies.languages.allowed,
-            raceSelected,
-            classSelected,
-            backgroundSelected,
-            combinedSelected: character.optionalProficiencies.languages.selected
-        });
     }
 
     /**

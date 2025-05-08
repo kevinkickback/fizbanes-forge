@@ -6,6 +6,7 @@
  * @property {boolean} [processReferences=true] - Whether to process references in text
  * @property {boolean} [processFormatting=true] - Whether to process text formatting
  * @property {boolean} [processDynamicContent=true] - Whether to process dynamically added content
+ * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
  */
 
 import { referenceResolver } from './ReferenceResolver.js';
@@ -15,6 +16,36 @@ import { referenceResolver } from './ReferenceResolver.js';
  * Manages both static and dynamic content processing with configurable options.
  */
 class TextProcessor {
+    /**
+     * Configuration: CSS selectors for elements where references should be resolved
+     * to display name only (no tooltip).
+     * @type {string[]}
+     * @private
+     * @static
+     */
+    static _DISPLAY_NAME_SELECTORS = [
+        '.text-content'
+        // Add other selectors here if needed, e.g., '.some-other-class'
+    ];
+
+    /**
+     * Configuration: CSS selectors for elements where references should be resolved
+     * into full tooltips.
+     * @type {string[]}
+     * @private
+     * @static
+     */
+    static _TOOLTIP_SELECTORS = [
+        '.description',
+        '.tooltip-content',
+        'p',
+        'li',
+        'td',
+        '.card-text',
+        '.proficiency-note'
+        // Add other selectors here if needed
+    ];
+
     /**
      * Creates a TextProcessor instance with the given reference resolver
      * @param {ReferenceResolver} referenceResolver - The reference resolver instance
@@ -47,13 +78,11 @@ class TextProcessor {
         this._defaultOptions = {
             processReferences: true,
             processFormatting: true,
-            processDynamicContent: true
+            processDynamicContent: true,
+            resolveMode: 'tooltip' // Default resolve mode
         };
     }
 
-    //-------------------------------------------------------------------------
-    // Initialization & Cleanup
-    //-------------------------------------------------------------------------
 
     /**
      * Initialize the text processor and set up observers for dynamic content processing.
@@ -64,7 +93,6 @@ class TextProcessor {
      */
     async initialize() {
         try {
-            console.debug('Initializing text processor');
 
             // Set up mutation observer to process dynamically added content
             this._observer = new MutationObserver((mutations) => {
@@ -80,7 +108,6 @@ class TextProcessor {
             // Process initial page content
             await this.processPageContent(document.body);
 
-            console.debug('Text processor initialization complete');
         } catch (error) {
             console.error('Error initializing text processor:', error);
         }
@@ -95,7 +122,6 @@ class TextProcessor {
             if (this._observer) {
                 this._observer.disconnect();
                 this._observer = null;
-                console.debug('Text processor observer disconnected');
             }
         } catch (error) {
             console.error('Error destroying text processor:', error);
@@ -113,6 +139,7 @@ class TextProcessor {
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     for (const node of mutation.addedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Pass the element itself as the container
                             this.processPageContent(node);
                         }
                     }
@@ -123,9 +150,6 @@ class TextProcessor {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Content Processing
-    //-------------------------------------------------------------------------
 
     /**
      * Process all content within a container element.
@@ -138,39 +162,57 @@ class TextProcessor {
      */
     async processPageContent(container, options = {}, forceReprocess = false) {
         try {
-            if (!container) {
-                console.debug('Skipping processing: No container provided');
+            // Ensure container is an HTMLElement
+            if (!(container instanceof HTMLElement)) {
                 return;
             }
 
             const mergedOptions = { ...this._defaultOptions, ...options };
 
-            // Find all text nodes that might contain references
-            const textElements = container.querySelectorAll('.description, .text-content, .tooltip-content, p, li, td, .card-text');
+            // Combine all configured selectors for initial gathering
+            const allSelectors = [
+                ...TextProcessor._DISPLAY_NAME_SELECTORS,
+                ...TextProcessor._TOOLTIP_SELECTORS
+            ];
+            const processingSelector = allSelectors.join(', ');
 
-            for (const element of textElements) {
+            const elementsToProcess = [];
+            // Check if the container itself matches any processing selector
+            // Use allSelectors here for the check
+            if (allSelectors.some(selector => container.matches(selector))) {
+                elementsToProcess.push(container);
+            }
+
+            // Add descendants that match using the combined processingSelector
+            if (processingSelector) { // Ensure selector is not empty
+                elementsToProcess.push(...container.querySelectorAll(processingSelector));
+            }
+
+            // Use a Set to avoid processing the same element multiple times if it's nested
+            const uniqueElements = new Set(elementsToProcess);
+
+            for (const element of uniqueElements) {
                 await this._processTextElement(element, mergedOptions, forceReprocess);
             }
         } catch (error) {
-            console.error('Error processing page content:', error);
+            console.error('Error processing page content:', error, container);
         }
     }
+
 
     /**
      * Process a specific DOM element
      * Use this method when you need to immediately process content that was just added
      * 
      * @param {HTMLElement} element - The element to process 
-     * @param {boolean} [forceReprocess=true] - Whether to reprocess already processed elements
      * @returns {Promise<void>}
      */
     async processElement(element) {
         try {
             if (!element) {
-                console.debug('Skipping element processing: No element provided');
                 return;
             }
-
+            // Force reprocess when called directly on an element
             await this.processPageContent(element, {}, true);
         } catch (error) {
             console.error('Error processing element:', error);
@@ -181,7 +223,7 @@ class TextProcessor {
      * Process a single text element with the given options
      * 
      * @param {HTMLElement} element - The element to process
-     * @param {TextProcessingOptions} options - Processing options
+     * @param {TextProcessingOptions} options - Processing options passed down (may include resolveMode)
      * @param {boolean} forceReprocess - Whether to reprocess already processed elements
      * @returns {Promise<void>}
      * @private
@@ -190,45 +232,76 @@ class TextProcessor {
         try {
             const originalText = element.innerHTML;
 
-            // Skip if already processed or empty, unless force reprocessing
-            if (!originalText || (element.hasAttribute('data-processed') && !forceReprocess)) {
+            // Skip if empty, or already processed unless forced
+            if (!originalText.trim() || (element.hasAttribute('data-processed') && !forceReprocess)) {
                 return;
             }
 
-            const processedText = await this.processString(originalText, options);
-            if (processedText !== originalText) {
-                element.innerHTML = processedText;
+            // --- Determine Resolve Mode Based on Element Class Configuration ---
+            let resolveMode = options.resolveMode || 'tooltip'; // Start with default/passed option
+
+            const useDisplayName = TextProcessor._DISPLAY_NAME_SELECTORS.some(selector =>
+                element.matches(selector)
+            );
+            const useTooltip = TextProcessor._TOOLTIP_SELECTORS.some(selector =>
+                element.matches(selector)
+            );
+
+            if (useDisplayName) {
+                resolveMode = 'displayName';
+            } else if (useTooltip) {
+                resolveMode = 'tooltip';
+            }
+            // If it matches neither list, it will keep the default 'tooltip' mode.
+            // -------------------------------------------------------------------
+
+            // Pass the determined mode down in the options for processString
+            const processingOptions = { ...options, resolveMode: resolveMode };
+
+            // Only process if there's text content to avoid unnecessary async calls
+            if (element.textContent.includes('{@')) {
+                const processedText = await this.processString(originalText, processingOptions);
+
+                // Only update innerHTML if it actually changed
+                if (processedText !== originalText) {
+                    element.innerHTML = processedText;
+                }
+            } else if (options.processFormatting) {
+                // Apply formatting even if no references are present
+                const formattedText = this._processFormatting(originalText);
+                if (formattedText !== originalText) {
+                    element.innerHTML = formattedText;
+                }
             }
 
-            // Mark as processed to avoid reprocessing
+
+            // Mark as processed to avoid reprocessing by the MutationObserver unless forced
             element.setAttribute('data-processed', 'true');
         } catch (error) {
-            console.warn('Error processing text element:', error);
+            console.warn('Error processing text element:', error, element);
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Text Processing
-    //-------------------------------------------------------------------------
 
     /**
      * Process a string value and handle references and formatting.
      * Applies reference resolution and text formatting based on provided options.
      * 
      * @param {string} text - The string to process
-     * @param {TextProcessingOptions} [options] - Processing options to override defaults
+     * @param {TextProcessingOptions} [options] - Processing options to override defaults (includes resolveMode)
      * @returns {Promise<string>} The processed string with resolved references and formatting
      */
     async processString(text, options = {}) {
         try {
             if (!text) return '';
 
+            // Merge passed options with defaults
             const mergedOptions = { ...this._defaultOptions, ...options };
             let processedText = text;
 
-            // Process references if enabled
-            if (mergedOptions.processReferences) {
-                processedText = await this._replaceReferences(processedText);
+            // Process references if enabled, passing the options (including resolveMode)
+            if (mergedOptions.processReferences && text.includes('{@')) {
+                processedText = await this._replaceReferences(processedText, mergedOptions);
             }
 
             // Process formatting if enabled
@@ -239,7 +312,7 @@ class TextProcessor {
             return processedText;
         } catch (error) {
             console.error('Error processing string:', error);
-            return text || '';
+            return text || ''; // Return original text on error
         }
     }
 
@@ -248,33 +321,61 @@ class TextProcessor {
      * Handles D&D-style references in the format {@reference}.
      * 
      * @param {string} text - The text containing references
+     * @param {TextProcessingOptions} options - Processing options (includes resolveMode)
      * @returns {Promise<string>} The text with resolved references
      * @private
      */
-    async _replaceReferences(text) {
-        try {
-            const refRegex = /{@[^}]+}/g;
-            const matches = text.match(refRegex);
+    async _replaceReferences(text, options = {}) {
+        // Regex to find {@type content} tags
+        const referenceRegex = /{@(\w+)\s+([^}]+)}/g;
+        let lastIndex = 0;
+        const promises = [];
+        const segments = [];
 
-            if (!matches) return text;
-
-            let result = text;
-            for (const match of matches) {
-                try {
-                    const resolved = await this._referenceResolver.resolveRef(match);
-                    result = result.replace(match, resolved);
-                } catch (resolveError) {
-                    console.warn('Error resolving reference:', resolveError);
-                    // Keep the original reference in case of error
-                }
+        // First pass: find matches and store promises for resolution
+        let match;
+        while (true) {
+            match = referenceRegex.exec(text);
+            if (match === null) {
+                break;
             }
 
-            return result;
-        } catch (error) {
-            console.error('Error replacing references:', error);
+            // Add segment of text before the match
+            if (match.index > lastIndex) {
+                segments.push(text.substring(lastIndex, match.index));
+            }
+            // Store a promise for the resolved reference
+            const promiseIndex = promises.length;
+            promises.push(this._referenceResolver.resolveRef(match[0], options));
+            // Add a placeholder to the segments array
+            segments.push({ promiseIndex });
+            lastIndex = referenceRegex.lastIndex;
+        }
+        // Add any remaining text after the last match
+        if (lastIndex < text.length) {
+            segments.push(text.substring(lastIndex));
+        }
+
+        // If no references were found, return the original text
+        if (promises.length === 0) {
             return text;
         }
+
+        // Resolve all reference promises
+        const resolvedValues = await Promise.all(promises);
+
+        // Second pass: build the final string using resolved values
+        return segments.map(segment => {
+            if (typeof segment === 'string') {
+                return segment;
+            }
+            if (segment.promiseIndex !== undefined) {
+                return resolvedValues[segment.promiseIndex];
+            }
+            return ''; // Should not happen, but ensures a return value
+        }).join('');
     }
+
 
     /**
      * Process text formatting (bold, italic, headers).
@@ -290,24 +391,25 @@ class TextProcessor {
 
             // Define formatting patterns
             const patterns = [
-                { regex: /\*\*([^*]+)\*\*/g, replacement: '<strong>$1</strong>' }, // Bold
-                { regex: /\*([^*]+)\*/g, replacement: '<em>$1</em>' }, // Italic
-                { regex: /^### (.+)$/gm, replacement: '<h3>$1</h3>' }, // H3
-                { regex: /^## (.+)$/gm, replacement: '<h2>$1</h2>' }, // H2
-                { regex: /^# (.+)$/gm, replacement: '<h1>$1</h1>' }  // H1
+                { regex: /\*\*([^\*\n][^\*]*?)\*\*/g, replacement: '<strong>$1</strong>' }, // Bold, avoid matching across newlines initially
+                { regex: /\*([^\*\n][^\*]*?)\*/g, replacement: '<em>$1</em>' }, // Italic, avoid matching across newlines initially
+                // Add more formatting rules as needed
             ];
 
             // Apply each formatting pattern
-            return patterns.reduce((text, { regex, replacement }) =>
-                text.replace(regex, replacement),
-                input
-            );
+            let formattedText = input;
+            for (const { regex, replacement } of patterns) {
+                formattedText = formattedText.replace(regex, replacement);
+            }
+            return formattedText;
+
         } catch (error) {
             console.error('Error processing formatting:', error);
-            return input;
+            return input; // Return original input on error
         }
     }
 }
 
 // Create and export singleton instance with injected dependency
+// Ensure referenceResolver is initialized and exported from its module
 export const textProcessor = new TextProcessor(referenceResolver); 

@@ -14,6 +14,7 @@
 import { showNotification } from './notifications.js';
 import { characterHandler } from './characterHandler.js';
 import { settingsManager } from '../managers/SettingsManager.js';
+import { eventEmitter } from './EventEmitter.js';
 
 /**
  * Singleton instance for Navigation class
@@ -104,7 +105,6 @@ export class Navigation {
             this.navigateTo('home');
             this._initialized = true;
 
-            console.debug('Navigation system initialized');
         } catch (error) {
             console.error('Error initializing navigation:', error);
         }
@@ -131,7 +131,6 @@ export class Navigation {
      */
     async loadPage(pageName) {
         try {
-            console.debug(`Loading page: ${pageName}`);
 
             // Prevent navigation to character pages if no character is selected
             if (this._requiresCharacter(pageName) && (!characterHandler.currentCharacter || !characterHandler.currentCharacter.id)) {
@@ -162,7 +161,8 @@ export class Navigation {
             // Initialize page content and components
             await this._initializePageContent(pageName);
 
-            console.debug(`Page "${pageName}" loaded successfully`);
+            // Emit navigation event after page is loaded
+            eventEmitter.emit('navigation:pageChanged', pageName);
         } catch (error) {
             console.error(`Error loading page "${pageName}":`, error);
             showNotification(`Failed to load page: ${error.message}`, 'error');
@@ -399,7 +399,7 @@ export class Navigation {
                     // Initialize equipment page
                 },
                 details: () => {
-                    characterHandler.populateDetailsPage();
+                    characterHandler.populateDetailsForm();
                 },
                 tooltipTest: () => {
                     // Initialize tooltip test page
@@ -416,6 +416,9 @@ export class Navigation {
 
             // Initialize page-specific components
             await this._initializePageComponents(pageName);
+
+            // Emit navigation event after page is initialized
+            eventEmitter.emit('navigation:pageInitialized', pageName);
         } catch (error) {
             console.error(`Error initializing content for page "${pageName}":`, error);
         }
@@ -553,10 +556,6 @@ export class Navigation {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Page-Specific Initialization
-    //-------------------------------------------------------------------------
-
     /**
      * Initialize the build page
      * @returns {Promise<void>}
@@ -564,40 +563,31 @@ export class Navigation {
      */
     async _initializeBuildPage() {
         try {
-            // Initialize the race card
-            if (!this._uiComponents.raceCard) {
-                const RaceCard = (await import('../ui/RaceCard.js')).RaceCard;
-                this._uiComponents.raceCard = new RaceCard();
-                await this._uiComponents.raceCard.initialize();
-            }
+            // Always re-initialize components when navigating to build page
+            const RaceCard = (await import('../ui/RaceCard.js')).RaceCard;
+            this._uiComponents.raceCard = new RaceCard();
+            await this._uiComponents.raceCard.initialize();
 
-            // Initialize the class card
-            if (!this._uiComponents.classCard) {
-                const ClassCard = (await import('../ui/ClassCard.js')).ClassCard;
-                this._uiComponents.classCard = new ClassCard();
-                await this._uiComponents.classCard.initialize();
-            }
+            const ClassCard = (await import('../ui/ClassCard.js')).ClassCard;
+            this._uiComponents.classCard = new ClassCard();
+            await this._uiComponents.classCard.initialize();
 
-            // Initialize the background card
-            if (!this._uiComponents.backgroundCard) {
-                const BackgroundCard = (await import('../ui/BackgroundCard.js')).BackgroundCard;
-                this._uiComponents.backgroundCard = new BackgroundCard();
-                await this._uiComponents.backgroundCard.initialize();
-            }
+            const BackgroundCard = (await import('../ui/BackgroundCard.js')).BackgroundCard;
+            this._uiComponents.backgroundCard = new BackgroundCard();
+            await this._uiComponents.backgroundCard.initialize();
 
-            // Initialize the ability score card
-            if (!this._uiComponents.abilityScoreCard) {
-                const AbilityScoreCard = (await import('../ui/AbilityScoreCard.js')).AbilityScoreCard;
-                this._uiComponents.abilityScoreCard = new AbilityScoreCard();
-                await this._uiComponents.abilityScoreCard.initialize();
-            }
+            const AbilityScoreCard = (await import('../ui/AbilityScoreCard.js')).AbilityScoreCard;
+            this._uiComponents.abilityScoreCard = new AbilityScoreCard();
+            await this._uiComponents.abilityScoreCard.initialize();
 
-            // Initialize the proficiency card
-            if (!this._uiComponents.proficiencyCard) {
-                const ProficiencyCard = (await import('../ui/ProficiencyCard.js')).ProficiencyCard;
-                this._uiComponents.proficiencyCard = new ProficiencyCard();
-                await this._uiComponents.proficiencyCard.initialize();
-            }
+            const ProficiencyCard = (await import('../ui/ProficiencyCard.js')).ProficiencyCard;
+            this._uiComponents.proficiencyCard = new ProficiencyCard();
+            await this._uiComponents.proficiencyCard.initialize();
+
+            // Trigger a character changed event to ensure all components update
+            document.dispatchEvent(new CustomEvent('characterChanged', {
+                detail: { character: characterHandler.currentCharacter }
+            }));
         } catch (error) {
             console.error('Error initializing build page components:', error);
         }

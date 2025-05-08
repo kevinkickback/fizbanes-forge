@@ -53,7 +53,6 @@ export class ActionLoader extends BaseLoader {
     async loadActions(options = {}) {
         return this.getOrLoadData('actions', async () => {
             try {
-                console.debug('Loading action data...');
                 const actionData = await this.loadJsonFile(this._dataFiles.actions, {
                     ...options,
                     maxRetries: 3
@@ -70,7 +69,6 @@ export class ActionLoader extends BaseLoader {
                     action: actionData.action || []
                 };
 
-                console.debug(`Loaded ${data.action.length} actions`);
                 return data;
             } catch (error) {
                 console.error('Error loading actions:', error);

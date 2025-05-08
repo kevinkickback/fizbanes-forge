@@ -206,7 +206,6 @@ export class ClassLoader extends BaseLoader {
                     }
                 }
 
-                console.debug(`Loaded ${data.class.length} classes, ${data.subclass.length} subclasses, and ${data.fluff.length} fluff entries`);
                 return data;
             } catch (error) {
                 console.error('Error loading classes:', error);

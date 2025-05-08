@@ -96,7 +96,6 @@ export class Modal {
             // Set up create character button in modal
             this._setupButtonEventListener('createCharacterBtn', () => this._createCharacterFromModal());
 
-            console.debug('Modal event listeners initialized');
         } catch (error) {
             console.error('Error setting up modal event listeners:', error);
         }
@@ -112,7 +111,6 @@ export class Modal {
         try {
             const button = document.getElementById(buttonId);
             if (!button) {
-                console.debug(`Button not found: ${buttonId}`);
                 return;
             }
 
@@ -150,7 +148,6 @@ export class Modal {
             this._sourceCard.container = document.getElementById('sourceBookSelection');
             await this._sourceCard.initializeSourceSelection();
 
-            console.debug('New character modal displayed');
         } catch (error) {
             console.error('Error showing new character modal:', error);
             showNotification('Could not open new character form', 'error');
@@ -165,7 +162,6 @@ export class Modal {
         try {
             const modal = document.getElementById('newCharacterModal');
             if (!modal) {
-                console.debug('New character modal not found for closing');
                 return;
             }
 
@@ -185,7 +181,6 @@ export class Modal {
                 form.reset();
             }
 
-            console.debug('New character modal closed and form reset');
         } catch (error) {
             console.error('Error closing new character modal:', error);
         }
@@ -271,7 +266,6 @@ export class Modal {
      */
     async _createCharacterFromModal() {
         try {
-            console.debug('Starting character creation from modal');
 
             // Get form data
             const formData = this._getFormData();
@@ -300,12 +294,6 @@ export class Modal {
                 abilityScoreMethod: formData.abilityScoreMethod
             };
 
-            console.debug('Character created:', {
-                id: character.id,
-                name: character.name,
-                allowedSources: Array.from(character.allowedSources),
-                variantRules: character.variantRules
-            });
 
             // Save character to storage
             const success = await storage.saveCharacter(character);

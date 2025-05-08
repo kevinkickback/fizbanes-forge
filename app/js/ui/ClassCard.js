@@ -27,6 +27,7 @@ import { textProcessor } from '../utils/TextProcessor.js';
 import { tooltipManager } from '../managers/TooltipManager.js';
 import { characterHandler } from '../utils/characterHandler.js';
 import { classManager } from '../managers/ClassManager.js';
+import { abilityScoreManager } from '../managers/AbilityScoreManager.js';
 
 /**
  * Manages the class selection UI component and related functionality
@@ -112,7 +113,6 @@ export class ClassCard {
 
         // Add direct listener for class:selected event
         document.addEventListener('class:selected', event => {
-            console.log('DEBUG ClassCard - Received class:selected event', event.detail);
             this.updateClassDetails(event.detail).catch(err =>
                 console.error('Error handling class:selected event:', err)
             );
@@ -408,14 +408,12 @@ export class ClassCard {
      * Updates the hit die information display
      */
     _updateHitDie(classData) {
-        console.log('DEBUG _updateHitDie - Input:', classData);
         const hitDieSection = this._classDetails.querySelector('.detail-section:nth-child(1) ul');
         if (hitDieSection) {
             hitDieSection.innerHTML = '';
             const li = document.createElement('li');
             li.className = 'text-content';
             const hitDieText = this._classManager.getFormattedHitDie(classData);
-            console.log('DEBUG _updateHitDie - From classManager:', hitDieText);
             li.textContent = hitDieText;
             hitDieSection.appendChild(li);
         }
@@ -425,7 +423,6 @@ export class ClassCard {
      * Updates the skill proficiencies information display
      */
     _updateSkillProficiencies(classData) {
-        console.log('DEBUG _updateSkillProficiencies - Input:', classData);
         // Find the skill proficiencies section by its position in the HTML structure
         const skillProficienciesSection = this._classDetails.querySelector('.detail-section:nth-child(2)');
         if (!skillProficienciesSection) return;
@@ -446,7 +443,6 @@ export class ClassCard {
         // If we have a class and it has skill proficiencies
         if (classData) {
             const formattedString = this._classManager.getFormattedSkillProficiencies(classData);
-            console.log('DEBUG _updateSkillProficiencies - Formatted string:', formattedString);
             const hasChoices = formattedString.includes('Choose');
 
             if (hasChoices) {
@@ -455,7 +451,6 @@ export class ClassCard {
                     // For "Choose any X skills" format
                     const anySkillPattern = /(Choose any \d+ skills)/;
                     const anyMatches = formattedString.match(anySkillPattern);
-                    console.log('DEBUG _updateSkillProficiencies - Any skill pattern matches:', anyMatches);
 
                     if (anyMatches && anyMatches.length >= 1) {
                         // Add as a single list item
@@ -469,7 +464,6 @@ export class ClassCard {
                     // Extract the "Choose X from:" part from the string
                     const choosePattern = /(Choose \d+ from:)\s+(.*)/;
                     const matches = formattedString.match(choosePattern);
-                    console.log('DEBUG _updateSkillProficiencies - Pattern matches:', matches);
 
                     if (matches && matches.length >= 3) {
                         const chooseText = matches[1]; // "Choose X from:"
@@ -712,8 +706,6 @@ export class ClassCard {
                 character.subclass !== (subclass?.name || ''));
 
         if (hasChanged) {
-            console.debug(`Class changed from ${character.class?.name || 'none'} to ${classData?.name || 'none'}`);
-
             // Clear previous class proficiencies, ability bonuses, and traits
             character.removeProficienciesBySource('Class');
             character.clearTraits('Class');
@@ -767,8 +759,6 @@ export class ClassCard {
     _updateProficiencies(classData) {
         const character = characterHandler.currentCharacter;
         if (!character || !classData) return;
-
-        console.debug('Updating proficiencies for class:', classData.name);
 
         // Store previous selected proficiencies to restore valid ones later
         const previousClassSkills = character.optionalProficiencies.skills.class?.selected || [];
@@ -828,13 +818,31 @@ export class ClassCard {
         const skillChoiceCount = classData.getSkillChoiceCount();
 
         if (skills && skills.length > 0 && skillChoiceCount > 0) {
-            // Set up skill choices
-            character.optionalProficiencies.skills.class.allowed = skillChoiceCount;
-            character.optionalProficiencies.skills.class.options = skills;
+            // Extract the actual skill names from the raw data
+            // The raw data is usually an array like [{ choose: { count: N, from: ["skill1", "skill2"] } }]
+            let skillOptions = [];
+            if (skills[0]?.choose?.from) {
+                // Handle case where skills are strings
+                skillOptions = skills[0].choose.from.map(skill =>
+                    typeof skill === 'string' ? skill : skill.name // Assuming skills might be objects with a 'name' property
+                );
+            } else if (skills[0]?.any) {
+                // If the format is { "any": count }, set options to ['any']
+                skillOptions = ['any'];
+            } else if (Array.isArray(skills)) {
+                // Fallback if the structure is just an array of strings (less likely based on logs)
+                skillOptions = skills.map(skill =>
+                    typeof skill === 'string' ? skill : skill?.name || '' // Handle potential objects
+                ).filter(Boolean); // Remove any empty strings
+            }
 
-            // Restore valid selections
+            // Set up skill choices using the extracted names
+            character.optionalProficiencies.skills.class.allowed = skillChoiceCount;
+            character.optionalProficiencies.skills.class.options = skillOptions;
+
+            // Restore valid selections using the extracted names
             character.optionalProficiencies.skills.class.selected = previousClassSkills.filter(
-                skill => skills.includes(skill)
+                skill => skillOptions.includes(skill) // Check against the extracted list
             );
         }
 
@@ -926,22 +934,17 @@ export class ClassCard {
         const character = characterHandler.currentCharacter;
         const level = character?.level || 1;
 
-        console.debug('Getting features for class:', classData?.name, 'at level:', level);
-
         // Get class features for the current level
         const features = classData.getFeatures(level) || [];
-        console.debug('Class features:', features);
 
         // Get subclass features for the current level if a subclass is selected
         let subclassFeatures = [];
         if (subclassData) {
             subclassFeatures = subclassData.getFeatures?.(level) || [];
-            console.debug('Subclass features:', subclassFeatures);
         }
 
         // Combine class and subclass features
         const allFeatures = [...features, ...subclassFeatures];
-        console.debug('All features:', allFeatures);
 
         if (allFeatures.length > 0) {
             const processedFeatures = await Promise.all(allFeatures.map(async feature => {
@@ -1096,6 +1099,37 @@ export class ClassCard {
                 // Handle name and text properties
                 else if (entry.name && entry.text) {
                     result += `<p><strong>${entry.name}</strong>. ${entry.text}</p>`;
+                }
+                // Handle Spell Save DC
+                else if (entry.type === 'abilityDc') {
+                    const character = characterHandler.currentCharacter;
+                    const abilityAbbr = entry.attributes?.[0]; // e.g., 'wis'
+                    if (!character || !abilityAbbr) {
+                        result += '<p>Error calculating Spell Save DC.</p>';
+                    } else {
+                        const abilityMap = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
+                        const abilityName = abilityMap[abilityAbbr] || abilityAbbr;
+                        const modifier = abilityScoreManager.getModifier(abilityAbbr); // Use manager for total mod
+                        const profBonus = character.getProficiencyBonus ? character.getProficiencyBonus() : Math.ceil(1 + character.level / 4); // Calculate PB if method missing
+                        const dc = 8 + profBonus + modifier;
+                        result += `<p><strong>${entry.name || 'Spell Save DC'}</strong> = 8 + your proficiency bonus + your ${abilityName} modifier (${dc})</p>`;
+                    }
+                }
+                // Handle Spell Attack Modifier
+                else if (entry.type === 'abilityAttackMod') {
+                    const character = characterHandler.currentCharacter;
+                    const abilityAbbr = entry.attributes?.[0]; // e.g., 'wis'
+                    if (!character || !abilityAbbr) {
+                        result += '<p>Error calculating Spell Attack Modifier.</p>';
+                    } else {
+                        const abilityMap = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
+                        const abilityName = abilityMap[abilityAbbr] || abilityAbbr;
+                        const modifier = abilityScoreManager.getModifier(abilityAbbr); // Use manager for total mod
+                        const profBonus = character.getProficiencyBonus ? character.getProficiencyBonus() : Math.ceil(1 + character.level / 4); // Calculate PB if method missing
+                        const attackMod = profBonus + modifier;
+                        const sign = attackMod >= 0 ? '+' : '';
+                        result += `<p><strong>${entry.name || 'Spell Attack Modifier'}</strong> = your proficiency bonus + your ${abilityName} modifier (${sign}${attackMod})</p>`;
+                    }
                 }
                 // Fall back to JSON for unhandled formats
                 else {

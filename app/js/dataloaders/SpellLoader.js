@@ -184,7 +184,6 @@ export class SpellLoader extends BaseLoader {
                     throw new Error('No valid spell data loaded');
                 }
 
-                console.debug(`Loaded ${data.spell.length} spells`);
                 return data;
             } catch (error) {
                 console.error('Error loading spells:', error);

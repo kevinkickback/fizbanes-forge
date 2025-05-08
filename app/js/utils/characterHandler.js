@@ -24,10 +24,7 @@
 // Character handling utilities
 import { Character } from '../models/Character.js';
 import { showNotification } from './notifications.js';
-import { navigation } from './navigation.js';
 import { SourceCard } from '../ui/SourceCard.js';
-import { sourceManager } from '../managers/SourceManager.js';
-import { AbilityScoreCard } from '../ui/AbilityScoreCard.js';
 import { storage } from './Storage.js';
 import { modal } from './Modal.js';
 import { eventEmitter } from './EventEmitter.js';
@@ -110,10 +107,6 @@ class CharacterHandler {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Initialization Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Initializes the character handler and loads existing characters
      * @returns {Promise<void>}
@@ -126,7 +119,6 @@ class CharacterHandler {
             // Initialize event listeners
             this._initializeEventListeners();
 
-            console.debug('Character handler initialized');
         } catch (error) {
             console.error('Error initializing character handler:', error);
         }
@@ -203,10 +195,6 @@ class CharacterHandler {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Character Loading and Persistence
-    //-------------------------------------------------------------------------
-
     /**
      * Loads all characters from storage
      * @returns {Promise<void>}
@@ -216,7 +204,6 @@ class CharacterHandler {
             // Get the container for character cards
             const container = document.getElementById('characterList');
             if (!container) {
-                console.debug('Character list container not found, skipping load');
                 return;
             }
 
@@ -227,7 +214,18 @@ class CharacterHandler {
             const characters = await storage.getCharacters();
             if (!characters || characters.length === 0) {
                 this._showEmptyState(container);
+                // Hide the top row with New Character button when there are no characters
+                const topButtonRow = document.querySelector('.row.mb-4');
+                if (topButtonRow) {
+                    topButtonRow.style.display = 'none';
+                }
                 return;
+            }
+
+            // Show the top row with New Character button when there are characters
+            const topButtonRow = document.querySelector('.row.mb-4');
+            if (topButtonRow) {
+                topButtonRow.style.display = '';
             }
 
             // Filter to unique characters by ID
@@ -242,7 +240,6 @@ class CharacterHandler {
             // Set up event listeners for the character cards
             this._setupCharacterCardListeners(container);
 
-            console.debug(`Loaded ${uniqueCharacters.length} characters`);
         } catch (error) {
             console.error('Error loading characters:', error);
             showNotification('Failed to load characters', 'error');
@@ -334,11 +331,16 @@ class CharacterHandler {
             <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 200px);">
                 <div class="empty-state text-center">
                     <i class="fas fa-users fa-5x mb-4 text-muted"></i>
-                    <h2 class="mb-3">No Characters Yet</h2>
-                    <p class="lead">Create a new character to get started!</p>
-                    <button id="createCharacterBtn" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Create Character
-                    </button>
+                    <h2 class="mb-3">No Characters</h2>
+                    <p class="lead">Create or import a character to get started!</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button id="createCharacterBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Character
+                        </button>
+                        <button id="emptyStateImportBtn" class="btn btn-secondary">
+                            <i class="fas fa-file-import"></i> Import Character
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -348,6 +350,14 @@ class CharacterHandler {
         if (createBtn) {
             createBtn.addEventListener('click', (e) => {
                 modal.showNewCharacterModal(e);
+            });
+        }
+
+        // Add event listener to the Import Character button
+        const importBtn = container.querySelector('#emptyStateImportBtn');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => {
+                this.handleCharacterImport();
             });
         }
     }
@@ -387,10 +397,6 @@ class CharacterHandler {
             }
         });
     }
-
-    //-------------------------------------------------------------------------
-    // Character Detail Management
-    //-------------------------------------------------------------------------
 
     /**
      * Gets all character detail fields from the UI
@@ -438,6 +444,7 @@ class CharacterHandler {
 
             if (hasChanges && !isSaving) {
                 this.showUnsavedChanges();
+                eventEmitter.emit('character:detailsUpdated', this._currentCharacter);
             }
 
             // Also update the character card in the UI if the name changed
@@ -476,6 +483,7 @@ class CharacterHandler {
             if (success) {
                 showNotification('Character saved successfully', 'success');
                 this.clearUnsavedChanges();
+                eventEmitter.emit('character:saved', this._currentCharacter);
                 return true;
             }
 
@@ -591,9 +599,6 @@ class CharacterHandler {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Character Operations
-    //-------------------------------------------------------------------------
 
     /**
      * Handles character selection
@@ -604,21 +609,13 @@ class CharacterHandler {
         try {
             let selectedCharacter;
 
-            console.debug('handleCharacterSelect called with:',
-                typeof characterIdOrObject === 'string'
-                    ? `ID: ${characterIdOrObject}`
-                    : `Object with ID: ${characterIdOrObject?.id}`
-            );
-
             // Check if this is an ID or already a character object
             if (typeof characterIdOrObject === 'string') {
                 // Load character from storage by ID
                 selectedCharacter = await storage.getCharacter(characterIdOrObject);
-                console.debug('Character loaded from storage:', selectedCharacter);
             } else if (characterIdOrObject?.id) {
                 // Use provided character object
                 selectedCharacter = characterIdOrObject;
-                console.debug('Using provided character object:', selectedCharacter);
             }
 
             if (!selectedCharacter) {
@@ -629,7 +626,6 @@ class CharacterHandler {
 
             // Convert to Character instance if it's just a data object
             if (!(selectedCharacter instanceof Character)) {
-                console.debug('Converting to Character instance');
                 selectedCharacter = new Character(selectedCharacter);
             }
 
@@ -640,13 +636,11 @@ class CharacterHandler {
             }
 
             // Set as current character
-            console.debug('Setting current character:', selectedCharacter);
             this.currentCharacter = selectedCharacter;
 
             // Update UI to show this character is selected
             this.updateCharacterSelectionUI(selectedCharacter.id);
 
-            console.debug(`Selected character: ${selectedCharacter.name} (${selectedCharacter.id})`);
         } catch (error) {
             console.error('Error selecting character:', error);
             showNotification('Error selecting character', 'error');
@@ -677,6 +671,7 @@ class CharacterHandler {
             URL.revokeObjectURL(url);
 
             showNotification('Character exported successfully', 'success');
+            eventEmitter.emit('character:exported', character);
         } catch (error) {
             console.error('Error exporting character:', error);
             showNotification('Error exporting character', 'error');
@@ -731,6 +726,7 @@ class CharacterHandler {
             }
 
             showNotification('Character deleted successfully', 'success');
+            eventEmitter.emit('character:deleted', characterId);
         } catch (error) {
             console.error('Error deleting character:', error);
             showNotification('Error deleting character', 'error');
@@ -780,6 +776,7 @@ class CharacterHandler {
                     await this.handleCharacterSelect(character.id);
 
                     showNotification('Character imported successfully', 'success');
+                    eventEmitter.emit('character:imported', character);
                 } catch (error) {
                     console.error('Error processing character import:', error);
                     showNotification('Error importing character: Invalid format', 'error');
@@ -793,7 +790,48 @@ class CharacterHandler {
             showNotification('Error importing character', 'error');
         }
     }
+
+    /**
+     * Populates the details form fields with the current character's data
+     */
+    populateDetailsForm() {
+        if (!this._currentCharacter) return;
+        const fieldMap = {
+            characterName: 'name',
+            playerName: 'playerName',
+            height: 'height',
+            weight: 'weight',
+            eyes: 'eyes',
+            skin: 'skin',
+            hair: 'hair',
+            gender: 'gender',
+            appearance: 'appearance',
+            backstory: 'backstory',
+            notes: 'notes'
+        };
+        for (const [fieldId, propName] of Object.entries(fieldMap)) {
+            const el = document.getElementById(fieldId);
+            if (el) {
+                el.value = this._currentCharacter[propName] || '';
+            }
+        }
+        eventEmitter.emit('character:formPopulated', this._currentCharacter);
+    }
 }
 
+// Add event-driven notifications for character actions
+eventEmitter.on('character:saved', (character) => {
+    showNotification('Character saved successfully', 'success');
+});
+eventEmitter.on('character:deleted', (characterId) => {
+    showNotification('Character deleted successfully', 'success');
+});
+eventEmitter.on('character:imported', (character) => {
+    showNotification('Character imported successfully', 'success');
+});
+eventEmitter.on('character:exported', (character) => {
+    showNotification('Character exported successfully', 'success');
+});
+
 // Export a singleton instance
-export const characterHandler = new CharacterHandler(); 
+export const characterHandler = new CharacterHandler();

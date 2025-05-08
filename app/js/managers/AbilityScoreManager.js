@@ -322,9 +322,6 @@ class AbilityScoreManager {
                 this._assignedStandardArrayValues[ability] = value;
             }
         }
-
-        // Debug the assigned values
-        console.debug("Standard array assigned values:", this._assignedStandardArrayValues);
     }
 
     /**
@@ -357,6 +354,13 @@ class AbilityScoreManager {
 
         // Notify listeners about the change
         this._notifyAbilityScoresChanged();
+    }
+
+    /**
+     * Clears the manager's stored ability choices.
+     */
+    clearStoredChoices() {
+        this.abilityChoices.clear();
     }
 
     /**
@@ -414,7 +418,6 @@ class AbilityScoreManager {
             source: choice.source || 'Race Choice'
         }));
 
-        console.debug('AbilityScoreManager.getPendingChoices:', formattedChoices);
         return formattedChoices;
     }
 
@@ -561,7 +564,6 @@ class AbilityScoreManager {
         }
 
         const method = character.variantRules.abilityScoreMethod;
-        console.debug(`Resetting ability score method to: ${method}`);
 
         // Reset state based on the method
         if (method === 'standardArray') {
@@ -578,11 +580,9 @@ class AbilityScoreManager {
                 'charisma': 8        // CHA: 8
             };
 
-            console.debug('Applying traditional D&D ability score order');
 
             // Always apply the traditional order for consistency and predictability
             for (const [ability, value] of Object.entries(traditionalOrder)) {
-                console.debug(`Setting ${ability} to ${value}`);
 
                 // Update the character's ability score
                 this.updateAbilityScore(ability, value);
@@ -591,7 +591,6 @@ class AbilityScoreManager {
                 this._assignedStandardArrayValues[ability] = value;
             }
 
-            console.debug("Standard array assignments complete:", this._assignedStandardArrayValues);
         } else if (method === 'pointBuy') {
             // For point buy, ensure scores are within valid range (8-15)
             for (const ability of this._allAbilities) {

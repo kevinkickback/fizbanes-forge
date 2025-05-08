@@ -24,10 +24,6 @@ class EventEmitter {
         this._events = {};
     }
 
-    //-------------------------------------------------------------------------
-    // Subscription Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Register an event listener for the specified event
      * 
@@ -136,10 +132,6 @@ class EventEmitter {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Event Emission Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Emit an event with the specified arguments
      * 
@@ -179,10 +171,6 @@ class EventEmitter {
             return false;
         }
     }
-
-    //-------------------------------------------------------------------------
-    // Utility Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Get the number of listeners for a specific event

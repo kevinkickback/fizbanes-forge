@@ -121,10 +121,6 @@ export class Subclass extends Class {
         return { ...parentProficiencies, ...this.multiclassing.proficiencies };
     }
 
-    //-------------------------------------------------------------------------
-    // Subclass-specific methods
-    //-------------------------------------------------------------------------
-
     /**
      * Gets the level at which this subclass becomes available
      * @returns {number} Subclass level (usually 1-3)
@@ -171,10 +167,6 @@ export class Subclass extends Class {
         if (level !== null && level < this.subclassLevel) return [];
         return super.getFeatures(level);
     }
-
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Returns a string representation of the subclass
