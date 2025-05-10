@@ -42,10 +42,6 @@ export class ConditionLoader extends BaseLoader {
         };
     }
 
-    //------------------------------------------------
-    // Condition Data Loading Methods
-    //------------------------------------------------
-
     /**
      * Load all condition data
      * @param {Object} options - Loading options

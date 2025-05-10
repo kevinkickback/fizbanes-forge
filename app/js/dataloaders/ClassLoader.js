@@ -141,10 +141,6 @@ export class ClassLoader extends BaseLoader {
         return fluffData?.classFluff?.[0] || null;
     }
 
-    //-------------------------------------------------------------------------
-    // Public API Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Load all class data
      * @param {Object} [options={}] - Loading options

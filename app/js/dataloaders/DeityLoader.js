@@ -38,10 +38,6 @@ export class DeityLoader extends BaseLoader {
         };
     }
 
-    //------------------------------------------------
-    // Deity Data Loading Methods
-    //------------------------------------------------
-
     /**
      * Load all deity data
      * @param {Object} options - Loading options

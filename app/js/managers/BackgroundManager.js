@@ -192,34 +192,67 @@ class BackgroundManager {
      * @private
      */
     _getBackgroundProficiencies(backgroundData) {
-        let skillProfs = null;
-        let toolProfs = null;
+        // Helper to process proficiency arrays
+        function processProficiencyArray(arr) {
+            const fixed = [];
+            const choices = { count: 0, from: [] };
 
-        // First check for explicit proficiency object
-        if (backgroundData.proficiencies) {
-            const profs = backgroundData.proficiencies;
+            if (!Array.isArray(arr)) return { fixed, choices };
 
-            // Handle skill proficiencies
-            if (profs.skills) {
-                skillProfs = Array.isArray(profs.skills) ? profs.skills : [profs.skills];
+            for (const obj of arr) {
+                if (typeof obj !== 'object' || obj === null) continue;
+                // Handle fixed proficiencies (key: true)
+                for (const [key, value] of Object.entries(obj)) {
+                    if (key === 'choose' && typeof value === 'object') {
+                        // Handle choose structure
+                        if (Array.isArray(value.from) && typeof value.count === 'number') {
+                            choices.count += value.count;
+                            choices.from.push(...value.from);
+                        } else if (Array.isArray(value.from)) {
+                            // Sometimes count is omitted, assume 1
+                            choices.count += 1;
+                            choices.from.push(...value.from);
+                        }
+                    } else if (typeof value === 'boolean' && value) {
+                        // Fixed proficiency
+                        fixed.push(key);
+                    } else if (typeof value === 'number' && value > 0) {
+                        // e.g., { anyArtisansTool: 1 }
+                        choices.count += value;
+                        choices.from.push(key);
+                    }
+                }
             }
-
-            // Handle tool proficiencies
-            if (profs.tools) {
-                toolProfs = Array.isArray(profs.tools) ? profs.tools : [profs.tools];
-            }
+            // Remove duplicates
+            choices.from = Array.from(new Set(choices.from));
+            fixed.sort();
+            choices.from.sort();
+            return { fixed, choices };
         }
 
-        // If not found, try to extract from entries
-        if (!skillProfs || !toolProfs) {
+        // Try to process skillProficiencies and toolProficiencies from raw data
+        const skills = backgroundData.skillProficiencies
+            ? processProficiencyArray(backgroundData.skillProficiencies)
+            : { fixed: [], choices: { count: 0, from: [] } };
+        const tools = backgroundData.toolProficiencies
+            ? processProficiencyArray(backgroundData.toolProficiencies)
+            : { fixed: [], choices: { count: 0, from: [] } };
+
+        // If not found, try to extract from entries (fallback)
+        if ((skills.fixed.length === 0 && skills.choices.count === 0) ||
+            (tools.fixed.length === 0 && tools.choices.count === 0)) {
             const extractedProfs = this._extractProficienciesFromEntries(backgroundData.entries);
-            skillProfs = skillProfs || extractedProfs.skills;
-            toolProfs = toolProfs || extractedProfs.tools;
+            if (skills.fixed.length === 0 && skills.choices.count === 0) {
+                skills.fixed = extractedProfs.skills;
+            }
+            if (tools.fixed.length === 0 && tools.choices.count === 0) {
+                tools.fixed = extractedProfs.tools;
+            }
         }
 
         return {
-            skills: skillProfs || [],
-            tools: toolProfs || []
+            skills,
+            tools
         };
     }
 
@@ -687,17 +720,35 @@ class BackgroundManager {
         const backgroundData = bgData || this._selectedVariant || this._selectedBackground;
 
         if (!backgroundData?.proficiencies?.skills) {
-            return 'None';
+            return '<li class="text-content">None</li>';
         }
 
-        const skills = backgroundData.proficiencies.skills;
-        if (!skills.length) return 'None';
+        const skillsObj = backgroundData.proficiencies.skills;
+        const parts = [];
 
-        return skills.map(skill =>
-            skill.split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ')
-        ).join(', ');
+        // Handle new normalized structure
+        if (Array.isArray(skillsObj.fixed) || skillsObj.choices) {
+            if (skillsObj.fixed && skillsObj.fixed.length > 0) {
+                parts.push(...skillsObj.fixed
+                    .map(skill => `<li class="text-content">${skill.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</li>`));
+            }
+            if (skillsObj.choices && skillsObj.choices.count > 0 && skillsObj.choices.from.length > 0) {
+                parts.push(`<li class="text-content">Choose ${skillsObj.choices.count} from: ${skillsObj.choices.from
+                    .map(skill => skill.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
+                    .join(', ')}</li>`);
+            }
+            if (parts.length === 0) return '<li class="text-content">None</li>';
+            return parts.join('\n');
+        }
+
+        // Fallback: if it's a flat array (legacy)
+        if (Array.isArray(skillsObj) && skillsObj.length > 0) {
+            return skillsObj
+                .map(skill => `<li class="text-content">${skill.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</li>`)
+                .join('\n');
+        }
+
+        return '<li class="text-content">None</li>';
     }
 
     /**
@@ -709,13 +760,35 @@ class BackgroundManager {
         const backgroundData = bgData || this._selectedVariant || this._selectedBackground;
 
         if (!backgroundData?.proficiencies?.tools) {
-            return 'None';
+            return '<li class="text-content">None</li>';
         }
 
-        const tools = backgroundData.proficiencies.tools;
-        if (!tools.length) return 'None';
+        const toolsObj = backgroundData.proficiencies.tools;
+        const parts = [];
 
-        return tools.join(', ');
+        // Handle new normalized structure
+        if (Array.isArray(toolsObj.fixed) || toolsObj.choices) {
+            if (toolsObj.fixed && toolsObj.fixed.length > 0) {
+                parts.push(...toolsObj.fixed
+                    .map(tool => `<li class="text-content">${tool.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</li>`));
+            }
+            if (toolsObj.choices && toolsObj.choices.count > 0 && toolsObj.choices.from.length > 0) {
+                parts.push(`<li class="text-content">Choose ${toolsObj.choices.count} from: ${toolsObj.choices.from
+                    .map(tool => tool.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
+                    .join(', ')}</li>`);
+            }
+            if (parts.length === 0) return '<li class="text-content">None</li>';
+            return parts.join('\n');
+        }
+
+        // Fallback: if it's a flat array (legacy)
+        if (Array.isArray(toolsObj) && toolsObj.length > 0) {
+            return toolsObj
+                .map(tool => `<li class="text-content">${tool.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</li>`)
+                .join('\n');
+        }
+
+        return '<li class="text-content">None</li>';
     }
 
     /**

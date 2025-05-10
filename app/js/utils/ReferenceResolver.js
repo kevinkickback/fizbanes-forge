@@ -94,9 +94,6 @@ class ReferenceResolver {
         this._loggedCircularRefs = new Set();
     }
 
-    //-------------------------------------------------------------------------
-    // Initialization & Data Loading
-    //-------------------------------------------------------------------------
 
     /**
      * Loads and caches skill data from the skills.json file
@@ -145,9 +142,6 @@ class ReferenceResolver {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Reference Resolution - Spells
-    //-------------------------------------------------------------------------
 
     /**
      * Handles spell reference resolution
@@ -240,9 +234,6 @@ class ReferenceResolver {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Reference Resolution - Items
-    //-------------------------------------------------------------------------
 
     /**
      * Handles item reference resolution
@@ -412,9 +403,6 @@ class ReferenceResolver {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Reference Resolution - Monsters
-    //-------------------------------------------------------------------------
 
     /**
      * Handles monster reference resolution
@@ -542,9 +530,6 @@ class ReferenceResolver {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Reference Resolution - Classes
-    //-------------------------------------------------------------------------
 
     /**
      * Handles class reference resolution
@@ -802,9 +787,6 @@ class ReferenceResolver {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Reference Resolution - Skills
-    //-------------------------------------------------------------------------
 
     /**
      * Handles skill reference resolution
@@ -851,9 +833,6 @@ class ReferenceResolver {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Core Reference Resolution
-    //-------------------------------------------------------------------------
 
     /**
      * Resolves a reference to retrieve tooltip data
@@ -1295,9 +1274,6 @@ class ReferenceResolver {
         return description || `A member of the ${raceData.name} race.`;
     }
 
-    //-------------------------------------------------------------------------
-    // Text Processing Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Extract and resolve references from a text string
@@ -1426,10 +1402,6 @@ class ReferenceResolver {
             return text; // Return original text on error
         }
     }
-
-    //-------------------------------------------------------------------------
-    // Utility Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Gets a formatted description for a race

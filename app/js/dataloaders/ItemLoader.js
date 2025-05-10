@@ -89,9 +89,6 @@ export class ItemLoader extends BaseLoader {
         };
     }
 
-    //-------------------------------------------------------------------------
-    // Item Data Loading Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Load all item data
@@ -159,9 +156,6 @@ export class ItemLoader extends BaseLoader {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Item Retrieval Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Get a specific item by name and source

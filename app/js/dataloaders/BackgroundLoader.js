@@ -55,10 +55,6 @@ export class BackgroundLoader extends BaseLoader {
         };
     }
 
-    //-------------------------------------------------------------------------
-    // Background Data Loading Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Load all background data
      * @param {Object} [options={}] - Loading options
@@ -115,10 +111,6 @@ export class BackgroundLoader extends BaseLoader {
             }
         }
     }
-
-    //-------------------------------------------------------------------------
-    // Background Retrieval Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Get a specific background by name and source

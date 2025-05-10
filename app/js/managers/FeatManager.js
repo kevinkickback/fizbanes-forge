@@ -3,7 +3,6 @@
  * Manages feat-related functionality for the D&D Character Creator
  */
 
-import { Feat } from '../models/Feat.js';
 import { characterInitializer } from '../utils/Initialize.js';
 import { showNotification } from '../utils/notifications.js';
 

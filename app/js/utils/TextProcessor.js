@@ -253,7 +253,7 @@ class TextProcessor {
                 resolveMode = 'tooltip';
             }
             // If it matches neither list, it will keep the default 'tooltip' mode.
-            // -------------------------------------------------------------------
+
 
             // Pass the determined mode down in the options for processString
             const processingOptions = { ...options, resolveMode: resolveMode };

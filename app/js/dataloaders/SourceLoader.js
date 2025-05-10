@@ -34,9 +34,6 @@ export class SourceLoader extends BaseLoader {
         });
     }
 
-    //------------------------------------------------
-    // Source Data Loading Methods
-    //------------------------------------------------
 
     /**
      * Load all source data

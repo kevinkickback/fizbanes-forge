@@ -18,7 +18,6 @@ import { raceManager } from '../managers/RaceManager.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 import { tooltipManager } from '../managers/TooltipManager.js';
 import { characterHandler } from '../utils/characterHandler.js';
-import { abilityScoreManager } from '../managers/AbilityScoreManager.js';
 
 /**
  * Manages the race selection UI component and related functionality

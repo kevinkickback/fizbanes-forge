@@ -55,10 +55,6 @@ export class SourceCard {
         this._initialized = false;
     }
 
-    //-------------------------------------------------------------------------
-    // Initialization Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Initializes the source book selection UI
      * @returns {Promise<void>}
@@ -109,9 +105,6 @@ export class SourceCard {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // UI Creation Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Creates the source selection header with links
@@ -188,9 +181,6 @@ export class SourceCard {
         return toggle;
     }
 
-    //-------------------------------------------------------------------------
-    // Event Handling Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Sets up event listeners for a source toggle
@@ -237,9 +227,6 @@ export class SourceCard {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Selection Management Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Selects all available source books
@@ -296,9 +283,6 @@ export class SourceCard {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Source Data Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Loads available source books
@@ -358,9 +342,6 @@ export class SourceCard {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Getters and Setters
-    //-------------------------------------------------------------------------
 
     /**
      * Gets the currently selected sources

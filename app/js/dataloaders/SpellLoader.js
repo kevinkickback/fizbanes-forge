@@ -64,9 +64,6 @@ export class SpellLoader extends BaseLoader {
         this._baseDir = 'spells';
     }
 
-    //-------------------------------------------------------------------------
-    // Index Loading Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Load spell index data
@@ -94,9 +91,6 @@ export class SpellLoader extends BaseLoader {
         }).catch(() => ({}));
     }
 
-    //-------------------------------------------------------------------------
-    // Spell Data Loading Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Load spell data from a source file
@@ -126,9 +120,6 @@ export class SpellLoader extends BaseLoader {
         }).catch(() => ({ spellFluff: [] }));
     }
 
-    //-------------------------------------------------------------------------
-    // Public API Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Load all spell data

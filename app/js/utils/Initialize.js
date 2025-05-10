@@ -25,10 +25,6 @@ import { characterHandler } from './characterHandler.js';
 import { dataLoader } from '../dataloaders/DataLoader.js';
 import { textProcessor } from './TextProcessor.js';
 
-//-------------------------------------------------------------------------
-// Data Loading Functions
-//-------------------------------------------------------------------------
-
 /**
  * Wrapper for data loader calls that handles errors consistently
  * @param {Promise<any>} promise - The data loader promise to execute

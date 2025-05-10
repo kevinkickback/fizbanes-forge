@@ -77,10 +77,6 @@ export class DataLoader {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Character Data Loaders
-    //-------------------------------------------------------------------------
-
     /**
      * Loads class data from JSON files
      * @returns {Promise<Object>} Promise resolving to combined class data

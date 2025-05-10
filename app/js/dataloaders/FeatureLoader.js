@@ -55,9 +55,6 @@ export class FeatureLoader extends BaseLoader {
         };
     }
 
-    //------------------------------------------------
-    // Feature Data Loading Methods
-    //------------------------------------------------
 
     /**
      * Load all feature data

@@ -60,10 +60,6 @@ class CharacterHandler {
         this._hasUnsavedChanges = false;
     }
 
-    //-------------------------------------------------------------------------
-    // Character Access Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Gets the current character
      * @returns {Character|null} The current character or null if none selected

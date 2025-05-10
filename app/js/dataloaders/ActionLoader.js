@@ -38,10 +38,6 @@ export class ActionLoader extends BaseLoader {
         };
     }
 
-    //------------------------------------------------
-    // Action Data Loading Methods
-    //------------------------------------------------
-
     /**
      * Load all action data
      * @param {Object} options - Loading options

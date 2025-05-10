@@ -125,10 +125,6 @@ export class BaseLoader {
         return loadPromise;
     }
 
-    //-------------------------------------------------------------------------
-    // Cache Management Methods
-    //-------------------------------------------------------------------------
-
     /**
      * Set a cache entry with LRU eviction
      * @param {string} key - Cache key
@@ -175,10 +171,6 @@ export class BaseLoader {
             this._pendingLoads.clear();
         }
     }
-
-    //-------------------------------------------------------------------------
-    // Utility Methods
-    //-------------------------------------------------------------------------
 
     /**
      * Delay helper for retry mechanism

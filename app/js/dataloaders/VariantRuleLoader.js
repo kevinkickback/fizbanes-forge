@@ -38,9 +38,6 @@ export class VariantRuleLoader extends BaseLoader {
         };
     }
 
-    //------------------------------------------------
-    // Variant Rule Data Loading Methods
-    //------------------------------------------------
 
     /**
      * Load all variant rule data

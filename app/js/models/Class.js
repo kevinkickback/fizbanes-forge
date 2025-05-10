@@ -121,10 +121,6 @@ export class Class {
         this.multiclassing = data.multiclassing || {};
     }
 
-    //-------------------------------------------------------------------------
-    // Basic information
-    //-------------------------------------------------------------------------
-
     /**
      * Gets the hit dice size
      * @returns {number} Hit dice size (6, 8, 10, or 12)
@@ -140,10 +136,6 @@ export class Class {
     getDescription() {
         return this.description;
     }
-
-    //-------------------------------------------------------------------------
-    // Proficiencies
-    //-------------------------------------------------------------------------
 
     /**
      * Gets available skill proficiencies
@@ -205,9 +197,6 @@ export class Class {
         return this.toolProficiencies;
     }
 
-    //-------------------------------------------------------------------------
-    // Subclasses
-    //-------------------------------------------------------------------------
 
     /**
      * Gets available subclasses
@@ -217,9 +206,6 @@ export class Class {
         return this.subclasses;
     }
 
-    //-------------------------------------------------------------------------
-    // Features
-    //-------------------------------------------------------------------------
 
     /**
      * Gets features for a specific level
@@ -289,9 +275,6 @@ export class Class {
         return null;
     }
 
-    //-------------------------------------------------------------------------
-    // Spellcasting
-    //-------------------------------------------------------------------------
 
     /**
      * Gets spellcasting information
@@ -344,10 +327,6 @@ export class Class {
         }
     }
 
-    //-------------------------------------------------------------------------
-    // Equipment
-    //-------------------------------------------------------------------------
-
     /**
      * Gets starting equipment
      * @returns {Object} Starting equipment information
@@ -364,9 +343,6 @@ export class Class {
         return this.startingEquipment.options || [];
     }
 
-    //-------------------------------------------------------------------------
-    // Multiclassing
-    //-------------------------------------------------------------------------
 
     /**
      * Gets multiclassing requirements
@@ -384,9 +360,6 @@ export class Class {
         return this.multiclassing.proficiencies || {};
     }
 
-    //-------------------------------------------------------------------------
-    // Utility methods
-    //-------------------------------------------------------------------------
 
     /**
      * Serializes the class to JSON
