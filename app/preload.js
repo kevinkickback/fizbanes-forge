@@ -62,4 +62,11 @@ contextBridge.exposeInMainWorld("characterStorage", {
     generateUUID: () => {
         return ipcRenderer.invoke("generateUUID");
     }
+});
+
+// Expose Electron API for data loading
+contextBridge.exposeInMainWorld("electronAPI", {
+    loadJSON: (filePath) => {
+        return ipcRenderer.invoke("loadJSON", filePath);
+    }
 }); 

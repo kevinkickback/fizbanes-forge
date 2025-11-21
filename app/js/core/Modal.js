@@ -1,0 +1,461 @@
+/**
+ * Modal.js
+ * Utility for managing modal dialogs for user interactions
+ * 
+ * @typedef {Object} ModalEventHandlers
+ * @property {Function} onShowModal - Handler for when the modal is shown
+ * @property {Function} onCreateCharacter - Handler for when a character is created
+ * 
+ * @typedef {Object} CharacterFormData
+ * @property {string} name - The character's name
+ * @property {number} level - The character's level
+ * @property {string} gender - The character's gender
+ * @property {boolean} feats - Whether feats are enabled
+ * @property {boolean} multiclassing - Whether multiclassing is enabled
+ * @property {string} abilityScoreMethod - The method for generating ability scores
+ * @property {Set<string>} allowedSources - Set of allowed source books
+ * @property {Object} variantRules - Character variant rules
+ * @property {boolean} variantRules.feats - Whether feats are enabled
+ * @property {boolean} variantRules.multiclassing - Whether multiclassing is enabled
+ * @property {string} variantRules.abilityScoreMethod - The method for generating ability scores
+ * 
+ * @typedef {Object} ConfirmationOptions
+ * @property {string} title - The title of the confirmation dialog
+ * @property {string} message - The message to display
+ * @property {string} [confirmButtonText='Confirm'] - Text for the confirm button
+ * @property {string} [cancelButtonText='Cancel'] - Text for the cancel button
+ * @property {string} [confirmButtonClass='btn-primary'] - CSS class for the confirm button
+ */
+
+import { Character } from './Character.js';
+import { storage } from './Storage.js';
+import { showNotification } from '../utils/Notifications.js';
+import { SourceCard } from '../modules/sources/SourceCard.js';
+
+/**
+ * Singleton instance for Modal class
+ * @type {Modal|null}
+ * @private
+ */
+let _instance = null;
+
+/**
+ * Utility class for managing modal dialogs
+ */
+export class Modal {
+    /**
+     * Initializes a new Modal instance
+     * @private
+     */
+    constructor() {
+        if (_instance) {
+            throw new Error('Modal is a singleton. Use Modal.getInstance() instead.');
+        }
+
+        /**
+         * Source card for managing source book selection
+         * @type {SourceCard}
+         * @private
+         */
+        this._sourceCard = new SourceCard();
+
+        /**
+         * Event handlers for modal interactions
+         * @type {ModalEventHandlers}
+         * @private
+         */
+        this._eventHandlers = {
+            onShowModal: null,
+            onCreateCharacter: null
+        };
+
+        _instance = this;
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Handling
+    //-------------------------------------------------------------------------
+
+    /**
+     * Sets up event listeners for modal interactions
+     * @param {ModalEventHandlers} handlers - Event handlers
+     */
+    setupEventListeners(handlers = {}) {
+        try {
+            // Store event handlers
+            this._eventHandlers = handlers;
+
+            // Set up new character button
+            this._setupButtonEventListener('newCharacterBtn', (e) => {
+                e.preventDefault();
+                if (this._eventHandlers.onShowModal) {
+                    this._eventHandlers.onShowModal(e);
+                }
+            });
+
+            // Set up create character button in modal
+            this._setupButtonEventListener('createCharacterBtn', () => this._createCharacterFromModal());
+
+        } catch (error) {
+            console.error('Error setting up modal event listeners:', error);
+        }
+    }
+
+    /**
+     * Sets up an event listener for a button, replacing any existing listeners
+     * @param {string} buttonId - The ID of the button element
+     * @param {Function} handler - The event handler function
+     * @private
+     */
+    _setupButtonEventListener(buttonId, handler) {
+        try {
+            const button = document.getElementById(buttonId);
+            if (!button) {
+                return;
+            }
+
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            newButton.addEventListener('click', handler);
+        } catch (error) {
+            console.error(`Error setting up button listener for ${buttonId}:`, error);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Character Creation Modal
+    //-------------------------------------------------------------------------
+
+    /**
+     * Shows the new character modal
+     * @param {Event} [e] - The event that triggered showing the modal
+     */
+    async showNewCharacterModal(e) {
+        try {
+            if (e) e.preventDefault();
+
+            const modal = document.getElementById('newCharacterModal');
+            if (!modal) {
+                console.error('New character modal not found in the DOM');
+                showNotification('Could not open new character form', 'error');
+                return;
+            }
+
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+
+            // Initialize source UI
+            this._sourceCard.container = document.getElementById('sourceBookSelection');
+            await this._sourceCard.initializeSourceSelection();
+
+        } catch (error) {
+            console.error('Error showing new character modal:', error);
+            showNotification('Could not open new character form', 'error');
+        }
+    }
+
+    /**
+     * Closes the new character modal and resets the form
+     * @private
+     */
+    _closeNewCharacterModal() {
+        try {
+            const modal = document.getElementById('newCharacterModal');
+            if (!modal) {
+                return;
+            }
+
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            if (bootstrapModal) {
+                // Move focus outside the modal before hiding it
+                const newCharacterBtn = document.getElementById('newCharacterBtn');
+                if (newCharacterBtn) {
+                    newCharacterBtn.focus();
+                }
+                bootstrapModal.hide();
+            }
+
+            // Clear form
+            const form = document.getElementById('newCharacterForm');
+            if (form) {
+                form.reset();
+            }
+
+        } catch (error) {
+            console.error('Error closing new character modal:', error);
+        }
+    }
+
+    /**
+     * Gets form data from the new character modal
+     * @returns {CharacterFormData|null} The form data or null if form is invalid
+     * @private
+     */
+    _getFormData() {
+        try {
+            const form = document.getElementById('newCharacterForm');
+            if (!form) {
+                showNotification('Character creation form not found', 'error');
+                return null;
+            }
+
+            // Trigger form validation
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return null;
+            }
+
+            const nameInput = document.getElementById('newCharacterName');
+            const levelInput = document.getElementById('newCharacterLevel');
+            const genderInput = document.getElementById('newCharacterGender');
+            const featVariant = document.getElementById('featVariant');
+            const multiclassVariant = document.getElementById('multiclassVariant');
+            const abilityScoreMethod = form.querySelector('input[name="abilityScoreMethod"]:checked');
+
+            if (!nameInput || !levelInput || !genderInput || !featVariant || !multiclassVariant || !abilityScoreMethod) {
+                console.error('One or more form fields not found');
+                showNotification('Missing fields in character creation form', 'error');
+                return null;
+            }
+
+            return {
+                name: nameInput.value.trim(),
+                level: Number.parseInt(levelInput.value, 10),
+                gender: genderInput.value,
+                feats: featVariant.checked,
+                multiclassing: multiclassVariant.checked,
+                abilityScoreMethod: abilityScoreMethod.value
+            };
+        } catch (error) {
+            console.error('Error getting form data:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Gets selected sources from the source card
+     * @returns {Set<string>} Set of selected source codes
+     * @private
+     */
+    _getSelectedSources() {
+        try {
+            const selectedSources = new Set();
+            if (!this._sourceCard.container) {
+                console.error('Source card container not found');
+                return selectedSources;
+            }
+
+            const selectedToggles = this._sourceCard.container.querySelectorAll('.source-toggle.selected');
+            for (const toggle of selectedToggles) {
+                const source = toggle.getAttribute('data-source')?.toUpperCase();
+                if (source) {
+                    selectedSources.add(source);
+                }
+            }
+
+            return selectedSources;
+        } catch (error) {
+            console.error('Error getting selected sources:', error);
+            return new Set();
+        }
+    }
+
+    /**
+     * Creates a new character from the modal form data
+     * @private
+     */
+    async _createCharacterFromModal() {
+        try {
+
+            // Get form data
+            const formData = this._getFormData();
+            if (!formData) return;
+
+            // Get selected sources
+            const selectedSources = this._getSelectedSources();
+            if (!this._sourceCard.validateSourceSelection(selectedSources)) {
+                console.warn('Source selection validation failed');
+                return;
+            }
+
+            // Generate a UUID for the new character
+            const id = await storage.generateUUID();
+
+            // Create a new Character instance
+            const character = new Character();
+            character.id = id;
+            character.name = formData.name;
+            character.level = formData.level;
+            character.gender = formData.gender;
+            character.allowedSources = selectedSources;
+            character.variantRules = {
+                feats: formData.feats,
+                multiclassing: formData.multiclassing,
+                abilityScoreMethod: formData.abilityScoreMethod
+            };
+
+
+            // Save character to storage
+            const success = await storage.saveCharacter(character);
+
+            if (success) {
+                // Close modal and reset form
+                this._closeNewCharacterModal();
+
+                // Call the onCreateCharacter callback if provided
+                if (this._eventHandlers.onCreateCharacter) {
+                    await this._eventHandlers.onCreateCharacter(character);
+                }
+
+                // Reload the character list if needed
+                await this._reloadCharacterList();
+
+                showNotification('New character created successfully', 'success');
+            } else {
+                showNotification('Failed to create new character', 'error');
+            }
+        } catch (error) {
+            console.error('Error creating new character:', error);
+            showNotification('Error creating new character', 'error');
+        }
+    }
+
+    /**
+     * Reloads the character list if it exists
+     * @private
+     */
+    async _reloadCharacterList() {
+        try {
+            const characterList = document.getElementById('characterList');
+            if (characterList) {
+                const { characterLifecycle } = await import('./CharacterLifecycle.js');
+                await characterLifecycle.loadCharacters();
+            }
+        } catch (error) {
+            console.error('Error reloading character list:', error);
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Confirmation Dialog
+    //-------------------------------------------------------------------------
+
+    /**
+     * Shows a confirmation dialog with customizable options
+     * @param {ConfirmationOptions} options - Configuration options for the dialog
+     * @returns {Promise<boolean>} True if confirmed, false if cancelled
+     */
+    async showConfirmationModal(options) {
+        try {
+            const {
+                title,
+                message,
+                confirmButtonText = 'Confirm',
+                cancelButtonText = 'Cancel',
+                confirmButtonClass = 'btn-primary'
+            } = options;
+
+            if (!title || !message) {
+                console.error('Missing required parameters for confirmation dialog');
+                return false;
+            }
+
+            // Get modal elements
+            const modalElement = document.getElementById('confirmationModal');
+            const titleElement = document.getElementById('confirmationModalLabel');
+            const messageElement = document.getElementById('confirmationMessage');
+            const confirmButton = document.getElementById('confirmButton');
+            const cancelButton = modalElement?.querySelector('.btn-secondary');
+            const closeButton = modalElement?.querySelector('.btn-close');
+
+            if (!modalElement || !titleElement || !messageElement || !confirmButton || !cancelButton || !closeButton) {
+                console.error('One or more confirmation modal elements not found');
+                return false;
+            }
+
+            // Set content
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+            confirmButton.textContent = confirmButtonText;
+            cancelButton.textContent = cancelButtonText;
+
+            // Set button class
+            confirmButton.className = `btn ${confirmButtonClass}`;
+
+            // Create modal instance
+            const modal = new bootstrap.Modal(modalElement);
+
+            return new Promise((resolve) => {
+                // Handle button clicks
+                const handleConfirm = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve(true);
+                };
+
+                const handleCancel = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve(false);
+                };
+
+                const handleHidden = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                // Clean up event listeners
+                const cleanup = () => {
+                    confirmButton.removeEventListener('click', handleConfirm);
+                    cancelButton.removeEventListener('click', handleCancel);
+                    closeButton.removeEventListener('click', handleCancel);
+                    modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+                };
+
+                // Add event listeners
+                confirmButton.addEventListener('click', handleConfirm);
+                cancelButton.addEventListener('click', handleCancel);
+                closeButton.addEventListener('click', handleCancel);
+                modalElement.addEventListener('hidden.bs.modal', handleHidden);
+
+                // Show modal
+                modal.show();
+            });
+        } catch (error) {
+            console.error('Error showing confirmation dialog:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Legacy method for showing a confirmation dialog (for backward compatibility)
+     * @param {string} title - The title of the confirmation dialog
+     * @param {string} message - The message to display
+     * @returns {Promise<boolean>} True if confirmed, false if cancelled
+     * @deprecated Use showConfirmationModal instead
+     */
+    async showConfirmationDialog(title, message) {
+        try {
+            console.warn('showConfirmationDialog is deprecated, use showConfirmationModal instead');
+            return this.showConfirmationModal({ title, message });
+        } catch (error) {
+            console.error('Error in legacy confirmation dialog:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Gets the singleton instance of Modal
+     * @returns {Modal} The singleton instance
+     * @static
+     */
+    static getInstance() {
+        if (!_instance) {
+            _instance = new Modal();
+        }
+        return _instance;
+    }
+}
+
+// Export a singleton instance
+export const modal = Modal.getInstance(); 

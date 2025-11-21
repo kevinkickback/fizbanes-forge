@@ -9,7 +9,8 @@
  * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
  */
 
-import { referenceResolver } from './ReferenceResolver.js';
+import { getStringRenderer } from './TagProcessor.js';
+import { getTooltipManager, initializeTooltipListeners } from './Tooltips.js';
 
 /**
  * Class responsible for processing text content, handling references, and formatting.
@@ -47,21 +48,16 @@ class TextProcessor {
     ];
 
     /**
-     * Creates a TextProcessor instance with the given reference resolver
-     * @param {ReferenceResolver} referenceResolver - The reference resolver instance
-     * @throws {Error} If referenceResolver is not provided
+     * Creates a TextProcessor instance
+     * Uses the new HoverUtil StringRenderer for processing references
      */
-    constructor(referenceResolver) {
-        if (!referenceResolver) {
-            throw new Error('ReferenceResolver is required for TextProcessor');
-        }
-
+    constructor() {
         /**
-         * Reference resolver instance used to process references in text
-         * @type {ReferenceResolver}
+         * StringRenderer instance from HoverUtil for processing references
+         * @type {StringRenderer}
          * @private
          */
-        this._referenceResolver = referenceResolver;
+        this._stringRenderer = getStringRenderer();
 
         /**
          * Mutation observer for dynamic content processing
@@ -93,6 +89,9 @@ class TextProcessor {
      */
     async initialize() {
         try {
+            // Initialize tooltip system
+            const tooltipManager = getTooltipManager();
+            initializeTooltipListeners(tooltipManager);
 
             // Set up mutation observer to process dynamically added content
             this._observer = new MutationObserver((mutations) => {
@@ -301,7 +300,7 @@ class TextProcessor {
 
             // Process references if enabled, passing the options (including resolveMode)
             if (mergedOptions.processReferences && text.includes('{@')) {
-                processedText = await this._replaceReferences(processedText, mergedOptions);
+                processedText = this._replaceReferences(processedText, mergedOptions);
             }
 
             // Process formatting if enabled
@@ -322,58 +321,12 @@ class TextProcessor {
      * 
      * @param {string} text - The text containing references
      * @param {TextProcessingOptions} options - Processing options (includes resolveMode)
-     * @returns {Promise<string>} The text with resolved references
+     * @returns {string} The text with resolved references
      * @private
      */
-    async _replaceReferences(text, options = {}) {
-        // Regex to find {@type content} tags
-        const referenceRegex = /{@(\w+)\s+([^}]+)}/g;
-        let lastIndex = 0;
-        const promises = [];
-        const segments = [];
-
-        // First pass: find matches and store promises for resolution
-        let match;
-        while (true) {
-            match = referenceRegex.exec(text);
-            if (match === null) {
-                break;
-            }
-
-            // Add segment of text before the match
-            if (match.index > lastIndex) {
-                segments.push(text.substring(lastIndex, match.index));
-            }
-            // Store a promise for the resolved reference
-            const promiseIndex = promises.length;
-            promises.push(this._referenceResolver.resolveRef(match[0], options));
-            // Add a placeholder to the segments array
-            segments.push({ promiseIndex });
-            lastIndex = referenceRegex.lastIndex;
-        }
-        // Add any remaining text after the last match
-        if (lastIndex < text.length) {
-            segments.push(text.substring(lastIndex));
-        }
-
-        // If no references were found, return the original text
-        if (promises.length === 0) {
-            return text;
-        }
-
-        // Resolve all reference promises
-        const resolvedValues = await Promise.all(promises);
-
-        // Second pass: build the final string using resolved values
-        return segments.map(segment => {
-            if (typeof segment === 'string') {
-                return segment;
-            }
-            if (segment.promiseIndex !== undefined) {
-                return resolvedValues[segment.promiseIndex];
-            }
-            return ''; // Should not happen, but ensures a return value
-        }).join('');
+    _replaceReferences(text, options = {}) {
+        // StringRenderer.render() is synchronous, not async
+        return this._stringRenderer.render(text);
     }
 
 
@@ -410,6 +363,5 @@ class TextProcessor {
     }
 }
 
-// Create and export singleton instance with injected dependency
-// Ensure referenceResolver is initialized and exported from its module
-export const textProcessor = new TextProcessor(referenceResolver); 
+// Create and export singleton instance
+export const textProcessor = new TextProcessor(); 

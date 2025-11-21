@@ -21,9 +21,10 @@
 	--tooltip-border-color: #444;
 
 	/* Text Colors */
-	--tooltip-text-color: #fff;
-	--tooltip-text-muted: #ccc;
+	--tooltip-text-color: #e8e8e8;
+	--tooltip-text-muted: #b8b8b8;
 	--tooltip-text-link: #4da6ff;
+	--tooltip-text-small: #b0b0b0;
 }
 
 /* Bootstrap-style tooltips */
@@ -129,6 +130,8 @@
 	position: absolute;
 	min-width: 360px;
 	max-width: 600px;
+	max-height: calc(100vh - 40px);
+	overflow-y: auto;
 	background: rgba(25, 25, 25, 0.98);
 	border: 1px solid var(--tooltip-border-color);
 	border-radius: 4px;
@@ -163,6 +166,24 @@
 .tooltip-container .tooltip-content .reference-link {
 	display: inline;
 	white-space: normal;
+}
+
+/* Scrollbar styling for tooltips */
+.tooltip-container .tooltip::-webkit-scrollbar {
+	width: 8px;
+}
+
+.tooltip-container .tooltip::-webkit-scrollbar-track {
+	background: var(--primary-color);
+}
+
+.tooltip-container .tooltip::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 4px;
+}
+
+.tooltip-container .tooltip::-webkit-scrollbar-thumb:hover {
+	background: var(--accent-hover);
 }
 
 .tooltip-container .tooltip-title {
@@ -222,6 +243,23 @@
 	margin-top: 4px;
 	padding-top: 4px;
 	border-top: 1px solid var(--tooltip-border-color);
+}
+
+.level-color-guide {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--tooltip-border-color);
+}
+
+.level-color-item {
+	font-size: 12px;
+	color: var(--tooltip-text);
+	display: flex;
+	align-items: center;
+	gap: 6px;
 }
 
 /* Activity table styles */
@@ -396,4 +434,191 @@
 	display: inline-block;
 	margin-right: 1rem;
 	margin-bottom: 0.5rem;
+}
+
+/* Hover Links for Tag References */
+.rd__hover-link {
+	cursor: pointer;
+	text-decoration: underline;
+	transition: color 0.2s ease, text-shadow 0.2s ease;
+	font-weight: 500;
+	position: relative;
+}
+
+.rd__hover-link:hover {
+	text-shadow: 0 0 4px currentColor;
+}
+
+/* Spell links */
+.rd__spell-link {
+	color: #7bb5ff;
+}
+
+.rd__spell-link:hover {
+	color: #9ecfff;
+}
+
+/* Item links */
+.rd__item-link {
+	color: #ffc107;
+}
+
+.rd__item-link:hover {
+	color: #ffd54f;
+}
+
+/* Condition links */
+.rd__condition-link {
+	color: #ff7b7b;
+}
+
+.rd__condition-link:hover {
+	color: #ff9999;
+}
+
+/* Monster links */
+.rd__monster-link {
+	color: #f08080;
+}
+
+.rd__monster-link:hover {
+	color: #ff9999;
+}
+
+/* Action links */
+.rd__action-link {
+	color: #7bff7b;
+}
+
+.rd__action-link:hover {
+	color: #99ff99;
+}
+
+/* Class links */
+.rd__class-link {
+	color: #7bbdff;
+}
+
+.rd__class-link:hover {
+	color: #9ecfff;
+}
+
+/* Race links */
+.rd__race-link {
+	color: #d4a574;
+}
+
+.rd__race-link:hover {
+	color: #e8b896;
+}
+
+/* Feat links */
+.rd__feat-link {
+	color: #f0a080;
+}
+
+.rd__feat-link:hover {
+	color: #ffb399;
+}
+
+/* Background links */
+.rd__background-link {
+	color: #b8a080;
+}
+
+.rd__background-link:hover {
+	color: #d4b899;
+}
+
+/* Feature links */
+.rd__feature-link {
+	color: #a8a8ff;
+}
+
+.rd__feature-link:hover {
+	color: #c8c8ff;
+}
+
+/* Skill links */
+.rd__skill-link {
+	color: #7bffb7;
+}
+
+.rd__skill-link:hover {
+	color: #99ffcc;
+}
+
+/* Language links */
+.rd__language-link {
+	color: #b8ff8f;
+}
+
+.rd__language-link:hover {
+	color: #d4ffb3;
+}
+
+/* Proficiency links */
+.rd__proficiency-link {
+	color: #f0c080;
+}
+
+.rd__proficiency-link:hover {
+	color: #ffdb99;
+}
+
+/* Tooltip Container Styling */
+#tooltip-container {
+	position: fixed;
+	z-index: 9999;
+	pointer-events: none;
+}
+
+#tooltip-container.tooltip-container .tooltip {
+	position: absolute;
+	min-width: 200px;
+	max-width: 400px;
+	max-height: calc(100vh - 40px);
+	overflow-y: auto;
+	background: rgba(25, 25, 25, 0.98);
+	border: 1px solid var(--tooltip-border-color);
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+	font-family: "Roboto", "Helvetica Neue", sans-serif;
+	color: var(--tooltip-text-color);
+	padding: 8px 12px;
+	pointer-events: auto;
+	opacity: 0;
+	font-size: 14px;
+	line-height: 1.5;
+	transform: translateX(4px);
+	transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+#tooltip-container.tooltip-container .tooltip.show {
+	opacity: 1;
+	transform: translateX(0);
+}
+
+#tooltip-container.tooltip-container .tooltip.hide {
+	opacity: 0;
+	transform: translateX(-4px);
+}
+
+#tooltip-container strong {
+	color: #e6cc80;
+	font-weight: 600;
+	display: block;
+	margin-bottom: 4px;
+}
+
+#tooltip-container em {
+	color: var(--tooltip-text-muted);
+	font-style: italic;
+}
+
+#tooltip-container small {
+	display: block;
+	color: var(--tooltip-text-small);
+	margin-top: 2px;
+	font-size: 12px;
 }

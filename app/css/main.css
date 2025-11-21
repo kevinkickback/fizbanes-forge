@@ -564,6 +564,11 @@ body {
 }
 
 /* Ability Scores */
+.ability-score-method-select-container {
+	width: 150px;
+	flex-shrink: 0;
+}
+
 .ability-score-container {
 	margin: 0 auto 1rem auto;
 	display: flex;
