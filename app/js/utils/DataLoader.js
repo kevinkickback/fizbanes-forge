@@ -46,9 +46,9 @@ class DataLoader {
                 let data;
 
                 // Check if running in Electron environment
-                if (typeof window !== 'undefined' && window.electronAPI) {
+                if (typeof window !== 'undefined' && window.electron) {
                     // Use Electron's file system API
-                    data = await window.electronAPI.loadJSON(url);
+                    data = await window.electron.loadJSON(url);
                 } else {
                     // Fall back to fetch for browser environments
                     const response = await fetch(url);

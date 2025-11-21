@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld("electron", {
     invoke: (channel, ...args) => {
         return ipcRenderer.invoke(channel, ...args);
     },
+    loadJSON: (filePath) => {
+        return ipcRenderer.invoke("loadJSON", filePath);
+    },
     ipc: {
         send: (channel, ...args) => {
             ipcRenderer.send(channel, ...args);
@@ -61,12 +64,5 @@ contextBridge.exposeInMainWorld("characterStorage", {
     },
     generateUUID: () => {
         return ipcRenderer.invoke("generateUUID");
-    }
-});
-
-// Expose Electron API for data loading
-contextBridge.exposeInMainWorld("electronAPI", {
-    loadJSON: (filePath) => {
-        return ipcRenderer.invoke("loadJSON", filePath);
     }
 }); 
