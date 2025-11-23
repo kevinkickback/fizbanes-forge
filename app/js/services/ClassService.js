@@ -1,11 +1,15 @@
 /**
- * @file ClassManager.js
- * Simplified manager for character class selection and data access.
- * Works directly with JSON data from DataUtil - no unnecessary transformations.
+ * @file ClassService.js
+ * Manages character class selection and data access.
+ * 
+ * REFACTORED: Phase 4 - Uses Logger, Result, AppState, EventBus
  */
 
+import { Logger } from '../infrastructure/Logger.js';
+import { Result } from '../infrastructure/Result.js';
+import { AppState } from '../application/AppState.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
-import { eventEmitter } from '../utils/EventBus.js';
 
 /**
  * Manages character class selection and provides access to class data
@@ -22,13 +26,18 @@ class ClassService {
 
     /**
      * Initialize class data by loading from DataLoader
-     * @returns {Promise<boolean>} Promise resolving to true if initialization succeeded
+     * @returns {Promise<Result>} Result with true or error
      */
     async initialize() {
-        // Skip if already initialized
-        if (this._classData) {
-            return true;
+        // Check if already initialized
+        const existingData = AppState.getLoadedData('classes');
+        if (existingData) {
+            Logger.debug('ClassService', 'Already initialized, using cached data');
+            this._classData = existingData;
+            return Result.ok(true);
         }
+
+        Logger.info('ClassService', 'Initializing class data');
 
         try {
             // Load the index to get all class files
@@ -82,13 +91,24 @@ class ClassService {
                 }
             }
 
-            console.log(`Loaded ${this._classData.class.length} classes, ${this._classData.classFeature.length} class features, ${this._classData.subclass.length} subclasses, ${this._classData.subclassFeature.length} subclass features`);
-            eventEmitter.emit('classes:loaded', this._classData.class);
-            return true;
+            Logger.info('ClassService', 'Class data loaded', {
+                classes: this._classData.class.length,
+                classFeatures: this._classData.classFeature.length,
+                subclasses: this._classData.subclass.length,
+                subclassFeatures: this._classData.subclassFeature.length
+            });
+
+            // Store in AppState
+            AppState.setLoadedData('classes', this._classData);
+            
+            // Emit event
+            eventBus.emit(EVENTS.DATA_LOADED, 'classes', this._classData.class);
+            
+            return Result.ok(true);
         } catch (error) {
-            console.error('Failed to initialize class data:', error);
+            Logger.error('ClassService', 'Failed to initialize class data', error);
             this._classData = { class: [], classFeature: [], subclass: [], subclassFeature: [], classFluff: [], subclassFluff: [] };
-            return false;
+            return Result.err(error.message);
         }
     }
 
@@ -202,11 +222,16 @@ class ClassService {
      * @returns {Object|null} The selected class or null if not found
      */
     selectClass(className, source = 'PHB') {
+        Logger.debug('ClassService', 'Selecting class', { className, source });
+        
         this._selectedClass = this.getClass(className, source);
         this._selectedSubclass = null;
 
         if (this._selectedClass) {
-            eventEmitter.emit('class:selected', this._selectedClass);
+            Logger.info('ClassService', 'Class selected', { className, source });
+            eventBus.emit('class:selected', this._selectedClass);
+        } else {
+            Logger.warn('ClassService', 'Class not found', { className, source });
         }
 
         return this._selectedClass;
@@ -218,7 +243,12 @@ class ClassService {
      * @returns {Object|null} The selected subclass or null if not found
      */
     selectSubclass(subclassName) {
-        if (!this._selectedClass) return null;
+        if (!this._selectedClass) {
+            Logger.warn('ClassService', 'Cannot select subclass: no class selected');
+            return null;
+        }
+
+        Logger.debug('ClassService', 'Selecting subclass', { subclassName });
 
         this._selectedSubclass = this.getSubclass(
             this._selectedClass.name,
@@ -227,7 +257,10 @@ class ClassService {
         );
 
         if (this._selectedSubclass) {
-            eventEmitter.emit('subclass:selected', this._selectedSubclass);
+            Logger.info('ClassService', 'Subclass selected', { subclassName });
+            eventBus.emit('subclass:selected', this._selectedSubclass);
+        } else {
+            Logger.warn('ClassService', 'Subclass not found', { subclassName });
         }
 
         return this._selectedSubclass;
