@@ -184,6 +184,34 @@ Main Process (WindowManager, PreferencesManager, IPC Handlers)
 
 ---
 
+## ⚠️ Important: Integration Status
+
+**NEW ARCHITECTURE FILES:** ✅ Created and tested (22 files, 78 passing tests)  
+**INTEGRATION STATUS:** ⚠️ **NOT YET INTEGRATED INTO RUNTIME**
+
+### Current State Analysis:
+
+The refactoring successfully created all new modular files according to the documented architecture. However, **the application is still using the old monolithic files**:
+
+**Old Files Still In Use:**
+- ❌ `app/js/core/Navigation.js` (692 lines) - should be replaced by Router/PageLoader/NavigationController
+- ❌ `app/js/core/CharacterLifecycle.js` (836 lines) - should be replaced by CharacterManager/CharacterSchema
+
+**New Files Created But Not Used:**
+- ✅ `Router.js`, `PageLoader.js`, `NavigationController.js` - created but not imported
+- ✅ `CharacterManager.js`, `CharacterSchema.js` - created but not imported
+- ✅ `AppState.js` - created but limited integration
+
+**Impact:**
+- Application runs on old architecture
+- New files are tested but orphaned
+- Architectural benefits not yet realized
+- Code duplication exists
+
+**See:** [`ARCHITECTURE_ANALYSIS.md`](./ARCHITECTURE_ANALYSIS.md) for detailed analysis and integration recommendations.
+
+---
+
 ## What's Needed to Complete Documentation
 
 ### Phase 2 Remaining Work
