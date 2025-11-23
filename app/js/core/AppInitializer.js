@@ -18,9 +18,17 @@
  * @property {Error|null} error - The error that occurred during loading, if any
  */
 
-// Core imports
+// Core imports - NEW ARCHITECTURE
+import { Logger } from '../infrastructure/Logger.js';
+import { AppState } from '../application/AppState.js';
+import { NavigationController } from '../presentation/NavigationController.js';
+import { CharacterManager } from '../application/CharacterManager.js';
+
+// Legacy imports (for backward compatibility during migration)
 import { navigation } from './Navigation.js';
 import { characterLifecycle } from './CharacterLifecycle.js';
+
+// Service imports
 import { textProcessor } from '../utils/TextProcessor.js';
 import { settingsService } from '../services/SettingsService.js';
 import { spellService } from '../services/SpellService.js';
@@ -102,12 +110,15 @@ async function _initializeCoreComponents() {
     };
 
     try {
+        Logger.info('AppInitializer', 'Initializing core components with NEW architecture');
+        
         // Define components and their initialization sequence
         const components = [
             { name: 'text processor', init: () => textProcessor.initialize() },
-            { name: 'character lifecycle', init: () => characterLifecycle.initialize() },
+            { name: 'navigation controller', init: () => NavigationController.initialize() },
             { name: 'settings service', init: () => settingsService.initialize() },
-            { name: 'navigation', init: () => navigation.initialize() }
+            { name: 'character lifecycle (legacy)', init: () => characterLifecycle.initialize() },
+            { name: 'navigation (legacy)', init: () => navigation.initialize() }
         ];
 
         // Initialize each component in sequence
@@ -116,13 +127,22 @@ async function _initializeCoreComponents() {
 
             if (initResult.success) {
                 result.loadedComponents.push(component.name);
+                Logger.info('AppInitializer', `✓ ${component.name} initialized`);
             } else {
                 result.errors.push(initResult.error);
+                Logger.error('AppInitializer', `✗ ${component.name} failed`, initResult.error);
             }
         }
 
         // Set overall success based on whether any critical errors occurred
         result.success = result.errors.length === 0;
+        
+        Logger.info('AppInitializer', 'Core components initialized', {
+            success: result.success,
+            loaded: result.loadedComponents.length,
+            errors: result.errors.length
+        });
+        
         return result;
     } catch (error) {
         console.error('Unexpected error during core component initialization:', error);
