@@ -14,6 +14,10 @@ Your codebase demonstrates strong modern JavaScript practices but suffers from a
 **Risk Level:** Medium (incremental approach minimizes breaking changes)  
 **Expected Outcome:** Professional-grade, maintainable codebase
 
+**Key Constraints:**
+- **Sandboxed Renderer:** Node.js modules must remain in main.js (main process only)
+- **Testing Framework:** Playwright (already configured) for end-to-end testing
+
 ---
 
 ## Table of Contents
@@ -73,23 +77,33 @@ For a vanilla JavaScript Electron app without frameworks, use a **modified Clean
 ┌─────────────────────────────────────────┐
 │         Presentation Layer              │
 │  (UI Components, Pages, Templates)      │
+│         [RENDERER PROCESS]              │
 └────────────┬────────────────────────────┘
              │
 ┌────────────▼────────────────────────────┐
 │      Application Layer (Core)           │
 │  (State Management, Business Logic)     │
+│         [RENDERER PROCESS]              │
 └────────────┬────────────────────────────┘
              │
 ┌────────────▼────────────────────────────┐
 │        Service Layer                    │
-│  (Data Access, External Resources)      │
+│  (Data Access via IPC)                  │
+│         [RENDERER PROCESS]              │
 └────────────┬────────────────────────────┘
-             │
+             │ (IPC Communication)
 ┌────────────▼────────────────────────────┐
 │       Infrastructure Layer              │
-│  (IPC, File System, Storage)            │
+│  (IPC Handlers, File System, Storage)   │
+│          [MAIN PROCESS]                 │
 └─────────────────────────────────────────┘
 ```
+
+**CRITICAL: Sandboxed Renderer Architecture**
+- All Node.js modules (fs, path, etc.) MUST stay in main.js (main process)
+- Renderer process communicates via IPC through preload.js
+- No direct file system access from renderer
+- Use contextBridge for secure IPC communication
 
 ### Key Principles
 
@@ -110,9 +124,11 @@ For a vanilla JavaScript Electron app without frameworks, use a **modified Clean
 
 **File:** `app/js/infrastructure/Logger.js`
 
+**Note:** This Logger is for the renderer process only. The main process should use its own simple console logging or a separate logger since it has access to Node.js fs module for file logging.
+
 ```javascript
 /**
- * Centralized logging service with configurable levels
+ * Centralized logging service with configurable levels (Renderer Process)
  */
 export class Logger {
     static LEVELS = {
@@ -463,16 +479,19 @@ export const IPC_CHANNELS = {
 
 **File:** `app/electron/ipc/handlers/CharacterHandlers.js`
 
+**CRITICAL:** This file runs in the main process and has full Node.js access. All file system operations MUST happen here, not in the renderer.
+
 ```javascript
 import { IPC_CHANNELS } from '../channels.js';
-import { Logger } from '../../../js/infrastructure/Logger.js';
-import { Result } from '../../../js/infrastructure/Result.js';
-import { CharacterSchema } from '../../../js/core/CharacterSchema.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Note: Cannot import renderer-only modules here
+// Use simple console logging or create a separate main process logger
+
 /**
  * Handles all character-related IPC operations
+ * This runs in the MAIN PROCESS with full Node.js access
  */
 export class CharacterHandlers {
     constructor(preferencesManager) {
@@ -508,12 +527,6 @@ export class CharacterHandlers {
         try {
             const character = JSON.parse(serializedCharacter);
             
-            // Validate
-            const validation = CharacterSchema.validate(character);
-            if (validation.isErr()) {
-                return { success: false, error: validation.error };
-            }
-
             // Get save path
             const savePath = this.preferencesManager.getCharacterPath();
             
@@ -525,22 +538,17 @@ export class CharacterHandlers {
             // Find or create file path
             const filePath = await this._resolveFilePath(savePath, character);
 
-            // Convert to JSON format
-            const jsonData = CharacterSchema.toJSON(character);
-            jsonData.lastModified = new Date().toISOString();
+            // Add metadata
+            character.lastModified = new Date().toISOString();
 
             // Write file
-            fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
+            fs.writeFileSync(filePath, JSON.stringify(character, null, 2));
             
-            Logger.info('CharacterSave', 'Character saved successfully', {
-                id: character.id,
-                name: character.name,
-                path: filePath
-            });
+            console.log(`[Main] Character saved: ${character.name} -> ${filePath}`);
 
             return { success: true, path: filePath };
         } catch (error) {
-            Logger.error('CharacterSave', 'Failed to save character', error);
+            console.error('[Main] Failed to save character:', error);
             return { success: false, error: error.message };
         }
     }
@@ -565,20 +573,17 @@ export class CharacterHandlers {
                 try {
                     const filePath = path.join(savePath, file);
                     const data = fs.readFileSync(filePath, 'utf8');
-                    const json = JSON.parse(data);
-                    
-                    // Restore from JSON
-                    const character = CharacterSchema.fromJSON(json);
+                    const character = JSON.parse(data);
                     characters.push(character);
                 } catch (err) {
-                    Logger.warn('CharacterLoad', `Failed to load ${file}`, err);
+                    console.warn(`[Main] Failed to load ${file}:`, err);
                 }
             }
 
-            Logger.info('CharacterLoad', `Loaded ${characters.length} characters`);
+            console.log(`[Main] Loaded ${characters.length} characters`);
             return { success: true, characters };
         } catch (error) {
-            Logger.error('CharacterLoad', 'Failed to load characters', error);
+            console.error('[Main] Failed to load characters:', error);
             return { success: false, error: error.message };
         }
     }
@@ -1094,29 +1099,20 @@ export class Character {
 
 ### 3.1 Implement Testing Infrastructure
 
-**Install Dependencies:**
+**Testing Strategy:**
 
-```bash
-npm install --save-dev jest @types/jest
-```
+Your project already uses **Playwright** for end-to-end testing. This is the right choice for Electron apps with sandboxed renderers.
 
-**File:** `jest.config.js`
+**File:** `playwright.config.js` (already exists)
 
 ```javascript
+// Configure Playwright for Electron testing
 module.exports = {
-    testEnvironment: 'node',
-    testMatch: ['**/__tests__/**/*.test.js'],
-    collectCoverageFrom: [
-        'app/js/**/*.js',
-        '!app/js/**/*.test.js'
-    ],
-    coverageThreshold: {
-        global: {
-            branches: 70,
-            functions: 70,
-            lines: 70,
-            statements: 70
-        }
+    testDir: './tests',
+    testMatch: '**/*.spec.js',
+    timeout: 30000,
+    use: {
+        // Electron-specific configuration
     }
 };
 ```
@@ -1124,64 +1120,73 @@ module.exports = {
 **Test Structure:**
 
 ```
-app/js/
-├── infrastructure/
-│   ├── Logger.js
-│   └── __tests__/
-│       └── Logger.test.js
-├── application/
-│   ├── AppState.js
-│   └── __tests__/
-│       └── AppState.test.js
-└── domain/
-    ├── Character.js
-    └── __tests__/
-        └── Character.test.js
+tests/
+├── character-creation.spec.js
+├── character-save-load.spec.js
+├── navigation.spec.js
+├── equipment.spec.js
+└── settings.spec.js
 ```
+
+**Note:** Since the renderer is sandboxed, unit tests for individual modules are limited. Focus on:
+1. End-to-end tests with Playwright (full app testing)
+2. Main process unit tests (can use Node.js test runners)
+3. Renderer logic tests (pure functions without Node dependencies)
 
 **Example Test:**
 
 ```javascript
-// app/js/application/__tests__/AppState.test.js
-import { AppState } from '../AppState.js';
+// tests/character-creation.spec.js
+const { test, expect } = require('@playwright/test');
+const { _electron: electron } = require('playwright');
 
-describe('AppState', () => {
-    let appState;
+test.describe('Character Creation', () => {
+    let electronApp;
+    let window;
 
-    beforeEach(() => {
-        appState = new AppState();
+    test.beforeEach(async () => {
+        electronApp = await electron.launch({ args: ['./app/main.js'] });
+        window = await electronApp.firstWindow();
     });
 
-    test('initializes with default state', () => {
-        const state = appState.getState();
-        expect(state.currentCharacter).toBeNull();
-        expect(state.currentPage).toBe('home');
+    test.afterEach(async () => {
+        await electronApp.close();
     });
 
-    test('updates state and emits events', () => {
-        const listener = jest.fn();
-        appState.on('stateChanged', listener);
-
-        appState.setState({ currentPage: 'build' });
-
-        expect(listener).toHaveBeenCalled();
-        expect(appState.get('currentPage')).toBe('build');
+    test('creates a new character', async () => {
+        // Click new character button
+        await window.click('#new-character-btn');
+        
+        // Fill in character details
+        await window.fill('#character-name', 'Test Character');
+        await window.selectOption('#race-select', 'Human');
+        
+        // Save character
+        await window.click('#save-btn');
+        
+        // Verify character appears in list
+        const characterName = await window.textContent('.character-card .name');
+        expect(characterName).toBe('Test Character');
     });
 
-    test('marks state as dirty', () => {
-        appState.markDirty();
-        expect(appState.get('hasUnsavedChanges')).toBe(true);
+    test('navigates between pages', async () => {
+        await window.click('#build-tab');
+        const pageTitle = await window.textContent('#page-title');
+        expect(pageTitle).toContain('Build');
     });
 });
 ```
 
 **Action Items:**
-- [ ] Install Jest
-- [ ] Create test structure
-- [ ] Write tests for infrastructure layer (Logger, Result)
-- [ ] Write tests for application layer (AppState, CharacterManager)
-- [ ] Write tests for domain layer (Character, CharacterSchema)
-- [ ] Aim for 70%+ coverage
+- [ ] Review existing Playwright configuration
+- [ ] Create comprehensive E2E test suite
+- [ ] Write tests for character creation workflow
+- [ ] Write tests for save/load functionality
+- [ ] Write tests for navigation between pages
+- [ ] Write tests for equipment management
+- [ ] Write tests for settings/preferences
+- [ ] Run tests: `npx playwright test`
+- [ ] Run tests with UI: `npx playwright test --ui`
 
 ### 3.2 Extract HTML Templates
 
@@ -1478,7 +1483,9 @@ Logger.error('CharacterSave', 'Failed to save', error);
 - [ ] Create feature branch: `refactor/phase-1`
 - [ ] Backup current codebase
 - [ ] Document current functionality
-- [ ] Set up testing environment
+- [ ] Verify Playwright tests run: `npx playwright test`
+- [ ] Review preload.js security boundary
+- [ ] Confirm Node.js modules are only in main process
 
 ### Phase 1 Checklist
 - [ ] Create infrastructure/ directory
@@ -1504,9 +1511,9 @@ Logger.error('CharacterSave', 'Failed to save', error);
 - [ ] Commit and test thoroughly
 
 ### Phase 3 Checklist
-- [ ] Install Jest
-- [ ] Write core tests
-- [ ] Achieve 70% coverage
+- [ ] Write comprehensive Playwright E2E tests
+- [ ] Cover all major user workflows
+- [ ] Test IPC communication thoroughly
 - [ ] Extract HTML templates
 - [ ] Install ESLint
 - [ ] Fix all linting errors

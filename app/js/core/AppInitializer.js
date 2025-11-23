@@ -176,7 +176,91 @@ export async function initializeAll(options = {}) {
         result.errors.push(error);
         throw error;
     }
+}//-------------------------------------------------------------------------
+// Console Forwarding Setup
+//-------------------------------------------------------------------------
+
+// Set up console forwarding FIRST
+const originalConsole = {
+    log: console.log.bind(console),
+    warn: console.warn.bind(console),
+    error: console.error.bind(console),
+    info: console.info.bind(console),
+    debug: console.debug.bind(console)
+};
+
+// Helper to extract stack trace information
+function getStackInfo() {
+    try {
+        const stack = new Error().stack;
+        if (!stack) return null;
+
+        const lines = stack.split('\n');
+        // Find the first line that's not part of this forwarding code
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            // Skip lines containing 'getStackInfo', 'console', or 'AppInitializer'
+            if (line.includes('getStackInfo') ||
+                line.includes('at console.') ||
+                line.includes('AppInitializer.js')) {
+                continue;
+            }
+
+            // Extract file:line:column from stack trace
+            const match = line.match(/\((.*):(\d+):(\d+)\)|at (.*):(\d+):(\d+)/);
+            if (match) {
+                const file = match[1] || match[4];
+                const lineNum = match[2] || match[5];
+                const column = match[3] || match[6];
+
+                if (file) {
+                    // Get just the filename, not full path
+                    const filename = file.split('/').pop().split('\\').pop();
+                    return `${filename}:${lineNum}:${column}`;
+                }
+            }
+        }
+
+        return null;
+    } catch (err) {
+        return null;
+    }
 }
+
+['log', 'warn', 'error', 'info', 'debug'].forEach(method => {
+    console[method] = function (...args) {
+        originalConsole[method](...args);
+
+        // Get stack trace info
+        const location = getStackInfo();
+
+        try {
+            window.electron.ipc.send('renderer-console', {
+                level: method,
+                timestamp: new Date().toISOString(),
+                location: location,
+                args: args.map(arg => {
+                    try {
+                        if (arg instanceof Error) {
+                            return {
+                                type: 'Error',
+                                name: arg.name,
+                                message: arg.message,
+                                stack: arg.stack
+                            };
+                        }
+                        return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+                    } catch {
+                        return String(arg);
+                    }
+                })
+            });
+        } catch (err) {
+            originalConsole.error('Console forward failed:', err);
+        }
+    };
+});
+
 
 // Initialize when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -184,3 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error during initialization:', error);
     });
 });
+
+export class AppInitializer {
+    // ...
+}

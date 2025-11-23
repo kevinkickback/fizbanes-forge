@@ -43,6 +43,7 @@
 	"author": "Author",
 	"license": "MIT",
 	"devDependencies": {
+		"@playwright/test": "^1.56.1",
 		"electron": "latest",
 		"electron-builder": "latest",
 		"electronmon": "latest"

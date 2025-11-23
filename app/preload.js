@@ -65,4 +65,4 @@ contextBridge.exposeInMainWorld("characterStorage", {
     generateUUID: () => {
         return ipcRenderer.invoke("generateUUID");
     }
-}); 
+});

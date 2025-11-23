@@ -749,6 +749,33 @@ ipcMain.handle('loadJSON', async (event, filePath) => {
   }
 });
 
+// Renderer process console logging
+ipcMain.on('renderer-console', (event, { level, timestamp, location, args }) => {
+  const message = args.map(arg => {
+    if (typeof arg === 'object' && arg.type === 'Error') {
+      return `${arg.name}: ${arg.message}\n${arg.stack}`;
+    }
+    return arg;
+  }).join(' ');
+
+  const locationStr = location ? ` [${location}]` : '';
+  const prefix = `[${timestamp}] [RENDERER]${locationStr}`;
+
+  switch (level) {
+    case 'error':
+      console.error(`${prefix}`, message);
+      break;
+    case 'warn':
+      console.warn(`${prefix}`, message);
+      break;
+    case 'debug':
+      console.debug(`${prefix}`, message);
+      break;
+    default:
+      console.log(`${prefix}`, message);
+  }
+});
+
 // Create the main window and handle app activation when ready
 app.whenReady().then(() => {
   mainWindow = createMainWindow();
