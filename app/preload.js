@@ -2,11 +2,11 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 // Expose Electron API methods
 contextBridge.exposeInMainWorld("electron", {
-    generateUUID: async () => await ipcRenderer.invoke("generateUUID"),
+    generateUUID: async () => await ipcRenderer.invoke("character:generateUUID"),
     app: {
         getPath: async (name) => {
             if (name === "userData") {
-                return await ipcRenderer.invoke("get-app-data-path");
+                return await ipcRenderer.invoke("util:getUserData");
             }
             return null;
         }
@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("electron", {
         return ipcRenderer.invoke(channel, ...args);
     },
     loadJSON: (filePath) => {
-        return ipcRenderer.invoke("loadJSON", filePath);
+        return ipcRenderer.invoke("data:loadJson", filePath);
     },
     ipc: {
         send: (channel, ...args) => {
@@ -35,34 +35,31 @@ contextBridge.exposeInMainWorld("electron", {
 // Expose character data storage functions
 contextBridge.exposeInMainWorld("characterStorage", {
     saveCharacter: (characterData) => {
-        return ipcRenderer.invoke("saveCharacter", characterData);
+        return ipcRenderer.invoke("character:save", characterData);
     },
     loadCharacters: () => {
-        return ipcRenderer.invoke("loadCharacters");
+        return ipcRenderer.invoke("character:list");
     },
     deleteCharacter: (id) => {
-        return ipcRenderer.invoke("deleteCharacter", id);
+        return ipcRenderer.invoke("character:delete", id);
     },
     exportCharacter: (id) => {
-        return ipcRenderer.invoke("exportCharacter", id);
+        return ipcRenderer.invoke("character:export", id);
     },
     importCharacter: () => {
-        return ipcRenderer.invoke("importCharacter");
+        return ipcRenderer.invoke("character:import");
     },
-    openFile: (filePath) => ipcRenderer.invoke("openFile", filePath),
+    openFile: (filePath) => ipcRenderer.invoke("file:open", filePath),
     setSavePath: (path) => {
-        return ipcRenderer.invoke("set-save-path", path);
+        return ipcRenderer.invoke("settings:setPath", "characterSavePath", path);
     },
     selectFolder: () => {
-        return ipcRenderer.invoke("select-folder");
+        return ipcRenderer.invoke("file:selectFolder");
     },
     getDefaultSavePath: () => {
-        return ipcRenderer.invoke("get-default-save-path");
-    },
-    checkCharacterFiles: (directory) => {
-        return ipcRenderer.invoke("check-character-files", directory);
+        return ipcRenderer.invoke("settings:getPath", "characterSavePath");
     },
     generateUUID: () => {
-        return ipcRenderer.invoke("generateUUID");
+        return ipcRenderer.invoke("character:generateUUID");
     }
 });
