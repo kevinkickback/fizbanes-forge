@@ -208,7 +208,7 @@ class CharacterManagerImpl {
                 return Result.err(listResult.error || 'Failed to load list');
             }
 
-            const characters = listResult.data;
+            const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
 
             // Update state
             AppState.setCharacters(characters);
