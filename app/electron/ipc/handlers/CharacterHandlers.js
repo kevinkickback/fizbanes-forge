@@ -158,7 +158,13 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
 
     // Generate UUID
     ipcMain.handle(IPC_CHANNELS.CHARACTER_GENERATE_UUID, () => {
-        return uuidv4();
+        try {
+            const uuid = uuidv4();
+            return { success: true, data: uuid };
+        } catch (error) {
+            console.error("[CharacterHandlers] UUID generation failed:", error);
+            return { success: false, error: error.message };
+        }
     });
 
     console.log("[CharacterHandlers] All character handlers registered");

@@ -266,7 +266,6 @@ export class Modal {
      */
     async _createCharacterFromModal() {
         try {
-
             // Get form data
             const formData = this._getFormData();
             if (!formData) return;
@@ -278,27 +277,33 @@ export class Modal {
                 return;
             }
 
-            // Generate a UUID for the new character
-            const id = await storage.generateUUID();
+            // Import CharacterManager
+            const { CharacterManager } = await import('./CharacterManager.js');
 
-            // Create a new Character instance
-            const character = new Character();
-            character.id = id;
-            character.name = formData.name;
+            // Create character using CharacterManager
+            const createResult = await CharacterManager.createCharacter(formData.name);
+
+            if (!createResult.isOk()) {
+                showNotification('Failed to create character: ' + createResult.error, 'error');
+                return;
+            }
+
+            const character = createResult.value;
+
+            // Update character with form data
             character.level = formData.level;
             character.gender = formData.gender;
-            character.allowedSources = selectedSources;
+            character.allowedSources = Array.from(selectedSources);
             character.variantRules = {
                 feats: formData.feats,
                 multiclassing: formData.multiclassing,
                 abilityScoreMethod: formData.abilityScoreMethod
             };
 
+            // Save character
+            const saveResult = await CharacterManager.saveCharacter();
 
-            // Save character to storage
-            const success = await storage.saveCharacter(character);
-
-            if (success) {
+            if (saveResult.isOk()) {
                 // Close modal and reset form
                 this._closeNewCharacterModal();
 
@@ -312,7 +317,7 @@ export class Modal {
 
                 showNotification('New character created successfully', 'success');
             } else {
-                showNotification('Failed to create new character', 'error');
+                showNotification('Failed to save character: ' + saveResult.error, 'error');
             }
         } catch (error) {
             console.error('Error creating new character:', error);
@@ -329,7 +334,7 @@ export class Modal {
             const characterList = document.getElementById('characterList');
             if (characterList) {
                 const { CharacterManager } = await import('./CharacterManager.js');
-                await CharacterManager.loadCharacters();
+                await CharacterManager.loadCharacterList();
             }
         } catch (error) {
             console.error('Error reloading character list:', error);

@@ -120,7 +120,7 @@ export class SourceService {
         try {
             Logger.info('SourceService', 'Starting initialization');
             const sourcesData = await DataLoader.loadSources();
-            
+
             // Handle both direct data and Result-wrapped data
             const sources = sourcesData.data || sourcesData;
 
