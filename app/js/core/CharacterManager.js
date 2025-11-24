@@ -78,7 +78,7 @@ class CharacterManagerImpl {
                 return Result.err('Failed to load character list');
             }
 
-            const characters = listResult.data;
+            const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
             const character = characters.find(c => c.id === id);
 
             if (!character) {
