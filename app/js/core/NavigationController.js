@@ -48,6 +48,9 @@ class NavigationControllerImpl {
         this.setupEventListeners();
         this.setupNavigationButtons();
 
+        // Load initial page (home)
+        this.navigateTo('home');
+
         this.isInitialized = true;
         Logger.info('NavigationController', 'Initialized successfully');
     }
@@ -80,9 +83,9 @@ class NavigationControllerImpl {
     setupNavigationButtons() {
         // Use event delegation for nav buttons
         document.addEventListener('click', (e) => {
-            const navButton = e.target.closest('[data-page-button]');
+            const navButton = e.target.closest('[data-page]');
             if (navButton) {
-                const page = navButton.dataset.pageButton;
+                const page = navButton.dataset.page;
                 this.navigateTo(page);
             }
         });
@@ -97,9 +100,9 @@ class NavigationControllerImpl {
      * Cache navigation button elements.
      */
     cacheNavigationButtons() {
-        const buttons = document.querySelectorAll('[data-page-button]');
+        const buttons = document.querySelectorAll('[data-page]');
         buttons.forEach(button => {
-            const page = button.dataset.pageButton;
+            const page = button.dataset.page;
             this.navButtons.set(page, button);
         });
 
