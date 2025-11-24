@@ -6,7 +6,8 @@
 
 import { backgroundService } from '../../services/BackgroundService.js';
 import { BaseCard } from '../BaseCard.js';
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
+import { AppState } from '../../application/AppState.js';
 import { BackgroundCardView } from './BackgroundView.js';
 import { BackgroundDetailsView } from './BackgroundDetails.js';
 
@@ -72,7 +73,7 @@ export class BackgroundCard extends BaseCard {
             }
 
             // Filter backgrounds by allowed sources
-            const currentCharacter = characterLifecycle.currentCharacter;
+            const currentCharacter = CharacterManager.getCurrentCharacter();
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
@@ -223,7 +224,7 @@ export class BackgroundCard extends BaseCard {
         try {
             if (background.variants?.length > 0) {
                 // Filter variants by allowed sources
-                const currentCharacter = characterLifecycle.currentCharacter;
+                const currentCharacter = CharacterManager.getCurrentCharacter();
                 const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
                 const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
@@ -282,7 +283,7 @@ export class BackgroundCard extends BaseCard {
      * @private
      */
     _updateCharacterBackground(background, variant) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Check if background has changed
@@ -329,7 +330,7 @@ export class BackgroundCard extends BaseCard {
                 }, 100);
 
                 // Show unsaved changes
-                characterLifecycle.showUnsavedChanges();
+                AppState.setHasUnsavedChanges(true);
             }
 
             // Trigger an event to update the UI
@@ -344,7 +345,7 @@ export class BackgroundCard extends BaseCard {
      * @private
      */
     _updateBackgroundProficiencies(background, variant) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character || !background) return;
 
         // Store previous skill and language selections to restore valid ones
