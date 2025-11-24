@@ -145,6 +145,18 @@ Router.register('settings', {
     title: 'Settings'
 });
 
+Router.register('preview', {
+    template: 'preview.html',
+    requiresCharacter: true,
+    title: 'Preview'
+});
+
+Router.register('tooltipTest', {
+    template: 'tooltipTest.html',
+    requiresCharacter: false,
+    title: 'Tooltip Test'
+});
+
 Logger.info('Router', 'All routes registered', {
     routes: Router.getAllRoutes()
 });

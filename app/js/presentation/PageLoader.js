@@ -27,7 +27,7 @@ class PageLoaderImpl {
      * @param {string} contentAreaId - ID of the content area element
      * @returns {Result} Result with success or error
      */
-    initialize(contentAreaId = 'content-area') {
+    initialize(contentAreaId = 'pageContent') {
         this.contentArea = document.getElementById(contentAreaId);
 
         if (!this.contentArea) {

@@ -38,7 +38,7 @@ class NavigationControllerImpl {
         Logger.info('NavigationController', 'Initializing');
 
         // Initialize PageLoader
-        const initResult = PageLoader.initialize('content-area');
+        const initResult = PageLoader.initialize('pageContent');
         if (initResult.isErr()) {
             Logger.error('NavigationController', 'Failed to initialize PageLoader');
             return;
