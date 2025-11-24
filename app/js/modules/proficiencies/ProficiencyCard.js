@@ -4,7 +4,8 @@
  * Coordinates between display, selection, and notes views.
  */
 
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
+import { AppState } from '../../application/AppState.js';
 import { proficiencyService } from '../../services/ProficiencyService.js';
 import { eventBus } from '../../utils/EventBus.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
@@ -48,7 +49,7 @@ export class ProficiencyCard {
      */
     async initialize() {
         try {
-            this._character = characterLifecycle.currentCharacter;
+            this._character = CharacterManager.getCurrentCharacter();
             if (!this._character) {
                 console.error('No active character found');
                 return;
@@ -294,7 +295,7 @@ export class ProficiencyCard {
      */
     _handleCharacterChanged(event) {
         try {
-            this._character = characterLifecycle.currentCharacter;
+            this._character = CharacterManager.getCurrentCharacter();
 
             if (this._character) {
                 ProficiencyCore.initializeProficiencyStructures(this._character);
@@ -559,7 +560,7 @@ export class ProficiencyCard {
      * @private
      */
     _markUnsavedChanges() {
-        characterLifecycle.showUnsavedChanges();
+        AppState.setHasUnsavedChanges(true);
     }
 
     /**

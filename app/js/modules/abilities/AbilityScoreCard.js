@@ -4,7 +4,7 @@
  */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
 import { eventBus } from '../../utils/EventBus.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 import { methodSwitcherView } from './MethodSwitcher.js';
@@ -78,7 +78,7 @@ class AbilityScoreCard {
      * @private
      */
     _syncWithCurrentCharacter() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Set default ability score method if not already set
@@ -197,7 +197,7 @@ class AbilityScoreCard {
      * @private
      */
     _handleCharacterChanged(event) {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Sync with current character first
@@ -214,7 +214,7 @@ class AbilityScoreCard {
      */
     _handleMethodChange(event) {
         const method = event.target.value;
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Update character's variant rules
@@ -285,7 +285,7 @@ class AbilityScoreCard {
         const ability = btn.dataset.ability;
         if (!ability) return;
 
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         const currentScore = abilityScoreService.getBaseScore(ability);
@@ -339,7 +339,7 @@ class AbilityScoreCard {
         const ability = btn.dataset.ability;
         if (!ability) return;
 
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         const currentScore = abilityScoreService.getBaseScore(ability);
@@ -432,7 +432,7 @@ class AbilityScoreCard {
             this._initializeAbilityScoreMethod();
 
             // Make sure assigned standard array values are updated
-            if (characterLifecycle.getCurrentCharacter()?.variantRules?.abilityScoreMethod === 'standardArray') {
+            if (CharacterManager.getCurrentCharacter()?.variantRules?.abilityScoreMethod === 'standardArray') {
                 abilityScoreService.updateAssignedStandardArrayValues();
             }
 
@@ -468,7 +468,7 @@ class AbilityScoreCard {
     _renderAbilityScores() {
         try {
             // Get the ability score method directly from character
-            const character = characterLifecycle.getCurrentCharacter();
+            const character = CharacterManager.getCurrentCharacter();
             if (!character) {
                 return;
             }
@@ -501,7 +501,7 @@ class AbilityScoreCard {
      * @private
      */
     _updateAbilityScoreValues() {
-        const isPointBuy = characterLifecycle.currentCharacter?.variantRules?.abilityScoreMethod === 'pointBuy';
+        const isPointBuy = CharacterManager.getCurrentCharacter()?.variantRules?.abilityScoreMethod === 'pointBuy';
         this._abilityScoreBoxView.updateAbilityScoreValues(isPointBuy);
     }
 
@@ -540,7 +540,7 @@ class AbilityScoreCard {
      * @private
      */
     _initializeAbilityScoreMethod() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Only initialize if not already done for this method

@@ -3,7 +3,7 @@
  * Manages ability score state and calculations
  */
 import { eventEmitter } from '../utils/EventBus.js';
-import { characterLifecycle } from '../core/CharacterLifecycle.js';
+import { CharacterManager } from '../application/CharacterManager.js';
 import { calculateModifier, formatModifier, calculatePointBuyTotal, calculateRemainingPoints, getPointBuyCost, POINT_BUY_BUDGET } from '../modules/abilities/AbilityCalculator.js';
 
 /**
@@ -47,7 +47,7 @@ class AbilityScoreService {
      * @private
      */
     _handleCharacterChanged() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Reset assigned values when character changes
@@ -86,7 +86,7 @@ class AbilityScoreService {
      */
     getBaseScore(ability) {
         const normalizedAbility = this.normalizeAbilityName(ability);
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
 
         if (!character) return 8; // Default base score
 
@@ -116,7 +116,7 @@ class AbilityScoreService {
      */
     getTotalScore(ability) {
         const normalizedAbility = this.normalizeAbilityName(ability);
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
 
         if (!character) return 8;
 
@@ -182,7 +182,7 @@ class AbilityScoreService {
      */
     updateAbilityScore(ability, score) {
         const normalizedAbility = this.normalizeAbilityName(ability);
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
 
         if (!character) {
             console.error('No character selected for ability score update');
@@ -224,7 +224,7 @@ class AbilityScoreService {
      * @returns {number} - Total points used
      */
     getUsedPoints() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return 0;
 
         const scores = {};
@@ -308,7 +308,7 @@ class AbilityScoreService {
      * Updates the tracking of assigned standard array values based on current character
      */
     updateAssignedStandardArrayValues() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Clear and update the assigned values set
@@ -328,7 +328,7 @@ class AbilityScoreService {
      * @private
      */
     _notifyAbilityScoresChanged() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         const event = new CustomEvent('abilityScoresChanged', {
@@ -342,7 +342,7 @@ class AbilityScoreService {
      * @param {AbilityChoice[]} choices - Array of ability choices
      */
     setRacialAbilityChoices(choices) {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character?.race) {
             console.error('No character or race selected for ability choice');
             return;
@@ -367,7 +367,7 @@ class AbilityScoreService {
      * @returns {Map<string, Map<string, number>>} Map of bonus groups by source
      */
     getBonusGroups() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) {
             return new Map();
         }
@@ -398,7 +398,7 @@ class AbilityScoreService {
      * @returns {Array<Object>} Array of pending ability choices
      */
     getPendingChoices() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character || !character.getPendingAbilityChoices) {
             return [];
         }
@@ -428,7 +428,7 @@ class AbilityScoreService {
     getAvailableAbilities(currentChoiceIndex) {
         const allAbilities = [...this._allAbilities];
         const selectedAbilities = new Set();
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return allAbilities;
 
         // Get all pending choices
@@ -487,7 +487,7 @@ class AbilityScoreService {
      * @param {string} source - The source of the bonus
      */
     handleAbilityChoice(ability, choiceIndex, bonus, source) {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Clear the specific choice's bonus
@@ -554,7 +554,7 @@ class AbilityScoreService {
      * Used when switching between ability score methods
      */
     resetAbilityScoreMethod() {
-        const character = characterLifecycle.getCurrentCharacter();
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Initialize variant rules if needed

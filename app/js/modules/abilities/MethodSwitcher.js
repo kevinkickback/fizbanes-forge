@@ -4,7 +4,7 @@
  */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
 
 /**
  * View for ability score method selection and information display
@@ -31,7 +31,7 @@ class MethodSwitcherView {
             }
 
             // Get the character and method directly
-            const character = characterLifecycle.getCurrentCharacter();
+            const character = CharacterManager.getCurrentCharacter();
             if (!character) {
                 return;
             }

@@ -5,7 +5,7 @@
  */
 
 import { textProcessor } from '../../utils/TextProcessor.js';
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 
 /**
@@ -521,7 +521,7 @@ export class ClassDetailsView {
             return;
         }
 
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         const level = character?.level || 1;
 
         if (allFeatures.length > 0) {
@@ -685,7 +685,7 @@ export class ClassDetailsView {
                 }
                 // Handle Spell Save DC
                 else if (entry.type === 'abilityDc') {
-                    const character = characterLifecycle.currentCharacter;
+                    const character = CharacterManager.getCurrentCharacter();
                     const abilityAbbr = entry.attributes?.[0]; // e.g., 'wis'
                     if (!character || !abilityAbbr) {
                         result += '<p>Error calculating Spell Save DC.</p>';
@@ -701,7 +701,7 @@ export class ClassDetailsView {
                 }
                 // Handle Spell Attack Modifier
                 else if (entry.type === 'abilityAttackMod') {
-                    const character = characterLifecycle.currentCharacter;
+                    const character = CharacterManager.getCurrentCharacter();
                     const abilityAbbr = entry.attributes?.[0]; // e.g., 'wis'
                     if (!character || !abilityAbbr) {
                         result += '<p>Error calculating Spell Attack Modifier.</p>';
