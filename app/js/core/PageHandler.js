@@ -124,78 +124,150 @@ class PageHandlerImpl {
         }
 
         if (characters.length === 0) {
-            characterList.innerHTML = `
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        No characters found. Click "New Character" to create one!
-                    </div>
-                </div>
-            `;
+            this.showEmptyState(characterList);
+            // Hide the top row with New Character button when there are no characters
+            const topButtonRow = document.querySelector('.row.mb-4');
+            if (topButtonRow) {
+                topButtonRow.style.display = 'none';
+            }
             return;
         }
 
-        characterList.innerHTML = characters.map(character => `
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card character-card" data-character-id="${character.id}">
-                    <div class="card-body">
-                        <h5 class="card-title">${character.name || 'Unnamed Character'}</h5>
-                        ${character.class ? `<p class="card-text">
-                            <strong>Class:</strong> ${character.class.name || 'None'} ${character.class.level || 1}
-                        </p>` : ''}
-                        ${character.race ? `<p class="card-text">
-                            <strong>Race:</strong> ${character.race.name || 'None'}
-                        </p>` : ''}
-                        <div class="d-flex gap-2 mt-3">
-                            <button class="btn btn-primary btn-sm flex-grow-1" onclick="window.loadCharacter('${character.id}')">
-                                <i class="fas fa-folder-open"></i> Load
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="window.deleteCharacter('${character.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+        // Show the top row with New Character button when there are characters
+        const topButtonRow = document.querySelector('.row.mb-4');
+        if (topButtonRow) {
+            topButtonRow.style.display = '';
+        }
+
+        characterList.innerHTML = characters.map(character => {
+            const isActive = character.isActive || false;
+            const characterClass = character.class?.name || 'No Class';
+            const characterRace = character.race?.name || 'No Race';
+            const characterLevel = character.level || character.class?.level || 1;
+            const lastModified = character.lastModified ? new Date(character.lastModified).toLocaleDateString() : 'Unknown';
+
+            return `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
+                        <div class="active-profile-badge">Active Character</div>
+                        <div class="card-body">
+                            <div class="character-info">
+                                <h5 class="card-title">${character.name || 'Unnamed Character'}</h5>
+                                <div class="character-details">
+                                    <div class="detail-item">
+                                        <i class="fas fa-crown me-2"></i>
+                                        <span>Level ${characterLevel}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-user me-2"></i>
+                                        <span>${characterRace}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-hat-wizard me-2"></i>
+                                        <span>${characterClass}</span>
+                                    </div>
+                                </div>
+                                <div class="last-modified">
+                                    <i class="fas fa-clock me-2"></i>
+                                    <span>Last modified: ${lastModified}</span>
+                                </div>
+                            </div>
+                            <div class="card-actions mt-3">
+                                <button class="btn btn-lg btn-outline-secondary export-character" 
+                                        data-character-id="${character.id}" 
+                                        title="Export Character">
+                                    <i class="fas fa-file-export"></i>
+                                </button>
+                                <button class="btn btn-lg btn-outline-danger delete-character" 
+                                        data-character-id="${character.id}" 
+                                        title="Delete Character">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
-        // Setup global functions for character actions
-        window.loadCharacter = async (id) => {
-            const result = await CharacterManager.loadCharacter(id);
-            if (result.isOk()) {
-                showNotification('Character loaded successfully', 'success');
-                // Navigate to build page
-                eventBus.emit(EVENTS.PAGE_CHANGED, 'build');
-            } else {
-                showNotification('Failed to load character', 'error');
-            }
-        };
-
-        window.deleteCharacter = async (id) => {
-            const modal = Modal.getInstance();
-            const confirmed = await modal.showConfirmationModal({
-                title: 'Delete Character',
-                message: 'Are you sure you want to delete this character? This cannot be undone.',
-                confirmButtonText: 'Delete',
-                confirmButtonClass: 'btn-danger'
-            });
-
-            if (confirmed) {
-                const result = await CharacterManager.deleteCharacter(id);
-                if (result.isOk()) {
-                    showNotification('Character deleted successfully', 'success');
-                    // Reload character list
-                    const reloadResult = await CharacterManager.loadCharacterList();
-                    if (reloadResult.isOk()) {
-                        await this.renderCharacterList(reloadResult.value);
-                    }
-                } else {
-                    showNotification('Failed to delete character', 'error');
-                }
-            }
-        };
+        // Setup event listeners for character cards
+        this.setupCharacterCardListeners(characterList);
 
         Logger.info('PageHandler', 'Character list rendered', { count: characters.length });
+    }
+
+    /**
+     * Setup event listeners for character card actions
+     * @param {HTMLElement} container - The container with character cards
+     */
+    setupCharacterCardListeners(container) {
+        if (!container) return;
+
+        // Handle character card clicks to load the character
+        container.addEventListener('click', async (e) => {
+            const card = e.target.closest('.character-card');
+            if (!card) return;
+
+            // Don't load if clicking on action buttons
+            if (e.target.closest('.card-actions')) return;
+
+            const characterId = card.dataset.characterId;
+            if (characterId) {
+                const result = await CharacterManager.loadCharacter(characterId);
+                if (result.isOk()) {
+                    showNotification('Character loaded successfully', 'success');
+                    // Navigate to build page
+                    eventBus.emit(EVENTS.PAGE_CHANGED, 'build');
+                } else {
+                    showNotification('Failed to load character', 'error');
+                }
+            }
+        });
+
+        // Handle export button clicks
+        container.addEventListener('click', async (e) => {
+            const exportBtn = e.target.closest('.export-character');
+            if (!exportBtn) return;
+
+            e.stopPropagation();
+            const characterId = exportBtn.dataset.characterId;
+            if (characterId) {
+                // TODO: Implement export functionality
+                showNotification('Export functionality coming soon', 'info');
+            }
+        });
+
+        // Handle delete button clicks
+        container.addEventListener('click', async (e) => {
+            const deleteBtn = e.target.closest('.delete-character');
+            if (!deleteBtn) return;
+
+            e.stopPropagation();
+            const characterId = deleteBtn.dataset.characterId;
+            if (characterId) {
+                const modal = Modal.getInstance();
+                const confirmed = await modal.showConfirmationModal({
+                    title: 'Delete Character',
+                    message: 'Are you sure you want to delete this character? This cannot be undone.',
+                    confirmButtonText: 'Delete',
+                    confirmButtonClass: 'btn-danger'
+                });
+
+                if (confirmed) {
+                    const result = await CharacterManager.deleteCharacter(characterId);
+                    if (result.isOk()) {
+                        showNotification('Character deleted successfully', 'success');
+                        // Reload character list
+                        const reloadResult = await CharacterManager.loadCharacterList();
+                        if (reloadResult.isOk()) {
+                            await this.renderCharacterList(reloadResult.value);
+                        }
+                    } else {
+                        showNotification('Failed to delete character', 'error');
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -223,6 +295,50 @@ class PageHandlerImpl {
         } catch (error) {
             Logger.error('PageHandler', 'Error importing character', error);
             showNotification('Error importing character', 'error');
+        }
+    }
+
+    /**
+     * Show the empty state when no characters exist
+     * @param {HTMLElement} container - The container element to show empty state in
+     */
+    showEmptyState(container) {
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 200px);">
+                <div class="empty-state text-center">
+                    <i class="fas fa-users fa-5x mb-4 text-muted"></i>
+                    <h2 class="mb-3">No Characters</h2>
+                    <p class="lead">Create or import a character to get started!</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button id="welcomeCreateCharacterBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Character
+                        </button>
+                        <button id="emptyStateImportBtn" class="btn btn-secondary">
+                            <i class="fas fa-file-import"></i> Import Character
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add event listener to the Create Character button
+        const createBtn = container.querySelector('#welcomeCreateCharacterBtn');
+        if (createBtn) {
+            createBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const modal = Modal.getInstance();
+                await modal.showNewCharacterModal(e);
+            });
+        }
+
+        // Add event listener to the Import Character button
+        const importBtn = container.querySelector('#emptyStateImportBtn');
+        if (importBtn) {
+            importBtn.addEventListener('click', async () => {
+                await this.handleImportCharacter();
+            });
         }
     }
 

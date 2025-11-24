@@ -9,7 +9,19 @@ test.describe('Home Page Character Management', () => {
         electronApp = await electron.launch({
             args: [path.join(__dirname, '../../../app/main.js')]
         });
-        window = await electronApp.firstWindow();
+        
+        // Wait for both DevTools and Main app windows to open (DEBUG_MODE=true)
+        await electronApp.context().waitForEvent('page');
+        await electronApp.context().waitForEvent('page');
+        
+        // Find the main window (not devtools)
+        const windows = electronApp.windows();
+        window = windows.find(w => !w.url().includes('devtools'));
+        
+        if (!window) {
+            throw new Error('Could not find main app window!');
+        }
+        
         await window.waitForLoadState('domcontentloaded');
         await window.waitForTimeout(3000); // Wait for app initialization
     });
@@ -40,30 +52,26 @@ test.describe('Home Page Character Management', () => {
         expect(exists).toBeTruthy();
     });
 
-    test('should show New Character button', async () => {
+    test('should hide top New Character button when welcome screen is shown', async () => {
         const homeButton = window.locator('[data-page="home"]');
         await homeButton.click();
 
         await window.waitForTimeout(1000);
 
+        // Top button should be hidden when no characters exist (welcome screen shown)
         const newCharButton = window.locator('#newCharacterBtn');
-        await expect(newCharButton).toBeVisible();
-
-        const buttonText = await newCharButton.textContent();
-        expect(buttonText).toContain('New Character');
+        await expect(newCharButton).toBeHidden();
     });
 
-    test('should show Import Character button', async () => {
+    test('should hide top Import Character button when welcome screen is shown', async () => {
         const homeButton = window.locator('[data-page="home"]');
         await homeButton.click();
 
         await window.waitForTimeout(1000);
 
+        // Top button should be hidden when no characters exist (welcome screen shown)
         const importButton = window.locator('#importCharacterBtn');
-        await expect(importButton).toBeVisible();
-
-        const buttonText = await importButton.textContent();
-        expect(buttonText).toContain('Import');
+        await expect(importButton).toBeHidden();
     });
 
     test('should populate character list content', async () => {

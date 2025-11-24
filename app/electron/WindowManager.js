@@ -54,6 +54,12 @@ class WindowManager {
             show: false, // Don't show until ready
         });
 
+        // Open DevTools immediately in debug mode (before loading)
+        if (this.debugMode) {
+            console.log("[WindowManager] Opening DevTools (debug mode enabled)");
+            this.mainWindow.webContents.openDevTools({ mode: 'detach' });
+        }
+
         // Load the app
         this.mainWindow.loadFile(path.join(this.appPath, "index.html"));
 
@@ -61,12 +67,6 @@ class WindowManager {
         this.mainWindow.once("ready-to-show", () => {
             console.log("[WindowManager] Window ready to show");
             this.mainWindow.show();
-            
-            // Open DevTools in debug mode
-            if (this.debugMode) {
-                console.log("[WindowManager] Opening DevTools (debug mode enabled)");
-                this.mainWindow.webContents.openDevTools();
-            }
         });
 
         // Setup window event handlers
