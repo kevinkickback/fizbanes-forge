@@ -124,6 +124,17 @@ export const CharacterSchema = {
 
         if (!character.hitPoints || typeof character.hitPoints !== 'object') {
             errors.push('Missing or invalid hitPoints');
+        } else {
+            // Check for required hitPoints properties
+            if (typeof character.hitPoints.current !== 'number') {
+                errors.push('Missing or invalid hitPoints.current');
+            }
+            if (typeof character.hitPoints.max !== 'number') {
+                errors.push('Missing or invalid hitPoints.max');
+            }
+            if (typeof character.hitPoints.temp !== 'number') {
+                errors.push('Missing or invalid hitPoints.temp');
+            }
         }
 
         const isValid = errors.length === 0;

@@ -328,7 +328,7 @@ export class Modal {
         try {
             const characterList = document.getElementById('characterList');
             if (characterList) {
-                const { CharacterManager } = await import('../application/CharacterManager.js');
+                const { CharacterManager } = await import('./CharacterManager.js');
                 await CharacterManager.loadCharacters();
             }
         } catch (error) {
