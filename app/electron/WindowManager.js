@@ -20,9 +20,10 @@ const { BrowserWindow } = require("electron");
 const path = require("node:path");
 
 class WindowManager {
-    constructor(preferencesManager, appPath) {
+    constructor(preferencesManager, appPath, debugMode = false) {
         this.preferencesManager = preferencesManager;
         this.appPath = appPath;
+        this.debugMode = debugMode;
         this.mainWindow = null;
     }
 
@@ -60,6 +61,12 @@ class WindowManager {
         this.mainWindow.once("ready-to-show", () => {
             console.log("[WindowManager] Window ready to show");
             this.mainWindow.show();
+            
+            // Open DevTools in debug mode
+            if (this.debugMode) {
+                console.log("[WindowManager] Opening DevTools (debug mode enabled)");
+                this.mainWindow.webContents.openDevTools();
+            }
         });
 
         // Setup window event handlers

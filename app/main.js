@@ -13,6 +13,9 @@ const { WindowManager } = require("./electron/WindowManager");
 const { PreferencesManager } = require("./electron/PreferencesManager");
 const { IPCRegistry } = require("./electron/ipc/IPCRegistry");
 
+// Debug mode - set to true to enable DevTools
+const DEBUG_MODE = true;
+
 let windowManager;
 let preferencesManager;
 let ipcRegistry;
@@ -22,7 +25,7 @@ app.whenReady().then(() => {
 
   // Initialize managers
   preferencesManager = new PreferencesManager(app);
-  windowManager = new WindowManager(preferencesManager, __dirname);
+  windowManager = new WindowManager(preferencesManager, __dirname, DEBUG_MODE);
   ipcRegistry = new IPCRegistry(preferencesManager, windowManager, __dirname);
 
   // Register all IPC handlers
