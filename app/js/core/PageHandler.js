@@ -398,8 +398,13 @@ class PageHandlerImpl {
             new RaceCard();
             new ClassCard();
             new BackgroundCard();
-            new AbilityScoreCard();
-            new ProficiencyCard();
+
+            // AbilityScoreCard and ProficiencyCard require explicit initialize() call
+            const abilityScoreCard = new AbilityScoreCard();
+            await abilityScoreCard.initialize();
+
+            const proficiencyCard = new ProficiencyCard();
+            await proficiencyCard.initialize();
 
             Logger.info('PageHandler', 'Build page cards initialized');
         } catch (error) {
