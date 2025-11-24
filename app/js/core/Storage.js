@@ -9,7 +9,8 @@
  * @property {Error} [error] - Optional error if operation failed
  */
 
-import { eventEmitter } from '../utils/EventBus.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 
 /**
  * Singleton instance for Storage class
@@ -58,7 +59,7 @@ export class Storage {
             const characters = await this.getCharacters();
             const character = characters.find(character => character.id === characterId) || null;
             if (character) {
-                eventEmitter.emit('storage:characterLoaded', character);
+                eventBus.emit(EVENTS.STORAGE_CHARACTER_LOADED, character);
             }
             return character;
         } catch (error) {
@@ -86,7 +87,7 @@ export class Storage {
             const result = await window.characterStorage.saveCharacter(serializedCharacter);
 
             if (result?.success === true) {
-                eventEmitter.emit('storage:characterSaved', character);
+                eventBus.emit(EVENTS.STORAGE_CHARACTER_SAVED, character);
             }
 
             return result?.success === true;
@@ -111,7 +112,7 @@ export class Storage {
             const result = await window.characterStorage.deleteCharacter(characterId);
 
             if (result?.success === true) {
-                eventEmitter.emit('storage:characterDeleted', characterId);
+                eventBus.emit(EVENTS.STORAGE_CHARACTER_DELETED, characterId);
             }
 
             return result?.success === true;

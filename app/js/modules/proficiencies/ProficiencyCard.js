@@ -7,7 +7,7 @@
 import { CharacterManager } from '../../application/CharacterManager.js';
 import { AppState } from '../../application/AppState.js';
 import { proficiencyService } from '../../services/ProficiencyService.js';
-import { eventBus } from '../../utils/EventBus.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencySelectionView } from './ProficiencySelection.js';

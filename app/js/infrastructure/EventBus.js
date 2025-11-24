@@ -66,7 +66,21 @@ export const EVENTS = {
     MODAL_CLOSED: 'modal:closed',
 
     // Error events
-    ERROR_OCCURRED: 'error:occurred'
+    ERROR_OCCURRED: 'error:occurred',
+
+    // Storage events
+    STORAGE_CHARACTER_LOADED: 'storage:characterLoaded',
+    STORAGE_CHARACTER_SAVED: 'storage:characterSaved',
+    STORAGE_CHARACTER_DELETED: 'storage:characterDeleted',
+
+    // Proficiency events
+    PROFICIENCY_ADDED: 'proficiency:added',
+    PROFICIENCY_REMOVED_BY_SOURCE: 'proficiency:removedBySource',
+    PROFICIENCY_REFUNDED: 'proficiency:refunded',
+    PROFICIENCY_OPTIONAL_CONFIGURED: 'proficiency:optionalConfigured',
+    PROFICIENCY_OPTIONAL_CLEARED: 'proficiency:optionalCleared',
+    PROFICIENCY_OPTIONAL_SELECTED: 'proficiency:optionalSelected',
+    PROFICIENCY_OPTIONAL_DESELECTED: 'proficiency:optionalDeselected'
 };
 
 class EventBusImpl {

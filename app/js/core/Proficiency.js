@@ -4,7 +4,8 @@
  * Handles adding, removing, and managing proficiencies from various sources.
  */
 
-import { eventEmitter } from '../utils/EventBus.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 
 /**
  * @typedef {Object} ProficiencyWithSources
@@ -33,7 +34,7 @@ export class ProficiencyCore {
      */
     static addProficiency(character, type, proficiency, source) {
         if (!character || !type || !proficiency || !source) {
-            console.warn('Invalid parameters for addProficiency:', { type, proficiency, source });
+            Logger.warn('Invalid parameters for addProficiency:', { type, proficiency, source });
             return false;
         }
 
@@ -71,7 +72,7 @@ export class ProficiencyCore {
         }
 
         // Emit event
-        eventEmitter.emit('proficiency:added', {
+        eventBus.emit(EVENTS.PROFICIENCY_ADDED, {
             type,
             proficiency,
             source,
@@ -89,7 +90,7 @@ export class ProficiencyCore {
      */
     static removeProficienciesBySource(character, source) {
         if (!character || !source) {
-            console.warn('Invalid parameters for removeProficienciesBySource');
+            Logger.warn('Invalid parameters for removeProficienciesBySource');
             return {};
         }
 
@@ -127,7 +128,7 @@ export class ProficiencyCore {
         }
 
         // Emit event
-        eventEmitter.emit('proficiency:removedBySource', {
+        eventBus.emit(EVENTS.PROFICIENCY_REMOVED_BY_SOURCE, {
             source,
             removed,
             character
@@ -185,7 +186,7 @@ export class ProficiencyCore {
      */
     static setOptionalProficiencies(character, type, source, allowed, options) {
         if (!character || !type || !source) {
-            console.warn('Invalid parameters for setOptionalProficiencies');
+            Logger.warn('Invalid parameters for setOptionalProficiencies');
             return;
         }
 
@@ -217,7 +218,7 @@ export class ProficiencyCore {
         this._recalculateOptionalProficiencies(character, type);
 
         // Emit event
-        eventEmitter.emit('proficiency:optionalConfigured', {
+        eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_CONFIGURED, {
             type,
             source: sourceLower,
             allowed,
@@ -256,7 +257,7 @@ export class ProficiencyCore {
             this._recalculateOptionalProficiencies(character, type);
         }
 
-        eventEmitter.emit('proficiency:optionalCleared', {
+        eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_CLEARED, {
             type,
             source: sourceLower,
             character
@@ -273,7 +274,7 @@ export class ProficiencyCore {
      */
     static selectOptionalProficiency(character, type, source, proficiency) {
         if (!character?.optionalProficiencies?.[type]) {
-            console.warn('Optional proficiencies not initialized for type:', type);
+            Logger.warn('Optional proficiencies not initialized for type:', type);
             return false;
         }
 
@@ -281,7 +282,7 @@ export class ProficiencyCore {
         const config = character.optionalProficiencies[type][sourceLower];
 
         if (!config) {
-            console.warn('No optional proficiency configuration for source:', source);
+            Logger.warn('No optional proficiency configuration for source:', source);
             return false;
         }
 
@@ -292,13 +293,13 @@ export class ProficiencyCore {
 
         // Check if there's room for more selections
         if (config.selected.length >= config.allowed) {
-            console.warn('Maximum optional proficiencies already selected for', source);
+            Logger.warn('Maximum optional proficiencies already selected for', source);
             return false;
         }
 
-        // Check if the proficiency is in the options
+        // Verify proficiency is in options
         if (!config.options.includes(proficiency)) {
-            console.warn('Proficiency not in available options:', proficiency);
+            Logger.warn('Proficiency not in available options:', proficiency);
             return false;
         }
 
@@ -311,7 +312,7 @@ export class ProficiencyCore {
         // Recalculate combined
         this._recalculateOptionalProficiencies(character, type);
 
-        eventEmitter.emit('proficiency:optionalSelected', {
+        eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_SELECTED, {
             type,
             source: sourceLower,
             proficiency,
@@ -355,7 +356,7 @@ export class ProficiencyCore {
         // Recalculate combined
         this._recalculateOptionalProficiencies(character, type);
 
-        eventEmitter.emit('proficiency:optionalDeselected', {
+        eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_DESELECTED, {
             type,
             source: sourceLower,
             proficiency,
@@ -484,7 +485,7 @@ export class ProficiencyCore {
             this._recalculateOptionalProficiencies(character, 'skills');
 
             // Emit event for UI update
-            eventEmitter.emit('proficiency:refunded', {
+            eventBus.emit(EVENTS.PROFICIENCY_REFUNDED, {
                 type: 'skills',
                 proficiency,
                 character
