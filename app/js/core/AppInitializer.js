@@ -24,10 +24,6 @@ import { AppState } from '../application/AppState.js';
 import { NavigationController } from '../presentation/NavigationController.js';
 import { CharacterManager } from '../application/CharacterManager.js';
 
-// Legacy imports (for backward compatibility during migration)
-import { navigation } from './Navigation.js';
-import { characterLifecycle } from './CharacterLifecycle.js';
-
 // Service imports
 import { textProcessor } from '../utils/TextProcessor.js';
 import { settingsService } from '../services/SettingsService.js';
@@ -116,9 +112,7 @@ async function _initializeCoreComponents() {
         const components = [
             { name: 'text processor', init: () => textProcessor.initialize() },
             { name: 'navigation controller', init: () => NavigationController.initialize() },
-            { name: 'settings service', init: () => settingsService.initialize() },
-            { name: 'character lifecycle (legacy)', init: () => characterLifecycle.initialize() },
-            { name: 'navigation (legacy)', init: () => navigation.initialize() }
+            { name: 'settings service', init: () => settingsService.initialize() }
         ];
 
         // Initialize each component in sequence

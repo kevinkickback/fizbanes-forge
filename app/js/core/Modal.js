@@ -328,8 +328,8 @@ export class Modal {
         try {
             const characterList = document.getElementById('characterList');
             if (characterList) {
-                const { characterLifecycle } = await import('./CharacterLifecycle.js');
-                await characterLifecycle.loadCharacters();
+                const { CharacterManager } = await import('../application/CharacterManager.js');
+                await CharacterManager.loadCharacters();
             }
         } catch (error) {
             console.error('Error reloading character list:', error);
