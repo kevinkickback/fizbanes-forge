@@ -6,7 +6,7 @@
 
 import { raceService } from '../../services/RaceService.js';
 import { eventEmitter } from '../../utils/EventBus.js';
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
 import { RaceDetailsView } from './RaceDetails.js';
@@ -142,7 +142,7 @@ export class RaceCard {
                 return;
             }
 
-            const currentCharacter = characterLifecycle.currentCharacter;
+            const currentCharacter = CharacterManager.getCurrentCharacter();
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
@@ -186,7 +186,7 @@ export class RaceCard {
                 return;
             }
 
-            const currentCharacter = characterLifecycle.currentCharacter;
+            const currentCharacter = CharacterManager.getCurrentCharacter();
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
@@ -349,7 +349,7 @@ export class RaceCard {
      * @private
      */
     _updateCharacterRace(race, subrace) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // We want to do a more thorough cleanup, so always treat as changed
@@ -483,7 +483,7 @@ export class RaceCard {
      * @private
      */
     _updateAbilityBonuses(race, subrace) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character || !race) return;
 
         // Clear existing ability bonuses from race and subrace
@@ -552,7 +552,7 @@ export class RaceCard {
      * @private
      */
     _updateRacialTraits(race, subrace) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character || !race) return;
 
         // Clear existing racial traits
@@ -587,7 +587,7 @@ export class RaceCard {
      * @private
      */
     _updateRaceProficiencies(race, subrace) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character || !race) return;
 
         // Store previously selected proficiencies to restore valid ones later
