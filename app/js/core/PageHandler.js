@@ -63,6 +63,15 @@ class PageHandlerImpl {
                 case 'build':
                     await this.initializeBuildPage();
                     break;
+                case 'details':
+                    await this.initializeDetailsPage();
+                    break;
+                case 'equipment':
+                    await this.initializeEquipmentPage();
+                    break;
+                case 'preview':
+                    await this.initializePreviewPage();
+                    break;
                 default:
                     Logger.debug('PageHandler', 'No special initialization for page', { pageName });
             }
@@ -243,12 +252,26 @@ class PageHandlerImpl {
 
             const characterId = card.dataset.characterId;
             if (characterId) {
+                Logger.debug('PageHandler', `[${new Date().toISOString()}] Character card clicked: ${characterId}`);
                 const result = await CharacterManager.loadCharacter(characterId);
                 if (result.isOk()) {
+                    Logger.info('PageHandler', `✓ Character loaded from card: ${characterId}`, {
+                        character: result.value?.name
+                    });
                     showNotification('Character loaded successfully', 'success');
+
+                    // Check floating bar state AFTER load
+                    const floatingBar = document.querySelector('.floating-actions');
+                    const floatingBarVisible = floatingBar ? window.getComputedStyle(floatingBar).display !== 'none' : false;
+                    Logger.debug('PageHandler', `After character load - floating bar visible: ${floatingBarVisible}`, {
+                        dataCurrentPage: document.body.getAttribute('data-current-page')
+                    });
+
                     // Navigate to build page
+                    Logger.debug('PageHandler', 'Emitting PAGE_CHANGED event to "build"');
                     eventBus.emit(EVENTS.PAGE_CHANGED, 'build');
                 } else {
+                    Logger.error('PageHandler', 'Failed to load character', { id: characterId, error: result.error });
                     showNotification('Failed to load character', 'error');
                 }
             }
@@ -410,6 +433,115 @@ class PageHandlerImpl {
         } catch (error) {
             Logger.error('PageHandler', 'Error initializing build page', error);
             showNotification('Error initializing build page', 'error');
+        }
+    }
+
+    /**
+     * Initialize the details page
+     */
+    async initializeDetailsPage() {
+        Logger.info('PageHandler', 'Initializing details page');
+
+        try {
+            const character = AppState.getCurrentCharacter();
+            if (!character) {
+                Logger.warn('PageHandler', 'No character loaded for details page');
+                return;
+            }
+
+            // Populate character info fields
+            const characterNameInput = document.getElementById('characterName');
+            const playerNameInput = document.getElementById('playerName');
+            const heightInput = document.getElementById('height');
+            const weightInput = document.getElementById('weight');
+            const genderInput = document.getElementById('gender');
+            const backstoryTextarea = document.getElementById('backstory');
+
+            if (characterNameInput) characterNameInput.value = character.name || '';
+            if (playerNameInput) playerNameInput.value = character.playerName || '';
+            if (heightInput) heightInput.value = character.height || '';
+            if (weightInput) weightInput.value = character.weight || '';
+            if (genderInput) genderInput.value = character.gender || '';
+            if (backstoryTextarea) backstoryTextarea.value = character.backstory || '';
+
+            // Set up form change listeners for unsaved changes detection
+            this._setupDetailsPageFormListeners();
+
+            Logger.info('PageHandler', 'Details page populated with character data');
+        } catch (error) {
+            Logger.error('PageHandler', 'Error initializing details page', error);
+            showNotification('Error loading details page', 'error');
+        }
+    }
+
+    /**
+     * Set up event listeners for form fields on the details page
+     * @private
+     */
+    _setupDetailsPageFormListeners() {
+        const detailsFields = [
+            'characterName',
+            'playerName',
+            'height',
+            'weight',
+            'gender',
+            'backstory'
+        ];
+
+        detailsFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                // Use input event for real-time change detection
+                field.addEventListener('input', () => {
+                    Logger.debug('PageHandler', `Form field changed (${fieldId}), emitting CHARACTER_UPDATED`);
+                    // Emit CHARACTER_UPDATED event for form input changes
+                    eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: AppState.getCurrentCharacter() });
+                });
+            }
+        });
+    }
+
+    /**
+     * Initialize the equipment page
+     */
+    async initializeEquipmentPage() {
+        Logger.info('PageHandler', 'Initializing equipment page');
+
+        try {
+            const character = AppState.getCurrentCharacter();
+            if (!character) {
+                Logger.warn('PageHandler', 'No character loaded for equipment page');
+                return;
+            }
+
+            // Equipment page components can be initialized here
+            // For now, just log that the page is ready
+            Logger.info('PageHandler', 'Equipment page initialized');
+        } catch (error) {
+            Logger.error('PageHandler', 'Error initializing equipment page', error);
+            showNotification('Error loading equipment page', 'error');
+        }
+    }
+
+    /**
+     * Initialize the preview page
+     */
+    async initializePreviewPage() {
+        Logger.info('PageHandler', 'Initializing preview page');
+
+        try {
+            const character = AppState.getCurrentCharacter();
+            if (!character) {
+                Logger.warn('PageHandler', 'No character loaded for preview page');
+                return;
+            }
+
+            // Preview page components can be initialized here
+            // For now, just log that the page is ready
+            Logger.info('PageHandler', 'Preview page initialized');
+        } catch (error) {
+            Logger.error('PageHandler', 'Error initializing preview page', error);
+            showNotification('Error loading preview page', 'error');
         }
     }
 }

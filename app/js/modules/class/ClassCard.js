@@ -117,7 +117,8 @@ export class ClassCard {
 
             if (this._cardView.hasClassOption(classValue)) {
                 this._cardView.setSelectedClassValue(classValue);
-                this._cardView.triggerClassSelectChange();
+                // Don't trigger change event during initialization
+                // this._cardView.triggerClassSelectChange();
 
                 // Also set subclass if one was selected
                 if (character.class.subclass) {
@@ -126,7 +127,8 @@ export class ClassCard {
 
                     if (this._subclassView.hasSubclassOption(character.class.subclass)) {
                         this._subclassView.setSelectedSubclassValue(character.class.subclass);
-                        this._subclassView.triggerSubclassSelectChange();
+                        // Don't trigger change event during initialization
+                        // this._subclassView.triggerSubclassSelectChange();
                     }
                 }
             } else {
@@ -249,6 +251,9 @@ export class ClassCard {
             // Update character data
             this._updateCharacterClass(classData);
 
+            // Emit event to notify about character update (unsaved changes)
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
+
         } catch (error) {
             console.error('Error handling class change:', error);
         }
@@ -287,6 +292,9 @@ export class ClassCard {
 
             // Update character data
             this._updateCharacterClass(classData, subclassName);
+
+            // Emit event to notify about character update (unsaved changes)
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
 
         } catch (error) {
             console.error('Error handling subclass change:', error);

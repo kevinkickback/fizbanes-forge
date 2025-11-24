@@ -1,0 +1,109 @@
+
+> fizbanes-forge@1.0.0 start
+> electron .
+
+
+[App] Application ready
+[PreferencesManager] Initialized with store: C:\Users\K\AppData\Roaming\Fizbane's Forge\preferences.json
+[IPCRegistry] Registering all IPC handlers
+[CharacterHandlers] Registering character handlers
+[CharacterHandlers] All character handlers registered
+[FileHandlers] Registering file handlers
+[FileHandlers] All file handlers registered
+[SettingsHandlers] Registering settings handlers
+[SettingsHandlers] All settings handlers registered
+[DataHandlers] Registering data handlers
+[DataHandlers] All data handlers registered
+[IPCRegistry] All IPC handlers registered
+[WindowManager] Creating main window
+[PreferencesManager] Get: windowBounds = { x: -1392, y: 871, width: 1343, height: 800 }
+[WindowManager] Opening DevTools (debug mode enabled)
+[WindowManager] Main window created
+[App] Application initialized
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\index.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\items.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\items-base.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\index.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\races.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\backgrounds.json
+[WindowManager] Window ready to show
+[WindowManager] Window focused
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-aag.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-ai.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-aitfr-avt.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-bmt.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-dodk.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-egw.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-ftd.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-ggr.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-ghloe.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-idrotf.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-llk.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-phb.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-sato.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-scc.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-tce.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-tdcsr.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-xge.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\spells\spells-xphb.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-index.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\fluff-races.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-artificer.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-barbarian.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-bard.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-cleric.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-druid.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-fighter.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-monk.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-mystic.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-paladin.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-ranger.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-rogue.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-sidekick.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-sorcerer.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-warlock.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\class-wizard.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-artificer.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-barbarian.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-bard.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-cleric.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-druid.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-fighter.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-monk.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-mystic.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-paladin.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-ranger.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-rogue.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-sidekick.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-sorcerer.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-warlock.json
+[DataHandlers] Loading JSON: C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\app\data\class\fluff-class-wizard.json
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loaded characters: 1
+[WindowManager] Window blurred
+[23856:1124/132550.603:ERROR:CONSOLE(1)] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[23856:1124/132550.603:ERROR:CONSOLE(1)] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[WindowManager] Window focused
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loaded characters: 1
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loaded characters: 1
+[CharacterHandlers] Loaded characters: 1
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loaded characters: 1
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loaded characters: 1
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[PreferencesManager] Get: characterSavePath = C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loading characters from: C:\Users\K\Downloads\New folder
+[CharacterHandlers] Loaded characters: 1
+[CharacterHandlers] Loaded characters: 1

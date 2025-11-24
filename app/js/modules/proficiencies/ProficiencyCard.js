@@ -5,7 +5,6 @@
  */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
-import { AppState } from '../../core/AppState.js';
 import { proficiencyService } from '../../services/ProficiencyService.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
@@ -247,8 +246,8 @@ export class ProficiencyCard {
                         // Refresh the specific container to reflect detailed UI state changes
                         this._populateProficiencyContainers();
 
-                        // Trigger character change event to ensure data consistency and saving
-                        document.dispatchEvent(new CustomEvent('characterChanged'));
+                        // Emit CHARACTER_UPDATED event to signal proficiency change
+                        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
                     }
                 }
             });
@@ -329,7 +328,6 @@ export class ProficiencyCard {
             }
 
             this._updateProficiencyNotes();
-            this._markUnsavedChanges();
 
             if (detail.showRefund && detail.proficiency) {
                 this._showRefundNotification(detail.proficiency);
@@ -558,11 +556,6 @@ export class ProficiencyCard {
     /**
      * Mark that there are unsaved changes
      * @private
-     */
-    _markUnsavedChanges() {
-        AppState.setHasUnsavedChanges(true);
-    }
-
     /**
      * Check if a proficiency is granted by a fixed source (not a choice)
      * @param {string} type - Proficiency type
@@ -644,7 +637,8 @@ export class ProficiencyCard {
 
         if (changesDetected) {
             this._populateProficiencyContainers();
-            this._markUnsavedChanges();
+            // Emit CHARACTER_UPDATED when proficiencies are cleaned up
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
         }
 
         return changesDetected;

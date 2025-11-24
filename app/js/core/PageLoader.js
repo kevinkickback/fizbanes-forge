@@ -54,8 +54,8 @@ class PageLoaderImpl {
         }
 
         try {
-            // Try to load from templates directory
-            const response = await fetch(`templates/pages/${templateName}`);
+            // Try to load from pages directory
+            const response = await fetch(`pages/${templateName}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to load ${templateName}: ${response.statusText}`);

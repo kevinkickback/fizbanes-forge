@@ -48,6 +48,9 @@ class NavigationControllerImpl {
         this.setupEventListeners();
         this.setupNavigationButtons();
 
+        // Initialize navigation state (disable buttons that require character)
+        this.updateNavigationState();
+
         // Load initial page (home)
         this.navigateTo('home');
 
@@ -66,6 +69,11 @@ class NavigationControllerImpl {
 
         // Listen for character selection events
         eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+            this.updateNavigationState();
+        });
+
+        // Listen for character creation events
+        eventBus.on(EVENTS.CHARACTER_CREATED, () => {
             this.updateNavigationState();
         });
 
@@ -116,7 +124,7 @@ class NavigationControllerImpl {
      * @param {string} page - Page to navigate to
      */
     async navigateTo(page) {
-        Logger.info('NavigationController', 'Navigate to', { page });
+        Logger.info('NavigationController', `[${new Date().toISOString()}] Navigate to page: "${page}"`);
 
         // Show loading state
         PageLoader.renderLoading();
@@ -132,11 +140,31 @@ class NavigationControllerImpl {
 
         const route = navResult.value;
 
+        // Log floating bar state BEFORE setting attribute and rendering
+        const floatingBar = document.querySelector('.floating-actions');
+        const floatingBarVisibleBefore = floatingBar ? window.getComputedStyle(floatingBar).display !== 'none' : false;
+        Logger.debug('NavigationController', `[BEFORE RENDER] Page: ${page}, Floating bar visible: ${floatingBarVisibleBefore}`);
+
+        // Set data-current-page attribute immediately for CSS selectors
+        document.body.setAttribute('data-current-page', page);
+        Logger.debug('NavigationController', `Set data-current-page attribute to "${page}"`, {
+            page,
+            attributeValue: document.body.getAttribute('data-current-page')
+        });
+
+        // Log floating bar state AFTER setting attribute (CSS might update)
+        const floatingBarAfterAttr = floatingBar ? window.getComputedStyle(floatingBar).display !== 'none' : false;
+        Logger.debug('NavigationController', `[AFTER SETTING ATTR] Page: ${page}, Floating bar visible: ${floatingBarAfterAttr}`);
+
         // Load and render the page
         await this.loadAndRenderPage(route.template, page);
 
         // Update navigation UI
         this.updateNavButtons(page);
+
+        // Emit PAGE_CHANGED event
+        Logger.debug('NavigationController', `Emitting PAGE_CHANGED event for page: "${page}"`);
+        eventBus.emit(EVENTS.PAGE_CHANGED, page);
     }
 
     /**
@@ -145,7 +173,7 @@ class NavigationControllerImpl {
      * @param {string} pageName - Name of the page being loaded
      */
     async loadAndRenderPage(template, pageName) {
-        Logger.debug('NavigationController', 'Loading page', { template, pageName });
+        Logger.debug('NavigationController', `[${new Date().toISOString()}] Starting loadAndRenderPage: ${pageName}`);
 
         const loadResult = await PageLoader.loadAndRender(template);
 
@@ -155,9 +183,52 @@ class NavigationControllerImpl {
             return;
         }
 
-        Logger.info('NavigationController', 'Page loaded successfully', { template, pageName });
+        Logger.info('NavigationController', `[${new Date().toISOString()}] Page rendered successfully: ${pageName}`, { template, pageName });
+
+        // Ensure data-current-page attribute is set (again, for safety)
+        document.body.setAttribute('data-current-page', pageName);
+        const finalAttribute = document.body.getAttribute('data-current-page');
+
+        // Check floating bar visibility - AFTER page render
+        const floatingBar = document.querySelector('.floating-actions');
+        const isVisible = floatingBar ? window.getComputedStyle(floatingBar).display !== 'none' : false;
+
+        // Determine if floating bar SHOULD be visible for this page
+        const shouldShowByCSS = ['build', 'equipment', 'details'].includes(pageName);
+
+        // Detailed floating bar analysis
+        Logger.debug('NavigationController', `[AFTER RENDER] Page: "${pageName}"`, {
+            floatingBarVisible: isVisible,
+            shouldShowByCSS: shouldShowByCSS,
+            dataCurrentPage: finalAttribute,
+            computedDisplay: floatingBar ? window.getComputedStyle(floatingBar).display : 'N/A',
+            inlineDisplay: floatingBar ? floatingBar.style.display : 'N/A'
+        });
+
+        // WARNING if floating bar visibility doesn't match CSS selector
+        if (pageName === 'home' && isVisible) {
+            Logger.warn('NavigationController', `⚠️ FLOATING BAR ISSUE: On home page but floating bar is VISIBLE!`, {
+                page: pageName,
+                shouldShowByCSS: shouldShowByCSS,
+                actuallyVisible: isVisible,
+                dataCurrentPage: finalAttribute
+            });
+        } else if ((pageName === 'build' || pageName === 'equipment' || pageName === 'details') && !isVisible) {
+            Logger.warn('NavigationController', `⚠️ FLOATING BAR ISSUE: On ${pageName} page but floating bar is NOT VISIBLE!`, {
+                page: pageName,
+                shouldShowByCSS: shouldShowByCSS,
+                actuallyVisible: isVisible,
+                dataCurrentPage: finalAttribute
+            });
+        } else {
+            Logger.debug('NavigationController', `✓ Floating bar visibility correct for page: ${pageName}`, {
+                shouldShow: shouldShowByCSS,
+                isShowing: isVisible
+            });
+        }
 
         // Emit PAGE_LOADED event so page-specific handlers can initialize
+        Logger.debug('NavigationController', `Emitting PAGE_LOADED event for page: "${pageName}"`);
         eventBus.emit(EVENTS.PAGE_LOADED, pageName);
     }
 
@@ -190,9 +261,11 @@ class NavigationControllerImpl {
                 if (hasCharacter) {
                     button.removeAttribute('disabled');
                     button.classList.remove('disabled');
+                    button.title = route.title || page;
                 } else {
                     button.setAttribute('disabled', 'true');
                     button.classList.add('disabled');
+                    button.title = `${route.title || page} - Load or create a character first`;
                 }
             }
         });
@@ -206,6 +279,9 @@ class NavigationControllerImpl {
      */
     async handlePageChange(page) {
         Logger.debug('NavigationController', 'Handling page change', { page });
+
+        // Set data-current-page attribute on body for CSS selectors
+        document.body.setAttribute('data-current-page', page);
 
         // Additional logic for page changes can go here
         // For example: analytics, scroll to top, etc.

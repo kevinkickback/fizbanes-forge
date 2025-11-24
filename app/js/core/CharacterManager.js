@@ -73,7 +73,7 @@ class CharacterManagerImpl {
      * @returns {Promise<Result>} Result with character or error
      */
     async loadCharacter(id) {
-        Logger.info('CharacterManager', 'Loading character', { id });
+        Logger.info('CharacterManager', `[${new Date().toISOString()}] Loading character with ID: ${id}`);
 
         try {
             // Get all characters
@@ -101,13 +101,15 @@ class CharacterManagerImpl {
             const character = new Character(characterData);
 
             // Update state
+            Logger.debug('CharacterManager', `Setting current character to: ${character.name} (${character.id})`);
             AppState.setCurrentCharacter(character);
             AppState.setHasUnsavedChanges(false);
 
             // Emit event
+            Logger.debug('CharacterManager', `Emitting CHARACTER_SELECTED event for character: ${character.name}`);
             eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 
-            Logger.info('CharacterManager', 'Character loaded', { id });
+            Logger.info('CharacterManager', `✓ Character loaded successfully: ${character.name}`, { id });
             return Result.ok(character);
 
         } catch (error) {
@@ -141,8 +143,11 @@ class CharacterManagerImpl {
                 return Result.err(`Cannot save: ${validation.errors.join(', ')}`);
             }
 
+            // Serialize character using toJSON() to handle Sets and Maps
+            const serializedCharacter = character.toJSON ? character.toJSON() : character;
+
             // Save via IPC
-            const saveResult = await window.electron.invoke('character:save', character);
+            const saveResult = await window.electron.invoke('character:save', serializedCharacter);
 
             if (!saveResult.success) {
                 return Result.err(saveResult.error || 'Save failed');

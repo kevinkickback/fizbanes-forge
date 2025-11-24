@@ -275,6 +275,10 @@ class AbilityScoreCard {
 
         // Update all standard array dropdowns to reflect the new assignments
         this._updateAllStandardArrayOptions();
+
+        // Emit CHARACTER_UPDATED event
+        Logger.debug('AbilityScoreCard', 'Emitting CHARACTER_UPDATED for ability score change', { ability, newValue });
+        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
     }
 
     /**
@@ -329,6 +333,10 @@ class AbilityScoreCard {
 
         // Update the UI to show the new score
         this._updateAbilityScoreValues();
+
+        // Emit CHARACTER_UPDATED event
+        Logger.debug('AbilityScoreCard', 'Emitting CHARACTER_UPDATED for point buy increase', { ability, newScore });
+        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
     }
 
     /**
@@ -377,6 +385,10 @@ class AbilityScoreCard {
 
         // Update the UI to show the new score
         this._updateAbilityScoreValues();
+
+        // Emit CHARACTER_UPDATED event
+        Logger.debug('AbilityScoreCard', 'Emitting CHARACTER_UPDATED for point buy decrease', { ability, newScore });
+        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
     }
 
     /**
@@ -393,6 +405,10 @@ class AbilityScoreCard {
             abilityScoreService.updateAbilityScore(ability, newValue);
             // No need to render here as it will cause input focus loss
             this._updateAbilityScoreValues();
+
+            // Emit CHARACTER_UPDATED event
+            Logger.debug('AbilityScoreCard', 'Emitting CHARACTER_UPDATED for custom score input', { ability, newValue });
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
         }
     }
 
@@ -417,6 +433,10 @@ class AbilityScoreCard {
         // Update all score display and bonus notes
         this._renderAbilityScores();
         this._bonusNotesView.render();
+
+        // Emit CHARACTER_UPDATED event
+        Logger.debug('AbilityScoreCard', 'Emitting CHARACTER_UPDATED for ability choice selection', { selectedAbility, bonus, source });
+        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
     }
 
     //-------------------------------------------------------------------------

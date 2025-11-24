@@ -109,7 +109,9 @@ export class RaceCard {
 
             if (this._cardView.hasRaceOption(raceValue)) {
                 this._cardView.setSelectedRaceValue(raceValue);
-                this._cardView.triggerRaceSelectChange();
+                // Don't trigger change event during initialization - this prevents
+                // CHARACTER_UPDATED from being emitted when just loading saved data
+                // this._cardView.triggerRaceSelectChange();
 
                 // Also set subrace if one was selected
                 if (character.race.subrace) {
@@ -118,7 +120,8 @@ export class RaceCard {
 
                     if (this._subraceView.hasSubraceOption(character.race.subrace)) {
                         this._subraceView.setSelectedSubraceValue(character.race.subrace);
-                        this._subraceView.triggerSubraceSelectChange();
+                        // Don't trigger change event during initialization
+                        // this._subraceView.triggerSubraceSelectChange();
                     }
                 }
             } else {
@@ -247,6 +250,9 @@ export class RaceCard {
             // Update character data
             this._updateCharacterRace(raceData, namelessSubrace);
 
+            // Emit event to notify about character update (unsaved changes)
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
+
         } catch (error) {
             console.error('Error handling race change:', error);
         }
@@ -289,6 +295,9 @@ export class RaceCard {
 
             // Update character data
             this._updateCharacterRace(raceData, subraceData);
+
+            // Emit event to notify about character update (unsaved changes)
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
 
         } catch (error) {
             console.error('Error handling subrace change:', error);

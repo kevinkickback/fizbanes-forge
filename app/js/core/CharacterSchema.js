@@ -103,8 +103,9 @@ export const CharacterSchema = {
             errors.push('Level must be a number between 1 and 20');
         }
 
-        if (!Array.isArray(character.allowedSources)) {
-            errors.push('allowedSources must be an array');
+        // allowedSources can be an array or a Set (Character class uses Set internally)
+        if (!Array.isArray(character.allowedSources) && !(character.allowedSources instanceof Set)) {
+            errors.push('allowedSources must be an array or Set');
         }
 
         if (!character.abilityScores || typeof character.abilityScores !== 'object') {

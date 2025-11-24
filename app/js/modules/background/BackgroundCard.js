@@ -118,13 +118,15 @@ export class BackgroundCard extends BaseCard {
                 const background = backgroundService.selectBackground(backgroundName, backgroundSource);
                 if (background) {
                     this._cardView.setSelectedBackground(`${backgroundName}_${backgroundSource}`);
-                    this._handleBackgroundChange();
+                    // Don't emit CHARACTER_UPDATED during initialization (skip event emission)
+                    this._handleBackgroundChange(true);
 
                     // Also set variant if one was selected
                     if (character.background.variant) {
                         await new Promise(resolve => setTimeout(resolve, 100));
                         this._cardView.setSelectedVariant(character.background.variant);
-                        this._handleVariantChange();
+                        // Don't emit CHARACTER_UPDATED during initialization
+                        this._handleVariantChange(true);
                     }
                 } else {
                     console.warn(`Saved background "${backgroundName}" (${backgroundSource}) not found. Character might use a source that's not currently allowed.`);
@@ -150,7 +152,7 @@ export class BackgroundCard extends BaseCard {
      * Handles background selection change events
      * @private
      */
-    _handleBackgroundChange() {
+    _handleBackgroundChange(skipEventDuringInit = false) {
         try {
             const backgroundId = this._cardView.getSelectedBackground();
 
@@ -175,6 +177,12 @@ export class BackgroundCard extends BaseCard {
 
                 // Update character model
                 this._updateCharacterBackground(background, null);
+
+                // Emit event to notify about character update (unsaved changes)
+                // Skip during initialization to prevent showing unsaved indicator on page load
+                if (!skipEventDuringInit) {
+                    eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
+                }
             } else {
                 this._cardView.hideVariantSelector();
                 this._cardView.resetQuickDescription();
@@ -190,7 +198,7 @@ export class BackgroundCard extends BaseCard {
      * Handles variant selection change events
      * @private
      */
-    _handleVariantChange() {
+    _handleVariantChange(skipEventDuringInit = false) {
         try {
             const variantName = this._cardView.getSelectedVariant();
             const background = backgroundService.getSelectedBackground();
@@ -203,6 +211,12 @@ export class BackgroundCard extends BaseCard {
                 // Show standard background
                 this._renderEntityDetails(background);
                 this._updateCharacterBackground(background, null);
+
+                // Emit event to notify about character update (unsaved changes)
+                // Skip during initialization to prevent showing unsaved indicator on page load
+                if (!skipEventDuringInit) {
+                    eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
+                }
                 return;
             }
 
@@ -211,6 +225,12 @@ export class BackgroundCard extends BaseCard {
             if (variant) {
                 this._renderEntityDetails(variant);
                 this._updateCharacterBackground(background, variant);
+
+                // Emit event to notify about character update (unsaved changes)
+                // Skip during initialization to prevent showing unsaved indicator on page load
+                if (!skipEventDuringInit) {
+                    eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
+                }
             }
         } catch (error) {
             console.error('Error handling variant change:', error);
@@ -331,8 +351,8 @@ export class BackgroundCard extends BaseCard {
                     }));
                 }, 100);
 
-                // Show unsaved changes
-                AppState.setHasUnsavedChanges(true);
+                // Emit CHARACTER_UPDATED to signal unsaved changes
+                eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: CharacterManager.getCurrentCharacter() });
             }
 
             // Trigger an event to update the UI

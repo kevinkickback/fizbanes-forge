@@ -20,10 +20,12 @@
 
 // Core imports - NEW ARCHITECTURE
 import { Logger } from '../infrastructure/Logger.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { AppState } from './AppState.js';
 import { NavigationController } from './NavigationController.js';
 import { CharacterManager } from './CharacterManager.js';
 import { PageHandler } from './PageHandler.js';
+import { showNotification } from '../utils/Notifications.js';
 
 // Service imports
 import { textProcessor } from '../utils/TextProcessor.js';
@@ -148,6 +150,132 @@ async function _initializeCoreComponents() {
     }
 }
 
+/**
+ * Set up UI event handlers (buttons, etc.)
+ * @returns {void}
+ * @private
+ */
+function _setupUIEventHandlers() {
+    try {
+        Logger.info('AppInitializer', 'Setting up UI event handlers');
+
+        // Set up save button handler
+        const saveButton = document.getElementById('saveCharacter');
+        const unsavedIndicator = document.getElementById('unsavedChangesIndicator');
+
+        // Listen for CHARACTER_UPDATED events to show unsaved indicator and mark state
+        // Indicator persists across page navigation until saved or new character loaded
+        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`);
+            if (unsavedIndicator) {
+                unsavedIndicator.style.display = 'inline-block';
+                Logger.info('AppInitializer', '✓ CHARACTER_UPDATED: Showing unsaved changes indicator', {
+                    visible: true,
+                    displayStyle: unsavedIndicator.style.display
+                });
+            }
+            // Mark as unsaved in app state
+            AppState.setHasUnsavedChanges(true);
+        });
+
+        // Listen for CHARACTER_SAVED events to hide unsaved indicator
+        eventBus.on(EVENTS.CHARACTER_SAVED, () => {
+            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`);
+            if (unsavedIndicator) {
+                unsavedIndicator.style.display = 'none';
+                Logger.info('AppInitializer', '✓ CHARACTER_SAVED: Hiding unsaved changes indicator', {
+                    visible: false,
+                    displayStyle: unsavedIndicator.style.display
+                });
+            }
+            // Clear unsaved changes flag
+            AppState.setHasUnsavedChanges(false);
+        });
+
+        // Listen for CHARACTER_SELECTED to reset unsaved indicator (fresh load, not a change)
+        // This clears the indicator when a new character is loaded
+        eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`);
+            const currentPage = document.body.getAttribute('data-current-page');
+            if (unsavedIndicator) {
+                unsavedIndicator.style.display = 'none';
+                Logger.info('AppInitializer', '✓ CHARACTER_SELECTED: Clearing unsaved indicator (new character loaded)', {
+                    visible: false,
+                    displayStyle: unsavedIndicator.style.display,
+                    currentPage: currentPage
+                });
+            }
+            // Clear unsaved changes flag for the newly loaded character
+            AppState.setHasUnsavedChanges(false);
+        });
+
+        // Listen for PAGE_CHANGED events to log floating bar visibility
+        eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
+            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`);
+            const floatingBar = document.querySelector('.floating-actions');
+            const floatingBarVisible = floatingBar ? window.getComputedStyle(floatingBar).display !== 'none' : false;
+            const unsavedVisible = unsavedIndicator ? unsavedIndicator.style.display !== 'none' : false;
+
+            Logger.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
+                floatingBarVisible: floatingBarVisible,
+                unsavedIndicatorVisible: unsavedVisible,
+                dataCurrentPage: document.body.getAttribute('data-current-page')
+            });
+        });
+
+        if (saveButton) {
+            saveButton.addEventListener('click', async () => {
+                try {
+                    Logger.info('AppInitializer', `[${new Date().toISOString()}] Save button clicked`);
+
+                    // Update character data from form inputs on details page
+                    const characterNameInput = document.getElementById('characterName');
+                    const playerNameInput = document.getElementById('playerName');
+                    const heightInput = document.getElementById('height');
+                    const weightInput = document.getElementById('weight');
+                    const genderInput = document.getElementById('gender');
+                    const backstoryTextarea = document.getElementById('backstory');
+
+                    const character = AppState.getCurrentCharacter();
+                    if (character) {
+                        if (characterNameInput) character.name = characterNameInput.value;
+                        if (playerNameInput) character.playerName = playerNameInput.value;
+                        if (heightInput) character.height = heightInput.value;
+                        if (weightInput) character.weight = weightInput.value;
+                        if (genderInput) character.gender = genderInput.value;
+                        if (backstoryTextarea) character.backstory = backstoryTextarea.value;
+                    }
+
+                    const result = await CharacterManager.saveCharacter();
+
+                    if (result.isOk()) {
+                        Logger.info('AppInitializer', 'Character saved successfully');
+                        showNotification('Character saved successfully', 'success');
+                        if (unsavedIndicator) {
+                            unsavedIndicator.style.display = 'none';
+                        }
+                        // Emit save event
+                        Logger.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
+                        eventBus.emit(EVENTS.CHARACTER_SAVED);
+                    } else {
+                        Logger.error('AppInitializer', 'Failed to save character', result.error);
+                        showNotification('Failed to save character: ' + result.error, 'error');
+                    }
+                } catch (error) {
+                    Logger.error('AppInitializer', 'Error saving character', error);
+                    showNotification('Error saving character', 'error');
+                }
+            });
+        } else {
+            Logger.warn('AppInitializer', 'Save button not found');
+        }
+
+        Logger.info('AppInitializer', 'UI event handlers set up successfully');
+    } catch (error) {
+        Logger.error('AppInitializer', 'Error setting up UI event handlers', error);
+    }
+}
+
 //-------------------------------------------------------------------------
 // Public API
 //-------------------------------------------------------------------------
@@ -177,6 +305,9 @@ export async function initializeAll(options = {}) {
         const componentsResult = await _initializeCoreComponents();
         result.loadedComponents = componentsResult.loadedComponents;
         result.errors.push(...componentsResult.errors);
+
+        // Step 3: Set up UI event handlers
+        _setupUIEventHandlers();
 
         // Set overall success based on whether any critical errors occurred
         result.success = result.errors.length === 0;

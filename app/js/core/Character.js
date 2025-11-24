@@ -216,6 +216,13 @@ export class Character {
             items: []
         };
 
+        // Initialize hit points
+        this.hitPoints = data.hitPoints || {
+            current: 0,
+            max: 0,
+            temp: 0
+        };
+
         // Initialize variant rules with defaults or from data
         this.variantRules = data.variantRules || {
             feats: true,
@@ -638,6 +645,13 @@ export class Character {
         if (this.variantRules) {
             serializedData.variantRules = { ...this.variantRules };
         }
+
+        // Add hit points
+        serializedData.hitPoints = {
+            current: this.hitPoints?.current || 0,
+            max: this.hitPoints?.max || 0,
+            temp: this.hitPoints?.temp || 0
+        };
 
         return serializedData;
     }
