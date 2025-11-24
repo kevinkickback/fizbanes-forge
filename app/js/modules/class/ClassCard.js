@@ -6,7 +6,7 @@
 
 import { classService } from '../../services/ClassService.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { CharacterManager } from '../../application/CharacterManager.js';
+import { CharacterManager } from '../../core/CharacterManager.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
 import { ClassDetailsView } from './ClassDetails.js';

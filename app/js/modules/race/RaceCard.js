@@ -6,7 +6,7 @@
 
 import { raceService } from '../../services/RaceService.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { CharacterManager } from '../../application/CharacterManager.js';
+import { CharacterManager } from '../../core/CharacterManager.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
 import { RaceDetailsView } from './RaceDetails.js';

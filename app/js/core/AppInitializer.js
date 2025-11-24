@@ -20,9 +20,9 @@
 
 // Core imports - NEW ARCHITECTURE
 import { Logger } from '../infrastructure/Logger.js';
-import { AppState } from '../application/AppState.js';
-import { NavigationController } from '../presentation/NavigationController.js';
-import { CharacterManager } from '../application/CharacterManager.js';
+import { AppState } from './AppState.js';
+import { NavigationController } from './NavigationController.js';
+import { CharacterManager } from './CharacterManager.js';
 
 // Service imports
 import { textProcessor } from '../utils/TextProcessor.js';

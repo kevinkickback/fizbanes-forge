@@ -16,7 +16,7 @@ import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { CharacterSchema } from '../domain/CharacterSchema.js';
+import { CharacterSchema } from './CharacterSchema.js';
 
 class CharacterManagerImpl {
     /**

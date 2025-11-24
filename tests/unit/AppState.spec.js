@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { AppState } from '../../app/js/application/AppState.js';
+import { AppState } from '../../app/js/core/AppState.js';
 import { eventBus, EVENTS } from '../../app/js/infrastructure/EventBus.js';
 
 test.describe('AppState - Basic Operations', () => {

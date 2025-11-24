@@ -4,7 +4,7 @@
  */
 import { Logger } from '../infrastructure/Logger.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { CharacterManager } from '../application/CharacterManager.js';
+import { CharacterManager } from '../core/CharacterManager.js';
 import { calculateModifier, formatModifier, calculatePointBuyTotal, calculateRemainingPoints, getPointBuyCost, POINT_BUY_BUDGET } from '../modules/abilities/AbilityCalculator.js';
 
 /**

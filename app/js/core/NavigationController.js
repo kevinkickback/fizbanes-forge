@@ -16,7 +16,7 @@ import { Logger } from '../infrastructure/Logger.js';
 import { Router } from './Router.js';
 import { PageLoader } from './PageLoader.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { AppState } from '../application/AppState.js';
+import { AppState } from './AppState.js';
 
 class NavigationControllerImpl {
     constructor() {

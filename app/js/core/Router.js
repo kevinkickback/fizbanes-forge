@@ -14,7 +14,7 @@
 
 import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
-import { AppState } from '../application/AppState.js';
+import { AppState } from './AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 
 class RouterImpl {

@@ -4,7 +4,7 @@
  */
 import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
-import { AppState } from '../application/AppState.js';
+import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 import { storage } from '../core/Storage.js';

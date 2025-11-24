@@ -4,7 +4,8 @@
  */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { CharacterManager } from '../../application/CharacterManager.js';
+import { Logger } from '../../infrastructure/Logger.js';
+import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 import { methodSwitcherView } from './MethodSwitcher.js';

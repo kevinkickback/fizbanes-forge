@@ -4,8 +4,8 @@
  * Coordinates between display, selection, and notes views.
  */
 
-import { CharacterManager } from '../../application/CharacterManager.js';
-import { AppState } from '../../application/AppState.js';
+import { CharacterManager } from '../../core/CharacterManager.js';
+import { AppState } from '../../core/AppState.js';
 import { proficiencyService } from '../../services/ProficiencyService.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
