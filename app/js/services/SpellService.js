@@ -49,7 +49,7 @@ class SpellService {
             }
 
             this._spellData = aggregated;
-            eventEmitter.emit('spells:loaded', this._spellData.spell);
+            eventBus.emit('spells:loaded', this._spellData.spell);
             return true;
         } catch (error) {
             console.error('Failed to initialize spell data:', error);

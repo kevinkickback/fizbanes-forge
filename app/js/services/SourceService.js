@@ -119,7 +119,10 @@ export class SourceService {
 
         try {
             Logger.info('SourceService', 'Starting initialization');
-            const sources = await DataLoader.loadSources();
+            const sourcesData = await DataLoader.loadSources();
+            
+            // Handle both direct data and Result-wrapped data
+            const sources = sourcesData.data || sourcesData;
 
             if (sources.book && Array.isArray(sources.book)) {
                 // Filter and sort sources
@@ -205,7 +208,7 @@ export class SourceService {
                 // Emit initialization complete event
                 eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'source', this);
             } else {
-                Logger.error('SourceService', 'Invalid source data format', sources);
+                Logger.error('SourceService', 'Invalid source data format - missing source array', sources);
                 showNotification('Error loading source books: Invalid data format', 'error');
             }
         } catch (error) {

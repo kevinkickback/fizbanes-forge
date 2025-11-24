@@ -45,6 +45,7 @@ class WindowManager {
             y: bounds.y,
             minWidth: 800,
             minHeight: 600,
+            autoHideMenuBar: true, // Hide default Electron menu bar
             webPreferences: {
                 preload: path.join(this.appPath, "preload.js"),
                 contextIsolation: true,

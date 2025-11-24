@@ -9,19 +9,19 @@ test.describe('Page Loading', () => {
         electronApp = await electron.launch({
             args: [path.join(__dirname, '../../../app/main.js')]
         });
-        
+
         // Wait for both DevTools and Main app windows to open (DEBUG_MODE=true)
         await electronApp.context().waitForEvent('page');
         await electronApp.context().waitForEvent('page');
-        
+
         // Find the main window (not devtools)
         const windows = electronApp.windows();
         window = windows.find(w => !w.url().includes('devtools'));
-        
+
         if (!window) {
             throw new Error('Could not find main app window!');
         }
-        
+
         await window.waitForLoadState('domcontentloaded');
         // Give the app a moment to fully initialize
         await window.waitForTimeout(2000);
