@@ -296,9 +296,9 @@ app/templates/
 
 ---
 
-### 9. Architecture Streamlining (Recommended - 4-8 hours)
+### 9. Architecture Streamlining ✅ **COMPLETE**
 
-**Status:** Current 5-layer architecture could be simplified for this application's scale
+**Status:** ✅ **COMPLETED** - Consolidated domain/application/presentation into core/
 
 **Description:** Evaluate and streamline the folder structure by consolidating layers that may be over-engineered for a single-developer Electron app
 
@@ -429,33 +429,47 @@ app/js/
 
 ---
 
-### 10. File Location Audit & Reorganization (Required for #9 - 2-4 hours)
+### 10. File Location Audit & Reorganization ✅ **COMPLETE**
 
-**Status:** Prerequisite for architecture streamlining
+**Status:** ✅ **COMPLETED** - Comprehensive audit completed, files reorganized
 
-**Description:** Comprehensive audit of all JavaScript files to ensure they're in logical locations
+**Completion Details:**
+- Created comprehensive FILE_AUDIT_REPORT.md analyzing all 60 JavaScript files
+- Moved 6 files from domain/application/presentation to core/ using git mv
+- Updated ~24 import statements across services, modules, and tests
+- Removed empty directories (domain, application, presentation)
+- All 88 unit tests passing after reorganization
+- Updated ARCHITECTURE.md to reflect new 5-folder structure
 
-**Audit Checklist:**
+**Final Structure:**
+```
+app/js/
+├── infrastructure/    (3 files: Logger, Result, EventBus)
+├── core/              (11 files: consolidated from domain/application/presentation)
+├── services/          (11 files: data access layer)
+├── modules/           (28 files: UI components)
+└── utils/             (7 files: utility functions)
+```
+
+**Audit Checklist - COMPLETED:**
 
 #### Infrastructure Files
-- [ ] `infrastructure/Logger.js` - ✅ Correct location
-- [ ] `infrastructure/Result.js` - ✅ Correct location
-- [ ] `infrastructure/EventBus.js` - ✅ Correct location
+- [x] `infrastructure/Logger.js` - ✅ Correct location
+- [x] `infrastructure/Result.js` - ✅ Correct location
+- [x] `infrastructure/EventBus.js` - ✅ Correct location
 
-#### Application/Core Files
-- [ ] `application/AppState.js` - Should this be in `core/`?
-- [ ] `application/CharacterManager.js` - Should this be in `core/` or `character/`?
-- [ ] `domain/CharacterSchema.js` - Should this be in `core/` or `character/`?
-- [ ] `core/AppInitializer.js` - ✅ Correct location
-- [ ] `core/Character.js` - What does this do vs CharacterManager?
-- [ ] `core/Modal.js` - ✅ Correct location (used everywhere)
-- [ ] `core/Proficiency.js` - ✅ Correct location
-- [ ] `core/Storage.js` - ✅ Correct location
-
-#### Presentation/Navigation Files
-- [ ] `presentation/Router.js` - Should this be in `core/` or new `navigation/`?
-- [ ] `presentation/PageLoader.js` - Should this be in `core/` or new `navigation/`?
-- [ ] `presentation/NavigationController.js` - Should this be in `core/` or new `navigation/`?
+#### Core Files (Consolidated)
+- [x] `core/AppState.js` - ✅ Moved from application/
+- [x] `core/CharacterManager.js` - ✅ Moved from application/
+- [x] `core/CharacterSchema.js` - ✅ Moved from domain/
+- [x] `core/Router.js` - ✅ Moved from presentation/
+- [x] `core/PageLoader.js` - ✅ Moved from presentation/
+- [x] `core/NavigationController.js` - ✅ Moved from presentation/
+- [x] `core/AppInitializer.js` - ✅ Correct location
+- [x] `core/Character.js` - ✅ Used by Modal.js (not dead code)
+- [x] `core/Modal.js` - ✅ Correct location
+- [x] `core/Proficiency.js` - ✅ Correct location
+- [x] `core/Storage.js` - ✅ Correct location
 
 #### Service Files (9 files)
 - [ ] All in `services/` - ✅ Review if correct
