@@ -2,6 +2,8 @@
 
 **Purpose:** This document defines the FINAL architecture after all refactoring is complete. Use this as the reference for all decisions.
 
+**Recent Update:** The `domain/`, `application/`, and `presentation/` folders have been **consolidated into `core/`** to simplify the architecture. The application now uses a streamlined 5-folder structure: `infrastructure/`, `core/`, `services/`, `modules/`, and `utils/`.
+
 ---
 
 ## Complete File Structure
@@ -31,30 +33,22 @@ fizbanes-forge/
 │   ├── js/                               # RENDERER PROCESS (sandboxed)
 │   │   │
 │   │   ├── infrastructure/               # Low-Level Utilities
-│   │   │   ├── Logger.js                 # Centralized logging (Phase 1)
-│   │   │   ├── Result.js                 # Error handling pattern (Phase 1)
-│   │   │   └── EventBus.js               # Event system (Phase 1)
+│   │   │   ├── Logger.js                 # Centralized logging
+│   │   │   ├── Result.js                 # Error handling pattern
+│   │   │   └── EventBus.js               # Event system
 │   │   │
-│   │   ├── domain/                       # Business Models
-│   │   │   ├── Character.js              # Character entity (Phase 4)
-│   │   │   ├── CharacterSchema.js        # Data schema definition (Phase 4)
-│   │   │   ├── CharacterSerializer.js    # JSON serialization (Phase 4)
-│   │   │   ├── ProficiencyManager.js     # Proficiency calculations (Phase 4)
-│   │   │   └── AbilityManager.js         # Ability score calculations (Phase 4)
-│   │   │
-│   │   ├── application/                  # Business Logic
-│   │   │   ├── AppState.js               # Central state management (Phase 3)
-│   │   │   ├── CharacterManager.js       # Character lifecycle (Phase 4)
-│   │   │   ├── CharacterLoader.js        # Character persistence (Phase 4)
-│   │   │   ├── CharacterImporter.js      # Import/export (Phase 4)
-│   │   │   └── ChangeTracker.js          # Unsaved changes (Phase 4)
-│   │   │
-│   │   ├── presentation/                 # UI Logic
-│   │   │   ├── Router.js                 # Client-side routing (Phase 5)
-│   │   │   ├── PageLoader.js             # Page template loading (Phase 5)
-│   │   │   ├── NavigationController.js   # Navigation coordination (Phase 5)
-│   │   │   ├── ComponentRegistry.js      # UI component lifecycle (Phase 5)
-│   │   │   └── TemplateLoader.js         # HTML template loading (Phase 5)
+│   │   ├── core/                         # Core Application Logic (CONSOLIDATED)
+│   │   │   ├── AppState.js               # Central state management
+│   │   │   ├── AppInitializer.js         # App initialization
+│   │   │   ├── Character.js              # Character entity
+│   │   │   ├── CharacterSchema.js        # Data schema definition
+│   │   │   ├── CharacterManager.js       # Character lifecycle
+│   │   │   ├── Router.js                 # Client-side routing
+│   │   │   ├── PageLoader.js             # Page template loading
+│   │   │   ├── NavigationController.js   # Navigation coordination
+│   │   │   ├── Modal.js                  # Modal dialogs
+│   │   │   ├── Proficiency.js            # Proficiency system
+│   │   │   └── Storage.js                # LocalStorage wrapper
 │   │   │
 │   │   ├── services/                     # Data Access Layer
 │   │   │   ├── ClassService.js           # D&D class data (Phase 4 - refactor)
@@ -121,7 +115,6 @@ fizbanes-forge/
 ## Layer Responsibilities
 
 ### Infrastructure Layer (`app/js/infrastructure/`)
-**Created in:** Phase 1  
 **Purpose:** Foundation utilities used by all other layers  
 **Dependencies:** None (no dependencies on other app code)
 
@@ -130,49 +123,26 @@ Files:
 - `Result.js` - Type-safe error handling pattern
 - `EventBus.js` - Decoupled event communication
 
-**Key Rule:** Infrastructure code cannot depend on domain, application, or presentation code.
+**Key Rule:** Infrastructure code cannot depend on core, services, or modules.
 
-### Domain Layer (`app/js/domain/`)
-**Created in:** Phase 4  
-**Purpose:** Pure business models and logic  
+### Core Layer (`app/js/core/`) **[CONSOLIDATED]**
+**Purpose:** Core application logic, state, routing, and business models  
 **Dependencies:** Infrastructure only
 
 Files:
-- `Character.js` - Character entity (simplified to ~300 lines)
+- `AppState.js` - Central state management
+- `CharacterManager.js` - Character lifecycle
+- `Character.js` - Character entity
 - `CharacterSchema.js` - Schema definition and validation
-- `CharacterSerializer.js` - JSON conversion logic
-- `ProficiencyManager.js` - Proficiency calculations
-- `AbilityManager.js` - Ability score calculations
-
-**Key Rule:** Domain code has no UI dependencies, no IPC calls, no service calls.
-
-### Application Layer (`app/js/application/`)
-**Created in:** Phases 3-4  
-**Purpose:** Orchestrates business logic, manages state  
-**Dependencies:** Infrastructure, Domain
-
-Files:
-- `AppState.js` - Single source of truth for application state
-- `CharacterManager.js` - Character lifecycle (create, select, delete)
-- `CharacterLoader.js` - Character persistence operations
-- `CharacterImporter.js` - Import/export functionality
-- `ChangeTracker.js` - Tracks unsaved changes
-
-**Key Rule:** Application layer coordinates between domain models and services.
-
-### Presentation Layer (`app/js/presentation/`)
-**Created in:** Phase 5  
-**Purpose:** UI logic, routing, template management  
-**Dependencies:** Infrastructure, Application
-
-Files:
 - `Router.js` - Client-side routing
 - `PageLoader.js` - Page template loading
 - `NavigationController.js` - Navigation coordination
-- `ComponentRegistry.js` - UI component lifecycle
-- `TemplateLoader.js` - HTML template caching
+- `AppInitializer.js` - App initialization
+- `Modal.js` - Modal dialogs
+- `Proficiency.js` - Proficiency system
+- `Storage.js` - LocalStorage wrapper
 
-**Key Rule:** Presentation layer handles all DOM manipulation.
+**Key Rule:** Core code manages application state and business logic. Can be used by services and modules.
 
 ### Service Layer (`app/js/services/`)
 **Refactored in:** Phase 4  
