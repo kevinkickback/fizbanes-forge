@@ -6,7 +6,7 @@
 
 import { classService } from '../../services/ClassService.js';
 import { eventEmitter } from '../../utils/EventBus.js';
-import { characterLifecycle } from '../../core/CharacterLifecycle.js';
+import { CharacterManager } from '../../application/CharacterManager.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
 import { ClassDetailsView } from './ClassDetails.js';
@@ -150,7 +150,7 @@ export class ClassCard {
                 return;
             }
 
-            const currentCharacter = characterLifecycle.currentCharacter;
+            const currentCharacter = CharacterManager.getCurrentCharacter();
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
@@ -194,7 +194,7 @@ export class ClassCard {
                 return;
             }
 
-            const currentCharacter = characterLifecycle.currentCharacter;
+            const currentCharacter = CharacterManager.getCurrentCharacter();
             const allowedSources = currentCharacter?.allowedSources || new Set(['PHB']);
             const upperAllowedSources = new Set(Array.from(allowedSources).map(source => source.toUpperCase()));
 
@@ -342,7 +342,7 @@ export class ClassCard {
      * @private
      */
     async _updateFeatures(classData, subclassData = null) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         const level = character?.level || 1;
 
         // Get all class features up to the current level (cumulative)
@@ -387,7 +387,7 @@ export class ClassCard {
      * @private
      */
     _updateCharacterClass(classData, subclassName = '') {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character) return;
 
         // Check if class has changed
@@ -451,7 +451,7 @@ export class ClassCard {
      * @private
      */
     _updateProficiencies(classData) {
-        const character = characterLifecycle.currentCharacter;
+        const character = CharacterManager.getCurrentCharacter();
         if (!character || !classData) return;
 
         // Store previous selected proficiencies to restore valid ones later
