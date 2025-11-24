@@ -133,4 +133,3 @@ class ItemService {
  * Global ItemManager instance
  */
 export const itemService = new ItemService();
-

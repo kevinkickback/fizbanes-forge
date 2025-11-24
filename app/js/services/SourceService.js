@@ -16,9 +16,12 @@
  * @property {boolean} isDefault - Whether this is a default source
  */
 
+import { Logger } from '../infrastructure/Logger.js';
+import { Result } from '../infrastructure/Result.js';
+import { AppState } from '../application/AppState.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 import { DataLoader } from '../utils/DataLoader.js';
-import { eventEmitter } from '../utils/EventBus.js';
 
 /**
  * Manages source book selection and filtering for character creation and data loading
@@ -73,8 +76,8 @@ export class SourceService {
      */
     _setupEventListeners() {
         // Set up listeners for relevant application events
-        eventEmitter.on('character:loaded', this._handleCharacterChange.bind(this));
-        eventEmitter.on('character:created', this._handleCharacterChange.bind(this));
+        eventBus.on(EVENTS.CHARACTER_LOADED, this._handleCharacterChange.bind(this));
+        eventBus.on(EVENTS.CHARACTER_CREATED, this._handleCharacterChange.bind(this));
     }
 
     /**
@@ -115,7 +118,7 @@ export class SourceService {
         }
 
         try {
-            console.debug('Starting initialization');
+            Logger.info('SourceService', 'Starting initialization');
             const sources = await DataLoader.loadSources();
 
             if (sources.book && Array.isArray(sources.book)) {
@@ -173,7 +176,7 @@ export class SourceService {
                         return groupPriority[a.group] - groupPriority[b.group];
                     });
 
-                console.debug('Valid sources after filtering:', validSources.map(s => s.id));
+                Logger.debug('SourceService', 'Valid sources after filtering', { sources: validSources.map(s => s.id) });
 
                 // Initialize available sources
                 for (const source of validSources) {
@@ -197,16 +200,16 @@ export class SourceService {
                 }
 
                 this._initialized = true;
-                console.debug('Initialization complete');
+                Logger.info('SourceService', 'Initialization complete', { sourceCount: this.availableSources.size });
 
                 // Emit initialization complete event
-                eventEmitter.emit('sourceManager:initialized', this);
+                eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'source', this);
             } else {
-                console.error('Invalid source data format:', sources);
+                Logger.error('SourceService', 'Invalid source data format', sources);
                 showNotification('Error loading source books: Invalid data format', 'error');
             }
         } catch (error) {
-            console.error('Error during initialization:', error);
+            Logger.error('SourceService', 'Error during initialization', error);
             showNotification('Error loading source books', 'error');
             throw error;
         }

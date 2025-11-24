@@ -112,4 +112,3 @@ class SpellService {
  * Global SpellManager instance
  */
 export const spellService = new SpellService();
-

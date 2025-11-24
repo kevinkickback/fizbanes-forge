@@ -2,7 +2,8 @@
  * AbilityScoreService.js
  * Manages ability score state and calculations
  */
-import { eventEmitter } from '../utils/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { CharacterManager } from '../application/CharacterManager.js';
 import { calculateModifier, formatModifier, calculatePointBuyTotal, calculateRemainingPoints, getPointBuyCost, POINT_BUY_BUDGET } from '../modules/abilities/AbilityCalculator.js';
 
@@ -39,7 +40,7 @@ class AbilityScoreService {
         this.abilityChoices = new Map();
 
         // Subscribe to character changes
-        eventEmitter.on('character:changed', this._handleCharacterChanged.bind(this));
+        eventBus.on(EVENTS.CHARACTER_CHANGED, this._handleCharacterChanged.bind(this));
     }
 
     /**
@@ -65,7 +66,7 @@ class AbilityScoreService {
     normalizeAbilityName(abilityName) {
         // Check if abilityName is a string before calling toLowerCase
         if (typeof abilityName !== 'string') {
-            console.warn(`Expected string for ability name but got ${typeof abilityName}:`, abilityName);
+            Logger.warn('AbilityScoreService', `Expected string for ability name but got ${typeof abilityName}`, { abilityName });
             return '';
         }
         return abilityName ? abilityName.toLowerCase() : '';
@@ -185,7 +186,7 @@ class AbilityScoreService {
         const character = CharacterManager.getCurrentCharacter();
 
         if (!character) {
-            console.error('No character selected for ability score update');
+            Logger.error('AbilityScoreService', 'No character selected for ability score update');
             return;
         }
 
@@ -279,14 +280,14 @@ class AbilityScoreService {
 
         // Check if the value is in the standard array
         if (!this._standardArrayValues.includes(value)) {
-            console.error(`Value ${value} is not in the standard array`);
+            Logger.error('AbilityScoreService', `Value ${value} is not in the standard array`);
             return false;
         }
 
         // Check if this value is already assigned to another ability
         if (this.isStandardArrayValueAssigned(value) &&
             this._assignedStandardArrayValues[normalizedAbility] !== value) {
-            console.error(`Value ${value} is already assigned to another ability`);
+            Logger.error('AbilityScoreService', `Value ${value} is already assigned to another ability`);
             return false;
         }
 
@@ -344,7 +345,7 @@ class AbilityScoreService {
     setRacialAbilityChoices(choices) {
         const character = CharacterManager.getCurrentCharacter();
         if (!character?.race) {
-            console.error('No character or race selected for ability choice');
+            Logger.error('AbilityScoreService', 'No character or race selected for ability choice');
             return;
         }
 

@@ -3,7 +3,10 @@
  * Manager for managing proficiencies and proficiency bonuses
  */
 
-import { eventEmitter } from '../utils/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
+import { Result } from '../infrastructure/Result.js';
+import { AppState } from '../application/AppState.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { ProficiencyCore } from '../core/Proficiency.js';
 
 /**
@@ -47,11 +50,12 @@ export class ProficiencyService {
      */
     async initialize() {
         if (this._initialized) {
+            Logger.debug('ProficiencyService', 'Already initialized');
             return;
         }
 
         try {
-            console.debug('Initializing proficiency manager');
+            Logger.info('ProficiencyService', 'Initializing proficiency manager');
 
             // Cache commonly used data
             this._skills = await this.getAvailableSkills();
@@ -59,9 +63,14 @@ export class ProficiencyService {
             this._languages = await this.getAvailableLanguages();
 
             this._initialized = true;
-            eventEmitter.emit('proficiencyManager:initialized', this);
+            Logger.info('ProficiencyService', 'Proficiency manager initialized successfully', {
+                skillCount: this._skills?.length,
+                toolCount: this._tools?.length,
+                languageCount: this._languages?.length
+            });
+            eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'proficiency', this);
         } catch (error) {
-            console.error('Failed to initialize proficiency manager:', error);
+            Logger.error('ProficiencyService', 'Failed to initialize proficiency manager', error);
             throw error;
         }
     }

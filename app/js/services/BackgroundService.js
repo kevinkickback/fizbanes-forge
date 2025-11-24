@@ -34,7 +34,7 @@ class BackgroundService {
         }
 
         Logger.info('BackgroundService', 'Initializing background data');
-        
+
         try {
             this._backgroundData = await DataLoader.loadBackgrounds();
             Logger.info('BackgroundService', 'Backgrounds loaded successfully', { count: this._backgroundData.background?.length });
@@ -117,4 +117,3 @@ class BackgroundService {
 }
 
 export const backgroundService = new BackgroundService();
-

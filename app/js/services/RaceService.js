@@ -34,7 +34,7 @@ class RaceService {
         }
 
         Logger.info('RaceService', 'Initializing race data');
-        
+
         try {
             // Load race data
             this._raceData = await DataLoader.loadRaces();
@@ -256,4 +256,3 @@ class RaceService {
 }
 
 export const raceService = new RaceService();
-

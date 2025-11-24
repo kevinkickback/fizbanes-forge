@@ -2,9 +2,12 @@
  * SettingsService.js
  * Manages application settings and configuration
  */
+import { Logger } from '../infrastructure/Logger.js';
+import { Result } from '../infrastructure/Result.js';
+import { AppState } from '../application/AppState.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 import { storage } from '../core/Storage.js';
-import { eventEmitter } from '../utils/EventBus.js';
 
 /**
  * Manages application settings and configuration
@@ -29,16 +32,18 @@ export class SettingsService {
      */
     async initialize() {
         if (this._initialized) {
+            Logger.debug('SettingsService', 'Already initialized');
             return;
         }
 
         try {
-            console.debug('Initializing settings manager');
+            Logger.info('SettingsService', 'Initializing settings manager');
 
             this._initialized = true;
-            eventEmitter.emit('settingsService:initialized', this);
+            eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'settings', this);
+            Logger.info('SettingsService', 'Settings manager initialized successfully');
         } catch (error) {
-            console.error('Error initializing settings manager:', error);
+            Logger.error('SettingsService', 'Error initializing settings manager', error);
             showNotification('Failed to initialize settings', 'danger');
             throw error;
         }
@@ -57,7 +62,7 @@ export class SettingsService {
             // Set up event listeners for the page elements
             this.initializeEventListeners();
         } catch (error) {
-            console.error('Error initializing settings page:', error);
+            Logger.error('SettingsService', 'Error initializing settings page', error);
             showNotification('Failed to initialize settings page', 'danger');
         }
     }
@@ -76,7 +81,7 @@ export class SettingsService {
                 saveLocationElement.textContent = currentPath || 'Using default save location';
             }
         } catch (error) {
-            console.error('Error updating save path display:', error);
+            Logger.error('SettingsService', 'Error updating save path display', error);
             showNotification('Error updating save path display', 'error');
         }
     }
@@ -101,11 +106,11 @@ export class SettingsService {
                             if (saveResult.success) {
                                 showNotification('Save path updated successfully', 'success');
                                 await this.updateSavePathDisplay();
-                                eventEmitter.emit('settings:savePathChanged', result.path);
+                                eventBus.emit('settings:savePathChanged', result.path);
                             }
                         }
                     } catch (error) {
-                        console.error('Error selecting folder:', error);
+                        Logger.error('SettingsService', 'Error selecting folder', error);
                         showNotification('Error selecting folder', 'error');
                     }
                 });
@@ -119,16 +124,16 @@ export class SettingsService {
                         if (saveResult.success) {
                             showNotification('Save path reset successfully', 'success');
                             await this.updateSavePathDisplay();
-                            eventEmitter.emit('settings:savePathReset');
+                            eventBus.emit('settings:savePathReset');
                         }
                     } catch (error) {
-                        console.error('Error resetting save path:', error);
+                        Logger.error('SettingsService', 'Error resetting save path', error);
                         showNotification('Error resetting save path', 'error');
                     }
                 });
             }
         } catch (error) {
-            console.error('Error initializing settings event listeners:', error);
+            Logger.error('SettingsService', 'Error initializing settings event listeners', error);
             showNotification('Failed to initialize settings controls', 'danger');
         }
     }
