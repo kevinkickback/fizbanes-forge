@@ -17,6 +17,7 @@ import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { CharacterSchema } from './CharacterSchema.js';
+import { Character } from './Character.js';
 
 class CharacterManagerImpl {
     /**
@@ -29,7 +30,7 @@ class CharacterManagerImpl {
 
         try {
             // Create character from schema
-            const character = CharacterSchema.create();
+            const characterData = CharacterSchema.create();
 
             // Generate UUID
             const uuidResult = await window.electron.invoke('character:generateUUID');
@@ -37,15 +38,18 @@ class CharacterManagerImpl {
                 return Result.err('Failed to generate character ID');
             }
 
-            character.id = uuidResult.data;
-            character.name = name;
+            characterData.id = uuidResult.data;
+            characterData.name = name;
 
             // Validate
-            const validation = CharacterSchema.validate(character);
+            const validation = CharacterSchema.validate(characterData);
             if (!validation.valid) {
                 Logger.warn('CharacterManager', 'Validation failed', validation.errors);
                 return Result.err(`Invalid character: ${validation.errors.join(', ')}`);
             }
+
+            // Convert to Character instance to enable domain methods
+            const character = new Character(characterData);
 
             // Update state
             AppState.setCurrentCharacter(character);
@@ -79,19 +83,22 @@ class CharacterManagerImpl {
             }
 
             const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
-            const character = characters.find(c => c.id === id);
+            const characterData = characters.find(c => c.id === id);
 
-            if (!character) {
+            if (!characterData) {
                 Logger.warn('CharacterManager', 'Character not found', { id });
                 return Result.err('Character not found');
             }
 
             // Validate
-            const validation = CharacterSchema.validate(character);
+            const validation = CharacterSchema.validate(characterData);
             if (!validation.valid) {
                 Logger.warn('CharacterManager', 'Loaded character invalid', validation.errors);
                 return Result.err(`Invalid character data: ${validation.errors.join(', ')}`);
             }
+
+            // Convert to Character instance to enable domain methods
+            const character = new Character(characterData);
 
             // Update state
             AppState.setCurrentCharacter(character);

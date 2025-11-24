@@ -211,7 +211,7 @@ class RaceService {
         this._selectedSubrace = null;
 
         if (this._selectedRace) {
-            eventEmitter.emit('race:selected', this._selectedRace);
+            eventBus.emit('race:selected', this._selectedRace);
         }
 
         return this._selectedRace;
@@ -232,7 +232,7 @@ class RaceService {
         );
 
         if (this._selectedSubrace) {
-            eventEmitter.emit('subrace:selected', this._selectedSubrace);
+            eventBus.emit('subrace:selected', this._selectedSubrace);
         }
 
         return this._selectedSubrace;

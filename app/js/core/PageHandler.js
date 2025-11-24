@@ -10,6 +10,11 @@ import { AppState } from './AppState.js';
 import { Modal } from './Modal.js';
 import { settingsService } from '../services/SettingsService.js';
 import { showNotification } from '../utils/Notifications.js';
+import { RaceCard } from '../modules/race/RaceCard.js';
+import { ClassCard } from '../modules/class/ClassCard.js';
+import { BackgroundCard } from '../modules/background/BackgroundCard.js';
+import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
+import { ProficiencyCard } from '../modules/proficiencies/ProficiencyCard.js';
 
 class PageHandlerImpl {
     constructor() {
@@ -388,11 +393,18 @@ class PageHandlerImpl {
         Logger.info('PageHandler', 'Initializing build page');
 
         try {
-            // Build page initialization is handled by individual card components
-            // which listen for page load and character change events
-            Logger.debug('PageHandler', 'Build page initialized');
+            // Initialize all build page cards
+            // These components will handle populating dropdowns and fields based on character data
+            new RaceCard();
+            new ClassCard();
+            new BackgroundCard();
+            new AbilityScoreCard();
+            new ProficiencyCard();
+
+            Logger.info('PageHandler', 'Build page cards initialized');
         } catch (error) {
             Logger.error('PageHandler', 'Error initializing build page', error);
+            showNotification('Error initializing build page', 'error');
         }
     }
 }

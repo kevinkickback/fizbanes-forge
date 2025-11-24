@@ -6,6 +6,7 @@
 
 import { classService } from '../../services/ClassService.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
@@ -106,7 +107,7 @@ export class ClassCard {
             // Populate class dropdown first
             await this._populateClassSelect();
 
-            const character = characterLifecycle?.currentCharacter;
+            const character = AppState.getCurrentCharacter();
             if (!character?.class?.name || !character?.class?.source) {
                 return; // No saved class to load
             }

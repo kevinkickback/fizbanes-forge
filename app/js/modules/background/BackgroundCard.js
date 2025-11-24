@@ -105,7 +105,7 @@ export class BackgroundCard extends BaseCard {
      */
     async _loadSavedBackgroundSelection() {
         try {
-            const character = characterLifecycle?.currentCharacter;
+            const character = AppState.getCurrentCharacter();
             if (!character?.background?.name) {
                 return; // No saved background to load
             }

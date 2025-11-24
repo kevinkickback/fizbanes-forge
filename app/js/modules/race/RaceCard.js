@@ -6,6 +6,7 @@
 
 import { raceService } from '../../services/RaceService.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
@@ -98,7 +99,7 @@ export class RaceCard {
             // Populate race dropdown first
             await this._populateRaceSelect();
 
-            const character = characterLifecycle?.currentCharacter;
+            const character = AppState.getCurrentCharacter();
             if (!character?.race?.name || !character?.race?.source) {
                 return; // No saved race to load
             }
