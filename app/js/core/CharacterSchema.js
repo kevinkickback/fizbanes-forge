@@ -72,7 +72,7 @@ export const CharacterSchema = {
 
             // Metadata
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            lastModified: new Date().toISOString()
         };
     },
 
@@ -149,11 +149,11 @@ export const CharacterSchema = {
     },
 
     /**
-     * Update the updatedAt timestamp.
+     * Update the lastModified timestamp.
      * @param {object} character - Character object
      */
     touch(character) {
-        character.updatedAt = new Date().toISOString();
+        character.lastModified = new Date().toISOString();
         Logger.debug('CharacterSchema', 'Character touched', { id: character.id });
     }
 };

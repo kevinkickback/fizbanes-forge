@@ -6,6 +6,7 @@
 import { Logger } from '../infrastructure/Logger.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { CharacterManager } from './CharacterManager.js';
+import { AppState } from './AppState.js';
 import { Modal } from './Modal.js';
 import { settingsService } from '../services/SettingsService.js';
 import { showNotification } from '../utils/Notifications.js';
@@ -41,6 +42,12 @@ class PageHandlerImpl {
         Logger.info('PageHandler', 'Handling page loaded', { pageName });
 
         try {
+            // Clean up home page listeners when leaving home
+            if (pageName !== 'home' && this._homeCharacterSelectedHandler) {
+                eventBus.off(EVENTS.CHARACTER_SELECTED, this._homeCharacterSelectedHandler);
+                this._homeCharacterSelectedHandler = null;
+            }
+
             switch (pageName) {
                 case 'home':
                     await this.initializeHomePage();
@@ -105,6 +112,20 @@ class PageHandlerImpl {
                 });
             }
 
+            // Listen for character selection to update the active badge in real-time
+            // Remove any existing listener to avoid duplicates
+            eventBus.off(EVENTS.CHARACTER_SELECTED, this._homeCharacterSelectedHandler);
+
+            // Store the handler so we can remove it later
+            this._homeCharacterSelectedHandler = async () => {
+                const reloadResult = await CharacterManager.loadCharacterList();
+                if (reloadResult.isOk()) {
+                    await this.renderCharacterList(reloadResult.value);
+                }
+            };
+
+            eventBus.on(EVENTS.CHARACTER_SELECTED, this._homeCharacterSelectedHandler);
+
         } catch (error) {
             Logger.error('PageHandler', 'Error initializing home page', error);
             showNotification('Error loading home page', 'error');
@@ -139,8 +160,12 @@ class PageHandlerImpl {
             topButtonRow.style.display = '';
         }
 
+        // Get the currently active character ID
+        const currentCharacter = AppState.getCurrentCharacter();
+        const activeCharacterId = currentCharacter?.id;
+
         characterList.innerHTML = characters.map(character => {
-            const isActive = character.isActive || false;
+            const isActive = character.id === activeCharacterId;
             const characterClass = character.class?.name || 'No Class';
             const characterRace = character.race?.name || 'No Race';
             const characterLevel = character.level || character.class?.level || 1;

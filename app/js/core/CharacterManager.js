@@ -135,7 +135,7 @@ class CharacterManagerImpl {
             }
 
             // Save via IPC
-            const saveResult = await window.electron.invoke('character:save', character.id, character);
+            const saveResult = await window.electron.invoke('character:save', character);
 
             if (!saveResult.success) {
                 return Result.err(saveResult.error || 'Save failed');

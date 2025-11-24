@@ -531,6 +531,7 @@ body {
 .character-card.selected {
 	border-color: var(--accent-color);
 	background: var(--secondary-color);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--accent-color) 25%, transparent);
 }
 
 .active-profile-badge {
