@@ -100,10 +100,10 @@ class ClassService {
 
             // Store in AppState
             AppState.setLoadedData('classes', this._classData);
-            
+
             // Emit event
             eventBus.emit(EVENTS.DATA_LOADED, 'classes', this._classData.class);
-            
+
             return Result.ok(true);
         } catch (error) {
             Logger.error('ClassService', 'Failed to initialize class data', error);
@@ -223,7 +223,7 @@ class ClassService {
      */
     selectClass(className, source = 'PHB') {
         Logger.debug('ClassService', 'Selecting class', { className, source });
-        
+
         this._selectedClass = this.getClass(className, source);
         this._selectedSubclass = null;
 

@@ -111,7 +111,7 @@ async function _initializeCoreComponents() {
 
     try {
         Logger.info('AppInitializer', 'Initializing core components with NEW architecture');
-        
+
         // Define components and their initialization sequence
         const components = [
             { name: 'text processor', init: () => textProcessor.initialize() },
@@ -136,13 +136,13 @@ async function _initializeCoreComponents() {
 
         // Set overall success based on whether any critical errors occurred
         result.success = result.errors.length === 0;
-        
+
         Logger.info('AppInitializer', 'Core components initialized', {
             success: result.success,
             loaded: result.loadedComponents.length,
             errors: result.errors.length
         });
-        
+
         return result;
     } catch (error) {
         console.error('Unexpected error during core component initialization:', error);

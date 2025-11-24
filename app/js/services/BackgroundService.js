@@ -4,8 +4,11 @@
  * Works directly with JSON data from DataUtil - no unnecessary transformations.
  */
 
+import { Logger } from '../infrastructure/Logger.js';
+import { Result } from '../infrastructure/Result.js';
+import { AppState } from '../application/AppState.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
-import { eventEmitter } from '../utils/EventBus.js';
 
 /**
  * Manages character background selection and provides access to background data
@@ -26,15 +29,20 @@ class BackgroundService {
     async initialize() {
         // Skip if already initialized
         if (this._backgroundData) {
+            Logger.debug('BackgroundService', 'Already initialized');
             return true;
         }
 
+        Logger.info('BackgroundService', 'Initializing background data');
+        
         try {
             this._backgroundData = await DataLoader.loadBackgrounds();
-            eventEmitter.emit('backgrounds:loaded', this._backgroundData.background);
+            Logger.info('BackgroundService', 'Backgrounds loaded successfully', { count: this._backgroundData.background?.length });
+            AppState.setLoadedData('backgrounds', this._backgroundData.background);
+            eventBus.emit(EVENTS.DATA_LOADED, 'backgrounds', this._backgroundData.background);
             return true;
         } catch (error) {
-            console.error('Failed to initialize background data:', error);
+            Logger.error('BackgroundService', 'Failed to initialize background data', error);
             return false;
         }
     }

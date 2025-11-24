@@ -3,7 +3,10 @@
  * Manages item data and operations for the character builder
  */
 
-import { eventEmitter } from '../utils/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
+import { Result } from '../infrastructure/Result.js';
+import { AppState } from '../application/AppState.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /**
