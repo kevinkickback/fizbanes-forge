@@ -133,7 +133,7 @@ class NavigationControllerImpl {
         const route = navResult.value;
 
         // Load and render the page
-        await this.loadAndRenderPage(route.template);
+        await this.loadAndRenderPage(route.template, page);
 
         // Update navigation UI
         this.updateNavButtons(page);
@@ -142,9 +142,10 @@ class NavigationControllerImpl {
     /**
      * Load and render a page template.
      * @param {string} template - Template filename
+     * @param {string} pageName - Name of the page being loaded
      */
-    async loadAndRenderPage(template) {
-        Logger.debug('NavigationController', 'Loading page', { template });
+    async loadAndRenderPage(template, pageName) {
+        Logger.debug('NavigationController', 'Loading page', { template, pageName });
 
         const loadResult = await PageLoader.loadAndRender(template);
 
@@ -154,7 +155,10 @@ class NavigationControllerImpl {
             return;
         }
 
-        Logger.info('NavigationController', 'Page loaded successfully', { template });
+        Logger.info('NavigationController', 'Page loaded successfully', { template, pageName });
+
+        // Emit PAGE_LOADED event so page-specific handlers can initialize
+        eventBus.emit(EVENTS.PAGE_LOADED, pageName);
     }
 
     /**

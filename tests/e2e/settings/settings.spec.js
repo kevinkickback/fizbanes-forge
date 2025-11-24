@@ -140,7 +140,7 @@ test.describe('Settings Management', () => {
                 // If click fails, that's okay - settings might not have visible checkboxes
             }
         }
-        
+
         // App should remain functional
         const mainContent = window.locator('#pageContent');
         await expect(mainContent).toBeVisible();

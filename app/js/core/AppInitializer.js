@@ -23,6 +23,7 @@ import { Logger } from '../infrastructure/Logger.js';
 import { AppState } from './AppState.js';
 import { NavigationController } from './NavigationController.js';
 import { CharacterManager } from './CharacterManager.js';
+import { PageHandler } from './PageHandler.js';
 
 // Service imports
 import { textProcessor } from '../utils/TextProcessor.js';
@@ -111,6 +112,7 @@ async function _initializeCoreComponents() {
         // Define components and their initialization sequence
         const components = [
             { name: 'text processor', init: () => textProcessor.initialize() },
+            { name: 'page handler', init: () => PageHandler.initialize() },
             { name: 'navigation controller', init: () => NavigationController.initialize() },
             { name: 'settings service', init: () => settingsService.initialize() }
         ];

@@ -46,7 +46,7 @@ test.describe('Navigation', () => {
                 const content = document.querySelector('#pageContent');
                 return content ? content.innerHTML : '';
             });
-            
+
             // Build page should have some content
             expect(pageContent.length).toBeGreaterThan(100);
         }
