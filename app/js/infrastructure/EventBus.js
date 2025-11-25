@@ -80,7 +80,16 @@ export const EVENTS = {
     PROFICIENCY_OPTIONAL_CONFIGURED: 'proficiency:optionalConfigured',
     PROFICIENCY_OPTIONAL_CLEARED: 'proficiency:optionalCleared',
     PROFICIENCY_OPTIONAL_SELECTED: 'proficiency:optionalSelected',
-    PROFICIENCY_OPTIONAL_DESELECTED: 'proficiency:optionalDeselected'
+    PROFICIENCY_OPTIONAL_DESELECTED: 'proficiency:optionalDeselected',
+
+    // Character creation events
+    CLASS_SELECTED: 'class:selected',
+    SUBCLASS_SELECTED: 'subclass:selected',
+    RACE_SELECTED: 'race:selected',
+    SUBRACE_SELECTED: 'subrace:selected',
+    BACKGROUND_SELECTED: 'background:selected',
+    NEW_CHARACTER_MODAL_OPENED: 'modal:newCharacterOpened',
+    NEW_CHARACTER_MODAL_CLOSED: 'modal:newCharacterClosed'
 };
 
 class EventBusImpl {

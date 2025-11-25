@@ -31,6 +31,7 @@ import { Character } from './Character.js';
 import { storage } from './Storage.js';
 import { showNotification } from '../utils/Notifications.js';
 import { SourceCard } from '../modules/sources/SourceCard.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 
 /**
  * Singleton instance for Modal class
@@ -69,6 +70,13 @@ export class Modal {
             onCreateCharacter: null
         };
 
+        /**
+         * Flag to track if button listeners have been set up
+         * @type {boolean}
+         * @private
+         */
+        this._buttonListenersSetup = false;
+
         _instance = this;
     }
 
@@ -85,20 +93,48 @@ export class Modal {
             // Store event handlers
             this._eventHandlers = handlers;
 
-            // Set up new character button
-            this._setupButtonEventListener('newCharacterBtn', (e) => {
-                e.preventDefault();
-                if (this._eventHandlers.onShowModal) {
-                    this._eventHandlers.onShowModal(e);
-                }
-            });
-
-            // Set up create character button in modal
-            this._setupButtonEventListener('createCharacterBtn', () => this._createCharacterFromModal());
+            // Button listener setup is now deferred to ensureInitialized()
+            // This is needed because Modal is instantiated before DOM is ready
 
         } catch (error) {
             console.error('Error setting up modal event listeners:', error);
         }
+    }
+
+    /**
+     * Ensures that button listeners have been set up
+     * Called when the home page initializes (guaranteed DOM is ready)
+     * @public
+     */
+    ensureInitialized() {
+        if (this._buttonListenersSetup) {
+            return; // Already initialized
+        }
+
+        try {
+            this._setupButtonEventListeners();
+            this._buttonListenersSetup = true;
+        } catch (error) {
+            console.error('Error initializing Modal button listeners:', error);
+        }
+    }
+
+    /**
+     * Sets up button event listeners for the new character modal
+     * @private
+     */
+    _setupButtonEventListeners() {
+        // Set up new character button
+        this._setupButtonEventListener('newCharacterBtn', (e) => {
+            e.preventDefault();
+            eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_OPENED);
+            if (this._eventHandlers.onShowModal) {
+                this._eventHandlers.onShowModal(e);
+            }
+        });
+
+        // Set up create character button in modal
+        this._setupButtonEventListener('createCharacterBtn', () => this._createCharacterFromModal());
     }
 
     /**

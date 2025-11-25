@@ -3,6 +3,8 @@
  * View component for subclass selection dropdown.
  */
 
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+
 /**
  * View for the subclass selection dropdown
  */
@@ -17,6 +19,31 @@ export class SubclassPickerView {
          * @private
          */
         this._subclassSelect = document.getElementById('subclassSelect');
+
+        // Set up event listeners
+        this._setupEventListeners();
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Setup
+    //-------------------------------------------------------------------------
+
+    /**
+     * Sets up event listeners for subclass selection changes
+     * @private
+     */
+    _setupEventListeners() {
+        if (this._subclassSelect) {
+            this._subclassSelect.addEventListener('change', (event) => {
+                const selectedValue = event.target.value;
+                if (selectedValue) {
+                    eventBus.emit(EVENTS.SUBCLASS_SELECTED, {
+                        name: selectedValue,
+                        value: selectedValue
+                    });
+                }
+            });
+        }
     }
 
     //-------------------------------------------------------------------------
@@ -95,13 +122,5 @@ export class SubclassPickerView {
      */
     triggerSubclassSelectChange() {
         this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    /**
-     * Add event listener to subclass select
-     * @param {Function} handler - Event handler function
-     */
-    onSubclassChange(handler) {
-        this._subclassSelect.addEventListener('change', handler);
     }
 }

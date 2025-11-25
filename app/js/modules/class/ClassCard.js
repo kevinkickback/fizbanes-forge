@@ -81,8 +81,13 @@ export class ClassCard {
      * @private
      */
     _setupEventListeners() {
-        this._cardView.onClassChange(event => this._handleClassChange(event));
-        this._subclassView.onSubclassChange(event => this._handleSubclassChange(event));
+        // Listen to view events via EventBus instead of callbacks
+        eventBus.on(EVENTS.CLASS_SELECTED, (classData) => {
+            this._handleClassChange({ target: { value: classData.value } });
+        });
+        eventBus.on(EVENTS.SUBCLASS_SELECTED, (subclassData) => {
+            this._handleSubclassChange({ target: { value: subclassData.value } });
+        });
         document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
 
         // Add direct listener for class:selected event

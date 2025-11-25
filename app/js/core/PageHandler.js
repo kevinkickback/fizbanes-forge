@@ -88,6 +88,10 @@ class PageHandlerImpl {
         Logger.info('PageHandler', 'Initializing home page');
 
         try {
+            // Ensure Modal button listeners are initialized (deferred until DOM is ready)
+            const modal = Modal.getInstance();
+            modal.ensureInitialized();
+
             // Get character list container and setup listeners once
             const characterList = document.getElementById('characterList');
             if (characterList) {
@@ -106,7 +110,6 @@ class PageHandlerImpl {
             }
 
             // Setup Modal event listeners for New Character and Import buttons
-            const modal = Modal.getInstance();
             modal.setupEventListeners({
                 onShowModal: async (e) => {
                     await modal.showNewCharacterModal(e);

@@ -5,6 +5,7 @@
  */
 
 import { textProcessor } from '../../utils/TextProcessor.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 
 /**
  * View for the class card's main display (dropdown + quick description)
@@ -27,6 +28,33 @@ export class ClassCardView {
          * @private
          */
         this._classQuickDesc = document.getElementById('classQuickDesc');
+
+        // Set up event listeners
+        this._setupEventListeners();
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Setup
+    //-------------------------------------------------------------------------
+
+    /**
+     * Sets up event listeners for class selection changes
+     * @private
+     */
+    _setupEventListeners() {
+        if (this._classSelect) {
+            this._classSelect.addEventListener('change', (event) => {
+                const selectedValue = event.target.value;
+                if (selectedValue) {
+                    const [className, source] = selectedValue.split('_');
+                    eventBus.emit(EVENTS.CLASS_SELECTED, {
+                        name: className,
+                        source: source,
+                        value: selectedValue
+                    });
+                }
+            });
+        }
     }
 
     //-------------------------------------------------------------------------
@@ -161,13 +189,5 @@ export class ClassCardView {
      */
     triggerClassSelectChange() {
         this._classSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    /**
-     * Add event listener to class select
-     * @param {Function} handler - Event handler function
-     */
-    onClassChange(handler) {
-        this._classSelect.addEventListener('change', handler);
     }
 }
