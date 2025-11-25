@@ -11,37 +11,7 @@ const path = require("node:path");
 const { v4: uuidv4 } = require("uuid");
 const { IPC_CHANNELS } = require("../channels");
 
-/**
- * Sanitizes a string to be safe for use as a filename across all OS platforms
- * Removes or replaces invalid characters and ensures compatibility
- * (Imported from app/js/utils/FileNameSanitizer.js)
- */
-function sanitizeFileName(filename, fallback = 'character') {
-    if (typeof filename !== 'string' || filename.trim().length === 0) {
-        return fallback;
-    }
-
-    // Remove invalid characters for Windows/Mac/Linux
-    // Invalid: < > : " / \ | ? *
-    // Also remove control characters and leading/trailing spaces
-    let sanitized = filename
-        .trim()
-        .replace(/[\x00-\x1f\x7f]/g, '')  // Remove control characters
-        .replace(/[<>:"/\\|?*]/g, '')      // Remove invalid filesystem characters
-        .replace(/\s+/g, ' ')              // Normalize whitespace
-        .trim();
-
-    // Remove leading dots and spaces (reserved in some filesystems)
-    sanitized = sanitized.replace(/^[\s.]+/, '');
-
-    // Limit length to 200 characters (well below OS limits which are typically 255)
-    if (sanitized.length > 200) {
-        sanitized = sanitized.substring(0, 200);
-    }
-
-    // If result is empty after sanitization, use fallback
-    return sanitized.length > 0 ? sanitized : fallback;
-}
+// Filename sanitation removed: files are saved using the character `id` only.
 
 function registerCharacterHandlers(preferencesManager, windowManager) {
     console.log("[CharacterHandlers] Registering character handlers");
@@ -64,10 +34,9 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                 );
 
                 const savePath = preferencesManager.getCharacterSavePath();
-                // Use sanitized character name as filename (with fallback to character ID)
-                const sanitizedName = sanitizeFileName(character.name || character.id, character.id);
-                console.log("[CharacterHandlers] Sanitized filename:", sanitizedName);
-                const filePath = path.join(savePath, `${sanitizedName}.ffp`);
+                // Save using the character ID as filename (simple, predictable)
+                const id = character.id || uuidv4();
+                const filePath = path.join(savePath, `${id}.ffp`);
 
                 await fs.writeFile(
                     filePath,
@@ -181,9 +150,9 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
             character.id = uuidv4();
 
             const savePath = preferencesManager.getCharacterSavePath();
-            // Use sanitized character name as filename (with fallback to character ID)
-            const sanitizedName = sanitizeFileName(character.name || character.id, character.id);
-            const targetFilePath = path.join(savePath, `${sanitizedName}.ffp`);
+            // Save imported character using the new ID as filename
+            const id = character.id;
+            const targetFilePath = path.join(savePath, `${id}.ffp`);
 
             await fs.writeFile(targetFilePath, JSON.stringify(character, null, 2));
 

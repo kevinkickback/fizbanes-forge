@@ -109,9 +109,8 @@ export class RaceCard {
 
             if (this._cardView.hasRaceOption(raceValue)) {
                 this._cardView.setSelectedRaceValue(raceValue);
-                // Don't trigger change event during initialization - this prevents
-                // CHARACTER_UPDATED from being emitted when just loading saved data
-                // this._cardView.triggerRaceSelectChange();
+                // Update UI from character data (skip unsaved event)
+                await this._handleRaceChange({ target: { value: raceValue } }, true);
 
                 // Also set subrace if one was selected
                 if (character.race.subrace) {
@@ -120,8 +119,8 @@ export class RaceCard {
 
                     if (this._subraceView.hasSubraceOption(character.race.subrace)) {
                         this._subraceView.setSelectedSubraceValue(character.race.subrace);
-                        // Don't trigger change event during initialization
-                        // this._subraceView.triggerSubraceSelectChange();
+                        // Optionally, update UI for subrace as well
+                        // await this._handleSubraceChange({ target: { value: character.race.subrace } }, true);
                     }
                 }
             } else {

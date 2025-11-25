@@ -117,8 +117,8 @@ export class ClassCard {
 
             if (this._cardView.hasClassOption(classValue)) {
                 this._cardView.setSelectedClassValue(classValue);
-                // Don't trigger change event during initialization
-                // this._cardView.triggerClassSelectChange();
+                // Update UI from character data (skip unsaved event)
+                await this._handleClassChange({ target: { value: classValue } }, true);
 
                 // Also set subclass if one was selected
                 if (character.class.subclass) {
@@ -127,8 +127,8 @@ export class ClassCard {
 
                     if (this._subclassView.hasSubclassOption(character.class.subclass)) {
                         this._subclassView.setSelectedSubclassValue(character.class.subclass);
-                        // Don't trigger change event during initialization
-                        // this._subclassView.triggerSubclassSelectChange();
+                        // Optionally, update UI for subclass as well
+                        // await this._handleSubclassChange({ target: { value: character.class.subclass } }, true);
                     }
                 }
             } else {
