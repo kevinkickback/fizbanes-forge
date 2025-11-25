@@ -8,6 +8,7 @@ import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { CharacterManager } from './CharacterManager.js';
 import { AppState } from './AppState.js';
 import { Modal } from './Modal.js';
+import { storage } from './Storage.js';
 import { settingsService } from '../services/SettingsService.js';
 import { showNotification } from '../utils/Notifications.js';
 import { RaceCard } from '../modules/race/RaceCard.js';
@@ -285,8 +286,12 @@ class PageHandlerImpl {
             e.stopPropagation();
             const characterId = exportBtn.dataset.characterId;
             if (characterId) {
-                // TODO: Implement export functionality
-                showNotification('Export functionality coming soon', 'info');
+                const success = await storage.exportCharacter(characterId);
+                if (success) {
+                    showNotification('Character exported successfully', 'success');
+                } else {
+                    showNotification('Failed to export character', 'error');
+                }
             }
         });
 
@@ -423,7 +428,8 @@ class PageHandlerImpl {
             new BackgroundCard();
 
             // AbilityScoreCard and ProficiencyCard require explicit initialize() call
-            const abilityScoreCard = new AbilityScoreCard();
+            // Use singleton instance to ensure proper state management across page navigations
+            const abilityScoreCard = AbilityScoreCard.getInstance();
             await abilityScoreCard.initialize();
 
             const proficiencyCard = new ProficiencyCard();

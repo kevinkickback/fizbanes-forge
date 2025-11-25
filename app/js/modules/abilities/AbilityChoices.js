@@ -140,6 +140,14 @@ class AbilityChoicesView {
             default: return ability.toUpperCase();
         }
     }
+
+    /**
+     * Updates the container reference for the view
+     * @param {HTMLElement} container - The new container element
+     */
+    setContainer(container) {
+        this._container = container;
+    }
 }
 
 let _instance = null;

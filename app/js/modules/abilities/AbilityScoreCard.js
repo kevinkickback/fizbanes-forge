@@ -49,11 +49,22 @@ class AbilityScoreCard {
      */
     async initialize() {
         try {
-            // Initialize view instances
+            // Re-fetch container references each time in case DOM has been rebuilt
+            this._container = document.querySelector('.ability-score-container');
+            this._bonusesContainer = document.getElementById('abilityBonusesNotes');
+
+            // Get or create view instances
             this._methodSwitcherView = methodSwitcherView(this._container);
             this._abilityScoreBoxView = abilityScoreBoxView(this._container);
             this._abilityChoicesView = abilityChoicesView(this._container);
             this._bonusNotesView = bonusNotesView(this._bonusesContainer);
+
+            // IMPORTANT: Update container references for singleton instances
+            // This ensures they reference the current DOM elements when re-initializing
+            this._methodSwitcherView.setContainer(this._container);
+            this._abilityScoreBoxView.setContainer(this._container);
+            this._abilityChoicesView.setContainer(this._container);
+            this._bonusNotesView.setContainer(this._bonusesContainer);
 
             // Sync with current character
             this._syncWithCurrentCharacter();
@@ -107,23 +118,47 @@ class AbilityScoreCard {
      */
     _setupEventListeners() {
         try {
+            // Remove any existing listeners first to prevent duplicates
+            if (this._abilityScoresChangedListener) {
+                document.removeEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
+            }
+            if (this._handleCharacterChanged) {
+                document.removeEventListener('characterChanged', this._handleCharacterChanged);
+            }
+            if (this._raceChangedListener) {
+                document.removeEventListener('raceChanged', this._raceChangedListener);
+            }
+            if (this._subraceChangedListener) {
+                document.removeEventListener('subraceChanged', this._subraceChangedListener);
+            }
+
             // Create ability scores changed listener
             this._abilityScoresChangedListener = () => {
                 this.update();
             };
-
-            // Remove any existing listeners first to prevent duplicates
-            document.removeEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
-            document.removeEventListener('characterChanged', this._handleCharacterChanged);
-
-            // Listen for ability score changes events from various sources
             document.addEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
-            document.addEventListener('characterChanged', this._handleCharacterChanged.bind(this));
+
+            // Create character changed listener
+            this._handleCharacterChanged = (event) => {
+                const character = CharacterManager.getCurrentCharacter();
+                if (!character) return;
+
+                // Sync with current character first
+                this._syncWithCurrentCharacter();
+
+                // Then render the UI
+                this.render();
+            };
+            document.addEventListener('characterChanged', this._handleCharacterChanged);
 
             // Remove existing click handlers on the container to prevent duplicates
             if (this._container) {
-                this._container.removeEventListener('click', this._handleContainerClicks);
-                this._container.removeEventListener('change', this._handleContainerChanges);
+                if (this._handleContainerClicks) {
+                    this._container.removeEventListener('click', this._handleContainerClicks);
+                }
+                if (this._handleContainerChanges) {
+                    this._container.removeEventListener('change', this._handleContainerChanges);
+                }
 
                 // Create bound handler references for delegation
                 this._handleContainerClicks = this._handleContainerClickEvent.bind(this);
@@ -138,14 +173,16 @@ class AbilityScoreCard {
             this._debouncedCustomInput = this._debounce(this._handleCustomInput.bind(this), 300);
 
             // Listen for race changes
-            document.addEventListener('raceChanged', () => {
+            this._raceChangedListener = () => {
                 this._updateAbilityScores();
-            });
+            };
+            document.addEventListener('raceChanged', this._raceChangedListener);
 
             // Listen for subrace changes
-            document.addEventListener('subraceChanged', () => {
+            this._subraceChangedListener = () => {
                 this._updateAbilityScores();
-            });
+            };
+            document.addEventListener('subraceChanged', this._subraceChangedListener);
         } catch (error) {
             console.error('Error setting up event listeners:', error);
         }
@@ -190,22 +227,6 @@ class AbilityScoreCard {
         else if (event.target.classList.contains('ability-custom-input')) {
             this._debouncedCustomInput(event);
         }
-    }
-
-    /**
-     * Handles character change events
-     * @param {Event} event - The character changed event
-     * @private
-     */
-    _handleCharacterChanged(event) {
-        const character = CharacterManager.getCurrentCharacter();
-        if (!character) return;
-
-        // Sync with current character first
-        this._syncWithCurrentCharacter();
-
-        // Then render the UI
-        this.render();
     }
 
     /**

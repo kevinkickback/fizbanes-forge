@@ -149,6 +149,14 @@ class BonusNotesView {
             default: return ability.toUpperCase();
         }
     }
+
+    /**
+     * Updates the container reference for the view
+     * @param {HTMLElement} bonusesContainer - The new container element
+     */
+    setContainer(bonusesContainer) {
+        this._bonusesContainer = bonusesContainer;
+    }
 }
 
 let _instance = null;
