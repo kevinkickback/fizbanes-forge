@@ -450,6 +450,124 @@ export class Modal {
     }
 
     /**
+     * Shows a modal for handling duplicate character ID during import
+     * @param {Object} options - Configuration options
+     * @param {string} options.characterName - Name of the character being imported
+     * @param {string} options.characterId - ID of the character that already exists
+     * @param {string} options.createdAt - Creation date of the existing character
+     * @param {string} options.lastModified - Last modified date of the existing character
+     * @returns {Promise<string>} Action chosen: 'overwrite', 'keepBoth', or 'cancel'
+     */
+    async showDuplicateIdModal(options) {
+        try {
+            const {
+                characterName,
+                characterId,
+                createdAt,
+                lastModified
+            } = options;
+
+            if (!characterName || !characterId) {
+                console.error('Missing required parameters for duplicate ID modal');
+                return 'cancel';
+            }
+
+            // Get modal elements
+            const modalElement = document.getElementById('confirmationModal');
+            const titleElement = document.getElementById('confirmationModalLabel');
+            const messageElement = document.getElementById('confirmationMessage');
+            const confirmButton = document.getElementById('confirmButton');
+            const cancelButton = modalElement?.querySelector('.btn-secondary');
+            const closeButton = modalElement?.querySelector('.btn-close');
+
+            if (!modalElement || !titleElement || !messageElement || !confirmButton || !cancelButton || !closeButton) {
+                console.error('One or more modal elements not found');
+                return 'cancel';
+            }
+
+            // Format the dates
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString() : 'Unknown';
+            const modifiedDate = lastModified ? new Date(lastModified).toLocaleDateString() : 'Unknown';
+
+            // Set content with icons
+            titleElement.textContent = 'Character Already Exists';
+            messageElement.innerHTML = `
+                A character with this file ID already exists. What would you like to do?<br><br>
+                <i class="fas fa-user" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">Character Name:</strong> ${characterName}<br>
+                <i class="fas fa-fingerprint" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">File ID:</strong> ${characterId}<br>
+                <i class="fas fa-clock" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">Date Created:</strong> ${createdDate}<br>
+                <i class="fas fa-pen" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">Last Modified:</strong> ${modifiedDate}
+            `;
+            confirmButton.textContent = 'Overwrite';
+
+            // Set button classes
+            confirmButton.className = 'btn btn-danger';
+
+            // Create a "Keep Both" button
+            const keepBothButton = document.createElement('button');
+            keepBothButton.type = 'button';
+            keepBothButton.className = 'btn btn-secondary';
+            keepBothButton.textContent = 'Keep Both';
+
+            // Hide the cancel button
+            cancelButton.style.display = 'none';
+
+            // Insert the button where the cancel button was
+            const buttonContainer = cancelButton.parentElement;
+            buttonContainer.insertBefore(keepBothButton, cancelButton);
+
+            // Create modal instance
+            const modal = new bootstrap.Modal(modalElement);
+
+            return new Promise((resolve) => {
+                const handleOverwrite = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve('overwrite');
+                };
+
+                const handleKeepBoth = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve('keepBoth');
+                };
+
+                const handleCloseIcon = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve('cancel');
+                };
+
+                const handleHidden = () => {
+                    cleanup();
+                    resolve('cancel');
+                };
+
+                const cleanup = () => {
+                    confirmButton.removeEventListener('click', handleOverwrite);
+                    keepBothButton.removeEventListener('click', handleKeepBoth);
+                    closeButton.removeEventListener('click', handleCloseIcon);
+                    modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+                    keepBothButton.remove(); // Remove the temporary button
+                    cancelButton.style.display = 'block'; // Restore cancel button for future use
+                };
+
+                // Add event listeners
+                confirmButton.addEventListener('click', handleOverwrite);
+                keepBothButton.addEventListener('click', handleKeepBoth);
+                closeButton.addEventListener('click', handleCloseIcon);
+                modalElement.addEventListener('hidden.bs.modal', handleHidden);
+
+                // Show modal
+                modal.show();
+            });
+        } catch (error) {
+            console.error('Error showing duplicate ID modal:', error);
+            return 'cancel';
+        }
+    }
+
+    /**
      * Gets the singleton instance of Modal
      * @returns {Modal} The singleton instance
      * @static

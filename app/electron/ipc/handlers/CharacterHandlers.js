@@ -13,6 +13,75 @@ const { IPC_CHANNELS } = require("../channels");
 
 // Filename sanitation removed: files are saved using the character `id` only.
 
+/**
+ * Validates character data structure in Node.js context
+ * Mirrors CharacterSchema.validate() from the renderer
+ * @param {object} character - Character object to validate
+ * @returns {object} Validation result { valid: boolean, errors: string[] }
+ */
+function validateCharacter(character) {
+    const errors = [];
+
+    if (!character) {
+        errors.push('Character object is required');
+        return { valid: false, errors };
+    }
+
+    // Required fields
+    if (!character.id) {
+        errors.push('Missing character ID');
+    }
+
+    // Character name is required
+    if (!character.name || character.name.trim() === '') {
+        errors.push('Missing character name');
+    }
+
+    // Level validation
+    if (typeof character.level !== 'number' || character.level < 1 || character.level > 20) {
+        errors.push('Level must be a number between 1 and 20');
+    }
+
+    // allowedSources can be an array or a Set
+    if (!Array.isArray(character.allowedSources) && !(character.allowedSources instanceof Set)) {
+        errors.push('allowedSources must be an array or Set');
+    }
+
+    // Ability scores validation
+    if (!character.abilityScores || typeof character.abilityScores !== 'object') {
+        errors.push('Missing or invalid abilityScores');
+    } else {
+        const requiredAbilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+        for (const ability of requiredAbilities) {
+            if (typeof character.abilityScores[ability] !== 'number') {
+                errors.push(`Missing or invalid ability score: ${ability}`);
+            }
+        }
+    }
+
+    // Proficiencies validation
+    if (!character.proficiencies || typeof character.proficiencies !== 'object') {
+        errors.push('Missing or invalid proficiencies');
+    }
+
+    // Hit points validation
+    if (!character.hitPoints || typeof character.hitPoints !== 'object') {
+        errors.push('Missing or invalid hitPoints');
+    } else {
+        if (typeof character.hitPoints.current !== 'number') {
+            errors.push('Missing or invalid hitPoints.current');
+        }
+        if (typeof character.hitPoints.max !== 'number') {
+            errors.push('Missing or invalid hitPoints.max');
+        }
+        if (typeof character.hitPoints.temp !== 'number') {
+            errors.push('Missing or invalid hitPoints.temp');
+        }
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
 function registerCharacterHandlers(preferencesManager, windowManager) {
     console.log("[CharacterHandlers] Registering character handlers");
 
@@ -128,29 +197,87 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     });
 
     // Import character
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async () => {
+    ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async (event, userChoice) => {
         try {
             console.log("[CharacterHandlers] Importing character");
 
-            const result = await dialog.showOpenDialog({
-                title: "Import Character",
-                filters: [{ name: "Fizbane Character", extensions: ["ffp"] }],
-                properties: ["openFile"],
-            });
+            let sourceFilePath = userChoice?.sourceFilePath;
+            let character = userChoice?.character;
+            let action = userChoice?.action;
 
-            if (result.canceled) {
+            // If no file selected yet, show dialog
+            if (!sourceFilePath) {
+                const result = await dialog.showOpenDialog({
+                    title: "Import Character",
+                    filters: [{ name: "Fizbane Character", extensions: ["ffp"] }],
+                    properties: ["openFile"],
+                });
+
+                if (result.canceled) {
+                    return { success: false, canceled: true };
+                }
+
+                sourceFilePath = result.filePaths[0];
+
+                // Validate file extension
+                if (!sourceFilePath.endsWith('.ffp')) {
+                    return { success: false, error: 'Invalid file format. Only .ffp files are supported.' };
+                }
+
+                // Read and parse file
+                const content = await fs.readFile(sourceFilePath, "utf8");
+                try {
+                    character = JSON.parse(content);
+                } catch (parseError) {
+                    return { success: false, error: 'Invalid file content. File does not contain valid JSON.' };
+                }
+
+                // Validate character data structure
+                const validation = validateCharacter(character);
+                if (!validation.valid) {
+                    return { success: false, error: `Invalid character data: ${validation.errors.join(', ')}` };
+                }
+
+                const savePath = preferencesManager.getCharacterSavePath();
+                const existingFilePath = path.join(savePath, `${character.id}.ffp`);
+
+                // Check if character with same ID already exists
+                try {
+                    await fs.access(existingFilePath);
+                    // File exists - read it and get creation time
+                    console.log("[CharacterHandlers] Character ID already exists:", character.id);
+                    const existingContent = await fs.readFile(existingFilePath, "utf8");
+                    const existingCharacter = JSON.parse(existingContent);
+
+                    // Get file creation time
+                    const stats = fssync.statSync(existingFilePath);
+                    const createdAt = stats.birthtime.toISOString();
+
+                    return {
+                        success: false,
+                        duplicateId: true,
+                        character: character,
+                        existingCharacter: { ...existingCharacter, createdAt },
+                        sourceFilePath: sourceFilePath,
+                        message: `A character with ID "${character.id}" already exists. What would you like to do?`
+                    };
+                } catch (err) {
+                    // File doesn't exist, proceed with import
+                }
+            }
+
+            // Handle user's choice for duplicate ID
+            if (action === 'overwrite') {
+                console.log("[CharacterHandlers] Overwriting existing character:", character.id);
+            } else if (action === 'keepBoth') {
+                console.log("[CharacterHandlers] Keeping both - generating new ID");
+                character.id = uuidv4();
+            } else if (action === 'cancel') {
+                console.log("[CharacterHandlers] Import canceled by user");
                 return { success: false, canceled: true };
             }
 
-            const sourceFilePath = result.filePaths[0];
-            const content = await fs.readFile(sourceFilePath, "utf8");
-            const character = JSON.parse(content);
-
-            // Generate new ID for imported character
-            character.id = uuidv4();
-
             const savePath = preferencesManager.getCharacterSavePath();
-            // Save imported character using the new ID as filename
             const id = character.id;
             const targetFilePath = path.join(savePath, `${id}.ffp`);
 

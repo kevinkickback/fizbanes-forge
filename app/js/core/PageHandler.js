@@ -88,6 +88,12 @@ class PageHandlerImpl {
         Logger.info('PageHandler', 'Initializing home page');
 
         try {
+            // Get character list container and setup listeners once
+            const characterList = document.getElementById('characterList');
+            if (characterList) {
+                this.setupCharacterCardListeners(characterList);
+            }
+
             // Load character list
             const result = await CharacterManager.loadCharacterList();
 
@@ -230,18 +236,17 @@ class PageHandlerImpl {
             `;
         }).join('');
 
-        // Setup event listeners for character cards
-        this.setupCharacterCardListeners(characterList);
-
         Logger.info('PageHandler', 'Character list rendered', { count: characters.length });
     }
 
     /**
-     * Setup event listeners for character card actions
+     * Setup event listeners for character card actions (initialized once)
      * @param {HTMLElement} container - The container with character cards
      */
     setupCharacterCardListeners(container) {
-        if (!container) return;
+        if (!container || container._listenersAttached) return;
+
+        container._listenersAttached = true;
 
         // Handle character card clicks to load the character
         container.addEventListener('click', async (e) => {
@@ -335,7 +340,7 @@ class PageHandlerImpl {
         try {
             Logger.info('PageHandler', 'Importing character');
 
-            const result = await window.characterStorage.importCharacter();
+            const result = await storage.importCharacter();
 
             if (result.success && result.character) {
                 showNotification('Character imported successfully', 'success');
@@ -347,6 +352,7 @@ class PageHandlerImpl {
                 }
             } else if (result.canceled) {
                 Logger.info('PageHandler', 'Import canceled');
+                showNotification('Import cancelled', 'info');
             } else {
                 showNotification('Failed to import character', 'error');
             }

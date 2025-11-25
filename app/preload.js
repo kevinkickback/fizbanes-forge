@@ -46,8 +46,8 @@ contextBridge.exposeInMainWorld("characterStorage", {
     exportCharacter: (id) => {
         return ipcRenderer.invoke("character:export", id);
     },
-    importCharacter: () => {
-        return ipcRenderer.invoke("character:import");
+    importCharacter: (userChoice) => {
+        return ipcRenderer.invoke("character:import", userChoice);
     },
     openFile: (filePath) => ipcRenderer.invoke("file:open", filePath),
     setSavePath: (path) => {

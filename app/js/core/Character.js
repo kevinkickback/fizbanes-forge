@@ -54,6 +54,7 @@ export class Character {
         this.subclass = data.subclass || '';
         this.background = data.background || '';
         this.level = data.level || 1;
+        this.createdAt = data.createdAt || new Date().toISOString();
         this.lastModified = data.lastModified || new Date().toISOString();
 
         // Initialize allowed sources with PHB by default, or from data
@@ -549,6 +550,7 @@ export class Character {
             allowedSources: Array.from(this.allowedSources || []),
             playerName: this.playerName,
             level: this.level,
+            createdAt: this.createdAt,
             lastModified: new Date().toISOString(),
             height: this.height || '',
             weight: this.weight || '',

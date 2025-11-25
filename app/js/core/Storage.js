@@ -150,7 +150,35 @@ export class Storage {
      */
     async importCharacter() {
         try {
-            const result = await window.characterStorage.importCharacter();
+            // First call to select and validate the file
+            let result = await window.characterStorage.importCharacter();
+
+            // If duplicate ID found, show modal and ask user what to do
+            if (result?.duplicateId) {
+                const Modal = (await import('./Modal.js')).Modal;
+                const modal = Modal.getInstance();
+
+                const action = await modal.showDuplicateIdModal({
+                    characterName: result.character.name,
+                    characterId: result.character.id,
+                    createdAt: result.existingCharacter?.createdAt,
+                    lastModified: result.existingCharacter?.lastModified
+                });
+
+                if (action === 'cancel') {
+                    return {
+                        success: false,
+                        character: null
+                    };
+                }
+
+                // Call import again with user's choice
+                result = await window.characterStorage.importCharacter({
+                    character: result.character,
+                    sourceFilePath: result.sourceFilePath,
+                    action: action
+                });
+            }
 
             if (result?.success && result.character) {
                 return {
