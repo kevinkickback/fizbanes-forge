@@ -5,6 +5,7 @@
  */
 
 import { textProcessor } from '../../utils/TextProcessor.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 
 /**
  * View for the race card's main display (dropdown + quick description)
@@ -27,6 +28,33 @@ export class RaceCardView {
          * @private
          */
         this._raceQuickDesc = document.getElementById('raceQuickDesc');
+
+        // Set up event listeners
+        this._setupEventListeners();
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Setup
+    //-------------------------------------------------------------------------
+
+    /**
+     * Sets up event listeners for race selection changes
+     * @private
+     */
+    _setupEventListeners() {
+        if (this._raceSelect) {
+            this._raceSelect.addEventListener('change', (event) => {
+                const selectedValue = event.target.value;
+                if (selectedValue) {
+                    const [raceName, source] = selectedValue.split('_');
+                    eventBus.emit(EVENTS.RACE_SELECTED, {
+                        name: raceName,
+                        source: source,
+                        value: selectedValue
+                    });
+                }
+            });
+        }
     }
 
     //-------------------------------------------------------------------------
@@ -155,13 +183,5 @@ export class RaceCardView {
      */
     triggerRaceSelectChange() {
         this._raceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    /**
-     * Add event listener to race select
-     * @param {Function} handler - Event handler function
-     */
-    onRaceChange(handler) {
-        this._raceSelect.addEventListener('change', handler);
     }
 }

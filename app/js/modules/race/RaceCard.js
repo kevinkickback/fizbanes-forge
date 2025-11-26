@@ -80,9 +80,26 @@ export class RaceCard {
      * @private
      */
     _setupEventListeners() {
-        this._cardView.onRaceChange(event => this._handleRaceChange(event));
-        this._subraceView.onSubraceChange(event => this._handleSubraceChange(event));
+        // Listen to view events via EventBus instead of callbacks
+        eventBus.on(EVENTS.RACE_SELECTED, (raceData) => {
+            this._handleRaceChange({ target: { value: raceData.value } });
+        });
+        eventBus.on(EVENTS.SUBRACE_SELECTED, (subraceData) => {
+            this._handleSubraceChange({ target: { value: subraceData.value } });
+        });
         document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
+
+        // Add direct listener for race:selected event from RaceService
+        document.addEventListener('race:selected', event => {
+            // RaceService.selectRace emits the race object directly
+            // We just need to trigger details update
+            const raceData = event.detail;
+            if (raceData) {
+                this.updateRaceDetails(raceData).catch(err =>
+                    console.error('Error handling race:selected event:', err)
+                );
+            }
+        });
     }
 
     //-------------------------------------------------------------------------
@@ -232,9 +249,6 @@ export class RaceCard {
                 return;
             }
 
-            // Set this race as the selected race in the race service
-            this._raceService.selectRace(raceName, source);
-
             // Check if there's a nameless subrace (base variant like Human PHB)
             const namelessSubrace = this._getNamelessSubrace(raceName, source);
 
@@ -282,8 +296,6 @@ export class RaceCard {
             let subraceData = null;
             if (subraceName) {
                 subraceData = this._raceService.getSubrace(raceName, subraceName, source);
-                // Also set the subrace in the race service
-                this._raceService.selectSubrace(subraceName);
             } else {
                 // If no subrace selected, check for nameless base variant
                 subraceData = this._getNamelessSubrace(raceName, source);
@@ -332,6 +344,30 @@ export class RaceCard {
     resetRaceDetails() {
         this._cardView.resetQuickDescription();
         this._detailsView.resetAllDetails();
+    }
+
+    /**
+     * Updates the display of race details for the selected race
+     * @param {Object} raceData - The race data to display
+     * @returns {Promise<void>}
+     */
+    async updateRaceDetails(raceData) {
+        if (!raceData) {
+            this.resetRaceDetails();
+            return;
+        }
+
+        // Get fluff data for quick description
+        const fluffData = this._raceService.getRaceFluff(raceData.name, raceData.source);
+
+        // Update the UI with the selected race data
+        await this._cardView.updateQuickDescription(raceData, fluffData);
+
+        // Check if there's a nameless subrace (base variant like Human PHB)
+        const namelessSubrace = this._getNamelessSubrace(raceData.name, raceData.source);
+
+        await this._detailsView.updateAllDetails(raceData, namelessSubrace);
+        await this._populateSubraceSelect(raceData);
     }
 
     /**

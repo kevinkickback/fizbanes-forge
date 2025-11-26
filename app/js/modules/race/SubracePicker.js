@@ -3,6 +3,8 @@
  * View component for subrace selection dropdown.
  */
 
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+
 /**
  * View for the subrace selection dropdown
  */
@@ -17,6 +19,31 @@ export class SubracePickerView {
          * @private
          */
         this._subraceSelect = document.getElementById('subraceSelect');
+
+        // Set up event listeners
+        this._setupEventListeners();
+    }
+
+    //-------------------------------------------------------------------------
+    // Event Setup
+    //-------------------------------------------------------------------------
+
+    /**
+     * Sets up event listeners for subrace selection changes
+     * @private
+     */
+    _setupEventListeners() {
+        if (this._subraceSelect) {
+            this._subraceSelect.addEventListener('change', (event) => {
+                const selectedValue = event.target.value;
+                if (selectedValue) {
+                    eventBus.emit(EVENTS.SUBRACE_SELECTED, {
+                        name: selectedValue,
+                        value: selectedValue
+                    });
+                }
+            });
+        }
     }
 
     //-------------------------------------------------------------------------
@@ -103,13 +130,5 @@ export class SubracePickerView {
      */
     triggerSubraceSelectChange() {
         this._subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    /**
-     * Add event listener to subrace select
-     * @param {Function} handler - Event handler function
-     */
-    onSubraceChange(handler) {
-        this._subraceSelect.addEventListener('change', handler);
     }
 }
