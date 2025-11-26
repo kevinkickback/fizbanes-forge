@@ -51,7 +51,7 @@ export class Character {
             level: 1
         };
 
-        this.subclass = data.subclass || '';
+        // Removed top-level subclass property; use class.subclass only
         this.background = data.background || '';
         this.level = data.level || 1;
         this.createdAt = data.createdAt || new Date().toISOString();

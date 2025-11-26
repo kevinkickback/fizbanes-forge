@@ -422,17 +422,17 @@ export class ClassCard {
             if (!classData) {
                 // Clear class
                 character.class = {
-                    level: 1
+                    level: 1,
+                    subclass: ''
                 };
-                character.subclass = '';
             } else {
                 // Set class
                 character.class = {
                     name: classData.name,
                     source: classData.source,
-                    level: 1
+                    level: 1,
+                    subclass: subclassName || character.class.subclass || ''
                 };
-                character.subclass = subclassName;
 
                 // Add proficiencies
                 this._updateProficiencies(classData);

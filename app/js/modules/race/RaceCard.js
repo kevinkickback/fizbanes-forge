@@ -472,7 +472,7 @@ export class RaceCard {
                 character.race = {
                     name: race.name,
                     source: race.source,
-                    subrace: subrace?.name || ''
+                    subrace: subrace?.name || character.race.subrace || ''
                 };
 
                 // Update character size and speed
