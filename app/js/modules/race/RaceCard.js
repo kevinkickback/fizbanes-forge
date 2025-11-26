@@ -87,18 +87,10 @@ export class RaceCard {
         eventBus.on(EVENTS.SUBRACE_SELECTED, (subraceData) => {
             this._handleSubraceChange({ target: { value: subraceData.value } });
         });
-        document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
 
-        // Add direct listener for race:selected event from RaceService
-        document.addEventListener('race:selected', event => {
-            // RaceService.selectRace emits the race object directly
-            // We just need to trigger details update
-            const raceData = event.detail;
-            if (raceData) {
-                this.updateRaceDetails(raceData).catch(err =>
-                    console.error('Error handling race:selected event:', err)
-                );
-            }
+        // Listen for character selection changes (when new character is loaded)
+        eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+            this._handleCharacterChanged();
         });
     }
 
@@ -316,16 +308,12 @@ export class RaceCard {
     }
 
     /**
-     * Handles character changed events
-     * @param {Event} event - The character changed event
+     * Handles character selection change events
      * @returns {Promise<void>}
      * @private
      */
-    async _handleCharacterChanged(event) {
+    async _handleCharacterChanged() {
         try {
-            const character = event.detail?.character;
-            if (!character) return;
-
             // Reload race selection to match character's race
             await this._loadSavedRaceSelection();
 

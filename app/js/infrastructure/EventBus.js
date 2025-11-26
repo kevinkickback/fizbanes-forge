@@ -89,7 +89,18 @@ export const EVENTS = {
     SUBRACE_SELECTED: 'subrace:selected',
     BACKGROUND_SELECTED: 'background:selected',
     NEW_CHARACTER_MODAL_OPENED: 'modal:newCharacterOpened',
-    NEW_CHARACTER_MODAL_CLOSED: 'modal:newCharacterClosed'
+    NEW_CHARACTER_MODAL_CLOSED: 'modal:newCharacterClosed',
+
+    // Data loading events
+    SPELLS_LOADED: 'spells:loaded',
+    ITEMS_LOADED: 'items:loaded',
+
+    // Settings events
+    SETTINGS_SAVE_PATH_CHANGED: 'settings:savePathChanged',
+    SETTINGS_SAVE_PATH_RESET: 'settings:savePathReset',
+
+    // Service lifecycle
+    SERVICE_INITIALIZED: 'service:initialized'
 };
 
 class EventBusImpl {

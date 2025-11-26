@@ -229,7 +229,7 @@ class ClassService {
 
         if (this._selectedClass) {
             Logger.info('ClassService', 'Class selected', { className, source });
-            eventBus.emit('class:selected', this._selectedClass);
+            eventBus.emit(EVENTS.CLASS_SELECTED, this._selectedClass);
         } else {
             Logger.warn('ClassService', 'Class not found', { className, source });
         }
@@ -258,7 +258,7 @@ class ClassService {
 
         if (this._selectedSubclass) {
             Logger.info('ClassService', 'Subclass selected', { subclassName });
-            eventBus.emit('subclass:selected', this._selectedSubclass);
+            eventBus.emit(EVENTS.SUBCLASS_SELECTED, this._selectedSubclass);
         } else {
             Logger.warn('ClassService', 'Subclass not found', { subclassName });
         }

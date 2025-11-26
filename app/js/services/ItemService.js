@@ -43,7 +43,7 @@ class ItemService {
                 baseItem: baseItems.baseitem || []
             };
 
-            eventBus.emit('items:loaded', this._itemData.item);
+            eventBus.emit(EVENTS.ITEMS_LOADED, this._itemData.item);
             return true;
         } catch (error) {
             console.error('Failed to initialize item data:', error);

@@ -93,7 +93,7 @@ class BackgroundService {
         this._selectedBackground = this.getBackground(backgroundName, source);
 
         if (this._selectedBackground) {
-            eventBus.emit('background:selected', this._selectedBackground);
+            eventBus.emit(EVENTS.BACKGROUND_SELECTED, this._selectedBackground);
         }
 
         return this._selectedBackground;

@@ -106,7 +106,7 @@ export class SettingsService {
                             if (saveResult.success) {
                                 showNotification('Save path updated successfully', 'success');
                                 await this.updateSavePathDisplay();
-                                eventBus.emit('settings:savePathChanged', result.path);
+                                eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_CHANGED, result.path);
                             }
                         }
                     } catch (error) {
@@ -124,7 +124,7 @@ export class SettingsService {
                         if (saveResult.success) {
                             showNotification('Save path reset successfully', 'success');
                             await this.updateSavePathDisplay();
-                            eventBus.emit('settings:savePathReset');
+                            eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_RESET);
                         }
                     } catch (error) {
                         Logger.error('SettingsService', 'Error resetting save path', error);

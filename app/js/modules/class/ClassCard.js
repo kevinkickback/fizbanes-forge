@@ -88,13 +88,10 @@ export class ClassCard {
         eventBus.on(EVENTS.SUBCLASS_SELECTED, (subclassData) => {
             this._handleSubclassChange({ target: { value: subclassData.value } });
         });
-        document.addEventListener('characterChanged', event => this._handleCharacterChanged(event));
 
-        // Add direct listener for class:selected event
-        document.addEventListener('class:selected', event => {
-            this.updateClassDetails(event.detail).catch(err =>
-                console.error('Error handling class:selected event:', err)
-            );
+        // Listen for character selection changes (when new character is loaded)
+        eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+            this._handleCharacterChanged();
         });
     }
 
@@ -312,11 +309,8 @@ export class ClassCard {
      * @returns {Promise<void>}
      * @private
      */
-    async _handleCharacterChanged(event) {
+    async _handleCharacterChanged() {
         try {
-            const character = event.detail?.character;
-            if (!character) return;
-
             // Reload class selection to match character's class
             await this._loadSavedClassSelection();
 

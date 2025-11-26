@@ -39,8 +39,8 @@ class AbilityScoreService {
         // Map to store ability choices
         this.abilityChoices = new Map();
 
-        // Subscribe to character changes
-        eventBus.on(EVENTS.CHARACTER_CHANGED, this._handleCharacterChanged.bind(this));
+        // Subscribe to character selection (when a character is loaded or selected)
+        eventBus.on(EVENTS.CHARACTER_SELECTED, this._handleCharacterChanged.bind(this));
     }
 
     /**
