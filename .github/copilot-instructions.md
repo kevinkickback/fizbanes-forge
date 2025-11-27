@@ -1,68 +1,66 @@
-## Fizbane's Forge – AI Coding Assistant Guide
+## Fizbane's Forge – AI Coding Agent Guide
 
-Concise, project-specific instructions to help AI agents work productively. Focus on existing patterns; do not invent new architecture without need.
+Concise, actionable instructions for AI agents to work productively in this Electron codebase. Focus on real, discoverable patterns—do not invent new architecture.
 
-### 1. Big Picture Architecture
-- Electron app: main process entry `app/main.js` delegates to `WindowManager`, `PreferencesManager`, `IPCRegistry` (composition over monolith).
-- Renderer served from `app/index.html` with isolated context (`contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`). All privileged operations must go through preload + IPC.
-- Preload script (`app/preload.js`) exposes two namespaces: `electron` (generic invoke + utility functions) and `characterStorage` (CRUD + export/import). Keep exposure minimal—add new surface only when necessary.
-- Domain data (rules, items, etc.) lives in `app/data/**` consumed via IPC data handlers (`data:loadJson`). Avoid direct FS access from renderer.
+### 1. Architecture Overview
+- **Main process**: Entry at `app/main.js`, delegates to `WindowManager`, `PreferencesManager`, and `IPCRegistry` for modularity. Avoid monolithic logic.
+- **Renderer**: Served from `app/index.html` with strict isolation (`contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`). All privileged actions go through preload + IPC.
+- **Preload**: `app/preload.js` exposes only two namespaces: `electron` (generic IPC/invoke/utilities) and `characterStorage` (CRUD, import/export). Keep surface minimal; add only when necessary.
+- **Domain data**: All rules/items/etc. live in `app/data/**` and are loaded via IPC (`data:loadJson`). Never access filesystem directly from renderer.
 
 ### 2. IPC & Preload Patterns
-- Channel naming: `domain:action` (e.g. `character:save`, `file:open`, `settings:getPath`, `data:loadJson`). Follow lowercase, noun domain, verb action.
-- Central registration in `app/electron/ipc/IPCRegistry.js` via domain-specific handler modules under `app/electron/ipc/handlers/`. When adding a new domain, create `handlers/<Domain>Handlers.js` exporting `register<Domain>Handlers` then call it inside `IPCRegistry.registerAll()`.
-- Expose new IPC functions through `preload.js`—never directly from renderer. Group under existing namespaces or create a new namespaced object to limit surface area.
+- **Channel naming**: Always `domain:action` (e.g., `character:save`, `file:open`, `settings:getPath`). Lowercase, noun domain, verb action.
+- **Registration**: All IPC channels registered in `app/electron/ipc/IPCRegistry.js` via handler modules in `app/electron/ipc/handlers/`. New domains: create `handlers/<Domain>Handlers.js`, export `register<Domain>Handlers`, and call in `IPCRegistry.registerAll()`.
+- **Exposure**: IPC functions must be exposed through preload, grouped under existing namespaces or new ones if needed. Never expose directly from renderer.
 
 ### 3. Window & Preferences Management
-- `WindowManager` handles lifecycle, DevTools (guarded by `debugMode`), and persists bounds via `PreferencesManager.setWindowBounds(bounds)` on close. Modify window behavior through `WindowManager` methods (do not access `BrowserWindow` directly from outside).
-- `PreferencesManager` stores JSON in userData (`preferences.json`). Add new preferences by extending `defaults` and implementing dedicated get/set helpers if they have logic (e.g. `getCharacterSavePath`). Always call `savePreferences()` indirectly via `set()`; do not write the file manually.
-- Default preference keys: `characterSavePath`, `lastOpenedCharacter`, `windowBounds`, `theme`, `logLevel`, `autoSave`, `autoSaveInterval`.
+- **WindowManager**: Handles window lifecycle, DevTools (guarded by `debugMode`), and persists bounds via `PreferencesManager.setWindowBounds(bounds)`.
+- **PreferencesManager**: Stores JSON in userData (`preferences.json`). Add new keys by extending `defaults` and implementing dedicated get/set helpers. Always use `set()` to save; never write file directly.
+- **Default keys**: `characterSavePath`, `lastOpenedCharacter`, `windowBounds`, `theme`, `logLevel`, `autoSave`, `autoSaveInterval`.
 
 ### 4. State & Event System (Renderer)
-- Global UI/application state via `AppState` (in `app/js/core/AppState.js` referenced by tests). Operations: `getState()`, `setState(partial)`, `get(path)`, domain helpers (`setCurrentCharacter`, `setCurrentPage`, etc.).
-- Event emission pattern: Emit change events only when value actually changes (tests assert no event on idempotent sets). Mirror pattern for new state keys.
-- Standard events constants (see `EventBus.js`): `app:ready`, `character:selected`, `page:changed`, `state:changed`. New events: add to `EVENTS` export and test under `tests/unit/*`.
-- EventBus methods: `on`, `once`, `off`, `clearEvent`, `clearAll`, `listenerCount`, `eventNames`. Keep handlers resilient—exceptions in one listener must not block others.
+- **AppState**: Global state via `app/js/core/AppState.js`. Use `getState()`, `setState(partial)`, `get(path)`, and domain helpers. Only emit change events when value actually changes.
+- **EventBus**: Standard events in `EventBus.js` (`app:ready`, `character:selected`, `page:changed`, `state:changed`). Add new events to `EVENTS` export and test in `tests/unit/*`. EventBus methods: `on`, `once`, `off`, `clearEvent`, `clearAll`, `listenerCount`, `eventNames`. Handlers must be resilient to exceptions.
 
-### 5. Testing Approach
-- Unit-style tests use Playwright test runner (`@playwright/test`) even for non-browser logic. No npm `test` script currently; run via:
+### 5. Testing Workflow
+- **Unit tests**: Use Playwright (`@playwright/test`) for all logic, including non-browser. No npm `test` script; run with:
   ```pwsh
   npx playwright test tests/unit
   npx playwright test tests/e2e
   ```
-- Patterns: Clear state/event bus in `beforeEach`; assert emission + non-emission. When adding new logic, replicate these patterns (avoid brittle timing-based tests).
+- **Patterns**: Always clear state/event bus in `beforeEach`. Assert both emission and non-emission. Replicate these patterns for new logic.
 
-### 6. Build & Run Workflow
-- Dev run: `npm start` → launches Electron (`electron .`).
-- Packaging: `npm run pack` (dir build), `npm run dist` (full distributables). Respect existing `build` config in `package.json` for icons, license, and targets.
-- Postinstall runs `electron-builder install-app-deps`—if adding native deps, rely on this.
+### 6. Build & Run
+- **Dev**: `npm start` launches Electron (`electron .`).
+- **Packaging**: `npm run pack` (dir build), `npm run dist` (distributables). Respect `build` config in `package.json` for icons, license, targets.
+- **Native deps**: Postinstall runs `electron-builder install-app-deps`.
 
-### 7. Logging & Style Conventions
-- Log prefix pattern: `[ComponentName] descriptive message` (e.g. `[WindowManager]`, `[App]`, `[PreferencesManager]`). Maintain consistency when introducing new modules.
-- Prefer clear domain boundaries: keep main-process concerns in `app/electron/**`; renderer logic in `app/js/**`; static data in `app/data/**`.
-- Do not bypass `WindowManager` / `PreferencesManager` / IPC abstraction layers—extend them instead.
+### 7. Logging & Style
+- **Log prefix**: `[ComponentName] message` (e.g., `[WindowManager]`, `[App]`).
+- **Domain boundaries**: Main process in `app/electron/**`, renderer in `app/js/**`, static data in `app/data/**`. Never bypass abstraction layers—extend them.
 
-### 8. Adding Features Safely
-- New persisted setting: add to `defaults`, provide getter/setter, update any preload exposure if needed for renderer consumption.
-- New IPC capability: implement handlers file, register in `IPCRegistry`, expose through preload with minimal surface.
-- New state key: initialize in `AppState` defaults, ensure events fire only on change, add targeted tests.
-- New event: add constant in `EVENTS`, emit via `eventBus.emit(EVENTS.XYZ, ...)`, create unit tests for emission and non-emission semantics.
+### 8. Adding Features
+- **Settings**: Add to `defaults`, provide getter/setter, update preload if needed.
+- **IPC**: Implement handler, register in `IPCRegistry`, expose via preload.
+- **State keys**: Initialize in `AppState` defaults, emit events only on change, add tests.
+- **Events**: Add to `EVENTS`, emit via `eventBus.emit(EVENTS.XYZ, ...)`, test emission/non-emission.
 
-### 9. Security Considerations
-- Maintain `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. Do not expose raw `fs` or other privileged APIs directly—wrap via IPC with validation.
-- Validate file paths / inputs in IPC handlers (pattern implied—add explicit checks when extending). Avoid blindly writing to arbitrary paths.
+### 9. Security
+- Always maintain `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`.
+- Never expose raw `fs` or privileged APIs—wrap via IPC and validate inputs.
+- Validate file paths/inputs in IPC handlers. Never write to arbitrary paths.
 
 ### 10. What NOT To Do
-- Do not read/write preference file directly (use `set` / `get`).
-- Do not emit events redundantly for unchanged values.
-- Do not introduce Node APIs to renderer without preload exposure.
-- Do not couple renderer modules directly to Electron main process objects.
+- Never read/write preferences file directly (use `set`/`get`).
+- Never introduce Node APIs to renderer except via preload.
+- Never couple renderer modules directly to Electron main process objects.
 
-### 11. Quick Checklist Before PR / Change
+### 11. PR Checklist
 - IPC channel named `domain:action`.
 - Logs use `[Module]` prefix.
-- State change emits only on actual mutation.
-- Tests added for new events/IPC/state pathways.
+- State change emits only on mutation.
+- Tests for new events/IPC/state.
 - No security regressions (renderer isolation preserved).
 
-Request feedback: Please indicate any unclear section or missing domain so instructions can be refined.
+---
+**Feedback requested:** Indicate any unclear or missing sections so instructions can be refined for future AI agents.
