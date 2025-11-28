@@ -41,7 +41,7 @@
 		}
 	},
 	"author": "Author",
-	"license": "MIT",
+	"license": "GPL-3.0-or-later",
 	"devDependencies": {
 		"@playwright/test": "^1.56.1",
 		"electron": "latest",
