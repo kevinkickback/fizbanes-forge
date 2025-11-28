@@ -163,50 +163,78 @@ function _setupUIEventHandlers() {
         const saveButton = document.getElementById('saveCharacter');
         const unsavedIndicator = document.getElementById('unsavedChangesIndicator');
 
-        // Listen for CHARACTER_UPDATED events to show unsaved indicator and mark state
-        // Indicator persists across page navigation until saved or new character loaded
-        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
-            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`);
-            if (unsavedIndicator) {
-                unsavedIndicator.style.display = 'inline-block';
-                Logger.info('AppInitializer', '✓ CHARACTER_UPDATED: Showing unsaved changes indicator', {
-                    visible: true,
-                    displayStyle: unsavedIndicator.style.display
+        // Centralized unsaved indicator logic
+        const PAGES_SHOW_UNSAVED = new Set(['build', 'details']);
+
+        function updateUnsavedIndicator() {
+            try {
+                const hasUnsaved = AppState.get('hasUnsavedChanges');
+                const currentPage = AppState.getCurrentPage();
+                const shouldShow = Boolean(hasUnsaved && PAGES_SHOW_UNSAVED.has(currentPage));
+
+                if (!unsavedIndicator) return;
+
+                unsavedIndicator.style.display = shouldShow ? 'inline-block' : 'none';
+                Logger.debug('AppInitializer', `Unsaved indicator updated: show=${shouldShow}`, {
+                    hasUnsaved,
+                    currentPage,
+                    display: unsavedIndicator.style.display
                 });
+            } catch (e) {
+                Logger.error('AppInitializer', 'Error updating unsaved indicator', e);
             }
-            // Mark as unsaved in app state
+        }
+
+        // Suppress CHARACTER_UPDATED events immediately after page/character changes
+        let _suppressUntil = 0; // timestamp in ms
+        const SUPPRESS_WINDOW_MS = 150;
+
+        // Helper to mark a short suppression window
+        function suppressTemporary() {
+            _suppressUntil = Date.now() + SUPPRESS_WINDOW_MS;
+            Logger.debug('AppInitializer', `Temporary suppression enabled until ${new Date(_suppressUntil).toISOString()}`);
+        }
+
+        // Listen for CHARACTER_UPDATED events to mark unsaved state
+        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+            const now = Date.now();
+            if (now < _suppressUntil) {
+                Logger.debug('AppInitializer', `Ignored CHARACTER_UPDATED due to suppression (now=${now})`);
+                return;
+            }
+
+            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`);
             AppState.setHasUnsavedChanges(true);
+            updateUnsavedIndicator();
         });
 
-        // Listen for CHARACTER_SAVED events to hide unsaved indicator
+        // Listen for CHARACTER_SAVED events to clear unsaved state
         eventBus.on(EVENTS.CHARACTER_SAVED, () => {
             Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`);
-            if (unsavedIndicator) {
-                unsavedIndicator.style.display = 'none';
-                Logger.info('AppInitializer', '✓ CHARACTER_SAVED: Hiding unsaved changes indicator', {
-                    visible: false,
-                    displayStyle: unsavedIndicator.style.display
-                });
-            }
-            // Clear unsaved changes flag
             AppState.setHasUnsavedChanges(false);
+            updateUnsavedIndicator();
         });
 
-        // Listen for CHARACTER_SELECTED to reset unsaved indicator (fresh load, not a change)
-        // This clears the indicator when a new character is loaded
+        // Clear unsaved indicator when a new character is selected (fresh load)
         eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
             Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`);
-            const currentPage = document.body.getAttribute('data-current-page');
-            if (unsavedIndicator) {
-                unsavedIndicator.style.display = 'none';
-                Logger.info('AppInitializer', '✓ CHARACTER_SELECTED: Clearing unsaved indicator (new character loaded)', {
-                    visible: false,
-                    displayStyle: unsavedIndicator.style.display,
-                    currentPage: currentPage
-                });
-            }
-            // Clear unsaved changes flag for the newly loaded character
             AppState.setHasUnsavedChanges(false);
+            suppressTemporary();
+            updateUnsavedIndicator();
+        });
+
+        // Update indicator on page changes (show only on certain pages)
+        eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
+            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`);
+            // Suppress CHARACTER_UPDATED events that may be emitted during page init
+            suppressTemporary();
+            updateUnsavedIndicator();
+        });
+
+        // Listen for explicit AppState changes to hasUnsavedChanges
+        eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
+            Logger.debug('AppInitializer', `state:hasUnsavedChanges:changed -> ${newVal}`);
+            updateUnsavedIndicator();
         });
 
         // Listen for PAGE_CHANGED events to log floating bar visibility
