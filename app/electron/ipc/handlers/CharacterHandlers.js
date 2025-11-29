@@ -224,7 +224,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                 const content = await fs.readFile(sourceFilePath, "utf8");
                 try {
                     character = JSON.parse(content);
-                } catch (parseError) {
+                } catch {
                     return { success: false, error: 'Invalid file content. File does not contain valid JSON.' };
                 }
 
@@ -257,7 +257,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                         sourceFilePath: sourceFilePath,
                         message: `A character with ID "${character.id}" already exists. What would you like to do?`
                     };
-                } catch (err) {
+                } catch {
                     // File doesn't exist, proceed with import
                 }
             }

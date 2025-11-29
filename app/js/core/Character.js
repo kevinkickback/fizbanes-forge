@@ -530,7 +530,7 @@ export class Character {
                         return [key, value];
                     })
                 );
-            } catch (error) {
+            } catch {
                 return {}; // Return empty object on error
             }
         };
@@ -624,7 +624,7 @@ export class Character {
                     tools: this._serializeComplexProficiency('tools')
                 };
             }
-        } catch (error) {
+        } catch {
             // Provide empty default structure
             serializedData.optionalProficiencies = {
                 armor: { allowed: 0, selected: [] },

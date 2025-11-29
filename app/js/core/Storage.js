@@ -10,7 +10,6 @@
  */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 
 /**
  * Singleton instance for Storage class

@@ -498,7 +498,7 @@ export function initializeTooltipListeners(tooltipManager) {
 
         // Check if tooltip already exists at this depth for this link
         const existingTooltipAtDepth = tooltipManager._tooltips[newTooltipDepth];
-        const shouldCreateTooltip = !existingTooltipAtDepth ||
+        const _shouldCreateTooltip = !existingTooltipAtDepth ||
             link !== currentHoverLink;
 
         // If hovering same link AND tooltip still exists, do nothing

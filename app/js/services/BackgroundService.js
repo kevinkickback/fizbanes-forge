@@ -5,7 +5,6 @@
  */
 
 import { Logger } from '../infrastructure/Logger.js';
-import { Result } from '../infrastructure/Result.js';
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
@@ -112,7 +111,7 @@ class BackgroundService {
      */
     clearSelection() {
         this._selectedBackground = null;
-        eventEmitter.emit('background:cleared');
+        eventBus.emit('background:cleared');
     }
 }
 

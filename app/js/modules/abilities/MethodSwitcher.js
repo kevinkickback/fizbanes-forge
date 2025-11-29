@@ -4,8 +4,8 @@
  */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { Logger } from '../../infrastructure/Logger.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+
 
 /**
  * View for ability score method selection and information display

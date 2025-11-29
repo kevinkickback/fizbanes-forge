@@ -105,7 +105,7 @@ export class SourceService {
         this.allowedSources = new Set(character.allowedSources || ['PHB']);
 
         // Notify that allowed sources have changed
-        eventEmitter.emit('sources:allowed-changed', Array.from(this.allowedSources));
+        eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
     }
 
     /**
@@ -301,7 +301,7 @@ export class SourceService {
             this.allowedSources.add(source);
 
             // Notify that allowed sources have changed
-            eventEmitter.emit('sources:allowed-changed', Array.from(this.allowedSources));
+            eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
 
             // Update character if available
             if (this.characterHandler?.getCurrentCharacter()) {
@@ -328,7 +328,7 @@ export class SourceService {
             this.allowedSources.delete(source);
 
             // Notify that allowed sources have changed
-            eventEmitter.emit('sources:allowed-changed', Array.from(this.allowedSources));
+            eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
 
             // Update character if available
             if (this.characterHandler?.getCurrentCharacter()) {
@@ -355,7 +355,7 @@ export class SourceService {
         this.allowedSources = new Set(['PHB']);
 
         // Notify that allowed sources have changed
-        eventEmitter.emit('sources:allowed-changed', Array.from(this.allowedSources));
+        eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
 
         // Update character if available
         if (this.characterHandler?.getCurrentCharacter()) {

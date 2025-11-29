@@ -5,7 +5,6 @@
  */
 
 import { textProcessor } from '../../utils/TextProcessor.js';
-import { Logger } from '../../infrastructure/Logger.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 

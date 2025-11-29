@@ -57,7 +57,7 @@ export class ProficiencyNotesView {
             // Sort proficiencies alphabetically
             try {
                 validProfs.sort((a, b) => a.name.localeCompare(b.name));
-            } catch (e) {
+            } catch {
                 // Continue without sorting if there's an error
             }
 

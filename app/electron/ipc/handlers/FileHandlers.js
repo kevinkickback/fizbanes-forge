@@ -6,7 +6,7 @@
 
 const { ipcMain, dialog, shell } = require("electron");
 const fs = require("node:fs").promises;
-const path = require("node:path");
+// path not used; removed to satisfy lint
 const { IPC_CHANNELS } = require("../channels");
 const { MainLogger } = require("../../MainLogger");
 

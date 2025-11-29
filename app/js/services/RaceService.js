@@ -4,7 +4,7 @@
  */
 
 import { Logger } from '../infrastructure/Logger.js';
-import { Result } from '../infrastructure/Result.js';
+// Removed unused import: Result
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';

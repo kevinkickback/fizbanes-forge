@@ -3,11 +3,9 @@
  * Manages application settings and configuration
  */
 import { Logger } from '../infrastructure/Logger.js';
-import { Result } from '../infrastructure/Result.js';
-import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
-import { storage } from '../core/Storage.js';
+
 
 /**
  * Manages application settings and configuration

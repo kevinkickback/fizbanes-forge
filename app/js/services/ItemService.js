@@ -3,9 +3,7 @@
  * Manages item data and operations for the character builder
  */
 
-import { Logger } from '../infrastructure/Logger.js';
-import { Result } from '../infrastructure/Result.js';
-import { AppState } from '../core/AppState.js';
+// Removed unused imports: Logger, Result, AppState
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
 

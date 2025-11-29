@@ -4,8 +4,7 @@
  */
 
 import { Logger } from '../infrastructure/Logger.js';
-import { Result } from '../infrastructure/Result.js';
-import { AppState } from '../core/AppState.js';
+// Removed unused imports: Result, AppState
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { ProficiencyCore } from '../core/Proficiency.js';
 

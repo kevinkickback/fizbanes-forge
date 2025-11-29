@@ -6,7 +6,6 @@
 
 import { backgroundService } from '../../services/BackgroundService.js';
 import { BaseCard } from '../BaseCard.js';
-import { Logger } from '../../infrastructure/Logger.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { AppState } from '../../core/AppState.js';

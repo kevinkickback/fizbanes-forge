@@ -27,8 +27,7 @@
  * @property {string} [confirmButtonClass='btn-primary'] - CSS class for the confirm button
  */
 
-import { Character } from './Character.js';
-import { storage } from './Storage.js';
+// Removed unused imports during cleanup
 import { showNotification } from '../utils/Notifications.js';
 import { SourceCard } from '../modules/sources/SourceCard.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
@@ -468,22 +467,7 @@ export class Modal {
         }
     }
 
-    /**
-     * Legacy method for showing a confirmation dialog (for backward compatibility)
-     * @param {string} title - The title of the confirmation dialog
-     * @param {string} message - The message to display
-     * @returns {Promise<boolean>} True if confirmed, false if cancelled
-     * @deprecated Use showConfirmationModal instead
-     */
-    async showConfirmationDialog(title, message) {
-        try {
-            console.warn('showConfirmationDialog is deprecated, use showConfirmationModal instead');
-            return this.showConfirmationModal({ title, message });
-        } catch (error) {
-            console.error('Error in legacy confirmation dialog:', error);
-            return false;
-        }
-    }
+
 
     /**
      * Shows a modal for handling duplicate character ID during import

@@ -242,7 +242,7 @@ export class ProficiencyCore {
         if (character.optionalProficiencies[type][sourceLower]) {
             // Clear selections and remove from character
             const selected = character.optionalProficiencies[type][sourceLower].selected || [];
-            for (const proficiency of selected) {
+            for (const _proficiency of selected) {
                 this.removeProficienciesBySource(character, `${source} Choice`);
             }
 

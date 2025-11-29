@@ -2,7 +2,6 @@
 .vscode
 .cursorignore
 biome.json
-fizbanes-forge.code-workspace
 
 # Intellij
 *.iml
