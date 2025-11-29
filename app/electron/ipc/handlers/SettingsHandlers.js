@@ -6,9 +6,10 @@
 
 const { ipcMain, app } = require("electron");
 const { IPC_CHANNELS } = require("../channels");
+const { MainLogger } = require("../../MainLogger");
 
 function registerSettingsHandlers(preferencesManager) {
-    console.log("[SettingsHandlers] Registering settings handlers");
+    MainLogger.info('SettingsHandlers', 'Registering settings handlers');
 
     ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_PATH, (event, key) => {
         return preferencesManager.get(key);
@@ -31,7 +32,7 @@ function registerSettingsHandlers(preferencesManager) {
         return app.getPath("userData");
     });
 
-    console.log("[SettingsHandlers] All settings handlers registered");
+    MainLogger.info('SettingsHandlers', 'All settings handlers registered');
 }
 
 module.exports = { registerSettingsHandlers };

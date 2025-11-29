@@ -8,20 +8,20 @@
  */
 
 const { app } = require("electron");
-const path = require("node:path");
 const { WindowManager } = require("./electron/WindowManager");
 const { PreferencesManager } = require("./electron/PreferencesManager");
 const { IPCRegistry } = require("./electron/ipc/IPCRegistry");
+const { MainLogger } = require("./electron/MainLogger");
 
-// Debug mode - set to true to enable DevTools
-const DEBUG_MODE = true;
+// Debug mode - controlled via environment variable `FF_DEBUG`
+const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
 
 let windowManager;
 let preferencesManager;
 let ipcRegistry;
 
 app.whenReady().then(() => {
-  console.log("[App] Application ready");
+  MainLogger.info('App', 'Application ready');
 
   // Initialize managers
   preferencesManager = new PreferencesManager(app);
@@ -34,23 +34,23 @@ app.whenReady().then(() => {
   // Create main window
   windowManager.createMainWindow();
 
-  console.log("[App] Application initialized");
+  MainLogger.info('App', 'Application initialized');
 });
 
 app.on("window-all-closed", () => {
-  console.log("[App] All windows closed");
+  MainLogger.info('App', 'All windows closed');
   if (process.platform !== "darwin") {
     app.quit();
   }
 });
 
 app.on("activate", () => {
-  console.log("[App] Application activated");
+  MainLogger.info('App', 'Application activated');
   if (!windowManager.hasWindow()) {
     windowManager.createMainWindow();
   }
 });
 
 app.on("before-quit", () => {
-  console.log("[App] Application quitting");
+  MainLogger.info('App', 'Application quitting');
 });

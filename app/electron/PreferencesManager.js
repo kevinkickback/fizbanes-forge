@@ -19,6 +19,7 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
+const { MainLogger } = require("./MainLogger");
 
 class PreferencesManager {
     constructor(app) {
@@ -43,7 +44,7 @@ class PreferencesManager {
         // Load preferences from file
         this.store = this.loadPreferences();
 
-        console.log("[PreferencesManager] Initialized with store:", this.preferencesPath);
+        MainLogger.info('PreferencesManager', 'Initialized with store:', this.preferencesPath);
     }
 
     loadPreferences() {
@@ -53,7 +54,7 @@ class PreferencesManager {
                 return { ...this.defaults, ...JSON.parse(data) };
             }
         } catch (error) {
-            console.error("[PreferencesManager] Error loading preferences:", error);
+            MainLogger.error('PreferencesManager', 'Error loading preferences:', error);
         }
         return { ...this.defaults };
     }
@@ -65,7 +66,7 @@ class PreferencesManager {
                 JSON.stringify(this.store, null, 2),
             );
         } catch (error) {
-            console.error("[PreferencesManager] Error saving preferences:", error);
+            MainLogger.error('PreferencesManager', 'Error saving preferences:', error);
         }
     }
 
@@ -77,7 +78,7 @@ class PreferencesManager {
      */
     get(key, defaultValue = undefined) {
         const value = this.store[key] !== undefined ? this.store[key] : defaultValue;
-        console.log(`[PreferencesManager] Get: ${key} =`, value);
+        MainLogger.info('PreferencesManager', `Get: ${key} =`, value);
         return value;
     }
 
@@ -87,7 +88,7 @@ class PreferencesManager {
      * @param {*} value - Value to set
      */
     set(key, value) {
-        console.log(`[PreferencesManager] Set: ${key} =`, value);
+        MainLogger.info('PreferencesManager', `Set: ${key} =`, value);
         this.store[key] = value;
         this.savePreferences();
     }
@@ -97,7 +98,7 @@ class PreferencesManager {
      * @param {string} key - Preference key
      */
     delete(key) {
-        console.log(`[PreferencesManager] Delete: ${key}`);
+        MainLogger.info('PreferencesManager', `Delete: ${key}`);
         delete this.store[key];
         this.savePreferences();
     }
@@ -123,7 +124,7 @@ class PreferencesManager {
      * Clear all preferences (reset to defaults).
      */
     clear() {
-        console.log("[PreferencesManager] Clearing all preferences");
+        MainLogger.info('PreferencesManager', 'Clearing all preferences');
         this.store = { ...this.defaults };
         this.savePreferences();
     }
@@ -139,10 +140,7 @@ class PreferencesManager {
         // Ensure directory exists
         if (!fs.existsSync(savePath)) {
             fs.mkdirSync(savePath, { recursive: true });
-            console.log(
-                "[PreferencesManager] Created character save directory:",
-                savePath,
-            );
+            MainLogger.info('PreferencesManager', 'Created character save directory:', savePath);
         }
 
         return savePath;

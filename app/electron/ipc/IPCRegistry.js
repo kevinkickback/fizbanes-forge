@@ -15,6 +15,7 @@ const { registerCharacterHandlers } = require("./handlers/CharacterHandlers");
 const { registerFileHandlers } = require("./handlers/FileHandlers");
 const { registerSettingsHandlers } = require("./handlers/SettingsHandlers");
 const { registerDataHandlers } = require("./handlers/DataHandlers");
+const { MainLogger } = require("../MainLogger");
 
 class IPCRegistry {
     constructor(preferencesManager, windowManager, appPath) {
@@ -24,14 +25,14 @@ class IPCRegistry {
     }
 
     registerAll() {
-        console.log("[IPCRegistry] Registering all IPC handlers");
+        MainLogger.info('IPCRegistry', 'Registering all IPC handlers');
 
         registerCharacterHandlers(this.preferencesManager, this.windowManager);
         registerFileHandlers();
         registerSettingsHandlers(this.preferencesManager);
         registerDataHandlers(this.appPath);
 
-        console.log("[IPCRegistry] All IPC handlers registered");
+        MainLogger.info('IPCRegistry', 'All IPC handlers registered');
     }
 }
 

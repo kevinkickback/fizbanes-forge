@@ -10,6 +10,7 @@ const fssync = require("node:fs");
 const path = require("node:path");
 const { v4: uuidv4 } = require("uuid");
 const { IPC_CHANNELS } = require("../channels");
+const { MainLogger } = require("../../MainLogger");
 
 // Filename sanitation removed: files are saved using the character `id` only.
 
@@ -83,7 +84,7 @@ function validateCharacter(character) {
 }
 
 function registerCharacterHandlers(preferencesManager, windowManager) {
-    console.log("[CharacterHandlers] Registering character handlers");
+    MainLogger.info('CharacterHandlers', 'Registering character handlers');
 
     // Save character
     ipcMain.handle(
@@ -95,12 +96,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                     ? JSON.parse(characterData)
                     : characterData;
 
-                console.log(
-                    "[CharacterHandlers] Saving character:",
-                    character.id,
-                    "Name:",
-                    character.name,
-                );
+                MainLogger.info('CharacterHandlers', 'Saving character:', character.id, 'Name:', character.name);
 
                 const savePath = preferencesManager.getCharacterSavePath();
                 // Save using the character ID as filename (simple, predictable)
@@ -112,10 +108,10 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                     JSON.stringify(character, null, 2),
                 );
 
-                console.log("[CharacterHandlers] Character saved:", filePath);
+                MainLogger.info('CharacterHandlers', 'Character saved:', filePath);
                 return { success: true, path: filePath };
             } catch (error) {
-                console.error("[CharacterHandlers] Save failed:", error);
+                MainLogger.error('CharacterHandlers', 'Save failed:', error);
                 return { success: false, error: error.message };
             }
         },
@@ -125,7 +121,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     ipcMain.handle(IPC_CHANNELS.CHARACTER_LIST, async () => {
         try {
             const savePath = preferencesManager.getCharacterSavePath();
-            console.log("[CharacterHandlers] Loading characters from:", savePath);
+            MainLogger.info('CharacterHandlers', 'Loading characters from:', savePath);
 
             const files = await fs.readdir(savePath);
             const ffpFiles = files.filter((file) => file.endsWith(".ffp"));
@@ -138,14 +134,14 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                     const character = JSON.parse(content);
                     characters.push(character);
                 } catch (error) {
-                    console.error(`[CharacterHandlers] Error loading ${file}:`, error);
+                    MainLogger.error('CharacterHandlers', `Error loading ${file}:`, error);
                 }
             }
 
-            console.log("[CharacterHandlers] Loaded characters:", characters.length);
+            MainLogger.info('CharacterHandlers', 'Loaded characters:', characters.length);
             return { success: true, characters };
         } catch (error) {
-            console.error("[CharacterHandlers] Load failed:", error);
+            MainLogger.error('CharacterHandlers', 'Load failed:', error);
             return { success: false, error: error.message, characters: [] };
         }
     });
@@ -153,17 +149,17 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     // Delete character
     ipcMain.handle(IPC_CHANNELS.CHARACTER_DELETE, async (event, id) => {
         try {
-            console.log("[CharacterHandlers] Deleting character:", id);
+            MainLogger.info('CharacterHandlers', 'Deleting character:', id);
 
             const savePath = preferencesManager.getCharacterSavePath();
             const filePath = path.join(savePath, `${id}.ffp`);
 
             await fs.unlink(filePath);
 
-            console.log("[CharacterHandlers] Character deleted:", filePath);
+            MainLogger.info('CharacterHandlers', 'Character deleted:', filePath);
             return { success: true };
         } catch (error) {
-            console.error("[CharacterHandlers] Delete failed:", error);
+            MainLogger.error('CharacterHandlers', 'Delete failed:', error);
             return { success: false, error: error.message };
         }
     });
@@ -171,7 +167,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     // Export character
     ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT, async (event, id) => {
         try {
-            console.log("[CharacterHandlers] Exporting character:", id);
+            MainLogger.info('CharacterHandlers', 'Exporting character:', id);
 
             const savePath = preferencesManager.getCharacterSavePath();
             const sourceFilePath = path.join(savePath, `${id}.ffp`);
@@ -188,10 +184,10 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
 
             await fs.copyFile(sourceFilePath, result.filePath);
 
-            console.log("[CharacterHandlers] Character exported to:", result.filePath);
+            MainLogger.info('CharacterHandlers', 'Character exported to:', result.filePath);
             return { success: true, path: result.filePath };
         } catch (error) {
-            console.error("[CharacterHandlers] Export failed:", error);
+            MainLogger.error('CharacterHandlers', 'Export failed:', error);
             return { success: false, error: error.message };
         }
     });
@@ -199,7 +195,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     // Import character
     ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async (event, userChoice) => {
         try {
-            console.log("[CharacterHandlers] Importing character");
+            MainLogger.info('CharacterHandlers', 'Importing character');
 
             let sourceFilePath = userChoice?.sourceFilePath;
             let character = userChoice?.character;
@@ -245,7 +241,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
                 try {
                     await fs.access(existingFilePath);
                     // File exists - read it and get creation time
-                    console.log("[CharacterHandlers] Character ID already exists:", character.id);
+                    MainLogger.info('CharacterHandlers', 'Character ID already exists:', character.id);
                     const existingContent = await fs.readFile(existingFilePath, "utf8");
                     const existingCharacter = JSON.parse(existingContent);
 
@@ -268,12 +264,12 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
 
             // Handle user's choice for duplicate ID
             if (action === 'overwrite') {
-                console.log("[CharacterHandlers] Overwriting existing character:", character.id);
+                MainLogger.info('CharacterHandlers', 'Overwriting existing character:', character.id);
             } else if (action === 'keepBoth') {
-                console.log("[CharacterHandlers] Keeping both - generating new ID");
+                MainLogger.info('CharacterHandlers', 'Keeping both - generating new ID');
                 character.id = uuidv4();
             } else if (action === 'cancel') {
-                console.log("[CharacterHandlers] Import canceled by user");
+                MainLogger.info('CharacterHandlers', 'Import canceled by user');
                 return { success: false, canceled: true };
             }
 
@@ -283,10 +279,10 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
 
             await fs.writeFile(targetFilePath, JSON.stringify(character, null, 2));
 
-            console.log("[CharacterHandlers] Character imported:", character.id);
+            MainLogger.info('CharacterHandlers', 'Character imported:', character.id);
             return { success: true, character };
         } catch (error) {
-            console.error("[CharacterHandlers] Import failed:", error);
+            MainLogger.error('CharacterHandlers', 'Import failed:', error);
             return { success: false, error: error.message };
         }
     });
@@ -296,7 +292,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
         return { success: true, data: uuidv4() };
     });
 
-    console.log("[CharacterHandlers] All character handlers registered");
+    MainLogger.info('CharacterHandlers', 'All character handlers registered');
 }
 
 module.exports = { registerCharacterHandlers };

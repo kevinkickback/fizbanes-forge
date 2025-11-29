@@ -18,6 +18,7 @@
 
 const { BrowserWindow } = require("electron");
 const path = require("node:path");
+const { MainLogger } = require("./MainLogger");
 
 class WindowManager {
     constructor(preferencesManager, appPath, debugMode = false) {
@@ -32,7 +33,7 @@ class WindowManager {
      * @returns {BrowserWindow} The created window
      */
     createMainWindow() {
-        console.log("[WindowManager] Creating main window");
+        MainLogger.info('WindowManager', 'Creating main window');
 
         // Get saved window bounds
         const bounds = this.preferencesManager.getWindowBounds();
@@ -57,7 +58,7 @@ class WindowManager {
 
         // Open DevTools immediately in debug mode (before loading)
         if (this.debugMode) {
-            console.log("[WindowManager] Opening DevTools (debug mode enabled)");
+            MainLogger.info('WindowManager', 'Opening DevTools (debug mode enabled)');
             this.mainWindow.webContents.openDevTools({ mode: 'detach' });
         }
 
@@ -73,7 +74,7 @@ class WindowManager {
         // Setup window event handlers
         this.setupWindowEvents();
 
-        console.log("[WindowManager] Main window created");
+        MainLogger.info('WindowManager', 'Main window created');
         return this.mainWindow;
     }
 
@@ -86,12 +87,12 @@ class WindowManager {
         this.mainWindow.on("close", () => {
             const bounds = this.mainWindow.getBounds();
             this.preferencesManager.setWindowBounds(bounds);
-            console.log("[WindowManager] Window bounds saved:", bounds);
+            MainLogger.info('WindowManager', 'Window bounds saved:', bounds);
         });
 
         // Handle window closed
         this.mainWindow.on("closed", () => {
-            console.log("[WindowManager] Window closed");
+            MainLogger.info('WindowManager', 'Window closed');
             this.mainWindow = null;
         });
 
@@ -105,11 +106,11 @@ class WindowManager {
         });
 
         this.mainWindow.on("focus", () => {
-            console.log("[WindowManager] Window focused");
+            MainLogger.info('WindowManager', 'Window focused');
         });
 
         this.mainWindow.on("blur", () => {
-            console.log("[WindowManager] Window blurred");
+            MainLogger.info('WindowManager', 'Window blurred');
         });
     }
 

@@ -8,9 +8,10 @@ const { ipcMain, dialog, shell } = require("electron");
 const fs = require("node:fs").promises;
 const path = require("node:path");
 const { IPC_CHANNELS } = require("../channels");
+const { MainLogger } = require("../../MainLogger");
 
 function registerFileHandlers() {
-    console.log("[FileHandlers] Registering file handlers");
+    MainLogger.info('FileHandlers', 'Registering file handlers');
 
     // Select folder
     ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
@@ -25,7 +26,7 @@ function registerFileHandlers() {
 
             return { success: true, path: result.filePaths[0] };
         } catch (error) {
-            console.error("[FileHandlers] Select folder failed:", error);
+            MainLogger.error('FileHandlers', 'Select folder failed:', error);
             return { success: false, error: error.message };
         }
     });
@@ -37,7 +38,7 @@ function registerFileHandlers() {
             const data = JSON.parse(content);
             return { success: true, data };
         } catch (error) {
-            console.error("[FileHandlers] Read JSON failed:", error);
+            MainLogger.error('FileHandlers', 'Read JSON failed:', error);
             return { success: false, error: error.message };
         }
     });
@@ -48,7 +49,7 @@ function registerFileHandlers() {
             await fs.writeFile(filePath, JSON.stringify(data, null, 2));
             return { success: true };
         } catch (error) {
-            console.error("[FileHandlers] Write JSON failed:", error);
+            MainLogger.error('FileHandlers', 'Write JSON failed:', error);
             return { success: false, error: error.message };
         }
     });
@@ -69,12 +70,12 @@ function registerFileHandlers() {
             await shell.openPath(filePath);
             return { success: true };
         } catch (error) {
-            console.error("[FileHandlers] Open file failed:", error);
+            MainLogger.error('FileHandlers', 'Open file failed:', error);
             return { success: false, error: error.message };
         }
     });
 
-    console.log("[FileHandlers] All file handlers registered");
+    MainLogger.info('FileHandlers', 'All file handlers registered');
 }
 
 module.exports = { registerFileHandlers };
