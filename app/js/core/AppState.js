@@ -12,8 +12,8 @@
  * @module application/AppState
  */
 
-import { Logger } from '../infrastructure/Logger.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 
 class AppStateImpl {
 	constructor() {

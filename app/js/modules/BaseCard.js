@@ -4,6 +4,7 @@
  * This serves as a foundation for more specific entity cards like ClassCard, RaceCard, etc.
  */
 
+import { Logger } from '../infrastructure/Logger.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 
 /**
@@ -28,7 +29,7 @@ export class BaseCard {
 		this._card = document.getElementById(cardId);
 
 		if (!this._card) {
-			console.error(`Card element with ID "${cardId}" not found`);
+			Logger.error('BaseCard', `Card element with ID "${cardId}" not found`);
 			return;
 		}
 
@@ -84,7 +85,7 @@ export class BaseCard {
 				this._setDefaultImage(altText);
 			}
 		} catch (error) {
-			console.error('Error updating entity image:', error);
+			Logger.error('BaseCard', 'Error updating entity image:', error);
 			this._setDefaultImage(altText);
 		}
 	}
@@ -136,7 +137,7 @@ export class BaseCard {
 				this.setPlaceholderContent();
 			}
 		} catch (error) {
-			console.error('Error updating quick description:', error);
+			Logger.error('BaseCard', 'Error updating quick description:', error);
 			this.setPlaceholderContent();
 		}
 	}
@@ -183,7 +184,7 @@ export class BaseCard {
 	 */
 	createDetailSection(title, asList = true) {
 		if (!this._details) {
-			console.warn('Details element not found in card');
+			Logger.warn('BaseCard', 'Details element not found in card');
 			return null;
 		}
 
@@ -211,7 +212,7 @@ export class BaseCard {
 	 */
 	addDetailItem(section, content) {
 		if (!section) {
-			console.warn('Invalid section provided to addDetailItem');
+			Logger.warn('BaseCard', 'Invalid section provided to addDetailItem');
 			return null;
 		}
 
@@ -236,7 +237,7 @@ export class BaseCard {
 	 */
 	addDetailParagraph(section, content) {
 		if (!section) {
-			console.warn('Invalid section provided to addDetailParagraph');
+			Logger.warn('BaseCard', 'Invalid section provided to addDetailParagraph');
 			return null;
 		}
 

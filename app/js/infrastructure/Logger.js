@@ -42,7 +42,8 @@ export const LOG_LEVELS = {
 class LoggerImpl {
 	constructor() {
 		this.currentLevel = LOG_LEVELS.INFO;
-		this.enabled = true;
+		// Enable logging only if FF_DEBUG is true (renderer)
+		this.enabled = typeof window !== 'undefined' && window.FF_DEBUG === true;
 		this.history = [];
 		this.maxHistorySize = 1000;
 	}

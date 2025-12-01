@@ -155,12 +155,18 @@ export class TooltipManager {
 			if (!t.referenceKey) return false;
 			// Compare type and name only, ignore source as it might differ
 			const existingKey = t.referenceKey.split(':').slice(0, 2).join(':');
-			Logger.info('TooltipSystem', 'Comparing "' + referenceKey + '" with "' + existingKey + '"');
+			Logger.info(
+				'TooltipSystem',
+				`Comparing "${referenceKey}" with "${existingKey}"`,
+			);
 			return existingKey === referenceKey;
 		});
 
 		if (isAlreadyOpen) {
-			Logger.info('TooltipSystem', `Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`);
+			Logger.info(
+				'TooltipSystem',
+				`Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`,
+			);
 			return;
 		}
 
@@ -545,17 +551,26 @@ export function initializeTooltipListeners(tooltipManager) {
 		Logger.info('TooltipSystem', `Hovering over: ${hoverType} - ${hoverName}`);
 
 		if (parentTooltip) {
-			Logger.info('TooltipSystem', `Link is in tooltip at index: ${linkTooltipIndex}`);
+			Logger.info(
+				'TooltipSystem',
+				`Link is in tooltip at index: ${linkTooltipIndex}`,
+			);
 		} else {
 			Logger.info('TooltipSystem', 'Link is not in a tooltip (base level)');
 		}
 
-		Logger.info('TooltipSystem', `Current stack size: ${tooltipManager._tooltips.length}, keeping up to index: ${keepUpToIndex}`);
+		Logger.info(
+			'TooltipSystem',
+			`Current stack size: ${tooltipManager._tooltips.length}, keeping up to index: ${keepUpToIndex}`,
+		);
 
 		// Remove tooltips after the one containing the link
 		while (tooltipManager._tooltips.length > keepUpToIndex) {
 			const removed = tooltipManager._tooltips.pop();
-			Logger.info('TooltipSystem', `Removing tooltip at index ${tooltipManager._tooltips.length}`);
+			Logger.info(
+				'TooltipSystem',
+				`Removing tooltip at index ${tooltipManager._tooltips.length}`,
+			);
 			if (removed.container.parentNode) {
 				removed.container.parentNode.removeChild(removed.container);
 			}
@@ -598,7 +613,10 @@ export function initializeTooltipListeners(tooltipManager) {
 					tooltip: newTooltip,
 					timeout: null,
 				});
-				Logger.info('TooltipSystem', `Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltipManager._tooltips.length}`);
+				Logger.info(
+					'TooltipSystem',
+					`Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltipManager._tooltips.length}`,
+				);
 			}
 		}
 	});
@@ -628,7 +646,10 @@ export function initializeTooltipListeners(tooltipManager) {
 
 				// If we're moving to a shallower tooltip (or out of nested tooltip entirely)
 				if (fromIndex > toIndex) {
-					Logger.info('TooltipSystem', `Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`);
+					Logger.info(
+						'TooltipSystem',
+						`Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`,
+					);
 
 					// Remove tooltips deeper than where we're going
 					const keepUpToIndex = toIndex + 1;

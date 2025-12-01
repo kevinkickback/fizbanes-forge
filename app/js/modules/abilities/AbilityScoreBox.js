@@ -3,6 +3,7 @@
  * @description View for rendering individual ability score boxes with scores, modifiers, and bonuses
  */
 
+import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { methodControlsView } from './MethodControls.js';
 
@@ -43,7 +44,7 @@ class AbilityScoreBoxView {
 				);
 			}
 		} catch (error) {
-			console.error('Error rendering ability scores:', error);
+			Logger.error('AbilityScoreBox', 'Error rendering ability scores:', error);
 		}
 	}
 
@@ -240,7 +241,7 @@ class AbilityScoreBoxView {
 				}
 			}
 		} catch (error) {
-			console.error('Error updating ability scores:', error);
+			Logger.error('AbilityScoreBox', 'Error updating ability scores:', error);
 		}
 	}
 

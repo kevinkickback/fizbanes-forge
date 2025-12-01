@@ -7,6 +7,7 @@
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { Logger } from '../../infrastructure/Logger.js';
 import { proficiencyService } from '../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
@@ -57,7 +58,7 @@ export class ProficiencyCard {
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
 			if (!this._character) {
-				console.error('No active character found');
+				Logger.error('ProficiencyCard', 'No active character found');
 				return;
 			}
 
@@ -67,7 +68,7 @@ export class ProficiencyCard {
 			await this._populateProficiencyContainers();
 			this._updateProficiencyNotes();
 		} catch (error) {
-			console.error('Initialization error:', error);
+			Logger.error('ProficiencyCard', 'Initialization error:', error);
 		}
 	}
 
@@ -81,7 +82,10 @@ export class ProficiencyCard {
 			this._proficiencyContainers[type] = document.getElementById(containerId);
 
 			if (!this._proficiencyContainers[type]) {
-				console.warn(`Container for ${type} not found: #${containerId}`);
+				Logger.warn(
+					'ProficiencyCard',
+					`Container for ${type} not found: #${containerId}`,
+				);
 			}
 		}
 
@@ -89,7 +93,7 @@ export class ProficiencyCard {
 			document.getElementById('proficiencyNotes');
 
 		if (!this._proficiencyNotesContainer) {
-			console.warn('Proficiency notes container not found');
+			Logger.warn('ProficiencyCard', 'Proficiency notes container not found');
 		}
 	}
 
@@ -145,7 +149,11 @@ export class ProficiencyCard {
 			// Add default proficiencies if not already present
 			this._addDefaultProficiencies();
 		} catch (error) {
-			console.error('Error initializing character proficiencies:', error);
+			Logger.error(
+				'ProficiencyCard',
+				'Error initializing character proficiencies:',
+				error,
+			);
 		}
 	}
 
@@ -249,7 +257,11 @@ export class ProficiencyCard {
 				this._handleProficiencyChanged.bind(this),
 			);
 		} catch (error) {
-			console.error('Error setting up event listeners:', error);
+			Logger.error(
+				'ProficiencyCard',
+				'Error setting up event listeners:',
+				error,
+			);
 		}
 	}
 
@@ -347,7 +359,11 @@ export class ProficiencyCard {
 				this._updateProficiencyNotes();
 			}
 		} catch (error) {
-			console.error('Error handling character change:', error);
+			Logger.error(
+				'ProficiencyCard',
+				'Error handling character change:',
+				error,
+			);
 		}
 	}
 
@@ -379,7 +395,11 @@ export class ProficiencyCard {
 				this._showRefundNotification(detail.proficiency);
 			}
 		} catch (error) {
-			console.error('Error handling proficiency change:', error);
+			Logger.error(
+				'ProficiencyCard',
+				'Error handling proficiency change:',
+				error,
+			);
 		}
 	}
 
@@ -389,7 +409,7 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_showRefundNotification(skill) {
-		console.info(`Skill proficiency refunded: ${skill}`);
+		Logger.info('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
 	}
 
 	/**
@@ -705,15 +725,15 @@ export class ProficiencyCard {
 	}
 
 	/**
-     * Mark that there are unsaved changes
-     * @private
-    /**
-     * Check if a proficiency is granted by a fixed source (not a choice)
-     * @param {string} type - Proficiency type
-     * @param {string|Object} proficiency - The proficiency to check
-     * @returns {boolean} True if granted by a fixed source
-     * @private
-     */
+	 * Mark that there are unsaved changes
+	 * @private
+	/**
+	 * Check if a proficiency is granted by a fixed source (not a choice)
+	 * @param {string} type - Proficiency type
+	 * @param {string|Object} proficiency - The proficiency to check
+	 * @returns {boolean} True if granted by a fixed source
+	 * @private
+	 */
 	_isGrantedBySource(type, proficiency) {
 		if (!this._character?.proficiencySources?.[type]) {
 			return false;

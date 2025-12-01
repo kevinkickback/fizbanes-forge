@@ -3,6 +3,7 @@
  * Model class representing a character in the D&D Character Creator
  */
 
+import { Logger } from '../infrastructure/Logger.js';
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
 import { ProficiencyCore } from './Proficiency.js';
 
@@ -270,7 +271,8 @@ export class Character {
 	addAbilityBonus(ability, value, source) {
 		// Handle null or undefined ability
 		if (!ability) {
-			console.warn(
+			Logger.warn(
+				'Character',
 				`Attempted to add ability bonus with undefined ability name (value: ${value}, source: ${source})`,
 			);
 			return;
@@ -626,27 +628,27 @@ export class Character {
 					// Simple types
 					armor: this.optionalProficiencies.armor
 						? {
-							allowed: this.optionalProficiencies.armor.allowed || 0,
-							selected: safeArray(this.optionalProficiencies.armor.selected),
-						}
+								allowed: this.optionalProficiencies.armor.allowed || 0,
+								selected: safeArray(this.optionalProficiencies.armor.selected),
+							}
 						: { allowed: 0, selected: [] },
 
 					weapons: this.optionalProficiencies.weapons
 						? {
-							allowed: this.optionalProficiencies.weapons.allowed || 0,
-							selected: safeArray(
-								this.optionalProficiencies.weapons.selected,
-							),
-						}
+								allowed: this.optionalProficiencies.weapons.allowed || 0,
+								selected: safeArray(
+									this.optionalProficiencies.weapons.selected,
+								),
+							}
 						: { allowed: 0, selected: [] },
 
 					savingThrows: this.optionalProficiencies.savingThrows
 						? {
-							allowed: this.optionalProficiencies.savingThrows.allowed || 0,
-							selected: safeArray(
-								this.optionalProficiencies.savingThrows.selected,
-							),
-						}
+								allowed: this.optionalProficiencies.savingThrows.allowed || 0,
+								selected: safeArray(
+									this.optionalProficiencies.savingThrows.selected,
+								),
+							}
 						: { allowed: 0, selected: [] },
 
 					// Complex types with source-specific details

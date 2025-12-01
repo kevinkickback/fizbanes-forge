@@ -4,6 +4,7 @@
  */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /**
@@ -49,7 +50,7 @@ class SpellService {
 			eventBus.emit(EVENTS.SPELLS_LOADED, this._spellData.spell);
 			return true;
 		} catch (error) {
-			console.error('Failed to initialize spell data:', error);
+			Logger.error('SpellService', 'Failed to initialize spell data:', error);
 			this._spellData = { spell: [] };
 			return false;
 		}

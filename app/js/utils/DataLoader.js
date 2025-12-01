@@ -1,3 +1,4 @@
+import { Logger } from '../infrastructure/Logger.js';
 /**
  * DataLoader.js
  * Core data loader for loading, caching, and managing game data
@@ -68,7 +69,7 @@ class DataLoader {
 				return data;
 			} catch (error) {
 				delete this._loading[url];
-				console.error(`Failed to load ${url}:`, error);
+				Logger.error('DataLoader', `Failed to load ${url}:`, error);
 				throw error;
 			}
 		})();
@@ -223,7 +224,7 @@ class DataLoader {
 			// Load from books.json in the data directory
 			return await this.loadJSON(`${this._baseUrl}books.json`);
 		} catch (error) {
-			console.warn('Could not find sources data:', error);
+			Logger.warn('DataLoader', 'Could not find sources data', error);
 			return { source: [] };
 		}
 	}
@@ -238,7 +239,11 @@ class DataLoader {
 			// Try to load from spells subdirectory
 			return await this.loadJSON(`${this._baseUrl}spells/sources.json`);
 		} catch (error) {
-			console.warn(`Could not find subclass spells for ${subclassId}:`, error);
+			Logger.warn(
+				'DataLoader',
+				`Could not find subclass spells for ${subclassId}:`,
+				error,
+			);
 			return { spell: [] };
 		}
 	}

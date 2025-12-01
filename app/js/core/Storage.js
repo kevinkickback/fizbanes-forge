@@ -10,6 +10,7 @@
  */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 
 /**
  * Singleton instance for Storage class
@@ -44,7 +45,7 @@ export class Storage {
 			const characters = await window.characterStorage.loadCharacters();
 			return characters || [];
 		} catch (error) {
-			console.error('Error loading characters from storage:', error);
+			Logger.error('Storage', 'Error loading characters from storage:', error);
 			return [];
 		}
 	}
@@ -64,7 +65,11 @@ export class Storage {
 			}
 			return character;
 		} catch (error) {
-			console.error(`Error loading character with ID ${characterId}:`, error);
+			Logger.error(
+				'Storage',
+				`Error loading character with ID ${characterId}:`,
+				error,
+			);
 			return null;
 		}
 	}
@@ -77,7 +82,10 @@ export class Storage {
 	async saveCharacter(character) {
 		try {
 			if (!character || !character.id) {
-				console.error('Invalid character object passed to saveCharacter');
+				Logger.error(
+					'Storage',
+					'Invalid character object passed to saveCharacter',
+				);
 				return false;
 			}
 
@@ -92,7 +100,7 @@ export class Storage {
 
 			return result?.success === true;
 		} catch (error) {
-			console.error('Error saving character to storage:', error);
+			Logger.error('Storage', 'Error saving character to storage:', error);
 			return false;
 		}
 	}
@@ -105,7 +113,10 @@ export class Storage {
 	async deleteCharacter(characterId) {
 		try {
 			if (!characterId) {
-				console.error('Invalid character ID passed to deleteCharacter');
+				Logger.error(
+					'Storage',
+					'Invalid character ID passed to deleteCharacter',
+				);
 				return false;
 			}
 
@@ -117,7 +128,11 @@ export class Storage {
 
 			return result?.success === true;
 		} catch (error) {
-			console.error(`Error deleting character with ID ${characterId}:`, error);
+			Logger.error(
+				'Storage',
+				`Error deleting character with ID ${characterId}:`,
+				error,
+			);
 			return false;
 		}
 	}
@@ -130,7 +145,10 @@ export class Storage {
 	async exportCharacter(characterId) {
 		try {
 			if (!characterId) {
-				console.error('Invalid character ID passed to exportCharacter');
+				Logger.error(
+					'Storage',
+					'Invalid character ID passed to exportCharacter',
+				);
 				return false;
 			}
 
@@ -138,7 +156,11 @@ export class Storage {
 
 			return result?.success === true;
 		} catch (error) {
-			console.error(`Error exporting character with ID ${characterId}:`, error);
+			Logger.error(
+				'Storage',
+				`Error exporting character with ID ${characterId}:`,
+				error,
+			);
 			return false;
 		}
 	}
@@ -191,7 +213,7 @@ export class Storage {
 				character: null,
 			};
 		} catch (error) {
-			console.error('Error importing character:', error);
+			Logger.error('Storage', 'Error importing character:', error);
 			return {
 				success: false,
 				character: null,
@@ -207,7 +229,7 @@ export class Storage {
 		try {
 			return await window.characterStorage.generateUUID();
 		} catch (error) {
-			console.error('Error generating UUID:', error);
+			Logger.error('Storage', 'Error generating UUID:', error);
 			// Fallback to a simple UUID generation if the IPC call fails
 			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
 				const r = (Math.random() * 16) | 0;

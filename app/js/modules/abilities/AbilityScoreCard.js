@@ -79,7 +79,11 @@ class AbilityScoreCard {
 
 			return true;
 		} catch (error) {
-			console.error('Failed to initialize AbilityScoreCard:', error);
+			Logger.error(
+				'AbilityScoreCard',
+				'Failed to initialize AbilityScoreCard:',
+				error,
+			);
 			return false;
 		}
 	}
@@ -212,7 +216,11 @@ class AbilityScoreCard {
 			};
 			document.addEventListener('subraceChanged', this._subraceChangedListener);
 		} catch (error) {
-			console.error('Error setting up event listeners:', error);
+			Logger.error(
+				'AbilityScoreCard',
+				'Error setting up event listeners:',
+				error,
+			);
 		}
 	}
 
@@ -555,7 +563,11 @@ class AbilityScoreCard {
 			// Render bonus notes
 			this._bonusNotesView.render();
 		} catch (error) {
-			console.error('Error rendering ability score card:', error);
+			Logger.error(
+				'AbilityScoreCard',
+				'Error rendering ability score card:',
+				error,
+			);
 		}
 	}
 
@@ -596,7 +608,11 @@ class AbilityScoreCard {
 				this._handleStandardArraySelection.bind(this),
 			);
 		} catch (error) {
-			console.error('Error rendering ability scores:', error);
+			Logger.error(
+				'AbilityScoreCard',
+				'Error rendering ability scores:',
+				error,
+			);
 		}
 	}
 

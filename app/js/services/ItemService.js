@@ -5,6 +5,7 @@
 
 // Removed unused imports: Logger, Result, AppState
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /**
@@ -44,7 +45,7 @@ class ItemService {
 			eventBus.emit(EVENTS.ITEMS_LOADED, this._itemData.item);
 			return true;
 		} catch (error) {
-			console.error('Failed to initialize item data:', error);
+			Logger.error('ItemService', 'Failed to initialize item data:', error);
 			this._itemData = { item: [], baseItem: [] };
 			return false;
 		}

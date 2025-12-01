@@ -1,3 +1,4 @@
+import { Logger } from '../../infrastructure/Logger.js';
 /**
  * ProficiencySelectionView.js
  * Handles proficiency selection and deselection logic with source-specific tracking
@@ -48,7 +49,11 @@ export class ProficiencySelectionView {
 				);
 			}
 		} catch (error) {
-			console.error('Error toggling proficiency:', error);
+			Logger.error(
+				'ProficiencySelection',
+				'Error toggling proficiency:',
+				error,
+			);
 			return false;
 		}
 
@@ -157,7 +162,8 @@ export class ProficiencySelectionView {
 		}
 
 		if (!removedFromSource) {
-			console.warn(
+			Logger.warn(
+				'ProficiencySelection',
 				"Deselecting skill, but could not find it in any source's selected list.",
 			);
 		}
@@ -252,8 +258,9 @@ export class ProficiencySelectionView {
 			this._updateItemUIForSelection(profItem);
 			return true;
 		} else {
-			console.warn(
-				'Could not assign skill to any source despite canAdd being true.',
+			Logger.warn(
+				'ProficiencySelection',
+				'Cannot select skill: no available slots or not allowed by source rules.',
 			);
 			return false;
 		}
@@ -358,7 +365,8 @@ export class ProficiencySelectionView {
 		}
 
 		if (!removedFromSource) {
-			console.warn(
+			Logger.warn(
+				'ProficiencySelection',
 				"Deselecting language, but could not find it in any source's selected list.",
 			);
 		}
@@ -448,8 +456,9 @@ export class ProficiencySelectionView {
 			this._updateItemUIForSelection(profItem);
 			return true;
 		} else {
-			console.warn(
-				'Could not assign language to any source despite canAdd being true.',
+			Logger.warn(
+				'ProficiencySelection',
+				'Cannot select language: no available slots or not allowed by source rules.',
 			);
 			return false;
 		}
@@ -554,7 +563,8 @@ export class ProficiencySelectionView {
 		}
 
 		if (!removedFromSource) {
-			console.warn(
+			Logger.warn(
+				'ProficiencySelection',
 				"Deselecting tool, but could not find it in any source's selected list.",
 			);
 		}
@@ -642,8 +652,9 @@ export class ProficiencySelectionView {
 			this._updateItemUIForSelection(profItem);
 			return true;
 		} else {
-			console.warn(
-				'Could not assign tool to any source despite canAdd being true.',
+			Logger.warn(
+				'ProficiencySelection',
+				'Cannot select tool: no available slots or not allowed by source rules.',
 			);
 			return false;
 		}

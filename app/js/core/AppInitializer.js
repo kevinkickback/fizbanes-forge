@@ -48,7 +48,7 @@ async function _loadDataWithErrorHandling(promise, component) {
 		const result = await promise;
 		return result;
 	} catch (error) {
-		console.warn(`Failed to load ${component} data:`, error);
+		Logger.warn('AppInitializer', `Failed to load ${component} data:`, error);
 		return null;
 	}
 }
@@ -73,7 +73,7 @@ async function _loadAllGameData() {
 		await Promise.all(dataLoadPromises);
 		return { success: true, errors };
 	} catch (error) {
-		console.error('Error during game data loading:', error);
+		Logger.error('AppInitializer', 'Error during game data loading:', error);
 		errors.push(error);
 		return { success: false, errors };
 	}
@@ -91,7 +91,7 @@ async function _initializeComponent(name, initFunction) {
 		await initFunction();
 		return { success: true, error: null };
 	} catch (error) {
-		console.error(`Error initializing ${name}:`, error);
+		Logger.error('AppInitializer', `Error initializing ${name}:`, error);
 		return { success: false, error };
 	}
 }
@@ -156,7 +156,8 @@ async function _initializeCoreComponents() {
 
 		return result;
 	} catch (error) {
-		console.error(
+		Logger.error(
+			'AppInitializer',
 			'Unexpected error during core component initialization:',
 			error,
 		);
@@ -401,12 +402,20 @@ export async function initializeAll(_options = {}) {
 		result.success = result.errors.length === 0;
 
 		if (!result.success) {
-			console.warn('Application initialized with errors:', result.errors);
+			Logger.warn(
+				'AppInitializer',
+				'Application initialized with errors:',
+				result.errors,
+			);
 		}
 
 		return result;
 	} catch (error) {
-		console.error('Fatal error during application initialization:', error);
+		Logger.error(
+			'AppInitializer',
+			'Fatal error during application initialization:',
+			error,
+		);
 		result.success = false;
 		result.errors.push(error);
 		throw error;
@@ -416,7 +425,7 @@ export async function initializeAll(_options = {}) {
 // Initialize when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
 	initializeAll().catch((error) => {
-		console.error('Error during initialization:', error);
+		Logger.error('AppInitializer', 'Error during initialization:', error);
 	});
 });
 

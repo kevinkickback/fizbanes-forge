@@ -4,9 +4,10 @@
  * Handles hit die, proficiencies, saving throws, and features display.
  */
 
-import { textProcessor } from '../../utils/TextProcessor.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
+import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
  * View for displaying class details (proficiencies, features, etc.)
@@ -536,7 +537,10 @@ export class ClassDetailsView {
 		const featuresSection =
 			this._classDetails.querySelector('.features-section');
 		if (!featuresSection) {
-			console.warn('Features section not found in class details');
+			Logger.warn(
+				'ClassDetails',
+				'Features section not found in class details',
+			);
 			return;
 		}
 
@@ -547,7 +551,7 @@ export class ClassDetailsView {
 			const processedFeatures = await Promise.all(
 				allFeatures.map(async (feature) => {
 					if (!feature.name) {
-						console.warn('Feature missing name:', feature);
+						Logger.warn('ClassDetails', 'Feature missing name:', feature);
 						return '';
 					}
 
@@ -564,7 +568,7 @@ export class ClassDetailsView {
 					} else if (feature.text) {
 						description = await textProcessor.processString(feature.text);
 					} else {
-						console.warn('Feature missing entries:', feature);
+						Logger.warn('ClassDetails', 'Feature missing entries:', feature);
 					}
 
 					// Format source and page info
@@ -611,7 +615,11 @@ export class ClassDetailsView {
 
 		// If entries is not an array, return empty string
 		if (!Array.isArray(entries)) {
-			console.warn('Feature entries is not an array or string:', entries);
+			Logger.warn(
+				'ClassDetails',
+				'Feature entries is not an array or string:',
+				entries,
+			);
 			return '';
 		}
 
@@ -657,7 +665,11 @@ export class ClassDetailsView {
 									);
 									result += `<li><strong>${processedName}</strong>: ${processedEntries}</li>`;
 								} else {
-									console.warn('Unhandled list item format:', item);
+									Logger.warn(
+										'ClassDetails',
+										'Unhandled list item format:',
+										item,
+									);
 								}
 							}
 						}
@@ -771,7 +783,7 @@ export class ClassDetailsView {
 				}
 				// Fall back to JSON for unhandled formats
 				else {
-					console.warn('Unhandled entry format:', entry);
+					Logger.warn('ClassDetails', 'Unhandled entry format:', entry);
 					result += `<p>${JSON.stringify(entry)}</p>`;
 				}
 			}

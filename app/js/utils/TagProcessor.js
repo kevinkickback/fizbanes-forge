@@ -1,3 +1,4 @@
+import { Logger } from '../infrastructure/Logger.js';
 /**
  * TagProcessor.js
  * Handles processing of inline D&D reference tags ({@spell ...}, {@item ...}, etc.)
@@ -47,7 +48,7 @@ export class TagProcessor {
 	processTag(tag, text) {
 		const handler = this._handlers[tag];
 		if (!handler) {
-			console.warn(`Unknown tag: ${tag}`);
+			Logger.warn('TagProcessor', `Unknown tag: ${tag}`);
 			return text;
 		}
 		return handler(text);
@@ -298,7 +299,7 @@ export class StringRenderer {
 			try {
 				return this.tagProcessor.processTag(tag, content);
 			} catch (e) {
-				console.error(`Error processing tag @${tag}:`, e);
+				Logger.error('TagProcessor', `Error processing tag @${tag}:`, e);
 				return match;
 			}
 		});

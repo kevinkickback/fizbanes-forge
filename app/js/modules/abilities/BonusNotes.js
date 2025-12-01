@@ -3,6 +3,7 @@
  * @description View for rendering ability score bonus notes and explanations
  */
 
+import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
@@ -58,7 +59,7 @@ class BonusNotesView {
 				textProcessor.processElement(this._bonusesContainer);
 			}
 		} catch (error) {
-			console.error('Error rendering bonus notes:', error);
+			Logger.error('BonusNotes', 'Error rendering bonus notes:', error);
 		}
 	}
 

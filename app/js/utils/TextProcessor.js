@@ -285,7 +285,10 @@ class TextProcessor {
 			// Mark as processed to avoid reprocessing by the MutationObserver unless forced
 			element.setAttribute('data-processed', 'true');
 		} catch (error) {
-			console.warn('Error processing text element:', error, element);
+			Logger.warn('TextProcessor', 'Error processing text element', {
+				error,
+				element,
+			});
 		}
 	}
 

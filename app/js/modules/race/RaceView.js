@@ -4,8 +4,9 @@
  * Handles the main race dropdown and summary display.
  */
 
-import { textProcessor } from '../../utils/TextProcessor.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { Logger } from '../../infrastructure/Logger.js';
+import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
  * View for the race card's main display (dropdown + quick description)
@@ -93,7 +94,7 @@ export class RaceCardView {
 		this._raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
 		if (!races || races.length === 0) {
-			console.error('No races provided to populate dropdown');
+			Logger.error('RaceView', 'No races provided to populate dropdown');
 			return;
 		}
 

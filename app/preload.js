@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Expose FF_DEBUG to renderer
+contextBridge.exposeInMainWorld('FF_DEBUG', process.env.FF_DEBUG === 'true');
+
 // Expose Electron API methods
 contextBridge.exposeInMainWorld('electron', {
 	generateUUID: async () => await ipcRenderer.invoke('character:generateUUID'),

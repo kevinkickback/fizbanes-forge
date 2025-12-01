@@ -4,8 +4,9 @@
  * Handles the main class dropdown and summary display.
  */
 
-import { textProcessor } from '../../utils/TextProcessor.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { Logger } from '../../infrastructure/Logger.js';
+import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
  * View for the class card's main display (dropdown + quick description)
@@ -93,7 +94,7 @@ export class ClassCardView {
 		this._classSelect.innerHTML = '<option value="">Select a Class</option>';
 
 		if (!classes || classes.length === 0) {
-			console.error('No classes provided to populate dropdown');
+			Logger.error('ClassView', 'No classes provided to populate dropdown');
 			return;
 		}
 

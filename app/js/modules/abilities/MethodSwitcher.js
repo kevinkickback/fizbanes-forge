@@ -4,6 +4,7 @@
  */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
+import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 
 /**
@@ -118,7 +119,11 @@ class MethodSwitcherView {
 				}
 			}
 		} catch (error) {
-			console.error('Error rendering ability score method info:', error);
+			Logger.error(
+				'MethodSwitcher',
+				'Error rendering ability score method info:',
+				error,
+			);
 		}
 	}
 

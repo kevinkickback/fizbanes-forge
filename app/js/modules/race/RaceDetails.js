@@ -4,6 +4,7 @@
  * Handles ability scores, size, speed, languages, and traits display.
  */
 
+import { Logger } from '../../infrastructure/Logger.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
@@ -174,7 +175,7 @@ export class RaceDetailsView {
 			speedSection.innerHTML =
 				speeds.map((speed) => `<li>${speed}</li>`).join('') || '<li>None</li>';
 		} catch (error) {
-			console.error('Error updating size and speed:', error);
+			Logger.error('RaceDetails', 'Error updating size and speed:', error);
 
 			// Set default values if there's an error
 			const sizeSection = this._raceDetails.querySelector(

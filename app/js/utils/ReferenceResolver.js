@@ -4,6 +4,7 @@
  * Uses managers for all entity types
  */
 
+import { Logger } from '../infrastructure/Logger.js';
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
 import { itemService } from '../services/ItemService.js';
@@ -46,7 +47,11 @@ export class ReferenceResolver {
 
 			return spell;
 		} catch (error) {
-			console.error(`Error resolving spell "${spellName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving spell "${spellName}":`,
+				error,
+			);
 			return { name: spellName, error: error.message };
 		}
 	}
@@ -83,7 +88,11 @@ export class ReferenceResolver {
 
 			return item;
 		} catch (error) {
-			console.error(`Error resolving item "${itemName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving item "${itemName}":`,
+				error,
+			);
 			return { name: itemName, error: error.message };
 		}
 	}
@@ -109,7 +118,11 @@ export class ReferenceResolver {
 
 			return condition;
 		} catch (error) {
-			console.error(`Error resolving condition "${conditionName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving condition "${conditionName}":`,
+				error,
+			);
 			return { name: conditionName, error: error.message };
 		}
 	}
@@ -136,7 +149,11 @@ export class ReferenceResolver {
 
 			return monster;
 		} catch (error) {
-			console.error(`Error resolving monster "${monsterName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving monster "${monsterName}":`,
+				error,
+			);
 			return { name: monsterName, error: error.message };
 		}
 	}
@@ -163,7 +180,11 @@ export class ReferenceResolver {
 
 			return classData;
 		} catch (error) {
-			console.error(`Error resolving class "${className}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving class "${className}":`,
+				error,
+			);
 			return { name: className, error: error.message };
 		}
 	}
@@ -190,7 +211,11 @@ export class ReferenceResolver {
 
 			return race;
 		} catch (error) {
-			console.error(`Error resolving race "${raceName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving race "${raceName}":`,
+				error,
+			);
 			return { name: raceName, error: error.message };
 		}
 	}
@@ -217,7 +242,11 @@ export class ReferenceResolver {
 
 			return feat;
 		} catch (error) {
-			console.error(`Error resolving feat "${featName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving feat "${featName}":`,
+				error,
+			);
 			return { name: featName, error: error.message };
 		}
 	}
@@ -244,7 +273,11 @@ export class ReferenceResolver {
 
 			return background;
 		} catch (error) {
-			console.error(`Error resolving background "${backgroundName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving background "${backgroundName}":`,
+				error,
+			);
 			return { name: backgroundName, error: error.message };
 		}
 	}
@@ -270,7 +303,11 @@ export class ReferenceResolver {
 
 			return skill;
 		} catch (error) {
-			console.error(`Error resolving skill "${skillName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving skill "${skillName}":`,
+				error,
+			);
 			return { name: skillName, error: error.message };
 		}
 	}
@@ -296,7 +333,11 @@ export class ReferenceResolver {
 
 			return action;
 		} catch (error) {
-			console.error(`Error resolving action "${actionName}":`, error);
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving action "${actionName}":`,
+				error,
+			);
 			return { name: actionName, error: error.message };
 		}
 	}
