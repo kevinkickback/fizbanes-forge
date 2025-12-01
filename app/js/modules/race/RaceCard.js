@@ -4,13 +4,13 @@
  * Coordinates between views and manages race/subrace selection logic.
  */
 
-import { raceService } from '../../services/RaceService.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { raceService } from '../../services/RaceService.js';
+import { RaceDetailsView } from './RaceDetails.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
-import { RaceDetailsView } from './RaceDetails.js';
 
 /**
  * Controller for race selection and display
@@ -57,19 +57,19 @@ export class RaceCard {
 	//-------------------------------------------------------------------------
 
 	/**
-	 * Initializes the race card UI components and event listeners
-	 * @returns {Promise<void>}
+	 * Initializes the race card UI components and event listeners.
+	 * Sets up views and binds event handlers for race and subrace selection.
 	 */
-	async initialize() {
+	initialize() {
 		try {
 			// Initialize required dependencies
-			await this._raceService.initialize();
+			this._raceService.initialize();
 
 			// Set up event listeners
 			this._setupEventListeners();
 
 			// Load saved race selection from character data
-			await this._loadSavedRaceSelection();
+			this._loadSavedRaceSelection();
 		} catch (error) {
 			console.error('Failed to initialize race card:', error);
 		}

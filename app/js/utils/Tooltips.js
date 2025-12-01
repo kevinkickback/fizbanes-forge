@@ -3,6 +3,7 @@
  * Handles displaying and hiding D&D reference tooltips
  */
 
+import { Logger } from '../infrastructure/Logger.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
 import { getStringRenderer } from './TagProcessor.js';
 
@@ -154,21 +155,17 @@ export class TooltipManager {
 			if (!t.referenceKey) return false;
 			// Compare type and name only, ignore source as it might differ
 			const existingKey = t.referenceKey.split(':').slice(0, 2).join(':');
-			console.log(
-				`[Tooltip] Comparing "${referenceKey}" with "${existingKey}"`,
-			);
+			Logger.info('TooltipSystem', 'Comparing "' + referenceKey + '" with "' + existingKey + '"');
 			return existingKey === referenceKey;
 		});
 
 		if (isAlreadyOpen) {
-			console.log(
-				`[Tooltip] Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`,
-			);
+			Logger.info('TooltipSystem', `Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`);
 			return;
 		}
 
 		try {
-			console.log(`[Tooltip] Loading ${type}: ${name} (${source})`);
+			Logger.info('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
 			let data = null;
 
 			switch (type) {
@@ -207,10 +204,10 @@ export class TooltipManager {
 			}
 
 			const content = this._formatTooltip(data);
-			console.log(`[Tooltip] Resolved ${type}: ${name}`, data);
+			Logger.info('TooltipSystem', `Resolved ${type}: ${name}`, data);
 			this.show(x, y, content, { referenceKey });
 		} catch (error) {
-			console.error(`Error showing tooltip for ${type}:`, error);
+			Logger.error(`[TooltipSystem] Error showing tooltip for ${type}:`, error);
 			this.show(
 				x,
 				y,
@@ -490,7 +487,7 @@ export class TooltipManager {
  * Initialize tooltip event listeners for all hover links
  */
 export function initializeTooltipListeners(tooltipManager) {
-	console.log('[TooltipSystem] Initializing event listeners');
+	Logger.info('TooltipSystem', 'Initializing event listeners');
 
 	// Track active link and tooltip for each depth level
 	const activeElements = new Map(); // depth -> {link, tooltip, timeout}
@@ -545,26 +542,20 @@ export function initializeTooltipListeners(tooltipManager) {
 		}
 
 		currentHoverLink = link;
-		console.log(`[TooltipSystem] Hovering over: ${hoverType} - ${hoverName}`);
+		Logger.info('TooltipSystem', `Hovering over: ${hoverType} - ${hoverName}`);
 
 		if (parentTooltip) {
-			console.log(
-				`[TooltipSystem] Link is in tooltip at index: ${linkTooltipIndex}`,
-			);
+			Logger.info('TooltipSystem', `Link is in tooltip at index: ${linkTooltipIndex}`);
 		} else {
-			console.log(`[TooltipSystem] Link is not in a tooltip (base level)`);
+			Logger.info('TooltipSystem', 'Link is not in a tooltip (base level)');
 		}
 
-		console.log(
-			`[TooltipSystem] Current stack size: ${tooltipManager._tooltips.length}, keeping up to index: ${keepUpToIndex}`,
-		);
+		Logger.info('TooltipSystem', `Current stack size: ${tooltipManager._tooltips.length}, keeping up to index: ${keepUpToIndex}`);
 
 		// Remove tooltips after the one containing the link
 		while (tooltipManager._tooltips.length > keepUpToIndex) {
 			const removed = tooltipManager._tooltips.pop();
-			console.log(
-				`[TooltipSystem] Removing tooltip at index ${tooltipManager._tooltips.length}`,
-			);
+			Logger.info('TooltipSystem', `Removing tooltip at index ${tooltipManager._tooltips.length}`);
 			if (removed.container.parentNode) {
 				removed.container.parentNode.removeChild(removed.container);
 			}
@@ -607,9 +598,7 @@ export function initializeTooltipListeners(tooltipManager) {
 					tooltip: newTooltip,
 					timeout: null,
 				});
-				console.log(
-					`[TooltipSystem] Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltipManager._tooltips.length}`,
-				);
+				Logger.info('TooltipSystem', `Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltipManager._tooltips.length}`);
 			}
 		}
 	});
@@ -639,9 +628,7 @@ export function initializeTooltipListeners(tooltipManager) {
 
 				// If we're moving to a shallower tooltip (or out of nested tooltip entirely)
 				if (fromIndex > toIndex) {
-					console.log(
-						`[TooltipSystem] Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`,
-					);
+					Logger.info('TooltipSystem', `Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`);
 
 					// Remove tooltips deeper than where we're going
 					const keepUpToIndex = toIndex + 1;
@@ -664,7 +651,7 @@ export function initializeTooltipListeners(tooltipManager) {
 
 		// If leaving tooltip system entirely
 		if (isInTooltipSystem(fromElement) && !isInTooltipSystem(toElement)) {
-			console.log('[TooltipSystem] Left tooltip system, hiding all');
+			Logger.info('TooltipSystem', 'Left tooltip system, hiding all');
 
 			// Clear all active tooltips after delay
 			globalHideTimeout = setTimeout(() => {
@@ -692,7 +679,7 @@ export function initializeTooltipListeners(tooltipManager) {
 		if (isInTooltipSystem(enteringElement)) {
 			// Cancel pending hide timeout
 			if (globalHideTimeout) {
-				console.log('[TooltipSystem] Canceling hide timer');
+				Logger.info('TooltipSystem', 'Canceling hide timer');
 				clearTimeout(globalHideTimeout);
 				globalHideTimeout = null;
 			}

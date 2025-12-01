@@ -20,27 +20,6 @@ Key Findings
 
 Recommendations
 ---------------
-1. Adopt Biome for linting/formatting (instead of ESLint + Prettier)
-   - A `biome.json` is already present in the repo root. Biome can lint, format, and fix many style issues and is a single tool replacement for ESLint + Prettier.
-   - Recommended NPM scripts to add to `package.json` (optional):
-     - `"format": "biome format"`
-     - `"lint": "biome check"`
-   - Common commands (PowerShell):
-     ```powershell
-     npx biome check
-     npx biome format
-     ```
-
-2. Enforce environment-aware rules via Biome configuration
-   - Keep `app/js/**` as ESM (enable `sourceType: module`) and allow `import`/`export`.
-   - Keep `app/electron/**` as CommonJS (allow `require`/`module.exports`) via overrides in `biome.json`.
-   - Example override (conceptual):
-     ```json
-     {
-       "files": ["app/electron/**"],
-       "language": { "sourceType": "script" }
-     }
-     ```
 
 3. Logging policy
    - Replace `console.log` / `console.error` in renderer files with the `Logger` utility.
@@ -60,9 +39,6 @@ Recommendations
 
 Suggested small first steps (I can implement these if you want)
 -------------------------------------------------------
-- Add/standardize `biome.json` overrides for `app/electron/**` and `app/js/**`.
-- Add `format` and `lint` scripts to `package.json`.
-- Run `npx biome format` then `npx biome check` and fix autofixable issues.
 - Replace `console.*` in renderer `app/js/**` with `Logger.*` (small PR).
 
 If you'd like, I can:
@@ -71,7 +47,7 @@ If you'd like, I can:
 
 Notes & rationale
 -----------------
-- The existing split between ESM (renderer) and CommonJS (main) should be preserved for Electron security and initialization patterns. Biome supports configuring rules per-folder so this can be enforced automatically.
+- The existing split between ESM (renderer) and CommonJS (main) should be preserved for Electron security and initialization patterns.
 - Using Biome reduces toolchain complexity (one tool for both formatting and linting) and integrates well with modern JS/TS workflows.
 
 End of audit.

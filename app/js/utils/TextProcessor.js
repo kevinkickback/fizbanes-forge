@@ -9,6 +9,7 @@
  * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
  */
 
+import { Logger } from '../infrastructure/Logger.js';
 import { getStringRenderer } from './TagProcessor.js';
 import { getTooltipManager, initializeTooltipListeners } from './Tooltips.js';
 
@@ -106,7 +107,7 @@ class TextProcessor {
 			// Process initial page content
 			await this.processPageContent(document.body);
 		} catch (error) {
-			console.error('Error initializing text processor:', error);
+			Logger.error('[TextProcessor] Error initializing text processor:', error);
 		}
 	}
 
@@ -121,7 +122,7 @@ class TextProcessor {
 				this._observer = null;
 			}
 		} catch (error) {
-			console.error('Error destroying text processor:', error);
+			Logger.error('[TextProcessor] Error destroying text processor:', error);
 		}
 	}
 
@@ -143,7 +144,7 @@ class TextProcessor {
 				}
 			}
 		} catch (error) {
-			console.error('Error handling DOM changes:', error);
+			Logger.error('[TextProcessor] Error handling DOM changes:', error);
 		}
 	}
 
@@ -194,7 +195,11 @@ class TextProcessor {
 				await this._processTextElement(element, mergedOptions, forceReprocess);
 			}
 		} catch (error) {
-			console.error('Error processing page content:', error, container);
+			Logger.error(
+				'[TextProcessor] Error processing page content:',
+				error,
+				container,
+			);
 		}
 	}
 
@@ -213,7 +218,7 @@ class TextProcessor {
 			// Force reprocess when called directly on an element
 			await this.processPageContent(element, {}, true);
 		} catch (error) {
-			console.error('Error processing element:', error);
+			Logger.error('[TextProcessor] Error processing element:', error);
 		}
 	}
 
@@ -312,7 +317,7 @@ class TextProcessor {
 
 			return processedText;
 		} catch (error) {
-			console.error('Error processing string:', error);
+			Logger.error('[TextProcessor] Error processing string:', error);
 			return text || ''; // Return original text on error
 		}
 	}
@@ -360,7 +365,7 @@ class TextProcessor {
 			}
 			return formattedText;
 		} catch (error) {
-			console.error('Error processing formatting:', error);
+			Logger.error('[TextProcessor] Error processing formatting:', error);
 			return input; // Return original input on error
 		}
 	}

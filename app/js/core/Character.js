@@ -626,27 +626,27 @@ export class Character {
 					// Simple types
 					armor: this.optionalProficiencies.armor
 						? {
-								allowed: this.optionalProficiencies.armor.allowed || 0,
-								selected: safeArray(this.optionalProficiencies.armor.selected),
-							}
+							allowed: this.optionalProficiencies.armor.allowed || 0,
+							selected: safeArray(this.optionalProficiencies.armor.selected),
+						}
 						: { allowed: 0, selected: [] },
 
 					weapons: this.optionalProficiencies.weapons
 						? {
-								allowed: this.optionalProficiencies.weapons.allowed || 0,
-								selected: safeArray(
-									this.optionalProficiencies.weapons.selected,
-								),
-							}
+							allowed: this.optionalProficiencies.weapons.allowed || 0,
+							selected: safeArray(
+								this.optionalProficiencies.weapons.selected,
+							),
+						}
 						: { allowed: 0, selected: [] },
 
 					savingThrows: this.optionalProficiencies.savingThrows
 						? {
-								allowed: this.optionalProficiencies.savingThrows.allowed || 0,
-								selected: safeArray(
-									this.optionalProficiencies.savingThrows.selected,
-								),
-							}
+							allowed: this.optionalProficiencies.savingThrows.allowed || 0,
+							selected: safeArray(
+								this.optionalProficiencies.savingThrows.selected,
+							),
+						}
 						: { allowed: 0, selected: [] },
 
 					// Complex types with source-specific details
@@ -759,4 +759,24 @@ export class Character {
 	getPendingAbilityChoices() {
 		return this.pendingAbilityChoices;
 	}
+}
+
+/**
+ * Centralized utility to serialize a Character instance
+ * Handles Sets/Maps and calls toJSON()
+ * @param {Character} character
+ * @returns {Object} Serialized character data
+ */
+export function serializeCharacter(character) {
+	return character?.toJSON ? character.toJSON() : character;
+}
+
+/**
+ * Centralized utility to deserialize character data
+ * Handles Sets/Maps and calls Character.fromJSON()
+ * @param {Object} data
+ * @returns {Character}
+ */
+export function deserializeCharacter(data) {
+	return Character.fromJSON(data);
 }

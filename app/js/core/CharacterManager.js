@@ -12,12 +12,12 @@
  * @module application/CharacterManager
  */
 
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Character, serializeCharacter } from './Character.js';
 import { CharacterSchema } from './CharacterSchema.js';
-import { Character } from './Character.js';
 
 class CharacterManagerImpl {
 	/**
@@ -166,10 +166,8 @@ class CharacterManagerImpl {
 				return Result.err(`Cannot save: ${validation.errors.join(', ')}`);
 			}
 
-			// Serialize character using toJSON() to handle Sets and Maps
-			const serializedCharacter = character.toJSON
-				? character.toJSON()
-				: character;
+			// Serialize character using centralized utility
+			const serializedCharacter = serializeCharacter(character);
 
 			// Save via IPC
 			const saveResult = await window.electron.invoke(

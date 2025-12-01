@@ -179,3 +179,5 @@ export class SourcePickerView {
 		return changedToggles;
 	}
 }
+
+export const sourcePickerView = new SourcePickerView();
