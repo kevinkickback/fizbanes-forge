@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // Source paths from node_modules
 const sources = [
@@ -18,11 +18,11 @@ console.log(' Setting up third-party assets...');
 sources.forEach(({ from, to }) => {
     const fromPath = path.join(__dirname, from);
     const toPath = path.join(__dirname, to);
-    
+
     if (fs.existsSync(fromPath)) {
         // Create destination directory
         fs.mkdirSync(path.dirname(toPath), { recursive: true });
-        
+
         // Copy directory recursively
         console.log('Copying:', from, '->', to);
         fs.cpSync(fromPath, toPath, { recursive: true });
