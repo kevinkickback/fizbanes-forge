@@ -1,0 +1,79 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": [
+			"**",
+			"!app/data",
+			"!app/assets",
+			"!app/pages/tooltipTest.html",
+			"!test-results"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"complexity": {
+				"noImportantStyles": "off"
+			},
+			"style": {
+				"useFilenamingConvention": "off",
+				"noDescendingSpecificity": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single"
+		}
+	},
+	"assist": {
+		"enabled": true,
+		"actions": {
+			"source": {
+				"organizeImports": "off"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["app/electron/**"],
+			"linter": {
+				"enabled": true,
+				"rules": {
+					"style": {
+						"noCommonJs": "off",
+						"noProcessEnv": "off"
+					},
+					"correctness": {
+						"noNodejsModules": "off",
+						"noProcessGlobal": "off",
+						"noGlobalDirnameFilename": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["app/js/**", "app/pages/**", "app/js/modules/**"],
+			"linter": {
+				"enabled": true,
+				"rules": {
+					"style": {
+						"noCommonJs": "on",
+						"useFilenamingConvention": "off"
+					}
+				}
+			}
+		}
+	]
+}
