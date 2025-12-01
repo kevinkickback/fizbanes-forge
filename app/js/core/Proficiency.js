@@ -3,6 +3,7 @@
  * Core module for proficiency business logic with source tracking.
  * Handles adding, removing, and managing proficiencies from various sources.
  */
+// biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

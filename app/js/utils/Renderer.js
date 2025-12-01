@@ -7,6 +7,8 @@
  *   const renderer = Renderer.get();
  *   const html = renderer.render(entry);
  */
+// biome-ignore-all lint/complexity/noThisInStatic: false positive
+// biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 /**
  * Main Renderer class - implements recursive entry rendering system

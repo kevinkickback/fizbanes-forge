@@ -793,9 +793,7 @@ body {
 	}
 
 	.floating-actions {
-		left: var(
-			--sidebar-width
-		); /* This will now use the updated sidebar width */
+		left: var(--sidebar-width); /* This will now use the updated sidebar width */
 	}
 
 	.sidebar .nav-link span,
