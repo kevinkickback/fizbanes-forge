@@ -280,7 +280,7 @@ let _dataLoaderInstance = null;
  * Get the global DataLoader instance
  * @returns {DataLoader}
  */
-DataLoader.getInstance = function () {
+DataLoader.getInstance = () => {
     if (!_dataLoaderInstance) {
         _dataLoaderInstance = new DataLoader();
     }

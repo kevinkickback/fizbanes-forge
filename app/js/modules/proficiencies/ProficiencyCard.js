@@ -5,12 +5,12 @@
  */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
-import { proficiencyService } from '../../services/ProficiencyService.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { proficiencyService } from '../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
-import { ProficiencySelectionView } from './ProficiencySelection.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
+import { ProficiencySelectionView } from './ProficiencySelection.js';
 
 /**
  * Manages the proficiency card UI component and related functionality
@@ -265,10 +265,10 @@ export class ProficiencyCard {
 
     /**
      * Handle proficiency removed by source event from EventBus
-     * @param {Object} data - Event data with source, removed, character
+     * @param {Object} _data - Event data with source, removed, character
      * @private
      */
-    _handleProficiencyRemoved(data) {
+    _handleProficiencyRemoved(_data) {
         this._handleProficiencyChanged({ detail: { forcedRefresh: true } });
     }
 
@@ -289,10 +289,10 @@ export class ProficiencyCard {
 
     /**
      * Handle character change events
-     * @param {CustomEvent} event - The character changed event
+     * @param {CustomEvent} _event - The character changed event
      * @private
      */
-    _handleCharacterChanged(event) {
+    _handleCharacterChanged(_event) {
         try {
             this._character = CharacterManager.getCurrentCharacter();
 

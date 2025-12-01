@@ -18,7 +18,7 @@ export function hasSubraces(race) {
  * @returns {boolean} True if race has versions
  */
 export function hasVersions(race) {
-    return race && race._copy && Array.isArray(race._copy.versions);
+    return race?._copy && Array.isArray(race._copy.versions);
 }
 
 /**

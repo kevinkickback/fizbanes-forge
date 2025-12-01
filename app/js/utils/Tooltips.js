@@ -3,8 +3,8 @@
  * Handles displaying and hiding D&D reference tooltips
  */
 
-import { getStringRenderer } from './TagProcessor.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
+import { getStringRenderer } from './TagProcessor.js';
 
 /**
  * Tooltip manager - handles displaying and hiding tooltips
@@ -94,8 +94,8 @@ export class TooltipManager {
             left = Math.max(10, Math.min(left, viewportWidth - tooltipRect.width - 10));
             top = Math.max(10, Math.min(top, viewportHeight - tooltipRect.height - 10));
 
-            tooltipObj.container.style.left = left + "px";
-            tooltipObj.container.style.top = top + "px";
+            tooltipObj.container.style.left = `${left}px`;
+            tooltipObj.container.style.top = `${top}px`;
         });
     }
 
@@ -234,10 +234,10 @@ export class TooltipManager {
 
             if (data.time || data.range || data.components || data.duration) {
                 html += '<div class="tooltip-casting-details">';
-                if (data.time && data.time[0]) {
+                if (data.time?.[0]) {
                     html += `<strong>Casting Time:</strong><span>${data.time[0].number || 1} ${data.time[0].unit || "action"}</span>`;
                 }
-                if (data.range && data.range.distance) {
+                if (data.range?.distance) {
                     const range = data.range.distance.amount ? `${data.range.distance.amount} ${data.range.distance.type}` : data.range.distance.type;
                     html += `<strong>Range:</strong><span>${range}</span>`;
                 }
@@ -248,7 +248,7 @@ export class TooltipManager {
                     if (data.components.m) comp.push(`M (${data.components.m.text || data.components.m})`);
                     html += `<strong>Components:</strong><span>${comp.join(", ")}</span>`;
                 }
-                if (data.duration && data.duration[0]) {
+                if (data.duration?.[0]) {
                     const dur = data.duration[0];
                     const durText = dur.type === "instant" ? "Instantaneous" :
                         dur.concentration ? `Concentration, ${dur.duration?.amount || ""} ${dur.duration?.type || ""}` :
@@ -267,7 +267,7 @@ export class TooltipManager {
             } else if (data.size) {
                 html += `<strong>Size:</strong> ${data.size}<br>`;
             }
-            if (data.speed && data.speed.walk) {
+            if (data.speed?.walk) {
                 html += `<strong>Speed:</strong> ${data.speed.walk} ft.<br>`;
             }
             if (data.ability && Array.isArray(data.ability)) {
@@ -395,7 +395,7 @@ export class TooltipManager {
             for (let i = 0; i < Math.min(data.entries.length, 5); i++) {
                 const entry = data.entries[i];
                 if (typeof entry === "string") {
-                    const text = entry.length > 200 ? entry.substring(0, 200) + "..." : entry;
+                    const text = entry.length > 200 ? `${entry.substring(0, 200)}...` : entry;
                     // Render tags in the entry text
                     const renderedText = getStringRenderer().render(text);
                     html += `<p>${renderedText}</p>`;
@@ -430,7 +430,7 @@ export class TooltipManager {
                             const subEntry = entry.entries[j];
                             if (typeof subEntry === "string") {
                                 const renderedText = getStringRenderer().render(subEntry);
-                                html += renderedText + " ";
+                                html += `${renderedText} `;
                             }
                         }
                     }
@@ -647,5 +647,5 @@ export function getTooltipManager() {
 }
 
 // Re-export rendering components for convenience
-export { getTagProcessor, getStringRenderer } from './TagProcessor.js';
 export { getReferenceResolver } from './ReferenceResolver.js';
+export { getStringRenderer, getTagProcessor } from './TagProcessor.js';

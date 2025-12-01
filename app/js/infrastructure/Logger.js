@@ -49,7 +49,7 @@ class LoggerImpl {
 
     setLevel(level) {
         const upperLevel = level.toUpperCase();
-        if (LOG_LEVELS.hasOwnProperty(upperLevel)) {
+        if (Object.hasOwn(LOG_LEVELS, upperLevel)) {
             this.currentLevel = LOG_LEVELS[upperLevel];
         } else {
             console.warn(`[Logger] Invalid log level: ${level}. Using INFO.`);

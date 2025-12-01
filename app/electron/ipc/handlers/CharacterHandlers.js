@@ -83,13 +83,13 @@ function validateCharacter(character) {
     return { valid: errors.length === 0, errors };
 }
 
-function registerCharacterHandlers(preferencesManager, windowManager) {
+function registerCharacterHandlers(preferencesManager, _windowManager) {
     MainLogger.info('CharacterHandlers', 'Registering character handlers');
 
     // Save character
     ipcMain.handle(
         IPC_CHANNELS.CHARACTER_SAVE,
-        async (event, characterData) => {
+        async (_event, characterData) => {
             try {
                 // Handle both serialized string and object
                 const character = typeof characterData === "string"
@@ -147,7 +147,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     });
 
     // Delete character
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_DELETE, async (event, id) => {
+    ipcMain.handle(IPC_CHANNELS.CHARACTER_DELETE, async (_event, id) => {
         try {
             MainLogger.info('CharacterHandlers', 'Deleting character:', id);
 
@@ -165,7 +165,7 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     });
 
     // Export character
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT, async (event, id) => {
+    ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT, async (_event, id) => {
         try {
             MainLogger.info('CharacterHandlers', 'Exporting character:', id);
 
@@ -193,13 +193,13 @@ function registerCharacterHandlers(preferencesManager, windowManager) {
     });
 
     // Import character
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async (event, userChoice) => {
+    ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async (_event, userChoice) => {
         try {
             MainLogger.info('CharacterHandlers', 'Importing character');
 
             let sourceFilePath = userChoice?.sourceFilePath;
             let character = userChoice?.character;
-            let action = userChoice?.action;
+            const action = userChoice?.action;
 
             // If no file selected yet, show dialog
             if (!sourceFilePath) {

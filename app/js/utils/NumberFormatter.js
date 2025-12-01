@@ -9,7 +9,7 @@
  * @returns {string} Formatted string (e.g., "+2", "-1", "+0")
  */
 export function formatModifier(value) {
-    if (typeof value !== 'number' || isNaN(value)) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
         return '+0';
     }
 
@@ -70,7 +70,7 @@ export function parseDice(diceString) {
  * @returns {string} Ordinal string
  */
 export function formatOrdinal(num) {
-    if (typeof num !== 'number' || isNaN(num)) {
+    if (typeof num !== 'number' || Number.isNaN(num)) {
         return '';
     }
 
@@ -88,7 +88,7 @@ export function formatOrdinal(num) {
  * @returns {string} Formatted distance (e.g., "30 ft.", "60 feet")
  */
 export function formatDistance(feet) {
-    if (typeof feet !== 'number' || isNaN(feet)) {
+    if (typeof feet !== 'number' || Number.isNaN(feet)) {
         return '0 ft.';
     }
 
@@ -101,7 +101,7 @@ export function formatDistance(feet) {
  * @returns {string} Formatted weight (e.g., "150 lb.", "10 lbs.")
  */
 export function formatWeight(pounds) {
-    if (typeof pounds !== 'number' || isNaN(pounds)) {
+    if (typeof pounds !== 'number' || Number.isNaN(pounds)) {
         return '0 lb.';
     }
 
@@ -114,7 +114,7 @@ export function formatWeight(pounds) {
  * @returns {string} Formatted currency (e.g., "100 gp", "5 gp")
  */
 export function formatGold(gp) {
-    if (typeof gp !== 'number' || isNaN(gp)) {
+    if (typeof gp !== 'number' || Number.isNaN(gp)) {
         return '0 gp';
     }
 
@@ -128,7 +128,7 @@ export function formatGold(gp) {
  * @returns {string} Formatted range (e.g., "30 ft.", "100/400 ft.")
  */
 export function formatRange(normal, long) {
-    if (typeof normal !== 'number' || isNaN(normal)) {
+    if (typeof normal !== 'number' || Number.isNaN(normal)) {
         return '';
     }
 
@@ -174,7 +174,7 @@ export function formatProficiencyBonus(level) {
  * @returns {string} Formatted percentage (e.g., "50%")
  */
 export function formatPercentage(value, isDecimal = true) {
-    if (typeof value !== 'number' || isNaN(value)) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
         return '0%';
     }
 
@@ -188,7 +188,7 @@ export function formatPercentage(value, isDecimal = true) {
  * @returns {string} Formatted number (e.g., "1,000", "10,000")
  */
 export function formatWithCommas(value) {
-    if (typeof value !== 'number' || isNaN(value)) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
         return '0';
     }
 

@@ -4,12 +4,12 @@
  * Uses managers for all entity types
  */
 
-import { DataLoader } from './DataLoader.js';
-import { classService } from '../services/ClassService.js';
-import { raceService } from '../services/RaceService.js';
 import { backgroundService } from '../services/BackgroundService.js';
-import { spellService } from '../services/SpellService.js';
+import { classService } from '../services/ClassService.js';
 import { itemService } from '../services/ItemService.js';
+import { raceService } from '../services/RaceService.js';
+import { spellService } from '../services/SpellService.js';
+import { DataLoader } from './DataLoader.js';
 
 /**
  * Reference resolver - resolves tags to actual content
@@ -27,10 +27,10 @@ export class ReferenceResolver {
     /**
      * Resolve a spell reference
      * @param {string} spellName Spell name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Spell data
      */
-    async resolveSpell(spellName, source = "PHB") {
+    async resolveSpell(spellName, _source = "PHB") {
         try {
             const allSpells = this._spellManager.getAllSpells();
             const spell = allSpells?.find(s =>
@@ -54,10 +54,10 @@ export class ReferenceResolver {
     /**
      * Resolve an item reference
      * @param {string} itemName Item name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Item data
      */
-    async resolveItem(itemName, source = "PHB") {
+    async resolveItem(itemName, _source = "PHB") {
         try {
             const allItems = this._itemManager.getAllItems();
             const allBaseItems = this._itemManager.getAllBaseItems();
@@ -117,10 +117,10 @@ export class ReferenceResolver {
     /**
      * Resolve a monster reference
      * @param {string} monsterName Monster name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Monster data
      */
-    async resolveMonster(monsterName, source = "MM") {
+    async resolveMonster(monsterName, _source = "MM") {
         try {
             const data = await this._dataUtil.loadMonsters();
             const monster = data.monster?.find(m =>
@@ -144,10 +144,10 @@ export class ReferenceResolver {
     /**
      * Resolve a class reference
      * @param {string} className Class name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Class data
      */
-    async resolveClass(className, source = "PHB") {
+    async resolveClass(className, _source = "PHB") {
         try {
             const allClasses = this._classManager.getAllClasses();
             const classData = allClasses?.find(c =>
@@ -171,10 +171,10 @@ export class ReferenceResolver {
     /**
      * Resolve a race reference
      * @param {string} raceName Race name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Race data
      */
-    async resolveRace(raceName, source = "PHB") {
+    async resolveRace(raceName, _source = "PHB") {
         try {
             const allRaces = this._raceManager.getAllRaces();
             const race = allRaces?.find(r =>
@@ -198,10 +198,10 @@ export class ReferenceResolver {
     /**
      * Resolve a feat reference
      * @param {string} featName Feat name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Feat data
      */
-    async resolveFeat(featName, source = "PHB") {
+    async resolveFeat(featName, _source = "PHB") {
         try {
             const data = await this._dataUtil.loadFeats();
             const feat = data.feat?.find(f =>
@@ -225,10 +225,10 @@ export class ReferenceResolver {
     /**
      * Resolve a background reference
      * @param {string} backgroundName Background name
-     * @param {string} source Source abbreviation
+     * @param {string} _source Source abbreviation
      * @returns {Promise<Object>} Background data
      */
-    async resolveBackground(backgroundName, source = "PHB") {
+    async resolveBackground(backgroundName, _source = "PHB") {
         try {
             const allBackgrounds = this._backgroundManager.getAllBackgrounds();
             const background = allBackgrounds?.find(b =>

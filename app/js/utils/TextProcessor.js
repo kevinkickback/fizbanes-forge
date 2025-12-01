@@ -320,11 +320,11 @@ class TextProcessor {
      * Handles D&D-style references in the format {@reference}.
      * 
      * @param {string} text - The text containing references
-     * @param {TextProcessingOptions} options - Processing options (includes resolveMode)
+     * @param {TextProcessingOptions} _options - Processing options (includes resolveMode)
      * @returns {string} The text with resolved references
      * @private
      */
-    _replaceReferences(text, options = {}) {
+    _replaceReferences(text, _options = {}) {
         // StringRenderer.render() is synchronous, not async
         return this._stringRenderer.render(text);
     }
@@ -344,8 +344,8 @@ class TextProcessor {
 
             // Define formatting patterns
             const patterns = [
-                { regex: /\*\*([^\*\n][^\*]*?)\*\*/g, replacement: '<strong>$1</strong>' }, // Bold, avoid matching across newlines initially
-                { regex: /\*([^\*\n][^\*]*?)\*/g, replacement: '<em>$1</em>' }, // Italic, avoid matching across newlines initially
+                { regex: /\*\*([^*\n][^*]*?)\*\*/g, replacement: '<strong>$1</strong>' }, // Bold, avoid matching across newlines initially
+                { regex: /\*([^*\n][^*]*?)\*/g, replacement: '<em>$1</em>' }, // Italic, avoid matching across newlines initially
                 // Add more formatting rules as needed
             ];
 

@@ -28,9 +28,9 @@
  */
 
 // Removed unused imports during cleanup
-import { showNotification } from '../utils/Notifications.js';
-import { SourceCard } from '../modules/sources/SourceCard.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { SourceCard } from '../modules/sources/SourceCard.js';
+import { showNotification } from '../utils/Notifications.js';
 
 /**
  * Singleton instance for Modal class
@@ -319,7 +319,7 @@ export class Modal {
             const createResult = await CharacterManager.createCharacter(formData.name);
 
             if (!createResult.isOk()) {
-                showNotification('Failed to create character: ' + createResult.error, 'error');
+                showNotification(`Failed to create character: ${createResult.error}`, 'error');
                 return;
             }
 
@@ -352,7 +352,7 @@ export class Modal {
 
                 showNotification('New character created successfully', 'success');
             } else {
-                showNotification('Failed to save character: ' + saveResult.error, 'error');
+                showNotification(`Failed to save character: ${saveResult.error}`, 'error');
             }
         } catch (error) {
             console.error('Error creating new character:', error);

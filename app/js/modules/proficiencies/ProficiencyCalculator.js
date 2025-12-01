@@ -110,7 +110,7 @@ export function calculateSavingThrowModifier(abilityModifier, proficiencyBonus, 
  * @returns {string} Formatted string (e.g., "+3", "-1", "+0")
  */
 export function formatModifier(modifier) {
-    if (typeof modifier !== 'number' || isNaN(modifier)) {
+    if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
         return '+0';
     }
 

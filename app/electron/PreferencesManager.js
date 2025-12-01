@@ -109,7 +109,7 @@ class PreferencesManager {
      * @returns {boolean} True if preference exists
      */
     has(key) {
-        return this.store.hasOwnProperty(key);
+        return Object.hasOwn(this.store, key);
     }
 
     /**

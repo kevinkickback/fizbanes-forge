@@ -83,7 +83,7 @@ export class ProficiencySelectionView {
      * Deselect a skill proficiency
      * @private
      */
-    _deselectSkill(profItem, proficiency, normalizedProf, skillOptions, raceSelected, classSelected, backgroundSelected, combinedSelected) {
+    _deselectSkill(profItem, _proficiency, normalizedProf, skillOptions, raceSelected, classSelected, backgroundSelected, combinedSelected) {
         let removedFromSource = false;
 
         // Remove from the appropriate source selection
@@ -212,7 +212,7 @@ export class ProficiencySelectionView {
      * Deselect a language proficiency
      * @private
      */
-    _deselectLanguage(profItem, proficiency, normalizedProf, languageOptions, raceSelected, classSelected, backgroundSelected, combinedSelected) {
+    _deselectLanguage(profItem, _proficiency, normalizedProf, languageOptions, raceSelected, classSelected, backgroundSelected, combinedSelected) {
         let removedFromSource = false;
 
         if (raceSelected.some(p => p.toLowerCase() === normalizedProf)) {
@@ -333,7 +333,7 @@ export class ProficiencySelectionView {
      * Deselect a tool proficiency
      * @private
      */
-    _deselectTool(profItem, proficiency, normalizedProf, toolOptions, raceSelected, classSelected, backgroundSelected, combinedSelected) {
+    _deselectTool(profItem, _proficiency, normalizedProf, toolOptions, raceSelected, classSelected, backgroundSelected, combinedSelected) {
         let removedFromSource = false;
 
         if (raceSelected.some(p => p.toLowerCase() === normalizedProf)) {

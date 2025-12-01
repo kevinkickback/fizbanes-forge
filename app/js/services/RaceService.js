@@ -127,7 +127,7 @@ class RaceService {
                     // e.g., "Elf; Drow Lineage" -> "Drow Lineage"
                     // e.g., "Tiefling; Abyssal Legacy" -> "Abyssal Legacy"
                     let variantName = version.name;
-                    if (variantName && variantName.includes(';')) {
+                    if (variantName?.includes(';')) {
                         variantName = variantName.split(';')[1].trim();
                     }
 

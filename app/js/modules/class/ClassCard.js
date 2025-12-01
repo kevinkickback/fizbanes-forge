@@ -4,13 +4,13 @@
  * Coordinates between views and manages class/subclass selection logic.
  */
 
-import { classService } from '../../services/ClassService.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { classService } from '../../services/ClassService.js';
+import { ClassDetailsView } from './ClassDetails.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
-import { ClassDetailsView } from './ClassDetails.js';
 
 /**
  * Controller for class selection and display
@@ -18,9 +18,9 @@ import { ClassDetailsView } from './ClassDetails.js';
 export class ClassCard {
     /**
      * Creates a new ClassCard instance
-     * @param {HTMLElement} container - The container element for the class card UI
+     * @param {HTMLElement} _container - The container element for the class card UI
      */
-    constructor(container) {
+    constructor(_container) {
         /**
          * Reference to the class service
          * @type {ClassService}

@@ -11,11 +11,11 @@ const { MainLogger } = require("../../MainLogger");
 function registerSettingsHandlers(preferencesManager) {
     MainLogger.info('SettingsHandlers', 'Registering settings handlers');
 
-    ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_PATH, (event, key) => {
+    ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_PATH, (_event, key) => {
         return preferencesManager.get(key);
     });
 
-    ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_PATH, (event, key, value) => {
+    ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_PATH, (_event, key, value) => {
         preferencesManager.set(key, value);
         return { success: true };
     });

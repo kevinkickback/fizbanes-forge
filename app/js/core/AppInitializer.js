@@ -19,22 +19,22 @@
  */
 
 // Core imports - NEW ARCHITECTURE
-import { Logger } from '../infrastructure/Logger.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { AppState } from './AppState.js';
-import { NavigationController } from './NavigationController.js';
-import { CharacterManager } from './CharacterManager.js';
-import { PageHandler } from './PageHandler.js';
+import { Logger } from '../infrastructure/Logger.js';
 import { showNotification } from '../utils/Notifications.js';
+import { AppState } from './AppState.js';
+import { CharacterManager } from './CharacterManager.js';
+import { NavigationController } from './NavigationController.js';
+import { PageHandler } from './PageHandler.js';
 
 // Service imports
-import { textProcessor } from '../utils/TextProcessor.js';
+import { backgroundService } from '../services/BackgroundService.js';
+import { classService } from '../services/ClassService.js';
+import { itemService } from '../services/ItemService.js';
+import { raceService } from '../services/RaceService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { spellService } from '../services/SpellService.js';
-import { itemService } from '../services/ItemService.js';
-import { classService } from '../services/ClassService.js';
-import { raceService } from '../services/RaceService.js';
-import { backgroundService } from '../services/BackgroundService.js';
+import { textProcessor } from '../utils/TextProcessor.js';
 
 /**
  * Wrapper for data loader calls that handles errors consistently
@@ -287,7 +287,7 @@ function _setupUIEventHandlers() {
                         eventBus.emit(EVENTS.CHARACTER_SAVED);
                     } else {
                         Logger.error('AppInitializer', 'Failed to save character', result.error);
-                        showNotification('Failed to save character: ' + result.error, 'error');
+                        showNotification(`Failed to save character: ${result.error}`, 'error');
                     }
                 } catch (error) {
                     Logger.error('AppInitializer', 'Error saving character', error);
@@ -310,11 +310,11 @@ function _setupUIEventHandlers() {
 
 /**
  * Initializes all core components of the application in the correct order
- * @param {InitializationOptions} [options={}] - Initialization options
+ * @param {InitializationOptions} [_options={}] - Initialization options
  * @returns {Promise<InitializationResult>} The result of initialization
  * @throws {Error} If initialization fails catastrophically
  */
-export async function initializeAll(options = {}) {
+export async function initializeAll(_options = {}) {
 
     const result = {
         success: true,

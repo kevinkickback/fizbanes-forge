@@ -128,7 +128,7 @@ class Renderer {
      * @param {Object} meta Metadata about the current render state
      */
     recursiveRender(entry, textStack, meta = {}) {
-        if (entry instanceof Array) {
+        if (Array.isArray(entry)) {
             entry.forEach(nxt => this.recursiveRender(nxt, textStack, meta));
             return this;
         }
@@ -179,7 +179,7 @@ class Renderer {
     // ENTRY TYPE RENDERERS
     // ============================================================================
 
-    _renderString(str, textStack, meta) {
+    _renderString(str, textStack, _meta) {
         textStack[0] += str;
     }
 
@@ -321,7 +321,7 @@ let _globalRenderer = null;
  * Get the global renderer instance
  * @returns {Renderer}
  */
-Renderer.get = function () {
+Renderer.get = () => {
     if (!_globalRenderer) {
         _globalRenderer = new Renderer();
     }

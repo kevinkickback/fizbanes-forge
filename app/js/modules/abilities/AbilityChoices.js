@@ -155,7 +155,7 @@ let _instance = null;
 /**
  * Singleton accessor for AbilityChoicesView
  */
-AbilityChoicesView.getInstance = function (container) {
+AbilityChoicesView.getInstance = (container) => {
     if (!_instance) {
         _instance = new AbilityChoicesView(container);
     }

@@ -235,7 +235,7 @@ let _instance = null;
 /**
  * Singleton accessor for AbilityScoreBoxView
  */
-AbilityScoreBoxView.getInstance = function (container) {
+AbilityScoreBoxView.getInstance = (container) => {
     if (!_instance) {
         _instance = new AbilityScoreBoxView(container);
     }

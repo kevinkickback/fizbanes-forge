@@ -277,8 +277,8 @@ export class BackgroundDetailsView {
             } else if (equipEntry.a || equipEntry.b) {
                 // Choice between options
                 const choices = [];
-                if (equipEntry.a) choices.push('(a) ' + this._formatEquipmentOption(equipEntry.a));
-                if (equipEntry.b) choices.push('(b) ' + this._formatEquipmentOption(equipEntry.b));
+                if (equipEntry.a) choices.push(`(a) ${this._formatEquipmentOption(equipEntry.a)}`);
+                if (equipEntry.b) choices.push(`(b) ${this._formatEquipmentOption(equipEntry.b)}`);
                 equipment.push(choices.join(' or '));
             }
         }

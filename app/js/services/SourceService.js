@@ -16,12 +16,10 @@
  * @property {boolean} isDefault - Whether this is a default source
  */
 
-import { Logger } from '../infrastructure/Logger.js';
-import { Result } from '../infrastructure/Result.js';
-import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { showNotification } from '../utils/Notifications.js';
+import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
+import { showNotification } from '../utils/Notifications.js';
 
 /**
  * Manages source book selection and filtering for character creation and data loading

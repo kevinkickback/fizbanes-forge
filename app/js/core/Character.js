@@ -3,8 +3,8 @@
  * Model class representing a character in the D&D Character Creator
  */
 
-import { ProficiencyCore } from './Proficiency.js';
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
+import { ProficiencyCore } from './Proficiency.js';
 
 /**
  * Represents a character with all its attributes, abilities, proficiencies, and features
@@ -419,17 +419,17 @@ export class Character {
     /**
      * Adds a damage resistance
      * @param {string} resistance - Resistance type
-     * @param {string} source - Source of the resistance
+     * @param {string} _source - Source of the resistance
      */
-    addResistance(resistance, source) {
+    addResistance(resistance, _source) {
         this.features.resistances.add(resistance);
     }
 
     /**
      * Clears all resistances
-     * @param {string} source - Source to clear resistances from
+     * @param {string} _source - Source to clear resistances from
      */
-    clearResistances(source) {
+    clearResistances(_source) {
         this.features.resistances.clear();
     }
 

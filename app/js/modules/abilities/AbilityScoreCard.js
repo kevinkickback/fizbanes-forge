@@ -3,15 +3,15 @@
  * @description Controller for managing ability score UI and interactions
  */
 
-import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { Logger } from '../../infrastructure/Logger.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { methodSwitcherView } from './MethodSwitcher.js';
-import { methodControlsView } from './MethodControls.js';
-import { abilityScoreBoxView } from './AbilityScoreBox.js';
+import { Logger } from '../../infrastructure/Logger.js';
+import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { abilityChoicesView } from './AbilityChoices.js';
+import { abilityScoreBoxView } from './AbilityScoreBox.js';
 import { bonusNotesView } from './BonusNotes.js';
+import { methodControlsView } from './MethodControls.js';
+import { methodSwitcherView } from './MethodSwitcher.js';
 
 /**
  * Manages the ability score UI card including method selection, score input, and bonuses
@@ -138,7 +138,7 @@ class AbilityScoreCard {
             document.addEventListener('abilityScoresChanged', this._abilityScoresChangedListener);
 
             // Create character changed listener
-            this._handleCharacterChanged = (event) => {
+            this._handleCharacterChanged = (_event) => {
                 const character = CharacterManager.getCurrentCharacter();
                 if (!character) return;
 
@@ -744,7 +744,7 @@ let _instance = null;
 /**
  * Singleton accessor for AbilityScoreCard
  */
-AbilityScoreCard.getInstance = function () {
+AbilityScoreCard.getInstance = () => {
     if (!_instance) {
         _instance = new AbilityScoreCard();
     }

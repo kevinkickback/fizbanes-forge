@@ -13,7 +13,7 @@ const { MainLogger } = require("../../MainLogger");
 function registerDataHandlers(appPath) {
     MainLogger.info('DataHandlers', 'Registering data handlers');
 
-    ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (event, fileName) => {
+    ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
         try {
             // fileName may already include "data/" prefix, so handle both cases
             const filePath = fileName.startsWith("data/") || fileName.startsWith("data\\")

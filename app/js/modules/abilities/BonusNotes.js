@@ -164,7 +164,7 @@ let _instance = null;
 /**
  * Singleton accessor for BonusNotesView
  */
-BonusNotesView.getInstance = function (bonusesContainer) {
+BonusNotesView.getInstance = (bonusesContainer) => {
     if (!_instance) {
         _instance = new BonusNotesView(bonusesContainer);
     }

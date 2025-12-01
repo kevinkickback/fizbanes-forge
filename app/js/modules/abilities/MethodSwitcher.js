@@ -3,8 +3,8 @@
  * @description View for rendering ability score method selection and info display
  */
 
-import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+import { abilityScoreService } from '../../services/AbilityScoreService.js';
 
 
 /**
@@ -173,7 +173,7 @@ let _instance = null;
 /**
  * Singleton accessor for MethodSwitcherView
  */
-MethodSwitcherView.getInstance = function (container) {
+MethodSwitcherView.getInstance = (container) => {
     if (!_instance) {
         _instance = new MethodSwitcherView(container);
     }

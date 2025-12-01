@@ -12,11 +12,11 @@
  * @module presentation/NavigationController
  */
 
-import { Logger } from '../infrastructure/Logger.js';
-import { Router } from './Router.js';
-import { PageLoader } from './PageLoader.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 import { AppState } from './AppState.js';
+import { PageLoader } from './PageLoader.js';
+import { Router } from './Router.js';
 
 class NavigationControllerImpl {
     constructor() {
@@ -257,7 +257,7 @@ class NavigationControllerImpl {
         this.navButtons.forEach((button, page) => {
             const route = Router.getRoute(page);
 
-            if (route && route.requiresCharacter) {
+            if (route?.requiresCharacter) {
                 if (hasCharacter) {
                     button.removeAttribute('disabled');
                     button.classList.remove('disabled');

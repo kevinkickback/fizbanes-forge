@@ -9,19 +9,15 @@ import { abilityScoreService } from '../../services/AbilityScoreService.js';
  * View for rendering ability score input controls based on the selected method
  */
 class MethodControlsView {
-    /**
-     * Creates a new MethodControlsView
-     */
-    constructor() { }
 
     /**
      * Renders standard array controls for an ability score
      * @param {HTMLElement} container - The container element
      * @param {string} ability - The ability name
-     * @param {number} baseScore - The base score
+     * @param {number} _baseScore - The base score
      * @param {Function} onStandardArrayChange - Callback for standard array changes
      */
-    renderStandardArrayControls(container, ability, baseScore, onStandardArrayChange) {
+    renderStandardArrayControls(container, ability, _baseScore, onStandardArrayChange) {
         // Clear any existing content in the container
         container.innerHTML = '';
 
@@ -150,7 +146,7 @@ let _instance = null;
 /**
  * Singleton accessor for MethodControlsView
  */
-MethodControlsView.getInstance = function () {
+MethodControlsView.getInstance = () => {
     if (!_instance) {
         _instance = new MethodControlsView();
     }

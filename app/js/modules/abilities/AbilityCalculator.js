@@ -13,7 +13,7 @@
  * @returns {number} The ability modifier
  */
 export function calculateModifier(score) {
-    if (typeof score !== 'number' || isNaN(score)) {
+    if (typeof score !== 'number' || Number.isNaN(score)) {
         return 0;
     }
     return Math.floor((score - 10) / 2);
@@ -25,7 +25,7 @@ export function calculateModifier(score) {
  * @returns {string} Formatted modifier (e.g., "+2", "-1", "+0")
  */
 export function formatModifier(modifier) {
-    if (typeof modifier !== 'number' || isNaN(modifier)) {
+    if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
         return '+0';
     }
     if (modifier >= 0) {

@@ -32,7 +32,7 @@ function registerFileHandlers() {
     });
 
     // Read JSON file
-    ipcMain.handle(IPC_CHANNELS.FILE_READ_JSON, async (event, filePath) => {
+    ipcMain.handle(IPC_CHANNELS.FILE_READ_JSON, async (_event, filePath) => {
         try {
             const content = await fs.readFile(filePath, "utf8");
             const data = JSON.parse(content);
@@ -44,7 +44,7 @@ function registerFileHandlers() {
     });
 
     // Write JSON file
-    ipcMain.handle(IPC_CHANNELS.FILE_WRITE_JSON, async (event, filePath, data) => {
+    ipcMain.handle(IPC_CHANNELS.FILE_WRITE_JSON, async (_event, filePath, data) => {
         try {
             await fs.writeFile(filePath, JSON.stringify(data, null, 2));
             return { success: true };
@@ -55,7 +55,7 @@ function registerFileHandlers() {
     });
 
     // Check if file exists
-    ipcMain.handle(IPC_CHANNELS.FILE_EXISTS, async (event, filePath) => {
+    ipcMain.handle(IPC_CHANNELS.FILE_EXISTS, async (_event, filePath) => {
         try {
             await fs.access(filePath);
             return { success: true, exists: true };
@@ -65,7 +65,7 @@ function registerFileHandlers() {
     });
 
     // Open file with default application
-    ipcMain.handle(IPC_CHANNELS.FILE_OPEN, async (event, filePath) => {
+    ipcMain.handle(IPC_CHANNELS.FILE_OPEN, async (_event, filePath) => {
         try {
             await shell.openPath(filePath);
             return { success: true };

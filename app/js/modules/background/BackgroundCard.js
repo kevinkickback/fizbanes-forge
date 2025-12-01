@@ -4,13 +4,13 @@
  * Coordinates between BackgroundCardView, BackgroundDetailsView, and backgroundService
  */
 
+import { AppState } from '../../core/AppState.js';
+import { CharacterManager } from '../../core/CharacterManager.js';
+import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { backgroundService } from '../../services/BackgroundService.js';
 import { BaseCard } from '../BaseCard.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { CharacterManager } from '../../core/CharacterManager.js';
-import { AppState } from '../../core/AppState.js';
-import { BackgroundCardView } from './BackgroundView.js';
 import { BackgroundDetailsView } from './BackgroundDetails.js';
+import { BackgroundCardView } from './BackgroundView.js';
 
 /**
  * Manages the background selection UI component
@@ -362,10 +362,10 @@ export class BackgroundCard extends BaseCard {
     /**
      * Update character proficiencies based on selected background
      * @param {Object} background - The selected background
-     * @param {Object} variant - Selected variant
+     * @param {Object} _variant - Selected variant
      * @private
      */
-    _updateBackgroundProficiencies(background, variant) {
+    _updateBackgroundProficiencies(background, _variant) {
         const character = CharacterManager.getCurrentCharacter();
         if (!character || !background) return;
 
@@ -434,7 +434,7 @@ export class BackgroundCard extends BaseCard {
         if (background.languageProficiencies) {
             const fixedLanguages = [];
             let choiceCount = 0;
-            let choiceOptions = [];
+            const choiceOptions = [];
 
             for (const langEntry of background.languageProficiencies) {
                 // Add fixed languages (specific languages set to true)
