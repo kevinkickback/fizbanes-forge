@@ -144,7 +144,9 @@
 	font-size: 14px;
 	line-height: 1.5;
 	transform: translateX(4px);
-	transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+	transition:
+		opacity 0.2s ease-out,
+		transform 0.2s ease-out;
 }
 
 .tooltip-container .tooltip.show {
@@ -440,7 +442,9 @@
 .rd__hover-link {
 	cursor: pointer;
 	text-decoration: underline;
-	transition: color 0.2s ease, text-shadow 0.2s ease;
+	transition:
+		color 0.2s ease,
+		text-shadow 0.2s ease;
 	font-weight: 500;
 	position: relative;
 }
@@ -591,7 +595,9 @@
 	font-size: 14px;
 	line-height: 1.5;
 	transform: translateX(4px);
-	transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+	transition:
+		opacity 0.2s ease-out,
+		transform 0.2s ease-out;
 }
 
 #tooltip-container.tooltip-container .tooltip.show {

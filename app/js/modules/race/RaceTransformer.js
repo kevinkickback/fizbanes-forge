@@ -9,7 +9,7 @@
  * @returns {boolean} True if race has subraces
  */
 export function hasSubraces(race) {
-    return race && Array.isArray(race.subraces) && race.subraces.length > 0;
+	return race && Array.isArray(race.subraces) && race.subraces.length > 0;
 }
 
 /**
@@ -18,7 +18,7 @@ export function hasSubraces(race) {
  * @returns {boolean} True if race has versions
  */
 export function hasVersions(race) {
-    return race?._copy && Array.isArray(race._copy.versions);
+	return race?._copy && Array.isArray(race._copy.versions);
 }
 
 /**
@@ -27,14 +27,14 @@ export function hasVersions(race) {
  * @returns {string} Base race name
  */
 export function getBaseRaceName(race) {
-    if (!race) return '';
+	if (!race) return '';
 
-    // If it has a _copy property, use the name from there
-    if (race._copy?.name) {
-        return race._copy.name;
-    }
+	// If it has a _copy property, use the name from there
+	if (race._copy?.name) {
+		return race._copy.name;
+	}
 
-    return race.name || '';
+	return race.name || '';
 }
 
 /**
@@ -43,11 +43,11 @@ export function getBaseRaceName(race) {
  * @returns {Array<Object>} Array of version objects
  */
 export function getVersions(race) {
-    if (!hasVersions(race)) {
-        return [];
-    }
+	if (!hasVersions(race)) {
+		return [];
+	}
 
-    return race._copy.versions || [];
+	return race._copy.versions || [];
 }
 
 /**
@@ -57,8 +57,8 @@ export function getVersions(race) {
  * @returns {Object|null} The version object or null
  */
 export function findVersion(race, versionName) {
-    const versions = getVersions(race);
-    return versions.find(v => v._version === versionName) || null;
+	const versions = getVersions(race);
+	return versions.find((v) => v._version === versionName) || null;
 }
 
 /**
@@ -69,42 +69,48 @@ export function findVersion(race, versionName) {
  * @returns {Object} Transformed race data
  */
 export function applyVersion(race, versionName) {
-    if (!race) return null;
+	if (!race) return null;
 
-    const version = findVersion(race, versionName);
-    if (!version) {
-        return race;
-    }
+	const version = findVersion(race, versionName);
+	if (!version) {
+		return race;
+	}
 
-    // Create a deep copy of the base race
-    const transformed = JSON.parse(JSON.stringify(race));
+	// Create a deep copy of the base race
+	const transformed = JSON.parse(JSON.stringify(race));
 
-    // Apply version overrides
-    if (version._mod) {
-        const mods = version._mod;
+	// Apply version overrides
+	if (version._mod) {
+		const mods = version._mod;
 
-        // Handle ability score modifications
-        if (mods.ability) {
-            transformed.ability = mergeAbilityScores(transformed.ability, mods.ability);
-        }
+		// Handle ability score modifications
+		if (mods.ability) {
+			transformed.ability = mergeAbilityScores(
+				transformed.ability,
+				mods.ability,
+			);
+		}
 
-        // Handle trait modifications
-        if (mods.entries) {
-            transformed.entries = applyEntryMods(transformed.entries || [], mods.entries);
-        }
+		// Handle trait modifications
+		if (mods.entries) {
+			transformed.entries = applyEntryMods(
+				transformed.entries || [],
+				mods.entries,
+			);
+		}
 
-        // Handle other property overrides
-        for (const [key, value] of Object.entries(mods)) {
-            if (key !== 'ability' && key !== 'entries' && key !== '_') {
-                transformed[key] = value;
-            }
-        }
-    }
+		// Handle other property overrides
+		for (const [key, value] of Object.entries(mods)) {
+			if (key !== 'ability' && key !== 'entries' && key !== '_') {
+				transformed[key] = value;
+			}
+		}
+	}
 
-    // Set the version name
-    transformed._appliedVersion = versionName;
+	// Set the version name
+	transformed._appliedVersion = versionName;
 
-    return transformed;
+	return transformed;
 }
 
 /**
@@ -114,11 +120,11 @@ export function applyVersion(race, versionName) {
  * @returns {Array} Merged ability scores
  */
 function mergeAbilityScores(baseAbility, modAbility) {
-    if (!modAbility) return baseAbility;
-    if (!baseAbility) return modAbility;
+	if (!modAbility) return baseAbility;
+	if (!baseAbility) return modAbility;
 
-    // For now, replace entirely - could be more sophisticated
-    return modAbility;
+	// For now, replace entirely - could be more sophisticated
+	return modAbility;
 }
 
 /**
@@ -128,26 +134,26 @@ function mergeAbilityScores(baseAbility, modAbility) {
  * @returns {Array} Modified entries
  */
 function applyEntryMods(baseEntries, modEntries) {
-    let entries = [...baseEntries];
+	let entries = [...baseEntries];
 
-    if (modEntries.remove) {
-        // Remove entries by index
-        entries = entries.filter((_, idx) => !modEntries.remove.includes(idx));
-    }
+	if (modEntries.remove) {
+		// Remove entries by index
+		entries = entries.filter((_, idx) => !modEntries.remove.includes(idx));
+	}
 
-    if (modEntries.replace) {
-        // Replace specific entries
-        for (const [idx, replacement] of Object.entries(modEntries.replace)) {
-            entries[idx] = replacement;
-        }
-    }
+	if (modEntries.replace) {
+		// Replace specific entries
+		for (const [idx, replacement] of Object.entries(modEntries.replace)) {
+			entries[idx] = replacement;
+		}
+	}
 
-    if (modEntries.add) {
-        // Add new entries
-        entries = [...entries, ...modEntries.add];
-    }
+	if (modEntries.add) {
+		// Add new entries
+		entries = [...entries, ...modEntries.add];
+	}
 
-    return entries;
+	return entries;
 }
 
 /**
@@ -156,28 +162,28 @@ function applyEntryMods(baseEntries, modEntries) {
  * @returns {Object} Object mapping ability names to bonuses
  */
 export function getAbilityBonuses(race) {
-    if (!race || !race.ability) {
-        return {};
-    }
+	if (!race || !race.ability) {
+		return {};
+	}
 
-    const bonuses = {};
+	const bonuses = {};
 
-    for (const abilityEntry of race.ability) {
-        // Handle choose-any format
-        if (abilityEntry.choose) {
-            // This needs to be handled by the UI for user choice
-            continue;
-        }
+	for (const abilityEntry of race.ability) {
+		// Handle choose-any format
+		if (abilityEntry.choose) {
+			// This needs to be handled by the UI for user choice
+			continue;
+		}
 
-        // Handle direct ability bonuses
-        for (const [ability, value] of Object.entries(abilityEntry)) {
-            if (ability !== 'choose' && typeof value === 'number') {
-                bonuses[ability] = (bonuses[ability] || 0) + value;
-            }
-        }
-    }
+		// Handle direct ability bonuses
+		for (const [ability, value] of Object.entries(abilityEntry)) {
+			if (ability !== 'choose' && typeof value === 'number') {
+				bonuses[ability] = (bonuses[ability] || 0) + value;
+			}
+		}
+	}
 
-    return bonuses;
+	return bonuses;
 }
 
 /**
@@ -186,11 +192,11 @@ export function getAbilityBonuses(race) {
  * @returns {boolean} True if race has choose-any ability bonuses
  */
 export function hasFlexibleAbilities(race) {
-    if (!race || !race.ability) {
-        return false;
-    }
+	if (!race || !race.ability) {
+		return false;
+	}
 
-    return race.ability.some(entry => entry.choose);
+	return race.ability.some((entry) => entry.choose);
 }
 
 /**
@@ -199,18 +205,18 @@ export function hasFlexibleAbilities(race) {
  * @returns {number} Number of flexible ability score increases
  */
 export function getFlexibleAbilityCount(race) {
-    if (!race || !race.ability) {
-        return 0;
-    }
+	if (!race || !race.ability) {
+		return 0;
+	}
 
-    let count = 0;
-    for (const entry of race.ability) {
-        if (entry.choose?.count) {
-            count += entry.choose.count;
-        }
-    }
+	let count = 0;
+	for (const entry of race.ability) {
+		if (entry.choose?.count) {
+			count += entry.choose.count;
+		}
+	}
 
-    return count;
+	return count;
 }
 
 /**
@@ -219,21 +225,21 @@ export function getFlexibleAbilityCount(race) {
  * @returns {Object} Speed object with walk, fly, swim, climb, burrow
  */
 export function getSpeed(race) {
-    if (!race || !race.speed) {
-        return { walk: 30 };
-    }
+	if (!race || !race.speed) {
+		return { walk: 30 };
+	}
 
-    // Handle simple number format
-    if (typeof race.speed === 'number') {
-        return { walk: race.speed };
-    }
+	// Handle simple number format
+	if (typeof race.speed === 'number') {
+		return { walk: race.speed };
+	}
 
-    // Handle object format
-    if (typeof race.speed === 'object') {
-        return { ...race.speed };
-    }
+	// Handle object format
+	if (typeof race.speed === 'object') {
+		return { ...race.speed };
+	}
 
-    return { walk: 30 };
+	return { walk: 30 };
 }
 
 /**
@@ -242,30 +248,30 @@ export function getSpeed(race) {
  * @returns {Array<string>} Array of language names
  */
 export function getLanguages(race) {
-    if (!race || !race.languageProficiencies) {
-        return [];
-    }
+	if (!race || !race.languageProficiencies) {
+		return [];
+	}
 
-    const languages = [];
+	const languages = [];
 
-    for (const langEntry of race.languageProficiencies) {
-        // Handle direct language specification
-        if (langEntry.common) languages.push('Common');
-        if (langEntry.dwarvish) languages.push('Dwarvish');
-        if (langEntry.elvish) languages.push('Elvish');
-        if (langEntry.giant) languages.push('Giant');
-        if (langEntry.gnomish) languages.push('Gnomish');
-        if (langEntry.goblin) languages.push('Goblin');
-        if (langEntry.halfling) languages.push('Halfling');
-        if (langEntry.orc) languages.push('Orc');
+	for (const langEntry of race.languageProficiencies) {
+		// Handle direct language specification
+		if (langEntry.common) languages.push('Common');
+		if (langEntry.dwarvish) languages.push('Dwarvish');
+		if (langEntry.elvish) languages.push('Elvish');
+		if (langEntry.giant) languages.push('Giant');
+		if (langEntry.gnomish) languages.push('Gnomish');
+		if (langEntry.goblin) languages.push('Goblin');
+		if (langEntry.halfling) languages.push('Halfling');
+		if (langEntry.orc) languages.push('Orc');
 
-        // Handle any-language choices
-        if (langEntry.anyStandard) {
-            languages.push(`Any Standard (${langEntry.anyStandard})`);
-        }
-    }
+		// Handle any-language choices
+		if (langEntry.anyStandard) {
+			languages.push(`Any Standard (${langEntry.anyStandard})`);
+		}
+	}
 
-    return languages;
+	return languages;
 }
 
 /**
@@ -274,16 +280,16 @@ export function getLanguages(race) {
  * @returns {string} Size category (Small, Medium, etc.)
  */
 export function getSize(race) {
-    if (!race || !race.size) {
-        return 'Medium';
-    }
+	if (!race || !race.size) {
+		return 'Medium';
+	}
 
-    // Handle array format (some races can be multiple sizes)
-    if (Array.isArray(race.size)) {
-        return race.size[0] || 'Medium';
-    }
+	// Handle array format (some races can be multiple sizes)
+	if (Array.isArray(race.size)) {
+		return race.size[0] || 'Medium';
+	}
 
-    return race.size;
+	return race.size;
 }
 
 /**
@@ -292,9 +298,9 @@ export function getSize(race) {
  * @returns {number} Darkvision range in feet, or 0 if none
  */
 export function getDarkvision(race) {
-    if (!race || !race.darkvision) {
-        return 0;
-    }
+	if (!race || !race.darkvision) {
+		return 0;
+	}
 
-    return race.darkvision || 0;
+	return race.darkvision || 0;
 }

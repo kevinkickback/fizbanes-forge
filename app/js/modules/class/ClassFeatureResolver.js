@@ -10,19 +10,19 @@
  * @returns {Array<Object>} Array of features available at this level
  */
 export function getFeaturesAtLevel(classData, level) {
-    if (!classData || !classData.classFeatures) {
-        return [];
-    }
+	if (!classData || !classData.classFeatures) {
+		return [];
+	}
 
-    const features = [];
+	const features = [];
 
-    for (const feature of classData.classFeatures) {
-        if (feature.level && feature.level <= level) {
-            features.push(feature);
-        }
-    }
+	for (const feature of classData.classFeatures) {
+		if (feature.level && feature.level <= level) {
+			features.push(feature);
+		}
+	}
 
-    return features;
+	return features;
 }
 
 /**
@@ -32,11 +32,11 @@ export function getFeaturesAtLevel(classData, level) {
  * @returns {Array<Object>} Array of features gained at exactly this level
  */
 export function getNewFeaturesAtLevel(classData, level) {
-    if (!classData || !classData.classFeatures) {
-        return [];
-    }
+	if (!classData || !classData.classFeatures) {
+		return [];
+	}
 
-    return classData.classFeatures.filter(feature => feature.level === level);
+	return classData.classFeatures.filter((feature) => feature.level === level);
 }
 
 /**
@@ -46,19 +46,19 @@ export function getNewFeaturesAtLevel(classData, level) {
  * @returns {Array<Object>} Array of subclass features
  */
 export function getSubclassFeaturesAtLevel(subclass, level) {
-    if (!subclass || !subclass.subclassFeatures) {
-        return [];
-    }
+	if (!subclass || !subclass.subclassFeatures) {
+		return [];
+	}
 
-    const features = [];
+	const features = [];
 
-    for (const feature of subclass.subclassFeatures) {
-        if (feature.level && feature.level <= level) {
-            features.push(feature);
-        }
-    }
+	for (const feature of subclass.subclassFeatures) {
+		if (feature.level && feature.level <= level) {
+			features.push(feature);
+		}
+	}
 
-    return features;
+	return features;
 }
 
 /**
@@ -68,33 +68,33 @@ export function getSubclassFeaturesAtLevel(subclass, level) {
  * @returns {Object|null} Spell slot progression for this level
  */
 export function getSpellSlotsAtLevel(classData, level) {
-    if (!classData || !classData.casterProgression) {
-        return null;
-    }
+	if (!classData || !classData.casterProgression) {
+		return null;
+	}
 
-    const progression = classData.casterProgression;
+	const progression = classData.casterProgression;
 
-    // Handle full caster (1:1 ratio)
-    if (progression === 'full') {
-        return getFullCasterSlots(level);
-    }
+	// Handle full caster (1:1 ratio)
+	if (progression === 'full') {
+		return getFullCasterSlots(level);
+	}
 
-    // Handle half caster (2:1 ratio)
-    if (progression === '1/2') {
-        return getHalfCasterSlots(level);
-    }
+	// Handle half caster (2:1 ratio)
+	if (progression === '1/2') {
+		return getHalfCasterSlots(level);
+	}
 
-    // Handle third caster (3:1 ratio) - Eldritch Knight, Arcane Trickster
-    if (progression === '1/3') {
-        return getThirdCasterSlots(level);
-    }
+	// Handle third caster (3:1 ratio) - Eldritch Knight, Arcane Trickster
+	if (progression === '1/3') {
+		return getThirdCasterSlots(level);
+	}
 
-    // Handle Warlock pact magic
-    if (progression === 'pact') {
-        return getPactMagicSlots(level);
-    }
+	// Handle Warlock pact magic
+	if (progression === 'pact') {
+		return getPactMagicSlots(level);
+	}
 
-    return null;
+	return null;
 }
 
 /**
@@ -103,30 +103,30 @@ export function getSpellSlotsAtLevel(classData, level) {
  * @returns {Array<number>} Spell slots by level [1st, 2nd, 3rd, ...]
  */
 function getFullCasterSlots(level) {
-    const slots = [
-        [2, 0, 0, 0, 0, 0, 0, 0, 0],  // Level 1
-        [3, 0, 0, 0, 0, 0, 0, 0, 0],  // Level 2
-        [4, 2, 0, 0, 0, 0, 0, 0, 0],  // Level 3
-        [4, 3, 0, 0, 0, 0, 0, 0, 0],  // Level 4
-        [4, 3, 2, 0, 0, 0, 0, 0, 0],  // Level 5
-        [4, 3, 3, 0, 0, 0, 0, 0, 0],  // Level 6
-        [4, 3, 3, 1, 0, 0, 0, 0, 0],  // Level 7
-        [4, 3, 3, 2, 0, 0, 0, 0, 0],  // Level 8
-        [4, 3, 3, 3, 1, 0, 0, 0, 0],  // Level 9
-        [4, 3, 3, 3, 2, 0, 0, 0, 0],  // Level 10
-        [4, 3, 3, 3, 2, 1, 0, 0, 0],  // Level 11
-        [4, 3, 3, 3, 2, 1, 0, 0, 0],  // Level 12
-        [4, 3, 3, 3, 2, 1, 1, 0, 0],  // Level 13
-        [4, 3, 3, 3, 2, 1, 1, 0, 0],  // Level 14
-        [4, 3, 3, 3, 2, 1, 1, 1, 0],  // Level 15
-        [4, 3, 3, 3, 2, 1, 1, 1, 0],  // Level 16
-        [4, 3, 3, 3, 2, 1, 1, 1, 1],  // Level 17
-        [4, 3, 3, 3, 3, 1, 1, 1, 1],  // Level 18
-        [4, 3, 3, 3, 3, 2, 1, 1, 1],  // Level 19
-        [4, 3, 3, 3, 3, 2, 2, 1, 1],  // Level 20
-    ];
+	const slots = [
+		[2, 0, 0, 0, 0, 0, 0, 0, 0], // Level 1
+		[3, 0, 0, 0, 0, 0, 0, 0, 0], // Level 2
+		[4, 2, 0, 0, 0, 0, 0, 0, 0], // Level 3
+		[4, 3, 0, 0, 0, 0, 0, 0, 0], // Level 4
+		[4, 3, 2, 0, 0, 0, 0, 0, 0], // Level 5
+		[4, 3, 3, 0, 0, 0, 0, 0, 0], // Level 6
+		[4, 3, 3, 1, 0, 0, 0, 0, 0], // Level 7
+		[4, 3, 3, 2, 0, 0, 0, 0, 0], // Level 8
+		[4, 3, 3, 3, 1, 0, 0, 0, 0], // Level 9
+		[4, 3, 3, 3, 2, 0, 0, 0, 0], // Level 10
+		[4, 3, 3, 3, 2, 1, 0, 0, 0], // Level 11
+		[4, 3, 3, 3, 2, 1, 0, 0, 0], // Level 12
+		[4, 3, 3, 3, 2, 1, 1, 0, 0], // Level 13
+		[4, 3, 3, 3, 2, 1, 1, 0, 0], // Level 14
+		[4, 3, 3, 3, 2, 1, 1, 1, 0], // Level 15
+		[4, 3, 3, 3, 2, 1, 1, 1, 0], // Level 16
+		[4, 3, 3, 3, 2, 1, 1, 1, 1], // Level 17
+		[4, 3, 3, 3, 3, 1, 1, 1, 1], // Level 18
+		[4, 3, 3, 3, 3, 2, 1, 1, 1], // Level 19
+		[4, 3, 3, 3, 3, 2, 2, 1, 1], // Level 20
+	];
 
-    return slots[level - 1] || [0, 0, 0, 0, 0, 0, 0, 0, 0];
+	return slots[level - 1] || [0, 0, 0, 0, 0, 0, 0, 0, 0];
 }
 
 /**
@@ -135,13 +135,13 @@ function getFullCasterSlots(level) {
  * @returns {Array<number>} Spell slots by level
  */
 function getHalfCasterSlots(level) {
-    if (level < 2) return [0, 0, 0, 0, 0];
+	if (level < 2) return [0, 0, 0, 0, 0];
 
-    const effectiveLevel = Math.ceil(level / 2);
-    const fullSlots = getFullCasterSlots(effectiveLevel);
+	const effectiveLevel = Math.ceil(level / 2);
+	const fullSlots = getFullCasterSlots(effectiveLevel);
 
-    // Half casters only go up to 5th level spells
-    return fullSlots.slice(0, 5);
+	// Half casters only go up to 5th level spells
+	return fullSlots.slice(0, 5);
 }
 
 /**
@@ -150,13 +150,13 @@ function getHalfCasterSlots(level) {
  * @returns {Array<number>} Spell slots by level
  */
 function getThirdCasterSlots(level) {
-    if (level < 3) return [0, 0, 0, 0];
+	if (level < 3) return [0, 0, 0, 0];
 
-    const effectiveLevel = Math.ceil(level / 3);
-    const fullSlots = getFullCasterSlots(effectiveLevel);
+	const effectiveLevel = Math.ceil(level / 3);
+	const fullSlots = getFullCasterSlots(effectiveLevel);
 
-    // Third casters only go up to 4th level spells
-    return fullSlots.slice(0, 4);
+	// Third casters only go up to 4th level spells
+	return fullSlots.slice(0, 4);
 }
 
 /**
@@ -165,22 +165,22 @@ function getThirdCasterSlots(level) {
  * @returns {Object} Pact magic slots with count and level
  */
 function getPactMagicSlots(level) {
-    const slots = [
-        { count: 1, level: 1 },   // Level 1
-        { count: 2, level: 1 },   // Level 2
-        { count: 2, level: 2 },   // Level 3
-        { count: 2, level: 2 },   // Level 4
-        { count: 2, level: 3 },   // Level 5
-        { count: 2, level: 3 },   // Level 6
-        { count: 2, level: 4 },   // Level 7
-        { count: 2, level: 4 },   // Level 8
-        { count: 2, level: 5 },   // Level 9
-        { count: 2, level: 5 },   // Level 10
-        { count: 3, level: 5 },   // Level 11+
-    ];
+	const slots = [
+		{ count: 1, level: 1 }, // Level 1
+		{ count: 2, level: 1 }, // Level 2
+		{ count: 2, level: 2 }, // Level 3
+		{ count: 2, level: 2 }, // Level 4
+		{ count: 2, level: 3 }, // Level 5
+		{ count: 2, level: 3 }, // Level 6
+		{ count: 2, level: 4 }, // Level 7
+		{ count: 2, level: 4 }, // Level 8
+		{ count: 2, level: 5 }, // Level 9
+		{ count: 2, level: 5 }, // Level 10
+		{ count: 3, level: 5 }, // Level 11+
+	];
 
-    const index = Math.min(level - 1, 10);
-    return slots[index] || { count: 0, level: 0 };
+	const index = Math.min(level - 1, 10);
+	return slots[index] || { count: 0, level: 0 };
 }
 
 /**
@@ -189,11 +189,11 @@ function getPactMagicSlots(level) {
  * @returns {number} Proficiency bonus
  */
 export function getProficiencyBonusAtLevel(level) {
-    if (level >= 17) return 6;
-    if (level >= 13) return 5;
-    if (level >= 9) return 4;
-    if (level >= 5) return 3;
-    return 2;
+	if (level >= 17) return 6;
+	if (level >= 13) return 5;
+	if (level >= 9) return 4;
+	if (level >= 5) return 3;
+	return 2;
 }
 
 /**
@@ -202,19 +202,19 @@ export function getProficiencyBonusAtLevel(level) {
  * @returns {number} Level when subclass is chosen
  */
 export function getSubclassLevel(classData) {
-    if (!classData || !classData.subclassTitle) {
-        return 1;
-    }
+	if (!classData || !classData.subclassTitle) {
+		return 1;
+	}
 
-    // Most classes get subclass at level 3
-    // Some exceptions: Cleric and Warlock at 1, Sorcerer and Wizard at 1 (sometimes)
-    const earlySubclasses = ['Cleric', 'Warlock', 'Sorcerer'];
+	// Most classes get subclass at level 3
+	// Some exceptions: Cleric and Warlock at 1, Sorcerer and Wizard at 1 (sometimes)
+	const earlySubclasses = ['Cleric', 'Warlock', 'Sorcerer'];
 
-    if (earlySubclasses.includes(classData.name)) {
-        return 1;
-    }
+	if (earlySubclasses.includes(classData.name)) {
+		return 1;
+	}
 
-    return 3;
+	return 3;
 }
 
 /**
@@ -223,20 +223,20 @@ export function getSubclassLevel(classData) {
  * @returns {Array<number>} Levels when ASIs are gained
  */
 export function getASILevels(classData) {
-    // Standard ASI progression for most classes
-    const standardASI = [4, 8, 12, 16, 19];
+	// Standard ASI progression for most classes
+	const standardASI = [4, 8, 12, 16, 19];
 
-    // Fighter gets extra ASIs
-    if (classData?.name === 'Fighter') {
-        return [4, 6, 8, 12, 14, 16, 19];
-    }
+	// Fighter gets extra ASIs
+	if (classData?.name === 'Fighter') {
+		return [4, 6, 8, 12, 14, 16, 19];
+	}
 
-    // Rogue gets extra ASI
-    if (classData?.name === 'Rogue') {
-        return [4, 8, 10, 12, 16, 19];
-    }
+	// Rogue gets extra ASI
+	if (classData?.name === 'Rogue') {
+		return [4, 8, 10, 12, 16, 19];
+	}
 
-    return standardASI;
+	return standardASI;
 }
 
 /**
@@ -246,8 +246,8 @@ export function getASILevels(classData) {
  * @returns {boolean} True if this level grants an ASI
  */
 export function isASILevel(classData, level) {
-    const asiLevels = getASILevels(classData);
-    return asiLevels.includes(level);
+	const asiLevels = getASILevels(classData);
+	return asiLevels.includes(level);
 }
 
 /**
@@ -257,12 +257,12 @@ export function isASILevel(classData, level) {
  * @returns {number} Number of cantrips known
  */
 export function getCantripsKnown(classData, level) {
-    if (!classData || !classData.cantripProgression) {
-        return 0;
-    }
+	if (!classData || !classData.cantripProgression) {
+		return 0;
+	}
 
-    const progression = classData.cantripProgression[level - 1];
-    return progression || 0;
+	const progression = classData.cantripProgression[level - 1];
+	return progression || 0;
 }
 
 /**
@@ -272,10 +272,10 @@ export function getCantripsKnown(classData, level) {
  * @returns {number} Number of spells known
  */
 export function getSpellsKnown(classData, level) {
-    if (!classData || !classData.spellsKnownProgression) {
-        return 0;
-    }
+	if (!classData || !classData.spellsKnownProgression) {
+		return 0;
+	}
 
-    const progression = classData.spellsKnownProgression[level - 1];
-    return progression || 0;
+	const progression = classData.spellsKnownProgression[level - 1];
+	return progression || 0;
 }

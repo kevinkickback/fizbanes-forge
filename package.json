@@ -10,9 +10,10 @@
 		"pack": "electron-builder --dir",
 		"dist": "electron-builder",
 		"postinstall": "electron-builder install-app-deps",
-		"format": "biome format",
-		"format:check": "biome format --check",
-		"lint": "biome check"
+		"check:format": "biome format",
+		"check:lint": "biome lint",
+		"format": "biome format --write .",
+		"lint": "biome lint --write ."
 	},
 	"build": {
 		"appId": "fizbanes.forge",
@@ -47,8 +48,8 @@
 	"author": "Author",
 	"license": "GPL-3.0-or-later",
 	"devDependencies": {
+		"@biomejs/biome": "^2.3.8",
 		"@playwright/test": "^1.56.1",
-		"biome": "^0.3.3",
 		"cross-env": "^10.1.0",
 		"electron": "latest",
 		"electron-builder": "latest",

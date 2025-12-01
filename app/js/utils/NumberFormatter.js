@@ -9,15 +9,15 @@
  * @returns {string} Formatted string (e.g., "+2", "-1", "+0")
  */
 export function formatModifier(value) {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-        return '+0';
-    }
+	if (typeof value !== 'number' || Number.isNaN(value)) {
+		return '+0';
+	}
 
-    if (value >= 0) {
-        return `+${value}`;
-    }
+	if (value >= 0) {
+		return `+${value}`;
+	}
 
-    return `${value}`;
+	return `${value}`;
 }
 
 /**
@@ -28,17 +28,17 @@ export function formatModifier(value) {
  * @returns {string} Formatted dice notation
  */
 export function formatDice(count, sides, modifier = 0) {
-    if (typeof count !== 'number' || typeof sides !== 'number') {
-        return '';
-    }
+	if (typeof count !== 'number' || typeof sides !== 'number') {
+		return '';
+	}
 
-    let result = `${count}d${sides}`;
+	let result = `${count}d${sides}`;
 
-    if (modifier !== 0) {
-        result += formatModifier(modifier);
-    }
+	if (modifier !== 0) {
+		result += formatModifier(modifier);
+	}
 
-    return result;
+	return result;
 }
 
 /**
@@ -47,21 +47,21 @@ export function formatDice(count, sides, modifier = 0) {
  * @returns {Object} Object with count, sides, and modifier
  */
 export function parseDice(diceString) {
-    if (typeof diceString !== 'string') {
-        return { count: 0, sides: 0, modifier: 0 };
-    }
+	if (typeof diceString !== 'string') {
+		return { count: 0, sides: 0, modifier: 0 };
+	}
 
-    const match = diceString.match(/(\d+)d(\d+)([+-]\d+)?/i);
+	const match = diceString.match(/(\d+)d(\d+)([+-]\d+)?/i);
 
-    if (!match) {
-        return { count: 0, sides: 0, modifier: 0 };
-    }
+	if (!match) {
+		return { count: 0, sides: 0, modifier: 0 };
+	}
 
-    return {
-        count: parseInt(match[1], 10),
-        sides: parseInt(match[2], 10),
-        modifier: match[3] ? parseInt(match[3], 10) : 0
-    };
+	return {
+		count: parseInt(match[1], 10),
+		sides: parseInt(match[2], 10),
+		modifier: match[3] ? parseInt(match[3], 10) : 0,
+	};
 }
 
 /**
@@ -70,16 +70,16 @@ export function parseDice(diceString) {
  * @returns {string} Ordinal string
  */
 export function formatOrdinal(num) {
-    if (typeof num !== 'number' || Number.isNaN(num)) {
-        return '';
-    }
+	if (typeof num !== 'number' || Number.isNaN(num)) {
+		return '';
+	}
 
-    const suffixes = ['th', 'st', 'nd', 'rd'];
-    const value = num % 100;
+	const suffixes = ['th', 'st', 'nd', 'rd'];
+	const value = num % 100;
 
-    const suffix = suffixes[(value - 20) % 10] || suffixes[value] || suffixes[0];
+	const suffix = suffixes[(value - 20) % 10] || suffixes[value] || suffixes[0];
 
-    return `${num}${suffix}`;
+	return `${num}${suffix}`;
 }
 
 /**
@@ -88,11 +88,11 @@ export function formatOrdinal(num) {
  * @returns {string} Formatted distance (e.g., "30 ft.", "60 feet")
  */
 export function formatDistance(feet) {
-    if (typeof feet !== 'number' || Number.isNaN(feet)) {
-        return '0 ft.';
-    }
+	if (typeof feet !== 'number' || Number.isNaN(feet)) {
+		return '0 ft.';
+	}
 
-    return `${feet} ft.`;
+	return `${feet} ft.`;
 }
 
 /**
@@ -101,11 +101,11 @@ export function formatDistance(feet) {
  * @returns {string} Formatted weight (e.g., "150 lb.", "10 lbs.")
  */
 export function formatWeight(pounds) {
-    if (typeof pounds !== 'number' || Number.isNaN(pounds)) {
-        return '0 lb.';
-    }
+	if (typeof pounds !== 'number' || Number.isNaN(pounds)) {
+		return '0 lb.';
+	}
 
-    return pounds === 1 ? `${pounds} lb.` : `${pounds} lbs.`;
+	return pounds === 1 ? `${pounds} lb.` : `${pounds} lbs.`;
 }
 
 /**
@@ -114,11 +114,11 @@ export function formatWeight(pounds) {
  * @returns {string} Formatted currency (e.g., "100 gp", "5 gp")
  */
 export function formatGold(gp) {
-    if (typeof gp !== 'number' || Number.isNaN(gp)) {
-        return '0 gp';
-    }
+	if (typeof gp !== 'number' || Number.isNaN(gp)) {
+		return '0 gp';
+	}
 
-    return `${gp} gp`;
+	return `${gp} gp`;
 }
 
 /**
@@ -128,15 +128,15 @@ export function formatGold(gp) {
  * @returns {string} Formatted range (e.g., "30 ft.", "100/400 ft.")
  */
 export function formatRange(normal, long) {
-    if (typeof normal !== 'number' || Number.isNaN(normal)) {
-        return '';
-    }
+	if (typeof normal !== 'number' || Number.isNaN(normal)) {
+		return '';
+	}
 
-    if (long && typeof long === 'number') {
-        return `${normal}/${long} ft.`;
-    }
+	if (long && typeof long === 'number') {
+		return `${normal}/${long} ft.`;
+	}
 
-    return `${normal} ft.`;
+	return `${normal} ft.`;
 }
 
 /**
@@ -146,11 +146,11 @@ export function formatRange(normal, long) {
  * @returns {string} Formatted level range
  */
 export function formatLevelRange(min, max) {
-    if (min === max) {
-        return `${formatOrdinal(min)} level`;
-    }
+	if (min === max) {
+		return `${formatOrdinal(min)} level`;
+	}
 
-    return `${formatOrdinal(min)}-${formatOrdinal(max)} level`;
+	return `${formatOrdinal(min)}-${formatOrdinal(max)} level`;
 }
 
 /**
@@ -159,12 +159,12 @@ export function formatLevelRange(min, max) {
  * @returns {string} Formatted proficiency bonus (e.g., "+2", "+6")
  */
 export function formatProficiencyBonus(level) {
-    if (typeof level !== 'number' || level < 1) {
-        return '+2';
-    }
+	if (typeof level !== 'number' || level < 1) {
+		return '+2';
+	}
 
-    const bonus = Math.ceil(level / 4) + 1;
-    return formatModifier(bonus);
+	const bonus = Math.ceil(level / 4) + 1;
+	return formatModifier(bonus);
 }
 
 /**
@@ -174,12 +174,12 @@ export function formatProficiencyBonus(level) {
  * @returns {string} Formatted percentage (e.g., "50%")
  */
 export function formatPercentage(value, isDecimal = true) {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-        return '0%';
-    }
+	if (typeof value !== 'number' || Number.isNaN(value)) {
+		return '0%';
+	}
 
-    const percent = isDecimal ? value * 100 : value;
-    return `${Math.round(percent)}%`;
+	const percent = isDecimal ? value * 100 : value;
+	return `${Math.round(percent)}%`;
 }
 
 /**
@@ -188,11 +188,11 @@ export function formatPercentage(value, isDecimal = true) {
  * @returns {string} Formatted number (e.g., "1,000", "10,000")
  */
 export function formatWithCommas(value) {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-        return '0';
-    }
+	if (typeof value !== 'number' || Number.isNaN(value)) {
+		return '0';
+	}
 
-    return value.toLocaleString('en-US');
+	return value.toLocaleString('en-US');
 }
 
 /**
@@ -203,12 +203,12 @@ export function formatWithCommas(value) {
  * @returns {number} Average damage
  */
 export function calculateAverageDamage(count, sides, modifier = 0) {
-    if (typeof count !== 'number' || typeof sides !== 'number') {
-        return 0;
-    }
+	if (typeof count !== 'number' || typeof sides !== 'number') {
+		return 0;
+	}
 
-    const diceAverage = count * ((sides + 1) / 2);
-    return Math.floor(diceAverage + (modifier || 0));
+	const diceAverage = count * ((sides + 1) / 2);
+	return Math.floor(diceAverage + (modifier || 0));
 }
 
 /**
@@ -219,7 +219,7 @@ export function calculateAverageDamage(count, sides, modifier = 0) {
  * @returns {string} Formatted damage (e.g., "1d8+3 (7)", "2d6 (7)")
  */
 export function formatDamageWithAverage(count, sides, modifier = 0) {
-    const dice = formatDice(count, sides, modifier);
-    const average = calculateAverageDamage(count, sides, modifier);
-    return `${dice} (${average})`;
+	const dice = formatDice(count, sides, modifier);
+	const average = calculateAverageDamage(count, sides, modifier);
+	return `${dice} (${average})`;
 }

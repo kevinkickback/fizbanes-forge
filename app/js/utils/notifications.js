@@ -1,7 +1,7 @@
 /**
  * notifications.js
  * Displays temporary messages to the user with configurable types, debouncing, and auto-closing.
- * 
+ *
  * @typedef {'info'|'success'|'warning'|'danger'} NotificationType
  * @property {string} message - The message to display in the notification
  * @property {NotificationType} type - The type of notification that determines its appearance
@@ -10,12 +10,12 @@
 
 // Constants for notification behavior
 const NOTIFICATION_CONFIG = Object.freeze({
-    /** @type {number} Time in ms to prevent duplicate notifications from appearing */
-    DEBOUNCE_DELAY: 3000,
-    /** @type {number} Time in ms for the close animation when removing notifications */
-    CLOSE_ANIMATION_DURATION: 150,
-    /** @type {number} Time in ms before notifications automatically close */
-    AUTO_CLOSE_DELAY: 5000
+	/** @type {number} Time in ms to prevent duplicate notifications from appearing */
+	DEBOUNCE_DELAY: 3000,
+	/** @type {number} Time in ms for the close animation when removing notifications */
+	CLOSE_ANIMATION_DURATION: 150,
+	/** @type {number} Time in ms before notifications automatically close */
+	AUTO_CLOSE_DELAY: 5000,
 });
 
 /** @type {{message: string, type: string, timestamp: number}} */
@@ -27,14 +27,14 @@ let lastNotification = { message: '', type: '', timestamp: 0 };
  * @private
  */
 function getOrCreateNotificationContainer() {
-    let container = document.getElementById('notificationContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'notificationContainer';
-        container.className = 'notification-container';
-        document.body.appendChild(container);
-    }
-    return container;
+	let container = document.getElementById('notificationContainer');
+	if (!container) {
+		container = document.createElement('div');
+		container.id = 'notificationContainer';
+		container.className = 'notification-container';
+		document.body.appendChild(container);
+	}
+	return container;
 }
 
 /**
@@ -45,15 +45,15 @@ function getOrCreateNotificationContainer() {
  * @private
  */
 function createNotificationElement(message, type) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
+	const notification = document.createElement('div');
+	notification.className = `notification ${type}`;
+	notification.innerHTML = `
         <div class="notification-content">
             <div class="notification-message">${message}</div>
             <button type="button" class="btn-close notification-close" aria-label="Close"></button>
         </div>
     `;
-    return notification;
+	return notification;
 }
 
 /**
@@ -62,48 +62,50 @@ function createNotificationElement(message, type) {
  * @param {NotificationType} [type='info'] - The type of notification that determines its appearance
  */
 export function showNotification(message, type = 'info') {
-    // Check if this is a duplicate notification within the debounce window
-    const now = Date.now();
-    if (lastNotification.message === message &&
-        lastNotification.type === type &&
-        (now - lastNotification.timestamp) < NOTIFICATION_CONFIG.DEBOUNCE_DELAY) {
-        return; // Skip duplicate notification
-    }
+	// Check if this is a duplicate notification within the debounce window
+	const now = Date.now();
+	if (
+		lastNotification.message === message &&
+		lastNotification.type === type &&
+		now - lastNotification.timestamp < NOTIFICATION_CONFIG.DEBOUNCE_DELAY
+	) {
+		return; // Skip duplicate notification
+	}
 
-    // Update last notification
-    lastNotification = { message, type, timestamp: now };
+	// Update last notification
+	lastNotification = { message, type, timestamp: now };
 
-    // Get or create notification container
-    const notificationContainer = getOrCreateNotificationContainer();
+	// Get or create notification container
+	const notificationContainer = getOrCreateNotificationContainer();
 
-    // Create and add notification element
-    const notification = createNotificationElement(message, type);
-    notificationContainer.appendChild(notification);
+	// Create and add notification element
+	const notification = createNotificationElement(message, type);
+	notificationContainer.appendChild(notification);
 
-    // Function to close notification with animation
-    const closeNotification = (isManualClose = false) => {
-        notification.classList.add('notification-closing');
-        setTimeout(() => {
-            notification.remove();
-            // Remove container if empty
-            if (notificationContainer.children.length === 0) {
-                notificationContainer.remove();
-            }
-            // Reset last notification if manually closed
-            if (isManualClose) {
-                lastNotification = { message: '', type: '', timestamp: 0 };
-            }
-        }, NOTIFICATION_CONFIG.CLOSE_ANIMATION_DURATION);
-    };
+	// Function to close notification with animation
+	const closeNotification = (isManualClose = false) => {
+		notification.classList.add('notification-closing');
+		setTimeout(() => {
+			notification.remove();
+			// Remove container if empty
+			if (notificationContainer.children.length === 0) {
+				notificationContainer.remove();
+			}
+			// Reset last notification if manually closed
+			if (isManualClose) {
+				lastNotification = { message: '', type: '', timestamp: 0 };
+			}
+		}, NOTIFICATION_CONFIG.CLOSE_ANIMATION_DURATION);
+	};
 
-    // Add close button handler
-    const closeButton = notification.querySelector('.notification-close');
-    closeButton.addEventListener('click', () => closeNotification(true));
+	// Add close button handler
+	const closeButton = notification.querySelector('.notification-close');
+	closeButton.addEventListener('click', () => closeNotification(true));
 
-    // Auto-remove notification after configured delay
-    setTimeout(() => {
-        if (notification.parentElement) {
-            closeNotification(false);
-        }
-    }, NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY);
-} 
+	// Auto-remove notification after configured delay
+	setTimeout(() => {
+		if (notification.parentElement) {
+			closeNotification(false);
+		}
+	}, NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY);
+}

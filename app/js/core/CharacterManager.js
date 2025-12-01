@@ -1,14 +1,14 @@
 /**
  * Character lifecycle management.
- * 
+ *
  * ARCHITECTURE: Application Layer - Orchestrates domain and infrastructure
- * 
+ *
  * PURPOSE:
  * - Manage character CRUD operations
  * - Coordinate between domain models and infrastructure
  * - Update application state
  * - Emit lifecycle events
- * 
+ *
  * @module application/CharacterManager
  */
 
@@ -20,262 +20,292 @@ import { CharacterSchema } from './CharacterSchema.js';
 import { Character } from './Character.js';
 
 class CharacterManagerImpl {
-    /**
-     * Create a new character.
-     * @param {string} name - Character name
-     * @returns {Promise<Result>} Result with character or error
-     */
-    async createCharacter(name) {
-        Logger.info('CharacterManager', 'Creating character', { name });
+	/**
+	 * Create a new character.
+	 * @param {string} name - Character name
+	 * @returns {Promise<Result>} Result with character or error
+	 */
+	async createCharacter(name) {
+		Logger.info('CharacterManager', 'Creating character', { name });
 
-        try {
-            // Create character from schema
-            const characterData = CharacterSchema.create();
+		try {
+			// Create character from schema
+			const characterData = CharacterSchema.create();
 
-            // Generate UUID
-            const uuidResult = await window.electron.invoke('character:generateUUID');
-            if (!uuidResult.success) {
-                return Result.err('Failed to generate character ID');
-            }
+			// Generate UUID
+			const uuidResult = await window.electron.invoke('character:generateUUID');
+			if (!uuidResult.success) {
+				return Result.err('Failed to generate character ID');
+			}
 
-            characterData.id = uuidResult.data;
-            characterData.name = name;
+			characterData.id = uuidResult.data;
+			characterData.name = name;
 
-            // Validate
-            const validation = CharacterSchema.validate(characterData);
-            if (!validation.valid) {
-                Logger.warn('CharacterManager', 'Validation failed', validation.errors);
-                return Result.err(`Invalid character: ${validation.errors.join(', ')}`);
-            }
+			// Validate
+			const validation = CharacterSchema.validate(characterData);
+			if (!validation.valid) {
+				Logger.warn('CharacterManager', 'Validation failed', validation.errors);
+				return Result.err(`Invalid character: ${validation.errors.join(', ')}`);
+			}
 
-            // Convert to Character instance to enable domain methods
-            const character = new Character(characterData);
+			// Convert to Character instance to enable domain methods
+			const character = new Character(characterData);
 
-            // Update state
-            AppState.setCurrentCharacter(character);
-            AppState.setHasUnsavedChanges(true);
+			// Update state
+			AppState.setCurrentCharacter(character);
+			AppState.setHasUnsavedChanges(true);
 
-            // Emit event
-            eventBus.emit(EVENTS.CHARACTER_CREATED, character);
+			// Emit event
+			eventBus.emit(EVENTS.CHARACTER_CREATED, character);
 
-            Logger.info('CharacterManager', 'Character created', { id: character.id });
-            return Result.ok(character);
+			Logger.info('CharacterManager', 'Character created', {
+				id: character.id,
+			});
+			return Result.ok(character);
+		} catch (error) {
+			Logger.error('CharacterManager', 'Create failed', error);
+			return Result.err(error.message);
+		}
+	}
 
-        } catch (error) {
-            Logger.error('CharacterManager', 'Create failed', error);
-            return Result.err(error.message);
-        }
-    }
+	/**
+	 * Load a character by ID.
+	 * @param {string} id - Character ID
+	 * @returns {Promise<Result>} Result with character or error
+	 */
+	async loadCharacter(id) {
+		Logger.info(
+			'CharacterManager',
+			`[${new Date().toISOString()}] Loading character with ID: ${id}`,
+		);
 
-    /**
-     * Load a character by ID.
-     * @param {string} id - Character ID
-     * @returns {Promise<Result>} Result with character or error
-     */
-    async loadCharacter(id) {
-        Logger.info('CharacterManager', `[${new Date().toISOString()}] Loading character with ID: ${id}`);
+		try {
+			// Get all characters
+			const listResult = await window.electron.invoke('character:list');
+			if (!listResult.success) {
+				return Result.err('Failed to load character list');
+			}
 
-        try {
-            // Get all characters
-            const listResult = await window.electron.invoke('character:list');
-            if (!listResult.success) {
-                return Result.err('Failed to load character list');
-            }
+			const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
+			const characterData = characters.find((c) => c.id === id);
 
-            const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
-            const characterData = characters.find(c => c.id === id);
+			if (!characterData) {
+				Logger.warn('CharacterManager', 'Character not found', { id });
+				return Result.err('Character not found');
+			}
 
-            if (!characterData) {
-                Logger.warn('CharacterManager', 'Character not found', { id });
-                return Result.err('Character not found');
-            }
+			// Validate
+			const validation = CharacterSchema.validate(characterData);
+			if (!validation.valid) {
+				Logger.warn(
+					'CharacterManager',
+					'Loaded character invalid',
+					validation.errors,
+				);
+				return Result.err(
+					`Invalid character data: ${validation.errors.join(', ')}`,
+				);
+			}
 
-            // Validate
-            const validation = CharacterSchema.validate(characterData);
-            if (!validation.valid) {
-                Logger.warn('CharacterManager', 'Loaded character invalid', validation.errors);
-                return Result.err(`Invalid character data: ${validation.errors.join(', ')}`);
-            }
+			// Convert to Character instance to enable domain methods
+			const character = new Character(characterData);
 
-            // Convert to Character instance to enable domain methods
-            const character = new Character(characterData);
+			// Update state
+			Logger.debug(
+				'CharacterManager',
+				`Setting current character to: ${character.name} (${character.id})`,
+			);
+			AppState.setCurrentCharacter(character);
+			AppState.setHasUnsavedChanges(false);
 
-            // Update state
-            Logger.debug('CharacterManager', `Setting current character to: ${character.name} (${character.id})`);
-            AppState.setCurrentCharacter(character);
-            AppState.setHasUnsavedChanges(false);
+			// Emit event
+			Logger.debug(
+				'CharacterManager',
+				`Emitting CHARACTER_SELECTED event for character: ${character.name}`,
+			);
+			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 
-            // Emit event
-            Logger.debug('CharacterManager', `Emitting CHARACTER_SELECTED event for character: ${character.name}`);
-            eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
+			Logger.info(
+				'CharacterManager',
+				`✓ Character loaded successfully: ${character.name}`,
+				{ id },
+			);
+			return Result.ok(character);
+		} catch (error) {
+			Logger.error('CharacterManager', 'Load failed', error);
+			return Result.err(error.message);
+		}
+	}
 
-            Logger.info('CharacterManager', `✓ Character loaded successfully: ${character.name}`, { id });
-            return Result.ok(character);
+	/**
+	 * Save current character.
+	 * @returns {Promise<Result>} Result with success or error
+	 */
+	async saveCharacter() {
+		const character = AppState.getCurrentCharacter();
 
-        } catch (error) {
-            Logger.error('CharacterManager', 'Load failed', error);
-            return Result.err(error.message);
-        }
-    }
+		if (!character) {
+			Logger.warn('CharacterManager', 'No character to save');
+			return Result.err('No character selected');
+		}
 
-    /**
-     * Save current character.
-     * @returns {Promise<Result>} Result with success or error
-     */
-    async saveCharacter() {
-        const character = AppState.getCurrentCharacter();
+		Logger.info('CharacterManager', 'Saving character', { id: character.id });
 
-        if (!character) {
-            Logger.warn('CharacterManager', 'No character to save');
-            return Result.err('No character selected');
-        }
+		try {
+			// Update timestamp
+			CharacterSchema.touch(character);
 
-        Logger.info('CharacterManager', 'Saving character', { id: character.id });
+			// Validate before saving
+			const validation = CharacterSchema.validate(character);
+			if (!validation.valid) {
+				Logger.warn(
+					'CharacterManager',
+					'Cannot save invalid character',
+					validation.errors,
+				);
+				return Result.err(`Cannot save: ${validation.errors.join(', ')}`);
+			}
 
-        try {
-            // Update timestamp
-            CharacterSchema.touch(character);
+			// Serialize character using toJSON() to handle Sets and Maps
+			const serializedCharacter = character.toJSON
+				? character.toJSON()
+				: character;
 
-            // Validate before saving
-            const validation = CharacterSchema.validate(character);
-            if (!validation.valid) {
-                Logger.warn('CharacterManager', 'Cannot save invalid character', validation.errors);
-                return Result.err(`Cannot save: ${validation.errors.join(', ')}`);
-            }
+			// Save via IPC
+			const saveResult = await window.electron.invoke(
+				'character:save',
+				serializedCharacter,
+			);
 
-            // Serialize character using toJSON() to handle Sets and Maps
-            const serializedCharacter = character.toJSON ? character.toJSON() : character;
+			if (!saveResult.success) {
+				return Result.err(saveResult.error || 'Save failed');
+			}
 
-            // Save via IPC
-            const saveResult = await window.electron.invoke('character:save', serializedCharacter);
+			// Update state
+			AppState.setHasUnsavedChanges(false);
 
-            if (!saveResult.success) {
-                return Result.err(saveResult.error || 'Save failed');
-            }
+			// Emit event
+			eventBus.emit(EVENTS.CHARACTER_SAVED, character);
 
-            // Update state
-            AppState.setHasUnsavedChanges(false);
+			Logger.info('CharacterManager', 'Character saved', { id: character.id });
+			return Result.ok(true);
+		} catch (error) {
+			Logger.error('CharacterManager', 'Save failed', error);
+			return Result.err(error.message);
+		}
+	}
 
-            // Emit event
-            eventBus.emit(EVENTS.CHARACTER_SAVED, character);
+	/**
+	 * Delete a character by ID.
+	 * @param {string} id - Character ID
+	 * @returns {Promise<Result>} Result with success or error
+	 */
+	async deleteCharacter(id) {
+		Logger.info('CharacterManager', 'Deleting character', { id });
 
-            Logger.info('CharacterManager', 'Character saved', { id: character.id });
-            return Result.ok(true);
+		try {
+			// Delete via IPC
+			const deleteResult = await window.electron.invoke('character:delete', id);
 
-        } catch (error) {
-            Logger.error('CharacterManager', 'Save failed', error);
-            return Result.err(error.message);
-        }
-    }
+			if (!deleteResult.success) {
+				return Result.err(deleteResult.error || 'Delete failed');
+			}
 
-    /**
-     * Delete a character by ID.
-     * @param {string} id - Character ID
-     * @returns {Promise<Result>} Result with success or error
-     */
-    async deleteCharacter(id) {
-        Logger.info('CharacterManager', 'Deleting character', { id });
+			// Update state - remove from list
+			const characters = AppState.getCharacters().filter((c) => c.id !== id);
+			AppState.setCharacters(characters);
 
-        try {
-            // Delete via IPC
-            const deleteResult = await window.electron.invoke('character:delete', id);
+			// Clear current if it was deleted
+			if (AppState.getCurrentCharacter()?.id === id) {
+				AppState.setCurrentCharacter(null);
+				AppState.setHasUnsavedChanges(false);
+			}
 
-            if (!deleteResult.success) {
-                return Result.err(deleteResult.error || 'Delete failed');
-            }
+			// Emit event
+			eventBus.emit(EVENTS.CHARACTER_DELETED, id);
 
-            // Update state - remove from list
-            const characters = AppState.getCharacters().filter(c => c.id !== id);
-            AppState.setCharacters(characters);
+			Logger.info('CharacterManager', 'Character deleted', { id });
+			return Result.ok(true);
+		} catch (error) {
+			Logger.error('CharacterManager', 'Delete failed', error);
+			return Result.err(error.message);
+		}
+	}
 
-            // Clear current if it was deleted
-            if (AppState.getCurrentCharacter()?.id === id) {
-                AppState.setCurrentCharacter(null);
-                AppState.setHasUnsavedChanges(false);
-            }
+	/**
+	 * Load list of all characters.
+	 * @returns {Promise<Result>} Result with characters array or error
+	 */
+	async loadCharacterList() {
+		Logger.info('CharacterManager', 'Loading character list');
 
-            // Emit event
-            eventBus.emit(EVENTS.CHARACTER_DELETED, id);
+		try {
+			const listResult = await window.electron.invoke('character:list');
 
-            Logger.info('CharacterManager', 'Character deleted', { id });
-            return Result.ok(true);
+			if (!listResult.success) {
+				return Result.err(listResult.error || 'Failed to load list');
+			}
 
-        } catch (error) {
-            Logger.error('CharacterManager', 'Delete failed', error);
-            return Result.err(error.message);
-        }
-    }
+			const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
 
-    /**
-     * Load list of all characters.
-     * @returns {Promise<Result>} Result with characters array or error
-     */
-    async loadCharacterList() {
-        Logger.info('CharacterManager', 'Loading character list');
+			// Update state
+			AppState.setCharacters(characters);
 
-        try {
-            const listResult = await window.electron.invoke('character:list');
+			Logger.info('CharacterManager', 'Character list loaded', {
+				count: characters.length,
+			});
+			return Result.ok(characters);
+		} catch (error) {
+			Logger.error('CharacterManager', 'Load list failed', error);
+			return Result.err(error.message);
+		}
+	}
 
-            if (!listResult.success) {
-                return Result.err(listResult.error || 'Failed to load list');
-            }
+	/**
+	 * Update current character data.
+	 * @param {object} updates - Partial character updates
+	 */
+	updateCharacter(updates) {
+		const character = AppState.getCurrentCharacter();
 
-            const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
+		if (!character) {
+			Logger.warn('CharacterManager', 'No character to update');
+			return;
+		}
 
-            // Update state
-            AppState.setCharacters(characters);
+		Logger.debug('CharacterManager', 'Updating character', {
+			id: character.id,
+			updates,
+		});
 
-            Logger.info('CharacterManager', 'Character list loaded', { count: characters.length });
-            return Result.ok(characters);
+		// Merge updates
+		Object.assign(character, updates);
 
-        } catch (error) {
-            Logger.error('CharacterManager', 'Load list failed', error);
-            return Result.err(error.message);
-        }
-    }
+		// Touch timestamp
+		CharacterSchema.touch(character);
 
-    /**
-     * Update current character data.
-     * @param {object} updates - Partial character updates
-     */
-    updateCharacter(updates) {
-        const character = AppState.getCurrentCharacter();
+		// Update state (triggers event)
+		AppState.setCurrentCharacter(character);
+		AppState.setHasUnsavedChanges(true);
 
-        if (!character) {
-            Logger.warn('CharacterManager', 'No character to update');
-            return;
-        }
+		Logger.debug('CharacterManager', 'Character updated', { id: character.id });
+	}
 
-        Logger.debug('CharacterManager', 'Updating character', { id: character.id, updates });
+	/**
+	 * Get current character.
+	 * @returns {object|null} Current character or null
+	 */
+	getCurrentCharacter() {
+		return AppState.getCurrentCharacter();
+	}
 
-        // Merge updates
-        Object.assign(character, updates);
-
-        // Touch timestamp
-        CharacterSchema.touch(character);
-
-        // Update state (triggers event)
-        AppState.setCurrentCharacter(character);
-        AppState.setHasUnsavedChanges(true);
-
-        Logger.debug('CharacterManager', 'Character updated', { id: character.id });
-    }
-
-    /**
-     * Get current character.
-     * @returns {object|null} Current character or null
-     */
-    getCurrentCharacter() {
-        return AppState.getCurrentCharacter();
-    }
-
-    /**
-     * Check if there are unsaved changes.
-     * @returns {boolean} True if there are unsaved changes
-     */
-    hasUnsavedChanges() {
-        return AppState.get('hasUnsavedChanges');
-    }
+	/**
+	 * Check if there are unsaved changes.
+	 * @returns {boolean} True if there are unsaved changes
+	 */
+	hasUnsavedChanges() {
+		return AppState.get('hasUnsavedChanges');
+	}
 }
 
 // Export singleton instance

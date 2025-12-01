@@ -9,118 +9,124 @@ import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
  * View for the subclass selection dropdown
  */
 export class SubclassPickerView {
-    /**
-     * Creates a new SubclassPickerView instance
-     */
-    constructor() {
-        /**
-         * The subclass selection dropdown element
-         * @type {HTMLSelectElement}
-         * @private
-         */
-        this._subclassSelect = document.getElementById('subclassSelect');
+	/**
+	 * Creates a new SubclassPickerView instance
+	 */
+	constructor() {
+		/**
+		 * The subclass selection dropdown element
+		 * @type {HTMLSelectElement}
+		 * @private
+		 */
+		this._subclassSelect = document.getElementById('subclassSelect');
 
-        // Set up event listeners
-        this._setupEventListeners();
-    }
+		// Set up event listeners
+		this._setupEventListeners();
+	}
 
-    //-------------------------------------------------------------------------
-    // Event Setup
-    //-------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
+	// Event Setup
+	//-------------------------------------------------------------------------
 
-    /**
-     * Sets up event listeners for subclass selection changes
-     * @private
-     */
-    _setupEventListeners() {
-        if (this._subclassSelect) {
-            this._subclassSelect.addEventListener('change', (event) => {
-                const selectedValue = event.target.value;
-                if (selectedValue) {
-                    eventBus.emit(EVENTS.SUBCLASS_SELECTED, {
-                        name: selectedValue,
-                        value: selectedValue
-                    });
-                }
-            });
-        }
-    }
+	/**
+	 * Sets up event listeners for subclass selection changes
+	 * @private
+	 */
+	_setupEventListeners() {
+		if (this._subclassSelect) {
+			this._subclassSelect.addEventListener('change', (event) => {
+				const selectedValue = event.target.value;
+				if (selectedValue) {
+					eventBus.emit(EVENTS.SUBCLASS_SELECTED, {
+						name: selectedValue,
+						value: selectedValue,
+					});
+				}
+			});
+		}
+	}
 
-    //-------------------------------------------------------------------------
-    // Public API
-    //-------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
+	// Public API
+	//-------------------------------------------------------------------------
 
-    /**
-     * Get the subclass select element
-     * @returns {HTMLSelectElement}
-     */
-    getSubclassSelect() {
-        return this._subclassSelect;
-    }
+	/**
+	 * Get the subclass select element
+	 * @returns {HTMLSelectElement}
+	 */
+	getSubclassSelect() {
+		return this._subclassSelect;
+	}
 
-    /**
-     * Get the currently selected subclass value
-     * @returns {string} Subclass name or empty string
-     */
-    getSelectedSubclassValue() {
-        return this._subclassSelect.value;
-    }
+	/**
+	 * Get the currently selected subclass value
+	 * @returns {string} Subclass name or empty string
+	 */
+	getSelectedSubclassValue() {
+		return this._subclassSelect.value;
+	}
 
-    /**
-     * Set the selected subclass value
-     * @param {string} value - Subclass name
-     */
-    setSelectedSubclassValue(value) {
-        this._subclassSelect.value = value;
-    }
+	/**
+	 * Set the selected subclass value
+	 * @param {string} value - Subclass name
+	 */
+	setSelectedSubclassValue(value) {
+		this._subclassSelect.value = value;
+	}
 
-    /**
-     * Populate the subclass selection dropdown
-     * @param {Array<Object>} subclasses - Array of subclass objects
-     */
-    populateSubclassSelect(subclasses) {
-        this._subclassSelect.innerHTML = '<option value="">Select a Subclass</option>';
-        this._subclassSelect.disabled = true;
+	/**
+	 * Populate the subclass selection dropdown
+	 * @param {Array<Object>} subclasses - Array of subclass objects
+	 */
+	populateSubclassSelect(subclasses) {
+		this._subclassSelect.innerHTML =
+			'<option value="">Select a Subclass</option>';
+		this._subclassSelect.disabled = true;
 
-        if (!subclasses || subclasses.length === 0) {
-            return;
-        }
+		if (!subclasses || subclasses.length === 0) {
+			return;
+		}
 
-        // Sort subclasses by name
-        const sortedSubclasses = [...subclasses].sort((a, b) => a.name.localeCompare(b.name));
+		// Sort subclasses by name
+		const sortedSubclasses = [...subclasses].sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
 
-        // Add options to select
-        for (const subclass of sortedSubclasses) {
-            const option = document.createElement('option');
-            option.value = subclass.name;
-            option.textContent = `${subclass.name} (${subclass.source})`;
-            this._subclassSelect.appendChild(option);
-        }
+		// Add options to select
+		for (const subclass of sortedSubclasses) {
+			const option = document.createElement('option');
+			option.value = subclass.name;
+			option.textContent = `${subclass.name} (${subclass.source})`;
+			this._subclassSelect.appendChild(option);
+		}
 
-        this._subclassSelect.disabled = false;
-    }
+		this._subclassSelect.disabled = false;
+	}
 
-    /**
-     * Clear and disable the subclass select
-     */
-    reset() {
-        this._subclassSelect.innerHTML = '<option value="">Select a Subclass</option>';
-        this._subclassSelect.disabled = true;
-    }
+	/**
+	 * Clear and disable the subclass select
+	 */
+	reset() {
+		this._subclassSelect.innerHTML =
+			'<option value="">Select a Subclass</option>';
+		this._subclassSelect.disabled = true;
+	}
 
-    /**
-     * Check if a subclass option exists in the dropdown
-     * @param {string} subclassName - Subclass name
-     * @returns {boolean}
-     */
-    hasSubclassOption(subclassName) {
-        return Array.from(this._subclassSelect.options).some(option => option.value === subclassName);
-    }
+	/**
+	 * Check if a subclass option exists in the dropdown
+	 * @param {string} subclassName - Subclass name
+	 * @returns {boolean}
+	 */
+	hasSubclassOption(subclassName) {
+		return Array.from(this._subclassSelect.options).some(
+			(option) => option.value === subclassName,
+		);
+	}
 
-    /**
-     * Trigger a change event on the subclass select
-     */
-    triggerSubclassSelectChange() {
-        this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+	/**
+	 * Trigger a change event on the subclass select
+	 */
+	triggerSubclassSelectChange() {
+		this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
+	}
 }

@@ -2,7 +2,7 @@
  * AbilityCalculator.js
  * Pure calculation logic for D&D ability scores
  * Handles point buy, modifiers, and ability score validation
- * 
+ *
  * Note: Proficiency bonus, skill modifiers, and saving throw modifiers
  * are in ProficiencyCalculator.js to avoid duplication
  */
@@ -13,10 +13,10 @@
  * @returns {number} The ability modifier
  */
 export function calculateModifier(score) {
-    if (typeof score !== 'number' || Number.isNaN(score)) {
-        return 0;
-    }
-    return Math.floor((score - 10) / 2);
+	if (typeof score !== 'number' || Number.isNaN(score)) {
+		return 0;
+	}
+	return Math.floor((score - 10) / 2);
 }
 
 /**
@@ -25,27 +25,27 @@ export function calculateModifier(score) {
  * @returns {string} Formatted modifier (e.g., "+2", "-1", "+0")
  */
 export function formatModifier(modifier) {
-    if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
-        return '+0';
-    }
-    if (modifier >= 0) {
-        return `+${modifier}`;
-    }
-    return `${modifier}`;
+	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
+		return '+0';
+	}
+	if (modifier >= 0) {
+		return `+${modifier}`;
+	}
+	return `${modifier}`;
 }
 
 /**
  * Point buy cost mapping for ability scores (8-15)
  */
 const POINT_BUY_COSTS = new Map([
-    [8, 0],
-    [9, 1],
-    [10, 2],
-    [11, 3],
-    [12, 4],
-    [13, 5],
-    [14, 7],
-    [15, 9]
+	[8, 0],
+	[9, 1],
+	[10, 2],
+	[11, 3],
+	[12, 4],
+	[13, 5],
+	[14, 7],
+	[15, 9],
 ]);
 
 /**
@@ -64,7 +64,7 @@ export const POINT_BUY_BUDGET = 27;
  * @returns {number} The point cost (0 if invalid)
  */
 export function getPointBuyCost(score) {
-    return POINT_BUY_COSTS.get(score) || 0;
+	return POINT_BUY_COSTS.get(score) || 0;
 }
 
 /**
@@ -73,17 +73,17 @@ export function getPointBuyCost(score) {
  * @returns {number} Total points spent
  */
 export function calculatePointBuyTotal(scores) {
-    if (!scores || typeof scores !== 'object') {
-        return 0;
-    }
+	if (!scores || typeof scores !== 'object') {
+		return 0;
+	}
 
-    let total = 0;
-    for (const score of Object.values(scores)) {
-        if (typeof score === 'number') {
-            total += getPointBuyCost(score);
-        }
-    }
-    return total;
+	let total = 0;
+	for (const score of Object.values(scores)) {
+		if (typeof score === 'number') {
+			total += getPointBuyCost(score);
+		}
+	}
+	return total;
 }
 
 /**
@@ -93,7 +93,7 @@ export function calculatePointBuyTotal(scores) {
  * @returns {number} Remaining points
  */
 export function calculateRemainingPoints(scores, budget = POINT_BUY_BUDGET) {
-    return budget - calculatePointBuyTotal(scores);
+	return budget - calculatePointBuyTotal(scores);
 }
 
 /**
@@ -104,17 +104,22 @@ export function calculateRemainingPoints(scores, budget = POINT_BUY_BUDGET) {
  * @param {number} [budget=27] - Total point budget
  * @returns {boolean} True if the change is valid
  */
-export function validatePointBuyChange(currentScores, ability, newScore, budget = POINT_BUY_BUDGET) {
-    // Score must be in valid range
-    if (newScore < 8 || newScore > 15) {
-        return false;
-    }
+export function validatePointBuyChange(
+	currentScores,
+	ability,
+	newScore,
+	budget = POINT_BUY_BUDGET,
+) {
+	// Score must be in valid range
+	if (newScore < 8 || newScore > 15) {
+		return false;
+	}
 
-    // Calculate what the total would be with the new score
-    const testScores = { ...currentScores, [ability]: newScore };
-    const totalCost = calculatePointBuyTotal(testScores);
+	// Calculate what the total would be with the new score
+	const testScores = { ...currentScores, [ability]: newScore };
+	const totalCost = calculatePointBuyTotal(testScores);
 
-    return totalCost <= budget;
+	return totalCost <= budget;
 }
 
 /**
@@ -123,38 +128,40 @@ export function validatePointBuyChange(currentScores, ability, newScore, budget 
  * @returns {Object} Validation result with isValid and errors
  */
 export function validateStandardArray(assignments) {
-    const result = {
-        isValid: true,
-        errors: []
-    };
+	const result = {
+		isValid: true,
+		errors: [],
+	};
 
-    if (!assignments || typeof assignments !== 'object') {
-        result.isValid = false;
-        result.errors.push('Invalid assignments object');
-        return result;
-    }
+	if (!assignments || typeof assignments !== 'object') {
+		result.isValid = false;
+		result.errors.push('Invalid assignments object');
+		return result;
+	}
 
-    const usedValues = new Set();
-    const assignedValues = Object.values(assignments).filter(v => v !== null && v !== undefined);
+	const usedValues = new Set();
+	const assignedValues = Object.values(assignments).filter(
+		(v) => v !== null && v !== undefined,
+	);
 
-    // Check for duplicate values
-    for (const value of assignedValues) {
-        if (usedValues.has(value)) {
-            result.isValid = false;
-            result.errors.push(`Value ${value} assigned to multiple abilities`);
-        }
-        usedValues.add(value);
-    }
+	// Check for duplicate values
+	for (const value of assignedValues) {
+		if (usedValues.has(value)) {
+			result.isValid = false;
+			result.errors.push(`Value ${value} assigned to multiple abilities`);
+		}
+		usedValues.add(value);
+	}
 
-    // Check if all values are from the standard array
-    for (const value of assignedValues) {
-        if (!STANDARD_ARRAY.includes(value)) {
-            result.isValid = false;
-            result.errors.push(`Value ${value} is not in the standard array`);
-        }
-    }
+	// Check if all values are from the standard array
+	for (const value of assignedValues) {
+		if (!STANDARD_ARRAY.includes(value)) {
+			result.isValid = false;
+			result.errors.push(`Value ${value} is not in the standard array`);
+		}
+	}
 
-    return result;
+	return result;
 }
 
 /**
@@ -164,5 +171,5 @@ export function validateStandardArray(assignments) {
  * @returns {number} Total ability score
  */
 export function calculateTotalAbilityScore(baseScore, racialBonus = 0) {
-    return (baseScore || 0) + (racialBonus || 0);
+	return (baseScore || 0) + (racialBonus || 0);
 }

@@ -2,17 +2,17 @@
  * AppInitializer.js
  * Core initialization utilities for application bootstrap process.
  * Manages the initialization sequence of all critical application components.
- * 
+ *
  * @typedef {Object} InitializationOptions
  * @property {boolean} [loadAllData=true] - Whether to load all data sources
  * @property {boolean} [skipCharacterLoad=false] - Whether to skip loading characters
  * @property {boolean} [forceRefresh=false] - Whether to force refresh cached data
- * 
+ *
  * @typedef {Object} InitializationResult
  * @property {boolean} success - Whether initialization was successful
  * @property {Array<string>} loadedComponents - List of successfully loaded components
  * @property {Array<Error>} errors - List of errors encountered during initialization
- * 
+ *
  * @typedef {Object} DataLoadResult
  * @property {any} data - The loaded data or null if loading failed
  * @property {Error|null} error - The error that occurred during loading, if any
@@ -44,13 +44,13 @@ import { textProcessor } from '../utils/TextProcessor.js';
  * @private
  */
 async function _loadDataWithErrorHandling(promise, component) {
-    try {
-        const result = await promise;
-        return result;
-    } catch (error) {
-        console.warn(`Failed to load ${component} data:`, error);
-        return null;
-    }
+	try {
+		const result = await promise;
+		return result;
+	} catch (error) {
+		console.warn(`Failed to load ${component} data:`, error);
+		return null;
+	}
 }
 
 /**
@@ -59,24 +59,24 @@ async function _loadDataWithErrorHandling(promise, component) {
  * @private
  */
 async function _loadAllGameData() {
-    const errors = [];
-    try {
-        // Initialize all services in parallel
-        const dataLoadPromises = [
-            _loadDataWithErrorHandling(spellService.initialize(), 'spells'),
-            _loadDataWithErrorHandling(itemService.initialize(), 'items'),
-            _loadDataWithErrorHandling(classService.initialize(), 'classes'),
-            _loadDataWithErrorHandling(raceService.initialize(), 'races'),
-            _loadDataWithErrorHandling(backgroundService.initialize(), 'backgrounds')
-        ];
+	const errors = [];
+	try {
+		// Initialize all services in parallel
+		const dataLoadPromises = [
+			_loadDataWithErrorHandling(spellService.initialize(), 'spells'),
+			_loadDataWithErrorHandling(itemService.initialize(), 'items'),
+			_loadDataWithErrorHandling(classService.initialize(), 'classes'),
+			_loadDataWithErrorHandling(raceService.initialize(), 'races'),
+			_loadDataWithErrorHandling(backgroundService.initialize(), 'backgrounds'),
+		];
 
-        await Promise.all(dataLoadPromises);
-        return { success: true, errors };
-    } catch (error) {
-        console.error('Error during game data loading:', error);
-        errors.push(error);
-        return { success: false, errors };
-    }
+		await Promise.all(dataLoadPromises);
+		return { success: true, errors };
+	} catch (error) {
+		console.error('Error during game data loading:', error);
+		errors.push(error);
+		return { success: false, errors };
+	}
 }
 
 /**
@@ -87,13 +87,13 @@ async function _loadAllGameData() {
  * @private
  */
 async function _initializeComponent(name, initFunction) {
-    try {
-        await initFunction();
-        return { success: true, error: null };
-    } catch (error) {
-        console.error(`Error initializing ${name}:`, error);
-        return { success: false, error };
-    }
+	try {
+		await initFunction();
+		return { success: true, error: null };
+	} catch (error) {
+		console.error(`Error initializing ${name}:`, error);
+		return { success: false, error };
+	}
 }
 
 /**
@@ -102,52 +102,68 @@ async function _initializeComponent(name, initFunction) {
  * @private
  */
 async function _initializeCoreComponents() {
-    const result = {
-        success: true,
-        loadedComponents: [],
-        errors: []
-    };
+	const result = {
+		success: true,
+		loadedComponents: [],
+		errors: [],
+	};
 
-    try {
-        Logger.info('AppInitializer', 'Initializing core components with NEW architecture');
+	try {
+		Logger.info(
+			'AppInitializer',
+			'Initializing core components with NEW architecture',
+		);
 
-        // Define components and their initialization sequence
-        const components = [
-            { name: 'text processor', init: () => textProcessor.initialize() },
-            { name: 'page handler', init: () => PageHandler.initialize() },
-            { name: 'navigation controller', init: () => NavigationController.initialize() },
-            { name: 'settings service', init: () => settingsService.initialize() }
-        ];
+		// Define components and their initialization sequence
+		const components = [
+			{ name: 'text processor', init: () => textProcessor.initialize() },
+			{ name: 'page handler', init: () => PageHandler.initialize() },
+			{
+				name: 'navigation controller',
+				init: () => NavigationController.initialize(),
+			},
+			{ name: 'settings service', init: () => settingsService.initialize() },
+		];
 
-        // Initialize each component in sequence
-        for (const component of components) {
-            const initResult = await _initializeComponent(component.name, component.init);
+		// Initialize each component in sequence
+		for (const component of components) {
+			const initResult = await _initializeComponent(
+				component.name,
+				component.init,
+			);
 
-            if (initResult.success) {
-                result.loadedComponents.push(component.name);
-                Logger.info('AppInitializer', `✓ ${component.name} initialized`);
-            } else {
-                result.errors.push(initResult.error);
-                Logger.error('AppInitializer', `✗ ${component.name} failed`, initResult.error);
-            }
-        }
+			if (initResult.success) {
+				result.loadedComponents.push(component.name);
+				Logger.info('AppInitializer', `✓ ${component.name} initialized`);
+			} else {
+				result.errors.push(initResult.error);
+				Logger.error(
+					'AppInitializer',
+					`✗ ${component.name} failed`,
+					initResult.error,
+				);
+			}
+		}
 
-        // Set overall success based on whether any critical errors occurred
-        result.success = result.errors.length === 0;
+		// Set overall success based on whether any critical errors occurred
+		result.success = result.errors.length === 0;
 
-        Logger.info('AppInitializer', 'Core components initialized', {
-            success: result.success,
-            loaded: result.loadedComponents.length,
-            errors: result.errors.length
-        });
+		Logger.info('AppInitializer', 'Core components initialized', {
+			success: result.success,
+			loaded: result.loadedComponents.length,
+			errors: result.errors.length,
+		});
 
-        return result;
-    } catch (error) {
-        console.error('Unexpected error during core component initialization:', error);
-        result.success = false;
-        result.errors.push(error);
-        return result;
-    }
+		return result;
+	} catch (error) {
+		console.error(
+			'Unexpected error during core component initialization:',
+			error,
+		);
+		result.success = false;
+		result.errors.push(error);
+		return result;
+	}
 }
 
 /**
@@ -156,152 +172,197 @@ async function _initializeCoreComponents() {
  * @private
  */
 function _setupUIEventHandlers() {
-    try {
-        Logger.info('AppInitializer', 'Setting up UI event handlers');
+	try {
+		Logger.info('AppInitializer', 'Setting up UI event handlers');
 
-        // Set up save button handler
-        const saveButton = document.getElementById('saveCharacter');
-        const unsavedIndicator = document.getElementById('unsavedChangesIndicator');
+		// Set up save button handler
+		const saveButton = document.getElementById('saveCharacter');
+		const unsavedIndicator = document.getElementById('unsavedChangesIndicator');
 
-        // Centralized unsaved indicator logic
-        const PAGES_SHOW_UNSAVED = new Set(['build', 'details']);
+		// Centralized unsaved indicator logic
+		const PAGES_SHOW_UNSAVED = new Set(['build', 'details']);
 
-        function updateUnsavedIndicator() {
-            try {
-                const hasUnsaved = AppState.get('hasUnsavedChanges');
-                const currentPage = AppState.getCurrentPage();
-                const shouldShow = Boolean(hasUnsaved && PAGES_SHOW_UNSAVED.has(currentPage));
+		function updateUnsavedIndicator() {
+			try {
+				const hasUnsaved = AppState.get('hasUnsavedChanges');
+				const currentPage = AppState.getCurrentPage();
+				const shouldShow = Boolean(
+					hasUnsaved && PAGES_SHOW_UNSAVED.has(currentPage),
+				);
 
-                if (!unsavedIndicator) return;
+				if (!unsavedIndicator) return;
 
-                unsavedIndicator.style.display = shouldShow ? 'inline-block' : 'none';
-                Logger.debug('AppInitializer', `Unsaved indicator updated: show=${shouldShow}`, {
-                    hasUnsaved,
-                    currentPage,
-                    display: unsavedIndicator.style.display
-                });
-            } catch (e) {
-                Logger.error('AppInitializer', 'Error updating unsaved indicator', e);
-            }
-        }
+				unsavedIndicator.style.display = shouldShow ? 'inline-block' : 'none';
+				Logger.debug(
+					'AppInitializer',
+					`Unsaved indicator updated: show=${shouldShow}`,
+					{
+						hasUnsaved,
+						currentPage,
+						display: unsavedIndicator.style.display,
+					},
+				);
+			} catch (e) {
+				Logger.error('AppInitializer', 'Error updating unsaved indicator', e);
+			}
+		}
 
-        // Suppress CHARACTER_UPDATED events immediately after page/character changes
-        let _suppressUntil = 0; // timestamp in ms
-        const SUPPRESS_WINDOW_MS = 150;
+		// Suppress CHARACTER_UPDATED events immediately after page/character changes
+		let _suppressUntil = 0; // timestamp in ms
+		const SUPPRESS_WINDOW_MS = 150;
 
-        // Helper to mark a short suppression window
-        function suppressTemporary() {
-            _suppressUntil = Date.now() + SUPPRESS_WINDOW_MS;
-            Logger.debug('AppInitializer', `Temporary suppression enabled until ${new Date(_suppressUntil).toISOString()}`);
-        }
+		// Helper to mark a short suppression window
+		function suppressTemporary() {
+			_suppressUntil = Date.now() + SUPPRESS_WINDOW_MS;
+			Logger.debug(
+				'AppInitializer',
+				`Temporary suppression enabled until ${new Date(_suppressUntil).toISOString()}`,
+			);
+		}
 
-        // Listen for CHARACTER_UPDATED events to mark unsaved state
-        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
-            const now = Date.now();
-            if (now < _suppressUntil) {
-                Logger.debug('AppInitializer', `Ignored CHARACTER_UPDATED due to suppression (now=${now})`);
-                return;
-            }
+		// Listen for CHARACTER_UPDATED events to mark unsaved state
+		eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+			const now = Date.now();
+			if (now < _suppressUntil) {
+				Logger.debug(
+					'AppInitializer',
+					`Ignored CHARACTER_UPDATED due to suppression (now=${now})`,
+				);
+				return;
+			}
 
-            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`);
-            AppState.setHasUnsavedChanges(true);
-            updateUnsavedIndicator();
-        });
+			Logger.debug(
+				'AppInitializer',
+				`[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`,
+			);
+			AppState.setHasUnsavedChanges(true);
+			updateUnsavedIndicator();
+		});
 
-        // Listen for CHARACTER_SAVED events to clear unsaved state
-        eventBus.on(EVENTS.CHARACTER_SAVED, () => {
-            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`);
-            AppState.setHasUnsavedChanges(false);
-            updateUnsavedIndicator();
-        });
+		// Listen for CHARACTER_SAVED events to clear unsaved state
+		eventBus.on(EVENTS.CHARACTER_SAVED, () => {
+			Logger.debug(
+				'AppInitializer',
+				`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`,
+			);
+			AppState.setHasUnsavedChanges(false);
+			updateUnsavedIndicator();
+		});
 
-        // Clear unsaved indicator when a new character is selected (fresh load)
-        eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
-            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`);
-            AppState.setHasUnsavedChanges(false);
-            suppressTemporary();
-            updateUnsavedIndicator();
-        });
+		// Clear unsaved indicator when a new character is selected (fresh load)
+		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+			Logger.debug(
+				'AppInitializer',
+				`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`,
+			);
+			AppState.setHasUnsavedChanges(false);
+			suppressTemporary();
+			updateUnsavedIndicator();
+		});
 
-        // Update indicator on page changes (show only on certain pages)
-        eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
-            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`);
-            // Suppress CHARACTER_UPDATED events that may be emitted during page init
-            suppressTemporary();
-            updateUnsavedIndicator();
-        });
+		// Update indicator on page changes (show only on certain pages)
+		eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
+			Logger.debug(
+				'AppInitializer',
+				`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
+			);
+			// Suppress CHARACTER_UPDATED events that may be emitted during page init
+			suppressTemporary();
+			updateUnsavedIndicator();
+		});
 
-        // Listen for explicit AppState changes to hasUnsavedChanges
-        eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
-            Logger.debug('AppInitializer', `state:hasUnsavedChanges:changed -> ${newVal}`);
-            updateUnsavedIndicator();
-        });
+		// Listen for explicit AppState changes to hasUnsavedChanges
+		eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
+			Logger.debug(
+				'AppInitializer',
+				`state:hasUnsavedChanges:changed -> ${newVal}`,
+			);
+			updateUnsavedIndicator();
+		});
 
-        // Listen for PAGE_CHANGED events to log floating bar visibility
-        eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
-            Logger.debug('AppInitializer', `[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`);
-            const floatingBar = document.querySelector('.floating-actions');
-            const floatingBarVisible = floatingBar ? window.getComputedStyle(floatingBar).display !== 'none' : false;
-            const unsavedVisible = unsavedIndicator ? unsavedIndicator.style.display !== 'none' : false;
+		// Listen for PAGE_CHANGED events to log floating bar visibility
+		eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
+			Logger.debug(
+				'AppInitializer',
+				`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
+			);
+			const floatingBar = document.querySelector('.floating-actions');
+			const floatingBarVisible = floatingBar
+				? window.getComputedStyle(floatingBar).display !== 'none'
+				: false;
+			const unsavedVisible = unsavedIndicator
+				? unsavedIndicator.style.display !== 'none'
+				: false;
 
-            Logger.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
-                floatingBarVisible: floatingBarVisible,
-                unsavedIndicatorVisible: unsavedVisible,
-                dataCurrentPage: document.body.getAttribute('data-current-page')
-            });
-        });
+			Logger.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
+				floatingBarVisible: floatingBarVisible,
+				unsavedIndicatorVisible: unsavedVisible,
+				dataCurrentPage: document.body.getAttribute('data-current-page'),
+			});
+		});
 
-        if (saveButton) {
-            saveButton.addEventListener('click', async () => {
-                try {
-                    Logger.info('AppInitializer', `[${new Date().toISOString()}] Save button clicked`);
+		if (saveButton) {
+			saveButton.addEventListener('click', async () => {
+				try {
+					Logger.info(
+						'AppInitializer',
+						`[${new Date().toISOString()}] Save button clicked`,
+					);
 
-                    // Update character data from form inputs on details page
-                    const characterNameInput = document.getElementById('characterName');
-                    const playerNameInput = document.getElementById('playerName');
-                    const heightInput = document.getElementById('height');
-                    const weightInput = document.getElementById('weight');
-                    const genderInput = document.getElementById('gender');
-                    const backstoryTextarea = document.getElementById('backstory');
+					// Update character data from form inputs on details page
+					const characterNameInput = document.getElementById('characterName');
+					const playerNameInput = document.getElementById('playerName');
+					const heightInput = document.getElementById('height');
+					const weightInput = document.getElementById('weight');
+					const genderInput = document.getElementById('gender');
+					const backstoryTextarea = document.getElementById('backstory');
 
-                    const character = AppState.getCurrentCharacter();
-                    if (character) {
-                        if (characterNameInput) character.name = characterNameInput.value;
-                        if (playerNameInput) character.playerName = playerNameInput.value;
-                        if (heightInput) character.height = heightInput.value;
-                        if (weightInput) character.weight = weightInput.value;
-                        if (genderInput) character.gender = genderInput.value;
-                        if (backstoryTextarea) character.backstory = backstoryTextarea.value;
-                    }
+					const character = AppState.getCurrentCharacter();
+					if (character) {
+						if (characterNameInput) character.name = characterNameInput.value;
+						if (playerNameInput) character.playerName = playerNameInput.value;
+						if (heightInput) character.height = heightInput.value;
+						if (weightInput) character.weight = weightInput.value;
+						if (genderInput) character.gender = genderInput.value;
+						if (backstoryTextarea)
+							character.backstory = backstoryTextarea.value;
+					}
 
-                    const result = await CharacterManager.saveCharacter();
+					const result = await CharacterManager.saveCharacter();
 
-                    if (result.isOk()) {
-                        Logger.info('AppInitializer', 'Character saved successfully');
-                        showNotification('Character saved successfully', 'success');
-                        if (unsavedIndicator) {
-                            unsavedIndicator.style.display = 'none';
-                        }
-                        // Emit save event
-                        Logger.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
-                        eventBus.emit(EVENTS.CHARACTER_SAVED);
-                    } else {
-                        Logger.error('AppInitializer', 'Failed to save character', result.error);
-                        showNotification(`Failed to save character: ${result.error}`, 'error');
-                    }
-                } catch (error) {
-                    Logger.error('AppInitializer', 'Error saving character', error);
-                    showNotification('Error saving character', 'error');
-                }
-            });
-        } else {
-            Logger.warn('AppInitializer', 'Save button not found');
-        }
+					if (result.isOk()) {
+						Logger.info('AppInitializer', 'Character saved successfully');
+						showNotification('Character saved successfully', 'success');
+						if (unsavedIndicator) {
+							unsavedIndicator.style.display = 'none';
+						}
+						// Emit save event
+						Logger.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
+						eventBus.emit(EVENTS.CHARACTER_SAVED);
+					} else {
+						Logger.error(
+							'AppInitializer',
+							'Failed to save character',
+							result.error,
+						);
+						showNotification(
+							`Failed to save character: ${result.error}`,
+							'error',
+						);
+					}
+				} catch (error) {
+					Logger.error('AppInitializer', 'Error saving character', error);
+					showNotification('Error saving character', 'error');
+				}
+			});
+		} else {
+			Logger.warn('AppInitializer', 'Save button not found');
+		}
 
-        Logger.info('AppInitializer', 'UI event handlers set up successfully');
-    } catch (error) {
-        Logger.error('AppInitializer', 'Error setting up UI event handlers', error);
-    }
+		Logger.info('AppInitializer', 'UI event handlers set up successfully');
+	} catch (error) {
+		Logger.error('AppInitializer', 'Error setting up UI event handlers', error);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -315,51 +376,50 @@ function _setupUIEventHandlers() {
  * @throws {Error} If initialization fails catastrophically
  */
 export async function initializeAll(_options = {}) {
+	const result = {
+		success: true,
+		loadedComponents: [],
+		errors: [],
+	};
 
-    const result = {
-        success: true,
-        loadedComponents: [],
-        errors: []
-    };
+	try {
+		// Step 1: Load all game data
+		const dataLoadResult = await _loadAllGameData();
+		if (!dataLoadResult.success) {
+			result.errors.push(...dataLoadResult.errors);
+		}
 
-    try {
-        // Step 1: Load all game data
-        const dataLoadResult = await _loadAllGameData();
-        if (!dataLoadResult.success) {
-            result.errors.push(...dataLoadResult.errors);
-        }
+		// Step 2: Initialize core components
+		const componentsResult = await _initializeCoreComponents();
+		result.loadedComponents = componentsResult.loadedComponents;
+		result.errors.push(...componentsResult.errors);
 
-        // Step 2: Initialize core components
-        const componentsResult = await _initializeCoreComponents();
-        result.loadedComponents = componentsResult.loadedComponents;
-        result.errors.push(...componentsResult.errors);
+		// Step 3: Set up UI event handlers
+		_setupUIEventHandlers();
 
-        // Step 3: Set up UI event handlers
-        _setupUIEventHandlers();
+		// Set overall success based on whether any critical errors occurred
+		result.success = result.errors.length === 0;
 
-        // Set overall success based on whether any critical errors occurred
-        result.success = result.errors.length === 0;
+		if (!result.success) {
+			console.warn('Application initialized with errors:', result.errors);
+		}
 
-        if (!result.success) {
-            console.warn('Application initialized with errors:', result.errors);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Fatal error during application initialization:', error);
-        result.success = false;
-        result.errors.push(error);
-        throw error;
-    }
+		return result;
+	} catch (error) {
+		console.error('Fatal error during application initialization:', error);
+		result.success = false;
+		result.errors.push(error);
+		throw error;
+	}
 }
 
 // Initialize when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    initializeAll().catch(error => {
-        console.error('Error during initialization:', error);
-    });
+	initializeAll().catch((error) => {
+		console.error('Error during initialization:', error);
+	});
 });
 
 export class AppInitializer {
-    // ...
+	// ...
 }

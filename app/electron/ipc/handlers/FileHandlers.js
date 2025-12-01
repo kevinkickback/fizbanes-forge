@@ -1,81 +1,84 @@
 /**
  * IPC handlers for file operations.
- * 
+ *
  * @module electron/ipc/handlers/FileHandlers
  */
 
-const { ipcMain, dialog, shell } = require("electron");
-const fs = require("node:fs").promises;
+const { ipcMain, dialog, shell } = require('electron');
+const fs = require('node:fs').promises;
 // path not used; removed to satisfy lint
-const { IPC_CHANNELS } = require("../channels");
-const { MainLogger } = require("../../MainLogger");
+const { IPC_CHANNELS } = require('../channels');
+const { MainLogger } = require('../../MainLogger');
 
 function registerFileHandlers() {
-    MainLogger.info('FileHandlers', 'Registering file handlers');
+	MainLogger.info('FileHandlers', 'Registering file handlers');
 
-    // Select folder
-    ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
-        try {
-            const result = await dialog.showOpenDialog({
-                properties: ["openDirectory", "createDirectory"],
-            });
+	// Select folder
+	ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
+		try {
+			const result = await dialog.showOpenDialog({
+				properties: ['openDirectory', 'createDirectory'],
+			});
 
-            if (result.canceled) {
-                return { success: false, canceled: true };
-            }
+			if (result.canceled) {
+				return { success: false, canceled: true };
+			}
 
-            return { success: true, path: result.filePaths[0] };
-        } catch (error) {
-            MainLogger.error('FileHandlers', 'Select folder failed:', error);
-            return { success: false, error: error.message };
-        }
-    });
+			return { success: true, path: result.filePaths[0] };
+		} catch (error) {
+			MainLogger.error('FileHandlers', 'Select folder failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
 
-    // Read JSON file
-    ipcMain.handle(IPC_CHANNELS.FILE_READ_JSON, async (_event, filePath) => {
-        try {
-            const content = await fs.readFile(filePath, "utf8");
-            const data = JSON.parse(content);
-            return { success: true, data };
-        } catch (error) {
-            MainLogger.error('FileHandlers', 'Read JSON failed:', error);
-            return { success: false, error: error.message };
-        }
-    });
+	// Read JSON file
+	ipcMain.handle(IPC_CHANNELS.FILE_READ_JSON, async (_event, filePath) => {
+		try {
+			const content = await fs.readFile(filePath, 'utf8');
+			const data = JSON.parse(content);
+			return { success: true, data };
+		} catch (error) {
+			MainLogger.error('FileHandlers', 'Read JSON failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
 
-    // Write JSON file
-    ipcMain.handle(IPC_CHANNELS.FILE_WRITE_JSON, async (_event, filePath, data) => {
-        try {
-            await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-            return { success: true };
-        } catch (error) {
-            MainLogger.error('FileHandlers', 'Write JSON failed:', error);
-            return { success: false, error: error.message };
-        }
-    });
+	// Write JSON file
+	ipcMain.handle(
+		IPC_CHANNELS.FILE_WRITE_JSON,
+		async (_event, filePath, data) => {
+			try {
+				await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+				return { success: true };
+			} catch (error) {
+				MainLogger.error('FileHandlers', 'Write JSON failed:', error);
+				return { success: false, error: error.message };
+			}
+		},
+	);
 
-    // Check if file exists
-    ipcMain.handle(IPC_CHANNELS.FILE_EXISTS, async (_event, filePath) => {
-        try {
-            await fs.access(filePath);
-            return { success: true, exists: true };
-        } catch {
-            return { success: true, exists: false };
-        }
-    });
+	// Check if file exists
+	ipcMain.handle(IPC_CHANNELS.FILE_EXISTS, async (_event, filePath) => {
+		try {
+			await fs.access(filePath);
+			return { success: true, exists: true };
+		} catch {
+			return { success: true, exists: false };
+		}
+	});
 
-    // Open file with default application
-    ipcMain.handle(IPC_CHANNELS.FILE_OPEN, async (_event, filePath) => {
-        try {
-            await shell.openPath(filePath);
-            return { success: true };
-        } catch (error) {
-            MainLogger.error('FileHandlers', 'Open file failed:', error);
-            return { success: false, error: error.message };
-        }
-    });
+	// Open file with default application
+	ipcMain.handle(IPC_CHANNELS.FILE_OPEN, async (_event, filePath) => {
+		try {
+			await shell.openPath(filePath);
+			return { success: true };
+		} catch (error) {
+			MainLogger.error('FileHandlers', 'Open file failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
 
-    MainLogger.info('FileHandlers', 'All file handlers registered');
+	MainLogger.info('FileHandlers', 'All file handlers registered');
 }
 
 module.exports = { registerFileHandlers };
