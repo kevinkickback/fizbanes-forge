@@ -3,66 +3,26 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Expose FF_DEBUG to renderer
 contextBridge.exposeInMainWorld('FF_DEBUG', process.env.FF_DEBUG === 'true');
 
-// Expose Electron API methods
-contextBridge.exposeInMainWorld('electron', {
-	generateUUID: async () => await ipcRenderer.invoke('character:generateUUID'),
-	app: {
-		getPath: async (name) => {
-			if (name === 'userData') {
-				return await ipcRenderer.invoke('util:getUserData');
-			}
-			return null;
-		},
-	},
-	invoke: (channel, ...args) => {
-		return ipcRenderer.invoke(channel, ...args);
-	},
-	loadJSON: (filePath) => {
-		return ipcRenderer.invoke('data:loadJson', filePath);
-	},
-	ipc: {
-		send: (channel, ...args) => {
-			ipcRenderer.send(channel, ...args);
-		},
-		on: (channel, callback) => {
-			const listener = (_event, ...args) => callback(...args);
-			ipcRenderer.on(channel, listener);
-			return () => ipcRenderer.removeListener(channel, listener);
-		},
-		invoke: (channel, ...args) => {
-			return ipcRenderer.invoke(channel, ...args);
-		},
-	},
+// App-scoped utilities (whitelisted)
+contextBridge.exposeInMainWorld('app', {
+	getUserDataPath: async () => await ipcRenderer.invoke('util:getUserData'),
+});
+
+// Data domain: restrict to catalog JSON under app/data
+contextBridge.exposeInMainWorld('data', {
+	loadJSON: (filePath) => ipcRenderer.invoke('data:loadJson', filePath),
 });
 
 // Expose character data storage functions
 contextBridge.exposeInMainWorld('characterStorage', {
-	saveCharacter: (characterData) => {
-		return ipcRenderer.invoke('character:save', characterData);
-	},
-	loadCharacters: () => {
-		return ipcRenderer.invoke('character:list');
-	},
-	deleteCharacter: (id) => {
-		return ipcRenderer.invoke('character:delete', id);
-	},
-	exportCharacter: (id) => {
-		return ipcRenderer.invoke('character:export', id);
-	},
-	importCharacter: (userChoice) => {
-		return ipcRenderer.invoke('character:import', userChoice);
-	},
+	saveCharacter: (characterData) => ipcRenderer.invoke('character:save', characterData),
+	loadCharacters: () => ipcRenderer.invoke('character:list'),
+	deleteCharacter: (id) => ipcRenderer.invoke('character:delete', id),
+	exportCharacter: (id) => ipcRenderer.invoke('character:export', id),
+	importCharacter: (userChoice) => ipcRenderer.invoke('character:import', userChoice),
 	openFile: (filePath) => ipcRenderer.invoke('file:open', filePath),
-	setSavePath: (path) => {
-		return ipcRenderer.invoke('settings:setPath', 'characterSavePath', path);
-	},
-	selectFolder: () => {
-		return ipcRenderer.invoke('file:selectFolder');
-	},
-	getDefaultSavePath: () => {
-		return ipcRenderer.invoke('settings:getPath', 'characterSavePath');
-	},
-	generateUUID: () => {
-		return ipcRenderer.invoke('character:generateUUID');
-	},
+	setSavePath: (path) => ipcRenderer.invoke('settings:setPath', 'characterSavePath', path),
+	selectFolder: () => ipcRenderer.invoke('file:selectFolder'),
+	getDefaultSavePath: () => ipcRenderer.invoke('settings:getPath', 'characterSavePath'),
+	generateUUID: () => ipcRenderer.invoke('character:generateUUID'),
 });

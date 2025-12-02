@@ -33,7 +33,7 @@ class CharacterManagerImpl {
 			const characterData = CharacterSchema.create();
 
 			// Generate UUID
-			const uuidResult = await window.electron.invoke('character:generateUUID');
+			const uuidResult = await window.characterStorage.generateUUID();
 			if (!uuidResult.success) {
 				return Result.err('Failed to generate character ID');
 			}
@@ -81,7 +81,7 @@ class CharacterManagerImpl {
 
 		try {
 			// Get all characters
-			const listResult = await window.electron.invoke('character:list');
+			const listResult = await window.characterStorage.loadCharacters();
 			if (!listResult.success) {
 				return Result.err('Failed to load character list');
 			}
@@ -170,8 +170,7 @@ class CharacterManagerImpl {
 			const serializedCharacter = serializeCharacter(character);
 
 			// Save via IPC
-			const saveResult = await window.electron.invoke(
-				'character:save',
+			const saveResult = await window.characterStorage.saveCharacter(
 				serializedCharacter,
 			);
 
@@ -203,7 +202,7 @@ class CharacterManagerImpl {
 
 		try {
 			// Delete via IPC
-			const deleteResult = await window.electron.invoke('character:delete', id);
+			const deleteResult = await window.characterStorage.deleteCharacter(id);
 
 			if (!deleteResult.success) {
 				return Result.err(deleteResult.error || 'Delete failed');
@@ -238,7 +237,7 @@ class CharacterManagerImpl {
 		Logger.info('CharacterManager', 'Loading character list');
 
 		try {
-			const listResult = await window.electron.invoke('character:list');
+			const listResult = await window.characterStorage.loadCharacters();
 
 			if (!listResult.success) {
 				return Result.err(listResult.error || 'Failed to load list');

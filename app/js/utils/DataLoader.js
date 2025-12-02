@@ -47,9 +47,9 @@ class DataLoader {
 				let data;
 
 				// Check if running in Electron environment
-				if (typeof window !== 'undefined' && window.electron) {
-					// Use Electron's file system API
-					const result = await window.electron.loadJSON(url);
+				if (typeof window !== 'undefined' && window.data) {
+					// Use whitelisted Data API via preload
+					const result = await window.data.loadJSON(url);
 					if (result.success) {
 						data = result.data;
 					} else {
