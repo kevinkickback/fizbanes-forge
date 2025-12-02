@@ -4,13 +4,13 @@
  * @module electron/ipc/handlers/DataHandlers
  */
 
-const { ipcMain } = require('electron');
-const fs = require('node:fs').promises;
-const path = require('node:path');
-const { IPC_CHANNELS } = require('../channels');
-const { MainLogger } = require('../../MainLogger');
+import { ipcMain } from 'electron';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { MainLogger } from '../../MainLogger.js';
+import { IPC_CHANNELS } from '../channels.js';
 
-function registerDataHandlers(appPath) {
+export function registerDataHandlers(appPath) {
 	MainLogger.info('DataHandlers', 'Registering data handlers');
 
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
@@ -33,5 +33,3 @@ function registerDataHandlers(appPath) {
 
 	MainLogger.info('DataHandlers', 'All data handlers registered');
 }
-
-module.exports = { registerDataHandlers };

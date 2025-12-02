@@ -37,7 +37,7 @@
  * @module electron/ipc/channels
  */
 
-const IPC_CHANNELS = {
+export const IPC_CHANNELS = {
 	// Character operations
 	CHARACTER_SAVE: 'character:save',
 	CHARACTER_LOAD: 'character:load',
@@ -69,5 +69,3 @@ const IPC_CHANNELS = {
 	UTIL_GET_APP_PATH: 'util:getAppPath',
 	UTIL_GET_USER_DATA: 'util:getUserData',
 };
-
-module.exports = { IPC_CHANNELS };

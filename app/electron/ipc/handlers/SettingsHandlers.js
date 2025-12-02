@@ -4,11 +4,11 @@
  * @module electron/ipc/handlers/SettingsHandlers
  */
 
-const { ipcMain, app } = require('electron');
-const { IPC_CHANNELS } = require('../channels');
-const { MainLogger } = require('../../MainLogger');
+import { app, ipcMain } from 'electron';
+import { MainLogger } from '../../MainLogger.js';
+import { IPC_CHANNELS } from '../channels.js';
 
-function registerSettingsHandlers(preferencesManager) {
+export function registerSettingsHandlers(preferencesManager) {
 	MainLogger.info('SettingsHandlers', 'Registering settings handlers');
 
 	ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_PATH, (_event, key) => {
@@ -34,5 +34,3 @@ function registerSettingsHandlers(preferencesManager) {
 
 	MainLogger.info('SettingsHandlers', 'All settings handlers registered');
 }
-
-module.exports = { registerSettingsHandlers };

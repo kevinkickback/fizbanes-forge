@@ -4,100 +4,17 @@
  * @module electron/ipc/handlers/CharacterHandlers
  */
 
-const { ipcMain, dialog } = require('electron');
-const fs = require('node:fs').promises;
-const fssync = require('node:fs');
-const path = require('node:path');
-const { v4: uuidv4 } = require('uuid');
-const { IPC_CHANNELS } = require('../channels');
-const { MainLogger } = require('../../MainLogger');
+import { dialog, ipcMain } from 'electron';
+import fssync from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { v4 as uuidv4 } from 'uuid';
+import { MainLogger } from '../../MainLogger.js';
+import { IPC_CHANNELS } from '../channels.js';
 
-// Filename sanitation removed: files are saved using the character `id` only.
+import { validate as validateCharacter } from '../../../js/core/characterValidation.js';
 
-/**
- * Validates character data structure in Node.js context
- * Mirrors CharacterSchema.validate() from the renderer
- * @param {object} character - Character object to validate
- * @returns {object} Validation result { valid: boolean, errors: string[] }
- */
-function validateCharacter(character) {
-	const errors = [];
-
-	if (!character) {
-		errors.push('Character object is required');
-		return { valid: false, errors };
-	}
-
-	// Required fields
-	if (!character.id) {
-		errors.push('Missing character ID');
-	}
-
-	// Character name is required
-	if (!character.name || character.name.trim() === '') {
-		errors.push('Missing character name');
-	}
-
-	// Level validation
-	if (
-		typeof character.level !== 'number' ||
-		character.level < 1 ||
-		character.level > 20
-	) {
-		errors.push('Level must be a number between 1 and 20');
-	}
-
-	// allowedSources can be an array or a Set
-	if (
-		!Array.isArray(character.allowedSources) &&
-		!(character.allowedSources instanceof Set)
-	) {
-		errors.push('allowedSources must be an array or Set');
-	}
-
-	// Ability scores validation
-	if (!character.abilityScores || typeof character.abilityScores !== 'object') {
-		errors.push('Missing or invalid abilityScores');
-	} else {
-		const requiredAbilities = [
-			'strength',
-			'dexterity',
-			'constitution',
-			'intelligence',
-			'wisdom',
-			'charisma',
-		];
-		for (const ability of requiredAbilities) {
-			if (typeof character.abilityScores[ability] !== 'number') {
-				errors.push(`Missing or invalid ability score: ${ability}`);
-			}
-		}
-	}
-
-	// Proficiencies validation
-	if (!character.proficiencies || typeof character.proficiencies !== 'object') {
-		errors.push('Missing or invalid proficiencies');
-	}
-
-	// Hit points validation
-	if (!character.hitPoints || typeof character.hitPoints !== 'object') {
-		errors.push('Missing or invalid hitPoints');
-	} else {
-		if (typeof character.hitPoints.current !== 'number') {
-			errors.push('Missing or invalid hitPoints.current');
-		}
-		if (typeof character.hitPoints.max !== 'number') {
-			errors.push('Missing or invalid hitPoints.max');
-		}
-		if (typeof character.hitPoints.temp !== 'number') {
-			errors.push('Missing or invalid hitPoints.temp');
-		}
-	}
-
-	return { valid: errors.length === 0, errors };
-}
-
-function registerCharacterHandlers(preferencesManager, _windowManager) {
+export function registerCharacterHandlers(preferencesManager, _windowManager) {
 	MainLogger.info('CharacterHandlers', 'Registering character handlers');
 
 	// Save character
@@ -108,6 +25,11 @@ function registerCharacterHandlers(preferencesManager, _windowManager) {
 				typeof characterData === 'string'
 					? JSON.parse(characterData)
 					: characterData;
+			// Validate before saving
+			const validation = await validateCharacter(character);
+			if (!validation.valid) {
+				return { success: false, error: `Invalid character data: ${validation.errors.join(', ')}` };
+			}
 
 			MainLogger.info(
 				'CharacterHandlers',
@@ -266,12 +188,22 @@ function registerCharacterHandlers(preferencesManager, _windowManager) {
 				}
 
 				// Validate character data structure
-				const validation = validateCharacter(character);
+				const validation = await validateCharacter(character);
 				if (!validation.valid) {
 					return {
 						success: false,
 						error: `Invalid character data: ${validation.errors.join(', ')}`,
 					};
+				}
+				// If a character payload was provided directly, validate it before proceeding
+				if (character) {
+					const validation = await validateCharacter(character);
+					if (!validation.valid) {
+						return {
+							success: false,
+							error: `Invalid character data: ${validation.errors.join(', ')}`,
+						};
+					}
 				}
 
 				const savePath = preferencesManager.getCharacterSavePath();
@@ -345,5 +277,3 @@ function registerCharacterHandlers(preferencesManager, _windowManager) {
 
 	MainLogger.info('CharacterHandlers', 'All character handlers registered');
 }
-
-module.exports = { registerCharacterHandlers };

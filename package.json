@@ -4,6 +4,7 @@
 	"version": "1.0.0",
 	"description": "Fizbane's Forge - A comprehensive Dungeons & Dragons character creator application",
 	"main": "./app/main.js",
+	"type": "module",
 	"scripts": {
 		"start": "electron .",
 		"start:debug": "cross-env FF_DEBUG=true electron .",

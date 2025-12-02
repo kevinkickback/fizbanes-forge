@@ -9,6 +9,7 @@ import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import { raceService } from '../../services/RaceService.js';
+import { sourceService } from '../../services/SourceService.js';
 import { RaceDetailsView } from './RaceDetails.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
@@ -158,18 +159,10 @@ export class RaceCard {
 				return;
 			}
 
-			const currentCharacter = CharacterManager.getCurrentCharacter();
-			const allowedSources =
-				currentCharacter?.allowedSources || new Set(['PHB']);
-			const upperAllowedSources = new Set(
-				Array.from(allowedSources).map((source) => source.toUpperCase()),
+			// Filter races by allowed sources (supports PHB variants)
+			const filteredRaces = races.filter((race) =>
+				sourceService.isSourceAllowed(race.source),
 			);
-
-			// Filter races by allowed sources
-			const filteredRaces = races.filter((race) => {
-				const raceSource = race.source?.toUpperCase();
-				return upperAllowedSources.has(raceSource);
-			});
 
 			if (filteredRaces.length === 0) {
 				Logger.error('RaceCard', 'No races available after source filtering');
@@ -205,19 +198,11 @@ export class RaceCard {
 				return;
 			}
 
-			const currentCharacter = CharacterManager.getCurrentCharacter();
-			const allowedSources =
-				currentCharacter?.allowedSources || new Set(['PHB']);
-			const upperAllowedSources = new Set(
-				Array.from(allowedSources).map((source) => source.toUpperCase()),
-			);
-
 			// Filter subraces by allowed sources and validate they have names
 			const filteredSubraces = subraces.filter((subrace) => {
-				const subraceSource =
-					subrace.source?.toUpperCase() || race.source.toUpperCase();
+				const subraceSource = subrace.source || race.source;
 				return (
-					upperAllowedSources.has(subraceSource) &&
+					sourceService.isSourceAllowed(subraceSource) &&
 					subrace.name &&
 					subrace.name.trim() !== ''
 				);

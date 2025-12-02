@@ -7,11 +7,13 @@
  * responsibilities to specialized managers and handlers.
  */
 
-const { app } = require('electron');
-const { WindowManager } = require('./electron/WindowManager');
-const { PreferencesManager } = require('./electron/PreferencesManager');
-const { IPCRegistry } = require('./electron/ipc/IPCRegistry');
-const { MainLogger } = require('./electron/MainLogger');
+import { app } from 'electron';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { IPCRegistry } from './electron/ipc/IPCRegistry.js';
+import { MainLogger } from './electron/MainLogger.js';
+import { PreferencesManager } from './electron/PreferencesManager.js';
+import { WindowManager } from './electron/WindowManager.js';
 
 // Debug mode - controlled via environment variable `FF_DEBUG`
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
@@ -19,6 +21,8 @@ const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
 let windowManager;
 let preferencesManager;
 let ipcRegistry;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.whenReady().then(() => {
 	MainLogger.info('App', 'Application ready');
@@ -54,3 +58,4 @@ app.on('activate', () => {
 app.on('before-quit', () => {
 	MainLogger.info('App', 'Application quitting');
 });
+export { };

@@ -9,6 +9,7 @@ import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import { classService } from '../../services/ClassService.js';
+import { sourceService } from '../../services/SourceService.js';
 import { ClassDetailsView } from './ClassDetails.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
@@ -161,18 +162,10 @@ export class ClassCard {
 				return;
 			}
 
-			const currentCharacter = CharacterManager.getCurrentCharacter();
-			const allowedSources =
-				currentCharacter?.allowedSources || new Set(['PHB']);
-			const upperAllowedSources = new Set(
-				Array.from(allowedSources).map((source) => source.toUpperCase()),
+			// Filter classes by allowed sources (supports PHB variants)
+			const filteredClasses = classes.filter((cls) =>
+				sourceService.isSourceAllowed(cls.source),
 			);
-
-			// Filter classes by allowed sources
-			const filteredClasses = classes.filter((cls) => {
-				const classSource = cls.source?.toUpperCase();
-				return upperAllowedSources.has(classSource);
-			});
 
 			if (filteredClasses.length === 0) {
 				Logger.error(
@@ -191,10 +184,6 @@ export class ClassCard {
 
 	/**
 	 * Populates the subclass selection dropdown based on the currently selected class
-	 * filtered by allowed sources
-	 * @param {Object} classData - The selected class data
-	 * @returns {Promise<void>}
-	 * @private
 	 */
 	async _populateSubclassSelect(classData) {
 		if (!classData) {
@@ -214,17 +203,10 @@ export class ClassCard {
 				return;
 			}
 
-			const currentCharacter = CharacterManager.getCurrentCharacter();
-			const allowedSources =
-				currentCharacter?.allowedSources || new Set(['PHB']);
-			const upperAllowedSources = new Set(
-				Array.from(allowedSources).map((source) => source.toUpperCase()),
-			);
-
 			// Filter subclasses by allowed sources
-			const filteredSubclasses = subclasses.filter((subclass) => {
-				const subclassSource = subclass.source?.toUpperCase();
-				return upperAllowedSources.has(subclassSource);
+			const filteredSubclasses = subclasses.filter((sc) => {
+				const subclassSource = sc.classSource || sc.source;
+				return sourceService.isSourceAllowed(subclassSource);
 			});
 
 			// Populate view
@@ -257,7 +239,6 @@ export class ClassCard {
 				await this._populateSubclassSelect(null);
 				return;
 			}
-
 			const classData = this._classService.getClass(className, source);
 			if (!classData) {
 				Logger.error('ClassCard', `Class not found: ${className} (${source})`);
@@ -434,8 +415,8 @@ export class ClassCard {
 		const hasChanged = !classData
 			? character.class?.name || character.class?.source
 			: character.class?.name !== classData.name ||
-				character.class?.source !== classData.source ||
-				character.subclass !== subclassName;
+			character.class?.source !== classData.source ||
+			character.subclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits

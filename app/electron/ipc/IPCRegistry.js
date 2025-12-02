@@ -11,13 +11,13 @@
  * @module electron/ipc/IPCRegistry
  */
 
-const { registerCharacterHandlers } = require('./handlers/CharacterHandlers');
-const { registerFileHandlers } = require('./handlers/FileHandlers');
-const { registerSettingsHandlers } = require('./handlers/SettingsHandlers');
-const { registerDataHandlers } = require('./handlers/DataHandlers');
-const { MainLogger } = require('../MainLogger');
+import { MainLogger } from '../MainLogger.js';
+import { registerCharacterHandlers } from './handlers/CharacterHandlers.js';
+import { registerDataHandlers } from './handlers/DataHandlers.js';
+import { registerFileHandlers } from './handlers/FileHandlers.js';
+import { registerSettingsHandlers } from './handlers/SettingsHandlers.js';
 
-class IPCRegistry {
+export class IPCRegistry {
 	constructor(preferencesManager, windowManager, appPath) {
 		this.preferencesManager = preferencesManager;
 		this.windowManager = windowManager;
@@ -35,5 +35,3 @@ class IPCRegistry {
 		MainLogger.info('IPCRegistry', 'All IPC handlers registered');
 	}
 }
-
-module.exports = { IPCRegistry };

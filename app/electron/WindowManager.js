@@ -16,11 +16,11 @@
  * @module electron/WindowManager
  */
 
-const { BrowserWindow } = require('electron');
-const path = require('node:path');
-const { MainLogger } = require('./MainLogger');
+import { BrowserWindow } from 'electron';
+import path from 'node:path';
+import { MainLogger } from './MainLogger.js';
 
-class WindowManager {
+export class WindowManager {
 	constructor(preferencesManager, appPath, debugMode = false) {
 		this.preferencesManager = preferencesManager;
 		this.appPath = appPath;
@@ -48,7 +48,7 @@ class WindowManager {
 			minHeight: 600,
 			autoHideMenuBar: true, // Hide default Electron menu bar
 			webPreferences: {
-				preload: path.join(this.appPath, 'preload.js'),
+				preload: path.join(this.appPath, 'preload.cjs'),
 				contextIsolation: true,
 				nodeIntegration: false,
 				sandbox: true,
@@ -171,5 +171,3 @@ class WindowManager {
 		}
 	}
 }
-
-module.exports = { WindowManager };

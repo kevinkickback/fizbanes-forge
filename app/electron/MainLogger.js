@@ -2,7 +2,7 @@
  * Simple logger adapter for main process.
  * Provides consistent logging methods and honors DEBUG environment.
  */
-const util = require('node:util');
+import util from 'node:util';
 
 const isDebug = process.env.FF_DEBUG === 'true' || false;
 
@@ -14,7 +14,7 @@ function formatMessage(prefix, ...args) {
 	return `${ts} ${prefix} ${message}`;
 }
 
-const MainLogger = {
+export const MainLogger = {
 	info(prefix, ...args) {
 		console.log(formatMessage(`[${prefix}]`, ...args));
 	},
@@ -30,5 +30,3 @@ const MainLogger = {
 		}
 	},
 };
-
-module.exports = { MainLogger };

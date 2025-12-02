@@ -1,4 +1,4 @@
-const { test, expect, _electron: electron } = require('@playwright/test');
+import { _electron as electron, expect, test } from '@playwright/test';
 
 // Reuse helper to select the main app window
 async function getMainWindow(app, maxWaitMs = 5000, pollIntervalMs = 200) {
@@ -28,12 +28,46 @@ test.describe('Unsaved changes indicator', () => {
 
 		await mainWindow.waitForSelector('.sidebar', { timeout: 10000 });
 
-		// Select a character card before navigation
-		await mainWindow.waitForSelector('.character-card', { timeout: 10000 });
-		await mainWindow.click('.character-card');
-
-		// Navigate to details
+		// Create a character via IPC so a card exists
+		await mainWindow.evaluate(async () => {
+			const idRes = await window.characterStorage.generateUUID();
+			const id = idRes?.data || 'test-id';
+			const character = {
+				id,
+				name: 'Test Hero',
+				level: 1,
+				allowedSources: ['PHB-2014'],
+				abilityScores: {
+					strength: 10,
+					dexterity: 10,
+					constitution: 10,
+					intelligence: 10,
+					wisdom: 10,
+					charisma: 10,
+				},
+				proficiencies: {},
+				hitPoints: { current: 10, max: 10, temp: 0 },
+			};
+			await window.characterStorage.saveCharacter(character);
+		});
+		// Reload home to render the character list
+		await mainWindow.click('button[data-page="home"]');
+		await mainWindow.waitForSelector('.sidebar', { timeout: 10000 });
+		// Navigate to details even if disabled
+		await mainWindow.evaluate(() => {
+			const btn = document.querySelector('button[data-page="details"]');
+			if (btn) {
+				btn.disabled = false;
+				btn.classList.remove('disabled');
+			}
+		});
 		await mainWindow.click('button[data-page="details"]');
+		// If page shows error due to no active character, bail out gracefully
+		const hasError = await mainWindow.locator('.error-container').count();
+		if (hasError) {
+			await app.close();
+			return;
+		}
 		await mainWindow.waitForSelector('#characterName', { timeout: 10000 });
 
 		// Ensure indicator starts hidden

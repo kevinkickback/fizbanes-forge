@@ -17,11 +17,11 @@
  * @module electron/PreferencesManager
  */
 
-const path = require('node:path');
-const fs = require('node:fs');
-const { MainLogger } = require('./MainLogger');
+import fs from 'node:fs';
+import path from 'node:path';
+import { MainLogger } from './MainLogger.js';
 
-class PreferencesManager {
+export class PreferencesManager {
 	constructor(app) {
 		this.app = app;
 		this.preferencesPath = path.join(
@@ -150,7 +150,6 @@ class PreferencesManager {
 	 * @returns {string} Character save path
 	 */
 	getCharacterSavePath() {
-		const fs = require('node:fs');
 		const savePath = this.get('characterSavePath');
 
 		// Ensure directory exists
@@ -203,5 +202,3 @@ class PreferencesManager {
 		this.set('lastOpenedCharacter', characterPath);
 	}
 }
-
-module.exports = { PreferencesManager };

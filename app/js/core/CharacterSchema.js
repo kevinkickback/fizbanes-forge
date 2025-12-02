@@ -13,6 +13,7 @@
  */
 
 import { Logger } from '../infrastructure/Logger.js';
+import { validate as validateCharacter } from './characterValidation.js';
 
 export const CharacterSchema = {
 	/**
@@ -82,83 +83,7 @@ export const CharacterSchema = {
 	 * @returns {object} Validation result { valid: boolean, errors: string[] }
 	 */
 	validate(character) {
-		const errors = [];
-
-		if (!character) {
-			errors.push('Character object is required');
-			return { valid: false, errors };
-		}
-
-		// Required fields
-		if (!character.id) {
-			errors.push('Missing character ID');
-		}
-
-		if (!character.name || character.name.trim() === '') {
-			errors.push('Missing character name');
-		}
-
-		// Type checks
-		if (
-			typeof character.level !== 'number' ||
-			character.level < 1 ||
-			character.level > 20
-		) {
-			errors.push('Level must be a number between 1 and 20');
-		}
-
-		// allowedSources can be an array or a Set (Character class uses Set internally)
-		if (
-			!Array.isArray(character.allowedSources) &&
-			!(character.allowedSources instanceof Set)
-		) {
-			errors.push('allowedSources must be an array or Set');
-		}
-
-		if (
-			!character.abilityScores ||
-			typeof character.abilityScores !== 'object'
-		) {
-			errors.push('Missing or invalid abilityScores');
-		} else {
-			const requiredAbilities = [
-				'strength',
-				'dexterity',
-				'constitution',
-				'intelligence',
-				'wisdom',
-				'charisma',
-			];
-			for (const ability of requiredAbilities) {
-				if (typeof character.abilityScores[ability] !== 'number') {
-					errors.push(`Missing or invalid ability score: ${ability}`);
-				}
-			}
-		}
-
-		if (
-			!character.proficiencies ||
-			typeof character.proficiencies !== 'object'
-		) {
-			errors.push('Missing or invalid proficiencies');
-		}
-
-		if (!character.hitPoints || typeof character.hitPoints !== 'object') {
-			errors.push('Missing or invalid hitPoints');
-		} else {
-			// Check for required hitPoints properties
-			if (typeof character.hitPoints.current !== 'number') {
-				errors.push('Missing or invalid hitPoints.current');
-			}
-			if (typeof character.hitPoints.max !== 'number') {
-				errors.push('Missing or invalid hitPoints.max');
-			}
-			if (typeof character.hitPoints.temp !== 'number') {
-				errors.push('Missing or invalid hitPoints.temp');
-			}
-		}
-
-		const isValid = errors.length === 0;
+		const { valid: isValid, errors } = validateCharacter(character);
 
 		if (!isValid) {
 			Logger.warn('CharacterSchema', 'Validation failed', {

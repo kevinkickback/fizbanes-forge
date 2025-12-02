@@ -103,12 +103,14 @@ export class SourceService {
 	 */
 	_handleCharacterChange(character) {
 		if (!character) {
-			this.allowedSources = new Set(['PHB']);
+			this.allowedSources = this._expandSourceVariants(new Set(['PHB']));
 			return;
 		}
 
-		// Update allowed sources from character
-		this.allowedSources = new Set(character.allowedSources || ['PHB']);
+		// Update allowed sources from character and expand variants (e.g., PHB-2014, XPHB)
+		this.allowedSources = this._expandSourceVariants(
+			new Set(character.allowedSources || ['PHB']),
+		);
 
 		// Notify that allowed sources have changed
 		eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
@@ -311,7 +313,10 @@ export class SourceService {
 	 * @returns {boolean} Whether the source is allowed
 	 */
 	isSourceAllowed(source) {
-		return this.allowedSources.has(source);
+		// Check direct and normalized variants
+		if (this.allowedSources.has(source)) return true;
+		const norm = this._normalizeSource(source);
+		return this.allowedSources.has(norm);
 	}
 
 	/**
@@ -401,7 +406,7 @@ export class SourceService {
 	 * Reset the allowed sources to the defaults (PHB)
 	 */
 	resetAllowedSources() {
-		this.allowedSources = new Set(['PHB']);
+		this.allowedSources = this._expandSourceVariants(new Set(['PHB']));
 
 		// Notify that allowed sources have changed
 		eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
@@ -442,6 +447,37 @@ export class SourceService {
 
 		// Return the mapped name or the original source code with better formatting
 		return sourceMap[source] || source.replace(/([A-Z])/g, ' $1').trim();
+	}
+
+	/**
+	 * Normalize source codes to canonical identifiers.
+	 * @param {string} source
+	 * @returns {string}
+	 */
+	_normalizeSource(source) {
+		if (!source) return source;
+		const s = String(source).toUpperCase();
+		if (s === 'PHB-2014' || s === 'PHB_2014') return 'PHB';
+		return s;
+	}
+
+	/**
+	 * Expand a set of sources to include equivalent variants (e.g., PHB -> PHB, PHB-2014, XPHB).
+	 * @param {Set<string>} sources
+	 * @returns {Set<string>}
+	 */
+	_expandSourceVariants(sources) {
+		const expanded = new Set();
+		for (const src of sources) {
+			const norm = this._normalizeSource(src);
+			expanded.add(norm);
+			// Map PHB to known variants
+			if (norm === 'PHB') {
+				expanded.add('PHB-2014');
+				expanded.add('XPHB');
+			}
+		}
+		return expanded;
 	}
 
 	/**

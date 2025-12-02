@@ -4,13 +4,12 @@
  * @module electron/ipc/handlers/FileHandlers
  */
 
-const { ipcMain, dialog, shell } = require('electron');
-const fs = require('node:fs').promises;
-// path not used; removed to satisfy lint
-const { IPC_CHANNELS } = require('../channels');
-const { MainLogger } = require('../../MainLogger');
+import { dialog, ipcMain, shell } from 'electron';
+import fs from 'node:fs/promises';
+import { MainLogger } from '../../MainLogger.js';
+import { IPC_CHANNELS } from '../channels.js';
 
-function registerFileHandlers() {
+export function registerFileHandlers() {
 	MainLogger.info('FileHandlers', 'Registering file handlers');
 
 	// Select folder
@@ -80,5 +79,3 @@ function registerFileHandlers() {
 
 	MainLogger.info('FileHandlers', 'All file handlers registered');
 }
-
-module.exports = { registerFileHandlers };

@@ -9,6 +9,7 @@ import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import { backgroundService } from '../../services/BackgroundService.js';
+import { sourceService } from '../../services/SourceService.js';
 import { BaseCard } from '../BaseCard.js';
 import { BackgroundDetailsView } from './BackgroundDetails.js';
 import { BackgroundCardView } from './BackgroundView.js';
@@ -82,18 +83,10 @@ export class BackgroundCard extends BaseCard {
 				return;
 			}
 
-			// Filter backgrounds by allowed sources
-			const currentCharacter = CharacterManager.getCurrentCharacter();
-			const allowedSources =
-				currentCharacter?.allowedSources || new Set(['PHB']);
-			const upperAllowedSources = new Set(
-				Array.from(allowedSources).map((source) => source.toUpperCase()),
+			// Filter backgrounds by allowed sources using SourceService
+			const filteredBackgrounds = backgrounds.filter((bg) =>
+				sourceService.isSourceAllowed(bg.source),
 			);
-
-			const filteredBackgrounds = backgrounds.filter((bg) => {
-				const bgSource = bg.source?.toUpperCase();
-				return upperAllowedSources.has(bgSource);
-			});
 
 			// Sort backgrounds by name
 			filteredBackgrounds.sort((a, b) => a.name.localeCompare(b.name));
@@ -282,18 +275,10 @@ export class BackgroundCard extends BaseCard {
 	_updateVariantOptions(background) {
 		try {
 			if (background.variants?.length > 0) {
-				// Filter variants by allowed sources
-				const currentCharacter = CharacterManager.getCurrentCharacter();
-				const allowedSources =
-					currentCharacter?.allowedSources || new Set(['PHB']);
-				const upperAllowedSources = new Set(
-					Array.from(allowedSources).map((source) => source.toUpperCase()),
-				);
-
+				// Filter variants by allowed sources using SourceService
 				const filteredVariants = background.variants.filter((variant) => {
-					const variantSource =
-						variant.source?.toUpperCase() || background.source.toUpperCase();
-					return upperAllowedSources.has(variantSource);
+					const variantSource = variant.source || background.source;
+					return sourceService.isSourceAllowed(variantSource);
 				});
 
 				if (filteredVariants.length > 0) {
@@ -360,8 +345,8 @@ export class BackgroundCard extends BaseCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-				character.background?.source !== background.source ||
-				character.background?.variant !== (variant?.name || null);
+			character.background?.source !== background.source ||
+			character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies

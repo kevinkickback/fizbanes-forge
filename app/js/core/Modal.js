@@ -106,10 +106,6 @@ export class Modal {
 	 * @public
 	 */
 	ensureInitialized() {
-		if (this._buttonListenersSetup) {
-			return; // Already initialized
-		}
-
 		try {
 			this._setupButtonEventListeners();
 			this._buttonListenersSetup = true;
