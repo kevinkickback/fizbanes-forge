@@ -58,7 +58,9 @@ export class PreferencesManager {
 		try {
 			if (fs.existsSync(this.preferencesPath)) {
 				const data = fs.readFileSync(this.preferencesPath, 'utf8');
-				return { ...this.defaults, ...JSON.parse(data) };
+				const parsed = JSON.parse(data);
+				const merged = { ...this.defaults, ...parsed };
+				return this.validateStore(merged);
 			}
 		} catch (error) {
 			MainLogger.error(
@@ -72,16 +74,126 @@ export class PreferencesManager {
 
 	savePreferences() {
 		try {
-			fs.writeFileSync(
-				this.preferencesPath,
-				JSON.stringify(this.store, null, 2),
-			);
+			// Atomic write: write to temp file then rename
+			const tmpPath = `${this.preferencesPath}.tmp`;
+			fs.writeFileSync(tmpPath, JSON.stringify(this.store, null, 2));
+			fs.renameSync(tmpPath, this.preferencesPath);
 		} catch (error) {
 			MainLogger.error(
 				'PreferencesManager',
 				'Error saving preferences:',
 				error,
 			);
+		}
+	}
+
+	/**
+	 * Validate entire preferences store and coerce invalid values to defaults.
+	 * @param {object} store
+	 * @returns {object} validated store
+	 */
+	validateStore(store) {
+		const out = { ...this.defaults };
+		// characterSavePath: string
+		if (typeof store.characterSavePath === 'string' && store.characterSavePath) {
+			out.characterSavePath = store.characterSavePath;
+		}
+		// lastOpenedCharacter: string|null
+		if (
+			store.lastOpenedCharacter === null ||
+			(typeof store.lastOpenedCharacter === 'string' && store.lastOpenedCharacter)
+		) {
+			out.lastOpenedCharacter = store.lastOpenedCharacter;
+		}
+		// windowBounds: object with numbers or null
+		const wb = store.windowBounds;
+		if (wb && typeof wb === 'object') {
+			const width = Number.parseInt(wb.width, 10);
+			const height = Number.parseInt(wb.height, 10);
+			const x = wb.x == null ? null : Number.parseInt(wb.x, 10);
+			const y = wb.y == null ? null : Number.parseInt(wb.y, 10);
+			if (Number.isFinite(width) && Number.isFinite(height)) {
+				out.windowBounds = {
+					width,
+					height,
+					x: Number.isFinite(x) ? x : null,
+					y: Number.isFinite(y) ? y : null,
+				};
+			}
+		}
+		// theme: 'auto' | 'light' | 'dark'
+		if (['auto', 'light', 'dark'].includes(store.theme)) {
+			out.theme = store.theme;
+		}
+		// logLevel: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
+		if (['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(store.logLevel)) {
+			out.logLevel = store.logLevel;
+		}
+		// autoSave: boolean
+		if (typeof store.autoSave === 'boolean') {
+			out.autoSave = store.autoSave;
+		}
+		// autoSaveInterval: positive integer seconds
+		const asi = Number.parseInt(store.autoSaveInterval, 10);
+		if (Number.isFinite(asi) && asi > 0 && asi <= 3600) {
+			out.autoSaveInterval = asi;
+		}
+		return out;
+	}
+
+	/**
+	 * Validate and set a preference value according to schema.
+	 * @param {string} key
+	 * @param {*} value
+	 */
+	set(key, value) {
+		MainLogger.info('PreferencesManager', `Set: ${key} =`, value);
+		const validated = this._validateKeyValue(key, value);
+		this.store[key] = validated;
+		this.savePreferences();
+	}
+
+	_validateKeyValue(key, value) {
+		switch (key) {
+			case 'characterSavePath':
+				return typeof value === 'string' && value ? value : this.defaults.characterSavePath;
+			case 'lastOpenedCharacter':
+				return value === null || (typeof value === 'string' && value)
+					? value
+					: null;
+			case 'windowBounds': {
+				if (value && typeof value === 'object') {
+					const width = Number.parseInt(value.width, 10);
+					const height = Number.parseInt(value.height, 10);
+					const x = value.x == null ? null : Number.parseInt(value.x, 10);
+					const y = value.y == null ? null : Number.parseInt(value.y, 10);
+					if (Number.isFinite(width) && Number.isFinite(height)) {
+						return {
+							width,
+							height,
+							x: Number.isFinite(x) ? x : null,
+							y: Number.isFinite(y) ? y : null,
+						};
+					}
+				}
+				return this.defaults.windowBounds;
+			}
+			case 'theme':
+				return ['auto', 'light', 'dark'].includes(value) ? value : this.defaults.theme;
+			case 'logLevel':
+				return ['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(value)
+					? value
+					: this.defaults.logLevel;
+			case 'autoSave':
+				return typeof value === 'boolean' ? value : this.defaults.autoSave;
+			case 'autoSaveInterval': {
+				const asi = Number.parseInt(value, 10);
+				return Number.isFinite(asi) && asi > 0 && asi <= 3600
+					? asi
+					: this.defaults.autoSaveInterval;
+			}
+			default:
+				return value;
 		}
 	}
 
@@ -98,16 +210,7 @@ export class PreferencesManager {
 		return value;
 	}
 
-	/**
-	 * Set a preference value.
-	 * @param {string} key - Preference key
-	 * @param {*} value - Value to set
-	 */
-	set(key, value) {
-		MainLogger.info('PreferencesManager', `Set: ${key} =`, value);
-		this.store[key] = value;
-		this.savePreferences();
-	}
+
 
 	/**
 	 * Delete a preference.

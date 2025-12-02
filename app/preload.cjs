@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld('FF_DEBUG', process.env.FF_DEBUG === 'true');
 // App-scoped utilities (whitelisted)
 contextBridge.exposeInMainWorld('app', {
     getUserDataPath: async () => await ipcRenderer.invoke('util:getUserData'),
+    settings: {
+        getAll: async () => await ipcRenderer.invoke('settings:getAll'),
+        get: async (key) => await ipcRenderer.invoke('settings:getPath', key),
+        set: async (key, value) => await ipcRenderer.invoke('settings:setPath', key, value),
+    },
 });
 
 // Data domain: restrict to catalog JSON under app/data
