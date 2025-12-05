@@ -14,7 +14,7 @@ out/
 Thumbs.db
 
 # 5e data files (large JSON files from external source)
-data/
+src/data/
 
 # Third-party assets (installed via npm)
 src/renderer/assets/bootstrap/

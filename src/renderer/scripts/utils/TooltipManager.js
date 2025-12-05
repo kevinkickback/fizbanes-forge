@@ -5,6 +5,7 @@
 
 import { Logger } from '../infrastructure/Logger.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
+import { StatBlockRenderer } from './StatBlockRenderer.js';
 import { getStringRenderer } from './TagProcessor.js';
 
 /**
@@ -205,6 +206,10 @@ export class TooltipManager {
 				case 'action':
 					data = await this._referenceResolver.resolveAction(name);
 					break;
+				case 'creature':
+					// creature is an alias for monster
+					data = await this._referenceResolver.resolveMonster(name, source);
+					break;
 				default:
 					data = { name, type };
 			}
@@ -235,6 +240,54 @@ export class TooltipManager {
 		if (data.error) {
 			return `<strong>${data.name}</strong><br><small>${data.error}</small>`;
 		}
+
+		// Use enhanced stat block renderer based on data type
+		// Check for spell (has level property)
+		if (data.level !== undefined) {
+			return StatBlockRenderer.renderSpell(data);
+		}
+
+		// Check for item (has type or weapon property)
+		if (data.type || data.weapon || data.armor || data.rarity) {
+			return StatBlockRenderer.renderItem(data);
+		}
+
+		// Check for race (has size and speed but not weapon)
+		if ((data.size || data.speed) && !data.weapon && !data.hd) {
+			return StatBlockRenderer.renderRace(data);
+		}
+
+		// Check for class (has hd property)
+		if (data.hd) {
+			return StatBlockRenderer.renderClass(data);
+		}
+
+		// Check for feat (has prerequisite)
+		if (data.prerequisite) {
+			return StatBlockRenderer.renderFeat(data);
+		}
+
+		// Check for background (has skillProficiencies)
+		if (data.skillProficiencies) {
+			return StatBlockRenderer.renderBackground(data);
+		}
+
+		// Check for skill (has ability string but not class-like properties)
+		if (data.ability && typeof data.ability === 'string' && !data.hd && data.level === undefined) {
+			return StatBlockRenderer.renderSkill(data);
+		}
+
+		// Check for action (has time array)
+		if (data.time && Array.isArray(data.time)) {
+			return StatBlockRenderer.renderAction(data);
+		}
+
+		// Check for condition (if none of the above, assume condition if it has entries)
+		if (data.entries) {
+			return StatBlockRenderer.renderCondition(data);
+		}
+
+		// Fallback to legacy rendering
 
 		let html = '';
 
