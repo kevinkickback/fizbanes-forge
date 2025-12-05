@@ -9,7 +9,7 @@
 		"ignoreUnknown": true,
 		"includes": [
 			"**",
-			"!app/data",
+			"!data",
 			"!renderer/assets",
 			"!renderer/pages/tooltipTest.html",
 			"!test-results"

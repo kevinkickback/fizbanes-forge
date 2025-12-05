@@ -80,9 +80,15 @@ renderer/
 - ✅ Smoke test passed: app launches, AppInitializer loads from new path, IPC handlers work, pages load.
 - ✅ Lint passes: 89 files checked in 73ms.
 
-### Phase 5 — Data/Rules Boundary (optional)
-- If desired, move JSON under `electron/rules/data` and expose reads via IPC `dataLoader.js`; update renderer `DataLoader` base URLs.
-- Only do this if hiding filesystem access or shrinking renderer surface is a priority; otherwise leave data in place.
+### Phase 5 — Data/Rules Boundary ✅ COMPLETED (Simplified)
+- ✅ Moved `app/data/` → `data/` (top-level folder)
+- ✅ Removed empty `app/` folder entirely
+- ✅ Updated `electron/main.js` to point to new `data/` root
+- ✅ Updated `electron/ipc/handlers/DataHandlers.js` to strip `data/` prefix from requests (for backward compatibility)
+- ✅ Updated `renderer/scripts/utils/DataLoader.js` baseUrl from `data/` to `` (empty, since data is now at root)
+- ✅ Updated `biome.json` to exclude `data/` instead of `app/data/`
+- **Benefit:** Cleaner top-level structure with no `app/` folder needed; game data is now at project root alongside `electron/` and `renderer/`
+- **Status:** All tests passing, app loads all 56+ JSON data files correctly
 
 ### Phase 6 — Cleanup & Tests ✅ COMPLETED
 - ✅ Ran Playwright test suite: **all 10 tests passed** (ability-score-card, build-unsaved, character-validation, csp, preferences, preload-hardening, unsaved-changes).
@@ -109,10 +115,10 @@ renderer/
 All 6 phases completed successfully. The Electron app now has a clean separation of concerns:
 - **Main process** (`electron/`) isolated with Node.js/Electron APIs only
 - **Renderer process** (`renderer/`) browser-safe with no Node.js access
-- **Game data** (`app/data/`) kept separate for easy updates
+- **Game data** (`data/`) at top level for easy updates (moved from `app/data/` in Phase 5 enhancement)
 - **Tests** all passing; no functionality lost in the migration
 
-## Summary of Changes (Phases 1-4 Completed)
+## Summary of Changes (Phases 1-5 Completed)
 
 **File Movements:**
 - `app/main.js` → `electron/main.js`
@@ -123,20 +129,23 @@ All 6 phases completed successfully. The Electron app now has a clean separation
 - `app/assets/**` → `renderer/assets/**`
 - `app/pages/**` → `renderer/pages/**`
 - `app/js/**` → `renderer/scripts/**` (preserving internal structure: core/, infrastructure/, modules/, services/, utils/)
-- Empty folder removed: `app/js/`
+- `app/data/` → `data/` (top-level folder)
+- `app/` folder removed entirely (now empty)
 
 **Import Path Updates:**
 - `package.json`: `"main": "./electron/main.js"`
 - `renderer/index.html`: stylesheet `styles/`, script `scripts/core/AppInitializer.js`
-- `electron/main.js`: all imports adjusted for new folder structure
-- `electron/ipc/handlers/CharacterHandlers.js`: validation import `../../../renderer/scripts/core/characterValidation.js`
-- `biome.json`: removed old `app/js/**`, `app/css/**` refs; updated to `renderer/scripts/**`, `renderer/pages/**`
+- `electron/main.js`: data path now points to `../data` instead of `../app`
+- `electron/ipc/handlers/DataHandlers.js`: strips `data/` prefix from requests for backward compatibility
+- `renderer/scripts/utils/DataLoader.js`: baseUrl changed from `data/` to `` (empty)
+- `biome.json`: linter excludes `data/` instead of `app/data/`
 
 **Verification:**
-- Smoke test (npm start): ✅ App launches, all managers initialize, IPC handlers register, data loads (56 JSON files), 4 saved characters found.
-- Lint: ✅ 89 files checked, no errors.
-- Internal imports: ✅ All relative paths preserved (e.g., utils/Logger.js → ../infrastructure/Logger.js still valid).
-- CSP: ✅ No console errors.
+- Smoke test (npm start): ✅ App launches, all managers initialize, IPC handlers register, data loads (56 JSON files) from top-level `data/`
+- Playwright tests: ✅ ALL 10 tests passing
+- Lint: ✅ 89 files checked, no errors
+- Internal imports: ✅ All relative paths working correctly
+- CSP: ✅ No console errors
 
 ## Implementation Notes
 

@@ -21,7 +21,7 @@ A comprehensive Dungeons & Dragons character creator application built with Elec
 
 ## Required Data Files
 
-This application requires D&D 5e data files (JSON format) to be placed in the `app/data/` directory. These files are **not included** in the repository due to size and licensing considerations.
+This application requires D&D 5e data files (JSON format) to be placed in the `data/` directory at the project root. These files are **not included** in the repository due to size and licensing considerations.
 
 ### Data File Structure
 
@@ -123,12 +123,11 @@ fizbanes-forge/
      services/          # Data aggregation services (ClassService, RaceService, SpellService, ItemService, etc.)
      utils/             # Utility functions (DataLoader, TextProcessor, Tooltips, notifications, formatters, etc.)
 
- app/                   # Game data (5eTools JSON files)
-   data/
-     spells/
-     class/
-     bestiary/
-     ...other D&D 5e data files
+ data/                  # Game data (5eTools JSON files)
+   spells/
+   class/
+   bestiary/
+   ...other D&D 5e data files
 
  tests/                 # Playwright test specs
  package.json

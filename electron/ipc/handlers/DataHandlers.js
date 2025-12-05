@@ -15,11 +15,14 @@ export function registerDataHandlers(dataPath) {
 
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
 		try {
-			// fileName may already include "data/" prefix, so handle both cases
-			const filePath =
-				fileName.startsWith('data/') || fileName.startsWith('data\\')
-					? path.join(dataPath, fileName)
-					: path.join(dataPath, 'data', fileName);
+			// Remove leading "data/" or "data\" if present (services may still use old paths)
+			let normalizedFileName = fileName;
+			if (normalizedFileName.startsWith('data/') || normalizedFileName.startsWith('data\\')) {
+				normalizedFileName = normalizedFileName.slice(5); // Remove "data/" or "data\"
+			}
+
+			// Join with dataPath which is now the data/ folder itself
+			const filePath = path.join(dataPath, normalizedFileName);
 
 			MainLogger.info('DataHandlers', 'Loading JSON:', filePath);
 			const content = await fs.readFile(filePath, 'utf8');

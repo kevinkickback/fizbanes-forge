@@ -24,7 +24,7 @@ let ipcRegistry;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rendererRoot = path.join(__dirname, '..', 'renderer');
-const dataRoot = path.join(__dirname, '..', 'app'); // data + legacy JS remain here for now
+const dataRoot = path.join(__dirname, '..', 'data');
 
 app.whenReady().then(() => {
 	MainLogger.info('App', 'Application ready');

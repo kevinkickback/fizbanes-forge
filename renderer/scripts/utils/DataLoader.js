@@ -15,7 +15,7 @@ class DataLoader {
 	constructor() {
 		this._cache = {};
 		this._loading = {};
-		this._baseUrl = 'data/';
+		this._baseUrl = ''; // Base URL now empty since data is at root
 	}
 
 	setBaseUrl(url) {
