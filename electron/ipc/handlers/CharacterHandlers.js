@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { MainLogger } from '../../MainLogger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
-import { validate as validateCharacter } from '../../../app/js/core/characterValidation.js';
+import { validate as validateCharacter } from '../../../renderer/scripts/core/characterValidation.js';
 
 export function registerCharacterHandlers(preferencesManager, _windowManager) {
 	MainLogger.info('CharacterHandlers', 'Registering character handlers');

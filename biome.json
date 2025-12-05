@@ -64,7 +64,7 @@
 			}
 		},
 		{
-			"includes": ["app/js/**", "renderer/pages/**", "app/js/modules/**"],
+			"includes": ["renderer/scripts/**", "renderer/pages/**"],
 			"linter": {
 				"enabled": true,
 				"rules": {
