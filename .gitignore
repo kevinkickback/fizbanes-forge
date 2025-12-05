@@ -14,11 +14,8 @@ out/
 Thumbs.db
 
 # 5e data files (large JSON files from external source)
-app/data/
+data/
 
 # Third-party assets (installed via npm)
-app/assets/bootstrap/
-app/assets/fontawesome/
-
-# Keep custom assets
-!app/assets/images/
+src/renderer/assets/bootstrap/
+src/renderer/assets/fontawesome/

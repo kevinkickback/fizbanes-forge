@@ -3,11 +3,11 @@
 	"productName": "Fizbane's Forge",
 	"version": "1.0.0",
 	"description": "Fizbane's Forge - A comprehensive Dungeons & Dragons character creator application",
-	"main": "./electron/main.js",
+	"main": "./src/electron/main.js",
 	"type": "module",
 	"scripts": {
 		"start": "electron .",
-		"start:debug": "cross-env FF_DEBUG=true electron .",
+		"debug": "cross-env FF_DEBUG=true electron .",
 		"pack": "electron-builder --dir",
 		"dist": "electron-builder",
 		"postinstall": "electron-builder install-app-deps && node setup-assets.js",
