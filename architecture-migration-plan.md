@@ -84,24 +84,33 @@ renderer/
 - If desired, move JSON under `electron/rules/data` and expose reads via IPC `dataLoader.js`; update renderer `DataLoader` base URLs.
 - Only do this if hiding filesystem access or shrinking renderer surface is a priority; otherwise leave data in place.
 
-### Phase 6 — Cleanup & Tests
-- [ ] Run Playwright test suite; update selectors if page paths changed (likely minimal since pages still in same relative location).
-- [ ] Remove obsolete `app/css`, `app/assets` folders (already moved to renderer).
-- [ ] Verify `app/` now contains only `data/` folder; no orphaned files remain.
-- [ ] Update README.md and docs to reflect new `electron/` and `renderer/` structure.
-- [ ] Optional: rename pages to nested structure if desired (e.g., `renderer/pages/build/build.html`), then update `PageLoader` base paths.
+### Phase 6 — Cleanup & Tests ✅ COMPLETED
+- ✅ Ran Playwright test suite: **all 10 tests passed** (ability-score-card, build-unsaved, character-validation, csp, preferences, preload-hardening, unsaved-changes).
+- ✅ Verified `app/` now contains **only `data/` folder**; no orphaned files remain.
+- ✅ Updated README.md with new architecture structure and folder descriptions.
+- ✅ Updated test documentation in README to reflect actual Playwright test specs and how to run them.
+- ✅ Verified lint passes (89 files, no errors) after all changes.
+- ℹ️ Pages remain in `renderer/pages/` flat structure (not nested); this works well and keeps PageLoader simple.
+- ℹ️ Optional enhancement: could nest pages as `renderer/pages/<page>/<page>.html` in future, but current structure is maintainable and functional.
 
 ## Risks & Mitigations
 - Path churn without bundler: ✅ Mitigated—moves done incrementally with smoke tests; relative paths preserve internal import chains.
 - CSP/script path breakage: ✅ Mitigated—no CSP errors after Phase 2 renderer setup; checked devtools during smoke tests.
 - Preload conversion: ✅ Not needed—`preload.cjs` remains CJS; Electron supports both ESM and CJS.
 
-## Definition of Done (Status)
+## Definition of Done (Status) ✅ COMPLETE
 - ✅ Main/preload/ipc isolated under `electron/`; renderer code has no direct Node/Electron access.
 - ✅ Renderer assets/pages under `renderer/` root; navigation works; smoke test confirmed.
 - ✅ Renderer JS moved to `renderer/scripts/` with preserved folder structure; all imports valid.
-- ⏳ Playwright tests updated and passing (Phase 6 pending).
-- ⏳ Docs updated to reflect new structure (Phase 6 pending).
+- ✅ Playwright tests: **all 10 tests passing** (no selectors needed updating due to preserved structure).
+- ✅ Docs updated: README.md reflects new architecture, folder structure, and test procedures.
+
+## Migration Complete
+All 6 phases completed successfully. The Electron app now has a clean separation of concerns:
+- **Main process** (`electron/`) isolated with Node.js/Electron APIs only
+- **Renderer process** (`renderer/`) browser-safe with no Node.js access
+- **Game data** (`app/data/`) kept separate for easy updates
+- **Tests** all passing; no functionality lost in the migration
 
 ## Summary of Changes (Phases 1-4 Completed)
 
@@ -128,3 +137,49 @@ renderer/
 - Lint: ✅ 89 files checked, no errors.
 - Internal imports: ✅ All relative paths preserved (e.g., utils/Logger.js → ../infrastructure/Logger.js still valid).
 - CSP: ✅ No console errors.
+
+## Implementation Notes
+
+### Key Decisions Made
+
+1. **Flat Page Structure:** Pages remain in `renderer/pages/` (not nested per-page). This works well because:
+   - `PageLoader` base path is simple: `renderer/pages/`
+   - Each page is a single `.html` file; minimal complexity
+   - Can be easily refactored to nested structure later if needed
+
+2. **Data in `app/data/`:** Game data files left in original location (not moved to `electron/rules/data/`):
+   - Simpler migration without benefit in current architecture
+   - DataHandlers already reads from `app/data/` via DataLoader IPC
+   - Can be moved in future if filesystem hiding becomes a priority
+
+3. **Internal Import Paths Preserved:** Folder structure inside `renderer/scripts/` maintained exactly as in `app/js/`:
+   - Minimizes import path changes (e.g., `../infrastructure/EventBus.js` still works)
+   - Services can import utils using same relative paths
+   - Modules can import core infrastructure unchanged
+
+4. **CJS Preload Kept:** `preload.cjs` remains CommonJS:
+   - Electron natively supports both ESM and CJS
+   - No conversion needed; contextBridge works with CJS
+   - Reduces churn and risk of subtle conversion bugs
+
+### Import Path Resolution Strategy
+
+When moving files between `electron/` and `renderer/` without a bundler, relative paths must be carefully managed:
+
+- **HTML script src:** Relative to HTML file location. E.g., `scripts/core/AppInitializer.js` from `renderer/index.html`
+- **Node.js modules in `electron/`:** Can use relative paths like `./WindowManager.js` or `./ipc/IPCRegistry.js`
+- **IPC handlers referencing renderer code:** Must traverse across folder boundaries. E.g., `../../../renderer/scripts/core/characterValidation.js` from `electron/ipc/handlers/CharacterHandlers.js`
+- **Internal renderer imports:** Preserved folder structure means relative paths like `../infrastructure/`, `../services/` continue to work
+
+### Testing & Validation
+
+- **Playwright end-to-end tests:** All 10 tests pass without selector updates, confirming page structure and selectors remain valid
+- **Linting:** 89 files checked successfully; no style or import errors
+- **Smoke tests:** App launches, IPC channels register, data loads, characters found—all working as expected
+
+### Future Enhancements (Optional)
+
+1. **Nested Page Structure:** If pages grow complex, refactor to `renderer/pages/<pageName>/<pageName>.html` pattern
+2. **Data Isolation:** Move `app/data/` to `electron/rules/data/` and expose via dedicated IPC handler for better filesystem separation
+3. **Service Workers:** Could leverage Electron's isolated preload to add service worker patterns if offline support needed
+4. **Module Federation:** If app grows, consider dynamic module loading for feature isolation

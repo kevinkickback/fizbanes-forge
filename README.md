@@ -58,10 +58,21 @@ npm run start:debug
 
 ### Running Tests
 
+All tests use Playwright for end-to-end testing with the Electron app:
+
 ```bash
-npx playwright test tests/unit
-npx playwright test tests/e2e
+npx playwright test
 ```
+
+This will run all specs in the `tests/` directory, including:
+- `ability-score-card.spec.js` - Ability score selection and navigation
+- `build-unsaved.spec.js` - Unsaved changes persistence on build page
+- `character-validation.spec.js` - IPC character save validation
+- `csp.spec.js` - Content Security Policy enforcement
+- `preferences.spec.js` - Preferences manager (validated get/set)
+- `preload-hardening.spec.js` - Preload API security and functionality
+- `unsaved-changes.spec.js` - Unsaved changes indicator across pages
+
 
 ## Building
 
@@ -81,22 +92,57 @@ This will create distributable packages for your platform in the `dist/` directo
 
 ## Project Structure
 
+After the architecture migration (Phases 1-4), the project is now organized as follows:
+
 ```
 fizbanes-forge/
- app/
-    main.js              # Electron main process
-    preload.js           # Preload script (context bridge)
-    index.html           # Application entry point
-    assets/              # Static assets (Bootstrap, FontAwesome, images)
-    css/                 # Application styles
-    data/                # D&D 5e data files (not in repo)
-    electron/            # Main process modules
-    js/                  # Renderer process JavaScript
-    pages/               # HTML pages
- tests/                   # Playwright tests
+ electron/               # Main process (Node.js + Electron APIs)
+   main.js              # Electron entry point
+   preload.cjs          # Context bridge to expose IPC APIs to renderer
+   MainLogger.js        # Centralized logging for main process
+   PreferencesManager.js # Persistent user preferences (window bounds, theme, paths)
+   WindowManager.js     # BrowserWindow lifecycle management
+   ipc/                 # IPC handler modules
+     channels.js        # IPC channel name constants
+     IPCRegistry.js     # Central handler registration
+     handlers/
+       CharacterHandlers.js     # Character save/load/import/export
+       FileHandlers.js          # File system operations
+       SettingsHandlers.js      # Settings IPC
+       DataHandlers.js          # 5eTools data file loading
+
+ renderer/              # Renderer process (browser-only, no Node.js APIs)
+   index.html           # Application entry point
+   styles/              # Application stylesheets (main, modal, notification, tooltip)
+   assets/              # Static vendor assets (Bootstrap, FontAwesome, images)
+   pages/               # HTML page templates (home, build, details, equipment, settings, preview)
+   scripts/             # Renderer JavaScript modules
+     core/              # Core application logic (AppInitializer, Router, PageLoader, Character management, etc.)
+     infrastructure/    # Base utilities (EventBus, Logger, Result types)
+     modules/           # Feature-specific UI components (AbilityScoreCard, ClassCard, RaceCard, etc.)
+     services/          # Data aggregation services (ClassService, RaceService, SpellService, ItemService, etc.)
+     utils/             # Utility functions (DataLoader, TextProcessor, Tooltips, notifications, formatters, etc.)
+
+ app/                   # Game data (5eTools JSON files)
+   data/
+     spells/
+     class/
+     bestiary/
+     ...other D&D 5e data files
+
+ tests/                 # Playwright test specs
  package.json
  README.md
+ architecture-migration-plan.md  # Detailed migration history and status
 ```
+
+### Architecture Principles
+
+- **Electron separation:** Main process code isolated in `electron/` with no direct access to renderer code
+- **Renderer isolation:** Renderer process in `renderer/` contains only browser-safe code; communicates with main via IPC
+- **Co-located resources:** Each page lives in `renderer/pages/` with its HTML; related JavaScript in `renderer/scripts/`
+- **Service layer:** Data aggregation handled by `renderer/scripts/services/` which call IPC endpoints via `DataLoader`
+- **Module structure preserved:** `renderer/scripts/` maintains internal folder structure (core, infrastructure, modules, services, utils) for maintainability
 
 ## License
 
