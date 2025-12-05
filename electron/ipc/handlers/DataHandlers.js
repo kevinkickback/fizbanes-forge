@@ -1,0 +1,35 @@
+/**
+ * IPC handlers for data operations (D&D data files).
+ *
+ * @module electron/ipc/handlers/DataHandlers
+ */
+
+import { ipcMain } from 'electron';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { MainLogger } from '../../MainLogger.js';
+import { IPC_CHANNELS } from '../channels.js';
+
+export function registerDataHandlers(dataPath) {
+	MainLogger.info('DataHandlers', 'Registering data handlers');
+
+	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
+		try {
+			// fileName may already include "data/" prefix, so handle both cases
+			const filePath =
+				fileName.startsWith('data/') || fileName.startsWith('data\\')
+					? path.join(dataPath, fileName)
+					: path.join(dataPath, 'data', fileName);
+
+			MainLogger.info('DataHandlers', 'Loading JSON:', filePath);
+			const content = await fs.readFile(filePath, 'utf8');
+			const data = JSON.parse(content);
+			return { success: true, data };
+		} catch (error) {
+			MainLogger.error('DataHandlers', 'Load JSON failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
+
+	MainLogger.info('DataHandlers', 'All data handlers registered');
+}

@@ -10,8 +10,8 @@
 		"includes": [
 			"**",
 			"!app/data",
-			"!app/assets",
-			"!app/pages/tooltipTest.html",
+			"!renderer/assets",
+			"!renderer/pages/tooltipTest.html",
 			"!test-results"
 		]
 	},
@@ -47,7 +47,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["app/electron/**"],
+			"includes": ["electron/**"],
 			"linter": {
 				"enabled": true,
 				"rules": {
@@ -64,7 +64,7 @@
 			}
 		},
 		{
-			"includes": ["app/js/**", "app/pages/**", "app/js/modules/**"],
+			"includes": ["app/js/**", "renderer/pages/**", "app/js/modules/**"],
 			"linter": {
 				"enabled": true,
 				"rules": {
