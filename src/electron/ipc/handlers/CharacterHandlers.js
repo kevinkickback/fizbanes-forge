@@ -14,7 +14,7 @@ import { IPC_CHANNELS } from '../channels.js';
 
 import { validate as validateCharacter } from '../../../renderer/scripts/core/CharacterValidation.js';
 
-export function registerCharacterHandlers(preferencesManager, _windowManager) {
+export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.info('CharacterHandlers', 'Registering character handlers');
 
 	// Save character
@@ -121,7 +121,8 @@ export function registerCharacterHandlers(preferencesManager, _windowManager) {
 			const savePath = preferencesManager.getCharacterSavePath();
 			const sourceFilePath = path.join(savePath, `${id}.ffp`);
 
-			const result = await dialog.showSaveDialog({
+			const mainWindow = windowManager.getMainWindow();
+			const result = await dialog.showSaveDialog(mainWindow, {
 				title: 'Export Character',
 				defaultPath: `character-${id}.ffp`,
 				filters: [{ name: 'Fizbane Character', extensions: ['ffp'] }],
@@ -156,7 +157,8 @@ export function registerCharacterHandlers(preferencesManager, _windowManager) {
 
 			// If no file selected yet, show dialog
 			if (!sourceFilePath) {
-				const result = await dialog.showOpenDialog({
+				const mainWindow = windowManager.getMainWindow();
+				const result = await dialog.showOpenDialog(mainWindow, {
 					title: 'Import Character',
 					filters: [{ name: 'Fizbane Character', extensions: ['ffp'] }],
 					properties: ['openFile'],

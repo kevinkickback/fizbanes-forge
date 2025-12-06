@@ -28,7 +28,7 @@ export class IPCRegistry {
 		MainLogger.info('IPCRegistry', 'Registering all IPC handlers');
 
 		registerCharacterHandlers(this.preferencesManager, this.windowManager);
-		registerFileHandlers();
+		registerFileHandlers(this.windowManager);
 		registerSettingsHandlers(this.preferencesManager);
 		registerDataHandlers(this.dataPath);
 

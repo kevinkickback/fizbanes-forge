@@ -9,13 +9,14 @@ import fs from 'node:fs/promises';
 import { MainLogger } from '../../MainLogger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
-export function registerFileHandlers() {
+export function registerFileHandlers(windowManager) {
 	MainLogger.info('FileHandlers', 'Registering file handlers');
 
 	// Select folder
 	ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
 		try {
-			const result = await dialog.showOpenDialog({
+			const mainWindow = windowManager.getMainWindow();
+			const result = await dialog.showOpenDialog(mainWindow, {
 				properties: ['openDirectory', 'createDirectory'],
 			});
 
