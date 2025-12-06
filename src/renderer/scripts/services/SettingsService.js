@@ -5,6 +5,7 @@
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
+import { RefreshProgressModal } from '../modules/setup/RefreshProgressModal.js';
 import { showNotification } from '../utils/Notifications.js';
 
 /**
@@ -173,7 +174,7 @@ export class SettingsService {
 			const reconfigureButton = document.getElementById(
 				'reconfigureDataSourceBtn',
 			);
-			const validateButton = document.getElementById('validateDataSourceBtn');
+			const refreshButton = document.getElementById('refreshDataSourceBtn');
 
 			if (browseButton) {
 				browseButton.addEventListener('click', async () => {
@@ -249,9 +250,11 @@ export class SettingsService {
 				});
 			}
 
-			// Data source validation
-			if (validateButton) {
-				validateButton.addEventListener('click', async () => {
+			// Data source refresh
+			if (refreshButton) {
+				refreshButton.addEventListener('click', async () => {
+					let progressModal;
+					let unsubscribe;
 					try {
 						const config = await window.app.settings.getAll();
 						const sourceType = config.dataSourceType;
@@ -262,24 +265,55 @@ export class SettingsService {
 							return;
 						}
 
-						// Re-validate the current configuration
-						const result = await window.app.validateDataSource({
-							type: sourceType,
-							value: sourceValue,
-						});
+						progressModal = new RefreshProgressModal();
+						progressModal.show();
+
+						unsubscribe = window.app.onDataDownloadProgress(
+							(progress) => {
+								let message = 'Checking for updates...';
+								if (progress.status === 'start') {
+									message = `Preparing to download ${progress.total} files...`;
+								} else if (progress.status === 'progress') {
+									message = `Downloaded: ${progress.file} (${progress.completed}/${progress.total})`;
+								} else if (progress.status === 'complete') {
+									message = `Complete! ${progress.completed} files updated, ${progress.skipped} unchanged.`;
+								} else if (progress.status === 'error') {
+									message = `Error: ${progress.error}`;
+								}
+
+								const percent =
+									progress.total > 0
+										? (progress.completed / progress.total) * 100
+										: 0;
+								progressModal.updateProgress(percent, message);
+							},
+						);
+
+						const result = await window.app.refreshDataSource();
+
+						if (unsubscribe) unsubscribe();
 
 						if (result.success) {
-							showNotification('Data source validation passed!', 'success');
+							progressModal.showCompletion(
+								`Data source refreshed. ${result.downloaded} files updated, ${result.skipped} unchanged.`,
+							);
 						} else {
-							showNotification(`Validation failed: ${result.error}`, 'error');
+							progressModal.showCompletion(
+								`Refresh failed: ${result.error || 'Unknown error'}`,
+							);
 						}
 					} catch (error) {
+						if (unsubscribe) unsubscribe();
 						Logger.error(
 							'SettingsService',
-							'Error validating data source',
+							'Error refreshing data source',
 							error,
 						);
-						showNotification('Error validating data source', 'error');
+						if (progressModal) {
+							progressModal.showCompletion(
+								'Error refreshing data source',
+							);
+						}
 					}
 				});
 			}

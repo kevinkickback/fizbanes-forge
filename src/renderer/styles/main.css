@@ -74,7 +74,10 @@ body {
 	left: 0;
 	top: 0;
 	overflow-y: auto;
-	transition: var(--transition);
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease,
+		border-color 0.2s ease;
 	border-right: 1px solid var(--border-color);
 	z-index: 1000;
 	box-sizing: border-box;
@@ -1501,11 +1504,20 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .save-location-container {
-	font-size: 0.85rem;
-	color: var(--text-muted);
 	background-color: var(--secondary-color);
-	border-radius: var(--border-radius);
-	padding: 0.5rem;
+	padding: 12px 16px;
+	border-radius: 4px;
+	border-left: 4px solid #6c757d;
+	font-size: 0.85rem;
+	color: #f8f9fa;
+}
+
+.data-source-container {
+	background-color: var(--secondary-color);
+	padding: 12px 16px;
+	border-radius: 4px;
+	border-left: 4px solid #6c757d;
+	color: #f8f9fa;
 }
 
 /* Reset button */
@@ -1630,6 +1642,14 @@ body[data-current-page="details"] .floating-actions {
 	.sidebar-sources .source-toggle .source-name {
 		display: none;
 	}
+}
+
+/* Settings Section Separators */
+.card-body hr {
+	border: none;
+	border-top: 2px solid var(--border-color);
+	margin: 1.5rem 0;
+	opacity: 0.5;
 }
 
 /* Character Information Card Styling */

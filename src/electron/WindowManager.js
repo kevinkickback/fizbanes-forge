@@ -45,8 +45,8 @@ export class WindowManager {
 			height: bounds.height,
 			x: bounds.x,
 			y: bounds.y,
-			minWidth: 800,
-			minHeight: 600,
+			minWidth: 1000,
+			minHeight: 550,
 			autoHideMenuBar: true, // Hide default Electron menu bar
 			webPreferences: {
 				preload: this.preloadPath,
