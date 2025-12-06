@@ -381,7 +381,6 @@ class PageHandlerImpl {
 							character: result.value?.name,
 						},
 					);
-					showNotification('Character loaded successfully', 'success');
 
 					// Check floating bar state AFTER load
 					const floatingBar = document.querySelector('.floating-actions');

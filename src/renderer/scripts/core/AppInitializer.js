@@ -29,6 +29,7 @@ import { PageHandler } from './PageHandler.js';
 
 // Modal for data configuration
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
+import { LoadingModal } from '../modules/setup/LoadingModal.js';
 
 // Service imports
 import { backgroundService } from '../services/BackgroundService.js';
@@ -37,6 +38,7 @@ import { itemService } from '../services/ItemService.js';
 import { raceService } from '../services/RaceService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { spellService } from '../services/SpellService.js';
+import { DataLoader } from '../utils/DataLoader.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 
 /**
@@ -93,6 +95,28 @@ async function _checkDataFolder() {
 		Logger.error('AppInitializer', 'Error checking data folder:', error);
 		showNotification('Error checking data folder. Please try again.', 'error');
 		return false;
+	}
+}
+
+/**
+ * Prompt user to fix data source issues via the configuration modal.
+ * Stops further initialization; modal will reload the page on successful reconfigure.
+ * @param {string} errorMessage
+ * @returns {Promise<void>}
+ * @private
+ */
+async function _promptDataSourceFix(errorMessage) {
+	showNotification(
+		`Data source error: ${errorMessage || 'Unknown issue'}. Please reconfigure your data source.`,
+		'error',
+	);
+
+	try {
+		const modal = new DataConfigurationModal({ allowClose: true });
+		await modal.show();
+	} catch (error) {
+		Logger.warn('AppInitializer', 'User dismissed data source fix modal', error);
+		throw error;
 	}
 }
 
@@ -426,29 +450,67 @@ export async function initializeAll(_options = {}) {
 		errors: [],
 	};
 
+	const loadingModal = new LoadingModal();
+	loadingModal.show('Checking data files...');
+
 	try {
 		// Step 0: Check data folder availability
+		loadingModal.updateMessage('Checking data files...');
+		loadingModal.updateProgress(5);
 		const dataReady = await _checkDataFolder();
 		if (!dataReady) {
 			throw new Error('Data folder not configured');
 		}
 
+		// Step 0.5: Refresh configured data source to pick up new/changed files
+		loadingModal.updateMessage('Syncing data source...');
+		loadingModal.updateProgress(15);
+		try {
+			const refreshResult = await window.app.refreshDataSource();
+			if (!refreshResult?.success) {
+				Logger.warn(
+					'AppInitializer',
+					`Data source refresh skipped/failed: ${refreshResult?.error || 'Unknown error'}`,
+				);
+				await _promptDataSourceFix(refreshResult?.error || 'Data source is invalid');
+				throw new Error('Data source refresh failed');
+			} else {
+				DataLoader.clearCache();
+				Logger.info(
+					'AppInitializer',
+					'Checked data source for updates before load; cleared data cache',
+				);
+			}
+		} catch (error) {
+			Logger.warn('AppInitializer', 'Data source refresh failed', error);
+		}
+
 		// Step 1: Load all game data
+		loadingModal.updateMessage('Loading game data...');
+		loadingModal.updateProgress(30);
 		const dataLoadResult = await _loadAllGameData();
 		if (!dataLoadResult.success) {
 			result.errors.push(...dataLoadResult.errors);
 		}
 
 		// Step 2: Initialize core components
+		loadingModal.updateMessage('Initializing components...');
+		loadingModal.updateProgress(70);
 		const componentsResult = await _initializeCoreComponents();
 		result.loadedComponents = componentsResult.loadedComponents;
 		result.errors.push(...componentsResult.errors);
 
 		// Step 3: Set up UI event handlers
+		loadingModal.updateMessage('Setting up UI...');
+		loadingModal.updateProgress(90);
 		_setupUIEventHandlers();
 
 		// Set overall success based on whether any critical errors occurred
 		result.success = result.errors.length === 0;
+
+		// Hide loading modal before showing any notifications
+		loadingModal.updateProgress(100);
+		setTimeout(() => loadingModal.hide(), 200);
 
 		if (!result.success) {
 			Logger.warn(
@@ -460,6 +522,7 @@ export async function initializeAll(_options = {}) {
 
 		return result;
 	} catch (error) {
+		loadingModal.hide();
 		Logger.error(
 			'AppInitializer',
 			'Fatal error during application initialization:',

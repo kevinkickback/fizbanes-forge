@@ -18,10 +18,9 @@ import { registerFileHandlers } from './handlers/FileHandlers.js';
 import { registerSettingsHandlers } from './handlers/SettingsHandlers.js';
 
 export class IPCRegistry {
-	constructor(preferencesManager, windowManager, dataPath) {
+	constructor(preferencesManager, windowManager) {
 		this.preferencesManager = preferencesManager;
 		this.windowManager = windowManager;
-		this.dataPath = dataPath;
 	}
 
 	registerAll() {
@@ -30,7 +29,7 @@ export class IPCRegistry {
 		registerCharacterHandlers(this.preferencesManager, this.windowManager);
 		registerFileHandlers(this.windowManager);
 		registerSettingsHandlers(this.preferencesManager);
-		registerDataHandlers(this.dataPath, this.preferencesManager);
+		registerDataHandlers(this.preferencesManager);
 
 		MainLogger.info('IPCRegistry', 'All IPC handlers registered');
 	}

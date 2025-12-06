@@ -1,16 +1,47 @@
+/**
+ * Preload script for Electron renderer process.
+ *
+ * This script runs with full Node.js access but injects whitelisted APIs
+ * into the renderer process via contextBridge. It maintains security by:
+ * - Preventing access to fs, path, require() in renderer
+ * - Only exposing specific functions through contextBridge
+ * - Using invoke() for async IPC (request-response pattern)
+ * - Using on() for event subscription (download progress)
+ *
+ * EXPOSED APIS:
+ * - FF_DEBUG: Boolean flag for debug mode
+ * - window.app: Application-wide utilities (data source, settings)
+ * - window.data: Data loading (JSON files from configured source)
+ * - window.characterStorage: Character CRUD operations
+ *
+ * @module src/electron/preload.cjs
+ */
+
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose FF_DEBUG to renderer
+// Expose FF_DEBUG to renderer for conditional logging
 contextBridge.exposeInMainWorld('FF_DEBUG', process.env.FF_DEBUG === 'true');
 
-// App-scoped utilities (whitelisted)
+/**
+ * Application utilities namespace.
+ * Provides access to:
+ * - Data source management (configure, refresh, download)
+ * - Settings (get/set application preferences)
+ * - File system (select folders)
+ */
 contextBridge.exposeInMainWorld('app', {
 	getUserDataPath: async () => await ipcRenderer.invoke('util:getUserData'),
 	selectFolder: () => ipcRenderer.invoke('file:selectFolder'),
 	getDataSource: () => ipcRenderer.invoke('data:getSource'),
+	refreshDataSource: () => ipcRenderer.invoke('data:refreshSource'),
 	validateDataSource: (source) =>
 		ipcRenderer.invoke('data:validateSource', source),
 	checkDefaultDataFolder: () => ipcRenderer.invoke('data:checkDefault'),
+	/**
+	 * Subscribe to data download progress events.
+	 * @param {Function} handler - Called with each progress update
+	 * @returns {Function} Unsubscribe function
+	 */
 	onDataDownloadProgress: (handler) => {
 		if (typeof handler !== 'function') return () => { };
 		const wrapped = (_event, payload) => handler(payload);
@@ -25,12 +56,24 @@ contextBridge.exposeInMainWorld('app', {
 	},
 });
 
-// Data domain: restrict to catalog JSON under app/data
+/**
+ * Data loading namespace.
+ * Provides access to JSON data files from configured data source.
+ */
 contextBridge.exposeInMainWorld('data', {
+	/**
+	 * Load a JSON file from the configured data source.
+	 * @param {string} filePath - Relative path to JSON file (e.g., 'races.json')
+	 * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+	 */
 	loadJSON: (filePath) => ipcRenderer.invoke('data:loadJson', filePath),
 });
 
-// Expose character data storage functions
+/**
+ * Character storage namespace.
+ * Provides CRUD operations for character files.
+ * Handles both local saves and character imports/exports.
+ */
 contextBridge.exposeInMainWorld('characterStorage', {
 	saveCharacter: (characterData) =>
 		ipcRenderer.invoke('character:save', characterData),

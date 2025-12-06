@@ -1,39 +1,60 @@
 /**
  * DataConfigurationModal.js
- * Modal for configuring data folder location on first run or when data is missing
+ * Modal for configuring D&D data source on first run or when reconfiguring.
  *
- * Allows users to provide either:
- * - A URL to a hosted data source (e.g., https://github.com/5etools-mirror-3/5etools-src)
- * - A local directory path containing D&D data files
+ * FLOW:
+ * 1. User selects URL or Local Folder tab
+ * 2. For URL: Enters repository URL (GitHub or direct server)
+ * 3. For Local: Selects folder via file browser
+ * 4. Modal validates source (structure check, accessibility)
+ * 5. On URL: Downloads all files and caches locally
+ * 6. On success: Closes modal and reloads app (window.location.reload)
+ *
+ * FEATURES:
+ * - Pre-loads saved configuration if available
+ * - Progress bar with file counts for downloads
+ * - Responsive error messages
+ * - Tab switching UI for URL vs Local
+ * - Optional close button (can be disabled for first-run)
+ *
+ * @module src/renderer/scripts/modules/setup/DataConfigurationModal
  */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { showNotification } from '../../utils/Notifications.js';
 
 export class DataConfigurationModal {
+    /**
+     * Initialize the modal.
+     *
+     * @param {Object} [options={}] - Configuration options
+     * @param {boolean} [options.allowClose=false] - Allow user to close without selecting data source
+     */
     constructor(options = {}) {
         this.modal = null;
         this.isValidating = false;
-        this.allowClose = options.allowClose || false; // Allow close button if not first run
+        this.allowClose = options.allowClose || false;
         this.progressUnsub = null;
     }
 
     /**
-     * Create and show the data configuration modal
-     * @returns {Promise<{type: 'url'|'local', value: string}>} User's choice and value
+     * Show the modal and wait for user selection.
+     * Pre-loads any previously saved configuration.
+     *
+     * @returns {Promise<{type: 'url'|'local', value: string}>} User's configuration choice
      */
     async show() {
-        // Load saved configuration
+        // Load saved configuration to pre-populate fields
         await this._loadSavedConfiguration();
 
         return new Promise((resolve, reject) => {
             this.modal = this._createModalElement(resolve, reject);
             document.body.appendChild(this.modal);
 
-            // Pre-populate with saved values
+            // Pre-populate with saved values if available
             this._populateSavedValues();
 
-            // Show the modal
+            // Animate modal in
             setTimeout(() => {
                 this.modal.classList.add('show');
             }, 10);
@@ -41,8 +62,11 @@ export class DataConfigurationModal {
     }
 
     /**
-     * Load saved data source configuration from preferences
+     * Load saved data source configuration from preferences.
+     * This allows the modal to pre-populate with the user's previous choice.
+     *
      * @private
+     * @returns {Promise<void>}
      */
     async _loadSavedConfiguration() {
         try {
@@ -67,8 +91,12 @@ export class DataConfigurationModal {
     }
 
     /**
-     * Populate the modal inputs with saved values
+     * Populate input fields with saved configuration values.
+     * For URL: puts URL in input field, switches to URL tab.
+     * For Local: puts path in input field, switches to Local tab, enables validate button.
+     *
      * @private
+     * @returns {void}
      */
     _populateSavedValues() {
         if (!this.savedType || !this.savedValue) {
@@ -101,8 +129,13 @@ export class DataConfigurationModal {
     }
 
     /**
-     * Create the modal DOM structure
+     * Create the modal DOM structure with all UI elements and event handlers.
+     * Sets up tab switching, validation buttons, and form inputs.
+     *
      * @private
+     * @param {Function} onResolve - Called on successful validation
+     * @param {Function} onReject - Called if user closes modal
+     * @returns {HTMLElement} The modal element
      */
     _createModalElement(onResolve, onReject) {
         const wrapper = document.createElement('div');
@@ -283,6 +316,14 @@ export class DataConfigurationModal {
         return wrapper;
     }
 
+    /**
+     * Attach listener for download progress events.
+     * Shows progress bar with file count as downloads occur.
+     * Used during URL validation to show real-time feedback.
+     *
+     * @returns {void}
+     * @private
+     */
     attachProgressListener() {
         this.detachProgressListener();
         if (!window.app?.onDataDownloadProgress) return;
@@ -321,6 +362,13 @@ export class DataConfigurationModal {
         });
     }
 
+    /**
+     * Remove the download progress event listener.
+     * Clean up resources after validation completes or fails.
+     *
+     * @returns {void}
+     * @private
+     */
     detachProgressListener() {
         if (this.progressUnsub) {
             this.progressUnsub();
@@ -329,8 +377,18 @@ export class DataConfigurationModal {
     }
 
     /**
-     * Validate data source and submit
+     * Validate data source and submit configuration.
+     * For URLs: validates accessibility and downloads all files.
+     * For Local: validates folder structure and required files.
+     * On success: saves config to preferences, reloads app.
+     * On failure: shows error message, allows user to retry.
+     *
      * @private
+     * @param {string} type - 'url' or 'local'
+     * @param {string} value - URL or folder path
+     * @param {HTMLElement} button - Submit button element
+     * @param {Function} onResolve - Callback on success
+     * @returns {Promise<void>}
      */
     async _validateAndSubmit(type, value, button, onResolve) {
         if (this.isValidating) return;
@@ -369,6 +427,14 @@ export class DataConfigurationModal {
                         ? 'Data downloaded and configured successfully'
                         : `Data source configured successfully (${type})`;
                 showNotification(successMessage, 'success');
+
+                // Ensure latest data is active and reload app state so DataLoader reinitializes
+                try {
+                    await window.app.refreshDataSource();
+                } catch (error) {
+                    Logger.warn('DataConfigurationModal', 'Post-validate refresh failed', error);
+                }
+                window.location.reload();
 
                 this.detachProgressListener();
                 this.modal.remove();

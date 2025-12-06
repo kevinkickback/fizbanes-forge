@@ -52,6 +52,9 @@ function createNotificationElement(message, type) {
             <div class="notification-message">${message}</div>
             <button type="button" class="btn-close notification-close" aria-label="Close"></button>
         </div>
+		<div class="notification-progress" aria-hidden="true">
+			<div class="notification-progress-bar"></div>
+		</div>
     `;
 	return notification;
 }
@@ -82,8 +85,18 @@ export function showNotification(message, type = 'info') {
 	const notification = createNotificationElement(message, type);
 	notificationContainer.appendChild(notification);
 
+	const progressBar = notification.querySelector('.notification-progress-bar');
+	let remaining = NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY;
+	let lastTick = performance.now();
+	let paused = false;
+	let rafId = null;
+
 	// Function to close notification with animation
 	const closeNotification = (isManualClose = false) => {
+		if (rafId) {
+			cancelAnimationFrame(rafId);
+			rafId = null;
+		}
 		notification.classList.add('notification-closing');
 		setTimeout(() => {
 			notification.remove();
@@ -102,10 +115,35 @@ export function showNotification(message, type = 'info') {
 	const closeButton = notification.querySelector('.notification-close');
 	closeButton.addEventListener('click', () => closeNotification(true));
 
-	// Auto-remove notification after configured delay
-	setTimeout(() => {
-		if (notification.parentElement) {
-			closeNotification(false);
+	const tick = (now) => {
+		if (!notification.parentElement) return;
+		const delta = now - lastTick;
+		lastTick = now;
+		if (!paused) {
+			remaining -= delta;
+			const ratio = Math.max(0, remaining) / NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY;
+			if (progressBar) {
+				progressBar.style.width = `${Math.max(0, Math.min(1, ratio)) * 100}%`;
+			}
+			if (remaining <= 0) {
+				closeNotification(false);
+				return;
+			}
 		}
-	}, NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY);
+		rafId = requestAnimationFrame(tick);
+	};
+
+	notification.addEventListener('mouseenter', () => {
+		paused = true;
+	});
+
+	notification.addEventListener('mouseleave', () => {
+		paused = false;
+		lastTick = performance.now();
+	});
+
+	// Start progress animation loop
+	progressBar.style.width = '100%';
+	lastTick = performance.now();
+	rafId = requestAnimationFrame(tick);
 }

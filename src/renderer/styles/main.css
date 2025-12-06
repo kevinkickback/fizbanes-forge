@@ -3,6 +3,7 @@
 @import url("../assets/fontawesome/css/all.min.css");
 @import url("./modal.css");
 @import url("./notification.css");
+@import url("./loading-modal.css");
 
 /* CSS Variables */
 :root {
