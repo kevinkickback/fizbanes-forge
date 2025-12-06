@@ -102,8 +102,7 @@ export class SubracePickerView {
 
 		// If subraces are optional, show "Standard" option as the default
 		if (!isRequired) {
-			this._subraceSelect.innerHTML =
-				'<option value="">Standard</option>';
+			this._subraceSelect.innerHTML = '<option value="">Standard</option>';
 		} else {
 			// If required, don't show a placeholder option
 			this._subraceSelect.innerHTML = '';

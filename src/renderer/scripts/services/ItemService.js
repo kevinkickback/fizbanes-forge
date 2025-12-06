@@ -29,11 +29,23 @@ class ItemService {
 		}
 
 		try {
-			// Load both items and base items
-			const [items, baseItems] = await Promise.all([
-				DataLoader.loadJSON('src/data/items.json'),
-				DataLoader.loadJSON('src/data/items-base.json'),
+			// Load both items and base items with individual error handling
+			const results = await Promise.allSettled([
+				DataLoader.loadJSON('items.json'),
+				DataLoader.loadJSON('items-base.json'),
 			]);
+
+			// Extract results gracefully
+			const items = results[0].status === 'fulfilled' ? results[0].value : { item: [] };
+			const baseItems = results[1].status === 'fulfilled' ? results[1].value : { baseitem: [] };
+
+			// Log any failures
+			if (results[0].status === 'rejected') {
+				Logger.warn('ItemService', 'Failed to load items.json:', results[0].reason?.message);
+			}
+			if (results[1].status === 'rejected') {
+				Logger.warn('ItemService', 'Failed to load items-base.json:', results[1].reason?.message);
+			}
 
 			// Merge items with base items
 			this._itemData = {

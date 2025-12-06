@@ -63,6 +63,10 @@ export const IPC_CHANNELS = {
 
 	// Data operations (D&D data files)
 	DATA_LOAD_JSON: 'data:loadJson',
+	DATA_GET_SOURCE: 'data:getSource',
+	DATA_VALIDATE_SOURCE: 'data:validateSource',
+	DATA_CHECK_DEFAULT: 'data:checkDefault',
+	DATA_DOWNLOAD_PROGRESS: 'data:downloadProgress',
 
 	// Utility operations
 	UTIL_PATH_JOIN: 'util:pathJoin',

@@ -80,13 +80,18 @@ npm run lint           # Apply Biome linting + fix
 npx playwright test    # Run E2E tests (Playwright + Electron)
 ```
 
-### Data Loading Flow
-1. User clicks page → `PageHandler.loadPage()` 
-2. Component requests data (e.g., `raceService.getRaces()`)
-3. Service lazy-loads from `src/data/` via IPC: `ipcRenderer.invoke('data:load', 'races')`
-4. IPC handler in main reads JSON file, caches, returns to renderer
-5. Service updates internal state, emits event
-6. Components listening to `EVENTS.RACE_LOADED` update UI
+### Data Folder Configuration
+The app requires D&D 5e data files (races.json, classes.json, backgrounds.json, etc.). In production:
+1. **First run**: If `src/data/` folder is empty or missing, the app shows a `DataConfigurationModal`
+2. **User choice**: Provide either a URL (e.g., GitHub repo) or local folder path
+3. **Validation**: Checks for required files before accepting
+4. **Storage**: Configuration saved in PreferencesManager (`dataSourceType` and `dataSourceValue`)
+
+Architecture:
+- `DataConfigurationModal` (`src/renderer/scripts/modules/setup/DataConfigurationModal.js`) - UI for user input
+- `DataFolderManager` (`src/electron/DataFolderManager.js`) - Validates local folders and URLs
+- `AppInitializer._checkDataFolder()` - Runs before game data loads
+- IPC handlers (`DATA_VALIDATE_SOURCE`, `DATA_CHECK_DEFAULT`) expose validation to renderer
 
 ### Adding a New Game Entity Type
 1. Create JSON data file in `src/data/` (e.g., `feats.json`)

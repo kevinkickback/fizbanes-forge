@@ -39,24 +39,24 @@ class ClassService {
 
 		try {
 			// Load the index to get all class files
-			const index = await DataLoader.loadJSON('src/data/class/index.json');
+			const index = await DataLoader.loadJSON('class/index.json');
 			const fluffIndex = await DataLoader.loadJSON(
-				'src/data/class/fluff-index.json',
+				'class/fluff-index.json',
 			);
 
-			// Load all class files
+			// Load all class files with individual error handling
 			const classFiles = Object.values(index);
-			const allClasses = await Promise.all(
-				classFiles.map((file) => DataLoader.loadJSON(`src/data/class/${file}`)),
+			const allClasses = await Promise.allSettled(
+				classFiles.map((file) => DataLoader.loadJSON(`class/${file}`)),
 			);
 
-			// Load all fluff files
+			// Load all fluff files with individual error handling
 			const fluffFiles = Object.values(fluffIndex);
-			const allFluff = await Promise.all(
-				fluffFiles.map((file) => DataLoader.loadJSON(`src/data/class/${file}`)),
+			const allFluff = await Promise.allSettled(
+				fluffFiles.map((file) => DataLoader.loadJSON(`class/${file}`)),
 			);
 
-			// Aggregate all classes and class features into single object
+			// Aggregate all classes and class features into single object, handling failures gracefully
 			this._classData = {
 				class: [],
 				classFeature: [],
@@ -66,31 +66,41 @@ class ClassService {
 				subclassFluff: [],
 			};
 
-			for (const classData of allClasses) {
-				if (classData.class && Array.isArray(classData.class)) {
-					this._classData.class.push(...classData.class);
-				}
-				if (classData.classFeature && Array.isArray(classData.classFeature)) {
-					this._classData.classFeature.push(...classData.classFeature);
-				}
-				if (classData.subclass && Array.isArray(classData.subclass)) {
-					this._classData.subclass.push(...classData.subclass);
-				}
-				if (
-					classData.subclassFeature &&
-					Array.isArray(classData.subclassFeature)
-				) {
-					this._classData.subclassFeature.push(...classData.subclassFeature);
+			for (const result of allClasses) {
+				if (result.status === 'fulfilled') {
+					const classData = result.value;
+					if (classData.class && Array.isArray(classData.class)) {
+						this._classData.class.push(...classData.class);
+					}
+					if (classData.classFeature && Array.isArray(classData.classFeature)) {
+						this._classData.classFeature.push(...classData.classFeature);
+					}
+					if (classData.subclass && Array.isArray(classData.subclass)) {
+						this._classData.subclass.push(...classData.subclass);
+					}
+					if (
+						classData.subclassFeature &&
+						Array.isArray(classData.subclassFeature)
+					) {
+						this._classData.subclassFeature.push(...classData.subclassFeature);
+					}
+				} else {
+					Logger.warn('ClassService', 'Failed to load class file:', result.reason?.message);
 				}
 			}
 
 			// Aggregate fluff data
-			for (const fluffData of allFluff) {
-				if (fluffData.classFluff && Array.isArray(fluffData.classFluff)) {
-					this._classData.classFluff.push(...fluffData.classFluff);
-				}
-				if (fluffData.subclassFluff && Array.isArray(fluffData.subclassFluff)) {
-					this._classData.subclassFluff.push(...fluffData.subclassFluff);
+			for (const result of allFluff) {
+				if (result.status === 'fulfilled') {
+					const fluffData = result.value;
+					if (fluffData.classFluff && Array.isArray(fluffData.classFluff)) {
+						this._classData.classFluff.push(...fluffData.classFluff);
+					}
+					if (fluffData.subclassFluff && Array.isArray(fluffData.subclassFluff)) {
+						this._classData.subclassFluff.push(...fluffData.subclassFluff);
+					}
+				} else {
+					Logger.warn('ClassService', 'Failed to load class fluff file:', result.reason?.message);
 				}
 			}
 

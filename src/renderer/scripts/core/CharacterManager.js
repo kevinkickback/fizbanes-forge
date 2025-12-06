@@ -170,9 +170,8 @@ class CharacterManagerImpl {
 			const serializedCharacter = serializeCharacter(character);
 
 			// Save via IPC
-			const saveResult = await window.characterStorage.saveCharacter(
-				serializedCharacter,
-			);
+			const saveResult =
+				await window.characterStorage.saveCharacter(serializedCharacter);
 
 			if (!saveResult.success) {
 				return Result.err(saveResult.error || 'Save failed');

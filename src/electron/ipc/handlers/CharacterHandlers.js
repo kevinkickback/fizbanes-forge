@@ -28,7 +28,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			// Validate before saving
 			const validation = await validateCharacter(character);
 			if (!validation.valid) {
-				return { success: false, error: `Invalid character data: ${validation.errors.join(', ')}` };
+				return {
+					success: false,
+					error: `Invalid character data: ${validation.errors.join(', ')}`,
+				};
 			}
 
 			MainLogger.info(

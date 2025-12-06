@@ -421,8 +421,8 @@ export class ClassCard {
 		const hasChanged = !classData
 			? character.class?.name || character.class?.source
 			: character.class?.name !== classData.name ||
-			character.class?.source !== classData.source ||
-			character.subclass !== subclassName;
+				character.class?.source !== classData.source ||
+				character.subclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits

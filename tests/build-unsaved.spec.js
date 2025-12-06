@@ -12,7 +12,7 @@ async function getMainWindow(app, maxWaitMs = 5000, pollIntervalMs = 200) {
 		try {
 			const title = await win.title();
 			if (title && !title.includes('DevTools')) return win;
-		} catch (_e) { }
+		} catch (_e) {}
 	}
 	return windows[0] || null;
 }

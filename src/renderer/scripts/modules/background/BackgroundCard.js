@@ -352,8 +352,8 @@ export class BackgroundCard extends BaseCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-			character.background?.source !== background.source ||
-			character.background?.variant !== (variant?.name || null);
+				character.background?.source !== background.source ||
+				character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies

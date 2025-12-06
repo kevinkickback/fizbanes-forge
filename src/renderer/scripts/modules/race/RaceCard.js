@@ -324,11 +324,15 @@ export class RaceCard {
 			}
 			// If subraceName is empty, keep subraceData as null (no subrace selected = Standard)
 
-			Logger.debug('RaceCard', `Subrace changed: ${subraceName || 'Standard'}`, {
-				raceName,
-				subraceName,
-				subraceData: subraceData?.name || 'null',
-			});
+			Logger.debug(
+				'RaceCard',
+				`Subrace changed: ${subraceName || 'Standard'}`,
+				{
+					raceName,
+					subraceName,
+					subraceData: subraceData?.name || 'null',
+				},
+			);
 
 			// Update the UI with the subrace data
 			await this._detailsView.updateAllDetails(raceData, subraceData);

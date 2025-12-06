@@ -36,6 +36,9 @@ export class PreferencesManager {
 				'Fizbanes Forge',
 				'characters',
 			),
+			dataSourceType: null, // 'url' or 'local'
+			dataSourceValue: null, // URL or file path
+			dataSourceCachePath: null, // Local cache path for downloaded URL sources
 			lastOpenedCharacter: null,
 			windowBounds: { width: 1200, height: 800, x: null, y: null },
 			theme: 'auto',
@@ -95,13 +98,17 @@ export class PreferencesManager {
 	validateStore(store) {
 		const out = { ...this.defaults };
 		// characterSavePath: string
-		if (typeof store.characterSavePath === 'string' && store.characterSavePath) {
+		if (
+			typeof store.characterSavePath === 'string' &&
+			store.characterSavePath
+		) {
 			out.characterSavePath = store.characterSavePath;
 		}
 		// lastOpenedCharacter: string|null
 		if (
 			store.lastOpenedCharacter === null ||
-			(typeof store.lastOpenedCharacter === 'string' && store.lastOpenedCharacter)
+			(typeof store.lastOpenedCharacter === 'string' &&
+				store.lastOpenedCharacter)
 		) {
 			out.lastOpenedCharacter = store.lastOpenedCharacter;
 		}
@@ -138,6 +145,29 @@ export class PreferencesManager {
 		if (Number.isFinite(asi) && asi > 0 && asi <= 3600) {
 			out.autoSaveInterval = asi;
 		}
+		// dataSourceType: 'url' | 'local' | null
+		if (
+			store.dataSourceType === null ||
+			store.dataSourceType === 'url' ||
+			store.dataSourceType === 'local'
+		) {
+			out.dataSourceType = store.dataSourceType;
+		}
+		// dataSourceValue: string | null
+		if (
+			store.dataSourceValue === null ||
+			(typeof store.dataSourceValue === 'string' && store.dataSourceValue)
+		) {
+			out.dataSourceValue = store.dataSourceValue;
+		}
+		// dataSourceCachePath: string | null
+		if (
+			store.dataSourceCachePath === null ||
+			(typeof store.dataSourceCachePath === 'string' &&
+				store.dataSourceCachePath)
+		) {
+			out.dataSourceCachePath = store.dataSourceCachePath;
+		}
 		return out;
 	}
 
@@ -156,7 +186,9 @@ export class PreferencesManager {
 	_validateKeyValue(key, value) {
 		switch (key) {
 			case 'characterSavePath':
-				return typeof value === 'string' && value ? value : this.defaults.characterSavePath;
+				return typeof value === 'string' && value
+					? value
+					: this.defaults.characterSavePath;
 			case 'lastOpenedCharacter':
 				return value === null || (typeof value === 'string' && value)
 					? value
@@ -179,7 +211,9 @@ export class PreferencesManager {
 				return this.defaults.windowBounds;
 			}
 			case 'theme':
-				return ['auto', 'light', 'dark'].includes(value) ? value : this.defaults.theme;
+				return ['auto', 'light', 'dark'].includes(value)
+					? value
+					: this.defaults.theme;
 			case 'logLevel':
 				return ['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(value)
 					? value
@@ -192,6 +226,18 @@ export class PreferencesManager {
 					? asi
 					: this.defaults.autoSaveInterval;
 			}
+			case 'dataSourceType':
+				return value === null || value === 'url' || value === 'local'
+					? value
+					: this.defaults.dataSourceType;
+			case 'dataSourceValue':
+				return value === null || (typeof value === 'string' && value)
+					? value
+					: this.defaults.dataSourceValue;
+			case 'dataSourceCachePath':
+				return value === null || (typeof value === 'string' && value)
+					? value
+					: this.defaults.dataSourceCachePath;
 			default:
 				return value;
 		}
@@ -209,8 +255,6 @@ export class PreferencesManager {
 		MainLogger.info('PreferencesManager', `Get: ${key} =`, value);
 		return value;
 	}
-
-
 
 	/**
 	 * Delete a preference.

@@ -99,6 +99,9 @@ export const EVENTS = {
 	SETTINGS_SAVE_PATH_CHANGED: 'settings:savePathChanged',
 	SETTINGS_SAVE_PATH_RESET: 'settings:savePathReset',
 
+	// Data source events
+	DATA_SOURCE_CHANGED: 'dataSource:changed',
+
 	// Service lifecycle
 	SERVICE_INITIALIZED: 'service:initialized',
 };

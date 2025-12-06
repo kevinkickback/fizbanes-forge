@@ -30,7 +30,7 @@ export class IPCRegistry {
 		registerCharacterHandlers(this.preferencesManager, this.windowManager);
 		registerFileHandlers(this.windowManager);
 		registerSettingsHandlers(this.preferencesManager);
-		registerDataHandlers(this.dataPath);
+		registerDataHandlers(this.dataPath, this.preferencesManager);
 
 		MainLogger.info('IPCRegistry', 'All IPC handlers registered');
 	}

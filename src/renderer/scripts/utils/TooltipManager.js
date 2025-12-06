@@ -80,10 +80,12 @@ export class TooltipManager {
 			this._togglePin(tooltipObj);
 		});
 
-		actions.querySelector('.tooltip-close-btn').addEventListener('click', (e) => {
-			e.stopPropagation();
-			this._closeTooltip(tooltipObj);
-		});
+		actions
+			.querySelector('.tooltip-close-btn')
+			.addEventListener('click', (e) => {
+				e.stopPropagation();
+				this._closeTooltip(tooltipObj);
+			});
 
 		// Allow pinned tooltips to be dragged via the drag handle
 		const dragHandle = actions.querySelector('.tooltip-drag-handle');
@@ -170,7 +172,7 @@ export class TooltipManager {
 	 * @private
 	 */
 	// Copy tooltip content is disabled (button removed)
-	async _copyTooltipContent() { }
+	async _copyTooltipContent() {}
 
 	/**
 	 * Close specific tooltip
@@ -284,7 +286,7 @@ export class TooltipManager {
 		const tooltipsToClose = [...this._tooltips];
 		this._tooltips = [];
 
-		tooltipsToClose.forEach(tooltipObj => {
+		tooltipsToClose.forEach((tooltipObj) => {
 			tooltipObj.tooltip.classList.remove('show');
 			tooltipObj.tooltip.classList.add('hide');
 
@@ -313,7 +315,11 @@ export class TooltipManager {
 			}
 
 			// Ctrl+C or Cmd+C: Copy (only if not in input field)
-			if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.target.matches('input, textarea')) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.key === 'c' &&
+				!e.target.matches('input, textarea')
+			) {
 				const selection = window.getSelection();
 				if (!selection || selection.toString().length === 0) {
 					e.preventDefault();
@@ -488,7 +494,12 @@ export class TooltipManager {
 		}
 
 		// Check for skill (has ability string but not class-like properties)
-		if (data.ability && typeof data.ability === 'string' && !data.hd && data.level === undefined) {
+		if (
+			data.ability &&
+			typeof data.ability === 'string' &&
+			!data.hd &&
+			data.level === undefined
+		) {
 			return StatBlockRenderer.renderSkill(data);
 		}
 
@@ -503,7 +514,12 @@ export class TooltipManager {
 		}
 
 		// Check for reward (has type and is a reward)
-		if (data.type && (data.type.includes('Charm') || data.type.includes('Piety') || data.type.includes('Blessing'))) {
+		if (
+			data.type &&
+			(data.type.includes('Charm') ||
+				data.type.includes('Piety') ||
+				data.type.includes('Blessing'))
+		) {
 			return StatBlockRenderer.renderReward(data);
 		}
 
@@ -798,8 +814,12 @@ export function initializeTooltipListeners(tooltipManager) {
 	function getHoverMeta(link) {
 		if (!link) return null;
 		const hoverType = link.dataset.hoverType || link.dataset.tooltipType;
-		const hoverName = link.dataset.hoverName || link.dataset.tooltipName || link.textContent?.trim();
-		const hoverSource = link.dataset.hoverSource || link.dataset.tooltipSource || 'PHB';
+		const hoverName =
+			link.dataset.hoverName ||
+			link.dataset.tooltipName ||
+			link.textContent?.trim();
+		const hoverSource =
+			link.dataset.hoverSource || link.dataset.tooltipSource || 'PHB';
 		if (!hoverType || !hoverName) return null;
 		return { hoverType, hoverName, hoverSource };
 	}
@@ -872,7 +892,8 @@ export function initializeTooltipListeners(tooltipManager) {
 
 		// Remove tooltips after the one containing the link, but keep pinned ones
 		while (tooltipManager._tooltips.length > keepUpToIndex) {
-			const lastTooltip = tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
+			const lastTooltip =
+				tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
 			// Stop trimming if we hit a pinned tooltip to preserve user-pinned content
 			if (lastTooltip.isPinned) {
 				Logger.info(
@@ -980,7 +1001,8 @@ export function initializeTooltipListeners(tooltipManager) {
 					const keepUpToIndex = toIndex + 1;
 					setTimeout(() => {
 						while (tooltipManager._tooltips.length > keepUpToIndex) {
-							const lastTooltip = tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
+							const lastTooltip =
+								tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
 							// Don't remove if pinned
 							if (lastTooltip.isPinned) {
 								break;
@@ -1002,7 +1024,10 @@ export function initializeTooltipListeners(tooltipManager) {
 
 		// If leaving tooltip system entirely
 		if (isInTooltipSystem(fromElement) && !isInTooltipSystem(toElement)) {
-			Logger.info('TooltipSystem', 'Left tooltip system, hiding unpinned tooltips');
+			Logger.info(
+				'TooltipSystem',
+				'Left tooltip system, hiding unpinned tooltips',
+			);
 
 			// Clear unpinned tooltips after delay
 			globalHideTimeout = setTimeout(() => {

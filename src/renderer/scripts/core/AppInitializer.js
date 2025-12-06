@@ -27,6 +27,9 @@ import { CharacterManager } from './CharacterManager.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
 
+// Modal for data configuration
+import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
+
 // Service imports
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
@@ -50,6 +53,46 @@ async function _loadDataWithErrorHandling(promise, component) {
 	} catch (error) {
 		Logger.warn('AppInitializer', `Failed to load ${component} data:`, error);
 		return null;
+	}
+}
+
+/**
+ * Check if data folder is available, prompt user if not
+ * @returns {Promise<boolean>} True if data is ready to load
+ * @private
+ */
+async function _checkDataFolder() {
+	try {
+		// Prefer previously configured data source
+		const saved = await window.app.getDataSource();
+		if (saved?.success && saved.type && saved.value) {
+			Logger.info(
+				'AppInitializer',
+				'Using configured data source:',
+				saved.type,
+			);
+			return true;
+		}
+
+		// No configured source – require user configuration every time
+		Logger.warn(
+			'AppInitializer',
+			'No data source configured, showing configuration modal',
+		);
+		showNotification(
+			'D&D data files are required. Please configure a data source.',
+			'warning',
+		);
+
+		const modal = new DataConfigurationModal();
+		const result = await modal.show();
+
+		Logger.info('AppInitializer', 'User configured data source:', result.type);
+		return true;
+	} catch (error) {
+		Logger.error('AppInitializer', 'Error checking data folder:', error);
+		showNotification('Error checking data folder. Please try again.', 'error');
+		return false;
 	}
 }
 
@@ -384,6 +427,12 @@ export async function initializeAll(_options = {}) {
 	};
 
 	try {
+		// Step 0: Check data folder availability
+		const dataReady = await _checkDataFolder();
+		if (!dataReady) {
+			throw new Error('Data folder not configured');
+		}
+
 		// Step 1: Load all game data
 		const dataLoadResult = await _loadAllGameData();
 		if (!dataLoadResult.success) {

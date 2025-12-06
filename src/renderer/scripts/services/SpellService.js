@@ -30,19 +30,27 @@ class SpellService {
 
 		try {
 			// Load the index to get all spell files
-			const index = await DataLoader.loadJSON('src/data/spells/index.json');
+			const index = await DataLoader.loadJSON('spells/index.json');
 
-			// Load all spell files
+			// Load all spell files with individual error handling
 			const spellFiles = Object.values(index);
-			const allSpells = await Promise.all(
-				spellFiles.map((file) => DataLoader.loadJSON(`src/data/spells/${file}`)),
+			const allSpells = await Promise.allSettled(
+				spellFiles.map((file) =>
+					DataLoader.loadJSON(`spells/${file}`),
+				),
 			);
 
-			// Aggregate all spells into single object
+			// Aggregate all spells into single object, handling failures gracefully
 			const aggregated = { spell: [] };
-			for (const spellData of allSpells) {
-				if (spellData.spell && Array.isArray(spellData.spell)) {
-					aggregated.spell.push(...spellData.spell);
+			for (const result of allSpells) {
+				if (result.status === 'fulfilled') {
+					const spellData = result.value;
+					if (spellData.spell && Array.isArray(spellData.spell)) {
+						aggregated.spell.push(...spellData.spell);
+					}
+				} else {
+					// Log individual file failures but continue loading others
+					Logger.warn('SpellService', 'Failed to load spell file:', result.reason?.message);
 				}
 			}
 

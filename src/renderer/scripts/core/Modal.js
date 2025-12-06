@@ -27,7 +27,6 @@
  * @property {string} [confirmButtonClass='btn-primary'] - CSS class for the confirm button
  */
 
-
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { SourceCard } from '../modules/sources/SourceCard.js';
@@ -362,7 +361,10 @@ export class Modal {
 			sourceService.allowedSources = new Set(selectedSources);
 
 			// Emit the event to trigger dropdown repopulation
-			eventBus.emit('sources:allowed-changed', Array.from(sourceService.allowedSources));
+			eventBus.emit(
+				'sources:allowed-changed',
+				Array.from(sourceService.allowedSources),
+			);
 
 			// Save character
 			const saveResult = await CharacterManager.saveCharacter();

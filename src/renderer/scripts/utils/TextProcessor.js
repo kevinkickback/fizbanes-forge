@@ -11,7 +11,10 @@
 
 import { Logger } from '../infrastructure/Logger.js';
 import { getStringRenderer } from './TagProcessor.js';
-import { getTooltipManager, initializeTooltipListeners } from './TooltipManager.js';
+import {
+	getTooltipManager,
+	initializeTooltipListeners,
+} from './TooltipManager.js';
 
 /**
  * Class responsible for processing text content, handling references, and formatting.

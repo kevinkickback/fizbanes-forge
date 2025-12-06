@@ -152,12 +152,14 @@ class AbilityScoreCard {
 			document.addEventListener(
 				'abilityScoresChanged',
 				this._abilityScoresChangedListener,
-			);			// Create character changed listener
+			); // Create character changed listener
 			this._handleCharacterChanged = (_event) => {
 				const character = CharacterManager.getCurrentCharacter();
 				if (!character) return;
 
-				Logger.debug('AbilityScoreCard', 'characterChanged event received', { name: character.name });
+				Logger.debug('AbilityScoreCard', 'characterChanged event received', {
+					name: character.name,
+				});
 
 				// Sync with current character first
 				this._syncWithCurrentCharacter();
