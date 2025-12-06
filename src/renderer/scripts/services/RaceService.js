@@ -183,6 +183,29 @@ class RaceService {
 	}
 
 	/**
+	 * Check if a subrace is required for a given race
+	 * A subrace is required if the race has NO entry without a name (no base race option)
+	 * @param {string} raceName - Name of the race
+	 * @param {string} source - Source book
+	 * @returns {boolean} True if subrace selection is required, false if optional
+	 */
+	isSubraceRequired(raceName, source = 'PHB') {
+		if (!this._raceData?.subrace) return false;
+
+		// Find if there's a base subrace entry (without a name) for this race
+		const baseSubraceEntry = this._raceData.subrace.find(
+			(sr) =>
+				sr.raceName === raceName &&
+				(sr.raceSource === source || !sr.raceSource) &&
+				!sr.name, // No name = base race entry
+		);
+
+		// If there's NO base entry with no name, it means subraces are required
+		// If there IS a base entry, subraces are optional
+		return !baseSubraceEntry;
+	}
+
+	/**
 	 * Get a specific subrace by name
 	 * @param {string} raceName - Name of the parent race
 	 * @param {string} subraceName - Name of the subrace

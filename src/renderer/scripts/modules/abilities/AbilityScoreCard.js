@@ -146,17 +146,19 @@ class AbilityScoreCard {
 
 			// Create ability scores changed listener
 			this._abilityScoresChangedListener = () => {
+				console.log('[AbilityScoreCard] abilityScoresChanged event received');
+				Logger.debug('AbilityScoreCard', 'abilityScoresChanged event received');
 				this.update();
 			};
 			document.addEventListener(
 				'abilityScoresChanged',
 				this._abilityScoresChangedListener,
-			);
-
-			// Create character changed listener
+			);			// Create character changed listener
 			this._handleCharacterChanged = (_event) => {
 				const character = CharacterManager.getCurrentCharacter();
 				if (!character) return;
+
+				console.log('[AbilityScoreCard] characterChanged event received for:', character.name);
 
 				// Sync with current character first
 				this._syncWithCurrentCharacter();
@@ -572,11 +574,12 @@ class AbilityScoreCard {
 	}
 
 	/**
-	 * Updates the ability score card without a full re-render
+	 * Updates only the ability score values without a full re-render
 	 * @returns {void}
 	 */
 	update() {
 		this._updateAbilityScoreValues();
+		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
 		this._bonusNotesView.render();
 	}
 

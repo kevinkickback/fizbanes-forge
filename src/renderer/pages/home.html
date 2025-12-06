@@ -6,6 +6,17 @@
         <button class="btn btn-secondary" id="importCharacterBtn">
             <i class="fas fa-file-import"></i> Import Character
         </button>
+        <div class="ms-auto d-flex gap-2 align-items-center">
+            <label for="sortSelect" class="me-2 mb-0">Sort by:</label>
+            <select class="form-select form-select-sm" id="sortSelect" style="width: auto;">
+                <option value="name">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="level">Level (Low to High)</option>
+                <option value="level-desc">Level (High to Low)</option>
+                <option value="modified">Recently Modified</option>
+                <option value="modified-asc">Least Recently Modified</option>
+            </select>
+        </div>
     </div>
 </div>
 <div class="row" id="characterList">

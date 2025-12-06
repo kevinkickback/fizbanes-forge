@@ -36,12 +36,11 @@ export class SubracePickerView {
 		if (this._subraceSelect) {
 			this._subraceSelect.addEventListener('change', (event) => {
 				const selectedValue = event.target.value;
-				if (selectedValue) {
-					eventBus.emit(EVENTS.SUBRACE_SELECTED, {
-						name: selectedValue,
-						value: selectedValue,
-					});
-				}
+				// Emit event for both named subraces and standard (empty value)
+				eventBus.emit(EVENTS.SUBRACE_SELECTED, {
+					name: selectedValue,
+					value: selectedValue,
+				});
 			});
 		}
 	}
@@ -77,8 +76,9 @@ export class SubracePickerView {
 	/**
 	 * Populate the subrace selection dropdown
 	 * @param {Array<Object>} subraces - Array of subrace objects
+	 * @param {boolean} isRequired - Whether subrace selection is required
 	 */
-	populateSubraceSelect(subraces) {
+	populateSubraceSelect(subraces, isRequired = false) {
 		this._subraceSelect.innerHTML = '<option value="">No Subraces</option>';
 		this._subraceSelect.disabled = true;
 
@@ -100,7 +100,15 @@ export class SubracePickerView {
 			a.name.localeCompare(b.name),
 		);
 
-		this._subraceSelect.innerHTML = '<option value="">Select Subrace</option>';
+		// If subraces are optional, show "Standard" option as the default
+		if (!isRequired) {
+			this._subraceSelect.innerHTML =
+				'<option value="">Standard</option>';
+		} else {
+			// If required, don't show a placeholder option
+			this._subraceSelect.innerHTML = '';
+		}
+
 		this._subraceSelect.disabled = false;
 
 		// Add options to select

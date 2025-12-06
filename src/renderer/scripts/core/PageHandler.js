@@ -3,19 +3,19 @@
  * Handles page-specific initialization after pages are loaded
  */
 
-import { Logger } from '../infrastructure/Logger.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { CharacterManager } from './CharacterManager.js';
-import { AppState } from './AppState.js';
-import { Modal } from './Modal.js';
-import { storage } from './Storage.js';
+import { Logger } from '../infrastructure/Logger.js';
+import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
+import { BackgroundCard } from '../modules/background/BackgroundCard.js';
+import { ClassCard } from '../modules/class/ClassCard.js';
+import { ProficiencyCard } from '../modules/proficiencies/ProficiencyCard.js';
+import { RaceCard } from '../modules/race/RaceCard.js';
 import { settingsService } from '../services/SettingsService.js';
 import { showNotification } from '../utils/Notifications.js';
-import { RaceCard } from '../modules/race/RaceCard.js';
-import { ClassCard } from '../modules/class/ClassCard.js';
-import { BackgroundCard } from '../modules/background/BackgroundCard.js';
-import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
-import { ProficiencyCard } from '../modules/proficiencies/ProficiencyCard.js';
+import { AppState } from './AppState.js';
+import { CharacterManager } from './CharacterManager.js';
+import { Modal } from './Modal.js';
+import { storage } from './Storage.js';
 
 class PageHandlerImpl {
 	constructor() {
@@ -121,6 +121,24 @@ class PageHandlerImpl {
 				showNotification('Failed to load characters', 'error');
 			}
 
+			// Setup sort select listener
+			const sortSelect = document.getElementById('sortSelect');
+			if (sortSelect) {
+				// Remove any existing listeners
+				const newSortSelect = sortSelect.cloneNode(true);
+				sortSelect.parentNode.replaceChild(newSortSelect, sortSelect);
+
+				newSortSelect.addEventListener('change', async (e) => {
+					const sortOption = e.target.value;
+					Logger.info('PageHandler', 'Sort option changed', { sortOption });
+
+					// Re-render with current characters using new sort order
+					if (this.currentCharacters) {
+						await this.renderCharacterList(this.currentCharacters);
+					}
+				});
+			}
+
 			// Setup Modal event listeners for New Character and Import buttons
 			modal.setupEventListeners({
 				onShowModal: async (e) => {
@@ -174,6 +192,64 @@ class PageHandlerImpl {
 	}
 
 	/**
+	 * Sort characters based on the selected sorting option
+	 * @param {Array} characters - Array of character objects
+	 * @param {string} sortOption - The sorting option to apply
+	 * @returns {Array} Sorted array of characters
+	 */
+	sortCharacters(characters, sortOption) {
+		const sorted = [...characters]; // Create a copy to avoid mutating original
+
+		switch (sortOption) {
+			case 'name':
+				sorted.sort((a, b) =>
+					(a.name || 'Unnamed').localeCompare(b.name || 'Unnamed'),
+				);
+				break;
+			case 'name-desc':
+				sorted.sort((a, b) =>
+					(b.name || 'Unnamed').localeCompare(a.name || 'Unnamed'),
+				);
+				break;
+			case 'level':
+				sorted.sort((a, b) => {
+					const levelA = a.level || a.class?.level || 1;
+					const levelB = b.level || b.class?.level || 1;
+					return levelA - levelB;
+				});
+				break;
+			case 'level-desc':
+				sorted.sort((a, b) => {
+					const levelA = a.level || a.class?.level || 1;
+					const levelB = b.level || b.class?.level || 1;
+					return levelB - levelA;
+				});
+				break;
+			case 'modified':
+				sorted.sort((a, b) => {
+					const dateA = new Date(a.lastModified || 0).getTime();
+					const dateB = new Date(b.lastModified || 0).getTime();
+					return dateB - dateA; // Descending: most recent first
+				});
+				break;
+			case 'modified-asc':
+				sorted.sort((a, b) => {
+					const dateA = new Date(a.lastModified || 0).getTime();
+					const dateB = new Date(b.lastModified || 0).getTime();
+					return dateA - dateB; // Ascending: oldest first
+				});
+				break;
+			default:
+				// Default to name sort
+				sorted.sort((a, b) =>
+					(a.name || 'Unnamed').localeCompare(b.name || 'Unnamed'),
+				);
+		}
+
+		return sorted;
+	}
+
+	/**
 	 * Render the character list on the home page
 	 * @param {Array} characters - Array of character objects
 	 */
@@ -201,11 +277,19 @@ class PageHandlerImpl {
 			topButtonRow.style.display = '';
 		}
 
+		// Get the sort option and apply sorting
+		const sortSelect = document.getElementById('sortSelect');
+		const sortOption = sortSelect ? sortSelect.value : 'name';
+		const sortedCharacters = this.sortCharacters(characters, sortOption);
+
+		// Store characters for later use when sort changes
+		this.currentCharacters = sortedCharacters;
+
 		// Get the currently active character ID
 		const currentCharacter = AppState.getCurrentCharacter();
 		const activeCharacterId = currentCharacter?.id;
 
-		characterList.innerHTML = characters
+		characterList.innerHTML = sortedCharacters
 			.map((character) => {
 				const isActive = character.id === activeCharacterId;
 				const characterClass = character.class?.name || 'No Class';
@@ -261,7 +345,7 @@ class PageHandlerImpl {
 			.join('');
 
 		Logger.info('PageHandler', 'Character list rendered', {
-			count: characters.length,
+			count: sortedCharacters.length,
 		});
 	}
 

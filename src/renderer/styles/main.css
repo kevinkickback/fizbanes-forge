@@ -558,6 +558,31 @@ body {
 	transition: var(--transition);
 }
 
+/* Sort Controls */
+#sortSelect {
+	min-width: 180px;
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	font-size: 0.95rem;
+	padding: 0.375rem 0.75rem;
+}
+
+#sortSelect option {
+	background: var(--card-background);
+	color: var(--text-color);
+}
+
+#sortSelect:hover {
+	border-color: var(--accent-color);
+}
+
+#sortSelect:focus {
+	border-color: var(--accent-color);
+	box-shadow: 0 0 0 0.2rem
+		color-mix(in srgb, var(--accent-color) 25%, transparent);
+}
+
 .character-info {
 	display: flex;
 	flex-direction: column;

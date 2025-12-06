@@ -208,8 +208,27 @@ export class RaceCard {
 				);
 			});
 
-			// Populate view
-			this._subraceView.populateSubraceSelect(filteredSubraces);
+			// Check if subraces are required for this race
+			const subraceRequired = this._raceService.isSubraceRequired(
+				race.name,
+				race.source,
+			);
+
+			// Populate view with the filtered subraces
+			this._subraceView.populateSubraceSelect(
+				filteredSubraces,
+				subraceRequired,
+			);
+
+			// Auto-select the first subrace if it's required
+			if (subraceRequired && filteredSubraces.length > 0) {
+				const firstSubraceName = filteredSubraces[0].name;
+				this._subraceView.setSelectedSubraceValue(firstSubraceName);
+				// Trigger change event to update character data
+				setTimeout(() => {
+					this._subraceView.triggerSubraceSelectChange();
+				}, 0);
+			}
 		} catch (error) {
 			Logger.error('RaceCard', 'Error loading subraces for dropdown:', error);
 		}
@@ -291,15 +310,20 @@ export class RaceCard {
 
 			let subraceData = null;
 			if (subraceName) {
+				// User selected a named subrace
 				subraceData = this._raceService.getSubrace(
 					raceName,
 					subraceName,
 					source,
 				);
-			} else {
-				// If no subrace selected, check for nameless base variant
-				subraceData = this._getNamelessSubrace(raceName, source);
 			}
+			// If subraceName is empty, keep subraceData as null (no subrace selected = Standard)
+
+			Logger.debug('RaceCard', `Subrace changed: ${subraceName || 'Standard'}`, {
+				raceName,
+				subraceName,
+				subraceData: subraceData?.name || 'null',
+			});
 
 			// Update the UI with the subrace data
 			await this._detailsView.updateAllDetails(raceData, subraceData);
@@ -493,7 +517,7 @@ export class RaceCard {
 				character.race = {
 					name: race.name,
 					source: race.source,
-					subrace: subrace?.name || character.race.subrace || '',
+					subrace: subrace?.name || '',
 				};
 
 				// Update character size and speed

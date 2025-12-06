@@ -357,6 +357,10 @@ export class Modal {
 				abilityScoreMethod: formData.abilityScoreMethod,
 			};
 
+			// Update SourceService with the selected sources so dropdowns populate correctly
+			const { sourceService } = await import('../services/SourceService.js');
+			sourceService.allowedSources = new Set(selectedSources);
+
 			// Save character
 			const saveResult = await CharacterManager.saveCharacter();
 
