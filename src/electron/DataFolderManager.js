@@ -12,19 +12,42 @@ import path from 'node:path';
 import { MainLogger } from './MainLogger.js';
 
 // Core required files - validation fails if missing
-const CORE_REQUIRED_FILES = ['races.json', 'backgrounds.json', 'feats.json', 'skills.json', 'books.json'];
+// All root-level JSON files needed for character creation
+const CORE_REQUIRED_FILES = [
+    // Essential character creation files
+    'races.json',
+    'fluff-races.json',
+    'backgrounds.json',
+    'fluff-backgrounds.json',
+    'feats.json',
+    'fluff-feats.json',
+    'skills.json',
+    'books.json',
+    'items.json',
+    'items-base.json',
+    'fluff-items.json',
+    'actions.json',
+    'conditionsdiseases.json',
+    'fluff-conditionsdiseases.json',
+    'languages.json',
+    'fluff-languages.json',
+    'optionalfeatures.json',
+    'fluff-optionalfeatures.json',
+    'senses.json',
+    // Index files for subdirectories
+    'class/index.json',
+    'class/fluff-index.json',
+    'spells/index.json',
+    'spells/fluff-index.json',
+];
 // Core required folders
-const CORE_REQUIRED_FOLDERS = ['class'];
-// Optional files - validation succeeds but warns if missing
-const OPTIONAL_FILES = ['items.json', 'spells/index.json'];
-const OPTIONAL_FOLDERS = ['spells', 'bestiary'];
+const CORE_REQUIRED_FOLDERS = ['class', 'spells'];
 
 /**
- * Validation result tier: indicates severity of missing files
+ * Validation result
  * @typedef {object} ValidationResult
  * @property {boolean} valid - True if core files present
  * @property {string[]} missing - Missing core files
- * @property {string[]} missingOptional - Missing optional files (warnings)
  * @property {string} [error] - Error message if validation failed
  */
 
@@ -205,10 +228,10 @@ async function findFilePath(dir, fileName, maxDepth = 3, currentDepth = 0) {
 }
 
 /**
- * Check if a local data folder exists and contains required files using tiered validation.
- * Validation passes if CORE files exist; warns if optional files missing.
+ * Check if a local data folder exists and contains required files.
+ * All other files will be used if available.
  * @param {string} folderPath - Path to the data folder
- * @returns {Promise<{valid: boolean, missing: Array<string>, missingOptional: Array<string>, error?: string}>}
+ * @returns {Promise<{valid: boolean, missing: Array<string>, error?: string}>}
  */
 export async function validateLocalDataFolder(folderPath) {
     try {
@@ -218,13 +241,11 @@ export async function validateLocalDataFolder(folderPath) {
             return {
                 valid: false,
                 missing: [],
-                missingOptional: [],
                 error: 'Path is not a directory',
             };
         }
 
         const missingCore = [];
-        const missingOptional = [];
 
         // Check for CORE required files
         for (const file of CORE_REQUIRED_FILES) {
@@ -247,42 +268,13 @@ export async function validateLocalDataFolder(folderPath) {
             }
         }
 
-        // Check for OPTIONAL files (warnings only)
-        for (const file of OPTIONAL_FILES) {
-            const found = await fileExists(folderPath, file);
-            if (!found) {
-                missingOptional.push(file);
-            }
-        }
-
-        // Check for OPTIONAL folders (warnings only)
-        for (const folder of OPTIONAL_FOLDERS) {
-            const folderPath2 = path.join(folderPath, folder);
-            try {
-                const folderStats = await fs.stat(folderPath2);
-                if (!folderStats.isDirectory()) {
-                    missingOptional.push(folder);
-                }
-            } catch {
-                missingOptional.push(folder);
-            }
-        }
-
-        // Fail only if CORE files missing
+        // Fail if CORE files missing
         if (missingCore.length > 0) {
             MainLogger.info('DataFolderManager', 'Local folder validation: FAIL - missing core files', {
                 folderPath,
                 missingCore,
             });
-            return { valid: false, missing: missingCore, missingOptional };
-        }
-
-        // Log optional file warnings
-        if (missingOptional.length > 0) {
-            MainLogger.info('DataFolderManager', 'Local folder validation: PASS (with missing optional files)', {
-                folderPath,
-                missingOptional,
-            });
+            return { valid: false, missing: missingCore };
         }
 
         // Validate JSON structure for races.json
@@ -305,7 +297,6 @@ export async function validateLocalDataFolder(folderPath) {
                     return {
                         valid: false,
                         missing: [],
-                        missingOptional: [],
                         error: structureCheck.error || 'races.json has invalid structure',
                     };
                 }
@@ -318,7 +309,6 @@ export async function validateLocalDataFolder(folderPath) {
                 return {
                     valid: false,
                     missing: [],
-                    missingOptional: [],
                     error: 'races.json is not valid JSON',
                 };
             }
@@ -328,7 +318,7 @@ export async function validateLocalDataFolder(folderPath) {
             folderPath,
         });
 
-        return { valid: true, missing: [], missingOptional };
+        return { valid: true, missing: [] };
     } catch (error) {
         MainLogger.error(
             'DataFolderManager',
@@ -338,7 +328,6 @@ export async function validateLocalDataFolder(folderPath) {
         return {
             valid: false,
             missing: [...CORE_REQUIRED_FILES, ...CORE_REQUIRED_FOLDERS],
-            missingOptional: [],
             error: error.message,
         };
     }
@@ -472,19 +461,31 @@ async function fetchTextFromUrl(urlString, timeout = 10000) {
 
 /**
  * Download data files from a remote URL into a local folder using a manifest.
+ * Performs incremental updates - only downloads new or changed files.
  * @param {string} url - Remote root URL (repo or base)
  * @param {string} targetDir - Local directory to write files into
  * @param {string[]} manifest - Relative file paths to download
- * @param {(progress: {completed: number, total: number, file: string, success: boolean, error?: string}) => void} [onProgress]
- * @returns {Promise<{success: boolean, downloaded: number, failed?: Array<{file: string, error: string}>, error?: string}>}
+ * @param {(progress: {completed: number, total: number, file: string, success: boolean, skipped?: boolean, error?: string}) => void} [onProgress]
+ * @returns {Promise<{success: boolean, downloaded: number, skipped?: number, failed?: Array<{file: string, error: string}>, error?: string}>}
  */
 export async function downloadDataFromUrl(url, targetDir, manifest, onProgress) {
     const baseUrl = buildRawDataBaseUrl(url);
     const failed = [];
+    let skippedCount = 0;
 
     try {
-        await fs.rm(targetDir, { recursive: true, force: true });
-        await fs.mkdir(targetDir, { recursive: true });
+        // Check if target directory exists (incremental update case)
+        let targetExists = false;
+        try {
+            const stats = await fs.stat(targetDir);
+            targetExists = stats.isDirectory();
+        } catch {
+            // Directory doesn't exist - will create it
+        }
+
+        if (!targetExists) {
+            await fs.mkdir(targetDir, { recursive: true });
+        }
 
         let completed = 0;
         const total = manifest.length;
@@ -495,16 +496,36 @@ export async function downloadDataFromUrl(url, targetDir, manifest, onProgress) 
             const localDir = path.dirname(localPath);
 
             let success = false;
+            let skipped = false;
             let errorMessage;
+
             try {
+                // Check if file already exists
+                let existingContent = null;
+                try {
+                    existingContent = await fs.readFile(localPath, 'utf8');
+                } catch {
+                    // File doesn't exist - will download
+                }
+
+                // Fetch remote file
                 const result = await fetchTextFromUrl(remoteUrl);
                 if (!result.success || result.data === undefined) {
                     errorMessage = result.error || 'Unknown error';
                     failed.push({ file: relPath, error: errorMessage });
                 } else {
-                    await fs.mkdir(localDir, { recursive: true });
-                    await fs.writeFile(localPath, result.data, 'utf8');
-                    success = true;
+                    // Compare content if file exists
+                    if (existingContent !== null && existingContent === result.data) {
+                        // File unchanged - skip write
+                        skipped = true;
+                        skippedCount += 1;
+                        success = true;
+                    } else {
+                        // File is new or changed - write it
+                        await fs.mkdir(localDir, { recursive: true });
+                        await fs.writeFile(localPath, result.data, 'utf8');
+                        success = true;
+                    }
                 }
             } catch (error) {
                 errorMessage = error.message;
@@ -512,22 +533,36 @@ export async function downloadDataFromUrl(url, targetDir, manifest, onProgress) 
             } finally {
                 completed += 1;
                 if (typeof onProgress === 'function') {
-                    onProgress({ completed, total, file: relPath, success, error: errorMessage });
+                    onProgress({ completed, total, file: relPath, success, skipped, error: errorMessage });
                 }
             }
         }
 
         // Allow download to succeed with partial failures (some files may not exist upstream)
         // Log failures but continue - use what was downloaded
+        const downloadedCount = manifest.length - failed.length - skippedCount;
         if (failed.length > 0) {
             MainLogger.info('DataFolderManager', `Download completed with ${failed.length} missing file(s)`, {
-                downloaded: manifest.length - failed.length,
+                downloaded: downloadedCount,
+                skipped: skippedCount,
                 total: manifest.length,
                 failedSample: failed.slice(0, 5),
             });
+        } else if (skippedCount > 0) {
+            MainLogger.info('DataFolderManager', 'Incremental download completed', {
+                downloaded: downloadedCount,
+                skipped: skippedCount,
+                total: manifest.length,
+            });
         }
 
-        return { success: true, downloaded: manifest.length - failed.length, failed, warning: failed.length > 0 ? `${failed.length} file(s) not available upstream` : null };
+        return { 
+            success: true, 
+            downloaded: downloadedCount,
+            skipped: skippedCount,
+            failed, 
+            warning: failed.length > 0 ? `${failed.length} file(s) not available upstream` : null 
+        };
     } catch (error) {
         MainLogger.error('DataFolderManager', 'Download failed:', error);
         return { success: false, downloaded: 0, error: error.message };

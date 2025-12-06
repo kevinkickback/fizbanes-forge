@@ -1,5 +1,6 @@
 // Playwright-based sanity tests for hardened preload API
 import { _electron as electron, expect, test } from '@playwright/test';
+import path from 'node:path';
 
 async function getMainWindow(app, maxWaitMs = 5000, pollIntervalMs = 200) {
 	const start = Date.now();
@@ -71,10 +72,17 @@ test.describe('Preload Hardened API', () => {
 		const mainWindow = await getMainWindow(app);
 		if (!mainWindow) throw new Error('No Electron window found');
 
+		// Configure data source first (using bundled data)
+		const dataPath = path.join(process.cwd(), 'src', 'data');
+		await mainWindow.evaluate(async (dPath) => {
+			await window.app.validateDataSource({ type: 'local', value: dPath });
+		}, dataPath);
+
 		const skillsResult = await mainWindow.evaluate(() =>
-			window.data.loadJSON('data/skills.json'),
+			window.data.loadJSON('skills.json'),
 		);
 		expect(skillsResult).toHaveProperty('success', true);
 		expect(skillsResult).toHaveProperty('data');
+		await app.close();
 	});
 });

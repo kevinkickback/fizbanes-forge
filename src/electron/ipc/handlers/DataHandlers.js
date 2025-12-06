@@ -153,7 +153,11 @@ export function registerDataHandlers(dataPath, preferencesManager) {
 				}
 				const cachePath = getCachePathForUrl(value);
 
-				MainLogger.info('DataHandlers', 'Downloading remote data source', {
+				// Check if this is same URL as current config (incremental update)
+				const currentUrl = preferencesManager.get('dataSourceValue', null);
+				const isIncremental = currentUrl === value;
+
+				MainLogger.info('DataHandlers', isIncremental ? 'Updating remote data source (incremental)' : 'Downloading remote data source (full)', {
 					url: value,
 					cachePath,
 					files: manifest.length,
@@ -182,6 +186,7 @@ export function registerDataHandlers(dataPath, preferencesManager) {
 								completed: progress.completed,
 								file: progress.file,
 								success: progress.success,
+								skipped: progress.skipped,
 								error: progress.error,
 							});
 						}
@@ -213,10 +218,6 @@ export function registerDataHandlers(dataPath, preferencesManager) {
 					};
 				}
 
-				// Warn about missing optional files after download
-				if (cacheValidation.missingOptional && cacheValidation.missingOptional.length > 0) {
-					MainLogger.info('DataHandlers', 'Downloaded data has missing optional files:', cacheValidation.missingOptional);
-				}
 				preferencesManager.set('dataSourceType', 'url');
 				preferencesManager.set('dataSourceValue', value);
 				preferencesManager.set('dataSourceCachePath', cachePath);
@@ -224,6 +225,8 @@ export function registerDataHandlers(dataPath, preferencesManager) {
 				MainLogger.info('DataHandlers', 'URL data source downloaded and cached', {
 					cachePath,
 					downloaded: downloadResult.downloaded,
+					skipped: downloadResult.skipped || 0,
+					isIncremental,
 				});
 
 				if (event?.sender) {
@@ -231,6 +234,7 @@ export function registerDataHandlers(dataPath, preferencesManager) {
 						status: 'complete',
 						total: manifest.length,
 						completed: downloadResult.downloaded,
+						skipped: downloadResult.skipped || 0,
 						file: null,
 						success: true,
 					});
