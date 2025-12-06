@@ -68,7 +68,7 @@ export class WindowManager {
 
 		// Show window when ready
 		this.mainWindow.once('ready-to-show', () => {
-			console.log('[WindowManager] Window ready to show');
+			MainLogger.info('WindowManager', 'Window ready to show');
 			this.mainWindow.show();
 		});
 
@@ -136,7 +136,7 @@ export class WindowManager {
 	 */
 	closeWindow() {
 		if (this.hasWindow()) {
-			console.log('[WindowManager] Closing window');
+			MainLogger.info('WindowManager', 'Closing window');
 			this.mainWindow.close();
 		}
 	}
