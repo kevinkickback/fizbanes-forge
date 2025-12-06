@@ -341,6 +341,156 @@ export class ReferenceResolver {
 			return { name: actionName, error: error.message };
 		}
 	}
+
+	/**
+	 * Resolve an optional feature reference
+	 * @param {string} featureName Feature name
+	 * @returns {Promise<Object>} Feature data
+	 */
+	async resolveOptionalFeature(featureName) {
+		try {
+			const data = await this._dataUtil.loadOptionalFeatures();
+			const feature = data.optionalfeature?.find(
+				(f) => f.name.toLowerCase() === featureName.toLowerCase(),
+			);
+
+			if (!feature) {
+				return {
+					name: featureName,
+					error: 'Optional feature not found',
+				};
+			}
+
+			return feature;
+		} catch (error) {
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving optional feature "${featureName}":`,
+				error,
+			);
+			return { name: featureName, error: error.message };
+		}
+	}
+
+	/**
+	 * Resolve a reward reference
+	 * @param {string} rewardName Reward name
+	 * @returns {Promise<Object>} Reward data
+	 */
+	async resolveReward(rewardName) {
+		try {
+			const data = await this._dataUtil.loadRewards();
+			const reward = data.reward?.find(
+				(r) => r.name.toLowerCase() === rewardName.toLowerCase(),
+			);
+
+			if (!reward) {
+				return {
+					name: rewardName,
+					error: 'Reward not found',
+				};
+			}
+
+			return reward;
+		} catch (error) {
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving reward "${rewardName}":`,
+				error,
+			);
+			return { name: rewardName, error: error.message };
+		}
+	}
+
+	/**
+	 * Resolve a trap/hazard reference
+	 * @param {string} trapName Trap/hazard name
+	 * @returns {Promise<Object>} Trap data
+	 */
+	async resolveTrap(trapName) {
+		try {
+			const data = await this._dataUtil.loadTrapsHazards();
+			const trap = data.trap?.find(
+				(t) => t.name.toLowerCase() === trapName.toLowerCase(),
+			);
+
+			if (!trap) {
+				return {
+					name: trapName,
+					error: 'Trap/hazard not found',
+				};
+			}
+
+			return trap;
+		} catch (error) {
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving trap "${trapName}":`,
+				error,
+			);
+			return { name: trapName, error: error.message };
+		}
+	}
+
+	/**
+	 * Resolve a vehicle reference
+	 * @param {string} vehicleName Vehicle name
+	 * @returns {Promise<Object>} Vehicle data
+	 */
+	async resolveVehicle(vehicleName) {
+		try {
+			const data = await this._dataUtil.loadVehicles();
+			const vehicle = data.vehicle?.find(
+				(v) => v.name.toLowerCase() === vehicleName.toLowerCase(),
+			);
+
+			if (!vehicle) {
+				return {
+					name: vehicleName,
+					error: 'Vehicle not found',
+				};
+			}
+
+			return vehicle;
+		} catch (error) {
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving vehicle "${vehicleName}":`,
+				error,
+			);
+			return { name: vehicleName, error: error.message };
+		}
+	}
+
+	/**
+	 * Resolve an object reference
+	 * @param {string} objectName Object name
+	 * @returns {Promise<Object>} Object data
+	 */
+	async resolveObject(objectName) {
+		try {
+			const data = await this._dataUtil.loadObjects();
+			const obj = data.object?.find(
+				(o) => o.name.toLowerCase() === objectName.toLowerCase(),
+			);
+
+			if (!obj) {
+				return {
+					name: objectName,
+					error: 'Object not found',
+				};
+			}
+
+			return obj;
+		} catch (error) {
+			Logger.error(
+				'ReferenceResolver',
+				`Error resolving object "${objectName}":`,
+				error,
+			);
+			return { name: objectName, error: error.message };
+		}
+	}
 }
 
 // Singleton instance

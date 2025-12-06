@@ -216,6 +216,38 @@ class DataLoader {
 	}
 
 	/**
+	 * Get or load rewards data
+	 * @returns {Promise<Object>} Rewards data
+	 */
+	async loadRewards() {
+		return this.loadJSON(`${this._baseUrl}rewards.json`);
+	}
+
+	/**
+	 * Get or load traps and hazards data
+	 * @returns {Promise<Object>} Traps/hazards data
+	 */
+	async loadTrapsHazards() {
+		return this.loadJSON(`${this._baseUrl}trapshazards.json`);
+	}
+
+	/**
+	 * Get or load vehicles data
+	 * @returns {Promise<Object>} Vehicles data
+	 */
+	async loadVehicles() {
+		return this.loadJSON(`${this._baseUrl}vehicles.json`);
+	}
+
+	/**
+	 * Get or load objects data
+	 * @returns {Promise<Object>} Objects data
+	 */
+	async loadObjects() {
+		return this.loadJSON(`${this._baseUrl}objects.json`);
+	}
+
+	/**
 	 * Get or load sources data
 	 * @returns {Promise<Object>} Sources data
 	 */
@@ -316,6 +348,10 @@ DataLoader.loadOptionalFeatures = () =>
 	DataLoader.getInstance().loadOptionalFeatures();
 DataLoader.loadFluffOptionalFeatures = () =>
 	DataLoader.getInstance().loadFluffOptionalFeatures();
+DataLoader.loadRewards = () => DataLoader.getInstance().loadRewards();
+DataLoader.loadTrapsHazards = () => DataLoader.getInstance().loadTrapsHazards();
+DataLoader.loadVehicles = () => DataLoader.getInstance().loadVehicles();
+DataLoader.loadObjects = () => DataLoader.getInstance().loadObjects();
 DataLoader.loadSources = () => DataLoader.getInstance().loadSources();
 DataLoader.loadSubclassSpells = (subclassId) =>
 	DataLoader.getInstance().loadSubclassSpells(subclassId);

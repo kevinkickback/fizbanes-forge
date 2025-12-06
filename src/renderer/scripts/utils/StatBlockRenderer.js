@@ -474,6 +474,206 @@ export class StatBlockRenderer {
         return html;
     }
 
+    /**
+     * Render an optional feature stat block
+     * @param {Object} feature Optional feature data
+     * @returns {string} HTML
+     */
+    static renderOptionalFeature(feature) {
+        if (!feature || feature.error) {
+            return `<strong>${feature?.name || 'Unknown'}</strong><br><small>${feature?.error || 'No data'}</small>`;
+        }
+
+        let html = `<div class="tooltip-content" data-type="optionalfeature">`;
+
+        // Title
+        html += `<div class="tooltip-title">${feature.name}</div>`;
+
+        // Feature type
+        if (feature.featureType && Array.isArray(feature.featureType)) {
+            html += '<div class="tooltip-metadata">';
+            html += `<strong>Type:</strong> ${feature.featureType.join(', ')}<br>`;
+            html += '</div>';
+        }
+
+        // Prerequisites
+        if (feature.prerequisite) {
+            html += '<div class="tooltip-metadata">';
+            html += `<strong>Prerequisite:</strong> ${StatBlockRenderer._formatPrerequisite(feature.prerequisite)}<br>`;
+            html += '</div>';
+        }
+
+        // Description
+        if (feature.entries) {
+            html += StatBlockRenderer._renderEntries(feature.entries);
+        }
+
+        // Source
+        html += StatBlockRenderer._renderSource(feature);
+        html += '</div>';
+
+        return html;
+    }
+
+    /**
+     * Render a reward stat block
+     * @param {Object} reward Reward data
+     * @returns {string} HTML
+     */
+    static renderReward(reward) {
+        if (!reward || reward.error) {
+            return `<strong>${reward?.name || 'Unknown'}</strong><br><small>${reward?.error || 'No data'}</small>`;
+        }
+
+        let html = `<div class="tooltip-content" data-type="reward">`;
+
+        // Title
+        html += `<div class="tooltip-title">${reward.name}</div>`;
+
+        // Type
+        if (reward.type) {
+            html += `<div class="tooltip-metadata"><strong>Type:</strong> ${reward.type}</div>`;
+        }
+
+        // Description
+        if (reward.entries) {
+            html += StatBlockRenderer._renderEntries(reward.entries);
+        }
+
+        // Source
+        html += StatBlockRenderer._renderSource(reward);
+        html += '</div>';
+
+        return html;
+    }
+
+    /**
+     * Render a trap/hazard stat block
+     * @param {Object} trap Trap data
+     * @returns {string} HTML
+     */
+    static renderTrap(trap) {
+        if (!trap || trap.error) {
+            return `<strong>${trap?.name || 'Unknown'}</strong><br><small>${trap?.error || 'No data'}</small>`;
+        }
+
+        let html = `<div class="tooltip-content" data-type="trap">`;
+
+        // Title
+        html += `<div class="tooltip-title">${trap.name}</div>`;
+
+        // Type and threat
+        html += '<div class="tooltip-metadata">';
+        if (trap.trapHazType) {
+            const typeMap = { MECH: 'Mechanical', SMPL: 'Simple', CMPX: 'Complex', TRP: 'Trap', HAZ: 'Hazard' };
+            html += `<strong>Type:</strong> ${typeMap[trap.trapHazType] || trap.trapHazType}<br>`;
+        }
+        if (trap.rating?.[0]) {
+            const rating = trap.rating[0];
+            html += `<strong>Threat:</strong> ${rating.threat || ''} (Tier ${rating.tier || '?'})<br>`;
+        }
+        html += '</div>';
+
+        // Trigger
+        if (trap.trigger && Array.isArray(trap.trigger)) {
+            html += '<div class="tooltip-section">';
+            html += '<strong>Trigger:</strong> ';
+            html += trap.trigger.join(' ');
+            html += '</div>';
+        }
+
+        // Description
+        if (trap.entries) {
+            html += StatBlockRenderer._renderEntries(trap.entries, 3);
+        }
+
+        // Source
+        html += StatBlockRenderer._renderSource(trap);
+        html += '</div>';
+
+        return html;
+    }
+
+    /**
+     * Render a vehicle stat block
+     * @param {Object} vehicle Vehicle data
+     * @returns {string} HTML
+     */
+    static renderVehicle(vehicle) {
+        if (!vehicle || vehicle.error) {
+            return `<strong>${vehicle?.name || 'Unknown'}</strong><br><small>${vehicle?.error || 'No data'}</small>`;
+        }
+
+        let html = `<div class="tooltip-content" data-type="vehicle">`;
+
+        // Title
+        html += `<div class="tooltip-title">${vehicle.name}</div>`;
+
+        // Type and size
+        html += '<div class="tooltip-metadata">';
+        if (vehicle.vehicleType) {
+            html += `<strong>Type:</strong> ${vehicle.vehicleType}<br>`;
+        }
+        if (vehicle.size) {
+            html += `<strong>Size:</strong> ${vehicle.size}<br>`;
+        }
+        if (vehicle.speed) {
+            html += `<strong>Speed:</strong> ${vehicle.speed}<br>`;
+        }
+        html += '</div>';
+
+        // Description
+        if (vehicle.entries) {
+            html += StatBlockRenderer._renderEntries(vehicle.entries, 3);
+        }
+
+        // Source
+        html += StatBlockRenderer._renderSource(vehicle);
+        html += '</div>';
+
+        return html;
+    }
+
+    /**
+     * Render an object stat block
+     * @param {Object} obj Object data
+     * @returns {string} HTML
+     */
+    static renderObject(obj) {
+        if (!obj || obj.error) {
+            return `<strong>${obj?.name || 'Unknown'}</strong><br><small>${obj?.error || 'No data'}</small>`;
+        }
+
+        let html = `<div class="tooltip-content" data-type="object">`;
+
+        // Title
+        html += `<div class="tooltip-title">${obj.name}</div>`;
+
+        // Stats
+        html += '<div class="tooltip-metadata">';
+        if (obj.size) {
+            html += `<strong>Size:</strong> ${obj.size}<br>`;
+        }
+        if (obj.ac) {
+            html += `<strong>AC:</strong> ${obj.ac}<br>`;
+        }
+        if (obj.hp) {
+            html += `<strong>HP:</strong> ${obj.hp}<br>`;
+        }
+        html += '</div>';
+
+        // Description
+        if (obj.entries) {
+            html += StatBlockRenderer._renderEntries(obj.entries, 3);
+        }
+
+        // Source
+        html += StatBlockRenderer._renderSource(obj);
+        html += '</div>';
+
+        return html;
+    }
+
     // ===== HELPER METHODS =====
 
     /**

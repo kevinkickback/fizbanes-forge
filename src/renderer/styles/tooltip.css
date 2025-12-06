@@ -133,7 +133,7 @@
 	max-height: calc(100vh - 40px);
 	overflow-y: auto;
 	background: rgba(20, 20, 20, 0.98);
-	border: 2px solid var(--tooltip-border-color);
+	border: 1px solid var(--tooltip-border-color);
 	border-radius: 6px;
 	box-shadow:
 		0 0 12px rgba(0, 0, 0, 0.6),
@@ -872,6 +872,97 @@
 .tooltip-container .reference-link:hover {
 	color: var(--accent-hover);
 	border-bottom-color: var(--accent-hover);
+}
+
+/* Tooltip actions - pin, copy, close buttons */
+
+.tooltip-container .tooltip-actions {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	display: flex;
+	gap: 4px;
+	z-index: 10;
+}
+
+.tooltip-container .tooltip-drag-handle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	margin-right: 2px;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 4px;
+	color: rgba(255, 255, 255, 0.6);
+	cursor: move;
+	transition: all 0.2s ease;
+	user-select: none;
+}
+
+.tooltip-container .tooltip-drag-handle:hover {
+	background: rgba(0, 0, 0, 0.5);
+	border-color: var(--accent-color);
+	color: var(--accent-color);
+}
+
+.tooltip-container .tooltip-drag-handle svg {
+	width: 14px;
+	height: 14px;
+}
+
+.tooltip-container .tooltip-action-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 4px;
+	color: rgba(255, 255, 255, 0.7);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.tooltip-container .tooltip-action-btn:hover {
+	background: rgba(0, 0, 0, 0.6);
+	border-color: var(--accent-color);
+	color: var(--accent-color);
+}
+
+.tooltip-container .tooltip-action-btn.active {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	color: white;
+}
+
+.tooltip-container .tooltip-action-btn.success {
+	background: #4caf50;
+	border-color: #4caf50;
+	color: white;
+}
+
+.tooltip-container .tooltip-action-btn svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Pinned tooltip styling */
+.tooltip-container .tooltip.pinned {
+	border-color: var(--accent-color);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--accent-color) 25%, transparent);
+}
+
+.tooltip-container .tooltip.pinned::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
 }
 
 #tooltip-container strong {

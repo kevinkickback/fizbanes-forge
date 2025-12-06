@@ -21,6 +21,8 @@ export class TooltipManager {
 	_init() {
 		// Container for all tooltips will be body
 		// Individual tooltips will be created on demand
+		// Setup keyboard shortcuts
+		this._setupKeyboardShortcuts();
 	}
 
 	/**
@@ -38,10 +40,157 @@ export class TooltipManager {
 		const tooltip = document.createElement('div');
 		tooltip.className = 'tooltip';
 
+		// Add action buttons
+		const actions = document.createElement('div');
+		actions.className = 'tooltip-actions';
+		actions.innerHTML = `
+			<div class="tooltip-drag-handle" title="Drag tooltip" style="display: none">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<circle cx="8" cy="6" r="1.5" />
+					<circle cx="16" cy="6" r="1.5" />
+					<circle cx="8" cy="12" r="1.5" />
+					<circle cx="16" cy="12" r="1.5" />
+					<circle cx="8" cy="18" r="1.5" />
+					<circle cx="16" cy="18" r="1.5" />
+				</svg>
+			</div>
+			<button class="tooltip-action-btn tooltip-pin-btn" title="Pin tooltip (Ctrl+P)">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 16v5M17 9v-2a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2M9 9l-4 4 4 4M15 9l4 4-4 4"/>
+				</svg>
+			</button>
+			<button class="tooltip-action-btn tooltip-close-btn" title="Close (Esc)">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="18" y1="6" x2="6" y2="18"/>
+					<line x1="6" y1="6" x2="18" y2="18"/>
+				</svg>
+			</button>
+		`;
+
+		tooltip.appendChild(actions);
+
 		container.appendChild(tooltip);
 		document.body.appendChild(container);
 
-		return { container, tooltip };
+		const tooltipObj = { container, tooltip, isPinned: false };
+
+		// Add event listeners to action buttons
+		actions.querySelector('.tooltip-pin-btn').addEventListener('click', (e) => {
+			e.stopPropagation();
+			this._togglePin(tooltipObj);
+		});
+
+		actions.querySelector('.tooltip-close-btn').addEventListener('click', (e) => {
+			e.stopPropagation();
+			this._closeTooltip(tooltipObj);
+		});
+
+		// Allow pinned tooltips to be dragged via the drag handle
+		const dragHandle = actions.querySelector('.tooltip-drag-handle');
+		if (dragHandle) {
+			tooltipObj.dragHandle = dragHandle;
+			this._makeDraggable(tooltipObj, dragHandle);
+		}
+
+		return tooltipObj;
+	}
+
+	/**
+	 * Enable dragging a tooltip when it is pinned.
+	 * @param {Object} tooltipObj
+	 * @param {HTMLElement} handleElement
+	 * @private
+	 */
+	_makeDraggable(tooltipObj, handleElement) {
+		let isDragging = false;
+		let offsetX = 0;
+		let offsetY = 0;
+
+		const onMouseMove = (event) => {
+			if (!isDragging) return;
+			const rect = tooltipObj.container.getBoundingClientRect();
+			const newLeft = event.clientX - offsetX;
+			const newTop = event.clientY - offsetY;
+			const maxLeft = Math.max(0, window.innerWidth - rect.width);
+			const maxTop = Math.max(0, window.innerHeight - rect.height);
+			tooltipObj.container.style.left = `${Math.min(Math.max(0, newLeft), maxLeft)}px`;
+			tooltipObj.container.style.top = `${Math.min(Math.max(0, newTop), maxTop)}px`;
+		};
+
+		const onMouseUp = () => {
+			if (!isDragging) return;
+			isDragging = false;
+			document.removeEventListener('mousemove', onMouseMove);
+			document.removeEventListener('mouseup', onMouseUp);
+		};
+
+		handleElement.addEventListener('mousedown', (event) => {
+			// Only left-click drag on pinned tooltips; ignore clicks on interactive elements
+			if (event.button !== 0) return;
+			if (!tooltipObj.isPinned) return;
+			if (event.target.closest('button, a')) return;
+
+			isDragging = true;
+			const rect = tooltipObj.container.getBoundingClientRect();
+			offsetX = event.clientX - rect.left;
+			offsetY = event.clientY - rect.top;
+			document.addEventListener('mousemove', onMouseMove);
+			document.addEventListener('mouseup', onMouseUp);
+			event.preventDefault();
+		});
+	}
+
+	/**
+	 * Toggle pin state of tooltip
+	 * @param {Object} tooltipObj Tooltip object
+	 * @private
+	 */
+	_togglePin(tooltipObj) {
+		tooltipObj.isPinned = !tooltipObj.isPinned;
+		const pinBtn = tooltipObj.tooltip.querySelector('.tooltip-pin-btn');
+		const dragHandle = tooltipObj.dragHandle;
+
+		if (tooltipObj.isPinned) {
+			tooltipObj.tooltip.classList.add('pinned');
+			pinBtn.classList.add('active');
+			pinBtn.title = 'Unpin tooltip';
+			if (dragHandle) dragHandle.style.display = 'flex';
+			tooltipObj.container.style.pointerEvents = 'auto';
+		} else {
+			tooltipObj.tooltip.classList.remove('pinned');
+			pinBtn.classList.remove('active');
+			pinBtn.title = 'Pin tooltip (Ctrl+P)';
+			if (dragHandle) dragHandle.style.display = 'none';
+		}
+	}
+
+	/**
+	 * Copy tooltip content to clipboard
+	 * @param {Object} tooltipObj Tooltip object
+	 * @private
+	 */
+	// Copy tooltip content is disabled (button removed)
+	async _copyTooltipContent() { }
+
+	/**
+	 * Close specific tooltip
+	 * @param {Object} tooltipObj Tooltip object
+	 * @private
+	 */
+	_closeTooltip(tooltipObj) {
+		const index = this._tooltips.indexOf(tooltipObj);
+		if (index !== -1) {
+			this._tooltips.splice(index, 1);
+		}
+
+		tooltipObj.tooltip.classList.remove('show');
+		tooltipObj.tooltip.classList.add('hide');
+
+		setTimeout(() => {
+			if (tooltipObj.container.parentNode) {
+				tooltipObj.container.parentNode.removeChild(tooltipObj.container);
+			}
+		}, 200);
 	}
 
 	/**
@@ -54,7 +203,12 @@ export class TooltipManager {
 	show(x, y, content, options = {}) {
 		// Create new tooltip
 		const tooltipObj = this._createTooltip();
-		tooltipObj.tooltip.innerHTML = content;
+
+		// Insert content after the action buttons
+		const contentWrapper = document.createElement('div');
+		contentWrapper.innerHTML = content;
+		tooltipObj.tooltip.appendChild(contentWrapper);
+
 		tooltipObj.tooltip.classList.add('show');
 
 		// Store reference key for circular reference detection (but not for circular warning tooltips)
@@ -108,29 +262,74 @@ export class TooltipManager {
 	}
 
 	/**
-	 * Hide the most recent tooltip
+	 * Hide the most recent tooltip (unless pinned)
 	 */
 	hide() {
 		if (this._tooltips.length === 0) return;
 
-		const tooltipObj = this._tooltips.pop();
-		tooltipObj.tooltip.classList.remove('show');
-		tooltipObj.tooltip.classList.add('hide');
-
-		setTimeout(() => {
-			if (tooltipObj.container.parentNode) {
-				tooltipObj.container.parentNode.removeChild(tooltipObj.container);
+		// Find the last unpinned tooltip
+		for (let i = this._tooltips.length - 1; i >= 0; i--) {
+			const tooltipObj = this._tooltips[i];
+			if (!tooltipObj.isPinned) {
+				this._closeTooltip(tooltipObj);
+				return;
 			}
-		}, 200);
+		}
 	}
 
 	/**
-	 * Hide all tooltips
+	 * Hide all tooltips (including pinned)
 	 */
 	hideAll() {
-		while (this._tooltips.length > 0) {
-			this.hide();
-		}
+		const tooltipsToClose = [...this._tooltips];
+		this._tooltips = [];
+
+		tooltipsToClose.forEach(tooltipObj => {
+			tooltipObj.tooltip.classList.remove('show');
+			tooltipObj.tooltip.classList.add('hide');
+
+			setTimeout(() => {
+				if (tooltipObj.container.parentNode) {
+					tooltipObj.container.parentNode.removeChild(tooltipObj.container);
+				}
+			}, 200);
+		});
+	}
+
+	/**
+	 * Setup keyboard shortcuts for tooltips
+	 * @private
+	 */
+	_setupKeyboardShortcuts() {
+		document.addEventListener('keydown', (e) => {
+			// Get the active (last) tooltip
+			const activeTooltip = this._tooltips[this._tooltips.length - 1];
+			if (!activeTooltip) return;
+
+			// Ctrl+P or Cmd+P: Pin/Unpin
+			if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+				e.preventDefault();
+				this._togglePin(activeTooltip);
+			}
+
+			// Ctrl+C or Cmd+C: Copy (only if not in input field)
+			if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.target.matches('input, textarea')) {
+				const selection = window.getSelection();
+				if (!selection || selection.toString().length === 0) {
+					e.preventDefault();
+					this._copyTooltipContent(activeTooltip);
+				}
+			}
+
+			// Escape: Close tooltip
+			if (e.key === 'Escape') {
+				if (activeTooltip.isPinned) {
+					this._closeTooltip(activeTooltip);
+				} else {
+					this.hide();
+				}
+			}
+		});
 	}
 
 	/**
@@ -210,6 +409,22 @@ export class TooltipManager {
 					// creature is an alias for monster
 					data = await this._referenceResolver.resolveMonster(name, source);
 					break;
+				case 'optionalfeature':
+					data = await this._referenceResolver.resolveOptionalFeature(name);
+					break;
+				case 'reward':
+					data = await this._referenceResolver.resolveReward(name);
+					break;
+				case 'trap':
+				case 'hazard':
+					data = await this._referenceResolver.resolveTrap(name);
+					break;
+				case 'vehicle':
+					data = await this._referenceResolver.resolveVehicle(name);
+					break;
+				case 'object':
+					data = await this._referenceResolver.resolveObject(name);
+					break;
 				default:
 					data = { name, type };
 			}
@@ -280,6 +495,31 @@ export class TooltipManager {
 		// Check for action (has time array)
 		if (data.time && Array.isArray(data.time)) {
 			return StatBlockRenderer.renderAction(data);
+		}
+
+		// Check for optional feature (has featureType)
+		if (data.featureType) {
+			return StatBlockRenderer.renderOptionalFeature(data);
+		}
+
+		// Check for reward (has type and is a reward)
+		if (data.type && (data.type.includes('Charm') || data.type.includes('Piety') || data.type.includes('Blessing'))) {
+			return StatBlockRenderer.renderReward(data);
+		}
+
+		// Check for trap/hazard (has trapHazType)
+		if (data.trapHazType) {
+			return StatBlockRenderer.renderTrap(data);
+		}
+
+		// Check for vehicle (has vehicleType)
+		if (data.vehicleType) {
+			return StatBlockRenderer.renderVehicle(data);
+		}
+
+		// Check for object (has ac and hp, but not a creature)
+		if (data.ac && data.hp && !data.cr) {
+			return StatBlockRenderer.renderObject(data);
 		}
 
 		// Check for condition (if none of the above, assume condition if it has entries)
@@ -552,6 +792,18 @@ export function initializeTooltipListeners(tooltipManager) {
 	const activeElements = new Map(); // depth -> {link, tooltip, timeout}
 	let currentHoverLink = null;
 
+	const HOVER_SELECTOR = '.rd__hover-link, .reference-link';
+
+	// Normalizes metadata so both rd__hover-link and reference-link work
+	function getHoverMeta(link) {
+		if (!link) return null;
+		const hoverType = link.dataset.hoverType || link.dataset.tooltipType;
+		const hoverName = link.dataset.hoverName || link.dataset.tooltipName || link.textContent?.trim();
+		const hoverSource = link.dataset.hoverSource || link.dataset.tooltipSource || 'PHB';
+		if (!hoverType || !hoverName) return null;
+		return { hoverType, hoverName, hoverSource };
+	}
+
 	// Helper to check if mouse is in tooltip system
 	function isInTooltipSystem(element) {
 		if (!element) return false;
@@ -562,18 +814,19 @@ export function initializeTooltipListeners(tooltipManager) {
 			element.closest('.tooltip-container') !== null;
 		const inLink =
 			element.classList?.contains('rd__hover-link') ||
-			element.closest('.rd__hover-link') !== null;
+			element.classList?.contains('reference-link') ||
+			element.closest('.rd__hover-link') !== null ||
+			element.closest('.reference-link') !== null;
 		return inTooltip || inLink;
 	}
 
 	// Use event delegation for hover links
 	document.addEventListener('mouseover', (event) => {
-		const link = event.target.closest('.rd__hover-link');
-		if (!link) return;
+		const link = event.target.closest(HOVER_SELECTOR);
+		const hoverMeta = getHoverMeta(link);
+		if (!hoverMeta) return;
 
-		const hoverType = link.dataset.hoverType;
-		const hoverName = link.dataset.hoverName;
-		const hoverSource = link.dataset.hoverSource || 'PHB';
+		const { hoverType, hoverName, hoverSource } = hoverMeta;
 
 		// Find which tooltip contains this link (if any)
 		const parentTooltip = link.closest('.tooltip-container');
@@ -617,8 +870,18 @@ export function initializeTooltipListeners(tooltipManager) {
 			`Current stack size: ${tooltipManager._tooltips.length}, keeping up to index: ${keepUpToIndex}`,
 		);
 
-		// Remove tooltips after the one containing the link
+		// Remove tooltips after the one containing the link, but keep pinned ones
 		while (tooltipManager._tooltips.length > keepUpToIndex) {
+			const lastTooltip = tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
+			// Stop trimming if we hit a pinned tooltip to preserve user-pinned content
+			if (lastTooltip.isPinned) {
+				Logger.info(
+					'TooltipSystem',
+					`Stopped removing at pinned tooltip index ${tooltipManager._tooltips.length - 1}`,
+				);
+				break;
+			}
+
 			const removed = tooltipManager._tooltips.pop();
 			Logger.info(
 				'TooltipSystem',
@@ -642,8 +905,17 @@ export function initializeTooltipListeners(tooltipManager) {
 			// Check if inline content is provided (e.g., for traits and features)
 			const inlineContent = link.dataset.hoverContent;
 			if (inlineContent && (hoverType === 'trait' || hoverType === 'feature')) {
-				// Show tooltip with inline content
-				const html = `<div class="tooltip-content"><strong>${hoverName}</strong><p>${inlineContent}</p></div>`;
+				// Show tooltip with inline content using tooltip-title styling
+				const typeLabel = hoverType === 'trait' ? 'Racial Trait' : 'Feature';
+				const html = `
+					<div class="tooltip-content" data-type="${hoverType}">
+						<div class="tooltip-title">${hoverName}</div>
+						<div class="tooltip-metadata">${typeLabel}</div>
+						<div class="tooltip-description">
+							<p>${inlineContent}</p>
+						</div>
+					</div>
+				`;
 				tooltipManager.show(event.clientX, event.clientY, html);
 			} else {
 				// Show tooltip by resolving reference
@@ -704,10 +976,15 @@ export function initializeTooltipListeners(tooltipManager) {
 						`Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`,
 					);
 
-					// Remove tooltips deeper than where we're going
+					// Remove tooltips deeper than where we're going (unless pinned)
 					const keepUpToIndex = toIndex + 1;
 					setTimeout(() => {
 						while (tooltipManager._tooltips.length > keepUpToIndex) {
+							const lastTooltip = tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
+							// Don't remove if pinned
+							if (lastTooltip.isPinned) {
+								break;
+							}
 							const removed = tooltipManager._tooltips.pop();
 							removed.tooltip.classList.remove('show');
 							removed.tooltip.classList.add('hide');
@@ -725,21 +1002,25 @@ export function initializeTooltipListeners(tooltipManager) {
 
 		// If leaving tooltip system entirely
 		if (isInTooltipSystem(fromElement) && !isInTooltipSystem(toElement)) {
-			Logger.info('TooltipSystem', 'Left tooltip system, hiding all');
+			Logger.info('TooltipSystem', 'Left tooltip system, hiding unpinned tooltips');
 
-			// Clear all active tooltips after delay
+			// Clear unpinned tooltips after delay
 			globalHideTimeout = setTimeout(() => {
 				currentHoverLink = null;
 				activeElements.clear();
-				while (tooltipManager._tooltips.length > 0) {
-					const removed = tooltipManager._tooltips.pop();
-					removed.tooltip.classList.remove('show');
-					removed.tooltip.classList.add('hide');
-					setTimeout(() => {
-						if (removed.container.parentNode) {
-							removed.container.parentNode.removeChild(removed.container);
-						}
-					}, 200);
+				// Only remove unpinned tooltips
+				for (let i = tooltipManager._tooltips.length - 1; i >= 0; i--) {
+					const tooltip = tooltipManager._tooltips[i];
+					if (!tooltip.isPinned) {
+						tooltipManager._tooltips.splice(i, 1);
+						tooltip.tooltip.classList.remove('show');
+						tooltip.tooltip.classList.add('hide');
+						setTimeout(() => {
+							if (tooltip.container.parentNode) {
+								tooltip.container.parentNode.removeChild(tooltip.container);
+							}
+						}, 200);
+					}
 				}
 				globalHideTimeout = null;
 			}, 300);
@@ -759,6 +1040,30 @@ export function initializeTooltipListeners(tooltipManager) {
 			}
 		}
 	});
+}
+
+/**
+ * Convenience initializer for pages that use either @tags (rd__hover-link)
+ * or legacy `.reference-link` spans with data-tooltip-* attributes.
+ * Adds the necessary listeners and upgrades spans to behave like hover links.
+ * @param {ParentNode} [root=document]
+ * @returns {{tooltipManager: TooltipManager, upgraded: Element[]}}
+ */
+export function initializeTooltips(root = document) {
+	const tooltipManager = getTooltipManager();
+	initializeTooltipListeners(tooltipManager);
+
+	const upgraded = [];
+	if (root?.querySelectorAll) {
+		root.querySelectorAll('.reference-link').forEach((link) => {
+			if (!link.classList.contains('rd__hover-link')) {
+				link.classList.add('rd__hover-link');
+			}
+			upgraded.push(link);
+		});
+	}
+
+	return { tooltipManager, upgraded };
 }
 
 // Singleton instance
