@@ -166,6 +166,13 @@ export class BackgroundCard extends BaseCard {
 			() => this._handleBackgroundChange(),
 			() => this._handleVariantChange(),
 		);
+
+		// Listen for source changes and repopulate background dropdown
+		eventBus.on('sources:allowed-changed', () => {
+			this._renderBackgroundSelection();
+			// Reload saved selection if one was made
+			this._loadSavedBackgroundSelection();
+		});
 	}
 
 	/**

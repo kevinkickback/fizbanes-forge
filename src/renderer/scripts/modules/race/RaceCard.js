@@ -94,6 +94,11 @@ export class RaceCard {
 		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
 		});
+
+		// Listen for source changes and repopulate race/subrace dropdowns
+		eventBus.on('sources:allowed-changed', () => {
+			this._loadSavedRaceSelection();
+		});
 	}
 
 	//-------------------------------------------------------------------------

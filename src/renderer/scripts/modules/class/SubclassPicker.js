@@ -96,7 +96,8 @@ export class SubclassPickerView {
 		for (const subclass of sortedSubclasses) {
 			const option = document.createElement('option');
 			option.value = subclass.name;
-			option.textContent = `${subclass.name} (${subclass.source})`;
+			const src = subclass.subclassSource || subclass.source || subclass.classSource || '';
+			option.textContent = src ? `${subclass.name} (${src})` : subclass.name;
 			this._subclassSelect.appendChild(option);
 		}
 

@@ -361,6 +361,9 @@ export class Modal {
 			const { sourceService } = await import('../services/SourceService.js');
 			sourceService.allowedSources = new Set(selectedSources);
 
+			// Emit the event to trigger dropdown repopulation
+			eventBus.emit('sources:allowed-changed', Array.from(sourceService.allowedSources));
+
 			// Save character
 			const saveResult = await CharacterManager.saveCharacter();
 

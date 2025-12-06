@@ -82,6 +82,10 @@ export class SourceService {
 			EVENTS.CHARACTER_CREATED,
 			this._handleCharacterChange.bind(this),
 		);
+		eventBus.on(
+			EVENTS.CHARACTER_SELECTED,
+			this._handleCharacterChange.bind(this),
+		);
 	}
 
 	/**
@@ -471,10 +475,9 @@ export class SourceService {
 		for (const src of sources) {
 			const norm = this._normalizeSource(src);
 			expanded.add(norm);
-			// Map PHB to known variants
+			// Map PHB to 2014 variant only; do NOT implicitly include XPHB
 			if (norm === 'PHB') {
 				expanded.add('PHB-2014');
-				expanded.add('XPHB');
 			}
 		}
 		return expanded;

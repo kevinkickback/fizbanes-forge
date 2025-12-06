@@ -95,6 +95,11 @@ export class ClassCard {
 		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
 		});
+
+		// Listen for source changes and repopulate class/subclass dropdowns
+		eventBus.on('sources:allowed-changed', () => {
+			this._loadSavedClassSelection();
+		});
 	}
 
 	//-------------------------------------------------------------------------
@@ -205,7 +210,8 @@ export class ClassCard {
 
 			// Filter subclasses by allowed sources
 			const filteredSubclasses = subclasses.filter((sc) => {
-				const subclassSource = sc.classSource || sc.source;
+				// Prefer explicit subclass source, then generic source, and only then classSource
+				const subclassSource = sc.subclassSource || sc.source || sc.classSource;
 				return sourceService.isSourceAllowed(subclassSource);
 			});
 
