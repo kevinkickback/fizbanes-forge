@@ -1,40 +1,4 @@
-/**
- * IPC Channel name constants.
- *
- * ARCHITECTURE: Main Process - Shared Constants
- *
- * PURPOSE:
- * - Single source of truth for all IPC channel names
- * - Prevents typos in channel names
- * - Makes it easy to see all available IPC operations
- * - Used by both main process handlers and preload script
- *
- * CHANNEL CONTRACTS:
- * - character:save        => request: serialized character; response: { success, path?, error? }
- * - character:list        => request: none; response: { success, characters: [], error? }
- * - character:delete      => request: id string; response: { success, error? }
- * - character:import      => request: optional config; response: { success, error?, ... }
- * - character:export      => request: id string; response: { success, path?, error? }
- * - character:generateUUID=> request: none; response: { success, data: uuid }
- * - file:selectFolder     => request: none; response: { success, path?, canceled?, error? }
- * - file:readJson         => request: filePath; response: { success, data?, error? }
- * - file:writeJson        => request: filePath, data; response: { success, error? }
- * - file:exists           => request: filePath; response: { success, exists: boolean }
- * - file:open             => request: filePath; response: { success, error? }
- * - settings:getPath      => request: key; response: value
- * - settings:setPath      => request: key, value; response: { success: boolean }
- * - settings:getAll       => request: none; response: preferences object
- * - data:loadJson         => request: fileName; response: { success, data?, error? }
- * - data:getSource        => request: none; response: { success, type?, value? }
- * - data:validateSource   => request: {type, value}; response: { success, error? }
- * - data:refreshSource    => request: none; response: { success, error?, downloaded?, skipped? }
- * - data:checkDefault     => request: none; response: { success, hasDefaultData: boolean }
- * - data:downloadProgress => event: progress updates during URL download
- * - util:getAppPath       => request: none; response: appPath string
- * - util:getUserData      => request: none; response: userDataPath string
- *
- * @module src/electron/ipc/channels
- */
+/** Central list of IPC channel names shared by main and preload. */
 
 export const IPC_CHANNELS = {
 	// Character operations

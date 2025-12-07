@@ -1,7 +1,4 @@
-/**
- * NumberFormatter.js
- * Utility functions for formatting numbers in D&D context
- */
+/** NumberFormatter.js - Utility helpers for formatting numeric D&D values. */
 
 /**
  * Formats a number with proper sign (+/-) for display

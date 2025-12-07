@@ -1,16 +1,4 @@
-/**
- * Character data schema and validation.
- *
- * ARCHITECTURE: Domain Layer - Pure business logic
- *
- * PURPOSE:
- * - Define canonical character data structure
- * - Provide validation for character data
- * - Create new character instances
- * - No dependencies on infrastructure or application
- *
- * @module domain/CharacterSchema
- */
+/** Domain schema helpers for creating and validating character data. */
 
 import { Logger } from '../infrastructure/Logger.js';
 import { validate as validateCharacter } from './CharacterValidation.js';

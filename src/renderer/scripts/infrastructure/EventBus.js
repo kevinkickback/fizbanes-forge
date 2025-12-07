@@ -1,35 +1,4 @@
-/**
- * Event bus for decoupled component communication.
- *
- * ARCHITECTURE: Infrastructure Layer - No dependencies on other app code
- *
- * PURPOSE:
- * - Enables loose coupling between components
- * - Components don't need direct references to each other
- * - Easy to add/remove event listeners
- * - Prevents circular dependencies
- *
- * USAGE EXAMPLES:
- *   import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
- *
- *   // Component A - Emit event
- *   eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
- *
- *   // Component B - Listen for event
- *   eventBus.on(EVENTS.CHARACTER_SELECTED, (character) => {
- *     console.log('Character changed:', character);
- *   });
- *
- *   // Component B - Cleanup
- *   eventBus.off(EVENTS.CHARACTER_SELECTED, handlerFunction);
- *
- *   // One-time listener
- *   eventBus.once(EVENTS.APP_READY, () => {
- *     console.log('App is ready!');
- *   });
- *
- * @module infrastructure/EventBus
- */
+/** Decoupled event bus for renderer components (infrastructure layer). */
 
 import { Logger } from './Logger.js';
 

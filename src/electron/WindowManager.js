@@ -1,20 +1,4 @@
-/**
- * Manages Electron BrowserWindow lifecycle.
- *
- * ARCHITECTURE: Main Process - Window Management
- *
- * PURPOSE:
- * - Create and configure main window
- * - Handle window events (close, resize, move)
- * - Save/restore window state
- * - Manage window lifecycle
- *
- * USAGE:
- *   const wm = new WindowManager(preferencesManager, __dirname);
- *   const mainWindow = wm.createMainWindow();
- *
- * @module src/electron/WindowManager
- */
+/** BrowserWindow lifecycle helper: create, persist bounds, and expose window ops. */
 
 import { BrowserWindow } from 'electron';
 import path from 'node:path';
@@ -29,10 +13,7 @@ export class WindowManager {
 		this.mainWindow = null;
 	}
 
-	/**
-	 * Create the main application window.
-	 * @returns {BrowserWindow} The created window
-	 */
+	/** Create the main application window. */
 	createMainWindow() {
 		MainLogger.info('WindowManager', 'Creating main window');
 
@@ -79,10 +60,7 @@ export class WindowManager {
 		return this.mainWindow;
 	}
 
-	/**
-	 * Setup window event handlers.
-	 * @private
-	 */
+	/** Wire window event listeners. */
 	setupWindowEvents() {
 		// Save window bounds on close
 		this.mainWindow.on('close', () => {
@@ -115,25 +93,17 @@ export class WindowManager {
 		});
 	}
 
-	/**
-	 * Get the main window instance.
-	 * @returns {BrowserWindow|null} Main window or null
-	 */
+	/** Get the main window instance. */
 	getMainWindow() {
 		return this.mainWindow;
 	}
 
-	/**
-	 * Check if main window exists and is not destroyed.
-	 * @returns {boolean} True if window exists
-	 */
+	/** True if a main window exists and is not destroyed. */
 	hasWindow() {
 		return this.mainWindow !== null && !this.mainWindow.isDestroyed();
 	}
 
-	/**
-	 * Close the main window.
-	 */
+	/** Close the main window. */
 	closeWindow() {
 		if (this.hasWindow()) {
 			MainLogger.info('WindowManager', 'Closing window');
@@ -141,18 +111,14 @@ export class WindowManager {
 		}
 	}
 
-	/**
-	 * Minimize the main window.
-	 */
+	/** Minimize the main window. */
 	minimizeWindow() {
 		if (this.hasWindow()) {
 			this.mainWindow.minimize();
 		}
 	}
 
-	/**
-	 * Maximize the main window.
-	 */
+	/** Toggle maximize state. */
 	maximizeWindow() {
 		if (this.hasWindow()) {
 			if (this.mainWindow.isMaximized()) {
@@ -163,9 +129,7 @@ export class WindowManager {
 		}
 	}
 
-	/**
-	 * Open DevTools.
-	 */
+	/** Open DevTools for the main window. */
 	openDevTools() {
 		if (this.hasWindow()) {
 			this.mainWindow.webContents.openDevTools();

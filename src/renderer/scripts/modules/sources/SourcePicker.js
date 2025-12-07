@@ -1,11 +1,6 @@
-/**
- * SourcePickerView.js
- * Handles rendering and interaction of source book toggle buttons
- */
+/** View for rendering and handling source book toggle buttons. */
 
-/**
- * View component for source book selection UI
- */
+/** View component for source book selection UI. */
 export class SourcePickerView {
 	/**
 	 * Render source book toggles

@@ -1,21 +1,13 @@
-/**
- * SettingsService.js
- * Manages application settings and configuration
- */
+/** Manages application settings and configuration. */
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
 import { RefreshProgressModal } from '../modules/setup/RefreshProgressModal.js';
 import { showNotification } from '../utils/Notifications.js';
 
-/**
- * Manages application settings and configuration
- */
+/** Manages application settings and configuration. */
 export class SettingsService {
-	/**
-	 * Creates a new SettingsService instance
-	 * @private
-	 */
+	/** Creates a new SettingsService instance. */
 	constructor() {
 		/**
 		 * Flag to track initialization state

@@ -1,13 +1,8 @@
-/**
- * SubracePickerView.js
- * View component for subrace selection dropdown.
- */
+/** View component for subrace selection dropdown. */
 
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 
-/**
- * View for the subrace selection dropdown
- */
+/** View for the subrace selection dropdown. */
 export class SubracePickerView {
 	/**
 	 * Creates a new SubracePickerView instance

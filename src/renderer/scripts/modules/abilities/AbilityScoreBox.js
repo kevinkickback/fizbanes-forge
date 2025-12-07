@@ -1,15 +1,10 @@
-/**
- * @file AbilityScoreBoxView.js
- * @description View for rendering individual ability score boxes with scores, modifiers, and bonuses
- */
+/** View for rendering ability score boxes with scores, modifiers, and bonuses. */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { methodControlsView } from './MethodControls.js';
 
-/**
- * View for rendering ability score boxes
- */
+/** View for rendering ability score boxes. */
 class AbilityScoreBoxView {
 	/**
 	 * Creates a new AbilityScoreBoxView

@@ -1,14 +1,8 @@
-/**
- * BackgroundDetailsView.js
- * View component for displaying background details
- */
+/** View component for displaying background details. */
 
 import { textProcessor } from '../../utils/TextProcessor.js';
 
-/**
- * Manages the background details view layer
- * Handles rendering of proficiencies, equipment, and features
- */
+/** Handles background details rendering (proficiencies, equipment, features). */
 export class BackgroundDetailsView {
 	/**
 	 * @param {HTMLElement} card - Root card element

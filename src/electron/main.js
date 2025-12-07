@@ -1,7 +1,4 @@
-/**
- * @file main.js
- * Electron application entry point.
- */
+/** Electron application entry point. */
 
 import { app } from 'electron';
 import path from 'node:path';

@@ -1,20 +1,12 @@
-/**
- * ProficiencyManager.js
- * Manager for managing proficiencies and proficiency bonuses
- */
+/** Manages proficiencies and proficiency bonuses. */
 
 import { ProficiencyCore } from '../core/Proficiency.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 
-/**
- * Manages proficiencies and proficiency-related calculations
- */
+/** Manages proficiencies and proficiency-related calculations. */
 export class ProficiencyService {
-	/**
-	 * Creates a new ProficiencyManager instance
-	 * @private
-	 */
+	/** Creates a new ProficiencyManager instance. */
 	constructor() {
 		this._initialized = false;
 		this._skills = null;

@@ -1,17 +1,11 @@
-/**
- * ClassDetailsView.js
- * View component for displaying detailed class information.
- * Handles hit die, proficiencies, saving throws, and features display.
- */
+/** View for detailed class information (hit die, proficiencies, saves, features). */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
-/**
- * View for displaying class details (proficiencies, features, etc.)
- */
+/** View for displaying class details. */
 export class ClassDetailsView {
 	/**
 	 * Creates a new ClassDetailsView instance

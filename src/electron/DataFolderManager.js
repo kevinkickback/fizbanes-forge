@@ -1,9 +1,4 @@
-/**
- * DataFolderManager.js
- * Utility for checking and validating D&D data folder configuration
- *
- * @module src/electron/DataFolderManager
- */
+/** Utility helpers for validating, fetching, and downloading 5e data folders. */
 
 import fs from 'node:fs/promises';
 import http from 'node:http';
@@ -12,7 +7,6 @@ import path from 'node:path';
 import { MainLogger } from './MainLogger.js';
 
 // Core required files - validation fails if missing
-// All root-level JSON files needed for character creation
 const CORE_REQUIRED_FILES = [
     // Essential character creation files
     'races.json',
@@ -43,7 +37,7 @@ const CORE_REQUIRED_FILES = [
 // Core required folders
 const CORE_REQUIRED_FOLDERS = ['class', 'spells'];
 
-// Frequently referenced index files that can enumerate additional JSON assets
+// Index files that enumerate additional JSON assets
 const ENUMERATION_INDEX_FILES = [
     'class/index.json',
     'class/fluff-index.json',
@@ -51,32 +45,9 @@ const ENUMERATION_INDEX_FILES = [
     'spells/fluff-index.json',
 ];
 
-/**
- * Validation result
- * @typedef {object} ValidationResult
- * @property {boolean} valid - True if core files present
- * @property {string[]} missing - Missing core files
- * @property {string} [error] - Error message if validation failed
- */
+/** @typedef {{valid: boolean, missing: string[], error?: string}} ValidationResult */
 
-/**
- * Build a raw base URL that points at the remote data folder.
- * Handles GitHub URLs specially by converting to raw.githubusercontent.com format.
- * For non-GitHub URLs, appends /data to the normalized URL.
- *
- * @param {string} url - User-provided repository URL (GitHub URL, direct server URL, etc.)
- * @returns {string} Fully qualified URL to the data directory (e.g., 'https://raw.githubusercontent.com/owner/repo/main/data')
- *
- * @example
- * // GitHub URL with tree structure
- * buildRawDataBaseUrl('https://github.com/owner/repo/tree/main')
- * // => 'https://raw.githubusercontent.com/owner/repo/main/data'
- *
- * @example
- * // Direct server URL
- * buildRawDataBaseUrl('https://example.com/5edata/')
- * // => 'https://example.com/5edata/data'
- */
+/** Convert a repo/server URL to a raw data base URL (GitHub -> raw, others add /data). */
 function buildRawDataBaseUrl(url) {
     const urlObj = new URL(url);
     let dataUrl;
@@ -99,18 +70,7 @@ function buildRawDataBaseUrl(url) {
     return dataUrl;
 }
 
-/**
- * Build a manifest of files referenced by local enumeration indexes.
- * Reads class/spells index files to discover all data files that will be loaded.
- * Used during validation to ensure referenced files exist locally.
- *
- * @param {string} rootDir - Absolute path to the data root directory
- * @returns {Promise<{manifest: string[], indexErrors: Array<{indexPath: string, error: string}>}>}
- *          manifest: List of discovered file paths (relative to rootDir)
- *          indexErrors: Any errors encountered while reading indexes
- *
- * @private
- */
+/** Read local index files to collect referenced data file paths. */
 async function buildLocalIndexManifest(rootDir) {
     const manifest = [];
     const indexErrors = [];
@@ -139,22 +99,7 @@ async function buildLocalIndexManifest(rootDir) {
     return { manifest, indexErrors };
 }
 
-/**
- * Validate basic JSON structure for 5etools data files.
- * Checks that the file is valid JSON and contains expected data structures.
- * Note: Uses basic structure validation instead of full schema validation because:
- * - 5etools-utils schema validator is designed for homebrew format
- * - App uses official site format which has different structure
- * - Official data is already validated by the 5etools team
- *
- * @param {object} data - Parsed JSON data to validate
- * @param {string} fileName - File name (e.g., 'races.json') for targeted validation
- * @returns {Promise<{valid: boolean, error?: string}>}
- *          valid: true if structure is acceptable, false otherwise
- *          error: Description of validation failure (if valid is false)
- *
- * @private
- */
+/** Minimal structure checks for key JSON files (mainly races/backgrounds). */
 async function validateJsonStructure(data, fileName) {
     // Basic check: ensure it's a valid object
     if (typeof data !== 'object' || data === null) {
@@ -188,22 +133,9 @@ async function validateJsonStructure(data, fileName) {
 }
 
 /**
- * Check if a local data folder exists and contains all required files.
- * Validates core required files, folders, and verifies JSON structure.
- * Files referenced in class/spell indexes must also be present.
- *
- * @param {string} folderPath - Absolute path to the data folder to validate
+ * Validate a local data directory for required files, indexes, and JSON shape.
+ * @param {string} folderPath absolute path to the data folder
  * @returns {Promise<{valid: boolean, missing: string[], missingIndexed?: string[], error?: string}>}
- *          valid: true if all required files are present and valid
- *          missing: Array of missing core and indexed files
- *          missingIndexed: Files referenced in indexes that are missing (separate from missing)
- *          error: Description of validation failure (if valid is false)
- *
- * @example
- * const result = await validateLocalDataFolder('/path/to/data');
- * if (!result.valid) {
- *   console.log('Missing files:', result.missing);
- * }
  */
 export async function validateLocalDataFolder(folderPath) {
     try {
@@ -332,13 +264,9 @@ export async function validateLocalDataFolder(folderPath) {
 }
 
 /**
- * Check if the default/bundled data folder exists and is valid.
- * Quick check to see if src/data/ folder is populated with at least races.json.
- *
- * @param {string} defaultDataPath - Path to check (typically src/data/)
- * @returns {Promise<boolean>} true if folder exists and contains races.json, false otherwise
- *
- * @private
+ * Quick existence check for the bundled src/data folder.
+ * @param {string} defaultDataPath path to check
+ * @returns {Promise<boolean>} true if races.json exists
  */
 export async function hasDefaultDataFolder(defaultDataPath) {
     try {
@@ -362,17 +290,10 @@ export async function hasDefaultDataFolder(defaultDataPath) {
 }
 
 /**
- * Fetch JSON content from a remote URL.
- * Handles HTTP/HTTPS requests with timeout and proper error handling.
- *
- * @param {string} urlString - Full URL to JSON resource
- * @param {number} timeout - Request timeout in milliseconds (default: 5000)
+ * Fetch and parse JSON from a URL with timeout/error handling.
+ * @param {string} urlString full URL to JSON resource
+ * @param {number} [timeout=5000] request timeout in ms
  * @returns {Promise<{success: boolean, data?: object, error?: string}>}
- *          success: true if fetch and parse succeeded
- *          data: Parsed JSON object (if success is true)
- *          error: Error message describing what went wrong (if success is false)
- *
- * @private
  */
 export async function fetchJsonFromUrl(urlString, timeout = 5000) {
     return new Promise((resolve) => {
@@ -423,18 +344,9 @@ export async function fetchJsonFromUrl(urlString, timeout = 5000) {
 }
 
 /**
- * Build a complete manifest of files to download from a remote data source.
- * Starts with core required files, then expands using remote index files (class/spells).
- * This ensures we pick up all newly added files that might not be in the core set.
- *
- * @param {string} remoteUrl - User-provided base URL (repo root or server root)
- * @returns {Promise<string[]>} Array of relative file paths to download
- *
- * @example
- * const manifest = await buildDataManifest('https://github.com/5etools-mirror-3/5etools-src');
- * // Returns: ['races.json', 'backgrounds.json', 'class/artificer.json', ...]
- *
- * @private
+ * Build a download manifest combining core files and entries from remote indexes.
+ * @param {string} remoteUrl repo/server base URL
+ * @returns {Promise<string[]>} relative paths to fetch
  */
 export async function buildDataManifest(remoteUrl) {
     const manifestSet = new Set(CORE_REQUIRED_FILES);
@@ -470,19 +382,7 @@ export async function buildDataManifest(remoteUrl) {
     return Array.from(manifestSet);
 }
 
-/**
- * Fetch plain text content from a remote URL.
- * Used for downloading data files as text before parsing as JSON.
- *
- * @param {string} urlString - Full URL to text resource
- * @param {number} timeout - Request timeout in milliseconds (default: 10000)
- * @returns {Promise<{success: boolean, data?: string, error?: string}>}
- *          success: true if fetch succeeded
- *          data: Plain text content (if success is true)
- *          error: Error message (if success is false)
- *
- * @private
- */
+/** Fetch plain text from a URL with timeout/error handling. */
 async function fetchTextFromUrl(urlString, timeout = 10000) {
     return new Promise((resolve) => {
         const urlObj = new URL(urlString);
@@ -523,31 +423,12 @@ async function fetchTextFromUrl(urlString, timeout = 10000) {
 }
 
 /**
- * Download data files from a remote URL into a local folder.
- * Performs incremental updates - only downloads new or changed files (compares content).
- * Allows partial failures (some files may not exist upstream); returns results with warnings.
- *
- * @param {string} url - Remote root URL (repo root or server root)
- * @param {string} targetDir - Local directory to write files into (created if needed)
- * @param {string[]} manifest - Relative file paths to download
+ * Download manifest files to a target folder (incremental, tolerant of partial failures).
+ * @param {string} url remote base URL
+ * @param {string} targetDir local directory to write
+ * @param {string[]} manifest relative paths to download
  * @param {(progress: {completed: number, total: number, file: string, success: boolean, skipped?: boolean, error?: string}) => void} [onProgress]
- *        Optional callback invoked for each file download attempt
- *
  * @returns {Promise<{success: boolean, downloaded: number, skipped?: number, failed?: Array<{file: string, error: string}>, error?: string, warning?: string}>}
- *          success: true if download completed (even with partial failures)
- *          downloaded: Number of successfully downloaded/updated files
- *          skipped: Number of unchanged files that were not re-downloaded
- *          failed: List of files that could not be downloaded
- *          error: Critical error message (if success is false)
- *          warning: Non-critical warning if some files were missing upstream
- *
- * @example
- * const result = await downloadDataFromUrl(
- *   'https://github.com/5etools-mirror-3/5etools-src',
- *   '/local/data',
- *   manifest,
- *   (progress) => console.log(`Downloaded: ${progress.file}`)
- * );
  */
 export async function downloadDataFromUrl(url, targetDir, manifest, onProgress) {
     const baseUrl = buildRawDataBaseUrl(url);
@@ -651,22 +532,9 @@ export async function downloadDataFromUrl(url, targetDir, manifest, onProgress) 
 }
 
 /**
- * Validate a URL-based data source by checking accessibility and structure.
- * Attempts to reach races.json at the remote source and validates its structure.
- * Handles GitHub URLs specially (converts to raw.githubusercontent.com format).
- *
- * @param {string} url - URL to validate (repo URL, server URL, etc.)
+ * Validate a remote data source URL by fetching and checking races.json.
+ * @param {string} url repo/server URL to validate
  * @returns {Promise<{valid: boolean, error?: string}>}
- *          valid: true if URL is reachable and contains valid data files
- *          error: Description of validation failure (if valid is false)
- *
- * @example
- * const result = await validateDataSourceURL('https://github.com/5etools-mirror-3/5etools-src');
- * if (result.valid) {
- *   console.log('URL is valid and contains required files');
- * } else {
- *   console.error(result.error);
- * }
  */
 export async function validateDataSourceURL(url) {
     try {

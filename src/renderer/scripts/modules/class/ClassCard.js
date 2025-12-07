@@ -1,8 +1,4 @@
-/**
- * ClassCard.js
- * Controller for the class selection UI component.
- * Coordinates between views and manages class/subclass selection logic.
- */
+/** Controller for class selection UI, coordinating views and subclass logic. */
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
@@ -14,9 +10,7 @@ import { ClassDetailsView } from './ClassDetails.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
 
-/**
- * Controller for class selection and display
- */
+/** Controller for class selection and display. */
 export class ClassCard {
 	/**
 	 * Creates a new ClassCard instance
@@ -421,8 +415,8 @@ export class ClassCard {
 		const hasChanged = !classData
 			? character.class?.name || character.class?.source
 			: character.class?.name !== classData.name ||
-				character.class?.source !== classData.source ||
-				character.subclass !== subclassName;
+			character.class?.source !== classData.source ||
+			character.subclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits

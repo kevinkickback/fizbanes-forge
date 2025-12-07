@@ -1,7 +1,4 @@
-/**
- * @file ClassService.js
- * Manages character class selection and data access.
- */
+/** @file Manages character class selection and data access. */
 
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
@@ -9,13 +6,9 @@ import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
-/**
- * Manages character class selection and provides access to class data
- */
+/** Manages character class selection and provides access to class data. */
 class ClassService {
-	/**
-	 * Creates a new ClassManager instance
-	 */
+	/** Creates a new ClassManager instance. */
 	constructor() {
 		this._classData = null;
 		this._selectedClass = null;

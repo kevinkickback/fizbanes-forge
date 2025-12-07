@@ -1,8 +1,4 @@
-/**
- * ReferenceResolver.js
- * Resolves tag references to actual D&D game data
- * Uses managers for all entity types
- */
+/** ReferenceResolver.js - Resolves tag references to concrete D&D data via services. */
 
 import { Logger } from '../infrastructure/Logger.js';
 import { backgroundService } from '../services/BackgroundService.js';
@@ -12,9 +8,7 @@ import { raceService } from '../services/RaceService.js';
 import { spellService } from '../services/SpellService.js';
 import { DataLoader } from './DataLoader.js';
 
-/**
- * Reference resolver - resolves tags to actual content
- */
+/** Reference resolver bridges tag references to concrete entity content. */
 export class ReferenceResolver {
 	constructor() {
 		this._dataUtil = DataLoader.getInstance();

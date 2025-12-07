@@ -1,10 +1,8 @@
 /**
- * CharacterValidation.js
- * Shared ESM character validation for renderer and main processes
- * Provides centralized validation rules for character data integrity
+ * Lightweight character validation used by renderer and main.
+ * @param {object} character - Character payload to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with errors
  */
-
-// Shared ESM character validation for renderer and main
 export function validate(character) {
 	const errors = [];
 	if (!character) {

@@ -1,15 +1,4 @@
-/**
- * Central IPC handler registry.
- *
- * ARCHITECTURE: Main Process - IPC Registration
- *
- * PURPOSE:
- * - Register all IPC handlers in one place
- * - Organize handlers by domain
- * - Make it easy to see all IPC operations
- *
- * @module src/electron/ipc/IPCRegistry
- */
+/** Registers all IPC handler groups for the main process. */
 
 import { MainLogger } from '../MainLogger.js';
 import { registerCharacterHandlers } from './handlers/CharacterHandlers.js';

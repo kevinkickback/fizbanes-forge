@@ -1,20 +1,13 @@
-/**
- * RaceManager.js
- * Manages race data and operations for the character builder
- */
+/** Manages race data and operations for the character builder. */
 
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
-/**
- * Manages character race selection and provides access to race data
- */
+/** Manages character race selection and provides access to race data. */
 class RaceService {
-	/**
-	 * Initialize a new RaceManager
-	 */
+	/** Initialize a new RaceManager. */
 	constructor() {
 		this._raceData = null;
 		this._selectedRace = null;

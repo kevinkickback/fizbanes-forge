@@ -1,8 +1,4 @@
-/**
- * BackgroundCard.js
- * Controller for background selection UI component
- * Coordinates between BackgroundCardView, BackgroundDetailsView, and backgroundService
- */
+/** Controller for background selection UI (card + details + service wiring). */
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
@@ -14,10 +10,7 @@ import { BaseCard } from '../BaseCard.js';
 import { BackgroundDetailsView } from './BackgroundDetails.js';
 import { BackgroundCardView } from './BackgroundView.js';
 
-/**
- * Manages the background selection UI component
- * Coordinates event handling and character updates
- */
+/** Manages the background selection UI and related character updates. */
 export class BackgroundCard extends BaseCard {
 	/**
 	 * Creates a new BackgroundCard instance
@@ -352,8 +345,8 @@ export class BackgroundCard extends BaseCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-				character.background?.source !== background.source ||
-				character.background?.variant !== (variant?.name || null);
+			character.background?.source !== background.source ||
+			character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies

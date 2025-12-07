@@ -1,16 +1,10 @@
-/**
- * RaceCardView.js
- * View component for displaying race selection and quick description.
- * Handles the main race dropdown and summary display.
- */
+/** View for race selection dropdown and quick description. */
 
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
-/**
- * View for the race card's main display (dropdown + quick description)
- */
+/** View for the race card's main display (dropdown + quick description). */
 export class RaceCardView {
 	/**
 	 * Creates a new RaceCardView instance

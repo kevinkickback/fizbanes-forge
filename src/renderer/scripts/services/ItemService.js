@@ -1,19 +1,12 @@
-/**
- * ItemManager.js
- * Manages item data and operations for the character builder
- */
+/** Manages item data and operations for the character builder. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
-/**
- * Manages item data and provides access to items
- */
+/** Manages item data and provides access to items. */
 class ItemService {
-	/**
-	 * Initialize a new ItemManager
-	 */
+	/** Initialize a new ItemManager. */
 	constructor() {
 		this._itemData = null;
 	}

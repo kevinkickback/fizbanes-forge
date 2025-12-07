@@ -1,13 +1,8 @@
-/**
- * SubclassPickerView.js
- * View component for subclass selection dropdown.
- */
+/** View component for subclass selection dropdown. */
 
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
 
-/**
- * View for the subclass selection dropdown
- */
+/** View for the subclass selection dropdown. */
 export class SubclassPickerView {
 	/**
 	 * Creates a new SubclassPickerView instance

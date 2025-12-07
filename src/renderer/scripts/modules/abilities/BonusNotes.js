@@ -1,15 +1,10 @@
-/**
- * @file BonusNotesView.js
- * @description View for rendering ability score bonus notes and explanations
- */
+/** View for rendering ability score bonus notes and explanations. */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
-/**
- * View for rendering ability score bonus notes
- */
+/** View for rendering ability score bonus notes. */
 class BonusNotesView {
 	/**
 	 * Creates a new BonusNotesView

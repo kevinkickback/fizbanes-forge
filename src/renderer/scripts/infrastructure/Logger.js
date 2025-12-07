@@ -1,36 +1,4 @@
-/**
- * Centralized logging system with configurable log levels.
- *
- * ARCHITECTURE: Infrastructure Layer - No dependencies on other app code
- *
- * PURPOSE:
- * - Replaces all console.log statements
- * - Provides filterable log levels (DEBUG, INFO, WARN, ERROR)
- * - Stores log history for debugging
- * - Consistent format across entire application
- *
- * USAGE EXAMPLES:
- *   import { Logger } from '../infrastructure/Logger.js';
- *
- *   Logger.debug('ComponentName', 'Detailed diagnostic info', { data });
- *   Logger.info('ComponentName', 'General informational message');
- *   Logger.warn('ComponentName', 'Warning message', { context });
- *   Logger.error('ComponentName', 'Error occurred', error);
- *
- * CONFIGURATION:
- *   Logger.setLevel('DEBUG')  // Show all logs
- *   Logger.setLevel('INFO')   // Show INFO, WARN, ERROR (default)
- *   Logger.setLevel('WARN')   // Show WARN, ERROR only
- *   Logger.setLevel('ERROR')  // Show ERROR only
- *   Logger.setEnabled(false)  // Disable all logging
- *
- * LOG HISTORY:
- *   const history = Logger.getHistory();           // Get all logs
- *   const errors = Logger.getHistory('ERROR');     // Get only errors
- *   Logger.clearHistory();                         // Clear log history
- *
- * @module infrastructure/Logger
- */
+/** Filterable renderer logger with history and FF_DEBUG gating. */
 
 export const LOG_LEVELS = {
 	DEBUG: 0,

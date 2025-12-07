@@ -1,16 +1,11 @@
-/**
- * TooltipManager.js
- * Manages displaying and hiding D&D reference tooltips
- */
+/** TooltipManager.js - Manages displaying and hiding D&D reference tooltips. */
 
 import { Logger } from '../infrastructure/Logger.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
 import { StatBlockRenderer } from './StatBlockRenderer.js';
 import { getStringRenderer } from './TagProcessor.js';
 
-/**
- * Tooltip manager - handles displaying and hiding tooltips
- */
+/** Tooltip manager handles displaying and hiding tooltips. */
 export class TooltipManager {
 	constructor() {
 		this._tooltips = []; // Stack of active tooltips
@@ -172,7 +167,7 @@ export class TooltipManager {
 	 * @private
 	 */
 	// Copy tooltip content is disabled (button removed)
-	async _copyTooltipContent() {}
+	async _copyTooltipContent() { }
 
 	/**
 	 * Close specific tooltip

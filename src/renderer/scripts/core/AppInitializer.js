@@ -1,7 +1,5 @@
 /**
- * AppInitializer.js
- * Core initialization utilities for application bootstrap process.
- * Manages the initialization sequence of all critical application components.
+ * Bootstrap helper that orchestrates renderer startup and data loading.
  *
  * @typedef {Object} InitializationOptions
  * @property {boolean} [loadAllData=true] - Whether to load all data sources

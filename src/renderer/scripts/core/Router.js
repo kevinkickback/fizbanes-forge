@@ -1,16 +1,4 @@
-/**
- * Client-side routing system.
- *
- * ARCHITECTURE: Presentation Layer - Manages navigation and routing
- *
- * PURPOSE:
- * - Define application routes
- * - Handle navigation between pages
- * - Validate route access (e.g., character required)
- * - Emit navigation events
- *
- * @module presentation/Router
- */
+/** Client-side router that validates access and emits navigation events. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

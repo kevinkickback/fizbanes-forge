@@ -1,17 +1,11 @@
-/**
- * SourceCard.js
- * Controller that manages source book selection in character creation.
- * Coordinates between the view and source service.
- */
+/** Controller for source book selection during character creation. */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { sourceService } from '../../services/SourceService.js';
 import { showNotification } from '../../utils/Notifications.js';
 import { SourcePickerView } from './SourcePicker.js';
 
-/**
- * Manages the source book selection UI component
- */
+/** Manages the source book selection UI component. */
 export class SourceCard {
 	/**
 	 * Creates a new SourceCard instance

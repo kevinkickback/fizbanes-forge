@@ -1,9 +1,4 @@
-/**
- * LoadingModal.js
- * Shows a loading screen during app initialization with progress messages.
- *
- * @module src/renderer/scripts/modules/setup/LoadingModal
- */
+/** Loading modal displayed during app initialization with progress text. */
 
 export class LoadingModal {
     constructor() {

@@ -1,8 +1,4 @@
-/**
- * IPC handlers for character operations.
- *
- * @module src/electron/ipc/handlers/CharacterHandlers
- */
+/** IPC handlers for character operations. */
 
 import { dialog, ipcMain } from 'electron';
 import fssync from 'node:fs';

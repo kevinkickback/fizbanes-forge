@@ -1,7 +1,4 @@
-/**
- * TextFormatter.js
- * Utility functions for formatting text strings
- */
+/** TextFormatter.js - Utility helpers for formatting text strings. */
 
 /**
  * Capitalizes the first letter of a string

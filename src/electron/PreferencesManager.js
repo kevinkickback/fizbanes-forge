@@ -1,21 +1,4 @@
-/**
- * Manages application preferences using electron-store.
- *
- * ARCHITECTURE: Main Process - User Preferences
- *
- * PURPOSE:
- * - Centralized preferences storage and retrieval
- * - Default values for all preferences
- * - Type-safe preference access
- * - Preference validation
- *
- * USAGE:
- *   const prefs = new PreferencesManager(app);
- *   const savePath = prefs.get('characterSavePath');
- *   prefs.set('characterSavePath', '/new/path');
- *
- * @module src/electron/PreferencesManager
- */
+/** Preference storage/validation for the main process. */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -90,11 +73,7 @@ export class PreferencesManager {
 		}
 	}
 
-	/**
-	 * Validate entire preferences store and coerce invalid values to defaults.
-	 * @param {object} store
-	 * @returns {object} validated store
-	 */
+	/** Validate and coerce a preferences object to known defaults. */
 	validateStore(store) {
 		const out = { ...this.defaults };
 		// characterSavePath: string
@@ -171,11 +150,7 @@ export class PreferencesManager {
 		return out;
 	}
 
-	/**
-	 * Validate and set a preference value according to schema.
-	 * @param {string} key
-	 * @param {*} value
-	 */
+	/** Validate and set a single preference key. */
 	set(key, value) {
 		MainLogger.info('PreferencesManager', `Set: ${key} =`, value);
 		const validated = this._validateKeyValue(key, value);
@@ -243,12 +218,7 @@ export class PreferencesManager {
 		}
 	}
 
-	/**
-	 * Get a preference value.
-	 * @param {string} key - Preference key
-	 * @param {*} defaultValue - Optional default if key not found
-	 * @returns {*} Preference value
-	 */
+	/** Get a preference value with optional default. */
 	get(key, defaultValue = undefined) {
 		const value =
 			this.store[key] !== undefined ? this.store[key] : defaultValue;
@@ -256,46 +226,31 @@ export class PreferencesManager {
 		return value;
 	}
 
-	/**
-	 * Delete a preference.
-	 * @param {string} key - Preference key
-	 */
+	/** Delete a preference key. */
 	delete(key) {
 		MainLogger.info('PreferencesManager', `Delete: ${key}`);
 		delete this.store[key];
 		this.savePreferences();
 	}
 
-	/**
-	 * Check if a preference exists.
-	 * @param {string} key - Preference key
-	 * @returns {boolean} True if preference exists
-	 */
+	/** Check if a preference key exists. */
 	has(key) {
 		return Object.hasOwn(this.store, key);
 	}
 
-	/**
-	 * Get all preferences.
-	 * @returns {object} All preferences
-	 */
+	/** Return a shallow copy of all preferences. */
 	getAll() {
 		return { ...this.store };
 	}
 
-	/**
-	 * Clear all preferences (reset to defaults).
-	 */
+	/** Reset the store to defaults and persist. */
 	clear() {
 		MainLogger.info('PreferencesManager', 'Clearing all preferences');
 		this.store = { ...this.defaults };
 		this.savePreferences();
 	}
 
-	/**
-	 * Get the character save path, ensuring it exists.
-	 * @returns {string} Character save path
-	 */
+	/** Get the character save path, creating it if missing. */
 	getCharacterSavePath() {
 		const savePath = this.get('characterSavePath');
 
@@ -312,10 +267,7 @@ export class PreferencesManager {
 		return savePath;
 	}
 
-	/**
-	 * Get window bounds with fallback to defaults.
-	 * @returns {object} Window bounds {width, height, x, y}
-	 */
+	/** Get window bounds with fallback defaults. */
 	getWindowBounds() {
 		return this.get('windowBounds', {
 			width: 1200,
@@ -325,26 +277,17 @@ export class PreferencesManager {
 		});
 	}
 
-	/**
-	 * Save window bounds.
-	 * @param {object} bounds - Window bounds {width, height, x, y}
-	 */
+	/** Persist window bounds. */
 	setWindowBounds(bounds) {
 		this.set('windowBounds', bounds);
 	}
 
-	/**
-	 * Get the last opened character path.
-	 * @returns {string|null} Last character path or null
-	 */
+	/** Get the last opened character path (if any). */
 	getLastOpenedCharacter() {
 		return this.get('lastOpenedCharacter');
 	}
 
-	/**
-	 * Set the last opened character path.
-	 * @param {string|null} characterPath - Character file path
-	 */
+	/** Set the last opened character path. */
 	setLastOpenedCharacter(characterPath) {
 		this.set('lastOpenedCharacter', characterPath);
 	}

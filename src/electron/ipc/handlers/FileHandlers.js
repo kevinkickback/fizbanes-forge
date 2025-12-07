@@ -1,8 +1,4 @@
-/**
- * IPC handlers for file operations.
- *
- * @module src/electron/ipc/handlers/FileHandlers
- */
+/** IPC handlers for file operations. */
 
 import { dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';

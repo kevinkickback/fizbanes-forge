@@ -1,7 +1,6 @@
+/** TextProcessor.js - Processes text content, references, and formatting for D&D content. */
+
 /**
- * TextProcessor.js
- * Process text content, handle references, and apply formatting to D&D game content.
- *
  * @typedef {Object} TextProcessingOptions
  * @property {boolean} [processReferences=true] - Whether to process references in text
  * @property {boolean} [processFormatting=true] - Whether to process text formatting
@@ -16,10 +15,7 @@ import {
 	initializeTooltipListeners,
 } from './TooltipManager.js';
 
-/**
- * Class responsible for processing text content, handling references, and formatting.
- * Manages both static and dynamic content processing with configurable options.
- */
+/** Processes text content, handling references and formatting for static/dynamic content. */
 class TextProcessor {
 	/**
 	 * Configuration: CSS selectors for elements where references should be resolved

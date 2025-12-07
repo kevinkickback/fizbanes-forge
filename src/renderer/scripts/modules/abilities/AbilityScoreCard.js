@@ -1,7 +1,4 @@
-/**
- * @file AbilityScoreCard.js
- * @description Controller for managing ability score UI and interactions
- */
+/** Controller for managing ability score UI and interactions. */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
@@ -13,9 +10,7 @@ import { bonusNotesView } from './BonusNotes.js';
 import { methodControlsView } from './MethodControls.js';
 import { methodSwitcherView } from './MethodSwitcher.js';
 
-/**
- * Manages the ability score UI card including method selection, score input, and bonuses
- */
+/** Manages the ability score UI card (method selection, score input, bonuses). */
 class AbilityScoreCard {
 	/**
 	 * Creates a new AbilityScoreCard

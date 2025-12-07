@@ -1,19 +1,12 @@
-/**
- * SpellManager.js
- * Manages spell data and operations for the character builder
- */
+/** Manages spell data and operations for the character builder. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
-/**
- * Manages spell data and provides access to spells
- */
+/** Manages spell data and provides access to spells. */
 class SpellService {
-	/**
-	 * Initialize a new SpellManager
-	 */
+	/** Initialize a new SpellManager. */
 	constructor() {
 		this._spellData = null;
 	}

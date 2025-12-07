@@ -1,19 +1,8 @@
-/**
- * ContentRenderer.js
- * Main rendering engine for D&D game content based on 5etools architecture
- * Handles recursive rendering of D&D content entries with support for nested structures
- *
- * Usage:
- *   const renderer = Renderer.get();
- *   const html = renderer.render(entry);
- */
+/** ContentRenderer.js - Recursive renderer for D&D content entries (5etools-style). */
 // biome-ignore-all lint/complexity/noThisInStatic: false positive
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
-/**
- * Main Renderer class - implements recursive entry rendering system
- * Supports 40+ entry types for flexible content representation
- */
+/** Renderer implements recursive entry rendering for varied entry types. */
 class Renderer {
 	constructor() {
 		this.baseUrl = '';

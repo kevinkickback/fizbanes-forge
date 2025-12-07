@@ -1,8 +1,5 @@
 import { Logger } from '../../infrastructure/Logger.js';
-/**
- * ProficiencySelectionView.js
- * Handles proficiency selection and deselection logic with source-specific tracking
- */
+/** Handles proficiency selection/deselection with source-specific tracking. */
 
 /**
  * View component for handling proficiency selection/deselection interactions

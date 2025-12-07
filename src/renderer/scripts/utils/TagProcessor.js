@@ -1,13 +1,7 @@
 import { Logger } from '../infrastructure/Logger.js';
-/**
- * TagProcessor.js
- * Handles processing of inline D&D reference tags ({@spell ...}, {@item ...}, etc.)
- * Part of the rendering system for D&D content
- */
+/** TagProcessor.js - Processes inline D&D reference tags for rendering. */
 
-/**
- * Tag processor for handling inline references
- */
+/** Tag processor for handling inline references. */
 export class TagProcessor {
 	constructor() {
 		this._handlers = {};

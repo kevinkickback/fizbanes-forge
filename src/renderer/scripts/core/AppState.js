@@ -1,16 +1,4 @@
-/**
- * Central application state management.
- *
- * ARCHITECTURE: Application Layer - Depends on Infrastructure
- *
- * PURPOSE:
- * - Single source of truth for all app state
- * - Emit events on state changes
- * - Prevent direct state mutation
- * - Make state changes predictable
- *
- * @module application/AppState
- */
+/** Central application state singleton that emits change events. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

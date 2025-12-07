@@ -1,14 +1,11 @@
-/**
- * AbilityScoreService.js
- * Manages ability score state and calculations
- */
-import { Logger } from '../infrastructure/Logger.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+/** Manages ability score state and calculations. */
 import { CharacterManager } from '../core/CharacterManager.js';
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 import {
 	calculateModifier,
-	formatModifier,
 	calculatePointBuyTotal,
+	formatModifier,
 	getPointBuyCost,
 	POINT_BUY_BUDGET,
 } from '../modules/abilities/AbilityCalculator.js';
@@ -19,9 +16,7 @@ import {
  * @property {number} value - The bonus value
  */
 
-/**
- * Manages D&D character ability scores
- */
+/** Manages D&D character ability scores. */
 class AbilityScoreService {
 	constructor() {
 		this._allAbilities = [

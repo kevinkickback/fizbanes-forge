@@ -1,7 +1,4 @@
-/**
- * ClassFeatureResolver.js
- * Resolves class features by level and handles subclass features
- */
+/** Resolves class features by level and handles subclass features. */
 
 /**
  * Gets all class features up to a specific level

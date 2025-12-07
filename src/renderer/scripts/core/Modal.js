@@ -1,6 +1,5 @@
 /**
- * Modal.js
- * Utility for managing modal dialogs for user interactions
+ * Modal utility for user interactions and character creation flows.
  *
  * @typedef {Object} ModalEventHandlers
  * @property {Function} onShowModal - Handler for when the modal is shown

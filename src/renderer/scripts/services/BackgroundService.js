@@ -1,21 +1,13 @@
-/**
- * @file BackgroundManager.js
- * Simplified manager for character background selection and data access.
- * Works directly with JSON data from DataUtil - no unnecessary transformations.
- */
+/** @file Simplified background manager for selection and JSON access. */
 
-import { Logger } from '../infrastructure/Logger.js';
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
-/**
- * Manages character background selection and provides access to background data
- */
+/** Manages background selection and access to background data. */
 class BackgroundService {
-	/**
-	 * Creates a new BackgroundManager instance
-	 */
+	/** Creates a new BackgroundManager instance. */
 	constructor() {
 		this._backgroundData = null;
 		this._selectedBackground = null;

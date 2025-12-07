@@ -1,13 +1,8 @@
-/**
- * @file MethodControlsView.js
- * @description View for rendering method-specific controls (standard array, point buy, custom)
- */
+/** View for rendering method-specific controls (standard array, point buy, custom). */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 
-/**
- * View for rendering ability score input controls based on the selected method
- */
+/** View for rendering ability score input controls based on the selected method. */
 class MethodControlsView {
 	/**
 	 * Renders standard array controls for an ability score

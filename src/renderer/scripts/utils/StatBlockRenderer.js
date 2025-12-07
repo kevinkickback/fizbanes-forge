@@ -1,15 +1,9 @@
-/**
- * StatBlockRenderer.js
- * Enhanced stat block rendering inspired by 5etools
- * Provides detailed, formatted rendering for various D&D entity types
- */
+/** StatBlockRenderer.js - Renders enhanced stat blocks for tooltips (5etools-inspired). */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import { getStringRenderer } from './TagProcessor.js';
 
-/**
- * Renders enhanced stat blocks for tooltips
- */
+/** Renders enhanced stat blocks for tooltips. */
 export class StatBlockRenderer {
 	/**
 	 * Render a spell stat block

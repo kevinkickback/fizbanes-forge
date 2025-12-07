@@ -1,7 +1,4 @@
-/**
- * Simple logger adapter for main process.
- * Provides consistent logging methods and honors DEBUG environment.
- */
+/** Simple logger adapter for main process (honors FF_DEBUG). */
 import util from 'node:util';
 
 const isDebug = process.env.FF_DEBUG === 'true' || false;

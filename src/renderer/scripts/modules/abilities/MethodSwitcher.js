@@ -1,15 +1,10 @@
-/**
- * @file MethodSwitcherView.js
- * @description View for rendering ability score method selection and info display
- */
+/** View for ability score method selection and info display. */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 
-/**
- * View for ability score method selection and information display
- */
+/** View for ability score method selection and information display. */
 class MethodSwitcherView {
 	/**
 	 * Creates a new MethodSwitcherView

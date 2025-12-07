@@ -1,7 +1,4 @@
-/**
- * ProficiencyDisplayView.js
- * Handles rendering and display of proficiency containers and items
- */
+/** Renders proficiency containers and items for each type. */
 
 /**
  * View component for rendering proficiency lists and items

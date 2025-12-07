@@ -1,16 +1,4 @@
-/**
- * Navigation coordination controller.
- *
- * ARCHITECTURE: Presentation Layer - Coordinates navigation
- *
- * PURPOSE:
- * - Coordinate between Router and PageLoader
- * - Handle navigation button clicks
- * - Update UI state during navigation
- * - Listen for navigation events
- *
- * @module presentation/NavigationController
- */
+/** Presentation controller coordinating router, page loader, and nav UI. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

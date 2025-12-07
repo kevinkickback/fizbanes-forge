@@ -1,16 +1,9 @@
-/**
- * BaseCard.js
- * Base UI component for displaying entity information in card format.
- * This serves as a foundation for more specific entity cards like ClassCard, RaceCard, etc.
- */
+/** Base UI card foundation shared by entity cards (race, class, etc.). */
 
 import { Logger } from '../infrastructure/Logger.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 
-/**
- * Base class for entity cards that provides common functionality for displaying
- * entity information in a standardized card format.
- */
+/** Base class providing shared card display helpers. */
 export class BaseCard {
 	/**
 	 * Creates a new EntityCard instance

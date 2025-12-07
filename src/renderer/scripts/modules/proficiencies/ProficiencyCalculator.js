@@ -1,7 +1,4 @@
-/**
- * ProficiencyCalculator.js
- * Pure calculation logic for D&D proficiency bonuses and modifiers
- */
+/** Pure proficiency bonus and modifier calculations. */
 
 /**
  * Skill to ability mapping

@@ -1,13 +1,4 @@
-/**
- * Storage.js
- * Provides a consistent interface for character data persistence
- * Handles saving, loading, importing, exporting, and deleting characters
- *
- * @typedef {Object} CharacterStorageResult
- * @property {boolean} success - Whether the operation was successful
- * @property {string} [message] - Optional message describing the result
- * @property {Error} [error] - Optional error if operation failed
- */
+/** Persistence helper for saving, loading, importing, exporting characters. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

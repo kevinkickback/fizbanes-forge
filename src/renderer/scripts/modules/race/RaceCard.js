@@ -1,8 +1,4 @@
-/**
- * RaceCard.js
- * Controller for the race selection UI component.
- * Coordinates between views and manages race/subrace selection logic.
- */
+/** Controller for race selection UI, coordinating views and subrace logic. */
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
@@ -14,9 +10,7 @@ import { RaceDetailsView } from './RaceDetails.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
 
-/**
- * Controller for race selection and display
- */
+/** Controller for race selection and display. */
 export class RaceCard {
 	/**
 	 * Creates a new RaceCard instance

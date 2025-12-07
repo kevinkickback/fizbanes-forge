@@ -1,15 +1,5 @@
 import { Logger } from '../infrastructure/Logger.js';
-/**
- * DataLoader.js
- * Core data loader for loading, caching, and managing game data
- * Based on 5etools DataUtil architecture
- *
- * Features:
- * - Automatic data caching
- * - Metadata merging (classic, prerelease, homebrew)
- * - Promise-based async loading
- * - Data validation
- */
+/** DataLoader.js - Caches and loads game data JSON via IPC or fetch. */
 
 class DataLoader {
 	constructor() {

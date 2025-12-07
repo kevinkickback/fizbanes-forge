@@ -1,7 +1,4 @@
-/**
- * IPC handlers for D&D data sources (local folders or remote URLs with caching).
- * @module src/electron/ipc/handlers/DataHandlers
- */
+/** IPC handlers for D&D data sources (local folders or remote URLs with caching). */
 
 import { ipcMain } from 'electron';
 import fs from 'node:fs/promises';
@@ -208,15 +205,7 @@ export function registerDataHandlers(preferencesManager) {
 	// Initialize path from existing preferences
 	syncDataPathFromPreferences();
 
-	/**
-	 * HANDLER: data:loadJson
-	 * Load a JSON file from the configured data source (local or cached remote).
-	 * Normalizes legacy file paths (removes src/data/ prefix if present).
-	 *
-	 * @param {IpcMainInvokeEvent} _event
-	 * @param {string} fileName - File path relative to data root (e.g., 'races.json' or 'class/artificer.json')
-	 * @returns {Promise<{success: boolean, data?: object, error?: string}>}
-	 */
+	/** Load a JSON file from the configured data source (normalizes legacy paths). */
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
 		try {
 			if (DEBUG_MODE) {
@@ -270,26 +259,12 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	});
 
-	/**
-	 * HANDLER: data:checkDefault
-	 * Check if default bundled data exists (legacy, currently unused).
-	 * Always returns false as app now requires user-configured data source.
-	 *
-	 * @param {IpcMainInvokeEvent} _event
-	 * @returns {Promise<{success: boolean, hasDefaultData: boolean}>}
-	 */
+	/** Legacy default-data check (returns false; kept for compatibility). */
 	ipcMain.handle(IPC_CHANNELS.DATA_CHECK_DEFAULT, async () => {
 		return { success: true, hasDefaultData: false };
 	});
 
-	/**
-	 * HANDLER: data:getSource
-	 * Retrieve the currently configured data source (type and value).
-	 * Used during app startup to check if user has already configured a source.
-	 *
-	 * @param {IpcMainInvokeEvent} _event
-	 * @returns {Promise<{success: boolean, type?: 'local'|'url', value?: string}>}
-	 */
+	/** Get the configured data source (type and value). */
 	ipcMain.handle(IPC_CHANNELS.DATA_GET_SOURCE, async () => {
 		try {
 			if (DEBUG_MODE) {
@@ -315,31 +290,12 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	});
 
-	/**
-	 * HANDLER: data:refreshSource
-	 * Refresh/sync the currently configured data source.
-	 * For URL sources: downloads/updates files if new versions exist.
-	 * For local sources: validates that all required files are still present.
-	 * Called on app startup to ensure data is current before services load.
-	 *
-	 * @param {IpcMainInvokeEvent} event - Event object with sender for progress updates
-	 * @returns {Promise<{success: boolean, error?: string, downloaded?: number, skipped?: number}>}
-	 */
+	/** Refresh/sync the configured data source (downloads for URL, validates local). */
 	ipcMain.handle(IPC_CHANNELS.DATA_REFRESH_SOURCE, async (event) => {
 		return refreshCurrentDataSource(event);
 	});
 
-	/**
-	 * HANDLER: data:validateSource
-	 * Validate and configure a new data source (local folder or remote URL).
-	 * For local: validates folder structure and required files.
-	 * For URL: validates accessibility and structure, then downloads/caches all files.
-	 * On success: saves configuration to PreferencesManager and emits progress updates.
-	 *
-	 * @param {IpcMainInvokeEvent} event - Event object with sender for download progress
-	 * @param {{type: 'local'|'url', value: string}} source - Data source details
-	 * @returns {Promise<{success: boolean, error?: string}>}
-	 */
+	/** Validate and configure a new data source (local or URL + cached download). */
 	ipcMain.handle(IPC_CHANNELS.DATA_VALIDATE_SOURCE, async (event, source) => {
 		if (DEBUG_MODE) {
 			return {

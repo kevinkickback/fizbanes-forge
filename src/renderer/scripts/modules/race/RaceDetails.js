@@ -1,15 +1,9 @@
-/**
- * RaceDetailsView.js
- * View component for displaying detailed race information.
- * Handles ability scores, size, speed, languages, and traits display.
- */
+/** View for detailed race information (ability scores, size, speed, languages, traits). */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
-/**
- * View for displaying race details (ability scores, size, speed, languages, traits)
- */
+/** View for displaying race details. */
 export class RaceDetailsView {
 	/**
 	 * Creates a new RaceDetailsView instance

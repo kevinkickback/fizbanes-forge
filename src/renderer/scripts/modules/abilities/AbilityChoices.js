@@ -1,13 +1,8 @@
-/**
- * @file AbilityChoicesView.js
- * @description View for rendering ability choice dropdowns for race/class bonuses
- */
+/** View for rendering ability choice dropdowns for race/class bonuses. */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 
-/**
- * View for rendering ability choice dropdowns
- */
+/** View for rendering ability choice dropdowns. */
 class AbilityChoicesView {
 	/**
 	 * Creates a new AbilityChoicesView
@@ -69,14 +64,14 @@ class AbilityChoicesView {
                     data-source="${choice.source}">
                     <option value="">Choose...</option>
                     ${availableAbilities
-											.map(
-												(ability) => `
+				.map(
+					(ability) => `
                         <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
                             ${this._getAbilityAbbreviation(ability)}
                         </option>
                     `,
-											)
-											.join('')}
+				)
+				.join('')}
                 </select>
             </div>
         `;

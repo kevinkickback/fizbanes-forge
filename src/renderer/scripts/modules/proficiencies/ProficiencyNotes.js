@@ -1,7 +1,4 @@
-/**
- * ProficiencyNotesView.js
- * Handles rendering of proficiency source notes and explanations
- */
+/** Renders proficiency source notes and explanations. */
 
 import { textProcessor } from '../../utils/TextProcessor.js';
 

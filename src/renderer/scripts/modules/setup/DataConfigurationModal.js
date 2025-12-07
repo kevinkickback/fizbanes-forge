@@ -1,24 +1,4 @@
-/**
- * DataConfigurationModal.js
- * Modal for configuring D&D data source on first run or when reconfiguring.
- *
- * FLOW:
- * 1. User selects URL or Local Folder tab
- * 2. For URL: Enters repository URL (GitHub or direct server)
- * 3. For Local: Selects folder via file browser
- * 4. Modal validates source (structure check, accessibility)
- * 5. On URL: Downloads all files and caches locally
- * 6. On success: Closes modal and reloads app (window.location.reload)
- *
- * FEATURES:
- * - Pre-loads saved configuration if available
- * - Progress bar with file counts for downloads
- * - Responsive error messages
- * - Tab switching UI for URL vs Local
- * - Optional close button (can be disabled for first-run)
- *
- * @module src/renderer/scripts/modules/setup/DataConfigurationModal
- */
+/** Modal for configuring D&D data source (URL or local folder) with validation/download UI. */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { showNotification } from '../../utils/Notifications.js';

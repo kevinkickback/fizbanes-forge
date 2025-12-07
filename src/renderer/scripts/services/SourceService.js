@@ -1,7 +1,6 @@
+/** Manages source book selection and filtering for character creation. */
+
 /**
- * SourceManager.js
- * Manages source book selection and filtering for character creation and data loading
- *
  * @typedef {Object} SourceDetails
  * @property {string} name - Full name of the source book
  * @property {string} abbreviation - Short code for the source book
@@ -21,13 +20,9 @@ import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { showNotification } from '../utils/Notifications.js';
 
-/**
- * Manages source book selection and filtering for character creation and data loading
- */
+/** Manages source book selection and filtering for character creation. */
 export class SourceService {
-	/**
-	 * Create a new SourceManager instance
-	 */
+	/** Create a new SourceManager instance. */
 	constructor() {
 		this.availableSources = new Map();
 		this.coreSources = new Set();

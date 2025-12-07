@@ -1,7 +1,4 @@
-/**
- * RaceTransformer.js
- * Transforms race data structures including handling _versions, subraces, and implementations
- */
+/** Transforms race data for display, handling versions, subraces, and implementations. */
 
 /**
  * Checks if a race has subraces

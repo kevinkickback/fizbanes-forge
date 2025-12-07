@@ -1,43 +1,4 @@
-/**
- * Result type for type-safe error handling.
- *
- * ARCHITECTURE: Infrastructure Layer - No dependencies on other app code
- *
- * PURPOSE:
- * - Replaces inconsistent error handling (null returns, exceptions, error objects)
- * - Makes errors explicit and type-safe
- * - Forces error handling at call site
- * - Similar to Rust's Result<T, E> or Haskell's Either
- *
- * USAGE EXAMPLES:
- *   import { Result } from '../infrastructure/Result.js';
- *
- *   // Success case
- *   function loadUser(id) {
- *     const user = { id, name: 'John' };
- *     return Result.ok(user);
- *   }
- *
- *   // Error case
- *   function loadUser(id) {
- *     return Result.err('User not found');
- *   }
- *
- *   // Usage
- *   const result = loadUser(123);
- *   if (result.isOk()) {
- *     console.log(result.value);
- *   } else {
- *     console.error(result.error);
- *   }
- *
- *   // Chaining with map
- *   const name = result
- *     .map(user => user.name)
- *     .unwrapOr('Unknown');
- *
- * @module infrastructure/Result
- */
+/** Lightweight Result helper for explicit success/error handling. */
 
 class Result {
 	constructor(isSuccess, value, error) {

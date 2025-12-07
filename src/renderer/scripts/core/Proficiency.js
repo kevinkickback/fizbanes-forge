@@ -1,8 +1,4 @@
-/**
- * proficiency.js
- * Core module for proficiency business logic with source tracking.
- * Handles adding, removing, and managing proficiencies from various sources.
- */
+/** Proficiency business logic with source tracking for adds/removals. */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';

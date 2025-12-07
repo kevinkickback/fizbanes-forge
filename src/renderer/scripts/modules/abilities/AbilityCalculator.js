@@ -1,11 +1,4 @@
-/**
- * AbilityCalculator.js
- * Pure calculation logic for D&D ability scores
- * Handles point buy, modifiers, and ability score validation
- *
- * Note: Proficiency bonus, skill modifiers, and saving throw modifiers
- * are in ProficiencyCalculator.js to avoid duplication
- */
+/** Pure ability-score calculations (modifiers, point buy totals, validation). */
 
 /**
  * Calculates the ability modifier for a given ability score

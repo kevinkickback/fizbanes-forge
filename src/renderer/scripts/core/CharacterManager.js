@@ -1,16 +1,4 @@
-/**
- * Character lifecycle management.
- *
- * ARCHITECTURE: Application Layer - Orchestrates domain and infrastructure
- *
- * PURPOSE:
- * - Manage character CRUD operations
- * - Coordinate between domain models and infrastructure
- * - Update application state
- * - Emit lifecycle events
- *
- * @module application/CharacterManager
- */
+/** Character lifecycle orchestrator for CRUD, state, and events. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

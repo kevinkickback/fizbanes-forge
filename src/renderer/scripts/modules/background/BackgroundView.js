@@ -1,15 +1,9 @@
-/**
- * BackgroundCardView.js
- * View component for background selection and quick description display
- */
+/** View for background selection and quick description display. */
 
 import { Logger } from '../../infrastructure/Logger.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
-/**
- * Manages the background selection view layer
- * Handles dropdown population and quick description display
- */
+/** Manages background selection view (dropdowns + quick description). */
 export class BackgroundCardView {
 	/**
 	 * @param {HTMLElement} card - Root card element

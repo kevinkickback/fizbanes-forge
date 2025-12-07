@@ -1,8 +1,4 @@
-/**
- * IPC handlers for settings operations.
- *
- * @module src/electron/ipc/handlers/SettingsHandlers
- */
+/** IPC handlers for settings operations. */
 
 import { app, ipcMain } from 'electron';
 import { MainLogger } from '../../MainLogger.js';

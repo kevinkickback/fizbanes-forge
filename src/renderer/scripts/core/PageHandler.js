@@ -1,7 +1,4 @@
-/**
- * PageHandler.js
- * Handles page-specific initialization after pages are loaded
- */
+/** Handles page-specific initialization after templates render. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';

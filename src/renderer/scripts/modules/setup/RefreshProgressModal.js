@@ -1,9 +1,4 @@
-/**
- * RefreshProgressModal.js
- * Shows a progress modal while refreshing/updating data source files.
- *
- * @module src/renderer/scripts/modules/setup/RefreshProgressModal
- */
+/** Progress modal shown while refreshing or updating data source files. */
 
 
 export class RefreshProgressModal {

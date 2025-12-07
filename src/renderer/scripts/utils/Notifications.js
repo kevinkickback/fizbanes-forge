@@ -1,7 +1,6 @@
+/** Notifications.js - Temporary user notifications with debouncing and auto-close. */
+
 /**
- * Notifications.js
- * Displays temporary messages to the user with configurable types, debouncing, and auto-closing.
- *
  * @typedef {'info'|'success'|'warning'|'danger'} NotificationType
  * @property {string} message - The message to display in the notification
  * @property {NotificationType} type - The type of notification that determines its appearance

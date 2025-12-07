@@ -1,16 +1,4 @@
-/**
- * Page template loading and rendering.
- *
- * ARCHITECTURE: Presentation Layer - Handles HTML templates
- *
- * PURPOSE:
- * - Load page templates from files or embedded HTML
- * - Render templates into the content area
- * - Cache loaded templates for performance
- * - Handle template loading errors
- *
- * @module presentation/PageLoader
- */
+/** Caches, loads, and renders page templates into the content area. */
 
 import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';

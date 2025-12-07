@@ -1,34 +1,11 @@
-/**
- * Preload script for Electron renderer process.
- *
- * This script runs with full Node.js access but injects whitelisted APIs
- * into the renderer process via contextBridge. It maintains security by:
- * - Preventing access to fs, path, require() in renderer
- * - Only exposing specific functions through contextBridge
- * - Using invoke() for async IPC (request-response pattern)
- * - Using on() for event subscription (download progress)
- *
- * EXPOSED APIS:
- * - FF_DEBUG: Boolean flag for debug mode
- * - window.app: Application-wide utilities (data source, settings)
- * - window.data: Data loading (JSON files from configured source)
- * - window.characterStorage: Character CRUD operations
- *
- * @module src/electron/preload.cjs
- */
+/** Hardened preload that exposes whitelisted IPC helpers to the renderer. */
 
 const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose FF_DEBUG to renderer for conditional logging
 contextBridge.exposeInMainWorld('FF_DEBUG', process.env.FF_DEBUG === 'true');
 
-/**
- * Application utilities namespace.
- * Provides access to:
- * - Data source management (configure, refresh, download)
- * - Settings (get/set application preferences)
- * - File system (select folders)
- */
+/** Application utilities exposed to renderer. */
 contextBridge.exposeInMainWorld('app', {
 	getUserDataPath: async () => await ipcRenderer.invoke('util:getUserData'),
 	selectFolder: () => ipcRenderer.invoke('file:selectFolder'),
@@ -39,8 +16,8 @@ contextBridge.exposeInMainWorld('app', {
 	checkDefaultDataFolder: () => ipcRenderer.invoke('data:checkDefault'),
 	/**
 	 * Subscribe to data download progress events.
-	 * @param {Function} handler - Called with each progress update
-	 * @returns {Function} Unsubscribe function
+	 * @param {(update: {status: string, total?: number, completed?: number, file?: string, success?: boolean, skipped?: boolean, error?: string}) => void} handler
+	 * @returns {() => void} unsubscribe function
 	 */
 	onDataDownloadProgress: (handler) => {
 		if (typeof handler !== 'function') return () => { };
@@ -56,37 +33,44 @@ contextBridge.exposeInMainWorld('app', {
 	},
 });
 
-/**
- * Data loading namespace.
- * Provides access to JSON data files from configured data source.
- */
+/** Data loading helpers for JSON assets. */
 contextBridge.exposeInMainWorld('data', {
 	/**
 	 * Load a JSON file from the configured data source.
-	 * @param {string} filePath - Relative path to JSON file (e.g., 'races.json')
+	 * @param {string} filePath relative path (e.g., 'races.json')
 	 * @returns {Promise<{success: boolean, data?: object, error?: string}>}
 	 */
 	loadJSON: (filePath) => ipcRenderer.invoke('data:loadJson', filePath),
 });
 
-/**
- * Character storage namespace.
- * Provides CRUD operations for character files.
- * Handles both local saves and character imports/exports.
- */
+/** Character storage CRUD and helper IPC wrappers. */
 contextBridge.exposeInMainWorld('characterStorage', {
+	/**
+	 * Save a character payload to disk.
+	 * @param {object|string} characterData character object or JSON string
+	 * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+	 */
 	saveCharacter: (characterData) =>
 		ipcRenderer.invoke('character:save', characterData),
+	/** List saved characters. */
 	loadCharacters: () => ipcRenderer.invoke('character:list'),
+	/** Delete a character by id. @param {string} id */
 	deleteCharacter: (id) => ipcRenderer.invoke('character:delete', id),
+	/** Export a character to user-selected path. @param {string} id */
 	exportCharacter: (id) => ipcRenderer.invoke('character:export', id),
+	/** Import a character (may prompt if userChoice omitted). @param {object} userChoice */
 	importCharacter: (userChoice) =>
 		ipcRenderer.invoke('character:import', userChoice),
+	/** Open a file with the OS default app. @param {string} filePath */
 	openFile: (filePath) => ipcRenderer.invoke('file:open', filePath),
+	/** Set the save path for characters. @param {string} path */
 	setSavePath: (path) =>
 		ipcRenderer.invoke('settings:setPath', 'characterSavePath', path),
+	/** Select a folder for file operations. */
 	selectFolder: () => ipcRenderer.invoke('file:selectFolder'),
+	/** Get default character save path. */
 	getDefaultSavePath: () =>
 		ipcRenderer.invoke('settings:getPath', 'characterSavePath'),
+	/** Generate a UUID for new characters. */
 	generateUUID: () => ipcRenderer.invoke('character:generateUUID'),
 });

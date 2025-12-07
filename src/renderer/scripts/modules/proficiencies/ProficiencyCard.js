@@ -1,8 +1,4 @@
-/**
- * ProficiencyCard.js
- * Controller that manages the display and interaction of character proficiencies.
- * Coordinates between display, selection, and notes views.
- */
+/** Controller for proficiency display/selection/notes UI. */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
@@ -13,9 +9,7 @@ import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
 import { ProficiencySelectionView } from './ProficiencySelection.js';
 
-/**
- * Manages the proficiency card UI component and related functionality
- */
+/** Manages the proficiency card UI component and related functionality. */
 export class ProficiencyCard {
 	/**
 	 * Creates a new ProficiencyCard instance
