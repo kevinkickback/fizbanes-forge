@@ -64,6 +64,11 @@ class AbilityScoreService {
 		// Reset assigned values when character changes
 		this._assignedStandardArrayValues = {};
 
+		// Rehydrate stored racial ability choices into the manager/map
+		if (Array.isArray(character.race?.abilityChoices)) {
+			this.setRacialAbilityChoices(character.race.abilityChoices);
+		}
+
 		// Initialize any ability-related state for the new character
 		this._notifyAbilityScoresChanged();
 	}
@@ -144,15 +149,6 @@ class AbilityScoreService {
 			typeof character.race.abilityBonuses[normalizedAbility] === 'number'
 		) {
 			totalScore += character.race.abilityBonuses[normalizedAbility];
-		}
-
-		// Add racial choice bonuses
-		if (character.race?.abilityChoices) {
-			for (const choice of character.race.abilityChoices) {
-				if (choice.ability === normalizedAbility) {
-					totalScore += choice.value;
-				}
-			}
 		}
 
 		// Add class bonuses
@@ -386,8 +382,41 @@ class AbilityScoreService {
 			return;
 		}
 
-		// Save the choices to the character
-		character.race.abilityChoices = choices;
+		// Normalize incoming choices and clear current state
+		this.abilityChoices.clear();
+		const normalizedChoices = Array.isArray(choices)
+			? choices
+				.filter(Boolean)
+				.map((choice, index) => {
+					const ability = this.normalizeAbilityName(
+						choice.ability || choice.abilityScore,
+					);
+					const value = Number.isFinite(choice.value)
+						? choice.value
+						: Number.isFinite(choice.amount)
+							? choice.amount
+							: 1;
+					const source = choice.source?.includes('Choice')
+						? choice.source
+						: `${choice.source || 'Race'} Choice`;
+					return {
+						ability,
+						value,
+						source,
+						index: Number.isFinite(choice.index) ? choice.index : index,
+					};
+				})
+			: []
+
+		// Persist normalized choices on the character
+		character.race.abilityChoices = normalizedChoices;
+
+		// Re-apply bonuses and cached selections from the saved choices
+		for (const choice of normalizedChoices) {
+			if (!choice.ability) continue;
+			this.abilityChoices.set(choice.index, choice.ability);
+			character.addAbilityBonus?.(choice.ability, choice.value, choice.source);
+		}
 
 		// Notify listeners about the change
 		this._notifyAbilityScoresChanged();
@@ -545,10 +574,38 @@ class AbilityScoreService {
 
 		// Update stored choices
 		if (ability) {
+			const normalizedSource = source?.includes('Choice')
+				? source
+				: `${source || 'Race'} Choice`;
 			this.abilityChoices.set(choiceIndex, ability);
-			character.addAbilityBonus?.(ability, bonus, source);
+			character.addAbilityBonus?.(ability, bonus, normalizedSource);
 		} else {
 			this.abilityChoices.delete(choiceIndex);
+		}
+
+		// Persist the selection on the character for reloads
+		if (character.race) {
+			if (!Array.isArray(character.race.abilityChoices)) {
+				character.race.abilityChoices = [];
+			}
+
+			const normalizedSource = source?.includes('Choice')
+				? source
+				: `${source || 'Race'} Choice`;
+
+			if (ability) {
+				character.race.abilityChoices[choiceIndex] = {
+					ability,
+					value: bonus,
+					source: normalizedSource,
+					index: choiceIndex,
+				};
+			} else {
+				character.race.abilityChoices[choiceIndex] = null;
+			}
+
+			// Remove any empty slots to keep the array compact
+			character.race.abilityChoices = character.race.abilityChoices.filter(Boolean);
 		}
 
 		// Notify listeners of the change

@@ -101,22 +101,22 @@ export class RaceDetailsView {
 		// Process race abilities
 		if (race?.ability) {
 			for (const abilityEntry of race.ability) {
+				// Process fixed improvements first
+				for (const [ability, bonus] of Object.entries(abilityEntry)) {
+					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
+						const abilityName =
+							ability.charAt(0).toUpperCase() + ability.slice(1);
+						improvements.push(`${abilityName} +${bonus}`);
+					}
+				}
+
+				// Then process choice-based improvements
 				if (abilityEntry.choose) {
-					// Choice-based improvements
 					const count = abilityEntry.choose.count || 1;
 					const amount = abilityEntry.choose.amount || 1;
 					improvements.push(
 						`Increase ${count} ability score${count > 1 ? 's' : ''} by ${amount}`,
 					);
-				} else {
-					// Fixed improvements
-					for (const [ability, bonus] of Object.entries(abilityEntry)) {
-						if (bonus && typeof bonus === 'number') {
-							const abilityName =
-								ability.charAt(0).toUpperCase() + ability.slice(1);
-							improvements.push(`${abilityName} +${bonus}`);
-						}
-					}
 				}
 			}
 		}
@@ -124,20 +124,22 @@ export class RaceDetailsView {
 		// Process subrace abilities
 		if (subrace?.ability) {
 			for (const abilityEntry of subrace.ability) {
+				// Process fixed improvements first
+				for (const [ability, bonus] of Object.entries(abilityEntry)) {
+					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
+						const abilityName =
+							ability.charAt(0).toUpperCase() + ability.slice(1);
+						improvements.push(`${abilityName} +${bonus}`);
+					}
+				}
+
+				// Then process choice-based improvements
 				if (abilityEntry.choose) {
 					const count = abilityEntry.choose.count || 1;
 					const amount = abilityEntry.choose.amount || 1;
 					improvements.push(
 						`Increase ${count} ability score${count > 1 ? 's' : ''} by ${amount}`,
 					);
-				} else {
-					for (const [ability, bonus] of Object.entries(abilityEntry)) {
-						if (bonus && typeof bonus === 'number') {
-							const abilityName =
-								ability.charAt(0).toUpperCase() + ability.slice(1);
-							improvements.push(`${abilityName} +${bonus}`);
-						}
-					}
 				}
 			}
 		}

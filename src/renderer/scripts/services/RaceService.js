@@ -1,17 +1,39 @@
-/** Manages race data and operations for the character builder. */
+/**
+ * Manages race data and operations for the character builder.
+ * 
+ * This service handles:
+ * - Loading and caching race and subrace data
+ * - Building an optimized lookup index for O(1) race access
+ * - Managing race/subrace selection state
+ * - Deriving variant subraces (e.g., Dragonborn colors)
+ * 
+ * The race data structure follows 5etools format with support for:
+ * - Base races (e.g., "Elf", "Dwarf")
+ * - Named subraces (e.g., "High Elf", "Wood Elf")
+ * - Base/unnamed subraces (generic race data without subrace name)
+ * - Version variants using abstract/implementation patterns
+ */
 
 import { AppState } from '../core/AppState.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
+import {
+	buildRaceBundle,
+	createRaceKey,
+	groupSubracesByRace,
+} from '../utils/RaceDataUtils.js';
 
-/** Manages character race selection and provides access to race data. */
+/**
+ * Service for managing character race selection and race data access.
+ * Provides O(1) lookup performance for races via an internal index.
+ */
 class RaceService {
-	/** Initialize a new RaceManager. */
 	constructor() {
 		this._raceData = null;
 		this._selectedRace = null;
 		this._selectedSubrace = null;
-		this._raceIndex = null; // keyed by race name + source
+		/** @type {Map<string, {race: Object, subraces: Array, baseSubrace: Object|null}>} */
+		this._raceIndex = null;
 	}
 
 	/**
@@ -73,7 +95,7 @@ class RaceService {
 	 * @returns {Object|null} Race object from JSON or null if not found
 	 */
 	getRace(name, source = 'PHB') {
-		const bundle = this._raceIndex?.get(this._raceKey(name, source));
+		const bundle = this._raceIndex?.get(createRaceKey(name, source));
 		return bundle?.race || null;
 	}
 
@@ -84,7 +106,7 @@ class RaceService {
 	 * @returns {Array<Object>} Array of subrace objects
 	 */
 	getSubraces(raceName, source = 'PHB') {
-		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle?.subraces || [];
 	}
 
@@ -96,7 +118,7 @@ class RaceService {
 	 * @returns {boolean} True if subrace selection is required, false if optional
 	 */
 	isSubraceRequired(raceName, source = 'PHB') {
-		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle ? !bundle.baseSubrace : false;
 	}
 
@@ -108,7 +130,7 @@ class RaceService {
 	 * @returns {Object|null} Subrace object or null if not found
 	 */
 	getSubrace(raceName, subraceName, source = 'PHB') {
-		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		if (!bundle) return null;
 		return bundle.subraces.find((sr) => sr.name === subraceName) || null;
 	}
@@ -120,121 +142,55 @@ class RaceService {
 	 * @returns {Object|null} Base subrace object or null if not found
 	 */
 	getBaseSubrace(raceName, source = 'PHB') {
-		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle?.baseSubrace || null;
 	}
 
-	_raceKey(name, source = 'PHB') {
-		return `${name?.toLowerCase()}:${source}`;
-	}
-
+	/**
+	 * Builds an optimized lookup index for fast race access.
+	 * 
+	 * The index structure is:
+	 * Map<"racename:source", {
+	 *   race: Object,           // The base race data
+	 *   subraces: Array,        // All subraces (named + derived variants)
+	 *   baseSubrace: Object     // The unnamed/base subrace if it exists
+	 * }>
+	 * 
+	 * This consolidates:
+	 * - Named subraces from the subrace data array
+	 * - Derived variant subraces from race._versions
+	 * - Derived variant subraces from base subrace._versions
+	 * 
+	 * @private
+	 */
 	_buildRaceIndex() {
+		console.debug('[RaceService]', 'Building race index');
+
 		this._raceIndex = new Map();
 		const races = this._raceData?.race || [];
-		const subraceGroups = this._groupSubracesByRace(this._raceData?.subrace || []);
+		const subraceGroups = groupSubracesByRace(this._raceData?.subrace || []);
 
 		for (const race of races) {
 			if (!race?.name) continue;
+
 			const raceSource = race.source || 'PHB';
-			const key = this._raceKey(race.name, raceSource);
-
+			const key = createRaceKey(race.name, raceSource);
 			const explicitSubraces = subraceGroups.get(key) || [];
-			const derivedFromRace = this._deriveVersionSubracesFromRace(
-				race,
-				raceSource,
-			);
-			// Only derive versions from unnamed (base) subraces; named subraces are complete variants
-			const baseSubraces = explicitSubraces.filter((sr) => !sr.name);
-			const derivedFromSubrace = baseSubraces.flatMap((entry) =>
-				this._deriveVersionSubracesFromSubraceEntry(
-					entry,
-					race.name,
-					raceSource,
-				),
-			);
 
-			const namedSubraces = explicitSubraces.filter((sr) => sr.name);
-			const baseSubrace = baseSubraces[0] || null;
+			const bundle = buildRaceBundle(race, explicitSubraces, raceSource);
+			this._raceIndex.set(key, bundle);
 
-			const mergedSubraces = [
-				...namedSubraces,
-				...derivedFromRace,
-				...derivedFromSubrace,
-			];
-
-			this._raceIndex.set(key, {
-				race,
-				subraces: mergedSubraces,
-				baseSubrace,
-			});
-		}
-	}
-
-	_groupSubracesByRace(subraceArray) {
-		const group = new Map();
-		for (const subrace of subraceArray) {
-			if (!subrace?.raceName) continue;
-			const raceSource = subrace.raceSource || subrace.source || 'PHB';
-			const key = this._raceKey(subrace.raceName, raceSource);
-			if (!group.has(key)) group.set(key, []);
-			group.get(key).push(subrace);
-		}
-		return group;
-	}
-
-	_deriveVersionSubracesFromRace(race, source) {
-		if (!race?._versions) return [];
-		const derived = [];
-		for (const version of race._versions) {
-			if (version._abstract && version._implementations) {
-				const abstractTemplate = version._abstract;
-				for (const impl of version._implementations) {
-					if (impl._variables?.color) {
-						derived.push({
-							name: impl._variables.color,
-							source,
-							raceName: race.name,
-							raceSource: source,
-							_isVersion: true,
-							_implementation: impl,
-							_abstract: abstractTemplate,
-						});
-					}
-				}
-			} else {
-				let variantName = version.name;
-				if (variantName?.includes(';')) {
-					variantName = variantName.split(';')[1].trim();
-				}
-
-				derived.push({
-					name: variantName || version.name,
-					source: version.source || source,
-					raceName: race.name,
-					raceSource: source,
-					_isVersion: true,
-					_versionData: version,
+			// Debug logging for Human race
+			if (race.name === 'Human') {
+				console.info('[RaceService]', `Human (${raceSource}) subraces:`, {
+					explicit: explicitSubraces.map(s => s.name),
+					all: bundle.subraces.map(s => s.name),
+					baseSubrace: bundle.baseSubrace?.name,
 				});
 			}
 		}
-		return derived;
-	}
 
-	_deriveVersionSubracesFromSubraceEntry(subraceEntry, raceName, raceSource) {
-		const root = subraceEntry?._versions?.[0];
-		if (!root?._implementations) return [];
-		const abstractTemplate = root._abstract;
-		return root._implementations
-			.filter((impl) => impl._variables?.color)
-			.map((impl) => ({
-				name: impl._variables.color,
-				source: subraceEntry.source || subraceEntry.raceSource || raceSource,
-				raceName,
-				raceSource,
-				_isVersion: true,
-				_implementation: impl,
-				_abstract: abstractTemplate,
-			}));
+		console.debug('[RaceService]', `Indexed ${this._raceIndex.size} races`);
 	}
 
 	/**

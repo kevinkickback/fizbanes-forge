@@ -42,7 +42,13 @@ export class Character {
 			name: '',
 			source: '',
 			subrace: '',
+			abilityChoices: [],
 		};
+
+		// Ensure abilityChoices exists on race even if loading from old data
+		if (this.race && !Array.isArray(this.race.abilityChoices)) {
+			this.race.abilityChoices = [];
+		}
 
 		/**
 		 * Character's class information

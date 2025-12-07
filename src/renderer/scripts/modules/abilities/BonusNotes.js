@@ -64,25 +64,21 @@ class BonusNotesView {
 	 * @private
 	 */
 	_processRaceBonuses(bonusGroups) {
-		const raceRelatedSources = [
-			'Race',
-			'Subrace',
-			'Race Choice 1',
-			'Race Choice 2',
-			'Race Choice 3',
-			'Subrace Choice 1',
-			'Subrace Choice 2',
-			'Subrace Choice 3',
-		];
 		const raceBonuses = new Map();
 		const allRaceBonuses = [];
 
-		// Collect race-related bonuses
-		for (const source of raceRelatedSources) {
-			if (bonusGroups.has(source)) {
-				raceBonuses.set(source, bonusGroups.get(source));
-				bonusGroups.delete(source);
+		// Collect race-related bonuses (any source that starts with "Race" or "Subrace")
+		const sourcesToRemove = [];
+		for (const [source, bonusMap] of bonusGroups.entries()) {
+			if (source.startsWith('Race') || source.startsWith('Subrace')) {
+				raceBonuses.set(source, bonusMap);
+				sourcesToRemove.push(source);
 			}
+		}
+
+		// Remove processed sources from the original map
+		for (const source of sourcesToRemove) {
+			bonusGroups.delete(source);
 		}
 
 		// Process all fixed race and subrace bonuses together

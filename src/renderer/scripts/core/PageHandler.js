@@ -394,10 +394,6 @@ class PageHandlerImpl {
 							dataCurrentPage: document.body.getAttribute('data-current-page'),
 						},
 					);
-
-					// Navigate to build page
-					console.debug('PageHandler', 'Emitting PAGE_CHANGED event to "build"');
-					eventBus.emit(EVENTS.PAGE_CHANGED, 'build');
 				} catch (error) {
 					console.error('PageHandler', 'Failed to load character', {
 						id: characterId,

@@ -4,6 +4,7 @@ import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
+import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { raceService } from '../../services/RaceService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { RaceDetailsView } from './RaceDetails.js';
@@ -58,14 +59,15 @@ export class RaceCard {
 	 */
 	initialize() {
 		try {
-			// Initialize required dependencies
-			this._raceService.initialize();
-
-			// Set up event listeners
-			this._setupEventListeners();
-
-			// Load saved race selection from character data
-			this._loadSavedRaceSelection();
+			// Initialize race service FIRST before setting up listeners
+			// This ensures race data is ready before any events try to use it
+			this._raceService.initialize().then(() => {
+				// NOW set up event listeners and load saved selection
+				this._setupEventListeners();
+				this._loadSavedRaceSelection();
+			}).catch(error => {
+				console.error('RaceCard', 'Failed to initialize race service:', error);
+			});
 		} catch (error) {
 			console.error('RaceCard', 'Failed to initialize race card:', error);
 		}
@@ -117,21 +119,40 @@ export class RaceCard {
 			// Set the race selection if it exists in available options
 			const raceValue = `${character.race.name}_${character.race.source}`;
 
+			console.info('[RaceCard]', 'Setting race value:', raceValue);
 			if (this._cardView.hasRaceOption(raceValue)) {
+				console.info('[RaceCard]', 'Race option found, setting race');
 				this._cardView.setSelectedRaceValue(raceValue);
 				// Update UI from character data (skip unsaved event)
 				await this._handleRaceChange({ target: { value: raceValue } }, true);
 
 				// Also set subrace if one was selected
 				if (character.race.subrace) {
+					console.info('[RaceCard]', 'Saved subrace found:', character.race.subrace);
 					// Wait for subrace options to populate
 					await new Promise((resolve) => setTimeout(resolve, 100));
 
+					const subraceOptions = Array.from(this._subraceView.getSubraceSelect().options).map(o => ({ value: o.value, text: o.text }));
+					console.info('[RaceCard]', `Loading saved subrace: "${character.race.subrace}"`, {
+						availableOptions: subraceOptions,
+					});
 					if (this._subraceView.hasSubraceOption(character.race.subrace)) {
+						console.info('[RaceCard]', 'Subrace option found, setting subrace value');
 						this._subraceView.setSelectedSubraceValue(character.race.subrace);
-						// Optionally, update UI for subrace as well
-						// await this._handleSubraceChange({ target: { value: character.race.subrace } }, true);
+						// Update character data with the saved subrace (skip unsaved event during load)
+						await this._handleSubraceChange({ target: { value: character.race.subrace } }, true, true);
+					} else {
+						console.warn(
+							'RaceCard',
+							`Saved subrace "${character.race.subrace}" not found in available options for ${character.race.name}.`,
+							{ availableOptions: subraceOptions },
+						);
 					}
+				} else {
+					console.info('[RaceCard]', 'No saved subrace for character');
+
+					// Apply race benefits even when no subrace is present
+					await this._handleSubraceChange({ target: { value: '' } }, true, true);
 				}
 			} else {
 				console.warn(
@@ -192,6 +213,11 @@ export class RaceCard {
 			// Get subraces from service
 			const subraces = this._raceService.getSubraces(race.name, race.source);
 
+			console.info('[RaceCard]', `Populating subraces for ${race.name} (${race.source}):`, {
+				total: subraces?.length,
+				names: subraces?.map(s => s.name),
+			});
+
 			if (!subraces || subraces.length === 0) {
 				this._subraceView.reset();
 				return;
@@ -200,11 +226,25 @@ export class RaceCard {
 			// Filter subraces by allowed sources and validate they have names
 			const filteredSubraces = subraces.filter((subrace) => {
 				const subraceSource = subrace.source || race.source;
-				return (
-					sourceService.isSourceAllowed(subraceSource) &&
-					subrace.name &&
-					subrace.name.trim() !== ''
-				);
+				const hasName = subrace.name && subrace.name.trim() !== '';
+				const sourceAllowed = sourceService.isSourceAllowed(subraceSource);
+				const passes = sourceAllowed && hasName;
+
+				if (subrace.name === 'Variant') {
+					console.info('[RaceCard]', 'Variant filter check:', {
+						source: subraceSource,
+						sourceAllowed,
+						hasName,
+						passes,
+					});
+				}
+
+				return passes;
+			});
+
+			console.info('[RaceCard]', `Filtered subraces for ${race.name}:`, {
+				filtered: filteredSubraces.length,
+				names: filteredSubraces.map(s => s.name),
 			});
 
 			// Check if subraces are required for this race
@@ -243,7 +283,7 @@ export class RaceCard {
 	 * @returns {Promise<void>}
 	 * @private
 	 */
-	async _handleRaceChange(event) {
+	async _handleRaceChange(event, skipCharacterUpdate = false) {
 		try {
 			const [raceName, source] = event.target.value.split('_');
 
@@ -273,13 +313,15 @@ export class RaceCard {
 			await this._detailsView.updateAllDetails(raceData, namelessSubrace);
 			await this._populateSubraceSelect(raceData);
 
-			// Update character data
-			this._updateCharacterRace(raceData, namelessSubrace);
+			// Update character data ONLY if not skipped (e.g., during initial load)
+			if (!skipCharacterUpdate) {
+				this._updateCharacterRace(raceData, namelessSubrace);
 
-			// Emit event to notify about character update (unsaved changes)
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-				character: CharacterManager.getCurrentCharacter(),
-			});
+				// Emit event to notify about character update (unsaved changes)
+				eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+					character: CharacterManager.getCurrentCharacter(),
+				});
+			}
 		} catch (error) {
 			console.error('RaceCard', 'Error handling race change:', error);
 		}
@@ -288,10 +330,12 @@ export class RaceCard {
 	/**
 	 * Handles subrace selection change events
 	 * @param {Event} event - The change event
+	 * @param {boolean} skipEventDuringInit - Skip emitting CHARACTER_UPDATED during initialization
+	 * @param {boolean} restoreAbilityChoices - Restore saved ability choices when loading
 	 * @returns {Promise<void>}
 	 * @private
 	 */
-	async _handleSubraceChange(event) {
+	async _handleSubraceChange(event, skipEventDuringInit = false, restoreAbilityChoices = false) {
 		try {
 			const subraceName = event.target.value;
 			const raceValue = this._cardView.getSelectedRaceValue();
@@ -334,12 +378,15 @@ export class RaceCard {
 			await this._detailsView.updateAllDetails(raceData, subraceData);
 
 			// Update character data
-			this._updateCharacterRace(raceData, subraceData);
+			this._updateCharacterRace(raceData, subraceData, { restoreAbilityChoices });
 
 			// Emit event to notify about character update (unsaved changes)
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-				character: CharacterManager.getCurrentCharacter(),
-			});
+			// Skip during initialization to prevent showing unsaved indicator on page load
+			if (!skipEventDuringInit) {
+				eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+					character: CharacterManager.getCurrentCharacter(),
+				});
+			}
 		} catch (error) {
 			console.error('RaceCard', 'Error handling subrace change:', error);
 		}
@@ -426,9 +473,14 @@ export class RaceCard {
 	 * @param {Object} subrace - Selected subrace
 	 * @private
 	 */
-	_updateCharacterRace(race, subrace) {
+	_updateCharacterRace(race, subrace, options = {}) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
+
+		const { restoreAbilityChoices = false } = options;
+		const savedAbilityChoices = restoreAbilityChoices
+			? [...(character.race?.abilityChoices || [])]
+			: [];
 
 		// We want to do a more thorough cleanup, so always treat as changed
 		const forceCleanup = true;
@@ -455,6 +507,14 @@ export class RaceCard {
 			if (window.abilityScoreManager) {
 				window.abilityScoreManager.clearStoredChoices();
 			}
+
+			// Clear the character's saved ability choices
+			if (character.race) {
+				character.race.abilityChoices = [];
+			}
+
+			// Clear ability score service's stored choices
+			abilityScoreService.clearStoredChoices();
 
 			// Clear all pending ability choices (configurations)
 			character.clearPendingChoicesByType('ability');
@@ -502,12 +562,6 @@ export class RaceCard {
 				}),
 			);
 
-			// Reset cached selected ability score choices
-			try {
-				window.abilityScoreManager?.setRacialAbilityChoices([]);
-			} catch (e) {
-				console.error('RaceCard', 'Error clearing ability score choices:', e);
-			}
 
 			if (!race) {
 				// Clear race
@@ -530,6 +584,11 @@ export class RaceCard {
 
 				// Update ability scores and get new choices
 				this._updateAbilityBonuses(race, subrace);
+
+				// Restore saved racial ability choices (if any) after bonuses are reset
+				if (restoreAbilityChoices && savedAbilityChoices.length > 0) {
+					abilityScoreService.setRacialAbilityChoices(savedAbilityChoices);
+				}
 
 				// Add traits
 				this._updateRacialTraits(race, subrace);
@@ -1225,9 +1284,10 @@ export class RaceCard {
 		if (race?.ability) {
 			for (const abilityEntry of race.ability) {
 				if (abilityEntry.choose) {
-					choices.push({
+					const amount = abilityEntry.choose.amount || 1;
+					const choice = {
 						count: abilityEntry.choose.count || 1,
-						amount: abilityEntry.choose.amount || 1,
+						amount,
 						from: abilityEntry.choose.from || [
 							'str',
 							'dex',
@@ -1236,8 +1296,15 @@ export class RaceCard {
 							'wis',
 							'cha',
 						],
-						source: 'Race',
-					});
+						source: 'Race Choice',
+					};
+
+					// Half-Elf PHB should always be +1 per pick, even if data amount is 2
+					if (race.name === 'Half-Elf' && race.source === 'PHB') {
+						choice.amount = 1;
+					}
+
+					choices.push(choice);
 				}
 			}
 		}
@@ -1246,9 +1313,10 @@ export class RaceCard {
 		if (subrace?.ability) {
 			for (const abilityEntry of subrace.ability) {
 				if (abilityEntry.choose) {
-					choices.push({
+					const amount = abilityEntry.choose.amount || 1;
+					const choice = {
 						count: abilityEntry.choose.count || 1,
-						amount: abilityEntry.choose.amount || 1,
+						amount,
 						from: abilityEntry.choose.from || [
 							'str',
 							'dex',
@@ -1257,8 +1325,9 @@ export class RaceCard {
 							'wis',
 							'cha',
 						],
-						source: 'Subrace',
-					});
+						source: 'Subrace Choice',
+					};
+					choices.push(choice);
 				}
 			}
 		}
