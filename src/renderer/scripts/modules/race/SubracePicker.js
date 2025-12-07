@@ -1,6 +1,6 @@
 /** View component for subrace selection dropdown. */
 
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 /** View for the subrace selection dropdown. */
 export class SubracePickerView {
@@ -140,4 +140,3 @@ export class SubracePickerView {
 		this._subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
 }
-

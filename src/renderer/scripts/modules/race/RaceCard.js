@@ -2,7 +2,7 @@
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { raceService } from '../../services/RaceService.js';
 import { sourceService } from '../../services/SourceService.js';
@@ -315,8 +315,10 @@ export class RaceCard {
 					subraceName,
 					source,
 				);
+			} else {
+				// User selected "Standard" - get the unnamed base subrace if it exists
+				subraceData = this._getNamelessSubrace(raceName, source);
 			}
-			// If subraceName is empty, keep subraceData as null (no subrace selected = Standard)
 
 			console.debug(
 				'RaceCard',
@@ -411,9 +413,7 @@ export class RaceCard {
 	 * @private
 	 */
 	_getNamelessSubrace(raceName, source) {
-		const subraces = this._raceService.getSubraces(raceName, source);
-		// Find a subrace entry with no name - this is the base variant
-		return subraces.find((sr) => !sr.name || sr.name.trim() === '') || null;
+		return this._raceService.getBaseSubrace(raceName, source);
 	}
 
 	//-------------------------------------------------------------------------
@@ -447,8 +447,9 @@ export class RaceCard {
 			character.clearAbilityBonuses('Race');
 			character.clearAbilityBonuses('Subrace');
 
-			// Clear bonuses added from previous racial choices
-			character.clearAbilityBonusesByPrefix('Race Choice');
+			// Clear bonuses added from previous racial choices (includes "Subrace 1", "Subrace 2", etc.)
+			character.clearAbilityBonusesByPrefix('Race');
+			character.clearAbilityBonusesByPrefix('Subrace');
 
 			// Clear the AbilityScoreManager's stored choices
 			if (window.abilityScoreManager) {
@@ -632,14 +633,23 @@ export class RaceCard {
 
 			// If we have any choices, process them
 			if (choices && choices.length > 0) {
+				console.debug('RaceCard', 'Adding pending ability choices:', choices);
 				for (const choice of choices) {
-					character.addPendingAbilityChoice({
-						count: choice.count,
-						amount: choice.amount,
-						from: choice.from,
-						source: choice.source,
-					});
+					// Expand each choice based on count (e.g., count:2 becomes 2 separate dropdowns)
+					const count = choice.count || 1;
+					for (let i = 0; i < count; i++) {
+						character.addPendingAbilityChoice({
+							count: 1, // Each individual choice is count:1
+							amount: choice.amount,
+							from: choice.from,
+							source: choice.source, // Keep same source for all choices from this race/subrace
+							type: 'ability',
+						});
+					}
 				}
+				console.debug('RaceCard', 'Pending ability choices after add:', character.getPendingAbilityChoices());
+			} else {
+				console.debug('RaceCard', 'No ability choices found for race/subrace');
 			}
 		} catch (error) {
 			console.error('RaceCard', 'Error updating ability bonuses:', error);
@@ -1252,6 +1262,12 @@ export class RaceCard {
 				}
 			}
 		}
+
+		console.debug('RaceCard', '_getAbilityScoreChoices result:', {
+			raceName: race?.name,
+			subraceName: subrace?.name,
+			choices,
+		});
 
 		return choices;
 	}

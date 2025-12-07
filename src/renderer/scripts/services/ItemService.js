@@ -1,7 +1,7 @@
 /** Manages item data and operations for the character builder. */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /** Manages item data and provides access to items. */
 class ItemService {

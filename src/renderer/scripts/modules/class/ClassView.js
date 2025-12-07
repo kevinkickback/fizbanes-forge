@@ -4,7 +4,7 @@
  * Handles the main class dropdown and summary display.
  */
 
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { textProcessor } from '../../utils/TextProcessor.js';
 

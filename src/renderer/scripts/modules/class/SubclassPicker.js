@@ -1,6 +1,6 @@
 /** View component for subclass selection dropdown. */
 
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 /** View for the subclass selection dropdown. */
 export class SubclassPickerView {
@@ -130,4 +130,3 @@ export class SubclassPickerView {
 		this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
 }
-

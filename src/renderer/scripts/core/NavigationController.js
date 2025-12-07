@@ -1,6 +1,6 @@
 /** Presentation controller coordinating router, page loader, and nav UI. */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { AppState } from './AppState.js';
 import { PageLoader } from './PageLoader.js';
@@ -15,7 +15,7 @@ class NavigationControllerImpl {
 
 	/**
 	 * Initialize the navigation controller.
-	 * @returns {Result} Result with success or error
+	 * @returns {void}
 	 */
 	initialize() {
 		if (this.isInitialized) {
@@ -26,9 +26,11 @@ class NavigationControllerImpl {
 		console.info('NavigationController', 'Initializing');
 
 		// Initialize PageLoader
-		const initResult = PageLoader.initialize('pageContent');
-		if (initResult.isErr()) {
+		try {
+			PageLoader.initialize('pageContent');
+		} catch (error) {
 			console.error('NavigationController', 'Failed to initialize PageLoader');
+			PageLoader.renderError(error.message);
 			return;
 		}
 
@@ -120,20 +122,14 @@ class NavigationControllerImpl {
 		// Show loading state
 		PageLoader.renderLoading();
 
-		// Navigate using router
-		const navResult = await Router.navigate(page);
-
-		if (navResult.isErr()) {
-			console.error(
-				'NavigationController',
-				'Navigation failed',
-				navResult.error,
-			);
-			PageLoader.renderError(navResult.error);
+		let route;
+		try {
+			route = await Router.navigate(page);
+		} catch (error) {
+			console.error('NavigationController', 'Navigation failed', error.message);
+			PageLoader.renderError(error.message);
 			return;
 		}
-
-		const route = navResult.value;
 
 		// Log floating bar state BEFORE setting attribute and rendering
 		const floatingBar = document.querySelector('.floating-actions');
@@ -190,15 +186,11 @@ class NavigationControllerImpl {
 			`[${new Date().toISOString()}] Starting loadAndRenderPage: ${pageName}`,
 		);
 
-		const loadResult = await PageLoader.loadAndRender(template);
-
-		if (loadResult.isErr()) {
-			console.error(
-				'NavigationController',
-				'Failed to load page',
-				loadResult.error,
-			);
-			PageLoader.renderError(`Failed to load page: ${loadResult.error}`);
+		try {
+			await PageLoader.loadAndRender(template);
+		} catch (error) {
+			console.error('NavigationController', 'Failed to load page', error.message);
+			PageLoader.renderError(`Failed to load page: ${error.message}`);
 			return;
 		}
 

@@ -1,6 +1,6 @@
 /** Persistence helper for saving, loading, importing, exporting characters. */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 
 /**

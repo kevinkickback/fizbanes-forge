@@ -1,6 +1,6 @@
 /** Central application state singleton that emits change events. */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 
 class AppStateImpl {

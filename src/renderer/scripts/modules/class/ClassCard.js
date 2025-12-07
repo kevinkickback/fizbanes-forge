@@ -2,7 +2,7 @@
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { classService } from '../../services/ClassService.js';
 import { sourceService } from '../../services/SourceService.js';

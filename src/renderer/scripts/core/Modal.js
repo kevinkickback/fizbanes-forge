@@ -26,7 +26,7 @@
  * @property {string} [confirmButtonClass='btn-primary'] - CSS class for the confirm button
  */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { SourceCard } from '../modules/sources/SourceCard.js';
 import { showNotification } from '../utils/Notifications.js';
@@ -331,19 +331,9 @@ export class Modal {
 			const { CharacterManager } = await import('./CharacterManager.js');
 
 			// Create character using CharacterManager
-			const createResult = await CharacterManager.createCharacter(
+			const character = await CharacterManager.createCharacter(
 				formData.name,
 			);
-
-			if (!createResult.isOk()) {
-				showNotification(
-					`Failed to create character: ${createResult.error}`,
-					'error',
-				);
-				return;
-			}
-
-			const character = createResult.value;
 
 			// Update character with form data
 			character.level = formData.level;
@@ -366,27 +356,20 @@ export class Modal {
 			);
 
 			// Save character
-			const saveResult = await CharacterManager.saveCharacter();
+			await CharacterManager.saveCharacter();
 
-			if (saveResult.isOk()) {
-				// Close modal and reset form
-				this._closeNewCharacterModal();
+			// Close modal and reset form
+			this._closeNewCharacterModal();
 
-				// Call the onCreateCharacter callback if provided
-				if (this._eventHandlers.onCreateCharacter) {
-					await this._eventHandlers.onCreateCharacter(character);
-				}
-
-				// Reload the character list if needed
-				await this._reloadCharacterList();
-
-				showNotification('New character created successfully', 'success');
-			} else {
-				showNotification(
-					`Failed to save character: ${saveResult.error}`,
-					'error',
-				);
+			// Call the onCreateCharacter callback if provided
+			if (this._eventHandlers.onCreateCharacter) {
+				await this._eventHandlers.onCreateCharacter(character);
 			}
+
+			// Reload the character list if needed
+			await this._reloadCharacterList();
+
+			showNotification('New character created successfully', 'success');
 		} catch (error) {
 			console.error('Modal', 'Error creating new character:', error);
 			showNotification('Error creating new character', 'error');

@@ -1,6 +1,6 @@
 /** View for race selection dropdown and quick description. */
 
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { textProcessor } from '../../utils/TextProcessor.js';
 

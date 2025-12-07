@@ -15,8 +15,8 @@
  * @property {boolean} isDefault - Whether this is a default source
  */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 
 /** Manages source book selection and filtering for character creation. */

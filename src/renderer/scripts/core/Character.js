@@ -306,6 +306,21 @@ export class Character {
 	}
 
 	/**
+	 * Removes a specific ability bonus by ability, value, and source
+	 * @param {string} ability - The ability score name
+	 * @param {number} value - The bonus value
+	 * @param {string} source - The source of the bonus
+	 */
+	removeAbilityBonus(ability, value, source) {
+		const normalizedAbility = ability?.toLowerCase();
+		if (!normalizedAbility || !this.abilityBonuses[normalizedAbility]) return;
+
+		this.abilityBonuses[normalizedAbility] = this.abilityBonuses[
+			normalizedAbility
+		].filter((bonus) => !(bonus.value === value && bonus.source === source));
+	}
+
+	/**
 	 * Clears ability bonuses from a specific source
 	 * @param {string} source - Source to clear bonuses from
 	 */

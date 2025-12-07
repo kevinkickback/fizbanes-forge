@@ -1,7 +1,7 @@
 /** Manages proficiencies and proficiency bonuses. */
 
 import { ProficiencyCore } from '../core/Proficiency.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 
 /** Manages proficiencies and proficiency-related calculations. */

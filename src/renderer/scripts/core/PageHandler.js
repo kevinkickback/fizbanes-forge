@@ -1,6 +1,6 @@
 /** Handles page-specific initialization after templates render. */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../modules/background/BackgroundCard.js';
@@ -103,20 +103,8 @@ class PageHandlerImpl {
 				this.setupCharacterCardListeners(characterList);
 			}
 
-			// Load character list
-			const result = await CharacterManager.loadCharacterList();
-
-			if (result.isOk()) {
-				const characters = result.value;
-				await this.renderCharacterList(characters);
-			} else {
-				console.error(
-					'PageHandler',
-					'Failed to load character list',
-					result.error,
-				);
-				showNotification('Failed to load characters', 'error');
-			}
+			const characters = await CharacterManager.loadCharacterList();
+			await this.renderCharacterList(characters);
 
 			// Setup sort select listener
 			const sortSelect = document.getElementById('sortSelect');
@@ -144,10 +132,8 @@ class PageHandlerImpl {
 				onCreateCharacter: async (character) => {
 					console.info('PageHandler', 'Character created', { id: character.id });
 					// Reload the character list
-					const reloadResult = await CharacterManager.loadCharacterList();
-					if (reloadResult.isOk()) {
-						await this.renderCharacterList(reloadResult.value);
-					}
+					const reloadCharacters = await CharacterManager.loadCharacterList();
+					await this.renderCharacterList(reloadCharacters);
 				},
 			});
 
@@ -172,10 +158,8 @@ class PageHandlerImpl {
 
 			// Store the handler so we can remove it later
 			this._homeCharacterSelectedHandler = async () => {
-				const reloadResult = await CharacterManager.loadCharacterList();
-				if (reloadResult.isOk()) {
-					await this.renderCharacterList(reloadResult.value);
-				}
+				const reloadCharacters = await CharacterManager.loadCharacterList();
+				await this.renderCharacterList(reloadCharacters);
 			};
 
 			eventBus.on(
@@ -392,15 +376,11 @@ class PageHandlerImpl {
 					'PageHandler',
 					`[${new Date().toISOString()}] Character card clicked: ${characterId}`,
 				);
-				const result = await CharacterManager.loadCharacter(characterId);
-				if (result.isOk()) {
-					console.info(
-						'PageHandler',
-						`✓ Character loaded from card: ${characterId}`,
-						{
-							character: result.value?.name,
-						},
-					);
+				try {
+					const character = await CharacterManager.loadCharacter(characterId);
+					console.info('PageHandler', `✓ Character loaded from card: ${characterId}`, {
+						character: character?.name,
+					});
 
 					// Check floating bar state AFTER load
 					const floatingBar = document.querySelector('.floating-actions');
@@ -418,10 +398,10 @@ class PageHandlerImpl {
 					// Navigate to build page
 					console.debug('PageHandler', 'Emitting PAGE_CHANGED event to "build"');
 					eventBus.emit(EVENTS.PAGE_CHANGED, 'build');
-				} else {
+				} catch (error) {
 					console.error('PageHandler', 'Failed to load character', {
 						id: characterId,
-						error: result.error,
+						error: error.message,
 					});
 					showNotification('Failed to load character', 'error');
 				}
@@ -463,15 +443,13 @@ class PageHandlerImpl {
 				});
 
 				if (confirmed) {
-					const result = await CharacterManager.deleteCharacter(characterId);
-					if (result.isOk()) {
+					try {
+						await CharacterManager.deleteCharacter(characterId);
 						showNotification('Character deleted successfully', 'success');
-						// Reload character list
-						const reloadResult = await CharacterManager.loadCharacterList();
-						if (reloadResult.isOk()) {
-							await this.renderCharacterList(reloadResult.value);
-						}
-					} else {
+						const reloadCharacters = await CharacterManager.loadCharacterList();
+						await this.renderCharacterList(reloadCharacters);
+					} catch (error) {
+						console.error('PageHandler', 'Failed to delete character', error);
 						showNotification('Failed to delete character', 'error');
 					}
 				}
@@ -492,10 +470,8 @@ class PageHandlerImpl {
 				showNotification('Character imported successfully', 'success');
 
 				// Reload character list
-				const reloadResult = await CharacterManager.loadCharacterList();
-				if (reloadResult.isOk()) {
-					await this.renderCharacterList(reloadResult.value);
-				}
+				const reloadCharacters = await CharacterManager.loadCharacterList();
+				await this.renderCharacterList(reloadCharacters);
 			} else if (result.canceled) {
 				console.info('PageHandler', 'Import canceled');
 				showNotification('Import cancelled', 'info');

@@ -2,7 +2,7 @@
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { proficiencyService } from '../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';

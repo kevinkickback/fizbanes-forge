@@ -1,8 +1,8 @@
 /** Manages race data and operations for the character builder. */
 
 import { AppState } from '../core/AppState.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { DataLoader } from '../utils/DataLoader.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /** Manages character race selection and provides access to race data. */
 class RaceService {
@@ -11,8 +11,7 @@ class RaceService {
 		this._raceData = null;
 		this._selectedRace = null;
 		this._selectedSubrace = null;
-		this._raceLookupMap = null; // Map for O(1) lookups by name
-		this._subraceLookupMap = null; // Map for O(1) lookups by subrace name
+		this._raceIndex = null; // keyed by race name + source
 	}
 
 	/**
@@ -29,15 +28,9 @@ class RaceService {
 		console.info('[RaceService]', 'Initializing race data');
 
 		try {
-			// Load race data
 			this._raceData = await DataLoader.loadRaces();
+			if (!this._raceData) throw new Error('Race data is null or undefined');
 
-			// Ensure data is valid before processing
-			if (!this._raceData) {
-				throw new Error('Race data is null or undefined');
-			}
-
-			// Load race fluff data
 			try {
 				const fluffData = await DataLoader.loadRaceFluff();
 				if (fluffData?.raceFluff) {
@@ -52,26 +45,7 @@ class RaceService {
 				this._raceData.raceFluff = [];
 			}
 
-			// Build lookup maps for O(1) access
-			this._raceLookupMap = new Map();
-			if (this._raceData.race) {
-				for (const race of this._raceData.race) {
-					// Skip races with missing names
-					if (!race.name) continue;
-					const key = `${race.name.toLowerCase()}:${race.source}`;
-					this._raceLookupMap.set(key, race);
-				}
-			}
-
-			this._subraceLookupMap = new Map();
-			if (this._raceData.subrace) {
-				for (const subrace of this._raceData.subrace) {
-					// Skip subraces with missing names
-					if (!subrace.name) continue;
-					const key = `${subrace.name.toLowerCase()}:${subrace.source}`;
-					this._subraceLookupMap.set(key, subrace);
-				}
-			}
+			this._buildRaceIndex();
 
 			console.info('[RaceService]', 'Races loaded successfully', {
 				count: this._raceData.race?.length,
@@ -99,11 +73,8 @@ class RaceService {
 	 * @returns {Object|null} Race object from JSON or null if not found
 	 */
 	getRace(name, source = 'PHB') {
-		if (!this._raceLookupMap) return null;
-
-		// O(1) lookup
-		const key = `${name.toLowerCase()}:${source}`;
-		return this._raceLookupMap.get(key) || null;
+		const bundle = this._raceIndex?.get(this._raceKey(name, source));
+		return bundle?.race || null;
 	}
 
 	/**
@@ -113,92 +84,8 @@ class RaceService {
 	 * @returns {Array<Object>} Array of subrace objects
 	 */
 	getSubraces(raceName, source = 'PHB') {
-		const subraces = [];
-
-		if (this._raceData?.subrace) {
-			// Get all subraces for this race, matching by raceName
-			// Filter by raceSource to get the correct parent race variant
-			const raceSubraces = this._raceData.subrace.filter(
-				(sr) =>
-					sr.raceName === raceName &&
-					(sr.raceSource === source || !sr.raceSource),
-			);
-			subraces.push(...raceSubraces);
-		}
-
-		// Check if the race itself has _versions (like XPHB Elf lineages, XPHB Tiefling legacies, XPHB Dragonborn colors)
-		const mainRace = this.getRace(raceName, source);
-		if (mainRace?._versions) {
-			for (const version of mainRace._versions) {
-				// Check if this is an _abstract/_implementations structure (like XPHB Dragonborn)
-				if (version._abstract && version._implementations) {
-					const abstractTemplate = version._abstract;
-					for (const impl of version._implementations) {
-						if (impl._variables?.color) {
-							// Create a pseudo-subrace entry for each color
-							subraces.push({
-								name: impl._variables.color,
-								source: source,
-								raceName: raceName,
-								raceSource: source,
-								_isVersion: true,
-								_implementation: impl,
-								_abstract: abstractTemplate,
-							});
-						}
-					}
-				} else {
-					// Regular version with a name (like XPHB Elf lineages)
-					// Extract the variant name from the full version name
-					// e.g., "Elf; Drow Lineage" -> "Drow Lineage"
-					// e.g., "Tiefling; Abyssal Legacy" -> "Abyssal Legacy"
-					let variantName = version.name;
-					if (variantName?.includes(';')) {
-						variantName = variantName.split(';')[1].trim();
-					}
-
-					subraces.push({
-						name: variantName || version.name,
-						source: version.source || source,
-						raceName: raceName,
-						raceSource: source,
-						_isVersion: true,
-						_versionData: version,
-					});
-				}
-			}
-		}
-
-		// Check if the race has _versions in subrace array (like PHB Dragonborn colors)
-		const subraceEntry = this._raceData?.subrace?.find(
-			(sr) =>
-				sr.raceName === raceName &&
-				(sr.raceSource === source || !sr.raceSource) &&
-				sr._versions,
-		);
-
-		if (subraceEntry?._versions?.[0]?._implementations) {
-			// Generate subrace-like entries from _versions with _implementations
-			const implementations = subraceEntry._versions[0]._implementations;
-			const abstractTemplate = subraceEntry._versions[0]._abstract;
-
-			for (const impl of implementations) {
-				if (impl._variables?.color) {
-					// Create a pseudo-subrace entry for each color
-					subraces.push({
-						name: impl._variables.color,
-						source: subraceEntry.source,
-						raceName: raceName,
-						raceSource: source,
-						_isVersion: true,
-						_implementation: impl,
-						_abstract: abstractTemplate,
-					});
-				}
-			}
-		}
-
-		return subraces;
+		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		return bundle?.subraces || [];
 	}
 
 	/**
@@ -209,19 +96,8 @@ class RaceService {
 	 * @returns {boolean} True if subrace selection is required, false if optional
 	 */
 	isSubraceRequired(raceName, source = 'PHB') {
-		if (!this._raceData?.subrace) return false;
-
-		// Find if there's a base subrace entry (without a name) for this race
-		const baseSubraceEntry = this._raceData.subrace.find(
-			(sr) =>
-				sr.raceName === raceName &&
-				(sr.raceSource === source || !sr.raceSource) &&
-				!sr.name, // No name = base race entry
-		);
-
-		// If there's NO base entry with no name, it means subraces are required
-		// If there IS a base entry, subraces are optional
-		return !baseSubraceEntry;
+		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		return bundle ? !bundle.baseSubrace : false;
 	}
 
 	/**
@@ -232,8 +108,133 @@ class RaceService {
 	 * @returns {Object|null} Subrace object or null if not found
 	 */
 	getSubrace(raceName, subraceName, source = 'PHB') {
-		const subraces = this.getSubraces(raceName, source);
-		return subraces.find((sr) => sr.name === subraceName) || null;
+		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		if (!bundle) return null;
+		return bundle.subraces.find((sr) => sr.name === subraceName) || null;
+	}
+
+	/**
+	 * Get the base (unnamed) subrace for a race, if it exists
+	 * @param {string} raceName - Name of the parent race
+	 * @param {string} source - Source book
+	 * @returns {Object|null} Base subrace object or null if not found
+	 */
+	getBaseSubrace(raceName, source = 'PHB') {
+		const bundle = this._raceIndex?.get(this._raceKey(raceName, source));
+		return bundle?.baseSubrace || null;
+	}
+
+	_raceKey(name, source = 'PHB') {
+		return `${name?.toLowerCase()}:${source}`;
+	}
+
+	_buildRaceIndex() {
+		this._raceIndex = new Map();
+		const races = this._raceData?.race || [];
+		const subraceGroups = this._groupSubracesByRace(this._raceData?.subrace || []);
+
+		for (const race of races) {
+			if (!race?.name) continue;
+			const raceSource = race.source || 'PHB';
+			const key = this._raceKey(race.name, raceSource);
+
+			const explicitSubraces = subraceGroups.get(key) || [];
+			const derivedFromRace = this._deriveVersionSubracesFromRace(
+				race,
+				raceSource,
+			);
+			// Only derive versions from unnamed (base) subraces; named subraces are complete variants
+			const baseSubraces = explicitSubraces.filter((sr) => !sr.name);
+			const derivedFromSubrace = baseSubraces.flatMap((entry) =>
+				this._deriveVersionSubracesFromSubraceEntry(
+					entry,
+					race.name,
+					raceSource,
+				),
+			);
+
+			const namedSubraces = explicitSubraces.filter((sr) => sr.name);
+			const baseSubrace = baseSubraces[0] || null;
+
+			const mergedSubraces = [
+				...namedSubraces,
+				...derivedFromRace,
+				...derivedFromSubrace,
+			];
+
+			this._raceIndex.set(key, {
+				race,
+				subraces: mergedSubraces,
+				baseSubrace,
+			});
+		}
+	}
+
+	_groupSubracesByRace(subraceArray) {
+		const group = new Map();
+		for (const subrace of subraceArray) {
+			if (!subrace?.raceName) continue;
+			const raceSource = subrace.raceSource || subrace.source || 'PHB';
+			const key = this._raceKey(subrace.raceName, raceSource);
+			if (!group.has(key)) group.set(key, []);
+			group.get(key).push(subrace);
+		}
+		return group;
+	}
+
+	_deriveVersionSubracesFromRace(race, source) {
+		if (!race?._versions) return [];
+		const derived = [];
+		for (const version of race._versions) {
+			if (version._abstract && version._implementations) {
+				const abstractTemplate = version._abstract;
+				for (const impl of version._implementations) {
+					if (impl._variables?.color) {
+						derived.push({
+							name: impl._variables.color,
+							source,
+							raceName: race.name,
+							raceSource: source,
+							_isVersion: true,
+							_implementation: impl,
+							_abstract: abstractTemplate,
+						});
+					}
+				}
+			} else {
+				let variantName = version.name;
+				if (variantName?.includes(';')) {
+					variantName = variantName.split(';')[1].trim();
+				}
+
+				derived.push({
+					name: variantName || version.name,
+					source: version.source || source,
+					raceName: race.name,
+					raceSource: source,
+					_isVersion: true,
+					_versionData: version,
+				});
+			}
+		}
+		return derived;
+	}
+
+	_deriveVersionSubracesFromSubraceEntry(subraceEntry, raceName, raceSource) {
+		const root = subraceEntry?._versions?.[0];
+		if (!root?._implementations) return [];
+		const abstractTemplate = root._abstract;
+		return root._implementations
+			.filter((impl) => impl._variables?.color)
+			.map((impl) => ({
+				name: impl._variables.color,
+				source: subraceEntry.source || subraceEntry.raceSource || raceSource,
+				raceName,
+				raceSource,
+				_isVersion: true,
+				_implementation: impl,
+				_abstract: abstractTemplate,
+			}));
 	}
 
 	/**

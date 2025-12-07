@@ -775,6 +775,24 @@ export class ClassDetailsView {
 						result += `<p><strong>${processedName}</strong> = your proficiency bonus + your ${abilityName} modifier (${sign}${attackMod})</p>`;
 					}
 				}
+				// Handle optional feature reference
+				else if (entry.type === 'refOptionalfeature') {
+					const featureName = entry.optionalfeature;
+					if (featureName) {
+						const processed = await textProcessor.processString(featureName);
+						result += `<p><em>${processed}</em></p>`;
+					}
+				}
+				// Handle class feature reference (format: FeatureName|ParentClass|Source|Level)
+				else if (entry.type === 'refClassFeature') {
+					const featureRef = entry.classFeature;
+					if (featureRef) {
+						const parts = featureRef.split('|');
+						const featureName = parts[0];
+						const processed = await textProcessor.processString(featureName);
+						result += `<p><em>${processed}</em></p>`;
+					}
+				}
 				// Fall back to JSON for unhandled formats
 				else {
 					console.warn('ClassDetails', 'Unhandled entry format:', entry);

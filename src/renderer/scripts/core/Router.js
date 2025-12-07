@@ -1,8 +1,7 @@
 /** Client-side router that validates access and emits navigation events. */
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
-import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
 
 class RouterImpl {
@@ -29,14 +28,14 @@ class RouterImpl {
 	/**
 	 * Navigate to a route.
 	 * @param {string} path - Route path to navigate to
-	 * @returns {Result} Result with route config or error
+	 * @returns {object} Route config
 	 */
 	async navigate(path) {
 		console.info('[Router]', 'Navigating to', { path });
 
 		if (!this.routes.has(path)) {
 			console.error('[Router]', 'Route not found', { path });
-			return Result.err(`Route not found: ${path}`);
+			throw new Error(`Route not found: ${path}`);
 		}
 
 		const route = this.routes.get(path);
@@ -44,7 +43,7 @@ class RouterImpl {
 		// Check if character required
 		if (route.requiresCharacter && !AppState.getCurrentCharacter()) {
 			console.info('[Router]', 'Route requires character', { path });
-			return Result.err('Character required for this page');
+			throw new Error('Character required for this page');
 		}
 
 		// Update state
@@ -55,7 +54,7 @@ class RouterImpl {
 		eventBus.emit(EVENTS.PAGE_CHANGED, path);
 
 		console.info('[Router]', 'Navigation successful', { path });
-		return Result.ok(route);
+		return route;
 	}
 
 	/**

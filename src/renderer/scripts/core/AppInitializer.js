@@ -17,7 +17,7 @@
  */
 
 // Core imports - NEW ARCHITECTURE
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { showNotification } from '../utils/Notifications.js';
 import { AppState } from './AppState.js';
@@ -406,28 +406,16 @@ function _setupUIEventHandlers() {
 							character.backstory = backstoryTextarea.value;
 					}
 
-					const result = await CharacterManager.saveCharacter();
+					await CharacterManager.saveCharacter();
 
-					if (result.isOk()) {
-						console.info('AppInitializer', 'Character saved successfully');
-						showNotification('Character saved successfully', 'success');
-						if (unsavedIndicator) {
-							unsavedIndicator.style.display = 'none';
-						}
-						// Emit save event
-						console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
-						eventBus.emit(EVENTS.CHARACTER_SAVED);
-					} else {
-						console.error(
-							'AppInitializer',
-							'Failed to save character',
-							result.error,
-						);
-						showNotification(
-							`Failed to save character: ${result.error}`,
-							'error',
-						);
+					console.info('AppInitializer', 'Character saved successfully');
+					showNotification('Character saved successfully', 'success');
+					if (unsavedIndicator) {
+						unsavedIndicator.style.display = 'none';
 					}
+					// Emit save event
+					console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
+					eventBus.emit(EVENTS.CHARACTER_SAVED);
 				} catch (error) {
 					console.error('AppInitializer', 'Error saving character', error);
 					showNotification('Error saving character', 'error');

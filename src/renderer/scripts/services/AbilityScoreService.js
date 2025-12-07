@@ -1,6 +1,5 @@
 /** Manages ability score state and calculations. */
 import { CharacterManager } from '../core/CharacterManager.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import {
 	calculateModifier,
 	calculatePointBuyTotal,
@@ -8,6 +7,7 @@ import {
 	getPointBuyCost,
 	POINT_BUY_BUDGET,
 } from '../modules/abilities/AbilityCalculator.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /**
  * @typedef {Object} AbilityChoice
@@ -537,8 +537,11 @@ class AbilityScoreService {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
-		// Clear the specific choice's bonus
-		character.clearAbilityBonuses?.(source);
+		// Clear the previous ability bonus for this specific choice index
+		const previousAbility = this.abilityChoices.get(choiceIndex);
+		if (previousAbility) {
+			character.removeAbilityBonus?.(previousAbility, bonus, source);
+		}
 
 		// Update stored choices
 		if (ability) {

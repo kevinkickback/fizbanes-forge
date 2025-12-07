@@ -1,9 +1,8 @@
 /** @file Manages character class selection and data access. */
 
 import { AppState } from '../core/AppState.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Result } from '../infrastructure/Result.js';
 import { DataLoader } from '../utils/DataLoader.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /** Manages character class selection and provides access to class data. */
 class ClassService {
@@ -16,7 +15,7 @@ class ClassService {
 
 	/**
 	 * Initialize class data by loading from DataLoader
-	 * @returns {Promise<Result>} Result with true or error
+	 * @returns {Promise<void>} Resolves when data is loaded
 	 */
 	async initialize() {
 		// Check if already initialized
@@ -24,17 +23,14 @@ class ClassService {
 		if (existingData) {
 			console.debug('ClassService', 'Already initialized, using cached data');
 			this._classData = existingData;
-			return Result.ok(true);
+			return;
 		}
 
 		console.info('[ClassService]', 'Initializing class data');
 
 		try {
-			// Load the index to get all class files
 			const index = await DataLoader.loadJSON('class/index.json');
-			const fluffIndex = await DataLoader.loadJSON(
-				'class/fluff-index.json',
-			);
+			const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json');
 
 			// Load all class files with individual error handling
 			const classFiles = Object.values(index);
@@ -109,7 +105,6 @@ class ClassService {
 			// Emit event
 			eventBus.emit(EVENTS.DATA_LOADED, 'classes', this._classData.class);
 
-			return Result.ok(true);
 		} catch (error) {
 			console.error('ClassService', 'Failed to initialize class data', error);
 			this._classData = {
@@ -120,7 +115,7 @@ class ClassService {
 				classFluff: [],
 				subclassFluff: [],
 			};
-			return Result.err(error.message);
+			throw error;
 		}
 	}
 

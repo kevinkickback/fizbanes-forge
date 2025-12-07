@@ -1,7 +1,7 @@
 /** Proficiency business logic with source tracking for adds/removals. */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 
 /**

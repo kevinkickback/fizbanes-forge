@@ -1,7 +1,7 @@
 /** Controller for managing ability score UI and interactions. */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
-import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { abilityChoicesView } from './AbilityChoices.js';
