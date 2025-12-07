@@ -1,6 +1,6 @@
 /** View for background selection and quick description display. */
 
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** Manages background selection view (dropdowns + quick description). */
@@ -29,7 +29,7 @@ export class BackgroundCardView {
 	_createVariantContainer() {
 		const selectors = document.querySelector('.background-selectors');
 		if (!selectors) {
-			Logger.warn('BackgroundView', 'Background selectors container not found');
+			console.warn('BackgroundView', 'Background selectors container not found');
 			return;
 		}
 
@@ -141,7 +141,7 @@ export class BackgroundCardView {
 					'<i class="fas fa-user-circle placeholder-icon"></i>';
 			}
 		} catch (error) {
-			Logger.error('BackgroundView', 'Error updating background image:', error);
+			console.error('BackgroundView', 'Error updating background image:', error);
 			// Set a default icon on error
 			this._imageElement.innerHTML =
 				'<i class="fas fa-user-circle placeholder-icon"></i>';

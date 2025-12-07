@@ -146,3 +146,4 @@ export function showNotification(message, type = 'info') {
 	lastTick = performance.now();
 	rafId = requestAnimationFrame(tick);
 }
+

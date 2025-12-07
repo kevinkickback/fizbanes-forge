@@ -3,7 +3,7 @@
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { backgroundService } from '../../services/BackgroundService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { BaseCard } from '../BaseCard.js';
@@ -52,7 +52,7 @@ export class BackgroundCard extends BaseCard {
 			// Load saved background selection from character data
 			await this._loadSavedBackgroundSelection();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'BackgroundCard',
 				'Failed to initialize background card:',
 				error,
@@ -69,7 +69,7 @@ export class BackgroundCard extends BaseCard {
 		try {
 			const backgrounds = backgroundService.getAllBackgrounds();
 			if (!backgrounds || backgrounds.length === 0) {
-				Logger.error(
+				console.error(
 					'BackgroundCard',
 					'No backgrounds available to populate dropdown',
 				);
@@ -91,7 +91,7 @@ export class BackgroundCard extends BaseCard {
 			this._cardView.resetQuickDescription();
 			this._detailsView.clearDetails();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'BackgroundCard',
 				'Error populating background dropdown:',
 				error,
@@ -135,14 +135,14 @@ export class BackgroundCard extends BaseCard {
 						this._handleVariantChange(true);
 					}
 				} else {
-					Logger.warn(
+					console.warn(
 						'BackgroundCard',
 						`Saved background "${backgroundName}" (${backgroundSource}) not found. Character might use a source that's not currently allowed.`,
 					);
 				}
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'BackgroundCard',
 				'Error loading saved background selection:',
 				error,
@@ -212,7 +212,7 @@ export class BackgroundCard extends BaseCard {
 				this._updateCharacterBackground(null, null);
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'BackgroundCard',
 				'Error handling background change:',
 				error,
@@ -263,7 +263,7 @@ export class BackgroundCard extends BaseCard {
 				}
 			}
 		} catch (error) {
-			Logger.error('BackgroundCard', 'Error handling variant change:', error);
+			console.error('BackgroundCard', 'Error handling variant change:', error);
 		}
 	}
 
@@ -293,7 +293,7 @@ export class BackgroundCard extends BaseCard {
 
 			this._cardView.hideVariantSelector();
 		} catch (error) {
-			Logger.error('BackgroundCard', 'Error updating variant options:', error);
+			console.error('BackgroundCard', 'Error updating variant options:', error);
 			this._cardView.hideVariantSelector();
 		}
 	}
@@ -323,7 +323,7 @@ export class BackgroundCard extends BaseCard {
 			// Update background details
 			await this._detailsView.updateAllDetails(background);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'BackgroundCard',
 				'Error rendering background details:',
 				error,

@@ -1,7 +1,8 @@
 /** View for rendering ability score bonus notes and explanations. */
 
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
+import { abbreviateAbility } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for rendering ability score bonus notes. */
@@ -40,11 +41,9 @@ class BonusNotesView {
 				const bonusText = [];
 				for (const [ability, value] of bonusMap.entries()) {
 					bonusText.push(
-						`${this._getAbilityAbbreviation(ability)} ${value >= 0 ? '+' : ''}${value}`,
+						`${abbreviateAbility(ability)} ${value >= 0 ? '+' : ''}${value}`,
 					);
-				}
-
-				bonusContent += this._createBonusNote(source, bonusText.join(', '));
+				} bonusContent += this._createBonusNote(source, bonusText.join(', '));
 			}
 
 			this._bonusesContainer.innerHTML = bonusContent;
@@ -54,7 +53,7 @@ class BonusNotesView {
 				textProcessor.processElement(this._bonusesContainer);
 			}
 		} catch (error) {
-			Logger.error('BonusNotes', 'Error rendering bonus notes:', error);
+			console.error('BonusNotes', 'Error rendering bonus notes:', error);
 		}
 	}
 
@@ -102,7 +101,7 @@ class BonusNotesView {
 			const formattedBonuses = fixedBonuses
 				.map(
 					(bonus) =>
-						`${this._getAbilityAbbreviation(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`,
+						`${abbreviateAbility(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`,
 				)
 				.join(', ');
 			allRaceBonuses.push(formattedBonuses);
@@ -113,7 +112,7 @@ class BonusNotesView {
 			if (source.includes('Choice')) {
 				for (const [ability, value] of bonusMap.entries()) {
 					allRaceBonuses.push(
-						`${this._getAbilityAbbreviation(ability)} ${value >= 0 ? '+' : ''}${value} (choice)`,
+						`${abbreviateAbility(ability)} ${value >= 0 ? '+' : ''}${value} (choice)`,
 					);
 				}
 			}
@@ -133,44 +132,6 @@ class BonusNotesView {
 		return `<div class="bonus-note">
             <strong>${source}</strong>: ${content}
         </div>`;
-	}
-
-	/**
-	 * Converts an ability name to its standard abbreviation
-	 * @param {string} ability - The ability name
-	 * @returns {string} The abbreviated ability name
-	 * @private
-	 */
-	_getAbilityAbbreviation(ability) {
-		const abilityLower = ability.toLowerCase();
-		switch (abilityLower) {
-			case 'strength':
-				return 'STR';
-			case 'dexterity':
-				return 'DEX';
-			case 'constitution':
-				return 'CON';
-			case 'intelligence':
-				return 'INT';
-			case 'wisdom':
-				return 'WIS';
-			case 'charisma':
-				return 'CHA';
-			case 'str':
-				return 'STR';
-			case 'dex':
-				return 'DEX';
-			case 'con':
-				return 'CON';
-			case 'int':
-				return 'INT';
-			case 'wis':
-				return 'WIS';
-			case 'cha':
-				return 'CHA';
-			default:
-				return ability.toUpperCase();
-		}
 	}
 
 	/**

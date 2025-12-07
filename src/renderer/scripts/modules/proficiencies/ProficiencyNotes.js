@@ -79,3 +79,4 @@ export class ProficiencyNotesView {
 		await textProcessor.processElement(container);
 	}
 }
+

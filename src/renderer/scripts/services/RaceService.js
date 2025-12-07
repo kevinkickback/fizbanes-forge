@@ -2,7 +2,6 @@
 
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /** Manages character race selection and provides access to race data. */
@@ -23,11 +22,11 @@ class RaceService {
 	async initialize() {
 		// Skip if already initialized
 		if (this._raceData) {
-			Logger.debug('RaceService', 'Already initialized');
+			console.debug('RaceService', 'Already initialized');
 			return;
 		}
 
-		Logger.info('RaceService', 'Initializing race data');
+		console.info('[RaceService]', 'Initializing race data');
 
 		try {
 			// Load race data
@@ -45,7 +44,7 @@ class RaceService {
 					this._raceData.raceFluff = fluffData.raceFluff;
 				}
 			} catch (fluffError) {
-				Logger.warn(
+				console.warn(
 					'RaceService',
 					'Failed to load race fluff data',
 					fluffError,
@@ -74,13 +73,13 @@ class RaceService {
 				}
 			}
 
-			Logger.info('RaceService', 'Races loaded successfully', {
+			console.info('[RaceService]', 'Races loaded successfully', {
 				count: this._raceData.race?.length,
 			});
 			AppState.setLoadedData('races', this._raceData.race);
 			eventBus.emit(EVENTS.DATA_LOADED, 'races', this._raceData.race);
 		} catch (error) {
-			Logger.error('RaceService', 'Failed to initialize race data', error);
+			console.error('RaceService', 'Failed to initialize race data', error);
 			throw error;
 		}
 	}

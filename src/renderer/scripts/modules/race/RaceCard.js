@@ -3,7 +3,7 @@
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { raceService } from '../../services/RaceService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { RaceDetailsView } from './RaceDetails.js';
@@ -67,7 +67,7 @@ export class RaceCard {
 			// Load saved race selection from character data
 			this._loadSavedRaceSelection();
 		} catch (error) {
-			Logger.error('RaceCard', 'Failed to initialize race card:', error);
+			console.error('RaceCard', 'Failed to initialize race card:', error);
 		}
 	}
 
@@ -134,13 +134,13 @@ export class RaceCard {
 					}
 				}
 			} else {
-				Logger.warn(
+				console.warn(
 					'RaceCard',
 					`Saved race "${raceValue}" not found in available options. Character might use a source that's not currently allowed.`,
 				);
 			}
 		} catch (error) {
-			Logger.error('RaceCard', 'Error loading saved race selection:', error);
+			console.error('RaceCard', 'Error loading saved race selection:', error);
 		}
 	}
 
@@ -154,7 +154,7 @@ export class RaceCard {
 		try {
 			const races = this._raceService.getAllRaces();
 			if (!races || races.length === 0) {
-				Logger.error('RaceCard', 'No races available to populate dropdown');
+				console.error('RaceCard', 'No races available to populate dropdown');
 				return;
 			}
 
@@ -164,14 +164,14 @@ export class RaceCard {
 			);
 
 			if (filteredRaces.length === 0) {
-				Logger.error('RaceCard', 'No races available after source filtering');
+				console.error('RaceCard', 'No races available after source filtering');
 				return;
 			}
 
 			// Populate view
 			this._cardView.populateRaceSelect(filteredRaces);
 		} catch (error) {
-			Logger.error('RaceCard', 'Error populating race dropdown:', error);
+			console.error('RaceCard', 'Error populating race dropdown:', error);
 		}
 	}
 
@@ -229,7 +229,7 @@ export class RaceCard {
 				}, 0);
 			}
 		} catch (error) {
-			Logger.error('RaceCard', 'Error loading subraces for dropdown:', error);
+			console.error('RaceCard', 'Error loading subraces for dropdown:', error);
 		}
 	}
 
@@ -255,7 +255,7 @@ export class RaceCard {
 
 			const raceData = this._raceService.getRace(raceName, source);
 			if (!raceData) {
-				Logger.error('RaceCard', `Race not found: ${raceName} (${source})`);
+				console.error('RaceCard', `Race not found: ${raceName} (${source})`);
 				return;
 			}
 
@@ -281,7 +281,7 @@ export class RaceCard {
 				character: CharacterManager.getCurrentCharacter(),
 			});
 		} catch (error) {
-			Logger.error('RaceCard', 'Error handling race change:', error);
+			console.error('RaceCard', 'Error handling race change:', error);
 		}
 	}
 
@@ -303,7 +303,7 @@ export class RaceCard {
 
 			const raceData = this._raceService.getRace(raceName, source);
 			if (!raceData) {
-				Logger.error('RaceCard', `Race not found: ${raceName} (${source})`);
+				console.error('RaceCard', `Race not found: ${raceName} (${source})`);
 				return;
 			}
 
@@ -318,7 +318,7 @@ export class RaceCard {
 			}
 			// If subraceName is empty, keep subraceData as null (no subrace selected = Standard)
 
-			Logger.debug(
+			console.debug(
 				'RaceCard',
 				`Subrace changed: ${subraceName || 'Standard'}`,
 				{
@@ -339,7 +339,7 @@ export class RaceCard {
 				character: CharacterManager.getCurrentCharacter(),
 			});
 		} catch (error) {
-			Logger.error('RaceCard', 'Error handling subrace change:', error);
+			console.error('RaceCard', 'Error handling subrace change:', error);
 		}
 	}
 
@@ -353,7 +353,7 @@ export class RaceCard {
 			// Reload race selection to match character's race
 			await this._loadSavedRaceSelection();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'RaceCard',
 				'Error handling character changed event:',
 				error,
@@ -505,7 +505,7 @@ export class RaceCard {
 			try {
 				window.abilityScoreManager?.setRacialAbilityChoices([]);
 			} catch (e) {
-				Logger.error('RaceCard', 'Error clearing ability score choices:', e);
+				console.error('RaceCard', 'Error clearing ability score choices:', e);
 			}
 
 			if (!race) {
@@ -595,7 +595,7 @@ export class RaceCard {
 
 			for (const improvement of fixedImprovements) {
 				if (!improvement || !improvement.ability) {
-					Logger.warn('RaceCard', 'Invalid ability improvement:', improvement);
+					console.warn('RaceCard', 'Invalid ability improvement:', improvement);
 					continue;
 				}
 
@@ -642,7 +642,7 @@ export class RaceCard {
 				}
 			}
 		} catch (error) {
-			Logger.error('RaceCard', 'Error updating ability bonuses:', error);
+			console.error('RaceCard', 'Error updating ability bonuses:', error);
 		}
 
 		// Notify of changes

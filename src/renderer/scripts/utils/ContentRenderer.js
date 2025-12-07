@@ -449,3 +449,4 @@ Renderer.monster = class {
 
 // Export for use as module
 export { Renderer };
+

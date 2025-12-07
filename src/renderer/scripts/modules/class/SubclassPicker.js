@@ -130,3 +130,4 @@ export class SubclassPickerView {
 		this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
 }
+

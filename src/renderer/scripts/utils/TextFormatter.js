@@ -298,7 +298,7 @@ export function joinWithAnd(items, conjunction = 'and') {
 
 /**
  * Abbreviates ability score names
- * @param {string} ability - Full ability name
+ * @param {string} ability - Full ability name or abbreviation
  * @returns {string} Abbreviated ability (e.g., "STR", "DEX")
  */
 export function abbreviateAbility(ability) {
@@ -306,6 +306,7 @@ export function abbreviateAbility(ability) {
 		return '';
 	}
 
+	const abilityLower = ability.toLowerCase();
 	const abbr = {
 		strength: 'STR',
 		dexterity: 'DEX',
@@ -313,9 +314,16 @@ export function abbreviateAbility(ability) {
 		intelligence: 'INT',
 		wisdom: 'WIS',
 		charisma: 'CHA',
+		// Handle already-abbreviated inputs
+		str: 'STR',
+		dex: 'DEX',
+		con: 'CON',
+		int: 'INT',
+		wis: 'WIS',
+		cha: 'CHA',
 	};
 
-	return abbr[ability.toLowerCase()] || ability.substring(0, 3).toUpperCase();
+	return abbr[abilityLower] || ability.substring(0, 3).toUpperCase();
 }
 
 /**
@@ -342,3 +350,4 @@ export function expandSource(source) {
 
 	return sources[source.toUpperCase()] || source;
 }
+

@@ -1,6 +1,6 @@
 /** Modal for configuring D&D data source (URL or local folder) with validation/download UI. */
 
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { showNotification } from '../../utils/Notifications.js';
 
 export class DataConfigurationModal {
@@ -54,13 +54,13 @@ export class DataConfigurationModal {
             if (result.success) {
                 this.savedType = result.type;
                 this.savedValue = result.value;
-                Logger.info('DataConfigurationModal', 'Loaded saved configuration:', {
+                console.info('DataConfigurationModal', 'Loaded saved configuration:', {
                     type: this.savedType,
                     value: this.savedValue,
                 });
             }
         } catch (error) {
-            Logger.warn(
+            console.warn(
                 'DataConfigurationModal',
                 'Failed to load saved configuration:',
                 error,
@@ -256,7 +256,7 @@ export class DataConfigurationModal {
                     validateLocalBtn.disabled = false;
                 }
             } catch (error) {
-                Logger.error(
+                console.error(
                     'DataConfigurationModal',
                     'Error selecting folder:',
                     error,
@@ -386,7 +386,7 @@ export class DataConfigurationModal {
         }
 
         try {
-            Logger.info(
+            console.info(
                 'DataConfigurationModal',
                 `Validating ${type} source:`,
                 value,
@@ -398,7 +398,7 @@ export class DataConfigurationModal {
             });
 
             if (response.success) {
-                Logger.info(
+                console.info(
                     'DataConfigurationModal',
                     'Data source validation successful',
                 );
@@ -412,7 +412,7 @@ export class DataConfigurationModal {
                 try {
                     await window.app.refreshDataSource();
                 } catch (error) {
-                    Logger.warn('DataConfigurationModal', 'Post-validate refresh failed', error);
+                    console.warn('DataConfigurationModal', 'Post-validate refresh failed', error);
                 }
                 window.location.reload();
 
@@ -420,7 +420,7 @@ export class DataConfigurationModal {
                 this.modal.remove();
                 onResolve({ type, value });
             } else {
-                Logger.warn(
+                console.warn(
                     'DataConfigurationModal',
                     'Validation failed:',
                     response.error,
@@ -435,7 +435,7 @@ export class DataConfigurationModal {
                 this.detachProgressListener();
             }
         } catch (error) {
-            Logger.error('DataConfigurationModal', 'Error during validation:', error);
+            console.error('DataConfigurationModal', 'Error during validation:', error);
             showNotification(`Error: ${error.message}`, 'error');
 
             this.isValidating = false;

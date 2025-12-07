@@ -2,7 +2,6 @@
 
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /** Manages background selection and access to background data. */
@@ -20,15 +19,15 @@ class BackgroundService {
 	async initialize() {
 		// Skip if already initialized
 		if (this._backgroundData) {
-			Logger.debug('BackgroundService', 'Already initialized');
+			console.debug('BackgroundService', 'Already initialized');
 			return true;
 		}
 
-		Logger.info('BackgroundService', 'Initializing background data');
+		console.info('[BackgroundService]', 'Initializing background data');
 
 		try {
 			this._backgroundData = await DataLoader.loadBackgrounds();
-			Logger.info('BackgroundService', 'Backgrounds loaded successfully', {
+			console.info('[BackgroundService]', 'Backgrounds loaded successfully', {
 				count: this._backgroundData.background?.length,
 			});
 			AppState.setLoadedData('backgrounds', this._backgroundData.background);
@@ -39,7 +38,7 @@ class BackgroundService {
 			);
 			return true;
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'BackgroundService',
 				'Failed to initialize background data',
 				error,

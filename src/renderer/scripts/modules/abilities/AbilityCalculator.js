@@ -166,3 +166,4 @@ export function validateStandardArray(assignments) {
 export function calculateTotalAbilityScore(baseScore, racialBonus = 0) {
 	return (baseScore || 0) + (racialBonus || 0);
 }
+

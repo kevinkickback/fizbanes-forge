@@ -18,7 +18,7 @@
 
 // Core imports - NEW ARCHITECTURE
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 import { showNotification } from '../utils/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
@@ -57,7 +57,7 @@ async function _loadDataWithErrorHandling(promise, component) {
 		const result = await promise;
 		return result;
 	} catch (error) {
-		Logger.warn('AppInitializer', `Failed to load ${component} data:`, error);
+		console.warn('AppInitializer', `Failed to load ${component} data:`, error);
 		return null;
 	}
 }
@@ -72,7 +72,7 @@ async function _checkDataFolder() {
 		// Prefer previously configured data source
 		const saved = await window.app.getDataSource();
 		if (saved?.success && saved.type && saved.value) {
-			Logger.info(
+			console.info(
 				'AppInitializer',
 				'Using configured data source:',
 				saved.type,
@@ -81,7 +81,7 @@ async function _checkDataFolder() {
 		}
 
 		// No configured source – require user configuration every time
-		Logger.warn(
+		console.warn(
 			'AppInitializer',
 			'No data source configured, showing configuration modal',
 		);
@@ -93,10 +93,10 @@ async function _checkDataFolder() {
 		const modal = new DataConfigurationModal();
 		const result = await modal.show();
 
-		Logger.info('AppInitializer', 'User configured data source:', result.type);
+		console.info('AppInitializer', 'User configured data source:', result.type);
 		return true;
 	} catch (error) {
-		Logger.error('AppInitializer', 'Error checking data folder:', error);
+		console.error('AppInitializer', 'Error checking data folder:', error);
 		showNotification('Error checking data folder. Please try again.', 'error');
 		return false;
 	}
@@ -119,7 +119,7 @@ async function _promptDataSourceFix(errorMessage) {
 		const modal = new DataConfigurationModal({ allowClose: true });
 		await modal.show();
 	} catch (error) {
-		Logger.warn('AppInitializer', 'User dismissed data source fix modal', error);
+		console.warn('AppInitializer', 'User dismissed data source fix modal', error);
 		throw error;
 	}
 }
@@ -150,7 +150,7 @@ async function _loadAllGameData() {
 		await Promise.all(dataLoadPromises);
 		return { success: true, errors };
 	} catch (error) {
-		Logger.error('AppInitializer', 'Error during game data loading:', error);
+		console.error('AppInitializer', 'Error during game data loading:', error);
 		errors.push(error);
 		return { success: false, errors };
 	}
@@ -168,7 +168,7 @@ async function _initializeComponent(name, initFunction) {
 		await initFunction();
 		return { success: true, error: null };
 	} catch (error) {
-		Logger.error('AppInitializer', `Error initializing ${name}:`, error);
+		console.error('AppInitializer', `Error initializing ${name}:`, error);
 		return { success: false, error };
 	}
 }
@@ -186,7 +186,7 @@ async function _initializeCoreComponents() {
 	};
 
 	try {
-		Logger.info(
+		console.info(
 			'AppInitializer',
 			'Initializing core components with NEW architecture',
 		);
@@ -211,10 +211,10 @@ async function _initializeCoreComponents() {
 
 			if (initResult.success) {
 				result.loadedComponents.push(component.name);
-				Logger.info('AppInitializer', `✓ ${component.name} initialized`);
+				console.info('AppInitializer', `✓ ${component.name} initialized`);
 			} else {
 				result.errors.push(initResult.error);
-				Logger.error(
+				console.error(
 					'AppInitializer',
 					`✗ ${component.name} failed`,
 					initResult.error,
@@ -225,7 +225,7 @@ async function _initializeCoreComponents() {
 		// Set overall success based on whether any critical errors occurred
 		result.success = result.errors.length === 0;
 
-		Logger.info('AppInitializer', 'Core components initialized', {
+		console.info('AppInitializer', 'Core components initialized', {
 			success: result.success,
 			loaded: result.loadedComponents.length,
 			errors: result.errors.length,
@@ -233,7 +233,7 @@ async function _initializeCoreComponents() {
 
 		return result;
 	} catch (error) {
-		Logger.error(
+		console.error(
 			'AppInitializer',
 			'Unexpected error during core component initialization:',
 			error,
@@ -251,7 +251,7 @@ async function _initializeCoreComponents() {
  */
 function _setupUIEventHandlers() {
 	try {
-		Logger.info('AppInitializer', 'Setting up UI event handlers');
+		console.info('AppInitializer', 'Setting up UI event handlers');
 
 		// Set up save button handler
 		const saveButton = document.getElementById('saveCharacter');
@@ -271,7 +271,7 @@ function _setupUIEventHandlers() {
 				if (!unsavedIndicator) return;
 
 				unsavedIndicator.style.display = shouldShow ? 'inline-block' : 'none';
-				Logger.debug(
+				console.debug(
 					'AppInitializer',
 					`Unsaved indicator updated: show=${shouldShow}`,
 					{
@@ -281,7 +281,7 @@ function _setupUIEventHandlers() {
 					},
 				);
 			} catch (e) {
-				Logger.error('AppInitializer', 'Error updating unsaved indicator', e);
+				console.error('AppInitializer', 'Error updating unsaved indicator', e);
 			}
 		}
 
@@ -292,7 +292,7 @@ function _setupUIEventHandlers() {
 		// Helper to mark a short suppression window
 		function suppressTemporary() {
 			_suppressUntil = Date.now() + SUPPRESS_WINDOW_MS;
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`Temporary suppression enabled until ${new Date(_suppressUntil).toISOString()}`,
 			);
@@ -302,14 +302,14 @@ function _setupUIEventHandlers() {
 		eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
 			const now = Date.now();
 			if (now < _suppressUntil) {
-				Logger.debug(
+				console.debug(
 					'AppInitializer',
 					`Ignored CHARACTER_UPDATED due to suppression (now=${now})`,
 				);
 				return;
 			}
 
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`,
 			);
@@ -319,7 +319,7 @@ function _setupUIEventHandlers() {
 
 		// Listen for CHARACTER_SAVED events to clear unsaved state
 		eventBus.on(EVENTS.CHARACTER_SAVED, () => {
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`,
 			);
@@ -329,7 +329,7 @@ function _setupUIEventHandlers() {
 
 		// Clear unsaved indicator when a new character is selected (fresh load)
 		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`,
 			);
@@ -340,7 +340,7 @@ function _setupUIEventHandlers() {
 
 		// Update indicator on page changes (show only on certain pages)
 		eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
 			);
@@ -351,7 +351,7 @@ function _setupUIEventHandlers() {
 
 		// Listen for explicit AppState changes to hasUnsavedChanges
 		eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`state:hasUnsavedChanges:changed -> ${newVal}`,
 			);
@@ -360,7 +360,7 @@ function _setupUIEventHandlers() {
 
 		// Listen for PAGE_CHANGED events to log floating bar visibility
 		eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
-			Logger.debug(
+			console.debug(
 				'AppInitializer',
 				`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
 			);
@@ -372,7 +372,7 @@ function _setupUIEventHandlers() {
 				? unsavedIndicator.style.display !== 'none'
 				: false;
 
-			Logger.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
+			console.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
 				floatingBarVisible: floatingBarVisible,
 				unsavedIndicatorVisible: unsavedVisible,
 				dataCurrentPage: document.body.getAttribute('data-current-page'),
@@ -382,7 +382,7 @@ function _setupUIEventHandlers() {
 		if (saveButton) {
 			saveButton.addEventListener('click', async () => {
 				try {
-					Logger.info(
+					console.info(
 						'AppInitializer',
 						`[${new Date().toISOString()}] Save button clicked`,
 					);
@@ -409,16 +409,16 @@ function _setupUIEventHandlers() {
 					const result = await CharacterManager.saveCharacter();
 
 					if (result.isOk()) {
-						Logger.info('AppInitializer', 'Character saved successfully');
+						console.info('AppInitializer', 'Character saved successfully');
 						showNotification('Character saved successfully', 'success');
 						if (unsavedIndicator) {
 							unsavedIndicator.style.display = 'none';
 						}
 						// Emit save event
-						Logger.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
+						console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
 						eventBus.emit(EVENTS.CHARACTER_SAVED);
 					} else {
-						Logger.error(
+						console.error(
 							'AppInitializer',
 							'Failed to save character',
 							result.error,
@@ -429,17 +429,17 @@ function _setupUIEventHandlers() {
 						);
 					}
 				} catch (error) {
-					Logger.error('AppInitializer', 'Error saving character', error);
+					console.error('AppInitializer', 'Error saving character', error);
 					showNotification('Error saving character', 'error');
 				}
 			});
 		} else {
-			Logger.warn('AppInitializer', 'Save button not found');
+			console.warn('AppInitializer', 'Save button not found');
 		}
 
-		Logger.info('AppInitializer', 'UI event handlers set up successfully');
+		console.info('AppInitializer', 'UI event handlers set up successfully');
 	} catch (error) {
-		Logger.error('AppInitializer', 'Error setting up UI event handlers', error);
+		console.error('AppInitializer', 'Error setting up UI event handlers', error);
 	}
 }
 
@@ -468,7 +468,7 @@ export async function initializeAll(_options = {}) {
 			document.body.classList.remove('debug-mode');
 		}
 	} catch (error) {
-		Logger.warn('AppInitializer', 'Unable to set debug body class', error);
+		console.warn('AppInitializer', 'Unable to set debug body class', error);
 	}
 
 	const loadingModal = new LoadingModal();
@@ -489,7 +489,7 @@ export async function initializeAll(_options = {}) {
 		try {
 			const refreshResult = await window.app.refreshDataSource();
 			if (!refreshResult?.success) {
-				Logger.warn(
+				console.warn(
 					'AppInitializer',
 					`Data source refresh skipped/failed: ${refreshResult?.error || 'Unknown error'}`,
 				);
@@ -497,13 +497,13 @@ export async function initializeAll(_options = {}) {
 				throw new Error('Data source refresh failed');
 			} else {
 				DataLoader.clearCache();
-				Logger.info(
+				console.info(
 					'AppInitializer',
 					'Checked data source for updates before load; cleared data cache',
 				);
 			}
 		} catch (error) {
-			Logger.warn('AppInitializer', 'Data source refresh failed', error);
+			console.warn('AppInitializer', 'Data source refresh failed', error);
 		}
 
 		// Step 1: Load all game data
@@ -534,7 +534,7 @@ export async function initializeAll(_options = {}) {
 		setTimeout(() => loadingModal.hide(), 200);
 
 		if (!result.success) {
-			Logger.warn(
+			console.warn(
 				'AppInitializer',
 				'Application initialized with errors:',
 				result.errors,
@@ -544,7 +544,7 @@ export async function initializeAll(_options = {}) {
 		return result;
 	} catch (error) {
 		loadingModal.hide();
-		Logger.error(
+		console.error(
 			'AppInitializer',
 			'Fatal error during application initialization:',
 			error,
@@ -558,7 +558,7 @@ export async function initializeAll(_options = {}) {
 // Initialize when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
 	initializeAll().catch((error) => {
-		Logger.error('AppInitializer', 'Error during initialization:', error);
+		console.error('AppInitializer', 'Error during initialization:', error);
 	});
 });
 

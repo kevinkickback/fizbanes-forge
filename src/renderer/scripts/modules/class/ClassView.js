@@ -5,7 +5,7 @@
  */
 
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
@@ -94,7 +94,7 @@ export class ClassCardView {
 		this._classSelect.innerHTML = '<option value="">Select a Class</option>';
 
 		if (!classes || classes.length === 0) {
-			Logger.error('ClassView', 'No classes provided to populate dropdown');
+			console.error('ClassView', 'No classes provided to populate dropdown');
 			return;
 		}
 

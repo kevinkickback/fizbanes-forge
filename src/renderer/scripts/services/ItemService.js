@@ -1,7 +1,6 @@
 /** Manages item data and operations for the character builder. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /** Manages item data and provides access to items. */
@@ -36,10 +35,10 @@ class ItemService {
 
 			// Log any failures
 			if (results[0].status === 'rejected') {
-				Logger.warn('ItemService', 'Failed to load items.json:', results[0].reason?.message);
+				console.warn('ItemService', 'Failed to load items.json:', results[0].reason?.message);
 			}
 			if (results[1].status === 'rejected') {
-				Logger.warn('ItemService', 'Failed to load items-base.json:', results[1].reason?.message);
+				console.warn('ItemService', 'Failed to load items-base.json:', results[1].reason?.message);
 			}
 
 			// Merge items with base items
@@ -68,7 +67,7 @@ class ItemService {
 			eventBus.emit(EVENTS.ITEMS_LOADED, this._itemData.item);
 			return true;
 		} catch (error) {
-			Logger.error('ItemService', 'Failed to initialize item data:', error);
+			console.error('ItemService', 'Failed to initialize item data:', error);
 			this._itemData = { item: [], baseItem: [] };
 			return false;
 		}

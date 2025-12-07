@@ -113,3 +113,4 @@ export class RefreshProgressModal {
         }, 300);
     }
 }
+

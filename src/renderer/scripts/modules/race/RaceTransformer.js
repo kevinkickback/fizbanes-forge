@@ -301,3 +301,4 @@ export function getDarkvision(race) {
 
 	return race.darkvision || 0;
 }
+

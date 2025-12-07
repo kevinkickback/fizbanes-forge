@@ -233,3 +233,4 @@ export function calculatePassiveInsight(
 	);
 	return 10 + insightModifier;
 }
+

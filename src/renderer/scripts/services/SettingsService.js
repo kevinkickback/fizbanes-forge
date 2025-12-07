@@ -1,6 +1,5 @@
 /** Manages application settings and configuration. */
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
 import { RefreshProgressModal } from '../modules/setup/RefreshProgressModal.js';
 import { showNotification } from '../utils/Notifications.js';
@@ -23,21 +22,21 @@ export class SettingsService {
 	 */
 	async initialize() {
 		if (this._initialized) {
-			Logger.debug('SettingsService', 'Already initialized');
+			console.debug('SettingsService', 'Already initialized');
 			return;
 		}
 
 		try {
-			Logger.info('SettingsService', 'Initializing settings manager');
+			console.info('SettingsService', 'Initializing settings manager');
 
 			this._initialized = true;
 			eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'settings', this);
-			Logger.info(
+			console.info(
 				'SettingsService',
 				'Settings manager initialized successfully',
 			);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'SettingsService',
 				'Error initializing settings manager',
 				error,
@@ -63,7 +62,7 @@ export class SettingsService {
 			// Set up event listeners for the page elements
 			this.initializeEventListeners();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'SettingsService',
 				'Error initializing settings page',
 				error,
@@ -89,7 +88,7 @@ export class SettingsService {
 					currentPath || 'Using default save location';
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'SettingsService',
 				'Error updating save path display',
 				error,
@@ -131,7 +130,7 @@ export class SettingsService {
 				`;
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'SettingsService',
 				'Error updating data source display',
 				error,
@@ -184,7 +183,7 @@ export class SettingsService {
 							}
 						}
 					} catch (error) {
-						Logger.error('SettingsService', 'Error selecting folder', error);
+						console.error('SettingsService', 'Error selecting folder', error);
 						showNotification('Error selecting folder', 'error');
 					}
 				});
@@ -201,7 +200,7 @@ export class SettingsService {
 							eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_RESET);
 						}
 					} catch (error) {
-						Logger.error('SettingsService', 'Error resetting save path', error);
+						console.error('SettingsService', 'Error resetting save path', error);
 						showNotification('Error resetting save path', 'error');
 					}
 				});
@@ -214,7 +213,7 @@ export class SettingsService {
 						const modal = new DataConfigurationModal({ allowClose: true });
 						const result = await modal.show();
 
-						Logger.info(
+						console.info(
 							'SettingsService',
 							'User reconfigured data source:',
 							result.type,
@@ -225,14 +224,14 @@ export class SettingsService {
 					} catch (error) {
 						// User closed modal without making changes - this is not an error
 						if (error.message === 'Modal closed by user') {
-							Logger.debug(
+							console.debug(
 								'SettingsService',
 								'Data source configuration cancelled by user',
 							);
 							return;
 						}
 
-						Logger.error(
+						console.error(
 							'SettingsService',
 							'Error reconfiguring data source',
 							error,
@@ -296,7 +295,7 @@ export class SettingsService {
 						}
 					} catch (error) {
 						if (unsubscribe) unsubscribe();
-						Logger.error(
+						console.error(
 							'SettingsService',
 							'Error refreshing data source',
 							error,
@@ -310,7 +309,7 @@ export class SettingsService {
 				});
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'SettingsService',
 				'Error initializing settings event listeners',
 				error,

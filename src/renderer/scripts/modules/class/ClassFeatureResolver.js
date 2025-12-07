@@ -276,3 +276,4 @@ export function getSpellsKnown(classData, level) {
 	const progression = classData.spellsKnownProgression[level - 1];
 	return progression || 0;
 }
+

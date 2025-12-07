@@ -1,4 +1,4 @@
-import { Logger } from '../infrastructure/Logger.js';
+
 /** DataLoader.js - Caches and loads game data JSON via IPC or fetch (plain module). */
 
 const state = {
@@ -37,7 +37,7 @@ async function loadJSON(url) {
 						throw new Error(result.error || `Failed to load ${url}`);
 					}
 				} catch (electronError) {
-					Logger.error('DataLoader', `Electron IPC load failed for ${url}:`, electronError);
+					console.error('DataLoader', `Electron IPC load failed for ${url}:`, electronError);
 					throw electronError;
 				}
 			} else {
@@ -59,7 +59,7 @@ async function loadJSON(url) {
 			return data;
 		} catch (error) {
 			delete state.loading[url];
-			Logger.error('DataLoader', `Failed to load ${url}:`, error);
+			console.error('DataLoader', `Failed to load ${url}:`, error);
 			throw error;
 		}
 	})();
@@ -233,7 +233,7 @@ async function loadSources() {
 	try {
 		return await loadJSON(`${state.baseUrl}books.json`);
 	} catch (error) {
-		Logger.warn('DataLoader', 'Could not find sources data', error);
+		console.warn('DataLoader', 'Could not find sources data', error);
 		return { source: [] };
 	}
 }
@@ -247,7 +247,7 @@ async function loadSubclassSpells(subclassId) {
 	try {
 		return await loadJSON(`${state.baseUrl}spells/sources.json`);
 	} catch (error) {
-		Logger.warn('DataLoader', `Could not find subclass spells for ${subclassId}:`, error);
+		console.warn('DataLoader', `Could not find subclass spells for ${subclassId}:`, error);
 		return { spell: [] };
 	}
 }
@@ -338,4 +338,4 @@ dataLoader.getCacheStats = getCacheStats;
 // Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
 
-export { clearCache, clearCacheForUrl, DataLoader, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVariantRules, loadVehicles, setBaseUrl };
+export { DataLoader, clearCache, clearCacheForUrl, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVariantRules, loadVehicles, setBaseUrl };

@@ -1,7 +1,7 @@
 /** Character lifecycle orchestrator for CRUD, state, and events. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
@@ -14,7 +14,7 @@ class CharacterManagerImpl {
 	 * @returns {Promise<Result>} Result with character or error
 	 */
 	async createCharacter(name) {
-		Logger.info('CharacterManager', 'Creating character', { name });
+		console.info('CharacterManager', 'Creating character', { name });
 
 		try {
 			// Create character from schema
@@ -32,7 +32,7 @@ class CharacterManagerImpl {
 			// Validate
 			const validation = CharacterSchema.validate(characterData);
 			if (!validation.valid) {
-				Logger.warn('CharacterManager', 'Validation failed', validation.errors);
+				console.warn('CharacterManager', 'Validation failed', validation.errors);
 				return Result.err(`Invalid character: ${validation.errors.join(', ')}`);
 			}
 
@@ -46,12 +46,12 @@ class CharacterManagerImpl {
 			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_CREATED, character);
 
-			Logger.info('CharacterManager', 'Character created', {
+			console.info('CharacterManager', 'Character created', {
 				id: character.id,
 			});
 			return Result.ok(character);
 		} catch (error) {
-			Logger.error('CharacterManager', 'Create failed', error);
+			console.error('CharacterManager', 'Create failed', error);
 			return Result.err(error.message);
 		}
 	}
@@ -62,7 +62,7 @@ class CharacterManagerImpl {
 	 * @returns {Promise<Result>} Result with character or error
 	 */
 	async loadCharacter(id) {
-		Logger.info(
+		console.info(
 			'CharacterManager',
 			`[${new Date().toISOString()}] Loading character with ID: ${id}`,
 		);
@@ -78,14 +78,14 @@ class CharacterManagerImpl {
 			const characterData = characters.find((c) => c.id === id);
 
 			if (!characterData) {
-				Logger.warn('CharacterManager', 'Character not found', { id });
+				console.warn('CharacterManager', 'Character not found', { id });
 				return Result.err('Character not found');
 			}
 
 			// Validate
 			const validation = CharacterSchema.validate(characterData);
 			if (!validation.valid) {
-				Logger.warn(
+				console.warn(
 					'CharacterManager',
 					'Loaded character invalid',
 					validation.errors,
@@ -99,7 +99,7 @@ class CharacterManagerImpl {
 			const character = new Character(characterData);
 
 			// Update state
-			Logger.debug(
+			console.debug(
 				'CharacterManager',
 				`Setting current character to: ${character.name} (${character.id})`,
 			);
@@ -107,20 +107,20 @@ class CharacterManagerImpl {
 			AppState.setHasUnsavedChanges(false);
 
 			// Emit event
-			Logger.debug(
+			console.debug(
 				'CharacterManager',
 				`Emitting CHARACTER_SELECTED event for character: ${character.name}`,
 			);
 			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 
-			Logger.info(
+			console.info(
 				'CharacterManager',
 				`✓ Character loaded successfully: ${character.name}`,
 				{ id },
 			);
 			return Result.ok(character);
 		} catch (error) {
-			Logger.error('CharacterManager', 'Load failed', error);
+			console.error('CharacterManager', 'Load failed', error);
 			return Result.err(error.message);
 		}
 	}
@@ -133,11 +133,11 @@ class CharacterManagerImpl {
 		const character = AppState.getCurrentCharacter();
 
 		if (!character) {
-			Logger.warn('CharacterManager', 'No character to save');
+			console.warn('CharacterManager', 'No character to save');
 			return Result.err('No character selected');
 		}
 
-		Logger.info('CharacterManager', 'Saving character', { id: character.id });
+		console.info('CharacterManager', 'Saving character', { id: character.id });
 
 		try {
 			// Update timestamp
@@ -146,7 +146,7 @@ class CharacterManagerImpl {
 			// Validate before saving
 			const validation = CharacterSchema.validate(character);
 			if (!validation.valid) {
-				Logger.warn(
+				console.warn(
 					'CharacterManager',
 					'Cannot save invalid character',
 					validation.errors,
@@ -171,10 +171,10 @@ class CharacterManagerImpl {
 			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_SAVED, character);
 
-			Logger.info('CharacterManager', 'Character saved', { id: character.id });
+			console.info('CharacterManager', 'Character saved', { id: character.id });
 			return Result.ok(true);
 		} catch (error) {
-			Logger.error('CharacterManager', 'Save failed', error);
+			console.error('CharacterManager', 'Save failed', error);
 			return Result.err(error.message);
 		}
 	}
@@ -185,7 +185,7 @@ class CharacterManagerImpl {
 	 * @returns {Promise<Result>} Result with success or error
 	 */
 	async deleteCharacter(id) {
-		Logger.info('CharacterManager', 'Deleting character', { id });
+		console.info('CharacterManager', 'Deleting character', { id });
 
 		try {
 			// Delete via IPC
@@ -208,10 +208,10 @@ class CharacterManagerImpl {
 			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_DELETED, id);
 
-			Logger.info('CharacterManager', 'Character deleted', { id });
+			console.info('CharacterManager', 'Character deleted', { id });
 			return Result.ok(true);
 		} catch (error) {
-			Logger.error('CharacterManager', 'Delete failed', error);
+			console.error('CharacterManager', 'Delete failed', error);
 			return Result.err(error.message);
 		}
 	}
@@ -221,7 +221,7 @@ class CharacterManagerImpl {
 	 * @returns {Promise<Result>} Result with characters array or error
 	 */
 	async loadCharacterList() {
-		Logger.info('CharacterManager', 'Loading character list');
+		console.info('CharacterManager', 'Loading character list');
 
 		try {
 			const listResult = await window.characterStorage.loadCharacters();
@@ -235,12 +235,12 @@ class CharacterManagerImpl {
 			// Update state
 			AppState.setCharacters(characters);
 
-			Logger.info('CharacterManager', 'Character list loaded', {
+			console.info('CharacterManager', 'Character list loaded', {
 				count: characters.length,
 			});
 			return Result.ok(characters);
 		} catch (error) {
-			Logger.error('CharacterManager', 'Load list failed', error);
+			console.error('CharacterManager', 'Load list failed', error);
 			return Result.err(error.message);
 		}
 	}
@@ -253,11 +253,11 @@ class CharacterManagerImpl {
 		const character = AppState.getCurrentCharacter();
 
 		if (!character) {
-			Logger.warn('CharacterManager', 'No character to update');
+			console.warn('CharacterManager', 'No character to update');
 			return;
 		}
 
-		Logger.debug('CharacterManager', 'Updating character', {
+		console.debug('CharacterManager', 'Updating character', {
 			id: character.id,
 			updates,
 		});
@@ -272,7 +272,7 @@ class CharacterManagerImpl {
 		AppState.setCurrentCharacter(character);
 		AppState.setHasUnsavedChanges(true);
 
-		Logger.debug('CharacterManager', 'Character updated', { id: character.id });
+		console.debug('CharacterManager', 'Character updated', { id: character.id });
 	}
 
 	/**

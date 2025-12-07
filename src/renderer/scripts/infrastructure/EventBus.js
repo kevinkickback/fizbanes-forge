@@ -1,7 +1,5 @@
 /** Decoupled event bus for renderer components (infrastructure layer). */
 
-import { Logger } from './Logger.js';
-
 /**
  * Standard event names used throughout the application.
  * Add new events here as needed.
@@ -88,7 +86,7 @@ class EventBusImpl {
 	 */
 	on(event, handler) {
 		if (typeof handler !== 'function') {
-			Logger.error('EventBus', 'Handler must be a function', { event });
+			console.error('[EventBus]', 'Handler must be a function', { event });
 			return;
 		}
 
@@ -97,7 +95,7 @@ class EventBusImpl {
 		}
 
 		this.listeners.get(event).push(handler);
-		Logger.debug('EventBus', 'Listener registered', {
+		console.debug('[EventBus]', 'Listener registered', {
 			event,
 			totalListeners: this.listeners.get(event).length,
 		});
@@ -110,7 +108,7 @@ class EventBusImpl {
 	 */
 	once(event, handler) {
 		if (typeof handler !== 'function') {
-			Logger.error('EventBus', 'Handler must be a function', { event });
+			console.error('[EventBus]', 'Handler must be a function', { event });
 			return;
 		}
 
@@ -119,7 +117,7 @@ class EventBusImpl {
 		}
 
 		this.onceListeners.get(event).push(handler);
-		Logger.debug('EventBus', 'One-time listener registered', { event });
+		console.debug('[EventBus]', 'One-time listener registered', { event });
 	}
 
 	/**
@@ -134,7 +132,7 @@ class EventBusImpl {
 
 			if (index !== -1) {
 				handlers.splice(index, 1);
-				Logger.debug('EventBus', 'Listener removed', {
+				console.debug('[EventBus]', 'Listener removed', {
 					event,
 					remainingListeners: handlers.length,
 				});
@@ -152,7 +150,7 @@ class EventBusImpl {
 	 * @param {...*} args - Arguments to pass to handlers
 	 */
 	emit(event, ...args) {
-		Logger.debug('EventBus', 'Event emitted', {
+		console.debug('[EventBus]', 'Event emitted', {
 			event,
 			argsCount: args.length,
 		});
@@ -165,7 +163,7 @@ class EventBusImpl {
 				try {
 					handler(...args);
 				} catch (error) {
-					Logger.error('EventBus', 'Error in event handler', { event, error });
+					console.error('[EventBus]', 'Error in event handler', { event, error });
 				}
 			}
 		}
@@ -179,7 +177,7 @@ class EventBusImpl {
 				try {
 					handler(...args);
 				} catch (error) {
-					Logger.error('EventBus', 'Error in once handler', { event, error });
+					console.error('[EventBus]', 'Error in once handler', { event, error });
 				}
 			}
 		}
@@ -192,7 +190,7 @@ class EventBusImpl {
 	clearEvent(event) {
 		this.listeners.delete(event);
 		this.onceListeners.delete(event);
-		Logger.debug('EventBus', 'Event cleared', { event });
+		console.debug('[EventBus]', 'Event cleared', { event });
 	}
 
 	/**
@@ -201,7 +199,7 @@ class EventBusImpl {
 	clearAll() {
 		this.listeners.clear();
 		this.onceListeners.clear();
-		Logger.debug('EventBus', 'All events cleared');
+		console.debug('[EventBus]', 'All events cleared');
 	}
 
 	/**

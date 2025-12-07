@@ -3,7 +3,7 @@
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { classService } from '../../services/ClassService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { ClassDetailsView } from './ClassDetails.js';
@@ -68,7 +68,7 @@ export class ClassCard {
 			// Load saved class selection from character data
 			await this._loadSavedClassSelection();
 		} catch (error) {
-			Logger.error('ClassCard', 'Failed to initialize class card:', error);
+			console.error('ClassCard', 'Failed to initialize class card:', error);
 		}
 	}
 
@@ -137,13 +137,13 @@ export class ClassCard {
 					}
 				}
 			} else {
-				Logger.warn(
+				console.warn(
 					'ClassCard',
 					`Saved class "${classValue}" not found in available options. Character might use a source that's not currently allowed.`,
 				);
 			}
 		} catch (error) {
-			Logger.error('ClassCard', 'Error loading saved class selection:', error);
+			console.error('ClassCard', 'Error loading saved class selection:', error);
 		}
 	}
 
@@ -157,7 +157,7 @@ export class ClassCard {
 		try {
 			const classes = this._classService.getAllClasses();
 			if (!classes || classes.length === 0) {
-				Logger.error('ClassCard', 'No classes available to populate dropdown');
+				console.error('ClassCard', 'No classes available to populate dropdown');
 				return;
 			}
 
@@ -167,7 +167,7 @@ export class ClassCard {
 			);
 
 			if (filteredClasses.length === 0) {
-				Logger.error(
+				console.error(
 					'ClassCard',
 					'No classes available after source filtering',
 				);
@@ -177,7 +177,7 @@ export class ClassCard {
 			// Populate view
 			this._cardView.populateClassSelect(filteredClasses);
 		} catch (error) {
-			Logger.error('ClassCard', 'Error populating class dropdown:', error);
+			console.error('ClassCard', 'Error populating class dropdown:', error);
 		}
 	}
 
@@ -212,7 +212,7 @@ export class ClassCard {
 			// Populate view
 			this._subclassView.populateSubclassSelect(filteredSubclasses);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ClassCard',
 				'Error loading subclasses for dropdown:',
 				error,
@@ -241,7 +241,7 @@ export class ClassCard {
 			}
 			const classData = this._classService.getClass(className, source);
 			if (!classData) {
-				Logger.error('ClassCard', `Class not found: ${className} (${source})`);
+				console.error('ClassCard', `Class not found: ${className} (${source})`);
 				return;
 			}
 
@@ -264,7 +264,7 @@ export class ClassCard {
 				character: CharacterManager.getCurrentCharacter(),
 			});
 		} catch (error) {
-			Logger.error('ClassCard', 'Error handling class change:', error);
+			console.error('ClassCard', 'Error handling class change:', error);
 		}
 	}
 
@@ -286,7 +286,7 @@ export class ClassCard {
 
 			const classData = this._classService.getClass(className, source);
 			if (!classData) {
-				Logger.error('ClassCard', `Class not found: ${className} (${source})`);
+				console.error('ClassCard', `Class not found: ${className} (${source})`);
 				return;
 			}
 
@@ -307,7 +307,7 @@ export class ClassCard {
 				character: CharacterManager.getCurrentCharacter(),
 			});
 		} catch (error) {
-			Logger.error('ClassCard', 'Error handling subclass change:', error);
+			console.error('ClassCard', 'Error handling subclass change:', error);
 		}
 	}
 
@@ -322,7 +322,7 @@ export class ClassCard {
 			// Reload class selection to match character's class
 			await this._loadSavedClassSelection();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ClassCard',
 				'Error handling character changed event:',
 				error,

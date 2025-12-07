@@ -84,3 +84,4 @@ export class LoadingModal {
         }, 300);
     }
 }
+

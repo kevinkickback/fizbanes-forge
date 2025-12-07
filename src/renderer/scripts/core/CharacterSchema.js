@@ -1,6 +1,6 @@
 /** Domain schema helpers for creating and validating character data. */
 
-import { Logger } from '../infrastructure/Logger.js';
+
 import { validate as validateCharacter } from './CharacterValidation.js';
 
 export const CharacterSchema = {
@@ -74,12 +74,12 @@ export const CharacterSchema = {
 		const { valid: isValid, errors } = validateCharacter(character);
 
 		if (!isValid) {
-			Logger.warn('CharacterSchema', 'Validation failed', {
+			console.warn('CharacterSchema', 'Validation failed', {
 				errors,
 				characterId: character.id,
 			});
 		} else {
-			Logger.debug('CharacterSchema', 'Validation passed', {
+			console.debug('CharacterSchema', 'Validation passed', {
 				characterId: character.id,
 			});
 		}
@@ -93,6 +93,6 @@ export const CharacterSchema = {
 	 */
 	touch(character) {
 		character.lastModified = new Date().toISOString();
-		Logger.debug('CharacterSchema', 'Character touched', { id: character.id });
+		console.debug('CharacterSchema', 'Character touched', { id: character.id });
 	},
 };

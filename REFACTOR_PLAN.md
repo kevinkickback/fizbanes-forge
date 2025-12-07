@@ -1,316 +1,306 @@
-# Refactor Progress (as of 2025-12-07)
-
-The following improvements have been completed:
-
-- WindowManager, PreferencesManager, and DataFolderManager refactored to plain modules with exported functions (no unnecessary classes).
-- IPC handler registration is now direct in main.js; IPCRegistry.js is obsolete.
-- Error handling in DataFolderManager.js and FileHandlers.js is now consistent and always logs errors.
-- Unused indirection, boilerplate, and dead code have been removed from the Electron backend.
-- Renderer: TooltipManager flattened to a plain module; singleton usage removed; hover metadata normalized for both `.rd__hover-link` and `.reference-link`; tooltip formatting restored; tooltip test page CSS paths fixed.
-- **Renderer Utilities:** ReferenceResolver and DataLoader are plain modules with exported functions (no classes).
-- **Data Services:** Created 5 new services (ConditionService, MonsterService, FeatService, SkillService, ActionService) for O(1) cached lookups, eliminating repeated DataLoader calls and improving performance.
-
-## Recently Completed:
-- ~~Remove deprecated files and methods from codebase~~ ✅ **COMPLETED**
-  - ✅ Removed IPCRegistry.js (obsolete, handlers registered directly in main.js)
-  - ✅ Removed DataLoader.getInstance() legacy singleton alias (not used anywhere)
-  - ✅ Reorganized DataLoader static method aliases to use dataLoader object directly
-  - ✅ All 9 tests passing after cleanup (11.8s)
-  - **Summary:** Codebase now cleaner with 0 deprecated files and all obsolete patterns removed
-- ~~Refactoring TagProcessor from class to plain module~~ ✅ **COMPLETED**
-  - Converted TagProcessor from class with static methods to plain module with exported functions
-  - Replaced singleton pattern with direct function exports (escapeHtml, splitTagByPipe, processTag, renderString, registerHandler)
-  - Added 32+ tag handlers including: class, race, background, feat, feature, spell, item, condition, monster, action, skill, language, proficiency, source, filter, book, weaponprof, armorprof, dc, 5etools, status, sense, damage, scaledamage, itemProperty, variantrule, and formatting tags (b, i, u)
-  - Fixed missing tag handlers: `damage`, `scaledamage`, `itemProperty`, `variantrule`
-  - Maintained backward compatibility with getStringRenderer() function
-  - TextProcessor already uses renderString; no additional changes needed
-  - **All Playwright tests passing** (4/4 ✅)
-- ~~Refactoring StatBlockRenderer from class to plain module~~ ✅ **COMPLETED**
-  - Converted StatBlockRenderer from class with static methods to plain module with exported functions
-  - Exported 14 render functions: renderSpell, renderItem, renderRace, renderClass, renderFeat, renderBackground, renderCondition, renderSkill, renderAction, renderOptionalFeature, renderReward, renderTrap, renderVehicle, renderObject
-  - Converted 8 static helper methods to private functions (prefixed with _)
-  - Updated TooltipManager to import individual render functions
-  - Fixed renderer.render() calls to use renderString() in _renderEntries()
-  - **All Playwright tests passing** (4/4 ✅)
-- ~~TextProcessor assessment for refactoring~~ ✅ **COMPLETED - KEEP AS CLASS**
-  - Determined TextProcessor should remain as class-based singleton (stateful)
-  - Maintains MutationObserver for dynamic DOM processing
-  - Lifecycle methods (initialize/destroy) required for proper state management
-  - Decision: Not applicable for plain module conversion
-
-**Next recommended areas:**
-- Optimize remaining data access patterns for less-frequently accessed types (OptionalFeatureService, RewardService, TrapService, VehicleService, ObjectService).
-- Add additional Playwright integration checks for end-to-end refactor validation.
-- Performance optimization: Consider lazy loading for less-frequently used services (rewards, traps, vehicles, objects).
-- Consider implementing a centralized ServiceLocator or service registry pattern for better maintainability.
-
-**Test Coverage Status:**
-- **Original Tests (tooltip.spec.js):** 4 tests covering basic tooltip functionality, escape key, and pinning
-- **Extended Tests (tag-handlers.spec.js):** 5 new tests covering skills, actions, feats, backgrounds, and error checking
-- **Total:** 9 tests passing consistently (11.7s average execution time)
-- **Coverage:** Spell, item, condition, class, race, feat, background, skill, action, and optional feature resolvers validated
-
----
-title: Refactor Plan for Fizbanes Forge
-date: 2025-12-06
----
-
-# Refactor Plan: Fizbanes Forge
-
-## Overview
-
-This document provides a comprehensive review of the codebase, focusing on unnecessary complexity, best practices, and actionable simplifications. Each section highlights high-impact improvements, with explanations, impact, and concrete recommendations.
-
----
+# Refactor Plan
 
 ## Table of Contents
 
-1. [General Observations](#general-observations)
-2. [Electron Backend (src/electron)](#electron-backend)
-3. [Renderer & Utilities (src/renderer/scripts/utils)](#renderer--utilities)
-4. [Shared Patterns & Data](#shared-patterns--data)
-5. [Summary Table of Issues](#summary-table-of-issues)
-6. [Appendix: Example Refactors](#appendix-example-refactors)
+1. [Overview](#overview)
+2. [Summary Table of Issues](#summary-table-of-issues)
+3. [Detailed Findings & Recommendations](#detailed-findings--recommendations)
+    - [Redundant Ability Abbreviation Logic](#redundant-ability-abbreviation-logic)
+    - [Result and Logger Patterns](#result-and-logger-patterns)
+    - [Renderer and ContentRenderer Complexity](#renderer-and-contentrenderer-complexity)
+    - [Race Data Handling](#race-data-handling)
+    - [Formatting and Utility Functions](#formatting-and-utility-functions)
+    - [Error Handling Patterns](#error-handling-patterns)
+    - [State Reset Logic](#state-reset-logic)
+    - [General Naming and Cohesion](#general-naming-and-cohesion)
+4. [Best Practice Evaluation](#best-practice-evaluation)
+5. [Appendix: Example Improvements](#appendix-example-improvements)
 
 ---
 
-## General Observations
+## Overview
 
-- **Strengths:**
-  - Modular structure, clear separation between Electron and renderer.
-  - Use of ES modules and modern JS features.
-  - Good use of logging and IPC patterns.
-- **Areas for Improvement:**
-  - Overuse of manager/wrapper/helper classes.
-  - Redundant or indirect control flow, especially in data and window management.
-  - Some inefficient or verbose data handling.
-  - Inconsistent naming and error handling.
-  - Testability could be improved by reducing coupling and indirection.
-
----
-
-## Electron Backend
-
-### 1. Over-Abstraction: Manager Classes
-
-| File/Class                | Problem Summary | Impact | Recommendation |
-|---------------------------|-----------------|--------|----------------|
-| WindowManager, PreferencesManager, DataFolderManager | Multiple single-responsibility classes with thin logic, often just wrapping Electron APIs or simple file ops. | Adds indirection, makes tracing logic harder, increases boilerplate. | Collapse into fewer, more focused modules. Expose simple functions for common tasks. |
-
-**Example:**
-```js
-// Instead of:
-const winMgr = new WindowManager();
-winMgr.createMainWindow();
-
-// Prefer:
-import { createMainWindow } from './window.js';
-createMainWindow();
-```
-
-### 2. Redundant IPC Handler Registration
-
-| File | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| ipc/IPCRegistry.js, handlers/*Handlers.js | Each handler is registered via a registry class, but most handlers are simple and could be registered directly. | Unnecessary indirection, harder to trace IPC flow. | Register IPC handlers directly in main.js or a single setup file. |
-
-### 3. Error Handling
-
-| File | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| DataFolderManager.js, FileHandlers.js | Inconsistent error handling, sometimes logs, sometimes swallows errors. | Debugging and reliability issues. | Standardize error handling: always log and propagate or handle gracefully. |
-
-### 4. Data Access Patterns
-
-| File | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| DataFolderManager.js | Multiple async wrappers for file/network ops, some with unnecessary Promises. | Adds complexity, risk of unhandled rejections. | Use async/await directly, avoid wrapping in new Promise unless needed. |
-
----
-
-## Renderer & Utilities
-
-### 1. Excessive Helper/Manager Classes
-
-| File/Class | Problem Summary | Impact | Recommendation |
-|------------|-----------------|--------|----------------|
-| TooltipManager, ReferenceResolver, DataLoader, StatBlockRenderer, TagProcessor | Many classes act as singletons or static utility containers, with indirect access patterns (e.g., getInstance, getXManager). | Increases indirection, makes testing and tracing harder. | Use plain modules with exported functions or simple objects. Only use classes for true stateful or extensible logic. (**Done:** TooltipManager flattened; update usages/imports to new API.) |
-
-**Example:**
-```js
-// Instead of:
-const tooltipMgr = TooltipManager.getInstance();
-tooltipMgr.show(...);
-
-// Prefer:
-import * as tooltip from './tooltip.js';
-tooltip.show(...);
-```
-
-### 2. Indirect Data Flow
-
-| File | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| ReferenceResolver.js, DataLoader.js | Data is often loaded via chained manager/service/helper calls. | Harder to follow, debug, and test. | Flatten data flow: pass data directly, avoid unnecessary layers. |
-
-### 3. Inefficient Data Handling
-
-| File | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| DataLoader.js, StatBlockRenderer.js | Some data is loaded or transformed multiple times, or via repeated file reads. | Performance hit, especially on large data sets. | Cache results where possible, avoid redundant reads. |
-
-### 4. Naming and Cohesion
-
-| File | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| TagProcessor.js, TooltipManager.js | Some class/function names are generic or misleading (e.g., "Manager" for stateless helpers). | Reduces clarity, increases onboarding time. | Use descriptive, specific names (e.g., Tooltip, TagParser). (**Done:** TooltipManager flattened; consider renaming file to `tooltip.js` later.) |
-
----
-
-## Shared Patterns & Data
-
-### 1. Data File Access
-
-| Area | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| src/data | Data is accessed via file paths and manual fs calls, sometimes repeated. | Risk of inconsistency, hard to refactor. | Centralize data access in a single module, use caching. |
-
-### 2. Testability
-
-| Area | Problem Summary | Impact | Recommendation |
-|------|-----------------|--------|----------------|
-| Electron, Renderer | Many modules are tightly coupled to Electron or DOM APIs. | Hard to unit test, requires integration tests. | Use dependency injection or pass dependencies as arguments for easier mocking. |
+This document identifies areas of unnecessary complexity, redundancy, and indirect control flow in the codebase. Each issue includes a summary, impact, and actionable refactor strategy.
 
 ---
 
 ## Summary Table of Issues
 
-| Area | Issue | Impact | Recommendation |
-|------|-------|--------|----------------|
-| Electron | Overuse of manager/wrapper classes | Readability, maintainability | Collapse/flatten, use plain modules |
-| Electron | Redundant IPC registry | Indirection, traceability | Register handlers directly |
-| Electron | Inconsistent error handling | Debugging, reliability | Standardize/log/propagate |
-| Renderer | Excessive helpers/singletons | Indirection, testability | Use plain modules/functions |
-| Renderer | Indirect data flow | Debugging, performance | Flatten, pass data directly |
-| Renderer | Inefficient data handling | Performance | Cache, avoid redundant reads |
-| Shared | Data access scattered | Consistency, maintainability | Centralize, cache |
-| Shared | Tight coupling to platform | Testability | Use DI, pass dependencies |
+| Area/Module                | Problem Summary                                 | Impact                | Recommended Fix                |
+|----------------------------|-------------------------------------------------|-----------------------|-------------------------------|
+| Ability Abbreviation       | Duplicate logic in multiple modules             | Maintainability       | Centralize in utility         |
+| Result/Logger Patterns     | Overly abstract, custom implementations         | Readability, Overhead | Use standard/error objects     |
+| ContentRenderer            | Overly recursive, indirect plugin system        | Complexity            | Simplify, document, modularize|
+| Race Data Handling         | Multiple lookup maps, indirect subrace logic    | Indirection           | Streamline data access        |
+| Formatting Utilities       | Some redundant/overlapping helpers              | Maintainability       | Consolidate, document         |
+| Error Handling             | Inconsistent, sometimes silent                  | Debuggability         | Standardize, propagate errors |
+| State Reset                | Re-instantiates class for reset                 | Performance, Clarity  | Use initial state snapshot    |
+| Naming/Cohesion            | Some unclear or generic names                   | Readability           | Rename for intent             |
 
 ---
 
-## Appendix: Example Refactors
+## Detailed Findings & Recommendations
 
-### 1. Flattening Manager Classes
+### 1. Redundant Ability Abbreviation Logic ✅ COMPLETED
 
-**Before:**
+**Problem:**  
+The logic for converting ability names to abbreviations (e.g., "strength" → "STR") is duplicated in at least three places:
+- `TextFormatter.js` (`abbreviateAbility`)
+- `AbilityChoices.js` (`_getAbilityAbbreviation`)
+- `BonusNotes.js` (`_getAbilityAbbreviation`)
+
+**Impact:**  
+- Increases maintenance cost (bug fixes/updates must be made in multiple places)
+- Risk of inconsistency
+
+**Resolution:**  
+- Enhanced `TextFormatter.abbreviateAbility` to handle already-abbreviated inputs (STR, DEX, etc.)
+- Removed duplicate `_getAbilityAbbreviation` methods from both `AbilityChoices.js` and `BonusNotes.js`
+- Updated all usages to import and use the centralized utility function
+- Reduced codebase by ~60 lines of duplicate code
+
+**Changes Made:**
 ```js
-export class PreferencesManager {
-  get(key) { ... }
-  set(key, value) { ... }
+// Enhanced TextFormatter.js to handle both full names and abbreviations
+export function abbreviateAbility(ability) {
+  const abilityLower = ability.toLowerCase();
+  const abbr = {
+    strength: 'STR', dexterity: 'DEX', constitution: 'CON',
+    intelligence: 'INT', wisdom: 'WIS', charisma: 'CHA',
+    str: 'STR', dex: 'DEX', con: 'CON',
+    int: 'INT', wis: 'WIS', cha: 'CHA',
+  };
+  return abbr[abilityLower] || ability.substring(0, 3).toUpperCase();
 }
-const prefs = new PreferencesManager();
-prefs.get('theme');
+
+// Updated AbilityChoices.js and BonusNotes.js
+import { abbreviateAbility } from '../../utils/TextFormatter.js';
+// All uses of this._getAbilityAbbreviation replaced with abbreviateAbility
 ```
 
-**After:**
+---
+
+### 2. Result and Logger Patterns ✅ COMPLETED (Logger Replacement)
+
+**Problem:**  
+- Custom `Result` and `Logger` classes are implemented with features (e.g., chaining, history, FF_DEBUG gating) that may be overkill for the app's needs.
+- `Result` pattern is used where simple try/catch or error returns would suffice.
+- Custom renderer `Logger` duplicates functionality already available in Chrome DevTools (timestamps, levels, file source, filtering).
+
+**Impact:**  
+- Adds abstraction and indirection, making debugging and onboarding harder.
+- Custom error handling can obscure stack traces and error sources.
+- Renderer logger adds overhead when DevTools already provides superior capabilities.
+
+**Recommended Fix:**  
+- **Result Pattern:** Use standard JavaScript `Error` objects and try/catch for error handling unless explicit monadic chaining is required.
+- **Renderer Logger:** Remove custom `Logger` from renderer and replace with native `console` methods: ✅ COMPLETED
+  - Removed all Logger imports from 50+ renderer files
+  - Replaced all `Logger.info()` → `console.info('[ModuleName]', ...)` calls
+  - Replaced all `Logger.warn()` → `console.warn('[ModuleName]', ...)`
+  - Replaced all `Logger.error()` → `console.error('[ModuleName]', ...)`
+  - Replaced all `Logger.debug()` → `console.debug('[ModuleName]', ...)`
+  - Main process keeps `MainLogger` in electron main process (no DevTools available there)
+
+**Changes Made:**
+- Service files (15): Removed Logger imports and replaced all 80+ method calls
+- Utility files (6): Removed Logger imports and replaced all method calls (TooltipManager, DataLoader, ReferenceResolver, TextProcessor, TagProcessor, etc.)
+- Core files: Replaced all Logger calls (Router, EventBus, etc.)
+- Module files (16+): Replaced all Logger calls across race, class, background, proficiency, sources modules
+- All 50+ renderer files now use native console methods with standardized bracketed naming: `console.method('[ServiceName]', message, data)`
+
+**Example:**
 ```js
-// preferences.js
-let store = {};
-export function getPreference(key) { return store[key]; }
-export function setPreference(key, value) { store[key] = value; }
-// Usage:
-import { getPreference } from './preferences.js';
-getPreference('theme');
+// Old code
+Logger.info('ClassService', 'Loading class data', { count });
+
+// New code
+console.info('[ClassService]', 'Loading class data', { count });
+
+// Instead of Result.ok()/Result.err()
+try {
+  const data = await fetchData();
+  // ...
+} catch (e) {
+  // handle error
+}
 ```
 
-### 2. Direct IPC Handler Registration
+**Benefits:**
+- Eliminated 50+ Logger imports across renderer codebase
+- Replaced 100+ Logger method calls with console equivalents
+- Native console is faster and has no abstraction overhead
+- Better stack traces and source mapping
+- Familiar API for all developers
+- DevTools filtering/searching is more powerful than custom history
+- All renderer files compile without errors ✅
 
-**Before:**
+---
+
+### 3. Renderer and ContentRenderer Complexity
+
+**Problem:**  
+- The `Renderer` class in `ContentRenderer.js` is highly recursive, with a plugin system and dynamic type dispatch.
+- The control flow is indirect, and the plugin system is under-documented.
+
+**Impact:**  
+- Hard to follow, debug, and extend.
+- New contributors may struggle to add new entry types or understand rendering flow.
+
+**Recommended Fix:**  
+- Add clear documentation and diagrams for the rendering flow.
+- Consider breaking up the renderer into smaller, type-specific modules.
+- If the plugin system is not widely used, remove or simplify it.
+
+**Example:**
+- Split `_rendererMap` into separate files per entry type.
+- Document the expected entry structure and rendering process.
+
+---
+
+### 4. Race Data Handling
+
+**Problem:**  
+- Multiple lookup maps and subrace extraction logic in `RaceService.js` are complex and sometimes redundant.
+- Indirect handling of subrace variants and versions.
+
+**Impact:**  
+- Increases cognitive load and risk of bugs.
+- Makes it harder to add new race data or debug issues.
+
+**Recommended Fix:**  
+- Consolidate lookup logic into a single, well-documented function.
+- Use clear data models for races and subraces.
+- Avoid unnecessary abstraction (e.g., only use maps where O(1) lookup is critical).
+
+---
+
+### 5. Formatting and Utility Functions
+
+**Problem:**  
+- Some formatting helpers (e.g., for dice, modifiers, joining arrays) are scattered and sometimes overlap in functionality.
+
+**Impact:**  
+- Redundant code, harder to maintain.
+
+**Recommended Fix:**  
+- Consolidate all formatting helpers into a single module.
+- Add JSDoc comments and usage examples.
+
+---
+
+### 6. Error Handling Patterns
+
+**Problem:**  
+- Some modules (e.g., `AppInitializer.js`, `ReferenceResolver.js`) catch errors and return null or error objects, sometimes logging, sometimes not.
+
+**Impact:**  
+- Inconsistent error handling makes debugging harder.
+- Silent failures can mask real issues.
+
+**Recommended Fix:**  
+- Standardize error handling: always log errors, and propagate them unless there’s a clear reason to swallow.
+- Use a consistent error reporting strategy (e.g., always return an error object or always throw).
+
+---
+
+### 7. State Reset Logic
+
+**Problem:**  
+- `AppStateImpl.clear()` re-instantiates the class to reset state.
+
+**Impact:**  
+- Inefficient and can lead to subtle bugs if constructor logic changes.
+
+**Recommended Fix:**  
+- Store an initial state snapshot and reset to it, rather than re-instantiating.
+
+**Example:**
 ```js
-class IPCRegistry {
-  register() {
-    registerCharacterHandlers(...);
-    registerDataHandlers(...);
+class AppStateImpl {
+  constructor() {
+    this.initialState = { ...defaultState };
+    this.state = { ...this.initialState };
+  }
+  clear() {
+    this.state = { ...this.initialState };
   }
 }
 ```
 
-**After:**
-```js
-// main.js
-import { registerCharacterHandlers } from './handlers/CharacterHandlers.js';
-registerCharacterHandlers(...);
-```
+---
 
-### 3. Improving Error Handling
+### 8. General Naming and Cohesion
+
+**Problem:**  
+- Some class and method names are generic (e.g., `Manager`, `Service`, `Impl`), and responsibilities are sometimes blurred.
+
+**Impact:**  
+- Reduces clarity and discoverability.
+
+**Recommended Fix:**  
+- Use more descriptive names (e.g., `RaceDataService` instead of `RaceService` if it only handles data).
+- Ensure each module/class has a single, clear responsibility.
+
+---
+
+## Best Practice Evaluation
+
+| Practice                        | Adherence | Notes/Recommendations                                 |
+|----------------------------------|-----------|-------------------------------------------------------|
+| Readability & Maintainability    | Medium    | Improve by reducing duplication and clarifying flow   |
+| Naming Quality                   | Medium    | Use more descriptive, intent-revealing names          |
+| Cohesion & Separation of Concerns| Medium    | Some modules/classes do too much                      |
+| Error Handling                   | Low-Med   | Standardize and propagate errors                      |
+| Testability                      | Medium    | Utilities are testable, but indirect logic hinders    |
+| Use of Language/Framework        | Good      | Modern JS features used, but avoid over-abstraction   |
+| Performance                      | Good      | Lookup maps are efficient, but avoid premature opt.   |
+
+---
+
+## Appendix: Example Improvements
+
+### Centralizing Ability Abbreviation
 
 **Before:**
 ```js
-try { ... } catch (e) { /* sometimes logs, sometimes not */ }
+// In multiple files
+_getAbilityAbbreviation(ability) { ... }
 ```
-
 **After:**
 ```js
-try { ... } catch (e) {
-  logger.error('ModuleName', e);
-  throw e; // or handle gracefully
+// In TextFormatter.js
+export function abbreviateAbility(ability) { ... }
+// In all modules
+import { abbreviateAbility } from '../utils/TextFormatter.js';
+```
+
+### Simplifying Result/Error Handling
+
+**Before:**
+```js
+const result = Result.ok(data).andThen(...).unwrapOr(defaultValue);
+```
+**After:**
+```js
+try {
+  const data = await fetchData();
+  // ...
+} catch (e) {
+  // handle error
 }
-```
-
-### 4. Flattening Data Flow
-
-**Before:**
-```js
-const data = await DataLoader.getInstance().loadJSON(url);
-```
-
-**After:**
-```js
-import { loadJSON } from './dataLoader.js';
-const data = await loadJSON(url);
 ```
 
 ---
 
-## Next Steps
+# Next Steps
 
-
-**Progress Checklist:**
-
-- [x] Prioritize high-impact refactors (manager flattening, error handling, data access centralization).
-- [x] Refactor incrementally, running tests after each change (Electron backend complete).
-- [x] Update documentation and onboarding guides to reflect simplifications (this plan updated).
-- [x] Flatten TooltipManager to a plain module; normalize hover metadata; restore tooltip rendering; fix tooltip test page CSS paths.
-- [x] Confirmed ReferenceResolver and DataLoader are plain modules with exported functions (no classes).
-- [x] Expanded Playwright integration test coverage for tooltip system (4 new test scenarios).
-- [x] Complete TagProcessor refactoring to plain module.
-  - ✅ Converted from class to plain module with exported functions
-  - ✅ All tag handlers working with module-level state
-  - ✅ Backward compatibility maintained via getStringRenderer()
-  - ✅ Added damage and scaledamage handlers
-- [x] Complete StatBlockRenderer refactoring to plain module.
-  - ✅ Converted from class to plain module with exported functions (14 render + 8 private functions)
-  - ✅ All Playwright tests passing (4/4)
-  - ✅ Fixed undefined renderer variable in _renderEntries()
-  - ✅ Updated TooltipManager to use new function imports
-- [x] Optimize data access patterns in ReferenceResolver (use service instances instead of repeated DataLoader calls).
-  - ✅ Created ConditionService for O(1) cached lookups
-  - ✅ Created MonsterService for O(1) cached lookups with collision handling
-  - ✅ Created FeatService for O(1) cached lookups
-  - ✅ Created SkillService for O(1) cached lookups
-  - ✅ Created ActionService for O(1) cached lookups
-  - ✅ Updated ReferenceResolver to use new services
-  - ✅ Eliminated repeated DataLoader calls for conditions, monsters, feats, skills, and actions
-  - ✅ All tests passing (4/4)
-- [x] Remove deprecated files and methods from codebase.
-  - ✅ Removed IPCRegistry.js (obsolete, handlers registered directly in main.js)
-  - ✅ Removed DataLoader.getInstance() legacy singleton alias (not used anywhere)
-  - ✅ Reorganized DataLoader static method aliases to use dataLoader object
-  - ✅ All 9 tests passing after cleanup (11.8s)
-- [ ] Refactor TextProcessor to align with new plain module patterns (if stateless patterns apply).
-- [ ] Review and expand test coverage for renderer utilities and data gateway.
-- [ ] Add additional Playwright integration checks for end-to-end refactor validation.
+- Prioritize centralizing utility logic and standardizing error handling.
+- Refactor renderer and data services for clarity and maintainability.
+- Review naming and module responsibilities for improved cohesion.
 
 ---
 
 **This plan is intended as a living document. Update as improvements are made.**
+
+---

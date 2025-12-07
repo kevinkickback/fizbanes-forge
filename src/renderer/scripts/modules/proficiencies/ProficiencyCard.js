@@ -3,7 +3,7 @@
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { proficiencyService } from '../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
@@ -52,7 +52,7 @@ export class ProficiencyCard {
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
 			if (!this._character) {
-				Logger.error('ProficiencyCard', 'No active character found');
+				console.error('ProficiencyCard', 'No active character found');
 				return;
 			}
 
@@ -62,7 +62,7 @@ export class ProficiencyCard {
 			await this._populateProficiencyContainers();
 			this._updateProficiencyNotes();
 		} catch (error) {
-			Logger.error('ProficiencyCard', 'Initialization error:', error);
+			console.error('ProficiencyCard', 'Initialization error:', error);
 		}
 	}
 
@@ -76,7 +76,7 @@ export class ProficiencyCard {
 			this._proficiencyContainers[type] = document.getElementById(containerId);
 
 			if (!this._proficiencyContainers[type]) {
-				Logger.warn(
+				console.warn(
 					'ProficiencyCard',
 					`Container for ${type} not found: #${containerId}`,
 				);
@@ -87,7 +87,7 @@ export class ProficiencyCard {
 			document.getElementById('proficiencyNotes');
 
 		if (!this._proficiencyNotesContainer) {
-			Logger.warn('ProficiencyCard', 'Proficiency notes container not found');
+			console.warn('ProficiencyCard', 'Proficiency notes container not found');
 		}
 	}
 
@@ -143,7 +143,7 @@ export class ProficiencyCard {
 			// Add default proficiencies if not already present
 			this._addDefaultProficiencies();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ProficiencyCard',
 				'Error initializing character proficiencies:',
 				error,
@@ -250,7 +250,7 @@ export class ProficiencyCard {
 				this._handleProficiencyChanged.bind(this),
 			);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ProficiencyCard',
 				'Error setting up event listeners:',
 				error,
@@ -352,7 +352,7 @@ export class ProficiencyCard {
 				this._updateProficiencyNotes();
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ProficiencyCard',
 				'Error handling character change:',
 				error,
@@ -388,7 +388,7 @@ export class ProficiencyCard {
 				this._showRefundNotification(detail.proficiency);
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ProficiencyCard',
 				'Error handling proficiency change:',
 				error,
@@ -402,7 +402,7 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_showRefundNotification(skill) {
-		Logger.info('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
+		console.info('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
 	}
 
 	/**

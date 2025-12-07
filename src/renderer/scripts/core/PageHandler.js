@@ -1,7 +1,7 @@
 /** Handles page-specific initialization after templates render. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../modules/background/BackgroundCard.js';
 import { ClassCard } from '../modules/class/ClassCard.js';
@@ -24,7 +24,7 @@ class PageHandlerImpl {
 	 */
 	initialize() {
 		if (this.isInitialized) {
-			Logger.warn('PageHandler', 'Already initialized');
+			console.warn('PageHandler', 'Already initialized');
 			return;
 		}
 
@@ -34,7 +34,7 @@ class PageHandlerImpl {
 		});
 
 		this.isInitialized = true;
-		Logger.info('PageHandler', 'Initialized successfully');
+		console.info('PageHandler', 'Initialized successfully');
 	}
 
 	/**
@@ -42,7 +42,7 @@ class PageHandlerImpl {
 	 * @param {string} pageName - Name of the page that was loaded
 	 */
 	async handlePageLoaded(pageName) {
-		Logger.info('PageHandler', 'Handling page loaded', { pageName });
+		console.info('PageHandler', 'Handling page loaded', { pageName });
 
 		try {
 			// Clean up home page listeners when leaving home
@@ -74,12 +74,12 @@ class PageHandlerImpl {
 					await this.initializePreviewPage();
 					break;
 				default:
-					Logger.debug('PageHandler', 'No special initialization for page', {
+					console.debug('PageHandler', 'No special initialization for page', {
 						pageName,
 					});
 			}
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing page', {
+			console.error('PageHandler', 'Error initializing page', {
 				pageName,
 				error,
 			});
@@ -90,7 +90,7 @@ class PageHandlerImpl {
 	 * Initialize the home page
 	 */
 	async initializeHomePage() {
-		Logger.info('PageHandler', 'Initializing home page');
+		console.info('PageHandler', 'Initializing home page');
 
 		try {
 			// Ensure Modal button listeners are initialized (deferred until DOM is ready)
@@ -110,7 +110,7 @@ class PageHandlerImpl {
 				const characters = result.value;
 				await this.renderCharacterList(characters);
 			} else {
-				Logger.error(
+				console.error(
 					'PageHandler',
 					'Failed to load character list',
 					result.error,
@@ -127,7 +127,7 @@ class PageHandlerImpl {
 
 				newSortSelect.addEventListener('change', async (e) => {
 					const sortOption = e.target.value;
-					Logger.info('PageHandler', 'Sort option changed', { sortOption });
+					console.info('PageHandler', 'Sort option changed', { sortOption });
 
 					// Re-render with current characters using new sort order
 					if (this.currentCharacters) {
@@ -142,7 +142,7 @@ class PageHandlerImpl {
 					await modal.showNewCharacterModal(e);
 				},
 				onCreateCharacter: async (character) => {
-					Logger.info('PageHandler', 'Character created', { id: character.id });
+					console.info('PageHandler', 'Character created', { id: character.id });
 					// Reload the character list
 					const reloadResult = await CharacterManager.loadCharacterList();
 					if (reloadResult.isOk()) {
@@ -183,7 +183,7 @@ class PageHandlerImpl {
 				this._homeCharacterSelectedHandler,
 			);
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing home page', error);
+			console.error('PageHandler', 'Error initializing home page', error);
 			showNotification('Error loading home page', 'error');
 		}
 	}
@@ -254,7 +254,7 @@ class PageHandlerImpl {
 		const characterList = document.getElementById('characterList');
 
 		if (!characterList) {
-			Logger.warn('PageHandler', 'Character list element not found');
+			console.warn('PageHandler', 'Character list element not found');
 			return;
 		}
 
@@ -364,7 +364,7 @@ class PageHandlerImpl {
 			})
 			.join('');
 
-		Logger.info('PageHandler', 'Character list rendered', {
+		console.info('PageHandler', 'Character list rendered', {
 			count: sortedCharacters.length,
 		});
 	}
@@ -388,13 +388,13 @@ class PageHandlerImpl {
 
 			const characterId = card.dataset.characterId;
 			if (characterId) {
-				Logger.debug(
+				console.debug(
 					'PageHandler',
 					`[${new Date().toISOString()}] Character card clicked: ${characterId}`,
 				);
 				const result = await CharacterManager.loadCharacter(characterId);
 				if (result.isOk()) {
-					Logger.info(
+					console.info(
 						'PageHandler',
 						`✓ Character loaded from card: ${characterId}`,
 						{
@@ -407,7 +407,7 @@ class PageHandlerImpl {
 					const floatingBarVisible = floatingBar
 						? window.getComputedStyle(floatingBar).display !== 'none'
 						: false;
-					Logger.debug(
+					console.debug(
 						'PageHandler',
 						`After character load - floating bar visible: ${floatingBarVisible}`,
 						{
@@ -416,10 +416,10 @@ class PageHandlerImpl {
 					);
 
 					// Navigate to build page
-					Logger.debug('PageHandler', 'Emitting PAGE_CHANGED event to "build"');
+					console.debug('PageHandler', 'Emitting PAGE_CHANGED event to "build"');
 					eventBus.emit(EVENTS.PAGE_CHANGED, 'build');
 				} else {
-					Logger.error('PageHandler', 'Failed to load character', {
+					console.error('PageHandler', 'Failed to load character', {
 						id: characterId,
 						error: result.error,
 					});
@@ -484,7 +484,7 @@ class PageHandlerImpl {
 	 */
 	async handleImportCharacter() {
 		try {
-			Logger.info('PageHandler', 'Importing character');
+			console.info('PageHandler', 'Importing character');
 
 			const result = await storage.importCharacter();
 
@@ -497,13 +497,13 @@ class PageHandlerImpl {
 					await this.renderCharacterList(reloadResult.value);
 				}
 			} else if (result.canceled) {
-				Logger.info('PageHandler', 'Import canceled');
+				console.info('PageHandler', 'Import canceled');
 				showNotification('Import cancelled', 'info');
 			} else {
 				showNotification('Failed to import character', 'error');
 			}
 		} catch (error) {
-			Logger.error('PageHandler', 'Error importing character', error);
+			console.error('PageHandler', 'Error importing character', error);
 			showNotification('Error importing character', 'error');
 		}
 	}
@@ -556,12 +556,12 @@ class PageHandlerImpl {
 	 * Initialize the settings page
 	 */
 	async initializeSettingsPage() {
-		Logger.info('PageHandler', 'Initializing settings page');
+		console.info('PageHandler', 'Initializing settings page');
 
 		try {
 			await settingsService.initializeSettingsPage();
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing settings page', error);
+			console.error('PageHandler', 'Error initializing settings page', error);
 			showNotification('Error loading settings page', 'error');
 		}
 	}
@@ -570,7 +570,7 @@ class PageHandlerImpl {
 	 * Initialize the build page
 	 */
 	async initializeBuildPage() {
-		Logger.info('PageHandler', 'Initializing build page');
+		console.info('PageHandler', 'Initializing build page');
 
 		try {
 			// Initialize all build page cards
@@ -587,9 +587,9 @@ class PageHandlerImpl {
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
 
-			Logger.info('PageHandler', 'Build page cards initialized');
+			console.info('PageHandler', 'Build page cards initialized');
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing build page', error);
+			console.error('PageHandler', 'Error initializing build page', error);
 			showNotification('Error initializing build page', 'error');
 		}
 	}
@@ -598,12 +598,12 @@ class PageHandlerImpl {
 	 * Initialize the details page
 	 */
 	async initializeDetailsPage() {
-		Logger.info('PageHandler', 'Initializing details page');
+		console.info('PageHandler', 'Initializing details page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				Logger.warn('PageHandler', 'No character loaded for details page');
+				console.warn('PageHandler', 'No character loaded for details page');
 				return;
 			}
 
@@ -626,9 +626,9 @@ class PageHandlerImpl {
 			// Set up form change listeners for unsaved changes detection
 			this._setupDetailsPageFormListeners();
 
-			Logger.info('PageHandler', 'Details page populated with character data');
+			console.info('PageHandler', 'Details page populated with character data');
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing details page', error);
+			console.error('PageHandler', 'Error initializing details page', error);
 			showNotification('Error loading details page', 'error');
 		}
 	}
@@ -652,7 +652,7 @@ class PageHandlerImpl {
 			if (field) {
 				// Use input event for real-time change detection
 				field.addEventListener('input', () => {
-					Logger.debug(
+					console.debug(
 						'PageHandler',
 						`Form field changed (${fieldId}), emitting CHARACTER_UPDATED`,
 					);
@@ -669,20 +669,20 @@ class PageHandlerImpl {
 	 * Initialize the equipment page
 	 */
 	async initializeEquipmentPage() {
-		Logger.info('PageHandler', 'Initializing equipment page');
+		console.info('PageHandler', 'Initializing equipment page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				Logger.warn('PageHandler', 'No character loaded for equipment page');
+				console.warn('PageHandler', 'No character loaded for equipment page');
 				return;
 			}
 
 			// Equipment page components can be initialized here
 			// For now, just log that the page is ready
-			Logger.info('PageHandler', 'Equipment page initialized');
+			console.info('PageHandler', 'Equipment page initialized');
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing equipment page', error);
+			console.error('PageHandler', 'Error initializing equipment page', error);
 			showNotification('Error loading equipment page', 'error');
 		}
 	}
@@ -691,20 +691,20 @@ class PageHandlerImpl {
 	 * Initialize the preview page
 	 */
 	async initializePreviewPage() {
-		Logger.info('PageHandler', 'Initializing preview page');
+		console.info('PageHandler', 'Initializing preview page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				Logger.warn('PageHandler', 'No character loaded for preview page');
+				console.warn('PageHandler', 'No character loaded for preview page');
 				return;
 			}
 
 			// Preview page components can be initialized here
 			// For now, just log that the page is ready
-			Logger.info('PageHandler', 'Preview page initialized');
+			console.info('PageHandler', 'Preview page initialized');
 		} catch (error) {
-			Logger.error('PageHandler', 'Error initializing preview page', error);
+			console.error('PageHandler', 'Error initializing preview page', error);
 			showNotification('Error loading preview page', 'error');
 		}
 	}

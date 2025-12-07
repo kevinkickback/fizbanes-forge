@@ -1,6 +1,6 @@
 /** Controller for source book selection during character creation. */
 
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { sourceService } from '../../services/SourceService.js';
 import { showNotification } from '../../utils/Notifications.js';
 import { SourcePickerView } from './SourcePicker.js';
@@ -28,13 +28,13 @@ export class SourceCard {
 	async initializeSourceSelection() {
 		try {
 			if (!this._container) {
-				Logger.error('SourceCard', 'Source selection container not found');
+				console.error('SourceCard', 'Source selection container not found');
 				return;
 			}
 
 			this._headerContainer = document.getElementById('sourceBookHeader');
 			if (!this._headerContainer) {
-				Logger.error('SourceCard', 'Source book header container not found');
+				console.error('SourceCard', 'Source book header container not found');
 				return;
 			}
 
@@ -65,7 +65,7 @@ export class SourceCard {
 			// Pre-select PHB
 			this._preselectDefaultSources();
 		} catch (error) {
-			Logger.error('SourceCard', 'Error initializing source selection:', error);
+			console.error('SourceCard', 'Error initializing source selection:', error);
 		}
 	}
 
@@ -104,7 +104,7 @@ export class SourceCard {
 
 			this._validateSourceSelection();
 		} catch (error) {
-			Logger.error('SourceCard', 'Error handling source click:', error);
+			console.error('SourceCard', 'Error handling source click:', error);
 		}
 	}
 
@@ -118,7 +118,7 @@ export class SourceCard {
 				this._handleSourceClick(toggle);
 			}
 		} catch (error) {
-			Logger.error('SourceCard', 'Error selecting all sources:', error);
+			console.error('SourceCard', 'Error selecting all sources:', error);
 		}
 	}
 
@@ -132,7 +132,7 @@ export class SourceCard {
 				this._handleSourceClick(toggle);
 			}
 		} catch (error) {
-			Logger.error('SourceCard', 'Error deselecting all sources:', error);
+			console.error('SourceCard', 'Error deselecting all sources:', error);
 		}
 	}
 
@@ -176,7 +176,7 @@ export class SourceCard {
 		try {
 			return await this._sourceManager.loadSources();
 		} catch (error) {
-			Logger.error('SourceCard', 'Error loading sources:', error);
+			console.error('SourceCard', 'Error loading sources:', error);
 			showNotification('Error loading sources', 'error');
 			return [];
 		}
@@ -191,7 +191,7 @@ export class SourceCard {
 			this._selectedSources.add(sourceId);
 			this._sourceManager.addSource(sourceId);
 		} catch (error) {
-			Logger.error('SourceCard', 'Error adding source:', error);
+			console.error('SourceCard', 'Error adding source:', error);
 		}
 	}
 
@@ -209,7 +209,7 @@ export class SourceCard {
 			}
 			return false;
 		} catch (error) {
-			Logger.error('SourceCard', 'Error removing source:', error);
+			console.error('SourceCard', 'Error removing source:', error);
 			return false;
 		}
 	}
@@ -222,7 +222,7 @@ export class SourceCard {
 			this._selectedSources.clear();
 			this._sourceManager.clearSources();
 		} catch (error) {
-			Logger.error('SourceCard', 'Error clearing sources:', error);
+			console.error('SourceCard', 'Error clearing sources:', error);
 		}
 	}
 

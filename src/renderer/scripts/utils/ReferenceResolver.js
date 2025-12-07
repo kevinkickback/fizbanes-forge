@@ -1,6 +1,5 @@
 /** ReferenceResolver.js - Resolves tag references to concrete D&D data via services (plain module). */
 
-import { Logger } from '../infrastructure/Logger.js';
 import { actionService } from '../services/ActionService.js';
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
@@ -36,7 +35,7 @@ async function resolveSpell(spellName, source = 'PHB') {
 		if (!spell) return { name: spellName, error: 'Spell not found' };
 		return spell;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving spell "${spellName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving spell "${spellName}":`, error);
 		return { name: spellName, error: error.message };
 	}
 }
@@ -48,7 +47,7 @@ async function resolveItem(itemName, source = 'DMG') {
 		if (!item) return { name: itemName, error: 'Item not found' };
 		return item;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving item "${itemName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving item "${itemName}":`, error);
 		return { name: itemName, error: error.message };
 	}
 }
@@ -59,7 +58,7 @@ async function resolveCondition(conditionName) {
 		if (!condition) return { name: conditionName, error: 'Condition not found' };
 		return condition;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving condition "${conditionName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving condition "${conditionName}":`, error);
 		return { name: conditionName, error: error.message };
 	}
 }
@@ -76,7 +75,7 @@ async function resolveMonster(monsterName, _source = 'MM') {
 		if (!monster) return { name: monsterName, error: 'Monster not found' };
 		return monster;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving monster "${monsterName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving monster "${monsterName}":`, error);
 		return { name: monsterName, error: error.message };
 	}
 }
@@ -94,7 +93,7 @@ async function resolveClass(className, _source = 'PHB') {
 		if (!classData) return { name: className, error: 'Class not found' };
 		return classData;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving class "${className}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving class "${className}":`, error);
 		return { name: className, error: error.message };
 	}
 }
@@ -111,7 +110,7 @@ async function resolveRace(raceName, source = 'PHB') {
 		if (!race) return { name: raceName, error: 'Race not found' };
 		return race;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving race "${raceName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving race "${raceName}":`, error);
 		return { name: raceName, error: error.message };
 	}
 }
@@ -128,7 +127,7 @@ async function resolveFeat(featName, _source = 'PHB') {
 		if (!feat) return { name: featName, error: 'Feat not found' };
 		return feat;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving feat "${featName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving feat "${featName}":`, error);
 		return { name: featName, error: error.message };
 	}
 }
@@ -146,7 +145,7 @@ async function resolveBackground(backgroundName, _source = 'PHB') {
 		if (!background) return { name: backgroundName, error: 'Background not found' };
 		return background;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving background "${backgroundName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving background "${backgroundName}":`, error);
 		return { name: backgroundName, error: error.message };
 	}
 }
@@ -162,7 +161,7 @@ async function resolveSkill(skillName) {
 		if (!skill) return { name: skillName, error: 'Skill not found' };
 		return skill;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving skill "${skillName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving skill "${skillName}":`, error);
 		return { name: skillName, error: error.message };
 	}
 }
@@ -178,7 +177,7 @@ async function resolveAction(actionName) {
 		if (!action) return { name: actionName, error: 'Action not found' };
 		return action;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving action "${actionName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving action "${actionName}":`, error);
 		return { name: actionName, error: error.message };
 	}
 }
@@ -195,7 +194,7 @@ async function resolveOptionalFeature(featureName) {
 		if (!feature) return { name: featureName, error: 'Optional feature not found' };
 		return feature;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving optional feature "${featureName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving optional feature "${featureName}":`, error);
 		return { name: featureName, error: error.message };
 	}
 }
@@ -212,7 +211,7 @@ async function resolveReward(rewardName) {
 		if (!reward) return { name: rewardName, error: 'Reward not found' };
 		return reward;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving reward "${rewardName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving reward "${rewardName}":`, error);
 		return { name: rewardName, error: error.message };
 	}
 }
@@ -229,7 +228,7 @@ async function resolveTrap(trapName) {
 		if (!trap) return { name: trapName, error: 'Trap/hazard not found' };
 		return trap;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving trap "${trapName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving trap "${trapName}":`, error);
 		return { name: trapName, error: error.message };
 	}
 }
@@ -246,7 +245,7 @@ async function resolveVehicle(vehicleName) {
 		if (!vehicle) return { name: vehicleName, error: 'Vehicle not found' };
 		return vehicle;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving vehicle "${vehicleName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving vehicle "${vehicleName}":`, error);
 		return { name: vehicleName, error: error.message };
 	}
 }
@@ -263,7 +262,7 @@ async function resolveObject(objectName) {
 		if (!obj) return { name: objectName, error: 'Object not found' };
 		return obj;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving object "${objectName}":`, error);
+		console.error('[ReferenceResolver]', `Error resolving object "${objectName}":`, error);
 		return { name: objectName, error: error.message };
 	}
 }
@@ -279,7 +278,7 @@ async function resolveVariantRule(ruleName) {
 		if (!rule) return { name: ruleName, error: 'Variant rule not found' };
 		return rule;
 	} catch (error) {
-		Logger.error('ReferenceResolver', `Error resolving variant rule "${ruleName}":`, error);
+		console.error('ReferenceResolver', `Error resolving variant rule "${ruleName}":`, error);
 		return { name: ruleName, error: error.message };
 	}
 }

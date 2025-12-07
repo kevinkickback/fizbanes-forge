@@ -2,7 +2,7 @@
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { abilityChoicesView } from './AbilityChoices.js';
 import { abilityScoreBoxView } from './AbilityScoreBox.js';
@@ -74,7 +74,7 @@ class AbilityScoreCard {
 
 			return true;
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'AbilityScoreCard',
 				'Failed to initialize AbilityScoreCard:',
 				error,
@@ -141,7 +141,7 @@ class AbilityScoreCard {
 
 			// Create ability scores changed listener
 			this._abilityScoresChangedListener = () => {
-				Logger.debug('AbilityScoreCard', 'abilityScoresChanged event received');
+				console.debug('AbilityScoreCard', 'abilityScoresChanged event received');
 				this.update();
 			};
 			document.addEventListener(
@@ -152,7 +152,7 @@ class AbilityScoreCard {
 				const character = CharacterManager.getCurrentCharacter();
 				if (!character) return;
 
-				Logger.debug('AbilityScoreCard', 'characterChanged event received', {
+				console.debug('AbilityScoreCard', 'characterChanged event received', {
 					name: character.name,
 				});
 
@@ -214,7 +214,7 @@ class AbilityScoreCard {
 			};
 			document.addEventListener('subraceChanged', this._subraceChangedListener);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'AbilityScoreCard',
 				'Error setting up event listeners:',
 				error,
@@ -331,7 +331,7 @@ class AbilityScoreCard {
 		this._updateAllStandardArrayOptions();
 
 		// Emit CHARACTER_UPDATED event
-		Logger.debug(
+		console.debug(
 			'AbilityScoreCard',
 			'Emitting CHARACTER_UPDATED for ability score change',
 			{ ability, newValue },
@@ -395,7 +395,7 @@ class AbilityScoreCard {
 		this._updateAbilityScoreValues();
 
 		// Emit CHARACTER_UPDATED event
-		Logger.debug(
+		console.debug(
 			'AbilityScoreCard',
 			'Emitting CHARACTER_UPDATED for point buy increase',
 			{ ability, newScore },
@@ -453,7 +453,7 @@ class AbilityScoreCard {
 		this._updateAbilityScoreValues();
 
 		// Emit CHARACTER_UPDATED event
-		Logger.debug(
+		console.debug(
 			'AbilityScoreCard',
 			'Emitting CHARACTER_UPDATED for point buy decrease',
 			{ ability, newScore },
@@ -479,7 +479,7 @@ class AbilityScoreCard {
 			this._updateAbilityScoreValues();
 
 			// Emit CHARACTER_UPDATED event
-			Logger.debug(
+			console.debug(
 				'AbilityScoreCard',
 				'Emitting CHARACTER_UPDATED for custom score input',
 				{ ability, newValue },
@@ -518,7 +518,7 @@ class AbilityScoreCard {
 		this._bonusNotesView.render();
 
 		// Emit CHARACTER_UPDATED event
-		Logger.debug(
+		console.debug(
 			'AbilityScoreCard',
 			'Emitting CHARACTER_UPDATED for ability choice selection',
 			{ selectedAbility, bonus, source },
@@ -561,7 +561,7 @@ class AbilityScoreCard {
 			// Render bonus notes
 			this._bonusNotesView.render();
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'AbilityScoreCard',
 				'Error rendering ability score card:',
 				error,
@@ -607,7 +607,7 @@ class AbilityScoreCard {
 				this._handleStandardArraySelection.bind(this),
 			);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'AbilityScoreCard',
 				'Error rendering ability scores:',
 				error,

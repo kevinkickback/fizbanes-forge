@@ -348,3 +348,4 @@ export class BackgroundDetailsView {
 		return null;
 	}
 }
+

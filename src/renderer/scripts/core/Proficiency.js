@@ -2,7 +2,7 @@
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 
 /**
  * @typedef {Object} ProficiencyWithSources
@@ -31,7 +31,7 @@ export class ProficiencyCore {
 	 */
 	static addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			Logger.warn('Invalid parameters for addProficiency:', {
+			console.warn('Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -91,7 +91,7 @@ export class ProficiencyCore {
 	 */
 	static removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			Logger.warn('Invalid parameters for removeProficienciesBySource');
+			console.warn('Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -193,7 +193,7 @@ export class ProficiencyCore {
 	 */
 	static setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			Logger.warn('Invalid parameters for setOptionalProficiencies');
+			console.warn('Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -289,7 +289,7 @@ export class ProficiencyCore {
 	 */
 	static selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
-			Logger.warn('Optional proficiencies not initialized for type:', type);
+			console.warn('Optional proficiencies not initialized for type:', type);
 			return false;
 		}
 
@@ -297,7 +297,7 @@ export class ProficiencyCore {
 		const config = character.optionalProficiencies[type][sourceLower];
 
 		if (!config) {
-			Logger.warn('No optional proficiency configuration for source:', source);
+			console.warn('No optional proficiency configuration for source:', source);
 			return false;
 		}
 
@@ -308,7 +308,7 @@ export class ProficiencyCore {
 
 		// Check if there's room for more selections
 		if (config.selected.length >= config.allowed) {
-			Logger.warn(
+			console.warn(
 				'Maximum optional proficiencies already selected for',
 				source,
 			);
@@ -317,7 +317,7 @@ export class ProficiencyCore {
 
 		// Verify proficiency is in options
 		if (!config.options.includes(proficiency)) {
-			Logger.warn('Proficiency not in available options:', proficiency);
+			console.warn('Proficiency not in available options:', proficiency);
 			return false;
 		}
 

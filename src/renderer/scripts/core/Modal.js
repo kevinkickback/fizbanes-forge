@@ -27,7 +27,7 @@
  */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 import { SourceCard } from '../modules/sources/SourceCard.js';
 import { showNotification } from '../utils/Notifications.js';
 
@@ -94,7 +94,7 @@ export class Modal {
 			// Button listener setup is now deferred to ensureInitialized()
 			// This is needed because Modal is instantiated before DOM is ready
 		} catch (error) {
-			Logger.error('Modal', 'Error setting up modal event listeners:', error);
+			console.error('Modal', 'Error setting up modal event listeners:', error);
 		}
 	}
 
@@ -108,7 +108,7 @@ export class Modal {
 			this._setupButtonEventListeners();
 			this._buttonListenersSetup = true;
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'Modal',
 				'Error initializing Modal button listeners:',
 				error,
@@ -153,7 +153,7 @@ export class Modal {
 			button.parentNode.replaceChild(newButton, button);
 			newButton.addEventListener('click', handler);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'Modal',
 				`Error setting up button listener for ${buttonId}:`,
 				error,
@@ -175,7 +175,7 @@ export class Modal {
 
 			const modal = document.getElementById('newCharacterModal');
 			if (!modal) {
-				Logger.error('Modal', 'New character modal not found in the DOM');
+				console.error('Modal', 'New character modal not found in the DOM');
 				showNotification('Could not open new character form', 'error');
 				return;
 			}
@@ -189,7 +189,7 @@ export class Modal {
 			);
 			await this._sourceCard.initializeSourceSelection();
 		} catch (error) {
-			Logger.error('Modal', 'Error showing new character modal:', error);
+			console.error('Modal', 'Error showing new character modal:', error);
 			showNotification('Could not open new character form', 'error');
 		}
 	}
@@ -221,7 +221,7 @@ export class Modal {
 				form.reset();
 			}
 		} catch (error) {
-			Logger.error('Modal', 'Error closing new character modal:', error);
+			console.error('Modal', 'Error closing new character modal:', error);
 		}
 	}
 
@@ -261,7 +261,7 @@ export class Modal {
 				!multiclassVariant ||
 				!abilityScoreMethod
 			) {
-				Logger.error('Modal', 'One or more form fields not found');
+				console.error('Modal', 'One or more form fields not found');
 				showNotification('Missing fields in character creation form', 'error');
 				return null;
 			}
@@ -275,7 +275,7 @@ export class Modal {
 				abilityScoreMethod: abilityScoreMethod.value,
 			};
 		} catch (error) {
-			Logger.error('Modal', 'Error getting form data:', error);
+			console.error('Modal', 'Error getting form data:', error);
 			return null;
 		}
 	}
@@ -289,7 +289,7 @@ export class Modal {
 		try {
 			const selectedSources = new Set();
 			if (!this._sourceCard.container) {
-				Logger.error('Modal', 'Source card container not found');
+				console.error('Modal', 'Source card container not found');
 				return selectedSources;
 			}
 
@@ -305,7 +305,7 @@ export class Modal {
 
 			return selectedSources;
 		} catch (error) {
-			Logger.error('Modal', 'Error getting selected sources:', error);
+			console.error('Modal', 'Error getting selected sources:', error);
 			return new Set();
 		}
 	}
@@ -323,7 +323,7 @@ export class Modal {
 			// Get selected sources
 			const selectedSources = this._getSelectedSources();
 			if (!this._sourceCard.validateSourceSelection(selectedSources)) {
-				Logger.warn('Modal', 'Source selection validation failed');
+				console.warn('Modal', 'Source selection validation failed');
 				return;
 			}
 
@@ -388,7 +388,7 @@ export class Modal {
 				);
 			}
 		} catch (error) {
-			Logger.error('Modal', 'Error creating new character:', error);
+			console.error('Modal', 'Error creating new character:', error);
 			showNotification('Error creating new character', 'error');
 		}
 	}
@@ -405,7 +405,7 @@ export class Modal {
 				await CharacterManager.loadCharacterList();
 			}
 		} catch (error) {
-			Logger.error('Modal', 'Error reloading character list:', error);
+			console.error('Modal', 'Error reloading character list:', error);
 		}
 	}
 
@@ -429,7 +429,7 @@ export class Modal {
 			} = options;
 
 			if (!title || !message) {
-				Logger.error(
+				console.error(
 					'Modal',
 					'Missing required parameters for confirmation dialog',
 				);
@@ -452,7 +452,7 @@ export class Modal {
 				!cancelButton ||
 				!closeButton
 			) {
-				Logger.error(
+				console.error(
 					'Modal',
 					'One or more confirmation modal elements not found',
 				);
@@ -508,7 +508,7 @@ export class Modal {
 				modal.show();
 			});
 		} catch (error) {
-			Logger.error('Modal', 'Error showing confirmation dialog:', error);
+			console.error('Modal', 'Error showing confirmation dialog:', error);
 			return false;
 		}
 	}
@@ -527,7 +527,7 @@ export class Modal {
 			const { characterName, characterId, createdAt, lastModified } = options;
 
 			if (!characterName || !characterId) {
-				Logger.error(
+				console.error(
 					'Modal',
 					'Missing required parameters for duplicate ID modal',
 				);
@@ -550,7 +550,7 @@ export class Modal {
 				!cancelButton ||
 				!closeButton
 			) {
-				Logger.error('Modal', 'One or more modal elements not found');
+				console.error('Modal', 'One or more modal elements not found');
 				return 'cancel';
 			}
 
@@ -635,7 +635,7 @@ export class Modal {
 				modal.show();
 			});
 		} catch (error) {
-			Logger.error('Modal', 'Error showing duplicate ID modal:', error);
+			console.error('Modal', 'Error showing duplicate ID modal:', error);
 			return 'cancel';
 		}
 	}

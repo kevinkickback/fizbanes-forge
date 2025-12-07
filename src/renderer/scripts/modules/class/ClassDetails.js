@@ -1,7 +1,7 @@
 /** View for detailed class information (hit die, proficiencies, saves, features). */
 
 import { CharacterManager } from '../../core/CharacterManager.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
@@ -531,7 +531,7 @@ export class ClassDetailsView {
 		const featuresSection =
 			this._classDetails.querySelector('.features-section');
 		if (!featuresSection) {
-			Logger.warn(
+			console.warn(
 				'ClassDetails',
 				'Features section not found in class details',
 			);
@@ -545,7 +545,7 @@ export class ClassDetailsView {
 			const processedFeatures = await Promise.all(
 				allFeatures.map(async (feature) => {
 					if (!feature.name) {
-						Logger.warn('ClassDetails', 'Feature missing name:', feature);
+						console.warn('ClassDetails', 'Feature missing name:', feature);
 						return '';
 					}
 
@@ -562,7 +562,7 @@ export class ClassDetailsView {
 					} else if (feature.text) {
 						description = await textProcessor.processString(feature.text);
 					} else {
-						Logger.warn('ClassDetails', 'Feature missing entries:', feature);
+						console.warn('ClassDetails', 'Feature missing entries:', feature);
 					}
 
 					// Format source and page info
@@ -609,7 +609,7 @@ export class ClassDetailsView {
 
 		// If entries is not an array, return empty string
 		if (!Array.isArray(entries)) {
-			Logger.warn(
+			console.warn(
 				'ClassDetails',
 				'Feature entries is not an array or string:',
 				entries,
@@ -659,7 +659,7 @@ export class ClassDetailsView {
 									);
 									result += `<li><strong>${processedName}</strong>: ${processedEntries}</li>`;
 								} else {
-									Logger.warn(
+									console.warn(
 										'ClassDetails',
 										'Unhandled list item format:',
 										item,
@@ -777,7 +777,7 @@ export class ClassDetailsView {
 				}
 				// Fall back to JSON for unhandled formats
 				else {
-					Logger.warn('ClassDetails', 'Unhandled entry format:', entry);
+					console.warn('ClassDetails', 'Unhandled entry format:', entry);
 					result += `<p>${JSON.stringify(entry)}</p>`;
 				}
 			}

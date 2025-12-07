@@ -8,7 +8,6 @@
  * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
  */
 
-import { Logger } from '../infrastructure/Logger.js';
 import { renderString } from './TagProcessor.js';
 import { initializeTooltipListeners } from './TooltipManager.js';
 
@@ -95,7 +94,7 @@ class TextProcessor {
 			// Process initial page content
 			await this.processPageContent(document.body);
 		} catch (error) {
-			Logger.error('[TextProcessor] Error initializing text processor:', error);
+			console.error('[TextProcessor]', 'Error initializing text processor:', error);
 		}
 	}
 
@@ -110,7 +109,7 @@ class TextProcessor {
 				this._observer = null;
 			}
 		} catch (error) {
-			Logger.error('[TextProcessor] Error destroying text processor:', error);
+			console.error('[TextProcessor]', 'Error destroying text processor:', error);
 		}
 	}
 
@@ -132,7 +131,7 @@ class TextProcessor {
 				}
 			}
 		} catch (error) {
-			Logger.error('[TextProcessor] Error handling DOM changes:', error);
+			console.error('[TextProcessor]', 'Error handling DOM changes:', error);
 		}
 	}
 
@@ -183,8 +182,9 @@ class TextProcessor {
 				await this._processTextElement(element, mergedOptions, forceReprocess);
 			}
 		} catch (error) {
-			Logger.error(
-				'[TextProcessor] Error processing page content:',
+			console.error(
+				'[TextProcessor]',
+				'Error processing page content:',
 				error,
 				container,
 			);
@@ -206,7 +206,7 @@ class TextProcessor {
 			// Force reprocess when called directly on an element
 			await this.processPageContent(element, {}, true);
 		} catch (error) {
-			Logger.error('[TextProcessor] Error processing element:', error);
+			console.error('[TextProcessor]', 'Error processing formatting:', error);
 		}
 	}
 
@@ -273,7 +273,7 @@ class TextProcessor {
 			// Mark as processed to avoid reprocessing by the MutationObserver unless forced
 			element.setAttribute('data-processed', 'true');
 		} catch (error) {
-			Logger.warn('TextProcessor', 'Error processing text element', {
+			console.warn('[TextProcessor]', 'Error processing text element', {
 				error,
 				element,
 			});
@@ -308,7 +308,7 @@ class TextProcessor {
 
 			return processedText;
 		} catch (error) {
-			Logger.error('[TextProcessor] Error processing string:', error);
+			console.error('[TextProcessor] Error processing string:', error);
 			return text || ''; // Return original text on error
 		}
 	}
@@ -356,7 +356,7 @@ class TextProcessor {
 			}
 			return formattedText;
 		} catch (error) {
-			Logger.error('[TextProcessor] Error processing formatting:', error);
+			console.error('[TextProcessor] Error processing formatting:', error);
 			return input; // Return original input on error
 		}
 	}

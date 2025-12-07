@@ -1,13 +1,13 @@
 /** Caches, loads, and renders page templates into the content area. */
 
-import { Logger } from '../infrastructure/Logger.js';
+
 import { Result } from '../infrastructure/Result.js';
 
 class PageLoaderImpl {
 	constructor() {
 		this.templateCache = new Map();
 		this.contentArea = null;
-		Logger.info('PageLoader', 'PageLoader initialized');
+		console.info('PageLoader', 'PageLoader initialized');
 	}
 
 	/**
@@ -19,11 +19,11 @@ class PageLoaderImpl {
 		this.contentArea = document.getElementById(contentAreaId);
 
 		if (!this.contentArea) {
-			Logger.error('PageLoader', 'Content area not found', { contentAreaId });
+			console.error('PageLoader', 'Content area not found', { contentAreaId });
 			return Result.err('Content area not found');
 		}
 
-		Logger.info('PageLoader', 'Initialized with content area', {
+		console.info('PageLoader', 'Initialized with content area', {
 			contentAreaId,
 		});
 		return Result.ok(true);
@@ -35,11 +35,11 @@ class PageLoaderImpl {
 	 * @returns {Promise<Result>} Result with HTML string or error
 	 */
 	async loadPage(templateName) {
-		Logger.debug('PageLoader', 'Loading page', { templateName });
+		console.debug('PageLoader', 'Loading page', { templateName });
 
 		// Check cache first
 		if (this.templateCache.has(templateName)) {
-			Logger.debug('PageLoader', 'Using cached template', { templateName });
+			console.debug('PageLoader', 'Using cached template', { templateName });
 			return Result.ok(this.templateCache.get(templateName));
 		}
 
@@ -58,10 +58,10 @@ class PageLoaderImpl {
 			// Cache the template
 			this.templateCache.set(templateName, html);
 
-			Logger.info('PageLoader', 'Page loaded and cached', { templateName });
+			console.info('PageLoader', 'Page loaded and cached', { templateName });
 			return Result.ok(html);
 		} catch (error) {
-			Logger.error('PageLoader', 'Load failed', {
+			console.error('PageLoader', 'Load failed', {
 				templateName,
 				error: error.message,
 			});
@@ -76,16 +76,16 @@ class PageLoaderImpl {
 	 */
 	renderPage(html) {
 		if (!this.contentArea) {
-			Logger.error('PageLoader', 'Content area not initialized');
+			console.error('PageLoader', 'Content area not initialized');
 			return Result.err('Content area not initialized');
 		}
 
 		try {
 			this.contentArea.innerHTML = html;
-			Logger.debug('PageLoader', 'Page rendered successfully');
+			console.debug('PageLoader', 'Page rendered successfully');
 			return Result.ok(true);
 		} catch (error) {
-			Logger.error('PageLoader', 'Render failed', error);
+			console.error('PageLoader', 'Render failed', error);
 			return Result.err(error.message);
 		}
 	}
@@ -96,7 +96,7 @@ class PageLoaderImpl {
 	 * @returns {Promise<Result>} Result with success or error
 	 */
 	async loadAndRender(templateName) {
-		Logger.info('PageLoader', 'Load and render', { templateName });
+		console.info('PageLoader', 'Load and render', { templateName });
 
 		const loadResult = await this.loadPage(templateName);
 		if (loadResult.isErr()) {
@@ -112,7 +112,7 @@ class PageLoaderImpl {
 	clearCache() {
 		const cacheSize = this.templateCache.size;
 		this.templateCache.clear();
-		Logger.info('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
+		console.info('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
 	}
 
 	/**

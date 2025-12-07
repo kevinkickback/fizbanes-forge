@@ -1,7 +1,6 @@
 /** Manages ability score state and calculations. */
 import { CharacterManager } from '../core/CharacterManager.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import {
 	calculateModifier,
 	calculatePointBuyTotal,
@@ -77,7 +76,7 @@ class AbilityScoreService {
 	normalizeAbilityName(abilityName) {
 		// Check if abilityName is a string before calling toLowerCase
 		if (typeof abilityName !== 'string') {
-			Logger.warn(
+			console.warn(
 				'AbilityScoreService',
 				`Expected string for ability name but got ${typeof abilityName}`,
 				{ abilityName },
@@ -210,7 +209,7 @@ class AbilityScoreService {
 		const character = CharacterManager.getCurrentCharacter();
 
 		if (!character) {
-			Logger.error(
+			console.error(
 				'AbilityScoreService',
 				'No character selected for ability score update',
 			);
@@ -307,7 +306,7 @@ class AbilityScoreService {
 
 		// Check if the value is in the standard array
 		if (!this._standardArrayValues.includes(value)) {
-			Logger.error(
+			console.error(
 				'AbilityScoreService',
 				`Value ${value} is not in the standard array`,
 			);
@@ -319,7 +318,7 @@ class AbilityScoreService {
 			this.isStandardArrayValueAssigned(value) &&
 			this._assignedStandardArrayValues[normalizedAbility] !== value
 		) {
-			Logger.error(
+			console.error(
 				'AbilityScoreService',
 				`Value ${value} is already assigned to another ability`,
 			);
@@ -380,7 +379,7 @@ class AbilityScoreService {
 	setRacialAbilityChoices(choices) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character?.race) {
-			Logger.error(
+			console.error(
 				'AbilityScoreService',
 				'No character or race selected for ability choice',
 			);

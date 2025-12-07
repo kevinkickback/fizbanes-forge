@@ -154,3 +154,4 @@ MethodControlsView.getInstance = () => {
 
 export { MethodControlsView };
 export const methodControlsView = MethodControlsView.getInstance();
+

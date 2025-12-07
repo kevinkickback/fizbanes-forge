@@ -1,6 +1,7 @@
 /** View for rendering ability choice dropdowns for race/class bonuses. */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
+import { abbreviateAbility } from '../../utils/TextFormatter.js';
 
 /** View for rendering ability choice dropdowns. */
 class AbilityChoicesView {
@@ -67,7 +68,7 @@ class AbilityChoicesView {
 				.map(
 					(ability) => `
                         <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
-                            ${this._getAbilityAbbreviation(ability)}
+                            ${abbreviateAbility(ability)}
                         </option>
                     `,
 				)
@@ -119,44 +120,6 @@ class AbilityChoicesView {
 	}
 
 	/**
-	 * Converts an ability name to its standard abbreviation
-	 * @param {string} ability - The ability name
-	 * @returns {string} The abbreviated ability name
-	 * @private
-	 */
-	_getAbilityAbbreviation(ability) {
-		const abilityLower = ability.toLowerCase();
-		switch (abilityLower) {
-			case 'strength':
-				return 'STR';
-			case 'dexterity':
-				return 'DEX';
-			case 'constitution':
-				return 'CON';
-			case 'intelligence':
-				return 'INT';
-			case 'wisdom':
-				return 'WIS';
-			case 'charisma':
-				return 'CHA';
-			case 'str':
-				return 'STR';
-			case 'dex':
-				return 'DEX';
-			case 'con':
-				return 'CON';
-			case 'int':
-				return 'INT';
-			case 'wis':
-				return 'WIS';
-			case 'cha':
-				return 'CHA';
-			default:
-				return ability.toUpperCase();
-		}
-	}
-
-	/**
 	 * Updates the container reference for the view
 	 * @param {HTMLElement} container - The new container element
 	 */
@@ -179,3 +142,4 @@ AbilityChoicesView.getInstance = (container) => {
 
 export { AbilityChoicesView };
 export const abilityChoicesView = AbilityChoicesView.getInstance;
+

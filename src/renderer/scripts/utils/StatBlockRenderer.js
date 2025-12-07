@@ -941,3 +941,4 @@ function _formatPrerequisite(prerequisite) {
 
 	return parts.join(', ') || 'None';
 }
+

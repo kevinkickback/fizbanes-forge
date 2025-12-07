@@ -1,6 +1,6 @@
 /** Base UI card foundation shared by entity cards (race, class, etc.). */
 
-import { Logger } from '../infrastructure/Logger.js';
+
 import { textProcessor } from '../utils/TextProcessor.js';
 
 /** Base class providing shared card display helpers. */
@@ -22,7 +22,7 @@ export class BaseCard {
 		this._card = document.getElementById(cardId);
 
 		if (!this._card) {
-			Logger.error('BaseCard', `Card element with ID "${cardId}" not found`);
+			console.error('BaseCard', `Card element with ID "${cardId}" not found`);
 			return;
 		}
 
@@ -78,7 +78,7 @@ export class BaseCard {
 				this._setDefaultImage(altText);
 			}
 		} catch (error) {
-			Logger.error('BaseCard', 'Error updating entity image:', error);
+			console.error('BaseCard', 'Error updating entity image:', error);
 			this._setDefaultImage(altText);
 		}
 	}
@@ -130,7 +130,7 @@ export class BaseCard {
 				this.setPlaceholderContent();
 			}
 		} catch (error) {
-			Logger.error('BaseCard', 'Error updating quick description:', error);
+			console.error('BaseCard', 'Error updating quick description:', error);
 			this.setPlaceholderContent();
 		}
 	}
@@ -177,7 +177,7 @@ export class BaseCard {
 	 */
 	createDetailSection(title, asList = true) {
 		if (!this._details) {
-			Logger.warn('BaseCard', 'Details element not found in card');
+			console.warn('BaseCard', 'Details element not found in card');
 			return null;
 		}
 
@@ -205,7 +205,7 @@ export class BaseCard {
 	 */
 	addDetailItem(section, content) {
 		if (!section) {
-			Logger.warn('BaseCard', 'Invalid section provided to addDetailItem');
+			console.warn('BaseCard', 'Invalid section provided to addDetailItem');
 			return null;
 		}
 
@@ -230,7 +230,7 @@ export class BaseCard {
 	 */
 	addDetailParagraph(section, content) {
 		if (!section) {
-			Logger.warn('BaseCard', 'Invalid section provided to addDetailParagraph');
+			console.warn('BaseCard', 'Invalid section provided to addDetailParagraph');
 			return null;
 		}
 

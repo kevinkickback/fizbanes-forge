@@ -2,7 +2,7 @@
 
 import { ProficiencyCore } from '../core/Proficiency.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 
 /** Manages proficiencies and proficiency-related calculations. */
 export class ProficiencyService {
@@ -40,12 +40,12 @@ export class ProficiencyService {
 	 */
 	async initialize() {
 		if (this._initialized) {
-			Logger.debug('ProficiencyService', 'Already initialized');
+			console.debug('ProficiencyService', 'Already initialized');
 			return;
 		}
 
 		try {
-			Logger.info('ProficiencyService', 'Initializing proficiency manager');
+			console.info('[ProficiencyService]', 'Initializing proficiency manager');
 
 			// Cache commonly used data
 			this._skills = await this.getAvailableSkills();
@@ -53,8 +53,8 @@ export class ProficiencyService {
 			this._languages = await this.getAvailableLanguages();
 
 			this._initialized = true;
-			Logger.info(
-				'ProficiencyService',
+			console.info(
+				'[ProficiencyService]',
 				'Proficiency manager initialized successfully',
 				{
 					skillCount: this._skills?.length,
@@ -64,7 +64,7 @@ export class ProficiencyService {
 			);
 			eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'proficiency', this);
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ProficiencyService',
 				'Failed to initialize proficiency manager',
 				error,

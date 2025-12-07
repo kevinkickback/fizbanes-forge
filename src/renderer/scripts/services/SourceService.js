@@ -16,7 +16,6 @@
  */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { showNotification } from '../utils/Notifications.js';
 
@@ -125,7 +124,7 @@ export class SourceService {
 		}
 
 		try {
-			Logger.info('SourceService', 'Starting initialization');
+			console.info('[SourceService]', 'Starting initialization');
 			const sourcesData = await DataLoader.loadSources();
 
 			// Handle both direct data and Result-wrapped data
@@ -214,7 +213,7 @@ export class SourceService {
 						return groupPriority[a.group] - groupPriority[b.group];
 					});
 
-				Logger.debug('SourceService', 'Valid sources after filtering', {
+				console.debug('SourceService', 'Valid sources after filtering', {
 					sources: validSources.map((s) => s.id),
 				});
 
@@ -240,14 +239,14 @@ export class SourceService {
 				}
 
 				this._initialized = true;
-				Logger.info('SourceService', 'Initialization complete', {
+				console.info('[SourceService]', 'Initialization complete', {
 					sourceCount: this.availableSources.size,
 				});
 
 				// Emit initialization complete event
 				eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'source', this);
 			} else {
-				Logger.error(
+				console.error(
 					'SourceService',
 					'Invalid source data format - missing source array',
 					sources,
@@ -258,7 +257,7 @@ export class SourceService {
 				);
 			}
 		} catch (error) {
-			Logger.error('SourceService', 'Error during initialization', error);
+			console.error('SourceService', 'Error during initialization', error);
 			showNotification('Error loading source books', 'error');
 			throw error;
 		}

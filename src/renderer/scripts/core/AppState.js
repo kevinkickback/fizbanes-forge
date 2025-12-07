@@ -1,7 +1,7 @@
 /** Central application state singleton that emits change events. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 
 class AppStateImpl {
 	constructor() {
@@ -37,7 +37,7 @@ class AppStateImpl {
 			},
 		};
 
-		Logger.info('AppState', 'State initialized', this.state);
+		console.info('AppState', 'State initialized', this.state);
 	}
 
 	/**
@@ -61,7 +61,7 @@ class AppStateImpl {
 			value = value?.[k];
 		}
 
-		Logger.debug('AppState', `Get: ${key}`, value);
+		console.debug('AppState', `Get: ${key}`, value);
 		return value;
 	}
 
@@ -70,7 +70,7 @@ class AppStateImpl {
 	 * @param {object} updates - State updates
 	 */
 	setState(updates) {
-		Logger.debug('AppState', 'setState called', updates);
+		console.debug('AppState', 'setState called', updates);
 
 		const oldState = { ...this.state };
 
@@ -88,11 +88,11 @@ class AppStateImpl {
 			if (oldState[key] !== updates[key]) {
 				const eventName = `state:${key}:changed`;
 				eventBus.emit(eventName, updates[key], oldState[key]);
-				Logger.debug('AppState', `Emitted: ${eventName}`);
+				console.debug('AppState', `Emitted: ${eventName}`);
 			}
 		});
 
-		Logger.info('AppState', 'State updated', { updates });
+		console.info('AppState', 'State updated', { updates });
 	}
 
 	/**
@@ -100,7 +100,7 @@ class AppStateImpl {
 	 * @param {object|null} character - Character object or null
 	 */
 	setCurrentCharacter(character) {
-		Logger.info('AppState', 'Setting current character', { id: character?.id });
+		console.info('AppState', 'Setting current character', { id: character?.id });
 		this.setState({ currentCharacter: character });
 		eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 	}
@@ -119,7 +119,7 @@ class AppStateImpl {
 	 */
 	setHasUnsavedChanges(hasChanges) {
 		if (this.state.hasUnsavedChanges !== hasChanges) {
-			Logger.info('AppState', 'Unsaved changes:', hasChanges);
+			console.info('AppState', 'Unsaved changes:', hasChanges);
 			this.setState({ hasUnsavedChanges: hasChanges });
 		}
 	}
@@ -129,7 +129,7 @@ class AppStateImpl {
 	 * @param {string} page - Page identifier
 	 */
 	setCurrentPage(page) {
-		Logger.info('AppState', 'Setting current page:', page);
+		console.info('AppState', 'Setting current page:', page);
 		this.setState({ currentPage: page });
 		eventBus.emit(EVENTS.PAGE_CHANGED, page);
 	}
@@ -155,7 +155,7 @@ class AppStateImpl {
 	 * @param {Array} characters - Array of characters
 	 */
 	setCharacters(characters) {
-		Logger.info('AppState', 'Setting characters list', {
+		console.info('AppState', 'Setting characters list', {
 			count: characters.length,
 		});
 		this.setState({ characters });
@@ -175,7 +175,7 @@ class AppStateImpl {
 	 * @param {*} data - The data to store
 	 */
 	setLoadedData(dataType, data) {
-		Logger.info('AppState', `Setting loaded data: ${dataType}`);
+		console.info('AppState', `Setting loaded data: ${dataType}`);
 		this.setState({
 			loadedData: {
 				...this.state.loadedData,
@@ -198,7 +198,7 @@ class AppStateImpl {
 	 * Clear all state (reset to initial).
 	 */
 	clear() {
-		Logger.warn('AppState', 'Clearing all state');
+		console.warn('AppState', 'Clearing all state');
 		const initialState = new AppStateImpl().state;
 		this.state = initialState;
 		eventBus.emit(EVENTS.STATE_CHANGED, this.state, {});

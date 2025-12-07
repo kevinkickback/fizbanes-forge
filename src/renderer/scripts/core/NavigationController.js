@@ -1,7 +1,7 @@
 /** Presentation controller coordinating router, page loader, and nav UI. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 import { AppState } from './AppState.js';
 import { PageLoader } from './PageLoader.js';
 import { Router } from './Router.js';
@@ -10,7 +10,7 @@ class NavigationControllerImpl {
 	constructor() {
 		this.isInitialized = false;
 		this.navButtons = new Map();
-		Logger.info('NavigationController', 'Controller created');
+		console.info('NavigationController', 'Controller created');
 	}
 
 	/**
@@ -19,16 +19,16 @@ class NavigationControllerImpl {
 	 */
 	initialize() {
 		if (this.isInitialized) {
-			Logger.warn('NavigationController', 'Already initialized');
+			console.warn('NavigationController', 'Already initialized');
 			return;
 		}
 
-		Logger.info('NavigationController', 'Initializing');
+		console.info('NavigationController', 'Initializing');
 
 		// Initialize PageLoader
 		const initResult = PageLoader.initialize('pageContent');
 		if (initResult.isErr()) {
-			Logger.error('NavigationController', 'Failed to initialize PageLoader');
+			console.error('NavigationController', 'Failed to initialize PageLoader');
 			return;
 		}
 
@@ -43,7 +43,7 @@ class NavigationControllerImpl {
 		this.navigateTo('home');
 
 		this.isInitialized = true;
-		Logger.info('NavigationController', 'Initialized successfully');
+		console.info('NavigationController', 'Initialized successfully');
 	}
 
 	/**
@@ -70,7 +70,7 @@ class NavigationControllerImpl {
 			this.updateNavigationState();
 		});
 
-		Logger.debug('NavigationController', 'Event listeners setup');
+		console.debug('NavigationController', 'Event listeners setup');
 	}
 
 	/**
@@ -89,7 +89,7 @@ class NavigationControllerImpl {
 		// Store reference to nav buttons
 		this.cacheNavigationButtons();
 
-		Logger.debug('NavigationController', 'Navigation buttons setup');
+		console.debug('NavigationController', 'Navigation buttons setup');
 	}
 
 	/**
@@ -102,7 +102,7 @@ class NavigationControllerImpl {
 			this.navButtons.set(page, button);
 		});
 
-		Logger.debug('NavigationController', 'Cached navigation buttons', {
+		console.debug('NavigationController', 'Cached navigation buttons', {
 			count: this.navButtons.size,
 		});
 	}
@@ -112,7 +112,7 @@ class NavigationControllerImpl {
 	 * @param {string} page - Page to navigate to
 	 */
 	async navigateTo(page) {
-		Logger.info(
+		console.info(
 			'NavigationController',
 			`[${new Date().toISOString()}] Navigate to page: "${page}"`,
 		);
@@ -124,7 +124,7 @@ class NavigationControllerImpl {
 		const navResult = await Router.navigate(page);
 
 		if (navResult.isErr()) {
-			Logger.error(
+			console.error(
 				'NavigationController',
 				'Navigation failed',
 				navResult.error,
@@ -140,14 +140,14 @@ class NavigationControllerImpl {
 		const floatingBarVisibleBefore = floatingBar
 			? window.getComputedStyle(floatingBar).display !== 'none'
 			: false;
-		Logger.debug(
+		console.debug(
 			'NavigationController',
 			`[BEFORE RENDER] Page: ${page}, Floating bar visible: ${floatingBarVisibleBefore}`,
 		);
 
 		// Set data-current-page attribute immediately for CSS selectors
 		document.body.setAttribute('data-current-page', page);
-		Logger.debug(
+		console.debug(
 			'NavigationController',
 			`Set data-current-page attribute to "${page}"`,
 			{
@@ -160,7 +160,7 @@ class NavigationControllerImpl {
 		const floatingBarAfterAttr = floatingBar
 			? window.getComputedStyle(floatingBar).display !== 'none'
 			: false;
-		Logger.debug(
+		console.debug(
 			'NavigationController',
 			`[AFTER SETTING ATTR] Page: ${page}, Floating bar visible: ${floatingBarAfterAttr}`,
 		);
@@ -172,7 +172,7 @@ class NavigationControllerImpl {
 		this.updateNavButtons(page);
 
 		// Emit PAGE_CHANGED event
-		Logger.debug(
+		console.debug(
 			'NavigationController',
 			`Emitting PAGE_CHANGED event for page: "${page}"`,
 		);
@@ -185,7 +185,7 @@ class NavigationControllerImpl {
 	 * @param {string} pageName - Name of the page being loaded
 	 */
 	async loadAndRenderPage(template, pageName) {
-		Logger.debug(
+		console.debug(
 			'NavigationController',
 			`[${new Date().toISOString()}] Starting loadAndRenderPage: ${pageName}`,
 		);
@@ -193,7 +193,7 @@ class NavigationControllerImpl {
 		const loadResult = await PageLoader.loadAndRender(template);
 
 		if (loadResult.isErr()) {
-			Logger.error(
+			console.error(
 				'NavigationController',
 				'Failed to load page',
 				loadResult.error,
@@ -202,7 +202,7 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		Logger.info(
+		console.info(
 			'NavigationController',
 			`[${new Date().toISOString()}] Page rendered successfully: ${pageName}`,
 			{ template, pageName },
@@ -224,7 +224,7 @@ class NavigationControllerImpl {
 		);
 
 		// Detailed floating bar analysis
-		Logger.debug('NavigationController', `[AFTER RENDER] Page: "${pageName}"`, {
+		console.debug('NavigationController', `[AFTER RENDER] Page: "${pageName}"`, {
 			floatingBarVisible: isVisible,
 			shouldShowByCSS: shouldShowByCSS,
 			dataCurrentPage: finalAttribute,
@@ -236,7 +236,7 @@ class NavigationControllerImpl {
 
 		// WARNING if floating bar visibility doesn't match CSS selector
 		if (pageName === 'home' && isVisible) {
-			Logger.warn(
+			console.warn(
 				'NavigationController',
 				`⚠️ FLOATING BAR ISSUE: On home page but floating bar is VISIBLE!`,
 				{
@@ -252,7 +252,7 @@ class NavigationControllerImpl {
 				pageName === 'details') &&
 			!isVisible
 		) {
-			Logger.warn(
+			console.warn(
 				'NavigationController',
 				`⚠️ FLOATING BAR ISSUE: On ${pageName} page but floating bar is NOT VISIBLE!`,
 				{
@@ -263,7 +263,7 @@ class NavigationControllerImpl {
 				},
 			);
 		} else {
-			Logger.debug(
+			console.debug(
 				'NavigationController',
 				`✓ Floating bar visibility correct for page: ${pageName}`,
 				{
@@ -274,7 +274,7 @@ class NavigationControllerImpl {
 		}
 
 		// Emit PAGE_LOADED event so page-specific handlers can initialize
-		Logger.debug(
+		console.debug(
 			'NavigationController',
 			`Emitting PAGE_LOADED event for page: "${pageName}"`,
 		);
@@ -294,7 +294,7 @@ class NavigationControllerImpl {
 			}
 		});
 
-		Logger.debug('NavigationController', 'Nav buttons updated', { activePage });
+		console.debug('NavigationController', 'Nav buttons updated', { activePage });
 	}
 
 	/**
@@ -319,7 +319,7 @@ class NavigationControllerImpl {
 			}
 		});
 
-		Logger.debug('NavigationController', 'Navigation state updated', {
+		console.debug('NavigationController', 'Navigation state updated', {
 			hasCharacter,
 		});
 	}
@@ -329,7 +329,7 @@ class NavigationControllerImpl {
 	 * @param {string} page - Page that was navigated to
 	 */
 	async handlePageChange(page) {
-		Logger.debug('NavigationController', 'Handling page change', { page });
+		console.debug('NavigationController', 'Handling page change', { page });
 
 		// Set data-current-page attribute on body for CSS selectors
 		document.body.setAttribute('data-current-page', page);

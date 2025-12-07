@@ -1,4 +1,3 @@
-import { Logger } from '../infrastructure/Logger.js';
 /** TagProcessor.js - Processes inline D&D reference tags for rendering. */
 
 /**
@@ -46,7 +45,7 @@ export function registerHandler(tag, handler) {
 export function processTag(tag, text) {
 	const handler = _handlers[tag];
 	if (!handler) {
-		Logger.warn('TagProcessor', `Unknown tag: ${tag}`);
+		console.warn('[TagProcessor]', `Unknown tag: ${tag}`);
 		return text;
 	}
 	return handler(text);
@@ -325,7 +324,7 @@ export function renderString(str) {
 		try {
 			return processTag(tag, content);
 		} catch (e) {
-			Logger.error('TagProcessor', `Error processing tag @${tag}:`, e);
+			console.error('[TagProcessor]', `Error processing tag @${tag}:`, e);
 			return match;
 		}
 	});

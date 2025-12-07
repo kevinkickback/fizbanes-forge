@@ -1,4 +1,4 @@
-import { Logger } from '../../infrastructure/Logger.js';
+
 /** Handles proficiency selection/deselection with source-specific tracking. */
 
 /**
@@ -46,7 +46,7 @@ export class ProficiencySelectionView {
 				);
 			}
 		} catch (error) {
-			Logger.error(
+			console.error(
 				'ProficiencySelection',
 				'Error toggling proficiency:',
 				error,
@@ -159,7 +159,7 @@ export class ProficiencySelectionView {
 		}
 
 		if (!removedFromSource) {
-			Logger.warn(
+			console.warn(
 				'ProficiencySelection',
 				"Deselecting skill, but could not find it in any source's selected list.",
 			);
@@ -255,7 +255,7 @@ export class ProficiencySelectionView {
 			this._updateItemUIForSelection(profItem);
 			return true;
 		} else {
-			Logger.warn(
+			console.warn(
 				'ProficiencySelection',
 				'Cannot select skill: no available slots or not allowed by source rules.',
 			);
@@ -362,7 +362,7 @@ export class ProficiencySelectionView {
 		}
 
 		if (!removedFromSource) {
-			Logger.warn(
+			console.warn(
 				'ProficiencySelection',
 				"Deselecting language, but could not find it in any source's selected list.",
 			);
@@ -453,7 +453,7 @@ export class ProficiencySelectionView {
 			this._updateItemUIForSelection(profItem);
 			return true;
 		} else {
-			Logger.warn(
+			console.warn(
 				'ProficiencySelection',
 				'Cannot select language: no available slots or not allowed by source rules.',
 			);
@@ -560,7 +560,7 @@ export class ProficiencySelectionView {
 		}
 
 		if (!removedFromSource) {
-			Logger.warn(
+			console.warn(
 				'ProficiencySelection',
 				"Deselecting tool, but could not find it in any source's selected list.",
 			);
@@ -649,7 +649,7 @@ export class ProficiencySelectionView {
 			this._updateItemUIForSelection(profItem);
 			return true;
 		} else {
-			Logger.warn(
+			console.warn(
 				'ProficiencySelection',
 				'Cannot select tool: no available slots or not allowed by source rules.',
 			);

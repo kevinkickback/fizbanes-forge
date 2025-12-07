@@ -140,3 +140,4 @@ export class SubracePickerView {
 		this._subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
 }
+

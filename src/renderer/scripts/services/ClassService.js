@@ -2,7 +2,6 @@
 
 import { AppState } from '../core/AppState.js';
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
@@ -23,12 +22,12 @@ class ClassService {
 		// Check if already initialized
 		const existingData = AppState.getLoadedData('classes');
 		if (existingData) {
-			Logger.debug('ClassService', 'Already initialized, using cached data');
+			console.debug('ClassService', 'Already initialized, using cached data');
 			this._classData = existingData;
 			return Result.ok(true);
 		}
 
-		Logger.info('ClassService', 'Initializing class data');
+		console.info('[ClassService]', 'Initializing class data');
 
 		try {
 			// Load the index to get all class files
@@ -78,7 +77,7 @@ class ClassService {
 						this._classData.subclassFeature.push(...classData.subclassFeature);
 					}
 				} else {
-					Logger.warn('ClassService', 'Failed to load class file:', result.reason?.message);
+					console.warn('ClassService', 'Failed to load class file:', result.reason?.message);
 				}
 			}
 
@@ -93,11 +92,11 @@ class ClassService {
 						this._classData.subclassFluff.push(...fluffData.subclassFluff);
 					}
 				} else {
-					Logger.warn('ClassService', 'Failed to load class fluff file:', result.reason?.message);
+					console.warn('ClassService', 'Failed to load class fluff file:', result.reason?.message);
 				}
 			}
 
-			Logger.info('ClassService', 'Class data loaded', {
+			console.info('[ClassService]', 'Class data loaded', {
 				classes: this._classData.class.length,
 				classFeatures: this._classData.classFeature.length,
 				subclasses: this._classData.subclass.length,
@@ -112,7 +111,7 @@ class ClassService {
 
 			return Result.ok(true);
 		} catch (error) {
-			Logger.error('ClassService', 'Failed to initialize class data', error);
+			console.error('ClassService', 'Failed to initialize class data', error);
 			this._classData = {
 				class: [],
 				classFeature: [],
@@ -242,16 +241,16 @@ class ClassService {
 	 * @returns {Object|null} The selected class or null if not found
 	 */
 	selectClass(className, source = 'PHB') {
-		Logger.debug('ClassService', 'Selecting class', { className, source });
+		console.debug('ClassService', 'Selecting class', { className, source });
 
 		this._selectedClass = this.getClass(className, source);
 		this._selectedSubclass = null;
 
 		if (this._selectedClass) {
-			Logger.info('ClassService', 'Class selected', { className, source });
+			console.info('[ClassService]', 'Class selected', { className, source });
 			eventBus.emit(EVENTS.CLASS_SELECTED, this._selectedClass);
 		} else {
-			Logger.warn('ClassService', 'Class not found', { className, source });
+			console.warn('ClassService', 'Class not found', { className, source });
 		}
 
 		return this._selectedClass;
@@ -264,11 +263,11 @@ class ClassService {
 	 */
 	selectSubclass(subclassName) {
 		if (!this._selectedClass) {
-			Logger.warn('ClassService', 'Cannot select subclass: no class selected');
+			console.warn('ClassService', 'Cannot select subclass: no class selected');
 			return null;
 		}
 
-		Logger.debug('ClassService', 'Selecting subclass', { subclassName });
+		console.debug('ClassService', 'Selecting subclass', { subclassName });
 
 		this._selectedSubclass = this.getSubclass(
 			this._selectedClass.name,
@@ -277,10 +276,10 @@ class ClassService {
 		);
 
 		if (this._selectedSubclass) {
-			Logger.info('ClassService', 'Subclass selected', { subclassName });
+			console.info('[ClassService]', 'Subclass selected', { subclassName });
 			eventBus.emit(EVENTS.SUBCLASS_SELECTED, this._selectedSubclass);
 		} else {
-			Logger.warn('ClassService', 'Subclass not found', { subclassName });
+			console.warn('ClassService', 'Subclass not found', { subclassName });
 		}
 
 		return this._selectedSubclass;

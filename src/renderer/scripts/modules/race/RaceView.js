@@ -1,7 +1,7 @@
 /** View for race selection dropdown and quick description. */
 
 import { eventBus, EVENTS } from '../../infrastructure/EventBus.js';
-import { Logger } from '../../infrastructure/Logger.js';
+
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for the race card's main display (dropdown + quick description). */
@@ -88,7 +88,7 @@ export class RaceCardView {
 		this._raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
 		if (!races || races.length === 0) {
-			Logger.error('RaceView', 'No races provided to populate dropdown');
+			console.error('RaceView', 'No races provided to populate dropdown');
 			return;
 		}
 

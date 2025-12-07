@@ -1,7 +1,6 @@
 /** Manages spell data and operations for the character builder. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
 import { DataLoader } from '../utils/DataLoader.js';
 
 /** Manages spell data and provides access to spells. */
@@ -44,7 +43,7 @@ class SpellService {
 					}
 				} else {
 					// Log individual file failures but continue loading others
-					Logger.warn('SpellService', 'Failed to load spell file:', result.reason?.message);
+					console.warn('SpellService', 'Failed to load spell file:', result.reason?.message);
 				}
 			}
 
@@ -62,7 +61,7 @@ class SpellService {
 			eventBus.emit(EVENTS.SPELLS_LOADED, this._spellData.spell);
 			return true;
 		} catch (error) {
-			Logger.error('SpellService', 'Failed to initialize spell data:', error);
+			console.error('SpellService', 'Failed to initialize spell data:', error);
 			this._spellData = { spell: [] };
 			return false;
 		}

@@ -1,7 +1,7 @@
 /** Client-side router that validates access and emits navigation events. */
 
 import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
-import { Logger } from '../infrastructure/Logger.js';
+
 import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
 
@@ -9,7 +9,7 @@ class RouterImpl {
 	constructor() {
 		this.routes = new Map();
 		this.currentRoute = null;
-		Logger.info('Router', 'Router initialized');
+		console.info('[Router]', 'Router initialized');
 	}
 
 	/**
@@ -18,7 +18,7 @@ class RouterImpl {
 	 * @param {object} config - Route configuration
 	 */
 	register(path, config) {
-		Logger.debug('Router', 'Registering route', { path, config });
+		console.info('[Router]', 'Registering route', { path, config });
 		this.routes.set(path, {
 			template: config.template || `${path}.html`,
 			requiresCharacter: config.requiresCharacter || false,
@@ -32,10 +32,10 @@ class RouterImpl {
 	 * @returns {Result} Result with route config or error
 	 */
 	async navigate(path) {
-		Logger.info('Router', 'Navigating to', { path });
+		console.info('[Router]', 'Navigating to', { path });
 
 		if (!this.routes.has(path)) {
-			Logger.error('Router', 'Route not found', { path });
+			console.error('[Router]', 'Route not found', { path });
 			return Result.err(`Route not found: ${path}`);
 		}
 
@@ -43,7 +43,7 @@ class RouterImpl {
 
 		// Check if character required
 		if (route.requiresCharacter && !AppState.getCurrentCharacter()) {
-			Logger.warn('Router', 'Route requires character', { path });
+			console.info('[Router]', 'Route requires character', { path });
 			return Result.err('Character required for this page');
 		}
 
@@ -54,7 +54,7 @@ class RouterImpl {
 		// Emit event
 		eventBus.emit(EVENTS.PAGE_CHANGED, path);
 
-		Logger.info('Router', 'Navigation successful', { path });
+		console.info('[Router]', 'Navigation successful', { path });
 		return Result.ok(route);
 	}
 
@@ -147,6 +147,6 @@ if (typeof window !== 'undefined' && window.FF_DEBUG === true) {
 	});
 }
 
-Logger.info('Router', 'All routes registered', {
+console.info('[Router]', 'All routes registered', {
 	routes: Router.getAllRoutes(),
 });
