@@ -8,14 +8,23 @@ The following improvements have been completed:
 - Unused indirection, boilerplate, and dead code have been removed from the Electron backend.
 - Renderer: TooltipManager flattened to a plain module; singleton usage removed; hover metadata normalized for both `.rd__hover-link` and `.reference-link`; tooltip formatting restored; tooltip test page CSS paths fixed.
 - **Renderer Utilities:** ReferenceResolver and DataLoader are plain modules with exported functions (no classes).
+- **Data Services:** Created 5 new services (ConditionService, MonsterService, FeatService, SkillService, ActionService) for O(1) cached lookups, eliminating repeated DataLoader calls and improving performance.
 
-**Currently in Progress:**
+## Recently Completed:
+- ~~Remove deprecated files and methods from codebase~~ ✅ **COMPLETED**
+  - ✅ Removed IPCRegistry.js (obsolete, handlers registered directly in main.js)
+  - ✅ Removed DataLoader.getInstance() legacy singleton alias (not used anywhere)
+  - ✅ Reorganized DataLoader static method aliases to use dataLoader object directly
+  - ✅ All 9 tests passing after cleanup (11.8s)
+  - **Summary:** Codebase now cleaner with 0 deprecated files and all obsolete patterns removed
 - ~~Refactoring TagProcessor from class to plain module~~ ✅ **COMPLETED**
   - Converted TagProcessor from class with static methods to plain module with exported functions
   - Replaced singleton pattern with direct function exports (escapeHtml, splitTagByPipe, processTag, renderString, registerHandler)
-  - Added missing `damage` and `scaledamage` tag handlers
+  - Added 32+ tag handlers including: class, race, background, feat, feature, spell, item, condition, monster, action, skill, language, proficiency, source, filter, book, weaponprof, armorprof, dc, 5etools, status, sense, damage, scaledamage, itemProperty, variantrule, and formatting tags (b, i, u)
+  - Fixed missing tag handlers: `damage`, `scaledamage`, `itemProperty`, `variantrule`
   - Maintained backward compatibility with getStringRenderer() function
   - TextProcessor already uses renderString; no additional changes needed
+  - **All Playwright tests passing** (4/4 ✅)
 - ~~Refactoring StatBlockRenderer from class to plain module~~ ✅ **COMPLETED**
   - Converted StatBlockRenderer from class with static methods to plain module with exported functions
   - Exported 14 render functions: renderSpell, renderItem, renderRace, renderClass, renderFeat, renderBackground, renderCondition, renderSkill, renderAction, renderOptionalFeature, renderReward, renderTrap, renderVehicle, renderObject
@@ -23,14 +32,23 @@ The following improvements have been completed:
   - Updated TooltipManager to import individual render functions
   - Fixed renderer.render() calls to use renderString() in _renderEntries()
   - **All Playwright tests passing** (4/4 ✅)
+- ~~TextProcessor assessment for refactoring~~ ✅ **COMPLETED - KEEP AS CLASS**
+  - Determined TextProcessor should remain as class-based singleton (stateful)
+  - Maintains MutationObserver for dynamic DOM processing
+  - Lifecycle methods (initialize/destroy) required for proper state management
+  - Decision: Not applicable for plain module conversion
 
 **Next recommended areas:**
-- Optimize remaining data access patterns (skills, actions, optional features, rewards, traps, vehicles - less frequently accessed).
-- Refactor TextProcessor to align with new plain module patterns (if applicable - currently stateful singleton).
-- Review and expand test coverage for renderer utilities and data services.
+- Optimize remaining data access patterns for less-frequently accessed types (OptionalFeatureService, RewardService, TrapService, VehicleService, ObjectService).
 - Add additional Playwright integration checks for end-to-end refactor validation.
-- Performance optimization: Consider lazy loading for less-frequently used services.
-- Consider implementing a ServiceLocator or centralized service initialization pattern.
+- Performance optimization: Consider lazy loading for less-frequently used services (rewards, traps, vehicles, objects).
+- Consider implementing a centralized ServiceLocator or service registry pattern for better maintainability.
+
+**Test Coverage Status:**
+- **Original Tests (tooltip.spec.js):** 4 tests covering basic tooltip functionality, escape key, and pinning
+- **Extended Tests (tag-handlers.spec.js):** 5 new tests covering skills, actions, feats, backgrounds, and error checking
+- **Total:** 9 tests passing consistently (11.7s average execution time)
+- **Coverage:** Spell, item, condition, class, race, feat, background, skill, action, and optional feature resolvers validated
 
 ---
 title: Refactor Plan for Fizbanes Forge
@@ -279,9 +297,16 @@ const data = await loadJSON(url);
   - ✅ Created ConditionService for O(1) cached lookups
   - ✅ Created MonsterService for O(1) cached lookups with collision handling
   - ✅ Created FeatService for O(1) cached lookups
+  - ✅ Created SkillService for O(1) cached lookups
+  - ✅ Created ActionService for O(1) cached lookups
   - ✅ Updated ReferenceResolver to use new services
-  - ✅ Eliminated repeated DataLoader calls for conditions, monsters, and feats
+  - ✅ Eliminated repeated DataLoader calls for conditions, monsters, feats, skills, and actions
   - ✅ All tests passing (4/4)
+- [x] Remove deprecated files and methods from codebase.
+  - ✅ Removed IPCRegistry.js (obsolete, handlers registered directly in main.js)
+  - ✅ Removed DataLoader.getInstance() legacy singleton alias (not used anywhere)
+  - ✅ Reorganized DataLoader static method aliases to use dataLoader object
+  - ✅ All 9 tests passing after cleanup (11.8s)
 - [ ] Refactor TextProcessor to align with new plain module patterns (if stateless patterns apply).
 - [ ] Review and expand test coverage for renderer utilities and data gateway.
 - [ ] Add additional Playwright integration checks for end-to-end refactor validation.

@@ -267,6 +267,35 @@ function _registerDefaultHandlers() {
 		return `<span class="rd__scaled-damage">${scaledDamage}</span>`;
 	});
 
+	// Item property handler
+	registerHandler('itemProperty', (text) => {
+		const parts = splitTagByPipe(text);
+		const propertyName = escapeHtml(parts[0]);
+		return `<span class="rd__item-property">${propertyName}</span>`;
+	});
+
+	// Variant rule handler
+	registerHandler('variantrule', (text) => {
+		const parts = splitTagByPipe(text);
+		const ruleName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || 'PHB');
+		return `<a class="rd__variantrule-link rd__hover-link" data-hover-type="variantrule" data-hover-name="${ruleName}" data-hover-source="${source}">${ruleName}</a>`;
+	});
+
+	// Dice handler
+	registerHandler('dice', (text) => {
+		const parts = splitTagByPipe(text);
+		const diceExpression = escapeHtml(parts[0]);
+		return `<span class="rd__dice">${diceExpression}</span>`;
+	});
+
+	// Scaled dice handler
+	registerHandler('scaledice', (text) => {
+		const parts = splitTagByPipe(text);
+		const scaledDiceExpression = escapeHtml(parts[0]);
+		return `<span class="rd__scaled-dice">${scaledDiceExpression}</span>`;
+	});
+
 	// Bold
 	registerHandler('b', (text) => `<strong>${text}</strong>`);
 

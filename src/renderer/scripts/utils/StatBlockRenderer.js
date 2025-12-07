@@ -688,6 +688,50 @@ export function renderObject(obj) {
 	return html;
 }
 
+/**
+ * Render a variant rule stat block
+ * @param {Object} rule Variant rule data
+ * @returns {string} HTML
+ */
+export function renderVariantRule(rule) {
+	if (!rule || rule.error) {
+		return `<strong>${rule?.name || 'Unknown'}</strong><br><small>${rule?.error || 'No data'}</small>`;
+	}
+
+	let html = `<div class="tooltip-content" data-type="variantrule">`;
+
+	// Title
+	html += `<div class="tooltip-title">${rule.name}</div>`;
+
+	// Optional metadata (ruleType, source info)
+	if (rule.ruleType || rule.source) {
+		html += '<div class="tooltip-metadata">';
+		if (rule.ruleType) {
+			const ruleTypeLabel = rule.ruleType === 'C' ? 'Core Rule' : rule.ruleType === 'O' ? 'Optional Rule' : 'Variant Rule';
+			html += `<strong>Type:</strong> ${ruleTypeLabel}<br>`;
+		}
+		if (rule.source) {
+			html += `<strong>Source:</strong> ${rule.source}`;
+			if (rule.page) {
+				html += ` (p. ${rule.page})`;
+			}
+			html += '<br>';
+		}
+		html += '</div>';
+	}
+
+	// Description / Entries
+	if (rule.entries) {
+		html += _renderEntries(rule.entries, 10);
+	}
+
+	// Source
+	html += _renderSource(rule);
+	html += '</div>';
+
+	return html;
+}
+
 // ===== HELPER METHODS =====
 
 /**

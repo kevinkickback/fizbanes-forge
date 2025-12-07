@@ -1,6 +1,7 @@
 /** ReferenceResolver.js - Resolves tag references to concrete D&D data via services (plain module). */
 
 import { Logger } from '../infrastructure/Logger.js';
+import { actionService } from '../services/ActionService.js';
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
 import { conditionService } from '../services/ConditionService.js';
@@ -8,7 +9,9 @@ import { featService } from '../services/FeatService.js';
 import { itemService } from '../services/ItemService.js';
 import { monsterService } from '../services/MonsterService.js';
 import { raceService } from '../services/RaceService.js';
+import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
+import { variantRuleService } from '../services/VariantRuleService.js';
 import { dataLoader } from './DataLoader.js';
 
 const resolverDeps = {
@@ -21,6 +24,9 @@ const resolverDeps = {
 	conditionSvc: conditionService,
 	monsterSvc: monsterService,
 	featSvc: featService,
+	skillSvc: skillService,
+	actionSvc: actionService,
+	variantRuleSvc: variantRuleService,
 };
 
 /** Core resolver implementations (exported for direct use). */
@@ -152,8 +158,7 @@ async function resolveBackground(backgroundName, _source = 'PHB') {
  */
 async function resolveSkill(skillName) {
 	try {
-		const data = await resolverDeps.data.loadSkills();
-		const skill = data.skill?.find((s) => s.name.toLowerCase() === skillName.toLowerCase());
+		const skill = resolverDeps.skillSvc.getSkill(skillName);
 		if (!skill) return { name: skillName, error: 'Skill not found' };
 		return skill;
 	} catch (error) {
@@ -169,8 +174,7 @@ async function resolveSkill(skillName) {
  */
 async function resolveAction(actionName) {
 	try {
-		const data = await resolverDeps.data.loadActions();
-		const action = data.action?.find((a) => a.name.toLowerCase() === actionName.toLowerCase());
+		const action = resolverDeps.actionSvc.getAction(actionName);
 		if (!action) return { name: actionName, error: 'Action not found' };
 		return action;
 	} catch (error) {
@@ -264,6 +268,22 @@ async function resolveObject(objectName) {
 	}
 }
 
+/**
+ * Resolve a variant rule reference
+ * @param {string} ruleName Variant rule name
+ * @returns {Promise<Object>} Variant rule data
+ */
+async function resolveVariantRule(ruleName) {
+	try {
+		const rule = resolverDeps.variantRuleSvc.getVariantRule(ruleName);
+		if (!rule) return { name: ruleName, error: 'Variant rule not found' };
+		return rule;
+	} catch (error) {
+		Logger.error('ReferenceResolver', `Error resolving variant rule "${ruleName}":`, error);
+		return { name: ruleName, error: error.message };
+	}
+}
+
 // Functional API
 export const referenceResolver = {
 	resolveSpell,
@@ -281,6 +301,7 @@ export const referenceResolver = {
 	resolveTrap,
 	resolveVehicle,
 	resolveObject,
+	resolveVariantRule,
 };
 
 // Backwards-compatible accessor
@@ -290,6 +311,6 @@ export function getReferenceResolver() {
 }
 
 export {
-	resolveAction, resolveBackground, resolveClass, resolveCondition, resolveFeat, resolveItem, resolveMonster, resolveObject, resolveOptionalFeature, resolveRace, resolveReward, resolveSkill, resolveSpell, resolveTrap,
+	resolveAction, resolveBackground, resolveClass, resolveCondition, resolveFeat, resolveItem, resolveMonster, resolveObject, resolveOptionalFeature, resolveRace, resolveReward, resolveSkill, resolveSpell, resolveTrap, resolveVariantRule,
 	resolveVehicle
 };

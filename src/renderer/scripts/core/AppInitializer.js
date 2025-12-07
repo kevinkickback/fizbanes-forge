@@ -30,12 +30,18 @@ import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.
 import { LoadingModal } from '../modules/setup/LoadingModal.js';
 
 // Service imports
+import { actionService } from '../services/ActionService.js';
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
+import { conditionService } from '../services/ConditionService.js';
+import { featService } from '../services/FeatService.js';
 import { itemService } from '../services/ItemService.js';
+import { monsterService } from '../services/MonsterService.js';
 import { raceService } from '../services/RaceService.js';
 import { settingsService } from '../services/SettingsService.js';
+import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
+import { variantRuleService } from '../services/VariantRuleService.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { textProcessor } from '../utils/TextProcessor.js';
 
@@ -133,6 +139,12 @@ async function _loadAllGameData() {
 			_loadDataWithErrorHandling(classService.initialize(), 'classes'),
 			_loadDataWithErrorHandling(raceService.initialize(), 'races'),
 			_loadDataWithErrorHandling(backgroundService.initialize(), 'backgrounds'),
+			_loadDataWithErrorHandling(conditionService.initialize(), 'conditions'),
+			_loadDataWithErrorHandling(monsterService.initialize(), 'monsters'),
+			_loadDataWithErrorHandling(featService.initialize(), 'feats'),
+			_loadDataWithErrorHandling(skillService.initialize(), 'skills'),
+			_loadDataWithErrorHandling(actionService.initialize(), 'actions'),
+			_loadDataWithErrorHandling(variantRuleService.initialize(), 'variantrules'),
 		];
 
 		await Promise.all(dataLoadPromises);

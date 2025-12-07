@@ -218,6 +218,14 @@ async function loadObjects() {
 }
 
 /**
+ * Get or load variant rules data
+ * @returns {Promise<Object>} Variant rules data
+ */
+async function loadVariantRules() {
+	return loadJSON(`${state.baseUrl}variantrules.json`);
+}
+
+/**
  * Get or load sources data
  * @returns {Promise<Object>} Sources data
  */
@@ -290,6 +298,7 @@ const dataLoader = {
 	loadTrapsHazards,
 	loadVehicles,
 	loadObjects,
+	loadVariantRules,
 	loadSources,
 	loadSubclassSpells,
 	clearCache,
@@ -297,36 +306,36 @@ const dataLoader = {
 	getCacheStats,
 };
 
-// Legacy-compatible alias
+// Static-style convenience methods (map directly to underlying functions)
+dataLoader.loadJSON = loadJSON;
+dataLoader.loadJSONs = loadJSONs;
+dataLoader.loadSpells = loadSpells;
+dataLoader.loadItems = loadItems;
+dataLoader.loadBaseItems = loadBaseItems;
+dataLoader.loadSkills = loadSkills;
+dataLoader.loadActions = loadActions;
+dataLoader.loadMonsters = loadMonsters;
+dataLoader.loadRaces = loadRaces;
+dataLoader.loadRaceFluff = loadRaceFluff;
+dataLoader.loadClasses = loadClasses;
+dataLoader.loadBackgrounds = loadBackgrounds;
+dataLoader.loadFeats = loadFeats;
+dataLoader.loadConditions = loadConditions;
+dataLoader.loadFluffFeats = loadFluffFeats;
+dataLoader.loadOptionalFeatures = loadOptionalFeatures;
+dataLoader.loadFluffOptionalFeatures = loadFluffOptionalFeatures;
+dataLoader.loadRewards = loadRewards;
+dataLoader.loadTrapsHazards = loadTrapsHazards;
+dataLoader.loadVehicles = loadVehicles;
+dataLoader.loadObjects = loadObjects;
+dataLoader.loadVariantRules = loadVariantRules;
+dataLoader.loadSources = loadSources;
+dataLoader.loadSubclassSpells = loadSubclassSpells;
+dataLoader.clearCache = clearCache;
+dataLoader.clearCacheForUrl = clearCacheForUrl;
+dataLoader.getCacheStats = getCacheStats;
+
+// Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
-DataLoader.getInstance = () => dataLoader;
 
-// Convenience methods for legacy static-style imports (map directly to underlying functions)
-DataLoader.loadJSON = loadJSON;
-DataLoader.loadJSONs = loadJSONs;
-DataLoader.loadSpells = loadSpells;
-DataLoader.loadItems = loadItems;
-DataLoader.loadBaseItems = loadBaseItems;
-DataLoader.loadSkills = loadSkills;
-DataLoader.loadActions = loadActions;
-DataLoader.loadMonsters = loadMonsters;
-DataLoader.loadRaces = loadRaces;
-DataLoader.loadRaceFluff = loadRaceFluff;
-DataLoader.loadClasses = loadClasses;
-DataLoader.loadBackgrounds = loadBackgrounds;
-DataLoader.loadFeats = loadFeats;
-DataLoader.loadConditions = loadConditions;
-DataLoader.loadFluffFeats = loadFluffFeats;
-DataLoader.loadOptionalFeatures = loadOptionalFeatures;
-DataLoader.loadFluffOptionalFeatures = loadFluffOptionalFeatures;
-DataLoader.loadRewards = loadRewards;
-DataLoader.loadTrapsHazards = loadTrapsHazards;
-DataLoader.loadVehicles = loadVehicles;
-DataLoader.loadObjects = loadObjects;
-DataLoader.loadSources = loadSources;
-DataLoader.loadSubclassSpells = loadSubclassSpells;
-DataLoader.clearCache = clearCache;
-DataLoader.clearCacheForUrl = clearCacheForUrl;
-DataLoader.getCacheStats = getCacheStats;
-
-export { clearCache, clearCacheForUrl, DataLoader, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVehicles, setBaseUrl };
+export { clearCache, clearCacheForUrl, DataLoader, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVariantRules, loadVehicles, setBaseUrl };

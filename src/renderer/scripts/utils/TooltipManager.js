@@ -17,6 +17,7 @@ import {
 	renderSkill,
 	renderSpell,
 	renderTrap,
+	renderVariantRule,
 	renderVehicle,
 } from './StatBlockRenderer.js';
 
@@ -340,6 +341,7 @@ async function showReferenceTooltip(type, name, source, x, y) {
 			case 'trap': case 'hazard': data = await referenceResolver.resolveTrap(name); break;
 			case 'vehicle': data = await referenceResolver.resolveVehicle(name); break;
 			case 'object': data = await referenceResolver.resolveObject(name); break;
+			case 'variantrule': data = await referenceResolver.resolveVariantRule(name); break;
 			default: data = { name, type };
 		}
 		Logger.info('TooltipSystem', `[showReferenceTooltip] resolver result:`, data);
@@ -410,6 +412,9 @@ function _formatTooltip(data) {
 	}
 	if (data.ac && data.hp && !data.cr) {
 		return renderObject(data);
+	}
+	if (data.ruleType || (data.type === 'variantrule' && data.entries)) {
+		return renderVariantRule(data);
 	}
 	if (data.entries) {
 		return renderCondition(data);
