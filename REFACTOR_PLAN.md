@@ -10,17 +10,27 @@ The following improvements have been completed:
 - **Renderer Utilities:** ReferenceResolver and DataLoader are plain modules with exported functions (no classes).
 
 **Currently in Progress:**
-- Refactoring TagProcessor and StatBlockRenderer from classes to plain modules (large refactors due to size and complexity).
-  - Challenge: Both files use class-only static methods; need careful migration to maintain all functionality.
-  - Strategy: Will use incremental targeted refactoring or full rewrite with detailed testing.
+- ~~Refactoring TagProcessor from class to plain module~~ ✅ **COMPLETED**
+  - Converted TagProcessor from class with static methods to plain module with exported functions
+  - Replaced singleton pattern with direct function exports (escapeHtml, splitTagByPipe, processTag, renderString, registerHandler)
+  - Added missing `damage` and `scaledamage` tag handlers
+  - Maintained backward compatibility with getStringRenderer() function
+  - TextProcessor already uses renderString; no additional changes needed
+- ~~Refactoring StatBlockRenderer from class to plain module~~ ✅ **COMPLETED**
+  - Converted StatBlockRenderer from class with static methods to plain module with exported functions
+  - Exported 14 render functions: renderSpell, renderItem, renderRace, renderClass, renderFeat, renderBackground, renderCondition, renderSkill, renderAction, renderOptionalFeature, renderReward, renderTrap, renderVehicle, renderObject
+  - Converted 8 static helper methods to private functions (prefixed with _)
+  - Updated TooltipManager to import individual render functions
+  - Fixed renderer.render() calls to use renderString() in _renderEntries()
+  - **All Playwright tests passing** (4/4 ✅)
 
 **Next recommended areas:**
-- Complete TagProcessor and StatBlockRenderer refactoring to plain modules.
-- Refactor TextProcessor to align with new plain module patterns.
-- Centralize and cache data access in the renderer (optimize repeated data loads).
-- Further decouple modules for improved testability.
-- Expand and update test coverage for new module structure.
-- Add/maintain Playwright integration tests to validate refactors end-to-end (e.g., tooltip flows).
+- Optimize remaining data access patterns (skills, actions, optional features, rewards, traps, vehicles - less frequently accessed).
+- Refactor TextProcessor to align with new plain module patterns (if applicable - currently stateful singleton).
+- Review and expand test coverage for renderer utilities and data services.
+- Add additional Playwright integration checks for end-to-end refactor validation.
+- Performance optimization: Consider lazy loading for less-frequently used services.
+- Consider implementing a ServiceLocator or centralized service initialization pattern.
 
 ---
 title: Refactor Plan for Fizbanes Forge
@@ -253,9 +263,28 @@ const data = await loadJSON(url);
 - [x] Refactor incrementally, running tests after each change (Electron backend complete).
 - [x] Update documentation and onboarding guides to reflect simplifications (this plan updated).
 - [x] Flatten TooltipManager to a plain module; normalize hover metadata; restore tooltip rendering; fix tooltip test page CSS paths.
-- [ ] Refactor remaining renderer utilities (ReferenceResolver, DataLoader, StatBlockRenderer, TagProcessor) to plain modules and align imports/usages.
-- [ ] Centralize renderer data access with caching; reduce redundant reads.
-- [ ] Review and expand test coverage for renderer utilities and data gateway; add Playwright integration checks for refactor changes.
+- [x] Confirmed ReferenceResolver and DataLoader are plain modules with exported functions (no classes).
+- [x] Expanded Playwright integration test coverage for tooltip system (4 new test scenarios).
+- [x] Complete TagProcessor refactoring to plain module.
+  - ✅ Converted from class to plain module with exported functions
+  - ✅ All tag handlers working with module-level state
+  - ✅ Backward compatibility maintained via getStringRenderer()
+  - ✅ Added damage and scaledamage handlers
+- [x] Complete StatBlockRenderer refactoring to plain module.
+  - ✅ Converted from class to plain module with exported functions (14 render + 8 private functions)
+  - ✅ All Playwright tests passing (4/4)
+  - ✅ Fixed undefined renderer variable in _renderEntries()
+  - ✅ Updated TooltipManager to use new function imports
+- [x] Optimize data access patterns in ReferenceResolver (use service instances instead of repeated DataLoader calls).
+  - ✅ Created ConditionService for O(1) cached lookups
+  - ✅ Created MonsterService for O(1) cached lookups with collision handling
+  - ✅ Created FeatService for O(1) cached lookups
+  - ✅ Updated ReferenceResolver to use new services
+  - ✅ Eliminated repeated DataLoader calls for conditions, monsters, and feats
+  - ✅ All tests passing (4/4)
+- [ ] Refactor TextProcessor to align with new plain module patterns (if stateless patterns apply).
+- [ ] Review and expand test coverage for renderer utilities and data gateway.
+- [ ] Add additional Playwright integration checks for end-to-end refactor validation.
 
 ---
 

@@ -3,7 +3,10 @@
 import { Logger } from '../infrastructure/Logger.js';
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
+import { conditionService } from '../services/ConditionService.js';
+import { featService } from '../services/FeatService.js';
 import { itemService } from '../services/ItemService.js';
+import { monsterService } from '../services/MonsterService.js';
 import { raceService } from '../services/RaceService.js';
 import { spellService } from '../services/SpellService.js';
 import { dataLoader } from './DataLoader.js';
@@ -15,6 +18,9 @@ const resolverDeps = {
 	backgroundSvc: backgroundService,
 	spellSvc: spellService,
 	itemSvc: itemService,
+	conditionSvc: conditionService,
+	monsterSvc: monsterService,
+	featSvc: featService,
 };
 
 /** Core resolver implementations (exported for direct use). */
@@ -43,8 +49,7 @@ async function resolveItem(itemName, source = 'DMG') {
 
 async function resolveCondition(conditionName) {
 	try {
-		const data = await resolverDeps.data.loadConditions();
-		const condition = data.condition?.find((c) => c.name.toLowerCase() === conditionName.toLowerCase());
+		const condition = resolverDeps.conditionSvc.getCondition(conditionName);
 		if (!condition) return { name: conditionName, error: 'Condition not found' };
 		return condition;
 	} catch (error) {
@@ -61,8 +66,7 @@ async function resolveCondition(conditionName) {
  */
 async function resolveMonster(monsterName, _source = 'MM') {
 	try {
-		const data = await resolverDeps.data.loadMonsters();
-		const monster = data.monster?.find((m) => m.name.toLowerCase() === monsterName.toLowerCase());
+		const monster = resolverDeps.monsterSvc.getMonster(monsterName);
 		if (!monster) return { name: monsterName, error: 'Monster not found' };
 		return monster;
 	} catch (error) {
@@ -114,8 +118,7 @@ async function resolveRace(raceName, source = 'PHB') {
  */
 async function resolveFeat(featName, _source = 'PHB') {
 	try {
-		const data = await resolverDeps.data.loadFeats();
-		const feat = data.feat?.find((f) => f.name.toLowerCase() === featName.toLowerCase());
+		const feat = resolverDeps.featSvc.getFeat(featName);
 		if (!feat) return { name: featName, error: 'Feat not found' };
 		return feat;
 	} catch (error) {

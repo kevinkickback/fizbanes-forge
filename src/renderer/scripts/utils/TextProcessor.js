@@ -323,7 +323,7 @@ class TextProcessor {
 	 * @private
 	 */
 	_replaceReferences(text, _options = {}) {
-		// renderString is synchronous
+		// renderString() is synchronous and processes all inline tags
 		return renderString(text);
 	}
 
