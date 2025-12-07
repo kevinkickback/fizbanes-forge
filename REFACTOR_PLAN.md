@@ -1,4 +1,4 @@
-# Refactor Progress (as of 2025-12-06)
+# Refactor Progress (as of 2025-12-07)
 
 The following improvements have been completed:
 
@@ -6,12 +6,21 @@ The following improvements have been completed:
 - IPC handler registration is now direct in main.js; IPCRegistry.js is obsolete.
 - Error handling in DataFolderManager.js and FileHandlers.js is now consistent and always logs errors.
 - Unused indirection, boilerplate, and dead code have been removed from the Electron backend.
+- Renderer: TooltipManager flattened to a plain module; singleton usage removed; hover metadata normalized for both `.rd__hover-link` and `.reference-link`; tooltip formatting restored; tooltip test page CSS paths fixed.
+- **Renderer Utilities:** ReferenceResolver and DataLoader are plain modules with exported functions (no classes).
+
+**Currently in Progress:**
+- Refactoring TagProcessor and StatBlockRenderer from classes to plain modules (large refactors due to size and complexity).
+  - Challenge: Both files use class-only static methods; need careful migration to maintain all functionality.
+  - Strategy: Will use incremental targeted refactoring or full rewrite with detailed testing.
 
 **Next recommended areas:**
-- Refactor renderer utilities (TooltipManager, ReferenceResolver, DataLoader, etc.) to plain modules.
-- Centralize and cache data access in the renderer.
+- Complete TagProcessor and StatBlockRenderer refactoring to plain modules.
+- Refactor TextProcessor to align with new plain module patterns.
+- Centralize and cache data access in the renderer (optimize repeated data loads).
 - Further decouple modules for improved testability.
 - Expand and update test coverage for new module structure.
+- Add/maintain Playwright integration tests to validate refactors end-to-end (e.g., tooltip flows).
 
 ---
 title: Refactor Plan for Fizbanes Forge
@@ -97,7 +106,7 @@ createMainWindow();
 
 | File/Class | Problem Summary | Impact | Recommendation |
 |------------|-----------------|--------|----------------|
-| TooltipManager, ReferenceResolver, DataLoader, StatBlockRenderer, TagProcessor | Many classes act as singletons or static utility containers, with indirect access patterns (e.g., getInstance, getXManager). | Increases indirection, makes testing and tracing harder. | Use plain modules with exported functions or simple objects. Only use classes for true stateful or extensible logic. |
+| TooltipManager, ReferenceResolver, DataLoader, StatBlockRenderer, TagProcessor | Many classes act as singletons or static utility containers, with indirect access patterns (e.g., getInstance, getXManager). | Increases indirection, makes testing and tracing harder. | Use plain modules with exported functions or simple objects. Only use classes for true stateful or extensible logic. (**Done:** TooltipManager flattened; update usages/imports to new API.) |
 
 **Example:**
 ```js
@@ -126,7 +135,7 @@ tooltip.show(...);
 
 | File | Problem Summary | Impact | Recommendation |
 |------|-----------------|--------|----------------|
-| TagProcessor.js, TooltipManager.js | Some class/function names are generic or misleading (e.g., "Manager" for stateless helpers). | Reduces clarity, increases onboarding time. | Use descriptive, specific names (e.g., Tooltip, TagParser). |
+| TagProcessor.js, TooltipManager.js | Some class/function names are generic or misleading (e.g., "Manager" for stateless helpers). | Reduces clarity, increases onboarding time. | Use descriptive, specific names (e.g., Tooltip, TagParser). (**Done:** TooltipManager flattened; consider renaming file to `tooltip.js` later.) |
 
 ---
 
@@ -243,8 +252,10 @@ const data = await loadJSON(url);
 - [x] Prioritize high-impact refactors (manager flattening, error handling, data access centralization).
 - [x] Refactor incrementally, running tests after each change (Electron backend complete).
 - [x] Update documentation and onboarding guides to reflect simplifications (this plan updated).
-- [ ] Review and expand test coverage, especially for decoupled modules.
-- [ ] Refactor renderer utilities and data access for further simplification.
+- [x] Flatten TooltipManager to a plain module; normalize hover metadata; restore tooltip rendering; fix tooltip test page CSS paths.
+- [ ] Refactor remaining renderer utilities (ReferenceResolver, DataLoader, StatBlockRenderer, TagProcessor) to plain modules and align imports/usages.
+- [ ] Centralize renderer data access with caching; reduce redundant reads.
+- [ ] Review and expand test coverage for renderer utilities and data gateway; add Playwright integration checks for refactor changes.
 
 ---
 

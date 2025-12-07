@@ -9,7 +9,7 @@
  */
 
 import { Logger } from '../infrastructure/Logger.js';
-import { getStringRenderer } from './TagProcessor.js';
+import { renderString } from './TagProcessor.js';
 import { initializeTooltipListeners } from './TooltipManager.js';
 
 /** Processes text content, handling references and formatting for static/dynamic content. */
@@ -46,16 +46,9 @@ class TextProcessor {
 
 	/**
 	 * Creates a TextProcessor instance
-	 * Uses the new HoverUtil StringRenderer for processing references
+	 * Uses TagProcessor for processing references
 	 */
 	constructor() {
-		/**
-		 * StringRenderer instance from HoverUtil for processing references
-		 * @type {StringRenderer}
-		 * @private
-		 */
-		this._stringRenderer = getStringRenderer();
-
 		/**
 		 * Mutation observer for dynamic content processing
 		 * @type {MutationObserver|null}
@@ -330,8 +323,8 @@ class TextProcessor {
 	 * @private
 	 */
 	_replaceReferences(text, _options = {}) {
-		// StringRenderer.render() is synchronous, not async
-		return this._stringRenderer.render(text);
+		// renderString is synchronous
+		return renderString(text);
 	}
 
 	/**

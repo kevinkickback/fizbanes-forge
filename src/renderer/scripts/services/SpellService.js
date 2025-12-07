@@ -53,6 +53,8 @@ class SpellService {
 			// Build lookup map for O(1) access by name (case-insensitive)
 			this._spellLookupMap = new Map();
 			for (const spell of aggregated.spell) {
+				// Skip spells with missing names
+				if (!spell.name) continue;
 				const key = spell.name.toLowerCase();
 				this._spellLookupMap.set(key, spell);
 			}

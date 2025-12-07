@@ -3,7 +3,22 @@
 
 import { Logger } from '../infrastructure/Logger.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
-import { StatBlockRenderer } from './StatBlockRenderer.js';
+import {
+	renderSpell,
+	renderItem,
+	renderRace,
+	renderClass,
+	renderFeat,
+	renderBackground,
+	renderSkill,
+	renderAction,
+	renderOptionalFeature,
+	renderReward,
+	renderTrap,
+	renderVehicle,
+	renderObject,
+	renderCondition,
+} from './StatBlockRenderer.js';
 
 
 // Internal state
@@ -348,22 +363,22 @@ function _formatTooltip(data) {
 		return `<strong>${data.name}</strong><br><small>${data.error}</small>`;
 	}
 	if (data.level !== undefined) {
-		return StatBlockRenderer.renderSpell(data);
+		return renderSpell(data);
 	}
 	if (data.type || data.weapon || data.armor || data.rarity) {
-		return StatBlockRenderer.renderItem(data);
+		return renderItem(data);
 	}
 	if ((data.size || data.speed) && !data.weapon && !data.hd) {
-		return StatBlockRenderer.renderRace(data);
+		return renderRace(data);
 	}
 	if (data.hd) {
-		return StatBlockRenderer.renderClass(data);
+		return renderClass(data);
 	}
 	if (data.prerequisite) {
-		return StatBlockRenderer.renderFeat(data);
+		return renderFeat(data);
 	}
 	if (data.skillProficiencies) {
-		return StatBlockRenderer.renderBackground(data);
+		return renderBackground(data);
 	}
 	if (
 		data.ability &&
@@ -371,13 +386,13 @@ function _formatTooltip(data) {
 		!data.hd &&
 		data.level === undefined
 	) {
-		return StatBlockRenderer.renderSkill(data);
+		return renderSkill(data);
 	}
 	if (data.time && Array.isArray(data.time)) {
-		return StatBlockRenderer.renderAction(data);
+		return renderAction(data);
 	}
 	if (data.featureType) {
-		return StatBlockRenderer.renderOptionalFeature(data);
+		return renderOptionalFeature(data);
 	}
 	if (
 		data.type &&
@@ -385,19 +400,19 @@ function _formatTooltip(data) {
 			data.type.includes('Piety') ||
 			data.type.includes('Blessing'))
 	) {
-		return StatBlockRenderer.renderReward(data);
+		return renderReward(data);
 	}
 	if (data.trapHazType) {
-		return StatBlockRenderer.renderTrap(data);
+		return renderTrap(data);
 	}
 	if (data.vehicleType) {
-		return StatBlockRenderer.renderVehicle(data);
+		return renderVehicle(data);
 	}
 	if (data.ac && data.hp && !data.cr) {
-		return StatBlockRenderer.renderObject(data);
+		return renderObject(data);
 	}
 	if (data.entries) {
-		return StatBlockRenderer.renderCondition(data);
+		return renderCondition(data);
 	}
 	let html = '';
 	html += `<div class="tooltip-title">${data.name || 'Unknown'}</div>`;

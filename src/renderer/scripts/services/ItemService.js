@@ -51,12 +51,16 @@ class ItemService {
 			// Build lookup maps for O(1) access
 			this._itemLookupMap = new Map();
 			for (const item of this._itemData.item || []) {
+				// Skip items with missing names
+				if (!item.name) continue;
 				const key = item.name.toLowerCase();
 				this._itemLookupMap.set(key, item);
 			}
 
 			this._baseItemLookupMap = new Map();
 			for (const baseItem of this._itemData.baseItem || []) {
+				// Skip base items with missing names
+				if (!baseItem.name) continue;
 				const key = baseItem.name.toLowerCase();
 				this._baseItemLookupMap.set(key, baseItem);
 			}

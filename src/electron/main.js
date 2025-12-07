@@ -62,7 +62,7 @@ app.whenReady().then(() => {
 	});
 
 	// Create main window
-	mainWindow = createMainWindow({
+	createMainWindow({
 		preferencesManager: {
 			getWindowBounds,
 			setWindowBounds,
@@ -86,7 +86,7 @@ app.on('activate', () => {
 	MainLogger.info('App', 'Application activated');
 	const win = getMainWindow();
 	if (!win || win.isDestroyed()) {
-		mainWindow = createMainWindow({
+		createMainWindow({
 			preferencesManager: {
 				getWindowBounds,
 				setWindowBounds,

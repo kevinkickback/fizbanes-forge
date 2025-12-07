@@ -224,7 +224,7 @@ export function registerDataHandlers(preferencesManager) {
 					MainLogger.error('DataHandlers', 'Load JSON failed (debug bypass):', {
 						fileName,
 						filePath,
-						error,
+						error: error.message,
 					});
 					return { success: false, error: error.message };
 				}
@@ -249,12 +249,36 @@ export function registerDataHandlers(preferencesManager) {
 			// Join with dataPath which is now the data/ folder itself
 			const filePath = path.join(currentDataPath, normalizedFileName);
 
-			MainLogger.info('DataHandlers', 'Loading JSON:', filePath);
+			MainLogger.info('DataHandlers', 'Loading JSON:', { fileName, filePath, currentDataPath });
+
+			// Check if file exists first
+			try {
+				await fs.stat(filePath);
+			} catch (statError) {
+				MainLogger.error('DataHandlers', 'File does not exist:', { filePath, error: statError.message });
+				return { success: false, error: `File not found: ${filePath}` };
+			}
+
 			const content = await fs.readFile(filePath, 'utf8');
+
+			// Validate it looks like JSON before parsing
+			const trimmed = content.trim();
+			if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+				MainLogger.error('DataHandlers', 'Content is not JSON:', {
+					filePath,
+					contentPreview: trimmed.substring(0, 200),
+				});
+				return { success: false, error: `File content is not valid JSON: ${filePath}` };
+			}
+
 			const data = JSON.parse(content);
 			return { success: true, data };
 		} catch (error) {
-			MainLogger.error('DataHandlers', 'Load JSON failed:', error);
+			MainLogger.error('DataHandlers', 'Load JSON failed:', {
+				fileName,
+				error: error.message,
+				stack: error.stack,
+			});
 			return { success: false, error: error.message };
 		}
 	});

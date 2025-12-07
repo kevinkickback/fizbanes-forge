@@ -33,6 +33,11 @@ class RaceService {
 			// Load race data
 			this._raceData = await DataLoader.loadRaces();
 
+			// Ensure data is valid before processing
+			if (!this._raceData) {
+				throw new Error('Race data is null or undefined');
+			}
+
 			// Load race fluff data
 			try {
 				const fluffData = await DataLoader.loadRaceFluff();
@@ -50,15 +55,23 @@ class RaceService {
 
 			// Build lookup maps for O(1) access
 			this._raceLookupMap = new Map();
-			for (const race of this._raceData.race || []) {
-				const key = `${race.name.toLowerCase()}:${race.source}`;
-				this._raceLookupMap.set(key, race);
+			if (this._raceData.race) {
+				for (const race of this._raceData.race) {
+					// Skip races with missing names
+					if (!race.name) continue;
+					const key = `${race.name.toLowerCase()}:${race.source}`;
+					this._raceLookupMap.set(key, race);
+				}
 			}
 
 			this._subraceLookupMap = new Map();
-			for (const subrace of this._raceData.subrace || []) {
-				const key = `${subrace.name.toLowerCase()}:${subrace.source}`;
-				this._subraceLookupMap.set(key, subrace);
+			if (this._raceData.subrace) {
+				for (const subrace of this._raceData.subrace) {
+					// Skip subraces with missing names
+					if (!subrace.name) continue;
+					const key = `${subrace.name.toLowerCase()}:${subrace.source}`;
+					this._subraceLookupMap.set(key, subrace);
+				}
 			}
 
 			Logger.info('RaceService', 'Races loaded successfully', {

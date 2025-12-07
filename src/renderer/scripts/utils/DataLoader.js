@@ -1,350 +1,332 @@
 import { Logger } from '../infrastructure/Logger.js';
-/** DataLoader.js - Caches and loads game data JSON via IPC or fetch. */
+/** DataLoader.js - Caches and loads game data JSON via IPC or fetch (plain module). */
 
-class DataLoader {
-	constructor() {
-		this._cache = {};
-		this._loading = {};
-		this._baseUrl = ''; // Base URL now empty since data is at root
-	}
+const state = {
+	cache: {},
+	loading: {},
+	baseUrl: '', // Base URL now empty since data is at root
+};
 
-	setBaseUrl(url) {
-		this._baseUrl = url;
-		return this;
-	}
+function setBaseUrl(url) {
+	state.baseUrl = url;
+	return dataLoader;
+}
 
-	/**
-	 * Load JSON data from file
-	 * Implements automatic caching and error handling
-	 * Works with both file:// URLs (Electron) and http/https
-	 * @param {string} url Path to JSON file
-	 * @returns {Promise<Object>} Parsed JSON data
-	 */
-	async loadJSON(url) {
-		// Return cached data if available
-		if (this._cache[url]) {
-			return this._cache[url];
-		}
+/**
+ * Load JSON data from file
+ * Implements automatic caching and error handling
+ * In Electron, uses IPC-based data loading; in browser, uses fetch
+ * @param {string} url Path to JSON file (relative or absolute)
+ * @returns {Promise<Object>} Parsed JSON data
+ */
+async function loadJSON(url) {
+	if (state.cache[url]) return state.cache[url];
+	if (state.loading[url]) return state.loading[url];
 
-		// Return existing promise if already loading
-		if (this._loading[url]) {
-			return this._loading[url];
-		}
+	state.loading[url] = (async () => {
+		try {
+			let data;
 
-		// Load new data
-		this._loading[url] = (async () => {
-			try {
-				let data;
-
-				// Check if running in Electron environment
-				if (typeof window !== 'undefined' && window.data) {
-					// Use whitelisted Data API via preload
+			// Check if running in Electron with data API available
+			if (typeof window !== 'undefined' && window.data && window.data.loadJSON) {
+				try {
 					const result = await window.data.loadJSON(url);
 					if (result.success) {
 						data = result.data;
 					} else {
 						throw new Error(result.error || `Failed to load ${url}`);
 					}
-				} else {
-					// Fall back to fetch for browser environments
-					const response = await fetch(url);
-					if (!response.ok) {
-						throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-					}
-					data = await response.json();
+				} catch (electronError) {
+					Logger.error('DataLoader', `Electron IPC load failed for ${url}:`, electronError);
+					throw electronError;
 				}
+			} else {
+				// Fall back to fetch (browser or Electron without preload)
+				// This will require data to be served via http/https or proper file:// URLs
+				const fullUrl = url.startsWith('http') || url.startsWith('file://')
+					? url
+					: `/${url}`; // Prepend / to make it root-relative
 
-				this._cache[url] = data;
-				delete this._loading[url];
-				return data;
-			} catch (error) {
-				delete this._loading[url];
-				Logger.error('DataLoader', `Failed to load ${url}:`, error);
-				throw error;
+				const response = await fetch(fullUrl);
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				}
+				data = await response.json();
 			}
-		})();
 
-		return this._loading[url];
-	}
-
-	/**
-	 * Load multiple data files in parallel
-	 * @param {string[]} urls Array of URLs to load
-	 * @returns {Promise<Object[]>} Array of parsed data
-	 */
-	async loadJSONs(urls) {
-		return Promise.all(urls.map((url) => this.loadJSON(url)));
-	}
-
-	/**
-	 * Get or load spell data
-	 * Note: Use SpellManager for aggregated spell data
-	 * @param {string} source Source abbreviation
-	 * @returns {Promise<Object>} Spell data from single file
-	 */
-	async loadSpells(source = 'PHB') {
-		return this.loadJSON(
-			`${this._baseUrl}spells/spells-${source.toLowerCase()}.json`,
-		);
-	}
-
-	/**
-	 * Get or load item data
-	 * Note: Use ItemManager for merged item/baseItem data
-	 * @returns {Promise<Object>} Item data
-	 */
-	async loadItems() {
-		return this.loadJSON(`${this._baseUrl}items.json`);
-	}
-
-	/**
-	 * Get or load base items data (weapons, armor, etc.)
-	 * @returns {Promise<Object>} Base items data
-	 */
-	async loadBaseItems() {
-		return this.loadJSON(`${this._baseUrl}items-base.json`);
-	}
-
-	/**
-	 * Get or load skills data
-	 * @returns {Promise<Object>} Skills data
-	 */
-	async loadSkills() {
-		return this.loadJSON(`${this._baseUrl}skills.json`);
-	}
-
-	/**
-	 * Get or load actions data
-	 * @returns {Promise<Object>} Actions data
-	 */
-	async loadActions() {
-		return this.loadJSON(`${this._baseUrl}actions.json`);
-	}
-
-	/**
-	 * Get or load monster/creature data
-	 * @returns {Promise<Object>} Monster data
-	 */
-	async loadMonsters() {
-		return this.loadJSON(`${this._baseUrl}bestiary.json`);
-	}
-
-	/**
-	 * Get or load race data
-	 * @returns {Promise<Object>} Race data
-	 */
-	async loadRaces() {
-		return this.loadJSON(`${this._baseUrl}races.json`);
-	}
-
-	/**
-	 * Get or load race fluff data
-	 * @returns {Promise<Object>} Race fluff data
-	 */
-	async loadRaceFluff() {
-		return this.loadJSON(`${this._baseUrl}fluff-races.json`);
-	}
-
-	/**
-	 * Get or load class data
-	 * Note: Use ClassManager for aggregated class data
-	 * @param {string} className Class name (e.g., 'Fighter', 'Wizard')
-	 * @returns {Promise<Object>} Class data from single file
-	 */
-	async loadClasses(className = 'Fighter') {
-		return this.loadJSON(
-			`${this._baseUrl}class/class-${className.toLowerCase()}.json`,
-		);
-	}
-
-	/**
-	 * Get or load background data
-	 * @returns {Promise<Object>} Background data
-	 */
-	async loadBackgrounds() {
-		return this.loadJSON(`${this._baseUrl}backgrounds.json`);
-	}
-
-	/**
-	 * Get or load feat data
-	 * @returns {Promise<Object>} Feat data
-	 */
-	async loadFeats() {
-		return this.loadJSON(`${this._baseUrl}feats.json`);
-	}
-
-	/**
-	 * Get or load condition data
-	 * @returns {Promise<Object>} Condition data
-	 */
-	async loadConditions() {
-		return this.loadJSON(`${this._baseUrl}conditionsdiseases.json`);
-	}
-
-	/**
-	 * Get or load fluff feats data
-	 * @returns {Promise<Object>} Fluff feats data
-	 */
-	async loadFluffFeats() {
-		return this.loadJSON(`${this._baseUrl}fluff-feats.json`);
-	}
-
-	/**
-	 * Get or load optional features data
-	 * @returns {Promise<Object>} Optional features data
-	 */
-	async loadOptionalFeatures() {
-		return this.loadJSON(`${this._baseUrl}optionalfeatures.json`);
-	}
-
-	/**
-	 * Get or load fluff optional features data
-	 * @returns {Promise<Object>} Fluff optional features data
-	 */
-	async loadFluffOptionalFeatures() {
-		return this.loadJSON(`${this._baseUrl}fluff-optionalfeatures.json`);
-	}
-
-	/**
-	 * Get or load rewards data
-	 * @returns {Promise<Object>} Rewards data
-	 */
-	async loadRewards() {
-		return this.loadJSON(`${this._baseUrl}rewards.json`);
-	}
-
-	/**
-	 * Get or load traps and hazards data
-	 * @returns {Promise<Object>} Traps/hazards data
-	 */
-	async loadTrapsHazards() {
-		return this.loadJSON(`${this._baseUrl}trapshazards.json`);
-	}
-
-	/**
-	 * Get or load vehicles data
-	 * @returns {Promise<Object>} Vehicles data
-	 */
-	async loadVehicles() {
-		return this.loadJSON(`${this._baseUrl}vehicles.json`);
-	}
-
-	/**
-	 * Get or load objects data
-	 * @returns {Promise<Object>} Objects data
-	 */
-	async loadObjects() {
-		return this.loadJSON(`${this._baseUrl}objects.json`);
-	}
-
-	/**
-	 * Get or load sources data
-	 * @returns {Promise<Object>} Sources data
-	 */
-	async loadSources() {
-		try {
-			// Load from books.json in the data directory
-			return await this.loadJSON(`${this._baseUrl}books.json`);
+			state.cache[url] = data;
+			delete state.loading[url];
+			return data;
 		} catch (error) {
-			Logger.warn('DataLoader', 'Could not find sources data', error);
-			return { source: [] };
+			delete state.loading[url];
+			Logger.error('DataLoader', `Failed to load ${url}:`, error);
+			throw error;
 		}
-	}
+	})();
 
-	/**
-	 * Get or load subclass spells data
-	 * @param {string} subclassId - The subclass ID
-	 * @returns {Promise<Object>} Subclass spells data
-	 */
-	async loadSubclassSpells(subclassId) {
-		try {
-			// Try to load from spells subdirectory
-			return await this.loadJSON(`${this._baseUrl}spells/sources.json`);
-		} catch (error) {
-			Logger.warn(
-				'DataLoader',
-				`Could not find subclass spells for ${subclassId}:`,
-				error,
-			);
-			return { spell: [] };
-		}
-	}
+	return state.loading[url];
+}
 
-	/**
-	 * Clear all cached data
-	 */
-	clearCache() {
-		this._cache = {};
-		this._loading = {};
-		return this;
-	}
+async function loadJSONs(urls) {
+	return Promise.all(urls.map((url) => loadJSON(url)));
+}
 
-	/**
-	 * Clear specific cached data
-	 * @param {string} url URL to clear from cache
-	 */
-	clearCacheForUrl(url) {
-		delete this._cache[url];
-		delete this._loading[url];
-		return this;
-	}
+async function loadSpells(source = 'PHB') {
+	return loadJSON(`${state.baseUrl}spells/spells-${source.toLowerCase()}.json`);
+}
 
-	/**
-	 * Get cache statistics
-	 * @returns {Object} Cache info
-	 */
-	getCacheStats() {
-		return {
-			cachedUrls: Object.keys(this._cache).length,
-			loadingUrls: Object.keys(this._loading).length,
-			totalSize: JSON.stringify(this._cache).length,
-		};
+async function loadItems() {
+	return loadJSON(`${state.baseUrl}items.json`);
+}
+
+/**
+ * Get or load base items data (weapons, armor, etc.)
+ * @returns {Promise<Object>} Base items data
+ */
+async function loadBaseItems() {
+	return loadJSON(`${state.baseUrl}items-base.json`);
+}
+
+/**
+ * Get or load skills data
+ * @returns {Promise<Object>} Skills data
+ */
+async function loadSkills() {
+	return loadJSON(`${state.baseUrl}skills.json`);
+}
+
+/**
+ * Get or load actions data
+ * @returns {Promise<Object>} Actions data
+ */
+async function loadActions() {
+	return loadJSON(`${state.baseUrl}actions.json`);
+}
+
+/**
+ * Get or load monster/creature data
+ * @returns {Promise<Object>} Monster data
+ */
+async function loadMonsters() {
+	return loadJSON(`${state.baseUrl}bestiary.json`);
+}
+
+/**
+ * Get or load race data
+ * @returns {Promise<Object>} Race data
+ */
+async function loadRaces() {
+	return loadJSON(`${state.baseUrl}races.json`);
+}
+
+/**
+ * Get or load race fluff data
+ * @returns {Promise<Object>} Race fluff data
+ */
+async function loadRaceFluff() {
+	return loadJSON(`${state.baseUrl}fluff-races.json`);
+}
+
+/**
+ * Get or load class data
+ * Note: Use ClassManager for aggregated class data
+ * @param {string} className Class name (e.g., 'Fighter', 'Wizard')
+ * @returns {Promise<Object>} Class data from single file
+ */
+async function loadClasses(className = 'Fighter') {
+	return loadJSON(`${state.baseUrl}class/class-${className.toLowerCase()}.json`);
+}
+
+/**
+ * Get or load background data
+ * @returns {Promise<Object>} Background data
+ */
+async function loadBackgrounds() {
+	return loadJSON(`${state.baseUrl}backgrounds.json`);
+}
+
+/**
+ * Get or load feat data
+ * @returns {Promise<Object>} Feat data
+ */
+async function loadFeats() {
+	return loadJSON(`${state.baseUrl}feats.json`);
+}
+
+/**
+ * Get or load condition data
+ * @returns {Promise<Object>} Condition data
+ */
+async function loadConditions() {
+	return loadJSON(`${state.baseUrl}conditionsdiseases.json`);
+}
+
+/**
+ * Get or load fluff feats data
+ * @returns {Promise<Object>} Fluff feats data
+ */
+async function loadFluffFeats() {
+	return loadJSON(`${state.baseUrl}fluff-feats.json`);
+}
+
+/**
+ * Get or load optional features data
+ * @returns {Promise<Object>} Optional features data
+ */
+async function loadOptionalFeatures() {
+	return loadJSON(`${state.baseUrl}optionalfeatures.json`);
+}
+
+/**
+ * Get or load fluff optional features data
+ * @returns {Promise<Object>} Fluff optional features data
+ */
+async function loadFluffOptionalFeatures() {
+	return loadJSON(`${state.baseUrl}fluff-optionalfeatures.json`);
+}
+
+/**
+ * Get or load rewards data
+ * @returns {Promise<Object>} Rewards data
+ */
+async function loadRewards() {
+	return loadJSON(`${state.baseUrl}rewards.json`);
+}
+
+/**
+ * Get or load traps and hazards data
+ * @returns {Promise<Object>} Traps/hazards data
+ */
+async function loadTrapsHazards() {
+	return loadJSON(`${state.baseUrl}trapshazards.json`);
+}
+
+/**
+ * Get or load vehicles data
+ * @returns {Promise<Object>} Vehicles data
+ */
+async function loadVehicles() {
+	return loadJSON(`${state.baseUrl}vehicles.json`);
+}
+
+/**
+ * Get or load objects data
+ * @returns {Promise<Object>} Objects data
+ */
+async function loadObjects() {
+	return loadJSON(`${state.baseUrl}objects.json`);
+}
+
+/**
+ * Get or load sources data
+ * @returns {Promise<Object>} Sources data
+ */
+async function loadSources() {
+	try {
+		return await loadJSON(`${state.baseUrl}books.json`);
+	} catch (error) {
+		Logger.warn('DataLoader', 'Could not find sources data', error);
+		return { source: [] };
 	}
 }
 
 /**
- * Global DataLoader instance
+ * Get or load subclass spells data
+ * @param {string} subclassId - The subclass ID
+ * @returns {Promise<Object>} Subclass spells data
  */
-let _dataLoaderInstance = null;
+async function loadSubclassSpells(subclassId) {
+	try {
+		return await loadJSON(`${state.baseUrl}spells/sources.json`);
+	} catch (error) {
+		Logger.warn('DataLoader', `Could not find subclass spells for ${subclassId}:`, error);
+		return { spell: [] };
+	}
+}
+
+function clearCache() {
+	state.cache = {};
+	state.loading = {};
+	return dataLoader;
+}
+
+function clearCacheForUrl(url) {
+	delete state.cache[url];
+	delete state.loading[url];
+	return dataLoader;
+}
+
+function getCacheStats() {
+	return {
+		cachedUrls: Object.keys(state.cache).length,
+		loadingUrls: Object.keys(state.loading).length,
+		totalSize: JSON.stringify(state.cache).length,
+	};
+}
 
 /**
- * Get the global DataLoader instance
- * @returns {DataLoader}
+ * Backward-compatible object export (no class/instance needed).
  */
-DataLoader.getInstance = () => {
-	if (!_dataLoaderInstance) {
-		_dataLoaderInstance = new DataLoader();
-	}
-	return _dataLoaderInstance;
+const dataLoader = {
+	setBaseUrl,
+	loadJSON,
+	loadJSONs,
+	loadSpells,
+	loadItems,
+	loadBaseItems,
+	loadSkills,
+	loadActions,
+	loadMonsters,
+	loadRaces,
+	loadRaceFluff,
+	loadClasses,
+	loadBackgrounds,
+	loadFeats,
+	loadConditions,
+	loadFluffFeats,
+	loadOptionalFeatures,
+	loadFluffOptionalFeatures,
+	loadRewards,
+	loadTrapsHazards,
+	loadVehicles,
+	loadObjects,
+	loadSources,
+	loadSubclassSpells,
+	clearCache,
+	clearCacheForUrl,
+	getCacheStats,
 };
 
-// Convenience methods
-DataLoader.loadJSON = (url) => DataLoader.getInstance().loadJSON(url);
-DataLoader.loadJSONs = (urls) => DataLoader.getInstance().loadJSONs(urls);
-DataLoader.loadSpells = () => DataLoader.getInstance().loadSpells();
-DataLoader.loadItems = () => DataLoader.getInstance().loadItems();
-DataLoader.loadBaseItems = () => DataLoader.getInstance().loadBaseItems();
-DataLoader.loadSkills = () => DataLoader.getInstance().loadSkills();
-DataLoader.loadActions = () => DataLoader.getInstance().loadActions();
-DataLoader.loadMonsters = () => DataLoader.getInstance().loadMonsters();
-DataLoader.loadRaces = () => DataLoader.getInstance().loadRaces();
-DataLoader.loadRaceFluff = () => DataLoader.getInstance().loadRaceFluff();
-DataLoader.loadClasses = () => DataLoader.getInstance().loadClasses();
-DataLoader.loadBackgrounds = () => DataLoader.getInstance().loadBackgrounds();
-DataLoader.loadFeats = () => DataLoader.getInstance().loadFeats();
-DataLoader.loadConditions = () => DataLoader.getInstance().loadConditions();
-DataLoader.loadFluffFeats = () => DataLoader.getInstance().loadFluffFeats();
-DataLoader.loadOptionalFeatures = () =>
-	DataLoader.getInstance().loadOptionalFeatures();
-DataLoader.loadFluffOptionalFeatures = () =>
-	DataLoader.getInstance().loadFluffOptionalFeatures();
-DataLoader.loadRewards = () => DataLoader.getInstance().loadRewards();
-DataLoader.loadTrapsHazards = () => DataLoader.getInstance().loadTrapsHazards();
-DataLoader.loadVehicles = () => DataLoader.getInstance().loadVehicles();
-DataLoader.loadObjects = () => DataLoader.getInstance().loadObjects();
-DataLoader.loadSources = () => DataLoader.getInstance().loadSources();
-DataLoader.loadSubclassSpells = (subclassId) =>
-	DataLoader.getInstance().loadSubclassSpells(subclassId);
-DataLoader.clearCache = () => DataLoader.getInstance().clearCache();
+// Legacy-compatible alias
+const DataLoader = dataLoader;
+DataLoader.getInstance = () => dataLoader;
 
-export { DataLoader };
+// Convenience methods for legacy static-style imports (map directly to underlying functions)
+DataLoader.loadJSON = loadJSON;
+DataLoader.loadJSONs = loadJSONs;
+DataLoader.loadSpells = loadSpells;
+DataLoader.loadItems = loadItems;
+DataLoader.loadBaseItems = loadBaseItems;
+DataLoader.loadSkills = loadSkills;
+DataLoader.loadActions = loadActions;
+DataLoader.loadMonsters = loadMonsters;
+DataLoader.loadRaces = loadRaces;
+DataLoader.loadRaceFluff = loadRaceFluff;
+DataLoader.loadClasses = loadClasses;
+DataLoader.loadBackgrounds = loadBackgrounds;
+DataLoader.loadFeats = loadFeats;
+DataLoader.loadConditions = loadConditions;
+DataLoader.loadFluffFeats = loadFluffFeats;
+DataLoader.loadOptionalFeatures = loadOptionalFeatures;
+DataLoader.loadFluffOptionalFeatures = loadFluffOptionalFeatures;
+DataLoader.loadRewards = loadRewards;
+DataLoader.loadTrapsHazards = loadTrapsHazards;
+DataLoader.loadVehicles = loadVehicles;
+DataLoader.loadObjects = loadObjects;
+DataLoader.loadSources = loadSources;
+DataLoader.loadSubclassSpells = loadSubclassSpells;
+DataLoader.clearCache = clearCache;
+DataLoader.clearCacheForUrl = clearCacheForUrl;
+DataLoader.getCacheStats = getCacheStats;
+
+export { clearCache, clearCacheForUrl, DataLoader, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVehicles, setBaseUrl };
