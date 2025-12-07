@@ -47,7 +47,7 @@ const ENUMERATION_INDEX_FILES = [
 
 /** @typedef {{valid: boolean, missing: string[], error?: string}} ValidationResult */
 
-/** Convert a repo/server URL to a raw data base URL (GitHub -> raw, others add /data). */
+// Convert a repo/server URL to a raw data base URL (GitHub -> raw, others add /data).
 function buildRawDataBaseUrl(url) {
     const urlObj = new URL(url);
     let dataUrl;
@@ -70,7 +70,7 @@ function buildRawDataBaseUrl(url) {
     return dataUrl;
 }
 
-/** Read local index files to collect referenced data file paths. */
+// Read local index files to collect referenced data file paths.
 async function buildLocalIndexManifest(rootDir) {
     const manifest = [];
     const indexErrors = [];
@@ -99,7 +99,7 @@ async function buildLocalIndexManifest(rootDir) {
     return { manifest, indexErrors };
 }
 
-/** Minimal structure checks for key JSON files (mainly races/backgrounds). */
+// Minimal structure checks for key JSON files (mainly races/backgrounds).
 async function validateJsonStructure(data, fileName) {
     // Basic check: ensure it's a valid object
     if (typeof data !== 'object' || data === null) {
@@ -250,15 +250,11 @@ export async function validateLocalDataFolder(folderPath) {
 
         return { valid: true, missing: [] };
     } catch (error) {
-        MainLogger.error(
-            'DataFolderManager',
-            'Error validating local folder:',
-            error,
-        );
+        MainLogger.error('DataFolderManager', 'Error validating local folder:', error?.message || error);
         return {
             valid: false,
             missing: [...CORE_REQUIRED_FILES, ...CORE_REQUIRED_FOLDERS],
-            error: error.message,
+            error: error?.message || String(error),
         };
     }
 }
@@ -383,7 +379,7 @@ export async function buildDataManifest(remoteUrl) {
 }
 
 /** Fetch plain text from a URL with timeout/error handling. */
-async function fetchTextFromUrl(urlString, timeout = 10000) {
+function fetchTextFromUrl(urlString, timeout = 10000) {
     return new Promise((resolve) => {
         const urlObj = new URL(urlString);
         const protocol = urlObj.protocol === 'https:' ? https : http;

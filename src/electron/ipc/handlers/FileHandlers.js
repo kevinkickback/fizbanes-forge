@@ -11,8 +11,7 @@ export function registerFileHandlers(windowManager) {
 	// Select folder
 	ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
 		try {
-			const mainWindow = windowManager.getMainWindow();
-			const result = await dialog.showOpenDialog(mainWindow, {
+			const result = await dialog.showOpenDialog(windowManager.mainWindow, {
 				properties: ['openDirectory', 'createDirectory'],
 			});
 
@@ -58,7 +57,8 @@ export function registerFileHandlers(windowManager) {
 		try {
 			await fs.access(filePath);
 			return { success: true, exists: true };
-		} catch {
+		} catch (error) {
+			MainLogger.error('FileHandlers', 'File exists check failed:', error);
 			return { success: true, exists: false };
 		}
 	});

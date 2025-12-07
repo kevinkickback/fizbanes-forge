@@ -9,6 +9,7 @@ class SpellService {
 	/** Initialize a new SpellManager. */
 	constructor() {
 		this._spellData = null;
+		this._spellLookupMap = null; // Map for O(1) lookups by name
 	}
 
 	/**
@@ -48,6 +49,14 @@ class SpellService {
 			}
 
 			this._spellData = aggregated;
+
+			// Build lookup map for O(1) access by name (case-insensitive)
+			this._spellLookupMap = new Map();
+			for (const spell of aggregated.spell) {
+				const key = spell.name.toLowerCase();
+				this._spellLookupMap.set(key, spell);
+			}
+
 			eventBus.emit(EVENTS.SPELLS_LOADED, this._spellData.spell);
 			return true;
 		} catch (error) {
@@ -72,13 +81,24 @@ class SpellService {
 	 * @returns {Object|null} Spell object or null if not found
 	 */
 	getSpell(name, source = 'PHB') {
-		if (!this._spellData?.spell) return null;
+		if (!this._spellLookupMap) return null;
 
-		return (
-			this._spellData.spell.find(
+		// O(1) lookup by name (case-insensitive)
+		const spell = this._spellLookupMap.get(name.toLowerCase());
+
+		// If source matters, verify it matches
+		if (spell && spell.source === source) {
+			return spell;
+		}
+
+		// If source doesn't match, fall back to linear search for source-specific spell
+		if (spell && spell.source !== source && this._spellData?.spell) {
+			return this._spellData.spell.find(
 				(s) => s.name === name && s.source === source,
-			) || null
-		);
+			) || spell; // Return any match if exact source not found
+		}
+
+		return spell || null;
 	}
 
 	/**

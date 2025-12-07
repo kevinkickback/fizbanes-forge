@@ -1,164 +1,251 @@
-# Comprehensive Refactor Plan
+# Refactor Progress (as of 2025-12-06)
 
-_Last updated: December 6, 2025_
+The following improvements have been completed:
+
+- WindowManager, PreferencesManager, and DataFolderManager refactored to plain modules with exported functions (no unnecessary classes).
+- IPC handler registration is now direct in main.js; IPCRegistry.js is obsolete.
+- Error handling in DataFolderManager.js and FileHandlers.js is now consistent and always logs errors.
+- Unused indirection, boilerplate, and dead code have been removed from the Electron backend.
+
+**Next recommended areas:**
+- Refactor renderer utilities (TooltipManager, ReferenceResolver, DataLoader, etc.) to plain modules.
+- Centralize and cache data access in the renderer.
+- Further decouple modules for improved testability.
+- Expand and update test coverage for new module structure.
+
+---
+title: Refactor Plan for Fizbanes Forge
+date: 2025-12-06
+---
+
+# Refactor Plan: Fizbanes Forge
 
 ## Overview
-This plan addresses unnecessary complexity, best practices, and maintainability issues identified in the codebase. Each section includes a summary, impact, and actionable steps for improvement. Prioritization is based on expected impact and ease of implementation.
+
+This document provides a comprehensive review of the codebase, focusing on unnecessary complexity, best practices, and actionable simplifications. Each section highlights high-impact improvements, with explanations, impact, and concrete recommendations.
 
 ---
 
-## 1. Electron Backend (`src/electron/`)
+## Table of Contents
 
-### 1.1 Overly Abstract Patterns
-- **Issue:** Excessive use of getters/setters, custom event systems, and factories for simple configuration or file I/O.
-- **Impact:** Harder to trace logic, increased cognitive load, slower onboarding.
-- **Actions:**
-  - Refactor managers (e.g., `DataFolderManager.js`, `PreferencesManager.js`) to use direct property access and simple functions.
-  - Remove custom event systems unless essential; prefer Node.js `EventEmitter` if needed.
-  - Eliminate factories unless supporting multiple interchangeable implementations.
-
-### 1.2 Redundant Logic
-- **Issue:** Multiple layers of logging wrappers (e.g., `MainLogger.js`).
-- **Impact:** Slower debugging, harder to change logging behavior.
-- **Actions:**
-  - Consolidate logging into a single, well-documented logger (e.g., Winston, pino).
-  - Remove unnecessary custom wrappers.
-
-### 1.3 Unclear Control Flow
-- **Issue:** Window creation and lifecycle events split across many helpers/callbacks.
-- **Impact:** Harder to debug, increased onboarding time.
-- **Actions:**
-  - Centralize window creation and lifecycle management in one module.
-  - Use clear, linear startup/shutdown sequences.
+1. [General Observations](#general-observations)
+2. [Electron Backend (src/electron)](#electron-backend)
+3. [Renderer & Utilities (src/renderer/scripts/utils)](#renderer--utilities)
+4. [Shared Patterns & Data](#shared-patterns--data)
+5. [Summary Table of Issues](#summary-table-of-issues)
+6. [Appendix: Example Refactors](#appendix-example-refactors)
 
 ---
 
-## 2. Data Layer (`src/data/`)
+## General Observations
 
-### 2.1 Inefficient Data Structures
-- **Issue:** Loading all JSON files into memory at startup.
-- **Impact:** Increased memory usage, slower startup.
-- **Actions:**
-  - Implement lazy-loading for data files; load only when needed.
-  - Use streaming or chunked reads for very large files.
-
-### 2.2 Redundant or Indirect Data Access
-- **Issue:** Many small helpers wrapping basic file I/O.
-- **Impact:** More code to maintain, harder to debug.
-- **Actions:**
-  - Consolidate helpers into a single utility module.
-  - Use direct file access where possible.
+- **Strengths:**
+  - Modular structure, clear separation between Electron and renderer.
+  - Use of ES modules and modern JS features.
+  - Good use of logging and IPC patterns.
+- **Areas for Improvement:**
+  - Overuse of manager/wrapper/helper classes.
+  - Redundant or indirect control flow, especially in data and window management.
+  - Some inefficient or verbose data handling.
+  - Inconsistent naming and error handling.
+  - Testability could be improved by reducing coupling and indirection.
 
 ---
 
-## 3. Renderer Layer (`src/renderer/`)
+## Electron Backend
 
-### 3.1 Overly Abstract Patterns
-- **Issue:** Excessive component wrappers, HOCs, or context providers for simple UI logic.
-- **Impact:** Harder to follow UI logic, increased bundle size.
-- **Actions:**
-  - Refactor to use simple functional components.
-  - Limit context/providers to truly global state.
+### 1. Over-Abstraction: Manager Classes
 
-### 3.2 Naming Quality
-- **Issue:** Generic names for files/functions (e.g., `doAction`, `handleData`).
-- **Impact:** Reduced clarity, increased risk of bugs.
-- **Actions:**
-  - Rename files and functions to be descriptive (e.g., `loadCharacterData`, `savePreferences`).
+| File/Class                | Problem Summary | Impact | Recommendation |
+|---------------------------|-----------------|--------|----------------|
+| WindowManager, PreferencesManager, DataFolderManager | Multiple single-responsibility classes with thin logic, often just wrapping Electron APIs or simple file ops. | Adds indirection, makes tracing logic harder, increases boilerplate. | Collapse into fewer, more focused modules. Expose simple functions for common tasks. |
 
----
+**Example:**
+```js
+// Instead of:
+const winMgr = new WindowManager();
+winMgr.createMainWindow();
 
-## 4. Error Handling Patterns
+// Prefer:
+import { createMainWindow } from './window.js';
+createMainWindow();
+```
 
-### 4.1 Inconsistent or Overly Complex Error Handling
-- **Issue:** Scattered error handling, custom error types for simple cases, multiple error wrappers.
-- **Impact:** Harder to trace errors, increased code size.
-- **Actions:**
-  - Use standard error types and centralized error handling (e.g., top-level try/catch).
-  - Remove unnecessary custom error wrappers.
+### 2. Redundant IPC Handler Registration
 
----
+| File | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| ipc/IPCRegistry.js, handlers/*Handlers.js | Each handler is registered via a registry class, but most handlers are simple and could be registered directly. | Unnecessary indirection, harder to trace IPC flow. | Register IPC handlers directly in main.js or a single setup file. |
 
-## 5. Testability
+### 3. Error Handling
 
-### 5.1 Indirect Control Flow
-- **Issue:** Functions depend on global state, singletons, or hidden side effects.
-- **Impact:** Lower test coverage, harder to refactor safely.
-- **Actions:**
-  - Pass dependencies explicitly to functions/modules.
-  - Avoid global state; use dependency injection where appropriate.
+| File | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| DataFolderManager.js, FileHandlers.js | Inconsistent error handling, sometimes logs, sometimes swallows errors. | Debugging and reliability issues. | Standardize error handling: always log and propagate or handle gracefully. |
 
----
+### 4. Data Access Patterns
 
-## 6. Performance
-
-### 6.1 Inefficient Algorithms
-- **Issue:** Linear searches over large arrays for lookups.
-- **Impact:** Slower performance for large datasets.
-- **Actions:**
-  - Refactor to use objects/maps for O(1) lookups.
+| File | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| DataFolderManager.js | Multiple async wrappers for file/network ops, some with unnecessary Promises. | Adds complexity, risk of unhandled rejections. | Use async/await directly, avoid wrapping in new Promise unless needed. |
 
 ---
 
-## 7. Example Refactor Tasks
+## Renderer & Utilities
 
-### 7.1 Simplify Data Access
-- Replace multiple small wrappers with direct file access or a single utility.
-- Example:
-  ```js
-  // Instead of:
-  function getData(file) { ... }
-  function getActions() { return getData('actions.json'); }
-  // Use:
-  const actions = JSON.parse(fs.readFileSync('actions.json', 'utf8'));
-  ```
+### 1. Excessive Helper/Manager Classes
 
-### 7.2 Centralize Window Management
-- Move window creation logic to a single function/module with clear lifecycle handling.
+| File/Class | Problem Summary | Impact | Recommendation |
+|------------|-----------------|--------|----------------|
+| TooltipManager, ReferenceResolver, DataLoader, StatBlockRenderer, TagProcessor | Many classes act as singletons or static utility containers, with indirect access patterns (e.g., getInstance, getXManager). | Increases indirection, makes testing and tracing harder. | Use plain modules with exported functions or simple objects. Only use classes for true stateful or extensible logic. |
 
-### 7.3 Improve Naming
-- Audit and rename generic functions/files for clarity.
+**Example:**
+```js
+// Instead of:
+const tooltipMgr = TooltipManager.getInstance();
+tooltipMgr.show(...);
 
-### 7.4 Consolidate Error Handling
-- Centralize error handling logic; remove redundant wrappers.
+// Prefer:
+import * as tooltip from './tooltip.js';
+tooltip.show(...);
+```
 
-### 7.5 Refactor for Testability
-- Pass dependencies explicitly; remove hidden side effects.
+### 2. Indirect Data Flow
 
-### 7.6 Optimize Data Lookups
-- Use maps/objects for frequent lookups in large datasets.
+| File | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| ReferenceResolver.js, DataLoader.js | Data is often loaded via chained manager/service/helper calls. | Harder to follow, debug, and test. | Flatten data flow: pass data directly, avoid unnecessary layers. |
 
----
+### 3. Inefficient Data Handling
 
-## 8. Prioritization & Timeline
+| File | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| DataLoader.js, StatBlockRenderer.js | Some data is loaded or transformed multiple times, or via repeated file reads. | Performance hit, especially on large data sets. | Cache results where possible, avoid redundant reads. |
 
-| Priority | Task                                      | Impact          |
-|----------|-------------------------------------------|-----------------|
-| High     | Centralize window management              | Readability     |
-| High     | Simplify data access & lazy-load          | Performance     |
-| High     | Consolidate error handling                | Debuggability   |
-| Medium   | Refactor managers for directness          | Maintainability |
-| Medium   | Improve naming throughout                 | Readability     |
-| Medium   | Optimize data lookups                     | Performance     |
-| Low      | Remove excessive UI wrappers              | Bundle size     |
+### 4. Naming and Cohesion
+
+| File | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| TagProcessor.js, TooltipManager.js | Some class/function names are generic or misleading (e.g., "Manager" for stateless helpers). | Reduces clarity, increases onboarding time. | Use descriptive, specific names (e.g., Tooltip, TagParser). |
 
 ---
 
-## 9. Next Steps
-1. Audit and refactor managers and helpers for directness.
-2. Centralize window and error management.
-3. Refactor data access for lazy loading and efficient lookups.
-4. Improve naming for clarity and maintainability.
-5. Review and simplify UI component structure.
-6. Write/adjust tests to cover refactored code.
+## Shared Patterns & Data
+
+### 1. Data File Access
+
+| Area | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| src/data | Data is accessed via file paths and manual fs calls, sometimes repeated. | Risk of inconsistency, hard to refactor. | Centralize data access in a single module, use caching. |
+
+### 2. Testability
+
+| Area | Problem Summary | Impact | Recommendation |
+|------|-----------------|--------|----------------|
+| Electron, Renderer | Many modules are tightly coupled to Electron or DOM APIs. | Hard to unit test, requires integration tests. | Use dependency injection or pass dependencies as arguments for easier mocking. |
 
 ---
 
-## 10. References
-- [Node.js EventEmitter](https://nodejs.org/api/events.html)
-- [Winston Logger](https://github.com/winstonjs/winston)
-- [JavaScript Dependency Injection Patterns](https://www.digitalocean.com/community/tutorials/js-dependency-injection)
+## Summary Table of Issues
+
+| Area | Issue | Impact | Recommendation |
+|------|-------|--------|----------------|
+| Electron | Overuse of manager/wrapper classes | Readability, maintainability | Collapse/flatten, use plain modules |
+| Electron | Redundant IPC registry | Indirection, traceability | Register handlers directly |
+| Electron | Inconsistent error handling | Debugging, reliability | Standardize/log/propagate |
+| Renderer | Excessive helpers/singletons | Indirection, testability | Use plain modules/functions |
+| Renderer | Indirect data flow | Debugging, performance | Flatten, pass data directly |
+| Renderer | Inefficient data handling | Performance | Cache, avoid redundant reads |
+| Shared | Data access scattered | Consistency, maintainability | Centralize, cache |
+| Shared | Tight coupling to platform | Testability | Use DI, pass dependencies |
 
 ---
 
-_This plan is intended to guide targeted, high-impact improvements. For code samples or detailed task breakdowns, see the relevant module or request further details._
+## Appendix: Example Refactors
+
+### 1. Flattening Manager Classes
+
+**Before:**
+```js
+export class PreferencesManager {
+  get(key) { ... }
+  set(key, value) { ... }
+}
+const prefs = new PreferencesManager();
+prefs.get('theme');
+```
+
+**After:**
+```js
+// preferences.js
+let store = {};
+export function getPreference(key) { return store[key]; }
+export function setPreference(key, value) { store[key] = value; }
+// Usage:
+import { getPreference } from './preferences.js';
+getPreference('theme');
+```
+
+### 2. Direct IPC Handler Registration
+
+**Before:**
+```js
+class IPCRegistry {
+  register() {
+    registerCharacterHandlers(...);
+    registerDataHandlers(...);
+  }
+}
+```
+
+**After:**
+```js
+// main.js
+import { registerCharacterHandlers } from './handlers/CharacterHandlers.js';
+registerCharacterHandlers(...);
+```
+
+### 3. Improving Error Handling
+
+**Before:**
+```js
+try { ... } catch (e) { /* sometimes logs, sometimes not */ }
+```
+
+**After:**
+```js
+try { ... } catch (e) {
+  logger.error('ModuleName', e);
+  throw e; // or handle gracefully
+}
+```
+
+### 4. Flattening Data Flow
+
+**Before:**
+```js
+const data = await DataLoader.getInstance().loadJSON(url);
+```
+
+**After:**
+```js
+import { loadJSON } from './dataLoader.js';
+const data = await loadJSON(url);
+```
+
+---
+
+## Next Steps
+
+
+**Progress Checklist:**
+
+- [x] Prioritize high-impact refactors (manager flattening, error handling, data access centralization).
+- [x] Refactor incrementally, running tests after each change (Electron backend complete).
+- [x] Update documentation and onboarding guides to reflect simplifications (this plan updated).
+- [ ] Review and expand test coverage, especially for decoupled modules.
+- [ ] Refactor renderer utilities and data access for further simplification.
+
+---
+
+**This plan is intended as a living document. Update as improvements are made.**

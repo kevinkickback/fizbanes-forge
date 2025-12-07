@@ -120,8 +120,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			const savePath = preferencesManager.getCharacterSavePath();
 			const sourceFilePath = path.join(savePath, `${id}.ffp`);
 
-			const mainWindow = windowManager.getMainWindow();
-			const result = await dialog.showSaveDialog(mainWindow, {
+			const result = await dialog.showSaveDialog(windowManager.mainWindow, {
 				title: 'Export Character',
 				defaultPath: `character-${id}.ffp`,
 				filters: [{ name: 'Fizbane Character', extensions: ['ffp'] }],
@@ -156,8 +155,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 			// If no file selected yet, show dialog
 			if (!sourceFilePath) {
-				const mainWindow = windowManager.getMainWindow();
-				const result = await dialog.showOpenDialog(mainWindow, {
+				const result = await dialog.showOpenDialog(windowManager.mainWindow, {
 					title: 'Import Character',
 					filters: [{ name: 'Fizbane Character', extensions: ['ffp'] }],
 					properties: ['openFile'],

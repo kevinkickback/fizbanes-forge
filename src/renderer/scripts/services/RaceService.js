@@ -12,6 +12,8 @@ class RaceService {
 		this._raceData = null;
 		this._selectedRace = null;
 		this._selectedSubrace = null;
+		this._raceLookupMap = null; // Map for O(1) lookups by name
+		this._subraceLookupMap = null; // Map for O(1) lookups by subrace name
 	}
 
 	/**
@@ -46,6 +48,19 @@ class RaceService {
 				this._raceData.raceFluff = [];
 			}
 
+			// Build lookup maps for O(1) access
+			this._raceLookupMap = new Map();
+			for (const race of this._raceData.race || []) {
+				const key = `${race.name.toLowerCase()}:${race.source}`;
+				this._raceLookupMap.set(key, race);
+			}
+
+			this._subraceLookupMap = new Map();
+			for (const subrace of this._raceData.subrace || []) {
+				const key = `${subrace.name.toLowerCase()}:${subrace.source}`;
+				this._subraceLookupMap.set(key, subrace);
+			}
+
 			Logger.info('RaceService', 'Races loaded successfully', {
 				count: this._raceData.race?.length,
 			});
@@ -72,12 +87,11 @@ class RaceService {
 	 * @returns {Object|null} Race object from JSON or null if not found
 	 */
 	getRace(name, source = 'PHB') {
-		if (!this._raceData?.race) return null;
+		if (!this._raceLookupMap) return null;
 
-		return (
-			this._raceData.race.find((r) => r.name === name && r.source === source) ||
-			null
-		);
+		// O(1) lookup
+		const key = `${name.toLowerCase()}:${source}`;
+		return this._raceLookupMap.get(key) || null;
 	}
 
 	/**

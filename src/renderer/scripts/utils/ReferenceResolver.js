@@ -22,15 +22,13 @@ export class ReferenceResolver {
 	/**
 	 * Resolve a spell reference
 	 * @param {string} spellName Spell name
-	 * @param {string} _source Source abbreviation
+	 * @param {string} source Source abbreviation
 	 * @returns {Promise<Object>} Spell data
 	 */
-	async resolveSpell(spellName, _source = 'PHB') {
+	async resolveSpell(spellName, source = 'PHB') {
 		try {
-			const allSpells = this._spellManager.getAllSpells();
-			const spell = allSpells?.find(
-				(s) => s.name.toLowerCase() === spellName.toLowerCase(),
-			);
+			// Use O(1) lookup via service method
+			const spell = this._spellManager.getSpell(spellName, source);
 
 			if (!spell) {
 				return {
@@ -53,24 +51,17 @@ export class ReferenceResolver {
 	/**
 	 * Resolve an item reference
 	 * @param {string} itemName Item name
-	 * @param {string} _source Source abbreviation
+	 * @param {string} source Source abbreviation
 	 * @returns {Promise<Object>} Item data
 	 */
-	async resolveItem(itemName, _source = 'PHB') {
+	async resolveItem(itemName, source = 'DMG') {
 		try {
-			const allItems = this._itemManager.getAllItems();
-			const allBaseItems = this._itemManager.getAllBaseItems();
-
-			// Try regular items first
-			let item = allItems?.find(
-				(i) => i.name.toLowerCase() === itemName.toLowerCase(),
-			);
+			// Try regular items first with O(1) lookup
+			let item = this._itemManager.getItem(itemName, source);
 
 			// If not found, try base items (weapons, armor, etc)
-			if (!item && allBaseItems) {
-				item = allBaseItems.find(
-					(i) => i.name.toLowerCase() === itemName.toLowerCase(),
-				);
+			if (!item) {
+				item = this._itemManager.getBaseItem(itemName, 'PHB');
 			}
 
 			if (!item) {
@@ -186,15 +177,13 @@ export class ReferenceResolver {
 	/**
 	 * Resolve a race reference
 	 * @param {string} raceName Race name
-	 * @param {string} _source Source abbreviation
+	 * @param {string} source Source abbreviation
 	 * @returns {Promise<Object>} Race data
 	 */
-	async resolveRace(raceName, _source = 'PHB') {
+	async resolveRace(raceName, source = 'PHB') {
 		try {
-			const allRaces = this._raceManager.getAllRaces();
-			const race = allRaces?.find(
-				(r) => r.name.toLowerCase() === raceName.toLowerCase(),
-			);
+			// Use O(1) lookup via service method
+			const race = this._raceManager.getRace(raceName, source);
 
 			if (!race) {
 				return {

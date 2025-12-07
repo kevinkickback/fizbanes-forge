@@ -1,927 +1,542 @@
-/** TooltipManager.js - Manages displaying and hiding D&D reference tooltips. */
+
+/** TooltipManager.js - Manages displaying and hiding D&D reference tooltips as a plain module. */
 
 import { Logger } from '../infrastructure/Logger.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
 import { StatBlockRenderer } from './StatBlockRenderer.js';
-import { getStringRenderer } from './TagProcessor.js';
 
-/** Tooltip manager handles displaying and hiding tooltips. */
-export class TooltipManager {
-	constructor() {
-		this._tooltips = []; // Stack of active tooltips
-		this._referenceResolver = getReferenceResolver();
-		this._init();
+
+// Internal state
+let tooltips = [];
+const referenceResolver = getReferenceResolver();
+
+// Module initialization
+_initTooltipManager();
+
+function _initTooltipManager() {
+	_setupKeyboardShortcuts();
+}
+
+
+function _createTooltip() {
+	const container = document.createElement('div');
+	container.className = 'tooltip-container';
+	container.style.display = 'block';
+	container.style.zIndex = 10000 + tooltips.length;
+	container.style.pointerEvents = 'auto';
+
+	const tooltip = document.createElement('div');
+	tooltip.className = 'tooltip';
+
+	// Add action buttons
+	const actions = document.createElement('div');
+	actions.className = 'tooltip-actions';
+	actions.innerHTML = `
+		<div class="tooltip-drag-handle" title="Drag tooltip" style="display: none">
+		    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<circle cx="8" cy="6" r="1.5" />
+			<circle cx="16" cy="6" r="1.5" />
+			<circle cx="8" cy="12" r="1.5" />
+			<circle cx="16" cy="12" r="1.5" />
+			<circle cx="8" cy="18" r="1.5" />
+			<circle cx="16" cy="18" r="1.5" />
+		    </svg>
+		</div>
+		<button class="tooltip-action-btn tooltip-pin-btn" title="Pin tooltip (Ctrl+P)">
+		    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<path d="M12 16v5M17 9v-2a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2M9 9l-4 4 4 4M15 9l4 4-4 4"/>
+		    </svg>
+		</button>
+		<button class="tooltip-action-btn tooltip-close-btn" title="Close (Esc)">
+		    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<line x1="18" y1="6" x2="6" y2="18"/>
+			<line x1="6" y1="6" x2="18" y2="18"/>
+		    </svg>
+		</button>
+	    `;
+
+	tooltip.appendChild(actions);
+	container.appendChild(tooltip);
+	document.body.appendChild(container);
+
+	const tooltipObj = { container, tooltip, isPinned: false };
+
+	// Add event listeners to action buttons
+	actions.querySelector('.tooltip-pin-btn').addEventListener('click', (e) => {
+		e.stopPropagation();
+		_togglePin(tooltipObj);
+	});
+	actions.querySelector('.tooltip-close-btn').addEventListener('click', (e) => {
+		e.stopPropagation();
+		_closeTooltip(tooltipObj);
+	});
+
+	// Allow pinned tooltips to be dragged via the drag handle
+	const dragHandle = actions.querySelector('.tooltip-drag-handle');
+	if (dragHandle) {
+		tooltipObj.dragHandle = dragHandle;
+		_makeDraggable(tooltipObj, dragHandle);
 	}
 
-	_init() {
-		// Container for all tooltips will be body
-		// Individual tooltips will be created on demand
-		// Setup keyboard shortcuts
-		this._setupKeyboardShortcuts();
+	return tooltipObj;
+}
+
+/**
+ * Enable dragging a tooltip when it is pinned.
+ * @param {Object} tooltipObj
+ * @param {HTMLElement} handleElement
+ * @private
+ */
+function _makeDraggable(tooltipObj, handleElement) {
+	let isDragging = false;
+	let offsetX = 0;
+	let offsetY = 0;
+
+	const onMouseMove = (event) => {
+		if (!isDragging) return;
+		const rect = tooltipObj.container.getBoundingClientRect();
+		const newLeft = event.clientX - offsetX;
+		const newTop = event.clientY - offsetY;
+		const maxLeft = Math.max(0, window.innerWidth - rect.width);
+		const maxTop = Math.max(0, window.innerHeight - rect.height);
+		tooltipObj.container.style.left = `${Math.min(Math.max(0, newLeft), maxLeft)}px`;
+		tooltipObj.container.style.top = `${Math.min(Math.max(0, newTop), maxTop)}px`;
+	};
+
+	const onMouseUp = () => {
+		if (!isDragging) return;
+		isDragging = false;
+		document.removeEventListener('mousemove', onMouseMove);
+		document.removeEventListener('mouseup', onMouseUp);
+	};
+
+	handleElement.addEventListener('mousedown', (event) => {
+		// Only left-click drag on pinned tooltips; ignore clicks on interactive elements
+		if (event.button !== 0) return;
+		if (!tooltipObj.isPinned) return;
+		if (event.target.closest('button, a')) return;
+
+		isDragging = true;
+		const rect = tooltipObj.container.getBoundingClientRect();
+		offsetX = event.clientX - rect.left;
+		offsetY = event.clientY - rect.top;
+		document.addEventListener('mousemove', onMouseMove);
+		document.addEventListener('mouseup', onMouseUp);
+		event.preventDefault();
+	});
+}
+
+/**
+ * Toggle pin state of tooltip
+ * @param {Object} tooltipObj Tooltip object
+ * @private
+ */
+function _togglePin(tooltipObj) {
+	tooltipObj.isPinned = !tooltipObj.isPinned;
+	const pinBtn = tooltipObj.tooltip.querySelector('.tooltip-pin-btn');
+	const dragHandle = tooltipObj.dragHandle;
+
+	if (tooltipObj.isPinned) {
+		tooltipObj.tooltip.classList.add('pinned');
+		pinBtn.classList.add('active');
+		pinBtn.title = 'Unpin tooltip';
+		if (dragHandle) dragHandle.style.display = 'flex';
+		tooltipObj.container.style.pointerEvents = 'auto';
+	} else {
+		tooltipObj.tooltip.classList.remove('pinned');
+		pinBtn.classList.remove('active');
+		pinBtn.title = 'Pin tooltip (Ctrl+P)';
+		if (dragHandle) dragHandle.style.display = 'none';
 	}
+}
 
-	/**
-	 * Create a new tooltip element
-	 * @returns {Object} Tooltip object with container and element
-	 * @private
-	 */
-	_createTooltip() {
-		const container = document.createElement('div');
-		container.className = 'tooltip-container';
-		container.style.display = 'block';
-		container.style.zIndex = 10000 + this._tooltips.length;
-		container.style.pointerEvents = 'auto'; // Ensure container can receive mouse events
+/**
+ * Copy tooltip content to clipboard
+ * @param {Object} tooltipObj Tooltip object
+ * @private
+ */
+// Copy tooltip content is disabled (button removed)
+async function _copyTooltipContent() { }
 
-		const tooltip = document.createElement('div');
-		tooltip.className = 'tooltip';
-
-		// Add action buttons
-		const actions = document.createElement('div');
-		actions.className = 'tooltip-actions';
-		actions.innerHTML = `
-			<div class="tooltip-drag-handle" title="Drag tooltip" style="display: none">
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<circle cx="8" cy="6" r="1.5" />
-					<circle cx="16" cy="6" r="1.5" />
-					<circle cx="8" cy="12" r="1.5" />
-					<circle cx="16" cy="12" r="1.5" />
-					<circle cx="8" cy="18" r="1.5" />
-					<circle cx="16" cy="18" r="1.5" />
-				</svg>
-			</div>
-			<button class="tooltip-action-btn tooltip-pin-btn" title="Pin tooltip (Ctrl+P)">
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M12 16v5M17 9v-2a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2M9 9l-4 4 4 4M15 9l4 4-4 4"/>
-				</svg>
-			</button>
-			<button class="tooltip-action-btn tooltip-close-btn" title="Close (Esc)">
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<line x1="18" y1="6" x2="6" y2="18"/>
-					<line x1="6" y1="6" x2="18" y2="18"/>
-				</svg>
-			</button>
-		`;
-
-		tooltip.appendChild(actions);
-
-		container.appendChild(tooltip);
-		document.body.appendChild(container);
-
-		const tooltipObj = { container, tooltip, isPinned: false };
-
-		// Add event listeners to action buttons
-		actions.querySelector('.tooltip-pin-btn').addEventListener('click', (e) => {
-			e.stopPropagation();
-			this._togglePin(tooltipObj);
-		});
-
-		actions
-			.querySelector('.tooltip-close-btn')
-			.addEventListener('click', (e) => {
-				e.stopPropagation();
-				this._closeTooltip(tooltipObj);
-			});
-
-		// Allow pinned tooltips to be dragged via the drag handle
-		const dragHandle = actions.querySelector('.tooltip-drag-handle');
-		if (dragHandle) {
-			tooltipObj.dragHandle = dragHandle;
-			this._makeDraggable(tooltipObj, dragHandle);
+/**
+ * Close specific tooltip
+ * @param {Object} tooltipObj Tooltip object
+ * @private
+ */
+function _closeTooltip(tooltipObj) {
+	const index = tooltips.indexOf(tooltipObj);
+	if (index !== -1) {
+		tooltips.splice(index, 1);
+	}
+	tooltipObj.tooltip.classList.remove('show');
+	tooltipObj.tooltip.classList.add('hide');
+	setTimeout(() => {
+		if (tooltipObj.container.parentNode) {
+			tooltipObj.container.parentNode.removeChild(tooltipObj.container);
 		}
+	}, 200);
+}
 
-		return tooltipObj;
+/**
+ * Show tooltip at position with data
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {string} content Content to display
+ * @param {Object} options Additional options
+ */
+function showTooltip(x, y, content, options = {}) {
+	const tooltipObj = _createTooltip();
+	const contentWrapper = document.createElement('div');
+	contentWrapper.innerHTML = content;
+	tooltipObj.tooltip.appendChild(contentWrapper);
+	tooltipObj.tooltip.classList.add('show');
+	if (options.referenceKey && !options.isCircular) {
+		tooltipObj.referenceKey = options.referenceKey;
 	}
+	tooltips.push(tooltipObj);
+	requestAnimationFrame(() => {
+		const tooltipRect = tooltipObj.tooltip.getBoundingClientRect();
+		const viewportWidth = window.innerWidth;
+		const viewportHeight = window.innerHeight;
+		let left = x + 10;
+		let top = y + 10;
+		if (left + tooltipRect.width > viewportWidth) {
+			left = x - tooltipRect.width - 10;
+			if (left < 0) {
+				left = viewportWidth - tooltipRect.width - 10;
+			}
+		}
+		if (top + tooltipRect.height > viewportHeight) {
+			top = y - tooltipRect.height - 10;
+			if (top < 0) {
+				top = viewportHeight - tooltipRect.height - 10;
+			}
+		}
+		left = Math.max(10, Math.min(left, viewportWidth - tooltipRect.width - 10));
+		top = Math.max(10, Math.min(top, viewportHeight - tooltipRect.height - 10));
+		tooltipObj.container.style.left = `${left}px`;
+		tooltipObj.container.style.top = `${top}px`;
+	});
+}
 
-	/**
-	 * Enable dragging a tooltip when it is pinned.
-	 * @param {Object} tooltipObj
-	 * @param {HTMLElement} handleElement
-	 * @private
-	 */
-	_makeDraggable(tooltipObj, handleElement) {
-		let isDragging = false;
-		let offsetX = 0;
-		let offsetY = 0;
-
-		const onMouseMove = (event) => {
-			if (!isDragging) return;
-			const rect = tooltipObj.container.getBoundingClientRect();
-			const newLeft = event.clientX - offsetX;
-			const newTop = event.clientY - offsetY;
-			const maxLeft = Math.max(0, window.innerWidth - rect.width);
-			const maxTop = Math.max(0, window.innerHeight - rect.height);
-			tooltipObj.container.style.left = `${Math.min(Math.max(0, newLeft), maxLeft)}px`;
-			tooltipObj.container.style.top = `${Math.min(Math.max(0, newTop), maxTop)}px`;
-		};
-
-		const onMouseUp = () => {
-			if (!isDragging) return;
-			isDragging = false;
-			document.removeEventListener('mousemove', onMouseMove);
-			document.removeEventListener('mouseup', onMouseUp);
-		};
-
-		handleElement.addEventListener('mousedown', (event) => {
-			// Only left-click drag on pinned tooltips; ignore clicks on interactive elements
-			if (event.button !== 0) return;
-			if (!tooltipObj.isPinned) return;
-			if (event.target.closest('button, a')) return;
-
-			isDragging = true;
-			const rect = tooltipObj.container.getBoundingClientRect();
-			offsetX = event.clientX - rect.left;
-			offsetY = event.clientY - rect.top;
-			document.addEventListener('mousemove', onMouseMove);
-			document.addEventListener('mouseup', onMouseUp);
-			event.preventDefault();
-		});
-	}
-
-	/**
-	 * Toggle pin state of tooltip
-	 * @param {Object} tooltipObj Tooltip object
-	 * @private
-	 */
-	_togglePin(tooltipObj) {
-		tooltipObj.isPinned = !tooltipObj.isPinned;
-		const pinBtn = tooltipObj.tooltip.querySelector('.tooltip-pin-btn');
-		const dragHandle = tooltipObj.dragHandle;
-
-		if (tooltipObj.isPinned) {
-			tooltipObj.tooltip.classList.add('pinned');
-			pinBtn.classList.add('active');
-			pinBtn.title = 'Unpin tooltip';
-			if (dragHandle) dragHandle.style.display = 'flex';
-			tooltipObj.container.style.pointerEvents = 'auto';
-		} else {
-			tooltipObj.tooltip.classList.remove('pinned');
-			pinBtn.classList.remove('active');
-			pinBtn.title = 'Pin tooltip (Ctrl+P)';
-			if (dragHandle) dragHandle.style.display = 'none';
+/**
+ * Hide the most recent tooltip (unless pinned)
+ */
+function hideTooltip() {
+	if (tooltips.length === 0) return;
+	for (let i = tooltips.length - 1; i >= 0; i--) {
+		const tooltipObj = tooltips[i];
+		if (!tooltipObj.isPinned) {
+			_closeTooltip(tooltipObj);
+			return;
 		}
 	}
+}
 
-	/**
-	 * Copy tooltip content to clipboard
-	 * @param {Object} tooltipObj Tooltip object
-	 * @private
-	 */
-	// Copy tooltip content is disabled (button removed)
-	async _copyTooltipContent() { }
-
-	/**
-	 * Close specific tooltip
-	 * @param {Object} tooltipObj Tooltip object
-	 * @private
-	 */
-	_closeTooltip(tooltipObj) {
-		const index = this._tooltips.indexOf(tooltipObj);
-		if (index !== -1) {
-			this._tooltips.splice(index, 1);
-		}
-
+/**
+ * Hide all tooltips (including pinned)
+ */
+function hideAllTooltips() {
+	const tooltipsToClose = [...tooltips];
+	tooltips = [];
+	tooltipsToClose.forEach((tooltipObj) => {
 		tooltipObj.tooltip.classList.remove('show');
 		tooltipObj.tooltip.classList.add('hide');
-
 		setTimeout(() => {
 			if (tooltipObj.container.parentNode) {
 				tooltipObj.container.parentNode.removeChild(tooltipObj.container);
 			}
 		}, 200);
-	}
+	});
+}
 
-	/**
-	 * Show tooltip at position with data
-	 * @param {number} x X coordinate
-	 * @param {number} y Y coordinate
-	 * @param {string} content Content to display
-	 * @param {Object} options Additional options
-	 */
-	show(x, y, content, options = {}) {
-		// Create new tooltip
-		const tooltipObj = this._createTooltip();
-
-		// Insert content after the action buttons
-		const contentWrapper = document.createElement('div');
-		contentWrapper.innerHTML = content;
-		tooltipObj.tooltip.appendChild(contentWrapper);
-
-		tooltipObj.tooltip.classList.add('show');
-
-		// Store reference key for circular reference detection (but not for circular warning tooltips)
-		if (options.referenceKey && !options.isCircular) {
-			tooltipObj.referenceKey = options.referenceKey;
+/**
+ * Setup keyboard shortcuts for tooltips
+ * @private
+ */
+function _setupKeyboardShortcuts() {
+	document.addEventListener('keydown', (e) => {
+		const activeTooltip = tooltips[tooltips.length - 1];
+		if (!activeTooltip) return;
+		if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+			e.preventDefault();
+			_togglePin(activeTooltip);
 		}
-
-		// Add to stack
-		this._tooltips.push(tooltipObj);
-
-		// Wait for next frame to get accurate dimensions
-		requestAnimationFrame(() => {
-			const tooltipRect = tooltipObj.tooltip.getBoundingClientRect();
-			const viewportWidth = window.innerWidth;
-			const viewportHeight = window.innerHeight;
-
-			let left = x + 10;
-			let top = y + 10;
-
-			// Check right boundary
-			if (left + tooltipRect.width > viewportWidth) {
-				left = x - tooltipRect.width - 10;
-				// If still off-screen on left, align to right edge
-				if (left < 0) {
-					left = viewportWidth - tooltipRect.width - 10;
-				}
-			}
-
-			// Check bottom boundary
-			if (top + tooltipRect.height > viewportHeight) {
-				top = y - tooltipRect.height - 10;
-				// If still off-screen on top, align to bottom edge
-				if (top < 0) {
-					top = viewportHeight - tooltipRect.height - 10;
-				}
-			}
-
-			// Ensure minimum margins
-			left = Math.max(
-				10,
-				Math.min(left, viewportWidth - tooltipRect.width - 10),
-			);
-			top = Math.max(
-				10,
-				Math.min(top, viewportHeight - tooltipRect.height - 10),
-			);
-
-			tooltipObj.container.style.left = `${left}px`;
-			tooltipObj.container.style.top = `${top}px`;
-		});
-	}
-
-	/**
-	 * Hide the most recent tooltip (unless pinned)
-	 */
-	hide() {
-		if (this._tooltips.length === 0) return;
-
-		// Find the last unpinned tooltip
-		for (let i = this._tooltips.length - 1; i >= 0; i--) {
-			const tooltipObj = this._tooltips[i];
-			if (!tooltipObj.isPinned) {
-				this._closeTooltip(tooltipObj);
-				return;
-			}
-		}
-	}
-
-	/**
-	 * Hide all tooltips (including pinned)
-	 */
-	hideAll() {
-		const tooltipsToClose = [...this._tooltips];
-		this._tooltips = [];
-
-		tooltipsToClose.forEach((tooltipObj) => {
-			tooltipObj.tooltip.classList.remove('show');
-			tooltipObj.tooltip.classList.add('hide');
-
-			setTimeout(() => {
-				if (tooltipObj.container.parentNode) {
-					tooltipObj.container.parentNode.removeChild(tooltipObj.container);
-				}
-			}, 200);
-		});
-	}
-
-	/**
-	 * Setup keyboard shortcuts for tooltips
-	 * @private
-	 */
-	_setupKeyboardShortcuts() {
-		document.addEventListener('keydown', (e) => {
-			// Get the active (last) tooltip
-			const activeTooltip = this._tooltips[this._tooltips.length - 1];
-			if (!activeTooltip) return;
-
-			// Ctrl+P or Cmd+P: Pin/Unpin
-			if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+		if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.target.matches('input, textarea')) {
+			const selection = window.getSelection();
+			if (!selection || selection.toString().length === 0) {
 				e.preventDefault();
-				this._togglePin(activeTooltip);
-			}
-
-			// Ctrl+C or Cmd+C: Copy (only if not in input field)
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				e.key === 'c' &&
-				!e.target.matches('input, textarea')
-			) {
-				const selection = window.getSelection();
-				if (!selection || selection.toString().length === 0) {
-					e.preventDefault();
-					this._copyTooltipContent(activeTooltip);
-				}
-			}
-
-			// Escape: Close tooltip
-			if (e.key === 'Escape') {
-				if (activeTooltip.isPinned) {
-					this._closeTooltip(activeTooltip);
-				} else {
-					this.hide();
-				}
-			}
-		});
-	}
-
-	/**
-	 * Load and display tooltip for a reference
-	 * @param {string} type Reference type (spell, item, etc)
-	 * @param {string} name Reference name
-	 * @param {string} source Source abbreviation
-	 * @param {number} x X coordinate
-	 * @param {number} y Y coordinate
-	 */
-	async showReference(type, name, source, x, y) {
-		if (!this._referenceResolver) {
-			this.show(x, y, `<strong>${name}</strong>`);
-			return;
-		}
-
-		// Check if this reference is already open in the tooltip stack (prevent circular references)
-		// Normalize name for comparison (lowercase, remove special chars)
-		const normalizedName = name.toLowerCase().replace(/['']/g, "'").trim();
-		const referenceKey = `${type}:${normalizedName}`;
-
-		const isAlreadyOpen = this._tooltips.some((t) => {
-			if (!t.referenceKey) return false;
-			// Compare type and name only, ignore source as it might differ
-			const existingKey = t.referenceKey.split(':').slice(0, 2).join(':');
-			Logger.info(
-				'TooltipSystem',
-				`Comparing "${referenceKey}" with "${existingKey}"`,
-			);
-			return existingKey === referenceKey;
-		});
-
-		if (isAlreadyOpen) {
-			Logger.info(
-				'TooltipSystem',
-				`Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`,
-			);
-			return;
-		}
-
-		try {
-			Logger.info('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
-			let data = null;
-
-			switch (type) {
-				case 'spell':
-					data = await this._referenceResolver.resolveSpell(name, source);
-					break;
-				case 'item':
-					data = await this._referenceResolver.resolveItem(name, source);
-					break;
-				case 'condition':
-					data = await this._referenceResolver.resolveCondition(name);
-					break;
-				case 'monster':
-					data = await this._referenceResolver.resolveMonster(name, source);
-					break;
-				case 'class':
-					data = await this._referenceResolver.resolveClass(name, source);
-					break;
-				case 'race':
-					data = await this._referenceResolver.resolveRace(name, source);
-					break;
-				case 'feat':
-					data = await this._referenceResolver.resolveFeat(name, source);
-					break;
-				case 'background':
-					data = await this._referenceResolver.resolveBackground(name, source);
-					break;
-				case 'skill':
-					data = await this._referenceResolver.resolveSkill(name);
-					break;
-				case 'action':
-					data = await this._referenceResolver.resolveAction(name);
-					break;
-				case 'creature':
-					// creature is an alias for monster
-					data = await this._referenceResolver.resolveMonster(name, source);
-					break;
-				case 'optionalfeature':
-					data = await this._referenceResolver.resolveOptionalFeature(name);
-					break;
-				case 'reward':
-					data = await this._referenceResolver.resolveReward(name);
-					break;
-				case 'trap':
-				case 'hazard':
-					data = await this._referenceResolver.resolveTrap(name);
-					break;
-				case 'vehicle':
-					data = await this._referenceResolver.resolveVehicle(name);
-					break;
-				case 'object':
-					data = await this._referenceResolver.resolveObject(name);
-					break;
-				default:
-					data = { name, type };
-			}
-
-			const content = this._formatTooltip(data);
-			Logger.info('TooltipSystem', `Resolved ${type}: ${name}`, data);
-			this.show(x, y, content, { referenceKey });
-		} catch (error) {
-			Logger.error(`[TooltipSystem] Error showing tooltip for ${type}:`, error);
-			this.show(
-				x,
-				y,
-				`<strong>${name}</strong><br><small>Error loading details</small>`,
-			);
-		}
-	}
-
-	/**
-	 * Format tooltip content from data
-	 * @param {Object} data Data object
-	 * @returns {string} HTML content
-	 */
-	_formatTooltip(data) {
-		if (!data) {
-			return '<em>No data available</em>';
-		}
-
-		if (data.error) {
-			return `<strong>${data.name}</strong><br><small>${data.error}</small>`;
-		}
-
-		// Use enhanced stat block renderer based on data type
-		// Check for spell (has level property)
-		if (data.level !== undefined) {
-			return StatBlockRenderer.renderSpell(data);
-		}
-
-		// Check for item (has type or weapon property)
-		if (data.type || data.weapon || data.armor || data.rarity) {
-			return StatBlockRenderer.renderItem(data);
-		}
-
-		// Check for race (has size and speed but not weapon)
-		if ((data.size || data.speed) && !data.weapon && !data.hd) {
-			return StatBlockRenderer.renderRace(data);
-		}
-
-		// Check for class (has hd property)
-		if (data.hd) {
-			return StatBlockRenderer.renderClass(data);
-		}
-
-		// Check for feat (has prerequisite)
-		if (data.prerequisite) {
-			return StatBlockRenderer.renderFeat(data);
-		}
-
-		// Check for background (has skillProficiencies)
-		if (data.skillProficiencies) {
-			return StatBlockRenderer.renderBackground(data);
-		}
-
-		// Check for skill (has ability string but not class-like properties)
-		if (
-			data.ability &&
-			typeof data.ability === 'string' &&
-			!data.hd &&
-			data.level === undefined
-		) {
-			return StatBlockRenderer.renderSkill(data);
-		}
-
-		// Check for action (has time array)
-		if (data.time && Array.isArray(data.time)) {
-			return StatBlockRenderer.renderAction(data);
-		}
-
-		// Check for optional feature (has featureType)
-		if (data.featureType) {
-			return StatBlockRenderer.renderOptionalFeature(data);
-		}
-
-		// Check for reward (has type and is a reward)
-		if (
-			data.type &&
-			(data.type.includes('Charm') ||
-				data.type.includes('Piety') ||
-				data.type.includes('Blessing'))
-		) {
-			return StatBlockRenderer.renderReward(data);
-		}
-
-		// Check for trap/hazard (has trapHazType)
-		if (data.trapHazType) {
-			return StatBlockRenderer.renderTrap(data);
-		}
-
-		// Check for vehicle (has vehicleType)
-		if (data.vehicleType) {
-			return StatBlockRenderer.renderVehicle(data);
-		}
-
-		// Check for object (has ac and hp, but not a creature)
-		if (data.ac && data.hp && !data.cr) {
-			return StatBlockRenderer.renderObject(data);
-		}
-
-		// Check for condition (if none of the above, assume condition if it has entries)
-		if (data.entries) {
-			return StatBlockRenderer.renderCondition(data);
-		}
-
-		// Fallback to legacy rendering
-
-		let html = '';
-
-		// Title
-		html += `<div class="tooltip-title">${data.name || 'Unknown'}</div>`;
-
-		// Spell-specific formatting
-		if (data.level !== undefined) {
-			const levelName = data.level === 0 ? 'Cantrip' : `Level ${data.level}`;
-			const school = data.school ? ` ${data.school}` : '';
-			html += `<div class="tooltip-metadata">${levelName}${school}</div>`;
-
-			if (data.time || data.range || data.components || data.duration) {
-				html += '<div class="tooltip-casting-details">';
-				if (data.time?.[0]) {
-					html += `<strong>Casting Time:</strong><span>${data.time[0].number || 1} ${data.time[0].unit || 'action'}</span>`;
-				}
-				if (data.range?.distance) {
-					const range = data.range.distance.amount
-						? `${data.range.distance.amount} ${data.range.distance.type}`
-						: data.range.distance.type;
-					html += `<strong>Range:</strong><span>${range}</span>`;
-				}
-				if (data.components) {
-					const comp = [];
-					if (data.components.v) comp.push('V');
-					if (data.components.s) comp.push('S');
-					if (data.components.m)
-						comp.push(`M (${data.components.m.text || data.components.m})`);
-					html += `<strong>Components:</strong><span>${comp.join(', ')}</span>`;
-				}
-				if (data.duration?.[0]) {
-					const dur = data.duration[0];
-					const durText =
-						dur.type === 'instant'
-							? 'Instantaneous'
-							: dur.concentration
-								? `Concentration, ${dur.duration?.amount || ''} ${dur.duration?.type || ''}`
-								: `${dur.duration?.amount || ''} ${dur.duration?.type || dur.type}`;
-					html += `<strong>Duration:</strong><span>${durText}</span>`;
-				}
-				html += '</div>';
+				_copyTooltipContent(activeTooltip);
 			}
 		}
-
-		// Race-specific formatting
-		if (data.ability || data.size || data.speed) {
-			html += '<div class="tooltip-metadata">';
-			if (data.size && Array.isArray(data.size)) {
-				html += `<strong>Size:</strong> ${data.size.join(', ')}<br>`;
-			} else if (data.size) {
-				html += `<strong>Size:</strong> ${data.size}<br>`;
-			}
-			if (data.speed?.walk) {
-				html += `<strong>Speed:</strong> ${data.speed.walk} ft.<br>`;
-			}
-			if (data.ability && Array.isArray(data.ability)) {
-				const abilities = data.ability
-					.map((ab) => {
-						const abilityStr = Object.entries(ab)
-							.map(([key, val]) => {
-								if (key === 'choose') return '';
-								return `${key.toUpperCase()} ${val > 0 ? '+' : ''}${val}`;
-							})
-							.filter((s) => s)
-							.join(', ');
-						return abilityStr;
-					})
-					.filter((s) => s);
-				if (abilities.length > 0) {
-					html += `<strong>Ability Score Increase:</strong> ${abilities.join(', ')}<br>`;
-				}
-			}
-			html += '</div>';
-		}
-
-		// Item-specific formatting
-		if (data.type || data.rarity || data.weight || data.weapon) {
-			html += '<div class="tooltip-metadata">';
-
-			// Weapon-specific
-			if (data.weapon) {
-				if (data.weaponCategory) {
-					html += `<strong>Type:</strong> ${data.weaponCategory} weapon<br>`;
-				}
-				if (data.dmg1) {
-					html += `<strong>Damage:</strong> ${data.dmg1}`;
-					if (data.dmgType) {
-						html += ` ${data.dmgType}`;
-					}
-					if (data.dmg2) {
-						html += ` (${data.dmg2} versatile)`;
-					}
-					html += '<br>';
-				}
-				if (data.property && data.property.length > 0) {
-					html += `<strong>Properties:</strong> ${data.property.join(', ')}<br>`;
-				}
+		if (e.key === 'Escape') {
+			if (activeTooltip.isPinned) {
+				_closeTooltip(activeTooltip);
 			} else {
-				if (data.type) {
-					html += `<strong>Type:</strong> ${data.type}<br>`;
-				}
+				hideTooltip();
 			}
-
-			if (data.rarity && data.rarity !== 'none') {
-				html += `<strong>Rarity:</strong> ${data.rarity}<br>`;
-			}
-			if (data.weight) {
-				html += `<strong>Weight:</strong> ${data.weight} lb.<br>`;
-			}
-			if (data.value) {
-				html += `<strong>Value:</strong> ${data.value / 100} gp<br>`;
-			}
-			html += '</div>';
 		}
+	});
+}
 
-		// Class-specific formatting
-		if (data.hd) {
-			html += '<div class="tooltip-metadata">';
-			html += `<strong>Hit Die:</strong> d${data.hd.faces}<br>`;
-
-			// Saving throws
-			if (data.proficiency && Array.isArray(data.proficiency)) {
-				const saves = data.proficiency.map((p) => p.toUpperCase()).join(', ');
-				html += `<strong>Saving Throws:</strong> ${saves}<br>`;
-			}
-
-			// Starting proficiencies
-			if (data.startingProficiencies) {
-				if (data.startingProficiencies.armor) {
-					// Render armor proficiencies (may contain tags)
-					const armorStr = data.startingProficiencies.armor.join(', ');
-					const renderedArmor = getStringRenderer().render(armorStr);
-					html += `<strong>Armor:</strong> ${renderedArmor}<br>`;
-				}
-				if (data.startingProficiencies.weapons) {
-					// Render weapon proficiencies (may contain tags or objects)
-					const weaponsParts = data.startingProficiencies.weapons
-						.map((w) => {
-							if (typeof w === 'string') {
-								return w;
-							} else if (typeof w === 'object' && w.proficiency) {
-								// Handle objects like {proficiency: "firearms", optional: true}
-								return w.optional
-									? `${w.proficiency} (optional)`
-									: w.proficiency;
-							}
-							return '';
-						})
-						.filter(Boolean);
-					const weaponsStr = weaponsParts.join(', ');
-					const renderedWeapons = getStringRenderer().render(weaponsStr);
-					html += `<strong>Weapons:</strong> ${renderedWeapons}<br>`;
-				}
-			}
-
-			// Spellcasting
-			if (data.spellcastingAbility) {
-				html += `<strong>Spellcasting Ability:</strong> ${data.spellcastingAbility.toUpperCase()}<br>`;
-			}
-
-			html += '</div>';
+/**
+ * Load and display tooltip for a reference
+ * @param {string} type Reference type (spell, item, etc)
+ * @param {string} name Reference name
+ * @param {string} source Source abbreviation
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ */
+async function showReferenceTooltip(type, name, source, x, y) {
+	if (!referenceResolver) {
+		showTooltip(x, y, `<strong>${name}</strong>`);
+		return;
+	}
+	Logger.info('TooltipSystem', `[showReferenceTooltip] type:`, type, 'name:', name, 'source:', source);
+	const normalizedName = name.toLowerCase().replace(/['']/g, "'").trim();
+	const referenceKey = `${type}:${normalizedName}`;
+	const isAlreadyOpen = tooltips.some((t) => {
+		if (!t.referenceKey) return false;
+		const existingKey = t.referenceKey.split(':').slice(0, 2).join(':');
+		Logger.info('TooltipSystem', `Comparing "${referenceKey}" with "${existingKey}"`);
+		return existingKey === referenceKey;
+	});
+	if (isAlreadyOpen) {
+		Logger.info('TooltipSystem', `Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`);
+		return;
+	}
+	try {
+		Logger.info('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
+		let data = null;
+		switch (type) {
+			case 'spell': data = await referenceResolver.resolveSpell(name, source); break;
+			case 'item': data = await referenceResolver.resolveItem(name, source); break;
+			case 'condition': data = await referenceResolver.resolveCondition(name); break;
+			case 'monster': data = await referenceResolver.resolveMonster(name, source); break;
+			case 'class': data = await referenceResolver.resolveClass(name, source); break;
+			case 'race': data = await referenceResolver.resolveRace(name, source); break;
+			case 'feat': data = await referenceResolver.resolveFeat(name, source); break;
+			case 'background': data = await referenceResolver.resolveBackground(name, source); break;
+			case 'skill': data = await referenceResolver.resolveSkill(name); break;
+			case 'action': data = await referenceResolver.resolveAction(name); break;
+			case 'creature': data = await referenceResolver.resolveMonster(name, source); break;
+			case 'optionalfeature': data = await referenceResolver.resolveOptionalFeature(name); break;
+			case 'reward': data = await referenceResolver.resolveReward(name); break;
+			case 'trap': case 'hazard': data = await referenceResolver.resolveTrap(name); break;
+			case 'vehicle': data = await referenceResolver.resolveVehicle(name); break;
+			case 'object': data = await referenceResolver.resolveObject(name); break;
+			default: data = { name, type };
 		}
-
-		// Skill-specific formatting
-		if (
-			data.ability &&
-			typeof data.ability === 'string' &&
-			!data.hd &&
-			!data.level
-		) {
-			// Check it's a skill (has ability string but not a spell/class)
-			html += '<div class="tooltip-metadata">';
-			html += `<strong>Ability:</strong> ${data.ability.toUpperCase()}<br>`;
-			html += '</div>';
-		}
-
-		// Action-specific formatting
-		if (data.time && Array.isArray(data.time)) {
-			html += '<div class="tooltip-metadata">';
-			const timeStr = data.time.map((t) => `${t.number} ${t.unit}`).join(', ');
-			html += `<strong>Time:</strong> ${timeStr}<br>`;
-			html += '</div>';
-		}
-
-		// Condition/Feat-specific
-		if (data.prerequisite) {
-			html += `<div class="tooltip-metadata"><strong>Prerequisite:</strong> ${JSON.stringify(data.prerequisite)}</div>`;
-		}
-
-		// Description/Entries
-		if (data.entries && Array.isArray(data.entries)) {
-			html += '<div class="tooltip-description">';
-			for (let i = 0; i < Math.min(data.entries.length, 5); i++) {
-				const entry = data.entries[i];
-				if (typeof entry === 'string') {
-					const text =
-						entry.length > 200 ? `${entry.substring(0, 200)}...` : entry;
-					// Render tags in the entry text
-					const renderedText = getStringRenderer().render(text);
-					html += `<p>${renderedText}</p>`;
-				} else if (entry.type === 'list' && entry.items) {
-					// Handle list entries (common in conditions and backgrounds)
-					// Don't render list-hang-notitle style (used for proficiency lists at top of backgrounds)
-					if (entry.style === 'list-hang-notitle') {
-						// Skip these - they're formatting lists that shouldn't appear in tooltips
-						continue;
-					}
-					html += '<ul style="margin: 4px 0; padding-left: 20px;">';
-					for (let j = 0; j < Math.min(entry.items.length, 5); j++) {
-						const item = entry.items[j];
-						let itemText = '';
-						if (typeof item === 'string') {
-							itemText = item;
-						} else if (item.type === 'item' && item.entry) {
-							// Handle {type: "item", name: "...", entry: "..."} format
-							itemText = item.entry;
-						}
-						const renderedItem = getStringRenderer().render(itemText);
-						html += `<li>${renderedItem}</li>`;
-					}
-					html += '</ul>';
-				} else if (entry.type === 'entries') {
-					// Handle nested entries
-					if (entry.name) {
-						html += `<p><strong>${entry.name}:</strong> `;
-					}
-					if (entry.entries && Array.isArray(entry.entries)) {
-						for (let j = 0; j < Math.min(entry.entries.length, 3); j++) {
-							const subEntry = entry.entries[j];
-							if (typeof subEntry === 'string') {
-								const renderedText = getStringRenderer().render(subEntry);
-								html += `${renderedText} `;
-							}
-						}
-					}
-					if (entry.name) {
-						html += `</p>`;
-					}
-				}
-			}
-			html += '</div>';
-		}
-
-		// Source
-		if (data.source) {
-			const page = data.page ? ` p. ${data.page}` : '';
-			html += `<div class="tooltip-source">${data.source}${page}</div>`;
-		}
-
-		return html;
+		Logger.info('TooltipSystem', `[showReferenceTooltip] resolver result:`, data);
+		const content = _formatTooltip(data);
+		Logger.info('TooltipSystem', `Resolved ${type}: ${name}`, data);
+		showTooltip(x, y, content, { referenceKey });
+	} catch (error) {
+		Logger.error(`[TooltipSystem] Error showing tooltip for ${type}:`, error);
+		showTooltip(x, y, `<strong>${name}</strong><br><small>Error loading details</small>`);
 	}
 }
 
 /**
+ * Format tooltip content from data
+ */
+function _formatTooltip(data) {
+	if (!data) {
+		return '<em>No data available</em>';
+	}
+	if (data.error) {
+		return `<strong>${data.name}</strong><br><small>${data.error}</small>`;
+	}
+	if (data.level !== undefined) {
+		return StatBlockRenderer.renderSpell(data);
+	}
+	if (data.type || data.weapon || data.armor || data.rarity) {
+		return StatBlockRenderer.renderItem(data);
+	}
+	if ((data.size || data.speed) && !data.weapon && !data.hd) {
+		return StatBlockRenderer.renderRace(data);
+	}
+	if (data.hd) {
+		return StatBlockRenderer.renderClass(data);
+	}
+	if (data.prerequisite) {
+		return StatBlockRenderer.renderFeat(data);
+	}
+	if (data.skillProficiencies) {
+		return StatBlockRenderer.renderBackground(data);
+	}
+	if (
+		data.ability &&
+		typeof data.ability === 'string' &&
+		!data.hd &&
+		data.level === undefined
+	) {
+		return StatBlockRenderer.renderSkill(data);
+	}
+	if (data.time && Array.isArray(data.time)) {
+		return StatBlockRenderer.renderAction(data);
+	}
+	if (data.featureType) {
+		return StatBlockRenderer.renderOptionalFeature(data);
+	}
+	if (
+		data.type &&
+		(data.type.includes('Charm') ||
+			data.type.includes('Piety') ||
+			data.type.includes('Blessing'))
+	) {
+		return StatBlockRenderer.renderReward(data);
+	}
+	if (data.trapHazType) {
+		return StatBlockRenderer.renderTrap(data);
+	}
+	if (data.vehicleType) {
+		return StatBlockRenderer.renderVehicle(data);
+	}
+	if (data.ac && data.hp && !data.cr) {
+		return StatBlockRenderer.renderObject(data);
+	}
+	if (data.entries) {
+		return StatBlockRenderer.renderCondition(data);
+	}
+	let html = '';
+	html += `<div class="tooltip-title">${data.name || 'Unknown'}</div>`;
+	if (data.level !== undefined) {
+		const levelName = data.level === 0 ? 'Cantrip' : `Level ${data.level}`;
+		const school = data.school ? ` ${data.school}` : '';
+		html += `<div class="tooltip-metadata">${levelName}${school}</div>`;
+		if (data.time || data.range || data.components || data.duration) {
+			html += '<div class="tooltip-casting-details">';
+			if (data.time?.[0]) {
+				html += `<strong>Casting Time:</strong><span>${data.time[0].number || 1} ${data.time[0].unit || 'action'}</span>`;
+			}
+			if (data.range?.distance) {
+				const range = data.range.distance.amount
+					? `${data.range.distance.amount} ${data.range.distance.type}`
+					: data.range.distance.type;
+				html += `<strong>Range:</strong><span>${range}</span>`;
+			}
+			if (data.components) {
+				const comp = [];
+				if (data.components.v) comp.push('V');
+				if (data.components.s) comp.push('S');
+				if (data.components.m)
+					comp.push(`M (${data.components.m.text || data.components.m})`);
+				html += `<strong>Components:</strong><span>${comp.join(', ')}</span>`;
+			}
+			if (data.duration?.[0]) {
+				const dur = data.duration[0];
+				const durText =
+					dur.type === 'instant'
+						? 'Instantaneous'
+						: dur.concentration
+							? `Concentration, ${dur.duration?.amount || ''} ${dur.duration?.type || ''}`
+							: `${dur.duration?.amount || ''} ${dur.duration?.type || dur.type}`;
+				html += `<strong>Duration:</strong><span>${durText}</span>`;
+			}
+			html += '</div>';
+		}
+	}
+	if (data.ability || data.size || data.speed) {
+		html += '<div class="tooltip-metadata">';
+		if (data.size && Array.isArray(data.size)) {
+			html += `<strong>Size:</strong> ${data.size.join(', ')}<br>`;
+		} else if (data.size) {
+			html += `<strong>Size:</strong> ${data.size}<br>`;
+		}
+		if (data.speed?.walk) {
+			html += `<strong>Speed:</strong> ${data.speed.walk} ft.<br>`;
+		}
+		if (data.ability && Array.isArray(data.ability)) {
+			const abilities = data.ability
+				.map((ab) => {
+					const abilityStr = Object.entries(ab)
+						.map(([key, val]) => {
+							if (key === 'choose') return '';
+							return `${key.toUpperCase()} ${val > 0 ? '+' : ''}${val}`;
+						})
+						.filter((s) => s)
+						.join(', ');
+					return abilityStr;
+				})
+				.filter((s) => s);
+			if (abilities.length > 0) {
+				html += `<strong>Ability Score Increase:</strong> ${abilities.join(', ')}<br>`;
+			}
+		}
+		html += '</div>';
+	}
+	return html;
+}
+
+
+/**
  * Initialize tooltip event listeners for all hover links
  */
-export function initializeTooltipListeners(tooltipManager) {
+export function initializeTooltipListeners() {
 	Logger.info('TooltipSystem', 'Initializing event listeners');
-
-	// Track active link and tooltip for each depth level
-	const activeElements = new Map(); // depth -> {link, tooltip, timeout}
+	const activeElements = new Map();
 	let currentHoverLink = null;
-
 	const HOVER_SELECTOR = '.rd__hover-link, .reference-link';
-
-	// Normalizes metadata so both rd__hover-link and reference-link work
 	function getHoverMeta(link) {
 		if (!link) return null;
 		const hoverType = link.dataset.hoverType || link.dataset.tooltipType;
-		const hoverName =
-			link.dataset.hoverName ||
-			link.dataset.tooltipName ||
-			link.textContent?.trim();
-		const hoverSource =
-			link.dataset.hoverSource || link.dataset.tooltipSource || 'PHB';
+		const hoverName = link.dataset.hoverName || link.dataset.tooltipName || link.textContent?.trim();
+		const hoverSource = link.dataset.hoverSource || link.dataset.tooltipSource || 'PHB';
 		if (!hoverType || !hoverName) return null;
 		return { hoverType, hoverName, hoverSource };
 	}
-
-	// Helper to check if mouse is in tooltip system
 	function isInTooltipSystem(element) {
 		if (!element) return false;
-		// Check if element itself or any parent is part of tooltip system
-		const inTooltip =
-			element.classList?.contains('tooltip-container') ||
-			element.classList?.contains('tooltip') ||
-			element.closest('.tooltip-container') !== null;
-		const inLink =
-			element.classList?.contains('rd__hover-link') ||
-			element.classList?.contains('reference-link') ||
-			element.closest('.rd__hover-link') !== null ||
-			element.closest('.reference-link') !== null;
+		const inTooltip = element.classList?.contains('tooltip-container') || element.classList?.contains('tooltip') || element.closest('.tooltip-container') !== null;
+		const inLink = element.classList?.contains('rd__hover-link') || element.classList?.contains('reference-link') || element.closest('.rd__hover-link') !== null || element.closest('.reference-link') !== null;
 		return inTooltip || inLink;
 	}
-
-	// Use event delegation for hover links
 	document.addEventListener('mouseover', (event) => {
 		const link = event.target.closest(HOVER_SELECTOR);
 		const hoverMeta = getHoverMeta(link);
 		if (!hoverMeta) return;
-
 		const { hoverType, hoverName, hoverSource } = hoverMeta;
-
-		// Find which tooltip contains this link (if any)
 		const parentTooltip = link.closest('.tooltip-container');
 		let linkTooltipIndex = -1;
-
 		if (parentTooltip) {
-			// Find the index of the tooltip containing this link
-			linkTooltipIndex = tooltipManager._tooltips.findIndex(
-				(t) => t.container === parentTooltip,
-			);
+			linkTooltipIndex = tooltips.findIndex((t) => t.container === parentTooltip);
 		}
-
-		// The new tooltip will be added after the one containing the link
 		const keepUpToIndex = linkTooltipIndex + 1;
 		const newTooltipDepth = keepUpToIndex;
-
-		// Check if tooltip already exists at this depth for this link
-		const existingTooltipAtDepth = tooltipManager._tooltips[newTooltipDepth];
-		const _shouldCreateTooltip =
-			!existingTooltipAtDepth || link !== currentHoverLink;
-
-		// If hovering same link AND tooltip still exists, do nothing
+		const existingTooltipAtDepth = tooltips[newTooltipDepth];
 		if (link === currentHoverLink && existingTooltipAtDepth) {
 			return;
 		}
-
 		currentHoverLink = link;
 		Logger.info('TooltipSystem', `Hovering over: ${hoverType} - ${hoverName}`);
-
 		if (parentTooltip) {
-			Logger.info(
-				'TooltipSystem',
-				`Link is in tooltip at index: ${linkTooltipIndex}`,
-			);
+			Logger.info('TooltipSystem', `Link is in tooltip at index: ${linkTooltipIndex}`);
 		} else {
 			Logger.info('TooltipSystem', 'Link is not in a tooltip (base level)');
 		}
-
-		Logger.info(
-			'TooltipSystem',
-			`Current stack size: ${tooltipManager._tooltips.length}, keeping up to index: ${keepUpToIndex}`,
-		);
-
-		// Remove tooltips after the one containing the link, but keep pinned ones
-		while (tooltipManager._tooltips.length > keepUpToIndex) {
-			const lastTooltip =
-				tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
-			// Stop trimming if we hit a pinned tooltip to preserve user-pinned content
+		Logger.info('TooltipSystem', `Current stack size: ${tooltips.length}, keeping up to index: ${keepUpToIndex}`);
+		while (tooltips.length > keepUpToIndex) {
+			const lastTooltip = tooltips[tooltips.length - 1];
 			if (lastTooltip.isPinned) {
-				Logger.info(
-					'TooltipSystem',
-					`Stopped removing at pinned tooltip index ${tooltipManager._tooltips.length - 1}`,
-				);
+				Logger.info('TooltipSystem', `Stopped removing at pinned tooltip index ${tooltips.length - 1}`);
 				break;
 			}
-
-			const removed = tooltipManager._tooltips.pop();
-			Logger.info(
-				'TooltipSystem',
-				`Removing tooltip at index ${tooltipManager._tooltips.length}`,
-			);
+			const removed = tooltips.pop();
+			Logger.info('TooltipSystem', `Removing tooltip at index ${tooltips.length}`);
 			if (removed.container.parentNode) {
 				removed.container.parentNode.removeChild(removed.container);
 			}
 		}
-
-		// Clear any pending timeouts for this depth and deeper
 		activeElements.forEach((value, depth) => {
 			if (depth >= newTooltipDepth && value.timeout) {
 				clearTimeout(value.timeout);
 			}
 		});
-
 		if (hoverType && hoverName) {
-			const startCount = tooltipManager._tooltips.length;
-
-			// Check if inline content is provided (e.g., for traits and features)
+			const startCount = tooltips.length;
 			const inlineContent = link.dataset.hoverContent;
 			if (inlineContent && (hoverType === 'trait' || hoverType === 'feature')) {
-				// Show tooltip with inline content using tooltip-title styling
 				const typeLabel = hoverType === 'trait' ? 'Racial Trait' : 'Feature';
 				const html = `
 					<div class="tooltip-content" data-type="${hoverType}">
@@ -932,77 +547,38 @@ export function initializeTooltipListeners(tooltipManager) {
 						</div>
 					</div>
 				`;
-				tooltipManager.show(event.clientX, event.clientY, html);
+				showTooltip(event.clientX, event.clientY, html);
 			} else {
-				// Show tooltip by resolving reference
-				tooltipManager.showReference(
-					hoverType,
-					hoverName,
-					hoverSource,
-					event.clientX,
-					event.clientY,
-				);
+				showReferenceTooltip(hoverType, hoverName, hoverSource, event.clientX, event.clientY);
 			}
-
-			// Track the newly created tooltip
-			if (tooltipManager._tooltips.length > startCount) {
-				const newTooltip =
-					tooltipManager._tooltips[tooltipManager._tooltips.length - 1]
-						.container;
-				activeElements.set(newTooltipDepth, {
-					link,
-					tooltip: newTooltip,
-					timeout: null,
-				});
-				Logger.info(
-					'TooltipSystem',
-					`Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltipManager._tooltips.length}`,
-				);
+			if (tooltips.length > startCount) {
+				const newTooltip = tooltips[tooltips.length - 1].container;
+				activeElements.set(newTooltipDepth, { link, tooltip: newTooltip, timeout: null });
+				Logger.info('TooltipSystem', `Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltips.length}`);
 			}
 		}
 	});
 
-	// Track global hide timeout
 	let globalHideTimeout = null;
-
-	// Global mouseout handler
 	document.addEventListener('mouseout', (event) => {
 		const fromElement = event.target;
 		const toElement = event.relatedTarget;
-
-		// If moving within tooltip system, check if we need to remove deeper tooltips
 		if (isInTooltipSystem(fromElement) && isInTooltipSystem(toElement)) {
-			// Find which tooltip we're moving FROM and TO
 			const fromTooltip = fromElement.closest('.tooltip-container');
 			const toTooltip = toElement.closest('.tooltip-container');
-
-			// If moving from a deeper tooltip to a shallower one (or to a link in a shallower tooltip)
 			if (fromTooltip && fromTooltip !== toTooltip) {
-				const fromIndex = tooltipManager._tooltips.findIndex(
-					(t) => t.container === fromTooltip,
-				);
-				const toIndex = toTooltip
-					? tooltipManager._tooltips.findIndex((t) => t.container === toTooltip)
-					: -1;
-
-				// If we're moving to a shallower tooltip (or out of nested tooltip entirely)
+				const fromIndex = tooltips.findIndex((t) => t.container === fromTooltip);
+				const toIndex = toTooltip ? tooltips.findIndex((t) => t.container === toTooltip) : -1;
 				if (fromIndex > toIndex) {
-					Logger.info(
-						'TooltipSystem',
-						`Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`,
-					);
-
-					// Remove tooltips deeper than where we're going (unless pinned)
+					Logger.info('TooltipSystem', `Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`);
 					const keepUpToIndex = toIndex + 1;
 					setTimeout(() => {
-						while (tooltipManager._tooltips.length > keepUpToIndex) {
-							const lastTooltip =
-								tooltipManager._tooltips[tooltipManager._tooltips.length - 1];
-							// Don't remove if pinned
+						while (tooltips.length > keepUpToIndex) {
+							const lastTooltip = tooltips[tooltips.length - 1];
 							if (lastTooltip.isPinned) {
 								break;
 							}
-							const removed = tooltipManager._tooltips.pop();
+							const removed = tooltips.pop();
 							removed.tooltip.classList.remove('show');
 							removed.tooltip.classList.add('hide');
 							setTimeout(() => {
@@ -1011,28 +587,20 @@ export function initializeTooltipListeners(tooltipManager) {
 								}
 							}, 200);
 						}
-					}, 150); // Small delay to prevent flickering
+					}, 150);
 				}
 			}
 			return;
 		}
-
-		// If leaving tooltip system entirely
 		if (isInTooltipSystem(fromElement) && !isInTooltipSystem(toElement)) {
-			Logger.info(
-				'TooltipSystem',
-				'Left tooltip system, hiding unpinned tooltips',
-			);
-
-			// Clear unpinned tooltips after delay
+			Logger.info('TooltipSystem', 'Left tooltip system, hiding unpinned tooltips');
 			globalHideTimeout = setTimeout(() => {
 				currentHoverLink = null;
 				activeElements.clear();
-				// Only remove unpinned tooltips
-				for (let i = tooltipManager._tooltips.length - 1; i >= 0; i--) {
-					const tooltip = tooltipManager._tooltips[i];
+				for (let i = tooltips.length - 1; i >= 0; i--) {
+					const tooltip = tooltips[i];
 					if (!tooltip.isPinned) {
-						tooltipManager._tooltips.splice(i, 1);
+						tooltips.splice(i, 1);
 						tooltip.tooltip.classList.remove('show');
 						tooltip.tooltip.classList.add('hide');
 						setTimeout(() => {
@@ -1046,13 +614,9 @@ export function initializeTooltipListeners(tooltipManager) {
 			}, 300);
 		}
 	});
-
-	// Cancel hide when entering tooltip system
 	document.addEventListener('mouseover', (event) => {
 		const enteringElement = event.target;
-
 		if (isInTooltipSystem(enteringElement)) {
-			// Cancel pending hide timeout
 			if (globalHideTimeout) {
 				Logger.info('TooltipSystem', 'Canceling hide timer');
 				clearTimeout(globalHideTimeout);
@@ -1070,32 +634,32 @@ export function initializeTooltipListeners(tooltipManager) {
  * @returns {{tooltipManager: TooltipManager, upgraded: Element[]}}
  */
 export function initializeTooltips(root = document) {
-	const tooltipManager = getTooltipManager();
-	initializeTooltipListeners(tooltipManager);
-
+	initializeTooltipListeners();
 	const upgraded = [];
 	if (root?.querySelectorAll) {
 		root.querySelectorAll('.reference-link').forEach((link) => {
+			// Add rd__hover-link class for styling/compatibility
 			if (!link.classList.contains('rd__hover-link')) {
 				link.classList.add('rd__hover-link');
+			}
+			// Copy data-tooltip-type/name to data-hover-type/name if not present
+			if (!link.hasAttribute('data-hover-type') && link.hasAttribute('data-tooltip-type')) {
+				link.setAttribute('data-hover-type', link.getAttribute('data-tooltip-type'));
+			}
+			if (!link.hasAttribute('data-hover-name') && link.hasAttribute('data-tooltip-name')) {
+				link.setAttribute('data-hover-name', link.getAttribute('data-tooltip-name'));
+			}
+			if (!link.hasAttribute('data-hover-source') && link.hasAttribute('data-tooltip-source')) {
+				link.setAttribute('data-hover-source', link.getAttribute('data-tooltip-source'));
 			}
 			upgraded.push(link);
 		});
 	}
-
-	return { tooltipManager, upgraded };
+	return { upgraded };
 }
 
-// Singleton instance
-let _tooltipManagerInstance = null;
 
-export function getTooltipManager() {
-	if (!_tooltipManagerInstance) {
-		_tooltipManagerInstance = new TooltipManager();
-	}
-	return _tooltipManagerInstance;
-}
-
-// Re-export rendering components for convenience
+// Exported API (functional, no singleton)
 export { getReferenceResolver } from './ReferenceResolver.js';
-export { getStringRenderer, getTagProcessor } from './TagProcessor.js';
+export { getStringRenderer } from './TagProcessor.js';
+export { hideAllTooltips, hideTooltip, showReferenceTooltip, showTooltip };

@@ -1,294 +1,230 @@
 /** Preference storage/validation for the main process. */
 
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { MainLogger } from './MainLogger.js';
 
-export class PreferencesManager {
-	constructor(app) {
-		this.app = app;
-		this.preferencesPath = path.join(
-			app.getPath('userData'),
-			'preferences.json',
-		);
+let preferencesPath;
+let defaults;
+let store;
 
-		// Default preferences
-		this.defaults = {
-			characterSavePath: path.join(
-				app.getPath('documents'),
-				'Fizbanes Forge',
-				'characters',
-			),
-			dataSourceType: null, // 'url' or 'local'
-			dataSourceValue: null, // URL or file path
-			dataSourceCachePath: null, // Local cache path for downloaded URL sources
-			lastOpenedCharacter: null,
-			windowBounds: { width: 1200, height: 800, x: null, y: null },
-			theme: 'auto',
-			logLevel: 'INFO',
-			autoSave: true,
-			autoSaveInterval: 60,
-		};
+/**
+ * Initialize preferences module with Electron app instance.
+ * Call this once at startup.
+ */
+export function initPreferences(app) {
+	preferencesPath = path.join(app.getPath('userData'), 'preferences.json');
+	defaults = {
+		characterSavePath: path.join(app.getPath('documents'), 'Fizbanes Forge', 'characters'),
+		dataSourceType: null, // 'url' or 'local'
+		dataSourceValue: null, // URL or file path
+		dataSourceCachePath: null, // Local cache path for downloaded URL sources
+		lastOpenedCharacter: null,
+		windowBounds: { width: 1200, height: 800, x: null, y: null },
+		theme: 'auto',
+		logLevel: 'INFO',
+		autoSave: true,
+		autoSaveInterval: 60,
+	};
+	store = loadPreferences();
+}
 
-		// Load preferences from file
-		this.store = this.loadPreferences();
 
-		MainLogger.info(
-			'PreferencesManager',
-			'Initialized with store:',
-			this.preferencesPath,
-		);
+function loadPreferences() {
+	try {
+		if (fs.existsSync(preferencesPath)) {
+			const data = fs.readFileSync(preferencesPath, 'utf8');
+			const parsed = JSON.parse(data);
+			const merged = { ...defaults, ...parsed };
+			return validateStore(merged);
+		}
+	} catch (error) {
+		MainLogger.error('PreferencesManager', 'Error loading preferences:', error);
 	}
+	return { ...defaults };
+}
 
-	loadPreferences() {
-		try {
-			if (fs.existsSync(this.preferencesPath)) {
-				const data = fs.readFileSync(this.preferencesPath, 'utf8');
-				const parsed = JSON.parse(data);
-				const merged = { ...this.defaults, ...parsed };
-				return this.validateStore(merged);
-			}
-		} catch (error) {
-			MainLogger.error(
-				'PreferencesManager',
-				'Error loading preferences:',
-				error,
-			);
-		}
-		return { ...this.defaults };
+
+function savePreferences() {
+	try {
+		// Atomic write: write to temp file then rename
+		const tmpPath = `${preferencesPath}.tmp`;
+		fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2));
+		fs.renameSync(tmpPath, preferencesPath);
+	} catch (error) {
+		MainLogger.error('PreferencesManager', 'Error saving preferences:', error);
 	}
+}
 
-	savePreferences() {
-		try {
-			// Atomic write: write to temp file then rename
-			const tmpPath = `${this.preferencesPath}.tmp`;
-			fs.writeFileSync(tmpPath, JSON.stringify(this.store, null, 2));
-			fs.renameSync(tmpPath, this.preferencesPath);
-		} catch (error) {
-			MainLogger.error(
-				'PreferencesManager',
-				'Error saving preferences:',
-				error,
-			);
+
+function validateStore(s) {
+	const out = { ...defaults };
+	// characterSavePath: string
+	if (typeof s.characterSavePath === 'string' && s.characterSavePath) {
+		out.characterSavePath = s.characterSavePath;
+	}
+	// lastOpenedCharacter: string|null
+	if (s.lastOpenedCharacter === null || (typeof s.lastOpenedCharacter === 'string' && s.lastOpenedCharacter)) {
+		out.lastOpenedCharacter = s.lastOpenedCharacter;
+	}
+	// windowBounds: object with numbers or null
+	const wb = s.windowBounds;
+	if (wb && typeof wb === 'object') {
+		const width = Number.parseInt(wb.width, 10);
+		const height = Number.parseInt(wb.height, 10);
+		const x = wb.x == null ? null : Number.parseInt(wb.x, 10);
+		const y = wb.y == null ? null : Number.parseInt(wb.y, 10);
+		if (Number.isFinite(width) && Number.isFinite(height)) {
+			out.windowBounds = {
+				width,
+				height,
+				x: Number.isFinite(x) ? x : null,
+				y: Number.isFinite(y) ? y : null,
+			};
 		}
 	}
-
-	/** Validate and coerce a preferences object to known defaults. */
-	validateStore(store) {
-		const out = { ...this.defaults };
-		// characterSavePath: string
-		if (
-			typeof store.characterSavePath === 'string' &&
-			store.characterSavePath
-		) {
-			out.characterSavePath = store.characterSavePath;
-		}
-		// lastOpenedCharacter: string|null
-		if (
-			store.lastOpenedCharacter === null ||
-			(typeof store.lastOpenedCharacter === 'string' &&
-				store.lastOpenedCharacter)
-		) {
-			out.lastOpenedCharacter = store.lastOpenedCharacter;
-		}
-		// windowBounds: object with numbers or null
-		const wb = store.windowBounds;
-		if (wb && typeof wb === 'object') {
-			const width = Number.parseInt(wb.width, 10);
-			const height = Number.parseInt(wb.height, 10);
-			const x = wb.x == null ? null : Number.parseInt(wb.x, 10);
-			const y = wb.y == null ? null : Number.parseInt(wb.y, 10);
-			if (Number.isFinite(width) && Number.isFinite(height)) {
-				out.windowBounds = {
-					width,
-					height,
-					x: Number.isFinite(x) ? x : null,
-					y: Number.isFinite(y) ? y : null,
-				};
-			}
-		}
-		// theme: 'auto' | 'light' | 'dark'
-		if (['auto', 'light', 'dark'].includes(store.theme)) {
-			out.theme = store.theme;
-		}
-		// logLevel: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
-		if (['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(store.logLevel)) {
-			out.logLevel = store.logLevel;
-		}
-		// autoSave: boolean
-		if (typeof store.autoSave === 'boolean') {
-			out.autoSave = store.autoSave;
-		}
-		// autoSaveInterval: positive integer seconds
-		const asi = Number.parseInt(store.autoSaveInterval, 10);
-		if (Number.isFinite(asi) && asi > 0 && asi <= 3600) {
-			out.autoSaveInterval = asi;
-		}
-		// dataSourceType: 'url' | 'local' | null
-		if (
-			store.dataSourceType === null ||
-			store.dataSourceType === 'url' ||
-			store.dataSourceType === 'local'
-		) {
-			out.dataSourceType = store.dataSourceType;
-		}
-		// dataSourceValue: string | null
-		if (
-			store.dataSourceValue === null ||
-			(typeof store.dataSourceValue === 'string' && store.dataSourceValue)
-		) {
-			out.dataSourceValue = store.dataSourceValue;
-		}
-		// dataSourceCachePath: string | null
-		if (
-			store.dataSourceCachePath === null ||
-			(typeof store.dataSourceCachePath === 'string' &&
-				store.dataSourceCachePath)
-		) {
-			out.dataSourceCachePath = store.dataSourceCachePath;
-		}
-		return out;
+	// theme: 'auto' | 'light' | 'dark'
+	if (['auto', 'light', 'dark'].includes(s.theme)) {
+		out.theme = s.theme;
 	}
-
-	/** Validate and set a single preference key. */
-	set(key, value) {
-		MainLogger.info('PreferencesManager', `Set: ${key} =`, value);
-		const validated = this._validateKeyValue(key, value);
-		this.store[key] = validated;
-		this.savePreferences();
+	// logLevel: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
+	if (['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(s.logLevel)) {
+		out.logLevel = s.logLevel;
 	}
+	// autoSave: boolean
+	if (typeof s.autoSave === 'boolean') {
+		out.autoSave = s.autoSave;
+	}
+	// autoSaveInterval: positive integer seconds
+	const asi = Number.parseInt(s.autoSaveInterval, 10);
+	if (Number.isFinite(asi) && asi > 0 && asi <= 3600) {
+		out.autoSaveInterval = asi;
+	}
+	// dataSourceType: 'url' | 'local' | null
+	if (s.dataSourceType === null || s.dataSourceType === 'url' || s.dataSourceType === 'local') {
+		out.dataSourceType = s.dataSourceType;
+	}
+	// dataSourceValue: string | null
+	if (s.dataSourceValue === null || (typeof s.dataSourceValue === 'string' && s.dataSourceValue)) {
+		out.dataSourceValue = s.dataSourceValue;
+	}
+	// dataSourceCachePath: string | null
+	if (s.dataSourceCachePath === null || (typeof s.dataSourceCachePath === 'string' && s.dataSourceCachePath)) {
+		out.dataSourceCachePath = s.dataSourceCachePath;
+	}
+	return out;
+}
 
-	_validateKeyValue(key, value) {
-		switch (key) {
-			case 'characterSavePath':
-				return typeof value === 'string' && value
-					? value
-					: this.defaults.characterSavePath;
-			case 'lastOpenedCharacter':
-				return value === null || (typeof value === 'string' && value)
-					? value
-					: null;
-			case 'windowBounds': {
-				if (value && typeof value === 'object') {
-					const width = Number.parseInt(value.width, 10);
-					const height = Number.parseInt(value.height, 10);
-					const x = value.x == null ? null : Number.parseInt(value.x, 10);
-					const y = value.y == null ? null : Number.parseInt(value.y, 10);
-					if (Number.isFinite(width) && Number.isFinite(height)) {
-						return {
-							width,
-							height,
-							x: Number.isFinite(x) ? x : null,
-							y: Number.isFinite(y) ? y : null,
-						};
-					}
+
+function validateKeyValue(key, value) {
+	switch (key) {
+		case 'characterSavePath':
+			return typeof value === 'string' && value ? value : defaults.characterSavePath;
+		case 'lastOpenedCharacter':
+			return value === null || (typeof value === 'string' && value) ? value : null;
+		case 'windowBounds': {
+			if (value && typeof value === 'object') {
+				const width = Number.parseInt(value.width, 10);
+				const height = Number.parseInt(value.height, 10);
+				const x = value.x == null ? null : Number.parseInt(value.x, 10);
+				const y = value.y == null ? null : Number.parseInt(value.y, 10);
+				if (Number.isFinite(width) && Number.isFinite(height)) {
+					return {
+						width,
+						height,
+						x: Number.isFinite(x) ? x : null,
+						y: Number.isFinite(y) ? y : null,
+					};
 				}
-				return this.defaults.windowBounds;
 			}
-			case 'theme':
-				return ['auto', 'light', 'dark'].includes(value)
-					? value
-					: this.defaults.theme;
-			case 'logLevel':
-				return ['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(value)
-					? value
-					: this.defaults.logLevel;
-			case 'autoSave':
-				return typeof value === 'boolean' ? value : this.defaults.autoSave;
-			case 'autoSaveInterval': {
-				const asi = Number.parseInt(value, 10);
-				return Number.isFinite(asi) && asi > 0 && asi <= 3600
-					? asi
-					: this.defaults.autoSaveInterval;
-			}
-			case 'dataSourceType':
-				return value === null || value === 'url' || value === 'local'
-					? value
-					: this.defaults.dataSourceType;
-			case 'dataSourceValue':
-				return value === null || (typeof value === 'string' && value)
-					? value
-					: this.defaults.dataSourceValue;
-			case 'dataSourceCachePath':
-				return value === null || (typeof value === 'string' && value)
-					? value
-					: this.defaults.dataSourceCachePath;
-			default:
-				return value;
+			return defaults.windowBounds;
 		}
-	}
-
-	/** Get a preference value with optional default. */
-	get(key, defaultValue = undefined) {
-		const value =
-			this.store[key] !== undefined ? this.store[key] : defaultValue;
-		MainLogger.info('PreferencesManager', `Get: ${key} =`, value);
-		return value;
-	}
-
-	/** Delete a preference key. */
-	delete(key) {
-		MainLogger.info('PreferencesManager', `Delete: ${key}`);
-		delete this.store[key];
-		this.savePreferences();
-	}
-
-	/** Check if a preference key exists. */
-	has(key) {
-		return Object.hasOwn(this.store, key);
-	}
-
-	/** Return a shallow copy of all preferences. */
-	getAll() {
-		return { ...this.store };
-	}
-
-	/** Reset the store to defaults and persist. */
-	clear() {
-		MainLogger.info('PreferencesManager', 'Clearing all preferences');
-		this.store = { ...this.defaults };
-		this.savePreferences();
-	}
-
-	/** Get the character save path, creating it if missing. */
-	getCharacterSavePath() {
-		const savePath = this.get('characterSavePath');
-
-		// Ensure directory exists
-		if (!fs.existsSync(savePath)) {
-			fs.mkdirSync(savePath, { recursive: true });
-			MainLogger.info(
-				'PreferencesManager',
-				'Created character save directory:',
-				savePath,
-			);
+		case 'theme':
+			return ['auto', 'light', 'dark'].includes(value) ? value : defaults.theme;
+		case 'logLevel':
+			return ['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(value) ? value : defaults.logLevel;
+		case 'autoSave':
+			return typeof value === 'boolean' ? value : defaults.autoSave;
+		case 'autoSaveInterval': {
+			const asi = Number.parseInt(value, 10);
+			return Number.isFinite(asi) && asi > 0 && asi <= 3600 ? asi : defaults.autoSaveInterval;
 		}
-
-		return savePath;
+		case 'dataSourceType':
+			return value === null || value === 'url' || value === 'local' ? value : defaults.dataSourceType;
+		case 'dataSourceValue':
+			return value === null || (typeof value === 'string' && value) ? value : defaults.dataSourceValue;
+		case 'dataSourceCachePath':
+			return value === null || (typeof value === 'string' && value) ? value : defaults.dataSourceCachePath;
+		default:
+			return value;
 	}
+}
 
-	/** Get window bounds with fallback defaults. */
-	getWindowBounds() {
-		return this.get('windowBounds', {
-			width: 1200,
-			height: 800,
-			x: null,
-			y: null,
-		});
-	}
 
-	/** Persist window bounds. */
-	setWindowBounds(bounds) {
-		this.set('windowBounds', bounds);
-	}
+export function setPreference(key, value) {
+	const validated = validateKeyValue(key, value);
+	store[key] = validated;
+	savePreferences();
+}
 
-	/** Get the last opened character path (if any). */
-	getLastOpenedCharacter() {
-		return this.get('lastOpenedCharacter');
-	}
+export function getPreference(key, defaultValue = undefined) {
+	return store[key] !== undefined ? store[key] : defaultValue;
+}
 
-	/** Set the last opened character path. */
-	setLastOpenedCharacter(characterPath) {
-		this.set('lastOpenedCharacter', characterPath);
+
+export function deletePreference(key) {
+	delete store[key];
+	savePreferences();
+}
+
+
+export function hasPreference(key) {
+	return Object.hasOwn(store, key);
+}
+
+
+export function getAllPreferences() {
+	return { ...store };
+}
+
+
+export function clearPreferences() {
+	store = { ...defaults };
+	savePreferences();
+}
+
+
+export function getCharacterSavePath() {
+	const savePath = getPreference('characterSavePath');
+	// Ensure directory exists
+	if (!fs.existsSync(savePath)) {
+		fs.mkdirSync(savePath, { recursive: true });
 	}
+	return savePath;
+}
+
+
+export function getWindowBounds() {
+	return getPreference('windowBounds', {
+		width: 1200,
+		height: 800,
+		x: null,
+		y: null,
+	});
+}
+
+
+export function setWindowBounds(bounds) {
+	setPreference('windowBounds', bounds);
+}
+
+
+export function getLastOpenedCharacter() {
+	return getPreference('lastOpenedCharacter');
+}
+
+
+export function setLastOpenedCharacter(characterPath) {
+	setPreference('lastOpenedCharacter', characterPath);
 }

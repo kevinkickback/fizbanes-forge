@@ -1,19 +1,31 @@
+import { registerCharacterHandlers } from './ipc/handlers/CharacterHandlers.js';
+import { registerDataHandlers } from './ipc/handlers/DataHandlers.js';
+import { registerFileHandlers } from './ipc/handlers/FileHandlers.js';
+import { registerSettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 /** Electron application entry point. */
 
 import { app } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { IPCRegistry } from './ipc/IPCRegistry.js';
 import { MainLogger } from './MainLogger.js';
-import { PreferencesManager } from './PreferencesManager.js';
-import { WindowManager } from './WindowManager.js';
+import {
+	clearPreferences,
+	getAllPreferences,
+	getCharacterSavePath,
+	getLastOpenedCharacter,
+	getPreference,
+	getWindowBounds,
+	initPreferences,
+	setLastOpenedCharacter,
+	setPreference,
+	setWindowBounds
+} from './PreferencesManager.js';
+import { createMainWindow, getMainWindow } from './WindowManager.js';
 
 // Debug mode - controlled via environment variable `FF_DEBUG`
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
 
-let windowManager;
-let preferencesManager;
-let ipcRegistry;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rendererRoot = path.join(__dirname, '..', 'renderer');
@@ -21,23 +33,44 @@ const rendererRoot = path.join(__dirname, '..', 'renderer');
 app.whenReady().then(() => {
 	MainLogger.info('App', 'Application ready');
 
-	// Initialize managers
-	preferencesManager = new PreferencesManager(app);
-	windowManager = new WindowManager(
-		preferencesManager,
-		{
-			rendererPath: rendererRoot,
-			preloadPath: path.join(__dirname, 'preload.cjs'),
-		},
-		DEBUG_MODE,
-	);
-	ipcRegistry = new IPCRegistry(preferencesManager, windowManager);
+	// Initialize preferences
+	initPreferences(app);
 
-	// Register all IPC handlers
-	ipcRegistry.registerAll();
+
+	// Register all IPC handlers directly
+	registerCharacterHandlers({
+		get: getPreference,
+		set: setPreference,
+		getWindowBounds,
+		setWindowBounds,
+		getCharacterSavePath,
+		getLastOpenedCharacter,
+		setLastOpenedCharacter,
+		getAllPreferences,
+		clearPreferences
+	}, { getMainWindow });
+	registerFileHandlers({ getMainWindow });
+	registerSettingsHandlers({
+		get: getPreference,
+		set: setPreference,
+		getAll: getAllPreferences
+	});
+	registerDataHandlers({
+		get: getPreference,
+		set: setPreference,
+		app
+	});
 
 	// Create main window
-	windowManager.createMainWindow();
+	mainWindow = createMainWindow({
+		preferencesManager: {
+			getWindowBounds,
+			setWindowBounds,
+		},
+		rendererPath: rendererRoot,
+		preloadPath: path.join(__dirname, 'preload.cjs'),
+		debugMode: DEBUG_MODE,
+	});
 
 	MainLogger.info('App', 'Application initialized');
 });
@@ -51,8 +84,17 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
 	MainLogger.info('App', 'Application activated');
-	if (!windowManager.hasWindow()) {
-		windowManager.createMainWindow();
+	const win = getMainWindow();
+	if (!win || win.isDestroyed()) {
+		mainWindow = createMainWindow({
+			preferencesManager: {
+				getWindowBounds,
+				setWindowBounds,
+			},
+			rendererPath: rendererRoot,
+			preloadPath: path.join(__dirname, 'preload.cjs'),
+			debugMode: DEBUG_MODE,
+		});
 	}
 });
 

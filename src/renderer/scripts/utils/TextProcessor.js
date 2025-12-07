@@ -10,10 +10,7 @@
 
 import { Logger } from '../infrastructure/Logger.js';
 import { getStringRenderer } from './TagProcessor.js';
-import {
-	getTooltipManager,
-	initializeTooltipListeners,
-} from './TooltipManager.js';
+import { initializeTooltipListeners } from './TooltipManager.js';
 
 /** Processes text content, handling references and formatting for static/dynamic content. */
 class TextProcessor {
@@ -89,8 +86,7 @@ class TextProcessor {
 	async initialize() {
 		try {
 			// Initialize tooltip system
-			const tooltipManager = getTooltipManager();
-			initializeTooltipListeners(tooltipManager);
+			initializeTooltipListeners();
 
 			// Set up mutation observer to process dynamically added content
 			this._observer = new MutationObserver((mutations) => {

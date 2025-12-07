@@ -9,6 +9,8 @@ class ItemService {
 	/** Initialize a new ItemManager. */
 	constructor() {
 		this._itemData = null;
+		this._itemLookupMap = null; // Map for O(1) item lookups
+		this._baseItemLookupMap = null; // Map for O(1) base item lookups
 	}
 
 	/**
@@ -46,6 +48,19 @@ class ItemService {
 				baseItem: baseItems.baseitem || [],
 			};
 
+			// Build lookup maps for O(1) access
+			this._itemLookupMap = new Map();
+			for (const item of this._itemData.item || []) {
+				const key = item.name.toLowerCase();
+				this._itemLookupMap.set(key, item);
+			}
+
+			this._baseItemLookupMap = new Map();
+			for (const baseItem of this._itemData.baseItem || []) {
+				const key = baseItem.name.toLowerCase();
+				this._baseItemLookupMap.set(key, baseItem);
+			}
+
 			eventBus.emit(EVENTS.ITEMS_LOADED, this._itemData.item);
 			return true;
 		} catch (error) {
@@ -78,12 +93,24 @@ class ItemService {
 	 * @returns {Object|null} Item object or null if not found
 	 */
 	getItem(name, source = 'DMG') {
-		if (!this._itemData?.item) return null;
+		if (!this._itemLookupMap) return null;
 
-		return (
-			this._itemData.item.find((i) => i.name === name && i.source === source) ||
-			null
-		);
+		// O(1) lookup by name (case-insensitive)
+		const item = this._itemLookupMap.get(name.toLowerCase());
+
+		// Verify source if found
+		if (item && item.source === source) {
+			return item;
+		}
+
+		// Fall back to linear search if exact source needed
+		if (item && item.source !== source && this._itemData?.item) {
+			return this._itemData.item.find(
+				(i) => i.name === name && i.source === source
+			) || item;
+		}
+
+		return item || null;
 	}
 
 	/**
@@ -93,13 +120,24 @@ class ItemService {
 	 * @returns {Object|null} Base item object or null if not found
 	 */
 	getBaseItem(name, source = 'PHB') {
-		if (!this._itemData?.baseItem) return null;
+		if (!this._baseItemLookupMap) return null;
 
-		return (
-			this._itemData.baseItem.find(
-				(bi) => bi.name === name && bi.source === source,
-			) || null
-		);
+		// O(1) lookup by name (case-insensitive)
+		const baseItem = this._baseItemLookupMap.get(name.toLowerCase());
+
+		// Verify source if found
+		if (baseItem && baseItem.source === source) {
+			return baseItem;
+		}
+
+		// Fall back to linear search if exact source needed
+		if (baseItem && baseItem.source !== source && this._itemData?.baseItem) {
+			return this._itemData.baseItem.find(
+				(bi) => bi.name === name && bi.source === source
+			) || baseItem;
+		}
+
+		return baseItem || null;
 	}
 
 	/**
