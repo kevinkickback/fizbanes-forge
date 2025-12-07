@@ -295,50 +295,73 @@ class PageHandlerImpl {
 				const characterClass = character.class?.name || 'No Class';
 				const characterRace = character.race?.name || 'No Race';
 				const characterLevel = character.level || character.class?.level || 1;
+				const subclassNameRaw = character.class?.subclass;
+				const subclassName =
+					typeof subclassNameRaw === 'string'
+						? subclassNameRaw
+						: subclassNameRaw?.name || subclassNameRaw?.title || subclassNameRaw?.id;
+				const classDisplay = subclassName
+					? `${subclassName} - ${characterClass}`
+					: characterClass;
+				const portraitUrl =
+					character.portrait || character.image || character.avatar || '';
 				const lastModified = character.lastModified
 					? new Date(character.lastModified).toLocaleDateString()
 					: 'Unknown';
 
 				return `
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
-                        <div class="active-profile-badge">Active Character</div>
-                        <div class="card-body">
-                            <div class="character-info">
-                                <h5 class="card-title">${character.name || 'Unnamed Character'}</h5>
-                                <div class="character-details">
-                                    <div class="detail-item">
-                                        <i class="fas fa-crown me-2"></i>
-                                        <span>Level ${characterLevel}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <i class="fas fa-user me-2"></i>
-                                        <span>${characterRace}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <i class="fas fa-hat-wizard me-2"></i>
-                                        <span>${characterClass}</span>
-                                    </div>
-                                </div>
-                                <div class="last-modified">
-                                    <i class="fas fa-clock me-2"></i>
-                                    <span>Last modified: ${lastModified}</span>
-                                </div>
-                            </div>
-                            <div class="card-actions mt-3">
-                                <button class="btn btn-lg btn-outline-secondary export-character" 
-                                        data-character-id="${character.id}" 
-                                        title="Export Character">
-                                    <i class="fas fa-file-export"></i>
-                                </button>
-                                <button class="btn btn-lg btn-outline-danger delete-character" 
-                                        data-character-id="${character.id}" 
-                                        title="Delete Character">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+					<div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
+						<div class="card-header py-2">
+							<h5 class="mb-0">
+								<i class="fas fa-user me-2"></i>
+								${character.name || 'Unnamed Character'}
+							</h5>
+							${isActive ? '<div class="active-profile-badge">Active</div>' : ''}
+						</div>
+						<div class="card-body">
+							<div class="character-main">
+								<div class="character-portrait">
+									${portraitUrl
+						? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
+						: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
+					}
+								</div>
+								<div class="character-info">
+									<div class="character-details">
+										<div class="detail-item">
+											<i class="fas fa-crown me-2"></i>
+											<span>Level ${characterLevel}</span>
+										</div>
+										<div class="detail-item">
+											<i class="fas fa-user-friends me-2"></i>
+											<span>${characterRace}</span>
+										</div>
+										<div class="detail-item">
+											<i class="fas fa-hat-wizard me-2"></i>
+											<span>${classDisplay}</span>
+										</div>
+									</div>
+									<div class="last-modified">
+										<i class="fas fa-clock me-2"></i>
+										<span>Last modified: ${lastModified}</span>
+									</div>
+								</div>
+							</div>
+							<div class="card-actions mt-3">
+								<button class="btn btn-lg btn-outline-secondary export-character" 
+									data-character-id="${character.id}" 
+									title="Export Character">
+									<i class="fas fa-file-export"></i>
+								</button>
+								<button class="btn btn-lg btn-outline-danger delete-character" 
+									data-character-id="${character.id}" 
+									title="Delete Character">
+									<i class="fas fa-trash"></i>
+								</button>
+							</div>
+						</div>
+					</div>
                 </div>
             `;
 			})

@@ -12,10 +12,10 @@
  * @module presentation/Router
  */
 
+import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 import { Logger } from '../infrastructure/Logger.js';
 import { Result } from '../infrastructure/Result.js';
 import { AppState } from './AppState.js';
-import { eventBus, EVENTS } from '../infrastructure/EventBus.js';
 
 class RouterImpl {
 	constructor() {
@@ -151,11 +151,13 @@ Router.register('preview', {
 	title: 'Preview',
 });
 
-Router.register('tooltipTest', {
-	template: 'tooltipTest.html',
-	requiresCharacter: false,
-	title: 'Tooltip Test',
-});
+if (typeof window !== 'undefined' && window.FF_DEBUG === true) {
+	Router.register('tooltipTest', {
+		template: 'tooltipTest.html',
+		requiresCharacter: false,
+		title: 'Tooltip Test',
+	});
+}
 
 Logger.info('Router', 'All routes registered', {
 	routes: Router.getAllRoutes(),

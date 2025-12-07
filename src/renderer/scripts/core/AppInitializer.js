@@ -450,6 +450,17 @@ export async function initializeAll(_options = {}) {
 		errors: [],
 	};
 
+	// Mark body with debug class early so debug-only UI is toggled before loading screen
+	try {
+		if (window.FF_DEBUG === true) {
+			document.body.classList.add('debug-mode');
+		} else {
+			document.body.classList.remove('debug-mode');
+		}
+	} catch (error) {
+		Logger.warn('AppInitializer', 'Unable to set debug body class', error);
+	}
+
 	const loadingModal = new LoadingModal();
 	loadingModal.show('Checking data files...');
 

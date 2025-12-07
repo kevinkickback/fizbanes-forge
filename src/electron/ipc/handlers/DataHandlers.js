@@ -1,29 +1,12 @@
 /**
- * IPC handlers for data source configuration and JSON loading.
- *
- * ARCHITECTURE:
- * - Manages D&D data file sources (local folders or remote URLs)
- * - Maintains current data path in memory, synced from PreferencesManager
- * - Handles download/caching for URL sources
- * - Provides streaming JSON data to renderer services
- *
- * DATA SOURCE TYPES:
- * - local: Absolute path to local data folder
- * - url: Remote repository URL (downloads and caches to userData/cached-data/)
- *
- * FLOW:
- * 1. Renderer calls data:validateSource with type and value
- * 2. Validation occurs (structure check for local, HTTP HEAD for URL)
- * 3. On success, configuration saved to PreferencesManager
- * 4. Renderer calls data:refreshSource on startup to prep current source
- * 5. Services call data:loadJson to fetch individual files
- *
+ * IPC handlers for D&D data sources (local folders or remote URLs with caching).
  * @module src/electron/ipc/handlers/DataHandlers
  */
 
 import { ipcMain } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
 	buildDataManifest,
 	downloadDataFromUrl,
@@ -33,20 +16,14 @@ import {
 import { MainLogger } from '../../MainLogger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
-/**
- * Register all data-related IPC handlers.
- *
- * @param {PreferencesManager} preferencesManager - Preferences instance for storing config
- *
- * HANDLERS REGISTERED:
- * - data:loadJson - Load JSON file content from configured source
- * - data:getSource - Retrieve currently configured data source
- * - data:validateSource - Validate and configure a new data source
- * - data:refreshSource - Refresh/sync current configured source
- * - data:checkDefault - Check if default bundled data exists (legacy, always returns false)
- *
- * @private
- */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEBUG_MODE = process.env.FF_DEBUG === 'true';
+const DEV_DATA_PATH = DEBUG_MODE
+	? path.resolve(__dirname, '..', '..', '..', 'data')
+	: null;
+
+/** Register all data-related IPC handlers. */
 export function registerDataHandlers(preferencesManager) {
 	MainLogger.info('DataHandlers', 'Registering data handlers');
 
@@ -57,15 +34,16 @@ export function registerDataHandlers(preferencesManager) {
 		'cached-data',
 	);
 
-	/**
-	 * Generate a cache directory name from a URL using base64 encoding.
-	 * Ensures unique directory per URL and safe filesystem naming.
-	 *
-	 * @param {string} url - URL to encode
-	 * @returns {string} Safe directory path for cache
-	 *
-	 * @private
-	 */
+	// In debug mode, force local src/data without persisting over user settings
+	if (DEBUG_MODE) {
+		currentDataPath = DEV_DATA_PATH;
+		MainLogger.info(
+			'DataHandlers',
+			`Debug mode enabled; using local data folder (non-persisted): ${DEV_DATA_PATH}`,
+		);
+	}
+
+	/** Build a safe cache directory path from a URL (base64). */
 	const getCachePathForUrl = (url) => {
 		const safeName = Buffer.from(url)
 			.toString('base64')
@@ -76,6 +54,10 @@ export function registerDataHandlers(preferencesManager) {
 	};
 
 	const syncDataPathFromPreferences = () => {
+		if (DEBUG_MODE) {
+			currentDataPath = DEV_DATA_PATH;
+			return;
+		}
 		const type = preferencesManager.get('dataSourceType', null);
 		const value = preferencesManager.get('dataSourceValue', null);
 		const cachePath = preferencesManager.get('dataSourceCachePath', null);
@@ -90,15 +72,7 @@ export function registerDataHandlers(preferencesManager) {
 		currentDataPath = null;
 	};
 
-	/**
-	 * Send download progress update to renderer via IPC.
-	 *
-	 * @param {IpcMainInvokeEvent} [event] - Event for sending updates
-	 * @param {string} status - 'start' | 'progress' | 'complete' | 'error'
-	 * @param {Object} data - Progress data
-	 *
-	 * @private
-	 */
+	/** Send download progress to renderer (start/progress/complete/error). */
 	const sendDownloadProgress = (event, status, data = {}) => {
 		if (event?.sender) {
 			event.sender.send(IPC_CHANNELS.DATA_DOWNLOAD_PROGRESS, {
@@ -108,18 +82,27 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	};
 
-	/**
-	 * Refresh current data source by reading from preferences and syncing state.
-	 * For URL sources: downloads new/changed files to cache.
-	 * For local sources: validates that required files still exist.
-	 *
-	 * @param {IpcMainInvokeEvent} [event] - Optional event for sending progress updates
-	 * @returns {Promise<{success: boolean, error?: string, downloaded?: number, skipped?: number}>}
-	 *
-	 * @private
-	 */
+	/** Refresh current data source (validate local or download/update URL cache). */
 	const refreshCurrentDataSource = async (event) => {
 		try {
+			if (DEBUG_MODE) {
+				sendDownloadProgress(event, 'complete', {
+					total: 0,
+					completed: 0,
+					skipped: 0,
+					file: null,
+					success: true,
+					debugBypass: true,
+				});
+				return {
+					success: true,
+					downloaded: 0,
+					skipped: 0,
+					debugBypass: true,
+					path: currentDataPath,
+				};
+			}
+
 			syncDataPathFromPreferences();
 			const type = preferencesManager.get('dataSourceType', null);
 			const value = preferencesManager.get('dataSourceValue', null);
@@ -236,6 +219,28 @@ export function registerDataHandlers(preferencesManager) {
 	 */
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
 		try {
+			if (DEBUG_MODE) {
+				let normalizedFileName = fileName;
+				if (
+					normalizedFileName.startsWith('src/data/') ||
+					normalizedFileName.startsWith('src/data\\')
+				) {
+					normalizedFileName = normalizedFileName.slice(9);
+				}
+				const filePath = path.join(DEV_DATA_PATH, normalizedFileName);
+				try {
+					const content = await fs.readFile(filePath, 'utf8');
+					return { success: true, data: JSON.parse(content) };
+				} catch (error) {
+					MainLogger.error('DataHandlers', 'Load JSON failed (debug bypass):', {
+						fileName,
+						filePath,
+						error,
+					});
+					return { success: false, error: error.message };
+				}
+			}
+
 			if (!currentDataPath) {
 				return {
 					success: false,
@@ -287,6 +292,14 @@ export function registerDataHandlers(preferencesManager) {
 	 */
 	ipcMain.handle(IPC_CHANNELS.DATA_GET_SOURCE, async () => {
 		try {
+			if (DEBUG_MODE) {
+				return {
+					success: true,
+					type: 'local',
+					value: DEV_DATA_PATH,
+					debugBypass: true,
+				};
+			}
 			const type = preferencesManager.get('dataSourceType', null);
 			const value = preferencesManager.get('dataSourceValue', null);
 
@@ -328,6 +341,15 @@ export function registerDataHandlers(preferencesManager) {
 	 * @returns {Promise<{success: boolean, error?: string}>}
 	 */
 	ipcMain.handle(IPC_CHANNELS.DATA_VALIDATE_SOURCE, async (event, source) => {
+		if (DEBUG_MODE) {
+			return {
+				success: true,
+				type: 'local',
+				value: DEV_DATA_PATH,
+				debugBypass: true,
+			};
+		}
+
 		try {
 			const { type, value } = source;
 
