@@ -1,6 +1,8 @@
 
 /** Handles proficiency selection/deselection with source-specific tracking. */
 
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
+
 /**
  * View component for handling proficiency selection/deselection interactions
  */
@@ -52,6 +54,23 @@ export class ProficiencySelectionView {
 				error,
 			);
 			return false;
+		}
+
+		// Emit event if proficiency was changed
+		if (changed) {
+			if (profItem.classList.contains('optional-selected') || profItem.classList.contains('selected')) {
+				eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_SELECTED, {
+					type: profType,
+					proficiency: proficiency,
+					character: character,
+				});
+			} else {
+				eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_DESELECTED, {
+					type: profType,
+					proficiency: proficiency,
+					character: character,
+				});
+			}
 		}
 
 		return changed;
