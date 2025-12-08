@@ -482,6 +482,16 @@ export class RaceCard {
 			? [...(character.race?.abilityChoices || [])]
 			: [];
 
+		// Capture existing race optional proficiency selections before cleanup so they can be restored
+		const previousRaceOptionalSelections = {
+			skills:
+				character.optionalProficiencies?.skills?.race?.selected?.slice() || [],
+			languages:
+				character.optionalProficiencies?.languages?.race?.selected?.slice() || [],
+			tools:
+				character.optionalProficiencies?.tools?.race?.selected?.slice() || [],
+		};
+
 		// We want to do a more thorough cleanup, so always treat as changed
 		const forceCleanup = true;
 
@@ -594,7 +604,11 @@ export class RaceCard {
 				this._updateRacialTraits(race, subrace);
 
 				// Add proficiencies
-				this._updateRaceProficiencies(race, subrace);
+				this._updateRaceProficiencies(
+					race,
+					subrace,
+					previousRaceOptionalSelections,
+				);
 
 				// Force a refresh after a short delay to ensure everything is updated
 				setTimeout(() => {
@@ -761,17 +775,19 @@ export class RaceCard {
 	 * @param {Object} subrace - Selected subrace
 	 * @private
 	 */
-	_updateRaceProficiencies(race, subrace) {
+	_updateRaceProficiencies(
+		race,
+		subrace,
+		previousRaceOptionalSelections = {},
+	) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !race) return;
 
 		// Store previously selected proficiencies to restore valid ones later
-		const previousRaceSkills =
-			character.optionalProficiencies.skills.race?.selected || [];
+		const previousRaceSkills = previousRaceOptionalSelections.skills || [];
 		const previousRaceLanguages =
-			character.optionalProficiencies.languages.race?.selected || [];
-		const previousRaceTools =
-			character.optionalProficiencies.tools.race?.selected || [];
+			previousRaceOptionalSelections.languages || [];
+		const previousRaceTools = previousRaceOptionalSelections.tools || [];
 
 		// Reset race proficiency options
 		character.optionalProficiencies.skills.race.allowed = 0;
