@@ -13,25 +13,71 @@ export class ProficiencyNotesView {
 	 * @param {Function} getTypeLabel - Function to get type label
 	 */
 	async updateProficiencyNotes(container, character, getTypeLabel) {
-		if (!character || !character.proficiencySources) {
+		if (!character) {
 			container.innerHTML = '';
 			return;
 		}
 
 		// Group proficiencies by type
 		const typeGroups = {};
-		for (const type in character.proficiencySources) {
-			typeGroups[type] = [];
 
-			// Add each proficiency with its source
-			for (const [prof, sources] of character.proficiencySources[
-				type
-			].entries()) {
-				for (const source of sources) {
-					typeGroups[type].push({
-						name: prof,
-						source: source,
-					});
+		// Add fixed proficiencies from proficiencySources
+		if (character.proficiencySources) {
+			for (const type in character.proficiencySources) {
+				if (!typeGroups[type]) {
+					typeGroups[type] = [];
+				}
+
+				// Add each proficiency with its source
+				for (const [prof, sources] of character.proficiencySources[
+					type
+				].entries()) {
+					for (const source of sources) {
+						typeGroups[type].push({
+							name: prof,
+							source: source,
+						});
+					}
+				}
+			}
+		}
+
+		// Add optional proficiencies (languages, skills, tools)
+		if (character.optionalProficiencies) {
+			const optionalTypes = ['languages', 'skills', 'tools'];
+			for (const type of optionalTypes) {
+				const optional = character.optionalProficiencies[type];
+				if (!optional || !optional.selected) continue;
+
+				if (!typeGroups[type]) {
+					typeGroups[type] = [];
+				}
+
+				// Track which source each selected proficiency comes from
+				for (const prof of optional.selected) {
+					const sources = [];
+
+					if (optional.race?.selected?.includes(prof)) {
+						sources.push('Race');
+					}
+					if (optional.class?.selected?.includes(prof)) {
+						sources.push('Class');
+					}
+					if (optional.background?.selected?.includes(prof)) {
+						sources.push('Background');
+					}
+
+					// If no specific source, it's optional/default
+					if (sources.length === 0) {
+						sources.push('Optional');
+					}
+
+					for (const source of sources) {
+						typeGroups[type].push({
+							name: prof,
+							source: source,
+						});
+					}
 				}
 			}
 		}
@@ -86,4 +132,3 @@ export class ProficiencyNotesView {
 		await textProcessor.processElement(container);
 	}
 }
-
