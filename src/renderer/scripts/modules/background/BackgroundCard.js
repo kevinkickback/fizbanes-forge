@@ -484,13 +484,11 @@ export class BackgroundCard extends BaseCard {
 				// Add fixed languages (specific languages set to true)
 				for (const [lang, value] of Object.entries(langEntry)) {
 					if (value === true && lang !== 'choose' && lang !== 'anystandard') {
-						const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
+						const langName = lang.toLowerCase();
 						character.addProficiency('languages', langName, 'Background');
 						fixedLanguages.push(langName);
 					}
-				}
-
-				// Accumulate optional standard language choices (keys normalized to lowercase)
+				}				// Accumulate optional standard language choices (keys normalized to lowercase)
 				if (langEntry.anystandard && langEntry.anystandard > 0) {
 					choiceCount += langEntry.anystandard;
 					// Use full language list for 'anystandard'
@@ -510,9 +508,9 @@ export class BackgroundCard extends BaseCard {
 					choiceCount += count;
 
 					if (from.length > 0) {
-						// Add specific language options, capitalizing first letter
+						// Add specific language options (lowercase to match normalized format)
 						for (const lang of from) {
-							const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
+							const langName = lang.toLowerCase();
 							if (!choiceOptions.includes(langName)) {
 								choiceOptions.push(langName);
 							}
@@ -605,24 +603,24 @@ export class BackgroundCard extends BaseCard {
 	 * @private
 	 */
 	_getAllLanguages() {
-		// Standard D&D 5e languages
+		// Standard D&D 5e languages (lowercase to match normalized save format)
 		return [
-			'Common',
-			'Dwarvish',
-			'Elvish',
-			'Giant',
-			'Gnomish',
-			'Goblin',
-			'Halfling',
-			'Orc',
-			'Abyssal',
-			'Celestial',
-			'Draconic',
-			'Deep Speech',
-			'Infernal',
-			'Primordial',
-			'Sylvan',
-			'Undercommon',
+			'common',
+			'dwarvish',
+			'elvish',
+			'giant',
+			'gnomish',
+			'goblin',
+			'halfling',
+			'orc',
+			'abyssal',
+			'celestial',
+			'draconic',
+			'deep speech',
+			'infernal',
+			'primordial',
+			'sylvan',
+			'undercommon',
 		];
 	}
 

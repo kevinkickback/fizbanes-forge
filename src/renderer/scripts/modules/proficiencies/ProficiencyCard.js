@@ -440,8 +440,11 @@ export class ProficiencyCard {
 	 */
 	async _getAvailableOptions(type) {
 		switch (type) {
-			case 'skills':
-				return this._proficiencyManager.getAvailableSkills();
+			case 'skills': {
+				const allSkills = await this._proficiencyManager.getAvailableSkills();
+				// Return lowercase to match internal format (displayed as title-case in UI)
+				return allSkills.map(skill => String(skill).toLowerCase());
+			}
 			case 'savingThrows':
 				return [
 					'Strength',
@@ -452,28 +455,32 @@ export class ProficiencyCard {
 					'Charisma',
 				];
 			case 'languages': {
+				// Return lowercase to match internal format (displayed as title-case in UI)
 				const availableLanguages = [
-					'Common',
-					'Dwarvish',
-					'Elvish',
-					'Giant',
-					'Gnomish',
-					'Goblin',
-					'Halfling',
-					'Orc',
-					'Abyssal',
-					'Celestial',
-					'Draconic',
-					'Deep Speech',
-					'Infernal',
-					'Primordial',
-					'Sylvan',
-					'Undercommon',
+					'common',
+					'dwarvish',
+					'elvish',
+					'giant',
+					'gnomish',
+					'goblin',
+					'halfling',
+					'orc',
+					'abyssal',
+					'celestial',
+					'draconic',
+					'deep speech',
+					'infernal',
+					'primordial',
+					'sylvan',
+					'undercommon',
 				];
 				return availableLanguages;
 			}
-			case 'tools':
-				return this._proficiencyManager.getAvailableTools();
+			case 'tools': {
+				const allTools = await this._proficiencyManager.getAvailableTools();
+				// Return lowercase to match internal format (displayed as title-case in UI)
+				return allTools.map(tool => String(tool).toLowerCase());
+			}
 			case 'armor':
 				return ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'];
 			case 'weapons':

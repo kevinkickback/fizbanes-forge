@@ -16,6 +16,9 @@ export class Character {
 	 * @param {Object} [data] - Optional character data to initialize with
 	 */
 	constructor(data = {}) {
+		// Normalize proficiencies to lowercase on load for consistency with internal logic
+		Character._normalizeProficienciesInLoadedData(data);
+
 		/**
 		 * Unique identifier for the character
 		 * @type {string|null}
@@ -245,148 +248,10 @@ export class Character {
 		};
 
 		// Use ProficiencyCore to initialize proficiency structures
-		// But first, migrate old save files to normalized format
-		this._migrateSaveFileToNormalized();
-		
 		ProficiencyCore.initializeProficiencyStructures(this);
 	}
 
 	/**
-	 * Migrate old save files to normalized format (lowercase with spaces)
-	 * This ensures backward compatibility when data normalization was added
-	 * @private
-	 */
-	_migrateSaveFileToNormalized() {
-		// Migrate direct proficiencies
-		if (this.proficiencies?.skills && Array.isArray(this.proficiencies.skills)) {
-			this.proficiencies.skills = this.proficiencies.skills.map(skill =>
-				typeof skill === 'string' ? skill.toLowerCase() : skill
-			);
-		}
-
-		if (this.proficiencies?.languages && Array.isArray(this.proficiencies.languages)) {
-			this.proficiencies.languages = this.proficiencies.languages.map(lang =>
-				typeof lang === 'string' ? lang.toLowerCase() : lang
-			);
-		}
-
-		if (this.proficiencies?.tools && Array.isArray(this.proficiencies.tools)) {
-			this.proficiencies.tools = this.proficiencies.tools.map(tool =>
-				typeof tool === 'string' ? tool.toLowerCase() : tool
-			);
-		}
-
-		if (this.proficiencies?.weapons && Array.isArray(this.proficiencies.weapons)) {
-			this.proficiencies.weapons = this.proficiencies.weapons.map(weapon =>
-				typeof weapon === 'string' ? weapon.toLowerCase() : weapon
-			);
-		}
-
-		if (this.proficiencies?.armor && Array.isArray(this.proficiencies.armor)) {
-			this.proficiencies.armor = this.proficiencies.armor.map(armor =>
-				typeof armor === 'string' ? armor.toLowerCase() : armor
-			);
-		}
-
-		// Migrate optional proficiencies
-		if (this.optionalProficiencies?.skills?.selected && Array.isArray(this.optionalProficiencies.skills.selected)) {
-			this.optionalProficiencies.skills.selected = this.optionalProficiencies.skills.selected.map(skill =>
-				typeof skill === 'string' ? skill.toLowerCase() : skill
-			);
-		}
-
-		if (this.optionalProficiencies?.skills?.options && Array.isArray(this.optionalProficiencies.skills.options)) {
-			this.optionalProficiencies.skills.options = this.optionalProficiencies.skills.options.map(skill =>
-				typeof skill === 'string' ? skill.toLowerCase() : skill
-			);
-		}
-
-		// Migrate optional proficiencies by source (race, class, background)
-		const skillSources = ['race', 'class', 'background'];
-		for (const source of skillSources) {
-			if (this.optionalProficiencies?.skills?.[source]?.selected && Array.isArray(this.optionalProficiencies.skills[source].selected)) {
-				this.optionalProficiencies.skills[source].selected = this.optionalProficiencies.skills[source].selected.map(skill =>
-					typeof skill === 'string' ? skill.toLowerCase() : skill
-				);
-			}
-
-			if (this.optionalProficiencies?.skills?.[source]?.options && Array.isArray(this.optionalProficiencies.skills[source].options)) {
-				this.optionalProficiencies.skills[source].options = this.optionalProficiencies.skills[source].options.map(skill =>
-					typeof skill === 'string' ? skill.toLowerCase() : skill
-				);
-			}
-		}
-
-		// Migrate languages
-		if (this.optionalProficiencies?.languages?.selected && Array.isArray(this.optionalProficiencies.languages.selected)) {
-			this.optionalProficiencies.languages.selected = this.optionalProficiencies.languages.selected.map(lang =>
-				typeof lang === 'string' ? lang.toLowerCase() : lang
-			);
-		}
-
-		if (this.optionalProficiencies?.languages?.options && Array.isArray(this.optionalProficiencies.languages.options)) {
-			this.optionalProficiencies.languages.options = this.optionalProficiencies.languages.options.map(lang =>
-				typeof lang === 'string' ? lang.toLowerCase() : lang
-			);
-		}
-
-		// Migrate languages by source
-		for (const source of skillSources) {
-			if (this.optionalProficiencies?.languages?.[source]?.selected && Array.isArray(this.optionalProficiencies.languages[source].selected)) {
-				this.optionalProficiencies.languages[source].selected = this.optionalProficiencies.languages[source].selected.map(lang =>
-					typeof lang === 'string' ? lang.toLowerCase() : lang
-				);
-			}
-
-			if (this.optionalProficiencies?.languages?.[source]?.options && Array.isArray(this.optionalProficiencies.languages[source].options)) {
-				this.optionalProficiencies.languages[source].options = this.optionalProficiencies.languages[source].options.map(lang =>
-					typeof lang === 'string' ? lang.toLowerCase() : lang
-				);
-			}
-		}
-
-		// Migrate tools
-		if (this.optionalProficiencies?.tools?.selected && Array.isArray(this.optionalProficiencies.tools.selected)) {
-			this.optionalProficiencies.tools.selected = this.optionalProficiencies.tools.selected.map(tool =>
-				typeof tool === 'string' ? tool.toLowerCase() : tool
-			);
-		}
-
-		if (this.optionalProficiencies?.tools?.options && Array.isArray(this.optionalProficiencies.tools.options)) {
-			this.optionalProficiencies.tools.options = this.optionalProficiencies.tools.options.map(tool =>
-				typeof tool === 'string' ? tool.toLowerCase() : tool
-			);
-		}
-
-		// Migrate tools by source
-		for (const source of skillSources) {
-			if (this.optionalProficiencies?.tools?.[source]?.selected && Array.isArray(this.optionalProficiencies.tools[source].selected)) {
-				this.optionalProficiencies.tools[source].selected = this.optionalProficiencies.tools[source].selected.map(tool =>
-					typeof tool === 'string' ? tool.toLowerCase() : tool
-				);
-			}
-
-			if (this.optionalProficiencies?.tools?.[source]?.options && Array.isArray(this.optionalProficiencies.tools[source].options)) {
-				this.optionalProficiencies.tools[source].options = this.optionalProficiencies.tools[source].options.map(tool =>
-					typeof tool === 'string' ? tool.toLowerCase() : tool
-				);
-			}
-		}
-
-		// Migrate weapons
-		if (this.optionalProficiencies?.weapons?.selected && Array.isArray(this.optionalProficiencies.weapons.selected)) {
-			this.optionalProficiencies.weapons.selected = this.optionalProficiencies.weapons.selected.map(weapon =>
-				typeof weapon === 'string' ? weapon.toLowerCase() : weapon
-			);
-		}
-
-		// Migrate armor
-		if (this.optionalProficiencies?.armor?.selected && Array.isArray(this.optionalProficiencies.armor.selected)) {
-			this.optionalProficiencies.armor.selected = this.optionalProficiencies.armor.selected.map(armor =>
-				typeof armor === 'string' ? armor.toLowerCase() : armor
-			);
-		}
-	}	/**
 	 * Gets an ability score value
 	 * @param {string} ability - Ability score name
 	 * @returns {number} The ability score value
@@ -919,6 +784,88 @@ export class Character {
 	 */
 	getPendingAbilityChoices() {
 		return this.pendingAbilityChoices;
+	}
+
+	/**
+	 * Normalize save file data to match internal logic format expectations
+	 * Ensures all data uses the correct casing and format that the internal code expects
+	 * @param {Object} data - Character data (mutated in place)
+	 * @static
+	 * @private
+	 */
+	static _normalizeProficienciesInLoadedData(data) {
+		if (!data) return;
+
+		// Normalize allowedSources to UPPERCASE (internal logic uses .toUpperCase() on sources)
+		if (Array.isArray(data.allowedSources)) {
+			data.allowedSources = data.allowedSources.map(source =>
+				typeof source === 'string' ? source.toUpperCase() : source
+			);
+		}
+
+		// Normalize proficiencies
+		if (data.proficiencies) {
+			// Skills, languages, tools → lowercase (these are used in .includes() comparisons)
+			for (const type of ['skills', 'languages', 'tools']) {
+				if (Array.isArray(data.proficiencies[type])) {
+					data.proficiencies[type] = data.proficiencies[type].map(item =>
+						typeof item === 'string' ? item.toLowerCase() : item
+					);
+				}
+			}
+		}
+
+		// Normalize proficiency sources keys to match proficiency format
+		if (data.proficiencySources) {
+			// Skills, languages, tools keys → lowercase
+			for (const type of ['skills', 'languages', 'tools']) {
+				if (data.proficiencySources[type]) {
+					const normalized = {};
+					for (const [key, value] of Object.entries(data.proficiencySources[type])) {
+						normalized[key.toLowerCase()] = value;
+					}
+					data.proficiencySources[type] = normalized;
+				}
+			}
+		}
+
+		// Normalize optional proficiencies to match proficiency format
+		if (data.optionalProficiencies) {
+			for (const type of ['skills', 'languages', 'tools']) {
+				const optional = data.optionalProficiencies[type];
+				if (optional) {
+					// Normalize top-level selected array
+					if (Array.isArray(optional.selected)) {
+						optional.selected = optional.selected.map(item =>
+							typeof item === 'string' ? item.toLowerCase() : item
+						);
+					}
+
+					// Normalize top-level options array
+					if (Array.isArray(optional.options)) {
+						optional.options = optional.options.map(item =>
+							typeof item === 'string' ? item.toLowerCase() : item
+						);
+					}
+
+					// Normalize source-specific (race/class/background) selections
+					for (const source of ['race', 'class', 'background']) {
+						if (optional[source]) {
+							if (Array.isArray(optional[source].selected)) {
+								optional[source].selected = optional[source].selected.map(item =>
+									typeof item === 'string' ? item.toLowerCase() : item
+								);
+							}
+							if (Array.isArray(optional[source].options)) {
+								optional[source].options = optional[source].options.map(item =>
+									typeof item === 'string' ? item.toLowerCase() : item
+								);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

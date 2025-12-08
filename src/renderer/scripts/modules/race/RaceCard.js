@@ -854,14 +854,13 @@ export class RaceCard {
 					key !== 'choose' &&
 					key !== 'other'
 				) {
-					const capitalizedLanguage =
-						key.charAt(0).toUpperCase() + key.slice(1);
-					character.addProficiency('languages', capitalizedLanguage, 'Race');
+					const languageName = key.toLowerCase();
+					character.addProficiency('languages', languageName, 'Race');
 				}
 				// Handle race's unique language ('other')
 				else if (key === 'other' && value === true) {
 					if (race.name !== 'Common') {
-						character.addProficiency('languages', race.name, 'Race');
+						character.addProficiency('languages', race.name.toLowerCase(), 'Race');
 					}
 				}
 				// Handle 'any'/'anystandard' choices (keys are normalized to lowercase)
@@ -872,22 +871,22 @@ export class RaceCard {
 				) {
 					languageCount += value;
 					languageOptions = [
-						'Common',
-						'Dwarvish',
-						'Elvish',
-						'Giant',
-						'Gnomish',
-						'Goblin',
-						'Halfling',
-						'Orc',
-						'Abyssal',
-						'Celestial',
-						'Draconic',
-						'Deep Speech',
-						'Infernal',
-						'Primordial',
-						'Sylvan',
-						'Undercommon',
+						'common',
+						'dwarvish',
+						'elvish',
+						'giant',
+						'gnomish',
+						'goblin',
+						'halfling',
+						'orc',
+						'abyssal',
+						'celestial',
+						'draconic',
+						'deep speech',
+						'infernal',
+						'primordial',
+						'sylvan',
+						'undercommon',
 					];
 				}
 				// Handle specific 'choose' lists
@@ -898,10 +897,8 @@ export class RaceCard {
 					value.count > 0
 				) {
 					languageCount += value.count;
-					const capitalizedOptions = value.from.map(
-						(lang) => lang.charAt(0).toUpperCase() + lang.slice(1),
-					);
-					for (const lang of capitalizedOptions) {
+					const lowercaseOptions = value.from.map((lang) => lang.toLowerCase());
+					for (const lang of lowercaseOptions) {
 						specificLanguageChoices.add(lang);
 					}
 				}
@@ -1071,25 +1068,26 @@ export class RaceCard {
 			subrace.name === 'Variant'
 		) {
 			raceSkillCount = 1;
+			// Use normalized skill list (lowercase) to match internal format
 			raceSkillOptions = [
-				'Acrobatics',
-				'Animal Handling',
-				'Arcana',
-				'Athletics',
-				'Deception',
-				'History',
-				'Insight',
-				'Intimidation',
-				'Investigation',
-				'Medicine',
-				'Nature',
-				'Perception',
-				'Performance',
-				'Persuasion',
-				'Religion',
-				'Sleight of Hand',
-				'Stealth',
-				'Survival',
+				'acrobatics',
+				'animal handling',
+				'arcana',
+				'athletics',
+				'deception',
+				'history',
+				'insight',
+				'intimidation',
+				'investigation',
+				'medicine',
+				'nature',
+				'perception',
+				'performance',
+				'persuasion',
+				'religion',
+				'sleight of hand',
+				'stealth',
+				'survival',
 			];
 		}
 

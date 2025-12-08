@@ -222,8 +222,8 @@ export class ProficiencyDisplayView {
 			? '<span class="unselect-hint"><i class="fas fa-times"></i></span>'
 			: '';
 
-		// Format display name for skills (toTitleCase), other types use as-is
-		const displayName = type === 'skills' ? toTitleCase(item) : item;
+		// Format display name for skills and languages (toTitleCase), other types use as-is
+		const displayName = (type === 'skills' || type === 'languages') ? toTitleCase(item) : item;
 
 		return (
 			`<div class="${cssClasses.join(' ')}" data-proficiency="${item}" data-type="${type}">` +
@@ -305,4 +305,3 @@ export class ProficiencyDisplayView {
 		}
 	}
 }
-

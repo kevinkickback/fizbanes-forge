@@ -1,0 +1,430 @@
+{
+  "id": "9e90f6d9-fb90-488c-9c84-6a8dc9ed0eb2",
+  "name": "PHB TEST",
+  "allowedSources": [
+    "PHB"
+  ],
+  "playerName": "",
+  "level": 1,
+  "createdAt": "2025-12-08T21:44:45.689Z",
+  "lastModified": "2025-12-08T21:45:28.292Z",
+  "height": "",
+  "weight": "",
+  "gender": "male",
+  "backstory": "",
+  "abilityScores": {
+    "strength": 10,
+    "dexterity": 10,
+    "constitution": 10,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 15
+  },
+  "abilityBonuses": {
+    "strength": [
+      {
+        "value": 1,
+        "source": "Subrace Choice"
+      }
+    ],
+    "dexterity": [
+      {
+        "value": 1,
+        "source": "Subrace Choice"
+      }
+    ],
+    "constitution": [],
+    "intelligence": [],
+    "wisdom": [],
+    "charisma": []
+  },
+  "race": {
+    "name": "Human",
+    "source": "PHB",
+    "subrace": "Variant",
+    "abilityChoices": [
+      {
+        "ability": "strength",
+        "value": 1,
+        "source": "Subrace Choice",
+        "index": 0
+      },
+      {
+        "ability": "dexterity",
+        "value": 1,
+        "source": "Subrace Choice",
+        "index": 1
+      }
+    ]
+  },
+  "class": {
+    "name": "Barbarian",
+    "source": "PHB",
+    "level": 1,
+    "subclass": "Path of the Berserker"
+  },
+  "subclass": "",
+  "background": {
+    "name": "Acolyte",
+    "source": "PHB",
+    "variant": null
+  },
+  "size": [
+    "M"
+  ],
+  "speed": {},
+  "features": {
+    "darkvision": 0,
+    "resistances": [],
+    "traits": {
+      "Age": {
+        "description": {
+          "name": "Age",
+          "type": "entries",
+          "entries": [
+            "Humans reach adulthood in their late teens and live less than a century."
+          ]
+        },
+        "source": "Race"
+      },
+      "Size": {
+        "description": {
+          "type": "entries",
+          "name": "Size",
+          "entries": [
+            "Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Regardless of your position in that range, your size is Medium."
+          ]
+        },
+        "source": "Race"
+      },
+      "Languages": {
+        "description": {
+          "name": "Languages",
+          "entries": [
+            "You can speak, read, and write Common and one extra language of your choice. Humans typically learn the languages of other peoples they deal with, including obscure dialects. They are fond of sprinkling their speech with words borrowed from other tongues: Orc curses, Elvish musical expressions, Dwarvish military phrases, and so on."
+          ],
+          "type": "entries"
+        },
+        "source": "Race"
+      },
+      "Skills": {
+        "description": {
+          "name": "Skills",
+          "entries": [
+            "You gain proficiency in one skill of your choice."
+          ],
+          "type": "entries"
+        },
+        "source": "Subrace"
+      },
+      "Feat": {
+        "description": {
+          "name": "Feat",
+          "entries": [
+            "You gain one {@5etools feat|feats.html} of your choice."
+          ],
+          "type": "entries"
+        },
+        "source": "Subrace"
+      }
+    }
+  },
+  "proficiencies": {
+    "armor": [
+      "Light Armor",
+      "Medium Armor",
+      "Shields"
+    ],
+    "weapons": [
+      "Simple Weapons",
+      "Martial Weapons"
+    ],
+    "tools": [],
+    "skills": [
+      "insight",
+      "religion"
+    ],
+    "languages": [
+      "Common"
+    ],
+    "savingThrows": [
+      "Strength",
+      "Constitution"
+    ]
+  },
+  "proficiencySources": {
+    "armor": {
+      "Light Armor": [
+        "Class"
+      ],
+      "Medium Armor": [
+        "Class"
+      ],
+      "Shields": [
+        "Class"
+      ]
+    },
+    "weapons": {
+      "Simple Weapons": [
+        "Class"
+      ],
+      "Martial Weapons": [
+        "Class"
+      ]
+    },
+    "tools": {},
+    "skills": {
+      "insight": [
+        "Background"
+      ],
+      "religion": [
+        "Background"
+      ]
+    },
+    "languages": {
+      "Common": [
+        "Default",
+        "Race"
+      ]
+    },
+    "savingThrows": {
+      "Strength": [
+        "Class"
+      ],
+      "Constitution": [
+        "Class"
+      ]
+    }
+  },
+  "optionalProficiencies": {
+    "armor": {
+      "allowed": 0,
+      "selected": []
+    },
+    "weapons": {
+      "allowed": 0,
+      "selected": []
+    },
+    "savingThrows": {
+      "allowed": 0,
+      "selected": []
+    },
+    "skills": {
+      "allowed": 3,
+      "options": [
+        "Acrobatics",
+        "Animal Handling",
+        "Arcana",
+        "Athletics",
+        "Deception",
+        "History",
+        "Insight",
+        "Intimidation",
+        "Investigation",
+        "Medicine",
+        "Nature",
+        "Perception",
+        "Performance",
+        "Persuasion",
+        "Religion",
+        "Sleight of Hand",
+        "Stealth",
+        "Survival",
+        "animal handling",
+        "athletics",
+        "intimidation",
+        "nature",
+        "perception",
+        "survival"
+      ],
+      "selected": [
+        "animal handling",
+        "athletics"
+      ],
+      "race": {
+        "allowed": 1,
+        "options": [
+          "Acrobatics",
+          "Animal Handling",
+          "Arcana",
+          "Athletics",
+          "Deception",
+          "History",
+          "Insight",
+          "Intimidation",
+          "Investigation",
+          "Medicine",
+          "Nature",
+          "Perception",
+          "Performance",
+          "Persuasion",
+          "Religion",
+          "Sleight of Hand",
+          "Stealth",
+          "Survival"
+        ],
+        "selected": []
+      },
+      "class": {
+        "allowed": 2,
+        "options": [
+          "animal handling",
+          "athletics",
+          "intimidation",
+          "nature",
+          "perception",
+          "survival"
+        ],
+        "selected": [
+          "animal handling",
+          "athletics"
+        ]
+      },
+      "background": {
+        "allowed": 0,
+        "options": [],
+        "selected": []
+      }
+    },
+    "languages": {
+      "allowed": 3,
+      "options": [
+        "Common",
+        "Dwarvish",
+        "Elvish",
+        "Giant",
+        "Gnomish",
+        "Goblin",
+        "Halfling",
+        "Orc",
+        "Abyssal",
+        "Celestial",
+        "Draconic",
+        "Deep Speech",
+        "Infernal",
+        "Primordial",
+        "Sylvan",
+        "Undercommon"
+      ],
+      "selected": [
+        "Dwarvish",
+        "Elvish",
+        "Giant"
+      ],
+      "race": {
+        "allowed": 1,
+        "options": [
+          "Common",
+          "Dwarvish",
+          "Elvish",
+          "Giant",
+          "Gnomish",
+          "Goblin",
+          "Halfling",
+          "Orc",
+          "Abyssal",
+          "Celestial",
+          "Draconic",
+          "Deep Speech",
+          "Infernal",
+          "Primordial",
+          "Sylvan",
+          "Undercommon"
+        ],
+        "selected": [
+          "Giant"
+        ]
+      },
+      "class": {
+        "allowed": 0,
+        "options": [],
+        "selected": []
+      },
+      "background": {
+        "allowed": 2,
+        "options": [
+          "Common",
+          "Dwarvish",
+          "Elvish",
+          "Giant",
+          "Gnomish",
+          "Goblin",
+          "Halfling",
+          "Orc",
+          "Abyssal",
+          "Celestial",
+          "Draconic",
+          "Deep Speech",
+          "Infernal",
+          "Primordial",
+          "Sylvan",
+          "Undercommon"
+        ],
+        "selected": [
+          "Dwarvish",
+          "Elvish"
+        ]
+      }
+    },
+    "tools": {
+      "allowed": 0,
+      "options": [],
+      "selected": [],
+      "race": {
+        "allowed": 0,
+        "options": [],
+        "selected": []
+      },
+      "class": {
+        "allowed": 0,
+        "options": [],
+        "selected": []
+      },
+      "background": {
+        "allowed": 0,
+        "options": [],
+        "selected": []
+      }
+    }
+  },
+  "pendingAbilityChoices": [
+    {
+      "count": 1,
+      "amount": 1,
+      "from": [
+        "str",
+        "dex",
+        "con",
+        "int",
+        "wis",
+        "cha"
+      ],
+      "source": "Subrace Choice",
+      "type": "ability"
+    },
+    {
+      "count": 1,
+      "amount": 1,
+      "from": [
+        "str",
+        "dex",
+        "con",
+        "int",
+        "wis",
+        "cha"
+      ],
+      "source": "Subrace Choice",
+      "type": "ability"
+    }
+  ],
+  "variantRules": {
+    "feats": true,
+    "multiclassing": true,
+    "abilityScoreMethod": "pointBuy"
+  },
+  "hitPoints": {
+    "current": 0,
+    "max": 0,
+    "temp": 0
+  }
+}
