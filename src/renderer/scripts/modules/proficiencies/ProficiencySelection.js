@@ -81,26 +81,23 @@ export class ProficiencySelectionView {
 	 * @private
 	 */
 	_toggleSkillProficiency(profItem, proficiency, character) {
-		const normalizedProf = proficiency.toLowerCase();
+		// Data is already normalized from DataLoader
 		const skillOptions = character.optionalProficiencies.skills;
 
 		// Get source options and check for 'any'
-		const raceOptions =
-			skillOptions.race?.options?.map((o) => o.toLowerCase()) || [];
-		const classOptions =
-			skillOptions.class?.options?.map((o) => o.toLowerCase()) || [];
-		const backgroundOptions =
-			skillOptions.background?.options?.map((o) => o.toLowerCase()) || [];
+		const raceOptions = skillOptions.race?.options || [];
+		const classOptions = skillOptions.class?.options || [];
+		const backgroundOptions = skillOptions.background?.options || [];
 
 		const raceAllowsAny = raceOptions.includes('any');
 		const classAllowsAny = classOptions.includes('any');
 		const backgroundAllowsAny = backgroundOptions.includes('any');
 
-		const isRaceOption = raceAllowsAny || raceOptions.includes(normalizedProf);
+		const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
 		const isClassOption =
-			classAllowsAny || classOptions.includes(normalizedProf);
+			classAllowsAny || classOptions.includes(proficiency);
 		const isBackgroundOption =
-			backgroundAllowsAny || backgroundOptions.includes(normalizedProf);
+			backgroundAllowsAny || backgroundOptions.includes(proficiency);
 
 		// Get current selections
 		const raceSelected = skillOptions.race?.selected || [];
@@ -116,7 +113,6 @@ export class ProficiencySelectionView {
 			return this._deselectSkill(
 				profItem,
 				proficiency,
-				normalizedProf,
 				skillOptions,
 				raceSelected,
 				classSelected,
@@ -129,7 +125,6 @@ export class ProficiencySelectionView {
 			return this._selectSkill(
 				profItem,
 				proficiency,
-				normalizedProf,
 				skillOptions,
 				isRaceOption,
 				isClassOption,
@@ -148,7 +143,6 @@ export class ProficiencySelectionView {
 	_deselectSkill(
 		profItem,
 		_proficiency,
-		normalizedProf,
 		skillOptions,
 		raceSelected,
 		classSelected,
@@ -158,21 +152,21 @@ export class ProficiencySelectionView {
 		let removedFromSource = false;
 
 		// Remove from the appropriate source selection
-		if (raceSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (raceSelected.some((p) => p === _proficiency)) {
 			skillOptions.race.selected = raceSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
-		if (classSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (classSelected.some((p) => p === _proficiency)) {
 			skillOptions.class.selected = classSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
-		if (backgroundSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (backgroundSelected.some((p) => p === _proficiency)) {
 			skillOptions.background.selected = backgroundSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
@@ -186,7 +180,7 @@ export class ProficiencySelectionView {
 
 		// Update combined selection
 		skillOptions.selected = combinedSelected.filter(
-			(p) => p.toLowerCase() !== normalizedProf,
+			(p) => p !== _proficiency,
 		);
 
 		// Update UI
@@ -202,7 +196,6 @@ export class ProficiencySelectionView {
 	_selectSkill(
 		profItem,
 		proficiency,
-		normalizedProf,
 		skillOptions,
 		isRaceOption,
 		isClassOption,
@@ -264,9 +257,7 @@ export class ProficiencySelectionView {
 
 		// Update combined selection only if assigned to a source
 		if (assignedToSource) {
-			if (
-				!skillOptions.selected.some((p) => p.toLowerCase() === normalizedProf)
-			) {
+			if (!skillOptions.selected.some((p) => p === proficiency)) {
 				skillOptions.selected.push(proficiency);
 			}
 
@@ -287,25 +278,22 @@ export class ProficiencySelectionView {
 	 * @private
 	 */
 	_toggleLanguageProficiency(profItem, proficiency, character) {
-		const normalizedProf = proficiency.toLowerCase();
+		// Data is already normalized from DataLoader
 		const languageOptions = character.optionalProficiencies.languages;
 
-		const raceOptions =
-			languageOptions.race?.options?.map((o) => o.toLowerCase()) || [];
-		const classOptions =
-			languageOptions.class?.options?.map((o) => o.toLowerCase()) || [];
-		const backgroundOptions =
-			languageOptions.background?.options?.map((o) => o.toLowerCase()) || [];
+		const raceOptions = languageOptions.race?.options || [];
+		const classOptions = languageOptions.class?.options || [];
+		const backgroundOptions = languageOptions.background?.options || [];
 
 		const raceAllowsAny = raceOptions.includes('any');
 		const classAllowsAny = classOptions.includes('any');
 		const backgroundAllowsAny = backgroundOptions.includes('any');
 
-		const isRaceOption = raceAllowsAny || raceOptions.includes(normalizedProf);
+		const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
 		const isClassOption =
-			classAllowsAny || classOptions.includes(normalizedProf);
+			classAllowsAny || classOptions.includes(proficiency);
 		const isBackgroundOption =
-			backgroundAllowsAny || backgroundOptions.includes(normalizedProf);
+			backgroundAllowsAny || backgroundOptions.includes(proficiency);
 
 		const raceSelected = languageOptions.race?.selected || [];
 		const classSelected = languageOptions.class?.selected || [];
@@ -320,7 +308,6 @@ export class ProficiencySelectionView {
 			return this._deselectLanguage(
 				profItem,
 				proficiency,
-				normalizedProf,
 				languageOptions,
 				raceSelected,
 				classSelected,
@@ -333,7 +320,6 @@ export class ProficiencySelectionView {
 			return this._selectLanguage(
 				profItem,
 				proficiency,
-				normalizedProf,
 				languageOptions,
 				isRaceOption,
 				isClassOption,
@@ -352,7 +338,6 @@ export class ProficiencySelectionView {
 	_deselectLanguage(
 		profItem,
 		_proficiency,
-		normalizedProf,
 		languageOptions,
 		raceSelected,
 		classSelected,
@@ -361,21 +346,21 @@ export class ProficiencySelectionView {
 	) {
 		let removedFromSource = false;
 
-		if (raceSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (raceSelected.some((p) => p === _proficiency)) {
 			languageOptions.race.selected = raceSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
-		if (classSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (classSelected.some((p) => p === _proficiency)) {
 			languageOptions.class.selected = classSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
-		if (backgroundSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (backgroundSelected.some((p) => p === _proficiency)) {
 			languageOptions.background.selected = backgroundSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
@@ -388,7 +373,7 @@ export class ProficiencySelectionView {
 		}
 
 		languageOptions.selected = combinedSelected.filter(
-			(p) => p.toLowerCase() !== normalizedProf,
+			(p) => p !== _proficiency,
 		);
 		this._updateItemUIForDeselection(profItem);
 		return true;
@@ -401,7 +386,6 @@ export class ProficiencySelectionView {
 	_selectLanguage(
 		profItem,
 		proficiency,
-		normalizedProf,
 		languageOptions,
 		isRaceOption,
 		isClassOption,
@@ -462,11 +446,7 @@ export class ProficiencySelectionView {
 		}
 
 		if (assignedToSource) {
-			if (
-				!languageOptions.selected.some(
-					(p) => p.toLowerCase() === normalizedProf,
-				)
-			) {
+			if (!languageOptions.selected.some((p) => p === proficiency)) {
 				languageOptions.selected.push(proficiency);
 			}
 			this._updateItemUIForSelection(profItem);
@@ -485,25 +465,22 @@ export class ProficiencySelectionView {
 	 * @private
 	 */
 	_toggleToolProficiency(profItem, proficiency, character) {
-		const normalizedProf = proficiency.toLowerCase();
+		// Data is already normalized from DataLoader
 		const toolOptions = character.optionalProficiencies.tools;
 
-		const raceOptions =
-			toolOptions.race?.options?.map((o) => o.toLowerCase()) || [];
-		const classOptions =
-			toolOptions.class?.options?.map((o) => o.toLowerCase()) || [];
-		const backgroundOptions =
-			toolOptions.background?.options?.map((o) => o.toLowerCase()) || [];
+		const raceOptions = toolOptions.race?.options || [];
+		const classOptions = toolOptions.class?.options || [];
+		const backgroundOptions = toolOptions.background?.options || [];
 
 		const raceAllowsAny = raceOptions.includes('any');
 		const classAllowsAny = classOptions.includes('any');
 		const backgroundAllowsAny = backgroundOptions.includes('any');
 
-		const isRaceOption = raceAllowsAny || raceOptions.includes(normalizedProf);
+		const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
 		const isClassOption =
-			classAllowsAny || classOptions.includes(normalizedProf);
+			classAllowsAny || classOptions.includes(proficiency);
 		const isBackgroundOption =
-			backgroundAllowsAny || backgroundOptions.includes(normalizedProf);
+			backgroundAllowsAny || backgroundOptions.includes(proficiency);
 
 		const raceSelected = toolOptions.race?.selected || [];
 		const classSelected = toolOptions.class?.selected || [];
@@ -518,7 +495,6 @@ export class ProficiencySelectionView {
 			return this._deselectTool(
 				profItem,
 				proficiency,
-				normalizedProf,
 				toolOptions,
 				raceSelected,
 				classSelected,
@@ -531,7 +507,6 @@ export class ProficiencySelectionView {
 			return this._selectTool(
 				profItem,
 				proficiency,
-				normalizedProf,
 				toolOptions,
 				isRaceOption,
 				isClassOption,
@@ -550,7 +525,6 @@ export class ProficiencySelectionView {
 	_deselectTool(
 		profItem,
 		_proficiency,
-		normalizedProf,
 		toolOptions,
 		raceSelected,
 		classSelected,
@@ -559,21 +533,21 @@ export class ProficiencySelectionView {
 	) {
 		let removedFromSource = false;
 
-		if (raceSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (raceSelected.some((p) => p === _proficiency)) {
 			toolOptions.race.selected = raceSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
-		if (classSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (classSelected.some((p) => p === _proficiency)) {
 			toolOptions.class.selected = classSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
-		if (backgroundSelected.some((p) => p.toLowerCase() === normalizedProf)) {
+		if (backgroundSelected.some((p) => p === _proficiency)) {
 			toolOptions.background.selected = backgroundSelected.filter(
-				(p) => p.toLowerCase() !== normalizedProf,
+				(p) => p !== _proficiency,
 			);
 			removedFromSource = true;
 		}
@@ -586,7 +560,7 @@ export class ProficiencySelectionView {
 		}
 
 		toolOptions.selected = combinedSelected.filter(
-			(p) => p.toLowerCase() !== normalizedProf,
+			(p) => p !== _proficiency,
 		);
 		this._updateItemUIForDeselection(profItem);
 		return true;
@@ -599,7 +573,6 @@ export class ProficiencySelectionView {
 	_selectTool(
 		profItem,
 		proficiency,
-		normalizedProf,
 		toolOptions,
 		isRaceOption,
 		isClassOption,
@@ -660,9 +633,7 @@ export class ProficiencySelectionView {
 		}
 
 		if (assignedToSource) {
-			if (
-				!toolOptions.selected.some((p) => p.toLowerCase() === normalizedProf)
-			) {
+			if (!toolOptions.selected.some((p) => p === proficiency)) {
 				toolOptions.selected.push(proficiency);
 			}
 			this._updateItemUIForSelection(profItem);

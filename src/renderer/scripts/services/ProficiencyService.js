@@ -12,25 +12,26 @@ export class ProficiencyService {
 		this._skills = null;
 		this._tools = null;
 		this._languages = null;
+		// Map keys are lowercase to match DataLoader normalized format
 		this._skillAbilityMap = {
-			Acrobatics: 'dexterity',
-			'Animal Handling': 'wisdom',
-			Arcana: 'intelligence',
-			Athletics: 'strength',
-			Deception: 'charisma',
-			History: 'intelligence',
-			Insight: 'wisdom',
-			Intimidation: 'charisma',
-			Investigation: 'intelligence',
-			Medicine: 'wisdom',
-			Nature: 'intelligence',
-			Perception: 'wisdom',
-			Performance: 'charisma',
-			Persuasion: 'charisma',
-			Religion: 'intelligence',
-			'Sleight of Hand': 'dexterity',
-			Stealth: 'dexterity',
-			Survival: 'wisdom',
+			acrobatics: 'dexterity',
+			'animal handling': 'wisdom',
+			arcana: 'intelligence',
+			athletics: 'strength',
+			deception: 'charisma',
+			history: 'intelligence',
+			insight: 'wisdom',
+			intimidation: 'charisma',
+			investigation: 'intelligence',
+			medicine: 'wisdom',
+			nature: 'intelligence',
+			perception: 'wisdom',
+			performance: 'charisma',
+			persuasion: 'charisma',
+			religion: 'intelligence',
+			'sleight of hand': 'dexterity',
+			stealth: 'dexterity',
+			survival: 'wisdom',
 		};
 	}
 
@@ -92,24 +93,24 @@ export class ProficiencyService {
 		}
 
 		return [
-			'Acrobatics',
-			'Animal Handling',
-			'Arcana',
-			'Athletics',
-			'Deception',
-			'History',
-			'Insight',
-			'Intimidation',
-			'Investigation',
-			'Medicine',
-			'Nature',
-			'Perception',
-			'Performance',
-			'Persuasion',
-			'Religion',
-			'Sleight of Hand',
-			'Stealth',
-			'Survival',
+			'acrobatics',
+			'animal handling',
+			'arcana',
+			'athletics',
+			'deception',
+			'history',
+			'insight',
+			'intimidation',
+			'investigation',
+			'medicine',
+			'nature',
+			'perception',
+			'performance',
+			'persuasion',
+			'religion',
+			'sleight of hand',
+			'stealth',
+			'survival',
 		];
 	}
 
@@ -186,7 +187,9 @@ export class ProficiencyService {
 	 * @returns {string|null} The ability score associated with the skill, or null if invalid
 	 */
 	getSkillAbility(skill) {
-		return this._skillAbilityMap[skill] || null;
+		if (!skill) return null;
+		// Data is already normalized from DataLoader, just lowercase the lookup
+		return this._skillAbilityMap[skill.toLowerCase()] || null;
 	}
 
 	/**

@@ -1020,25 +1020,26 @@ export class RaceCard {
 				// Handle "any" skill proficiency choice
 				if (profObj.any) {
 					raceSkillCount += profObj.any;
+					// Use normalized skill list (lowercase)
 					raceSkillOptions = [
-						'Acrobatics',
-						'Animal Handling',
-						'Arcana',
-						'Athletics',
-						'Deception',
-						'History',
-						'Insight',
-						'Intimidation',
-						'Investigation',
-						'Medicine',
-						'Nature',
-						'Perception',
-						'Performance',
-						'Persuasion',
-						'Religion',
-						'Sleight of Hand',
-						'Stealth',
-						'Survival',
+						'acrobatics',
+						'animal handling',
+						'arcana',
+						'athletics',
+						'deception',
+						'history',
+						'insight',
+						'intimidation',
+						'investigation',
+						'medicine',
+						'nature',
+						'perception',
+						'performance',
+						'persuasion',
+						'religion',
+						'sleight of hand',
+						'stealth',
+						'survival',
 					];
 					continue;
 				}
@@ -1046,9 +1047,8 @@ export class RaceCard {
 				// Handle fixed skill proficiencies
 				for (const [skill, hasProf] of Object.entries(profObj)) {
 					if (hasProf === true && skill !== 'choose') {
-						const capitalizedSkill =
-							skill.charAt(0).toUpperCase() + skill.slice(1);
-						character.addProficiency('skills', capitalizedSkill, 'Race');
+						// Data is already normalized from DataLoader
+						character.addProficiency('skills', skill, 'Race');
 					}
 				}
 
@@ -1056,10 +1056,8 @@ export class RaceCard {
 				if (profObj.choose && profObj.choose.count > 0) {
 					raceSkillCount += profObj.choose.count;
 					if (profObj.choose.from && Array.isArray(profObj.choose.from)) {
-						const capitalizedOptions = profObj.choose.from.map((skill) => {
-							return skill.charAt(0).toUpperCase() + skill.slice(1);
-						});
-						raceSkillOptions.push(...capitalizedOptions);
+						// Data is already normalized from DataLoader
+						raceSkillOptions.push(...profObj.choose.from);
 					}
 				}
 			}

@@ -1,5 +1,7 @@
 /** Renders proficiency containers and items for each type. */
 
+import { toTitleCase } from '../../utils/TextFormatter.js';
+
 /**
  * View component for rendering proficiency lists and items
  */
@@ -220,9 +222,12 @@ export class ProficiencyDisplayView {
 			? '<span class="unselect-hint"><i class="fas fa-times"></i></span>'
 			: '';
 
+		// Format display name for skills (toTitleCase), other types use as-is
+		const displayName = type === 'skills' ? toTitleCase(item) : item;
+
 		return (
 			`<div class="${cssClasses.join(' ')}" data-proficiency="${item}" data-type="${type}">` +
-			`<i class="fas ${iconClass} ${optionalClass}"></i>${item}` +
+			`<i class="fas ${iconClass} ${optionalClass}"></i>${displayName}` +
 			abilityDisplay +
 			unselectHint +
 			'</div>'

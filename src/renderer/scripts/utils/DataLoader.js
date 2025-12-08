@@ -1,6 +1,8 @@
 
 /** DataLoader.js - Caches and loads game data JSON via IPC or fetch (plain module). */
 
+import DataNormalizer from './DataNormalizer.js';
+
 const state = {
 	cache: {},
 	loading: {},
@@ -76,7 +78,11 @@ async function loadSpells(source = 'PHB') {
 }
 
 async function loadItems() {
-	return loadJSON(`${state.baseUrl}items.json`);
+	const data = await loadJSON(`${state.baseUrl}items.json`);
+	if (data.item && Array.isArray(data.item)) {
+		data.item = DataNormalizer.normalizeItems(data.item);
+	}
+	return data;
 }
 
 /**
@@ -84,7 +90,11 @@ async function loadItems() {
  * @returns {Promise<Object>} Base items data
  */
 async function loadBaseItems() {
-	return loadJSON(`${state.baseUrl}items-base.json`);
+	const data = await loadJSON(`${state.baseUrl}items-base.json`);
+	if (data.baseitem && Array.isArray(data.baseitem)) {
+		data.baseitem = DataNormalizer.normalizeBaseItems(data.baseitem);
+	}
+	return data;
 }
 
 /**
@@ -92,7 +102,11 @@ async function loadBaseItems() {
  * @returns {Promise<Object>} Skills data
  */
 async function loadSkills() {
-	return loadJSON(`${state.baseUrl}skills.json`);
+	const data = await loadJSON(`${state.baseUrl}skills.json`);
+	if (data.skill && Array.isArray(data.skill)) {
+		data.skill = DataNormalizer.normalizeSkills(data.skill);
+	}
+	return data;
 }
 
 /**
@@ -100,7 +114,11 @@ async function loadSkills() {
  * @returns {Promise<Object>} Actions data
  */
 async function loadActions() {
-	return loadJSON(`${state.baseUrl}actions.json`);
+	const data = await loadJSON(`${state.baseUrl}actions.json`);
+	if (data.action && Array.isArray(data.action)) {
+		data.action = DataNormalizer.normalizeActions(data.action);
+	}
+	return data;
 }
 
 /**
@@ -116,7 +134,11 @@ async function loadMonsters() {
  * @returns {Promise<Object>} Race data
  */
 async function loadRaces() {
-	return loadJSON(`${state.baseUrl}races.json`);
+	const data = await loadJSON(`${state.baseUrl}races.json`);
+	if (data.race && Array.isArray(data.race)) {
+		data.race = data.race.map(race => DataNormalizer.normalizeProficienciesInData(race));
+	}
+	return data;
 }
 
 /**
@@ -134,7 +156,11 @@ async function loadRaceFluff() {
  * @returns {Promise<Object>} Class data from single file
  */
 async function loadClasses(className = 'Fighter') {
-	return loadJSON(`${state.baseUrl}class/class-${className.toLowerCase()}.json`);
+	const data = await loadJSON(`${state.baseUrl}class/class-${className.toLowerCase()}.json`);
+	if (data.class && Array.isArray(data.class)) {
+		data.class = data.class.map(cls => DataNormalizer.normalizeProficienciesInData(cls));
+	}
+	return data;
 }
 
 /**
@@ -142,7 +168,11 @@ async function loadClasses(className = 'Fighter') {
  * @returns {Promise<Object>} Background data
  */
 async function loadBackgrounds() {
-	return loadJSON(`${state.baseUrl}backgrounds.json`);
+	const data = await loadJSON(`${state.baseUrl}backgrounds.json`);
+	if (data.background && Array.isArray(data.background)) {
+		data.background = data.background.map(bg => DataNormalizer.normalizeProficienciesInData(bg));
+	}
+	return data;
 }
 
 /**
@@ -150,7 +180,11 @@ async function loadBackgrounds() {
  * @returns {Promise<Object>} Feat data
  */
 async function loadFeats() {
-	return loadJSON(`${state.baseUrl}feats.json`);
+	const data = await loadJSON(`${state.baseUrl}feats.json`);
+	if (data.feat && Array.isArray(data.feat)) {
+		data.feat = DataNormalizer.normalizeFeats(data.feat);
+	}
+	return data;
 }
 
 /**
@@ -158,7 +192,11 @@ async function loadFeats() {
  * @returns {Promise<Object>} Condition data
  */
 async function loadConditions() {
-	return loadJSON(`${state.baseUrl}conditionsdiseases.json`);
+	const data = await loadJSON(`${state.baseUrl}conditionsdiseases.json`);
+	if (data.condition && Array.isArray(data.condition)) {
+		data.condition = DataNormalizer.normalizeConditions(data.condition);
+	}
+	return data;
 }
 
 /**
@@ -174,7 +212,11 @@ async function loadFluffFeats() {
  * @returns {Promise<Object>} Optional features data
  */
 async function loadOptionalFeatures() {
-	return loadJSON(`${state.baseUrl}optionalfeatures.json`);
+	const data = await loadJSON(`${state.baseUrl}optionalfeatures.json`);
+	if (data.optionalfeature && Array.isArray(data.optionalfeature)) {
+		data.optionalfeature = DataNormalizer.normalizeOptionalFeatures(data.optionalfeature);
+	}
+	return data;
 }
 
 /**
@@ -190,7 +232,11 @@ async function loadFluffOptionalFeatures() {
  * @returns {Promise<Object>} Rewards data
  */
 async function loadRewards() {
-	return loadJSON(`${state.baseUrl}rewards.json`);
+	const data = await loadJSON(`${state.baseUrl}rewards.json`);
+	if (data.reward && Array.isArray(data.reward)) {
+		data.reward = DataNormalizer.normalizeRewards(data.reward);
+	}
+	return data;
 }
 
 /**
@@ -206,7 +252,11 @@ async function loadTrapsHazards() {
  * @returns {Promise<Object>} Vehicles data
  */
 async function loadVehicles() {
-	return loadJSON(`${state.baseUrl}vehicles.json`);
+	const data = await loadJSON(`${state.baseUrl}vehicles.json`);
+	if (data.vehicle && Array.isArray(data.vehicle)) {
+		data.vehicle = DataNormalizer.normalizeVehicles(data.vehicle);
+	}
+	return data;
 }
 
 /**
@@ -214,7 +264,11 @@ async function loadVehicles() {
  * @returns {Promise<Object>} Objects data
  */
 async function loadObjects() {
-	return loadJSON(`${state.baseUrl}objects.json`);
+	const data = await loadJSON(`${state.baseUrl}objects.json`);
+	if (data.object && Array.isArray(data.object)) {
+		data.object = DataNormalizer.normalizeObjects(data.object);
+	}
+	return data;
 }
 
 /**
