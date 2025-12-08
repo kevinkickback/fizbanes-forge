@@ -849,7 +849,7 @@ export class RaceCard {
 				// Handle fixed languages
 				if (
 					value === true &&
-					key !== 'anyStandard' &&
+					key !== 'anystandard' &&
 					key !== 'any' &&
 					key !== 'choose' &&
 					key !== 'other'
@@ -864,9 +864,9 @@ export class RaceCard {
 						character.addProficiency('languages', race.name, 'Race');
 					}
 				}
-				// Handle 'any'/'anyStandard' choices
+				// Handle 'any'/'anystandard' choices (keys are normalized to lowercase)
 				else if (
-					(key === 'anyStandard' || key === 'any') &&
+					(key === 'anystandard' || key === 'any') &&
 					typeof value === 'number' &&
 					value > 0
 				) {

@@ -252,7 +252,7 @@ export function getLanguages(race) {
 	const languages = [];
 
 	for (const langEntry of race.languageProficiencies) {
-		// Handle direct language specification
+		// Handle direct language specification (keys are normalized to lowercase)
 		if (langEntry.common) languages.push('Common');
 		if (langEntry.dwarvish) languages.push('Dwarvish');
 		if (langEntry.elvish) languages.push('Elvish');
@@ -262,9 +262,9 @@ export function getLanguages(race) {
 		if (langEntry.halfling) languages.push('Halfling');
 		if (langEntry.orc) languages.push('Orc');
 
-		// Handle any-language choices
-		if (langEntry.anyStandard) {
-			languages.push(`Any Standard (${langEntry.anyStandard})`);
+		// Handle any-language choices (keys normalized to lowercase)
+		if (langEntry.anystandard) {
+			languages.push(`Any Standard (${langEntry.anystandard})`);
 		}
 	}
 
@@ -301,4 +301,3 @@ export function getDarkvision(race) {
 
 	return race.darkvision || 0;
 }
-

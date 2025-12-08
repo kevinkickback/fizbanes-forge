@@ -483,17 +483,17 @@ export class BackgroundCard extends BaseCard {
 			for (const langEntry of background.languageProficiencies) {
 				// Add fixed languages (specific languages set to true)
 				for (const [lang, value] of Object.entries(langEntry)) {
-					if (value === true && lang !== 'choose' && lang !== 'anyStandard') {
+					if (value === true && lang !== 'choose' && lang !== 'anystandard') {
 						const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
 						character.addProficiency('languages', langName, 'Background');
 						fixedLanguages.push(langName);
 					}
 				}
 
-				// Accumulate optional standard language choices
-				if (langEntry.anyStandard && langEntry.anyStandard > 0) {
-					choiceCount += langEntry.anyStandard;
-					// Use full language list for 'anyStandard'
+				// Accumulate optional standard language choices (keys normalized to lowercase)
+				if (langEntry.anystandard && langEntry.anystandard > 0) {
+					choiceCount += langEntry.anystandard;
+					// Use full language list for 'anystandard'
 					const allLanguages = this._getAllLanguages();
 					for (const lang of allLanguages) {
 						if (!choiceOptions.includes(lang)) {

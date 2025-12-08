@@ -226,9 +226,9 @@ export class BackgroundDetailsView {
 		const languages = [];
 
 		for (const langEntry of background.languageProficiencies) {
-			if (langEntry.anyStandard) {
+			if (langEntry.anystandard) {
 				languages.push(
-					`Choose ${langEntry.anyStandard} standard language${langEntry.anyStandard > 1 ? 's' : ''}`,
+					`Choose ${langEntry.anystandard} standard language${langEntry.anystandard > 1 ? 's' : ''}`,
 				);
 			} else if (langEntry.choose) {
 				const count = langEntry.choose.count || 1;
@@ -348,4 +348,3 @@ export class BackgroundDetailsView {
 		return null;
 	}
 }
-

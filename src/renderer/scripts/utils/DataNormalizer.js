@@ -230,7 +230,40 @@ const DataNormalizer = {
 		}
 
 		if (normalized.languageProficiencies && Array.isArray(normalized.languageProficiencies)) {
-			normalized.languageProficiencies = this.normalizeStringArray(normalized.languageProficiencies);
+			normalized.languageProficiencies = normalized.languageProficiencies.map(prof => {
+				if (typeof prof === 'string') {
+					return this.normalizeString(prof);
+				}
+				// Handle object format with language properties
+				const result = {};
+				for (const [key, value] of Object.entries(prof)) {
+					const normalizedKey = this.normalizeString(key);
+
+					// Recursively normalize nested arrays (e.g., in choose.from)
+					if (Array.isArray(value)) {
+						result[normalizedKey] = value.map(item =>
+							typeof item === 'string' ? this.normalizeString(item) : item
+						);
+					} else if (typeof value === 'object' && value !== null) {
+						// For objects like { count: 2, from: [...] }, normalize the from array
+						const normalizedObj = {};
+						for (const [objKey, objValue] of Object.entries(value)) {
+							const normalizedObjKey = this.normalizeString(objKey);
+							if (Array.isArray(objValue)) {
+								normalizedObj[normalizedObjKey] = objValue.map(item =>
+									typeof item === 'string' ? this.normalizeString(item) : item
+								);
+							} else {
+								normalizedObj[normalizedObjKey] = objValue;
+							}
+						}
+						result[normalizedKey] = normalizedObj;
+					} else {
+						result[normalizedKey] = value;
+					}
+				}
+				return result;
+			});
 		}
 
 		return normalized;
