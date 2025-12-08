@@ -71,10 +71,10 @@ async function openCharacter(page, characterName) {
 async function selectRaceAndSkillProficiencies(page) {
     const raceSelect = page.locator('#raceSelect');
     await expect(raceSelect).toBeVisible({ timeout: 15000 });
-    
+
     // Select Human race (commonly offers skill proficiency choices)
     await raceSelect.selectOption({ label: 'Human (PHB)' });
-    
+
     // Wait for skill container to be visible
     await page.waitForSelector('#skillsContainer', { timeout: 15000 });
     await page.waitForTimeout(1000);
@@ -113,10 +113,10 @@ async function selectRaceAndSkillProficiencies(page) {
 async function selectClassAndSkillProficiencies(page) {
     const classSelect = page.locator('#classSelect');
     await expect(classSelect).toBeVisible({ timeout: 15000 });
-    
+
     // Select Barbarian class (offers skill proficiency choices)
     await classSelect.selectOption({ label: 'Barbarian (PHB)' });
-    
+
     // Wait for skill container to be updated
     await page.waitForSelector('#skillsContainer', { timeout: 15000 });
     await page.waitForTimeout(1000);
@@ -155,10 +155,10 @@ async function selectClassAndSkillProficiencies(page) {
 async function selectBackgroundAndSkillProficiencies(page) {
     const backgroundSelect = page.locator('#backgroundSelect');
     await expect(backgroundSelect).toBeVisible({ timeout: 15000 });
-    
+
     // Select Acolyte background (offers skill proficiency choices)
     await backgroundSelect.selectOption({ label: 'Acolyte (PHB)' });
-    
+
     // Wait for skill container to be updated
     await page.waitForSelector('#skillsContainer', { timeout: 15000 });
     await page.waitForTimeout(1000);
@@ -218,7 +218,7 @@ async function verifySkillProficiencies(page, expectedData) {
             // Find checkbox by associated label
             const label = page.locator(`label:has-text("${skillName}")`).first();
             await expect(label).toBeVisible({ timeout: 15000 });
-            
+
             const checkboxId = await label.getAttribute('for');
             const checkbox = page.locator(`#${checkboxId}`);
             await expect(checkbox).toBeChecked({ timeout: 15000 });

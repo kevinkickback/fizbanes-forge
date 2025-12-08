@@ -57,17 +57,24 @@ export class ProficiencyNotesView {
 					source: prof.source,
 				}));
 
-			// Sort proficiencies alphabetically
-			try {
-				validProfs.sort((a, b) => a.name.localeCompare(b.name));
-			} catch {
-				// Continue without sorting if there's an error
+			// Deduplicate proficiencies by name and combine sources
+			const profsByName = {};
+			for (const prof of validProfs) {
+				if (!profsByName[prof.name]) {
+					profsByName[prof.name] = [];
+				}
+				// Only add unique sources
+				if (!profsByName[prof.name].includes(prof.source)) {
+					profsByName[prof.name].push(prof.source);
+				}
 			}
 
-			// Create formatted strings with source in parentheses
-			const profStrings = validProfs.map(
-				(prof) => `${prof.name} (${prof.source})`,
-			);
+			// Create formatted strings with sources in parentheses, sorted by name
+			const profStrings = Object.keys(profsByName)
+				.sort((a, b) => a.localeCompare(b))
+				.map(
+					(name) => `${name} (${profsByName[name].join(', ')})`,
+				);
 
 			notesHTML += profStrings.join(', ');
 			notesHTML += '</div>';
