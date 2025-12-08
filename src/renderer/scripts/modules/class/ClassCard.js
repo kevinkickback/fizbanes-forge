@@ -640,14 +640,19 @@ export class ClassCard {
 		const backgroundSelected =
 			character.optionalProficiencies.skills.background?.selected || [];
 
+		// Preserve existing selections if source arrays are empty
+		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
+		const existingSkillSelections = character.optionalProficiencies.skills.selected || [];
+
 		// Update total allowed count
 		character.optionalProficiencies.skills.allowed =
 			raceAllowed + classAllowed + backgroundAllowed;
 
 		// Combine selected skills from all sources
-		character.optionalProficiencies.skills.selected = [
-			...new Set([...raceSelected, ...classSelected, ...backgroundSelected]),
-		];
+		character.optionalProficiencies.skills.selected =
+			sourceSelections.length > 0
+				? [...new Set(sourceSelections)]
+				: existingSkillSelections; // Keep saved data if sources are empty
 
 		// For combined options, include options from all sources
 		character.optionalProficiencies.skills.options = [

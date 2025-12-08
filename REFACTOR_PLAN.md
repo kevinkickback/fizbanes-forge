@@ -1,379 +1,194 @@
-# Refactor Plan
+# Proficiency Loading Bug
 
-## Table of Contents
+## Root Cause
 
-1. [Overview](#overview)
-2. [Summary Table of Issues](#summary-table-of-issues)
-3. [Detailed Findings & Recommendations](#detailed-findings--recommendations)
-    - [Redundant Ability Abbreviation Logic](#redundant-ability-abbreviation-logic)
-    - [Result and Logger Patterns](#result-and-logger-patterns)
-    - [Renderer and ContentRenderer Complexity](#renderer-and-contentrenderer-complexity)
-    - [Race Data Handling](#race-data-handling)
-    - [Formatting and Utility Functions](#formatting-and-utility-functions)
-    - [Error Handling Patterns](#error-handling-patterns)
-    - [State Reset Logic](#state-reset-logic)
-    - [General Naming and Cohesion](#general-naming-and-cohesion)
-4. [Best Practice Evaluation](#best-practice-evaluation)
-5. [Appendix: Example Improvements](#appendix-example-improvements)
+When a character is loaded with saved optional proficiencies (skills, languages, tools):
 
+- The top-level `character.optionalProficiencies.skills.selected` array is correctly restored from saved data
+- BUT the source-specific arrays (`skills.race.selected`, `skills.class.selected`, `skills.background.selected`) start empty
+- When RaceCard, ClassCard, or BackgroundCard initialize, they reconstruct the top-level selected arrays from the source-specific ones
+- Since source arrays are empty, this wipes out the saved selections, leaving `selected = []`
+
+## The Fix
+
+Modify the reconstruction logic in three files:
+
+- **RaceCard.js**: `_updateCombinedProficiencyOptions()` and `_updateCombinedSkillOptions()`
+- **ClassCard.js**: `_updateCombinedSkillOptions()`
+- **BackgroundCard.js**: `_updateCombinedSkillOptions()` and `_updateCombinedLanguageOptions()`
+
+Key changes: Instead of blindly reconstructing from source-specific arrays:
+
+```javascript
+// OLD - loses saved selections
+character.optionalProficiencies.skills.selected = [
+    ...new Set([...raceSelected, ...classSelected, ...backgroundSelected])
+];
+
+// NEW - preserves existing selections if source arrays are empty
+const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
+character.optionalProficiencies.skills.selected =
+    sourceSelections.length > 0
+        ? [...new Set(sourceSelections)]
+        : existingSkillSelections; // Keep saved data if sources are empty
+```
 ---
 
-## Overview
 
-This document identifies areas of unnecessary complexity, redundancy, and indirect control flow in the codebase. Each issue includes a summary, impact, and actionable refactor strategy.
+# Casing logic issue
 
----
+## Solution: Align with Existing Architecture
+Based on the codebase patterns, here's the best approach that:
 
-## Summary Table of Issues
+- Creates minimal new files (maybe just 1 utility file if needed)
+- Accepts JSON data as-is (no data modifications)
+- Follows existing service patterns (like SkillService, ActionService)
+- No backwards compatibility needed
 
-| Area/Module                | Problem Summary                                 | Impact                | Recommended Fix                |
-|----------------------------|-------------------------------------------------|-----------------------|-------------------------------|
-| Ability Abbreviation       | Duplicate logic in multiple modules             | Maintainability       | Centralize in utility         |
-| Result/Logger Patterns     | Overly abstract, custom implementations         | Readability, Overhead | Use standard/error objects     |
-| ContentRenderer            | Overly recursive, indirect plugin system        | Complexity            | Simplify, document, modularize|
-| Race Data Handling         | Multiple lookup maps, indirect subrace logic    | Indirection           | Streamline data access        |
-| Formatting Utilities       | Some redundant/overlapping helpers              | Maintainability       | Consolidate, document         |
-| Error Handling             | Inconsistent, sometimes silent                  | Debuggability         | Standardize, propagate errors |
-| State Reset                | Re-instantiates class for reset                 | Performance, Clarity  | Use initial state snapshot    |
-| Naming/Cohesion            | Some unclear or generic names                   | Readability           | Rename for intent             |
+### Key Architectural Patterns Observed
 
----
+- **Service Layer with Case-Insensitive Maps** - Services like SkillService, ActionService, ConditionService all use Map with `.toLowerCase()` keys for O(1) lookups
+- **Centralized Utilities** - TextFormatter.js handles display formatting
+- **Single Responsibility** - Services manage data, Views handle display, Controllers coordinate
+- **Normalization at Boundaries** - Data adapters in RaceCard, ClassCard, BackgroundCard
 
-## Detailed Findings & Recommendations
+## The Solution
 
-### 1. Redundant Ability Abbreviation Logic ✅ COMPLETED
+### 1. Update ProficiencyService (Main Fix)
 
-**Problem:**  
-The logic for converting ability names to abbreviations (e.g., "strength" → "STR") is duplicated in at least three places:
-- `TextFormatter.js` (`abbreviateAbility`)
-- `AbilityChoices.js` (`_getAbilityAbbreviation`)
-- `BonusNotes.js` (`_getAbilityAbbreviation`)
+Make it normalize skill names consistently like other services:
 
-**Impact:**  
-- Increases maintenance cost (bug fixes/updates must be made in multiple places)
-- Risk of inconsistency
+```javascript
+// In ProficiencyService.js constructor
+this._skillAbilityMap = new Map([
+  ['acrobatics', 'dexterity'],
+  ['animalhandling', 'wisdom'],  // No spaces in keys
+  ['arcana', 'intelligence'],
+  ['athletics', 'strength'],
+  // ... etc
+]);
 
-**Resolution:**  
-- Enhanced `TextFormatter.abbreviateAbility` to handle already-abbreviated inputs (STR, DEX, etc.)
-- Removed duplicate `_getAbilityAbbreviation` methods from both `AbilityChoices.js` and `BonusNotes.js`
-- Updated all usages to import and use the centralized utility function
-- Reduced codebase by ~60 lines of duplicate code
-
-**Changes Made:**
-```js
-// Enhanced TextFormatter.js to handle both full names and abbreviations
-export function abbreviateAbility(ability) {
-  const abilityLower = ability.toLowerCase();
-  const abbr = {
-    strength: 'STR', dexterity: 'DEX', constitution: 'CON',
-    intelligence: 'INT', wisdom: 'WIS', charisma: 'CHA',
-    str: 'STR', dex: 'DEX', con: 'CON',
-    int: 'INT', wis: 'WIS', cha: 'CHA',
-  };
-  return abbr[abilityLower] || ability.substring(0, 3).toUpperCase();
+// Normalization helper (private method)
+_normalizeSkillKey(skill) {
+  if (!skill) return '';
+  return String(skill).toLowerCase().replace(/\s+/g, '');  // Remove spaces
 }
 
-// Updated AbilityChoices.js and BonusNotes.js
-import { abbreviateAbility } from '../../utils/TextFormatter.js';
-// All uses of this._getAbilityAbbreviation replaced with abbreviateAbility
-```
-
----
-
-### 2. Result and Logger Patterns ✅ COMPLETED (Logger Replacement)
-
-**Problem:**  
-- Custom `Result` and `Logger` classes are implemented with features (e.g., chaining, history, FF_DEBUG gating) that may be overkill for the app's needs.
-- `Result` pattern is used where simple try/catch or error returns would suffice.
-- Custom renderer `Logger` duplicates functionality already available in Chrome DevTools (timestamps, levels, file source, filtering).
-
-**Impact:**  
-- Adds abstraction and indirection, making debugging and onboarding harder.
-- Custom error handling can obscure stack traces and error sources.
-- Renderer logger adds overhead when DevTools already provides superior capabilities.
-
-**Recommended Fix:**  
-- **Result Pattern:** Use standard JavaScript `Error` objects and try/catch for error handling unless explicit monadic chaining is required.
-- **Renderer Logger:** Remove custom `Logger` from renderer and replace with native `console` methods: ✅ COMPLETED
-  - Removed all Logger imports from 50+ renderer files
-  - Replaced all `Logger.info()` → `console.info('[ModuleName]', ...)` calls
-  - Replaced all `Logger.warn()` → `console.warn('[ModuleName]', ...)`
-  - Replaced all `Logger.error()` → `console.error('[ModuleName]', ...)`
-  - Replaced all `Logger.debug()` → `console.debug('[ModuleName]', ...)`
-  - Main process keeps `MainLogger` in electron main process (no DevTools available there)
-
-**Changes Made:**
-- Service files (15): Removed Logger imports and replaced all 80+ method calls
-- Utility files (6): Removed Logger imports and replaced all method calls (TooltipManager, DataLoader, ReferenceResolver, TextProcessor, TagProcessor, etc.)
-- Core files: Replaced all Logger calls (Router, EventBus, etc.)
-- Module files (16+): Replaced all Logger calls across race, class, background, proficiency, sources modules
-- All 50+ renderer files now use native console methods with standardized bracketed naming: `console.method('[ServiceName]', message, data)`
-
-**Example:**
-```js
-// Old code
-Logger.info('ClassService', 'Loading class data', { count });
-
-// New code
-console.info('[ClassService]', 'Loading class data', { count });
-
-// Instead of Result.ok()/Result.err()
-try {
-  const data = await fetchData();
-  // ...
-} catch (e) {
-  // handle error
+// Updated getSkillAbility
+getSkillAbility(skill) {
+  const key = this._normalizeSkillKey(skill);
+  return this._skillAbilityMap.get(key) || null;
 }
-```
 
-**Benefits:**
-- Eliminated 50+ Logger imports across renderer codebase
-- Replaced 100+ Logger method calls with console equivalents
-- Native console is faster and has no abstraction overhead
-- Better stack traces and source mapping
-- Familiar API for all developers
-- DevTools filtering/searching is more powerful than custom history
-- All renderer files compile without errors ✅
-
----
-
-### 3. Renderer and ContentRenderer Complexity
-
-**Problem:**  
-- The `Renderer` class in `ContentRenderer.js` is highly recursive, with a plugin system and dynamic type dispatch.
-- The control flow is indirect, and the plugin system is under-documented.
-
-**Impact:**  
-- Hard to follow, debug, and extend.
-- New contributors may struggle to add new entry types or understand rendering flow.
-
-**Recommended Fix:**  
-- Add clear documentation and diagrams for the rendering flow.
-- Consider breaking up the renderer into smaller, type-specific modules.
-- If the plugin system is not widely used, remove or simplify it.
-
-**Example:**
-- Split `_rendererMap` into separate files per entry type.
-- Document the expected entry structure and rendering process.
-
----
-
-### 4. Race Data Handling ✅ COMPLETED
-
-**Problem:**  
-- Multiple lookup maps and subrace extraction logic in `RaceService.js` were complex and sometimes redundant.
-- Indirect handling of subrace variants and versions.
-- Complex methods: `_deriveVersionSubracesFromRace`, `_deriveVersionSubracesFromSubraceEntry`, `_groupSubracesByRace`
-- The `_buildRaceIndex` method merged multiple subrace sources with nested logic
-
-**Impact:**  
-- Increased cognitive load and risk of bugs.
-- Made it harder to add new race data or debug issues.
-- Difficult to understand the full race/subrace resolution flow without extensive code reading
-
-**Resolution:**  
-- Created new `RaceDataUtils.js` utility module with comprehensive JSDoc documentation
-- Extracted all complex derivation logic into separate, testable utility functions
-- Added detailed documentation explaining the 5etools version/implementation patterns
-- Simplified `RaceService.js` by delegating complex logic to utility functions
-- Enhanced clarity of the race bundle structure with TypeScript-style JSDoc comments
-
-**Changes Made:**
-
-1. **New `RaceDataUtils.js` utility module** with fully documented functions:
-   - `groupSubracesByRace()` - Groups subraces by parent race for efficient lookup
-   - `deriveVersionSubracesFromRace()` - Derives variant subraces from race._versions
-   - `deriveVersionSubracesFromSubraceEntry()` - Derives variants from subrace._versions
-   - `buildRaceBundle()` - Consolidates all subrace sources into a complete bundle
-   - `createRaceKey()` - Standardized key generation for lookups
-   - Private helpers: `deriveFromAbstractImplementation()`, `deriveFromSimpleVersion()`
-
-2. **Refactored `RaceService.js`**:
-   - Added comprehensive file-level JSDoc explaining the service's responsibilities
-   - Simplified `_buildRaceIndex()` to 15 lines (from 40+ lines) by using utility functions
-   - Removed all complex private methods - delegated to `RaceDataUtils`
-   - Added TypeScript-style JSDoc for the `_raceIndex` Map structure
-   - Updated all methods to use imported `createRaceKey()` function
-   - Added debug logging to track index building
-
-**Example of Improvement:**
-
-```js
-// Before: Complex inline logic in _buildRaceIndex
-_buildRaceIndex() {
-  this._raceIndex = new Map();
-  const races = this._raceData?.race || [];
-  const subraceGroups = this._groupSubracesByRace(...);
+// Updated getAvailableSkills - return lowercase for internal use
+async getAvailableSkills() {
+  if (this._skills) return [...this._skills];
   
-  for (const race of races) {
-    const explicitSubraces = subraceGroups.get(key) || [];
-    const derivedFromRace = this._deriveVersionSubracesFromRace(...);
-    const baseSubraces = explicitSubraces.filter((sr) => !sr.name);
-    const derivedFromSubrace = baseSubraces.flatMap(...);
-    const namedSubraces = explicitSubraces.filter((sr) => sr.name);
-    // ... 30+ more lines of complex logic
-  }
+  return [
+    'acrobatics',
+    'animal handling',  // Keep spaces for display
+    'arcana',
+    // ... etc - matches JSON source format
+  ];
 }
+```
 
-// After: Clean delegation to well-documented utilities
-_buildRaceIndex() {
-  console.debug('[RaceService]', 'Building race index');
+### 2. Update Data Processing (RaceCard, ClassCard, BackgroundCard)
+
+Normalize at the point where JSON data enters the system:
+
+```javascript
+// In RaceCard._processSkillProficiencies
+const capitalizedOptions = profObj.choose.from.map(skill => {
+  // Keep original casing from JSON for internal storage
+  return skill;  // DON'T capitalize - store as-is from JSON
+});
+```
+
+Remove all these capitalizations:
+
+- RaceCard.js line ~1043: Remove `skill.charAt(0).toUpperCase() + skill.slice(1)`
+- BackgroundCard.js line ~163: Similar capitalization removal
+
+### 3. Update ProficiencySelection.js
+
+Remove ALL `.toLowerCase()` normalization - just use exact values:
+
+```javascript
+// Remove normalizedProf variables entirely
+_toggleSkillProficiency(profItem, proficiency, character) {
+  const skillOptions = character.optionalProficiencies.skills;
   
-  this._raceIndex = new Map();
-  const races = this._raceData?.race || [];
-  const subraceGroups = groupSubracesByRace(this._raceData?.subrace || []);
-
-  for (const race of races) {
-    if (!race?.name) continue;
-    
-    const raceSource = race.source || 'PHB';
-    const key = createRaceKey(race.name, raceSource);
-    const explicitSubraces = subraceGroups.get(key) || [];
-    
-    const bundle = buildRaceBundle(race, explicitSubraces, raceSource);
-    this._raceIndex.set(key, bundle);
-  }
+  // Use proficiency directly - no normalization
+  const raceOptions = skillOptions.race?.options || [];
+  const classOptions = skillOptions.class?.options || [];
+  // ... etc
   
-  console.debug('[RaceService]', `Indexed ${this._raceIndex.size} races`);
+  // Direct comparisons
+  const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
+  // ... etc
 }
 ```
 
-**Benefits:**
-- **Reduced complexity**: `RaceService.js` reduced from 312 to 259 lines
-- **Improved testability**: Utility functions can be unit tested independently
-- **Better documentation**: 150+ lines of JSDoc explaining the version/implementation system
-- **Clearer separation**: Service handles data management, utilities handle data transformation
-- **Easier maintenance**: Changes to derivation logic now isolated in dedicated utility module
-- **No behavioral changes**: All existing functionality preserved, just better organized
+### 4. Update ProficiencyDisplay.js
 
----
+Add display formatting using existing TextFormatter:
 
-### 5. Formatting and Utility Functions
+```javascript
+import { toTitleCase } from '../../utils/TextFormatter.js';
 
-**Problem:**  
-- Some formatting helpers (e.g., for dice, modifiers, joining arrays) are scattered and sometimes overlap in functionality.
-
-**Impact:**  
-- Redundant code, harder to maintain.
-
-**Recommended Fix:**  
-- Consolidate all formatting helpers into a single module.
-- Add JSDoc comments and usage examples.
-
----
-
-### 6. Error Handling Patterns
-
-**Problem:**  
-- Some modules (e.g., `AppInitializer.js`, `ReferenceResolver.js`) catch errors and return null or error objects, sometimes logging, sometimes not.
-
-**Impact:**  
-- Inconsistent error handling makes debugging harder.
-- Silent failures can mask real issues.
-
-**Recommended Fix:**  
-- Standardize error handling: always log errors, and propagate them unless there’s a clear reason to swallow.
-- Use a consistent error reporting strategy (e.g., always return an error object or always throw).
-
----
-
-### 7. State Reset Logic
-
-**Problem:**  
-- `AppStateImpl.clear()` re-instantiates the class to reset state.
-
-**Impact:**  
-- Inefficient and can lead to subtle bugs if constructor logic changes.
-
-**Recommended Fix:**  
-- Store an initial state snapshot and reset to it, rather than re-instantiating.
-
-**Example:**
-```js
-class AppStateImpl {
-  constructor() {
-    this.initialState = { ...defaultState };
-    this.state = { ...this.initialState };
-  }
-  clear() {
-    this.state = { ...this.initialState };
-  }
+_buildItemHtml(cssClasses, item, type, ...) {
+  // Format for display ONLY
+  const displayName = type === 'skills' ? toTitleCase(item) : item;
+  
+  // Store original value in data attribute
+  return `<div class="${cssClasses.join(' ')}" 
+              data-proficiency="${item}" 
+              data-type="${type}">
+            <i class="${iconClass}"></i>${displayName}
+            ${abilityText}
+          </div>`;
 }
 ```
 
----
+### 5. Update ProficiencyCalculator.js (Optional)
 
-### 8. General Naming and Cohesion
+Already has SKILL_ABILITIES with lowercase keys - just update the helper:
 
-**Problem:**  
-- Some class and method names are generic (e.g., `Manager`, `Service`, `Impl`), and responsibilities are sometimes blurred.
-
-**Impact:**  
-- Reduces clarity and discoverability.
-
-**Recommended Fix:**  
-- Use more descriptive names (e.g., `RaceDataService` instead of `RaceService` if it only handles data).
-- Ensure each module/class has a single, clear responsibility.
-
----
-
-## Best Practice Evaluation
-
-| Practice                        | Adherence | Notes/Recommendations                                 |
-|----------------------------------|-----------|-------------------------------------------------------|
-| Readability & Maintainability    | Medium    | Improve by reducing duplication and clarifying flow   |
-| Naming Quality                   | Medium    | Use more descriptive, intent-revealing names          |
-| Cohesion & Separation of Concerns| Medium    | Some modules/classes do too much                      |
-| Error Handling                   | Low-Med   | Standardize and propagate errors                      |
-| Testability                      | Medium    | Utilities are testable, but indirect logic hinders    |
-| Use of Language/Framework        | Good      | Modern JS features used, but avoid over-abstraction   |
-| Performance                      | Good      | Lookup maps are efficient, but avoid premature opt.   |
-
----
-
-## Appendix: Example Improvements
-
-### Centralizing Ability Abbreviation
-
-**Before:**
-```js
-// In multiple files
-_getAbilityAbbreviation(ability) { ... }
-```
-**After:**
-```js
-// In TextFormatter.js
-export function abbreviateAbility(ability) { ... }
-// In all modules
-import { abbreviateAbility } from '../utils/TextFormatter.js';
-```
-
-### Simplifying Result/Error Handling
-
-**Before:**
-```js
-const result = Result.ok(data).andThen(...).unwrapOr(defaultValue);
-```
-**After:**
-```js
-try {
-  const data = await fetchData();
-  // ...
-} catch (e) {
-  // handle error
+```javascript
+export function getSkillAbility(skillName) {
+  if (!skillName) return null;
+  const normalized = skillName.toLowerCase().trim().replace(/\s+/g, '');
+  return SKILL_ABILITIES[normalized] || null;
 }
 ```
 
----
+## Summary of Changes
 
-# Next Steps
+| File | Change | Lines |
+|------|--------|-------|
+| ProficiencyService.js | Convert map to case-insensitive, add normalize helper | ~30 |
+| ProficiencySelection.js | Remove all `.toLowerCase()` calls | ~-50 |
+| ProficiencyDisplay.js | Add toTitleCase for display | ~5 |
+| RaceCard.js | Remove skill capitalization in processing | ~-10 |
+| BackgroundCard.js | Remove skill capitalization | ~-5 |
+| Proficiency.js (Core) | Update exact match comparisons | ~-5 |
+| ProficiencyCalculator.js | Update normalize to remove spaces | ~5 |
+| **Total** | **~7 file edits, 0 new files needed** | |
 
-- Prioritize centralizing utility logic and standardizing error handling.
-- Refactor renderer and data services for clarity and maintainability.
-- Review naming and module responsibilities for improved cohesion.
+## Why This Works
 
----
+✅ **Minimal Changes** - Uses existing patterns from other services  
+✅ **No New Files** - Leverages existing TextFormatter.js  
+✅ **Accepts JSON As-Is** - Skills stored as they come from data files (lowercase)  
+✅ **Consistent Pattern** - Matches SkillService, ActionService, etc.  
+✅ **No Breaking Changes** - New saves start clean  
+✅ **Separation of Concerns** - Storage (lowercase) vs Display (Title Case)  
 
-**This plan is intended as a living document. Update as improvements are made.**
+This follows the exact same pattern as `SkillService.getSkill(skillName)` which does:
 
----
+```javascript
+getSkill(skillName) {
+  return this._skillMap.get(skillName.toLowerCase()) || null;
+}
+```

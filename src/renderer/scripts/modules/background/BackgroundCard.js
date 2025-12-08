@@ -655,14 +655,19 @@ export class BackgroundCard extends BaseCard {
 		const backgroundSelected =
 			character.optionalProficiencies.skills.background?.selected || [];
 
+		// Preserve existing selections if source arrays are empty
+		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
+		const existingSkillSelections = character.optionalProficiencies.skills.selected || [];
+
 		// Update total allowed count
 		character.optionalProficiencies.skills.allowed =
 			raceAllowed + classAllowed + backgroundAllowed;
 
 		// Combine selected skills from all sources
-		character.optionalProficiencies.skills.selected = [
-			...new Set([...raceSelected, ...classSelected, ...backgroundSelected]),
-		];
+		character.optionalProficiencies.skills.selected =
+			sourceSelections.length > 0
+				? [...new Set(sourceSelections)]
+				: existingSkillSelections; // Keep saved data if sources are empty
 
 		// For combined options, include options from all sources
 		character.optionalProficiencies.skills.options = [
@@ -699,14 +704,19 @@ export class BackgroundCard extends BaseCard {
 		const backgroundSelected =
 			character.optionalProficiencies.languages.background?.selected || [];
 
+		// Preserve existing selections if source arrays are empty
+		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
+		const existingLanguageSelections = character.optionalProficiencies.languages.selected || [];
+
 		// Update total allowed count
 		character.optionalProficiencies.languages.allowed =
 			raceAllowed + classAllowed + backgroundAllowed;
 
 		// Combine selected languages from all sources
-		character.optionalProficiencies.languages.selected = [
-			...new Set([...raceSelected, ...classSelected, ...backgroundSelected]),
-		];
+		character.optionalProficiencies.languages.selected =
+			sourceSelections.length > 0
+				? [...new Set(sourceSelections)]
+				: existingLanguageSelections; // Keep saved data if sources are empty
 
 		// For combined options, include options from all sources
 		character.optionalProficiencies.languages.options = [

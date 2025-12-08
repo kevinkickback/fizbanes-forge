@@ -1121,15 +1121,20 @@ export class RaceCard {
 		const backgroundLanguageSelected =
 			character.optionalProficiencies.languages.background?.selected || [];
 
+		// Preserve existing language selections if source arrays are empty
+		const sourceLanguageSelections = [
+			...raceLanguageSelected,
+			...classLanguageSelected,
+			...backgroundLanguageSelected,
+		];
+		const existingLanguageSelections = character.optionalProficiencies.languages.selected || [];
+
 		character.optionalProficiencies.languages.allowed =
 			raceLanguageAllowed + classLanguageAllowed + backgroundLanguageAllowed;
-		character.optionalProficiencies.languages.selected = [
-			...new Set([
-				...raceLanguageSelected,
-				...classLanguageSelected,
-				...backgroundLanguageSelected,
-			]),
-		];
+		character.optionalProficiencies.languages.selected =
+			sourceLanguageSelections.length > 0
+				? [...new Set(sourceLanguageSelections)]
+				: existingLanguageSelections; // Keep saved data if sources are empty
 		character.optionalProficiencies.languages.options = [
 			...new Set([
 				...raceLanguageOptions,
@@ -1160,15 +1165,20 @@ export class RaceCard {
 		const backgroundToolSelected =
 			character.optionalProficiencies.tools.background?.selected || [];
 
+		// Preserve existing tool selections if source arrays are empty
+		const sourceToolSelections = [
+			...raceToolSelected,
+			...classToolSelected,
+			...backgroundToolSelected,
+		];
+		const existingToolSelections = character.optionalProficiencies.tools.selected || [];
+
 		character.optionalProficiencies.tools.allowed =
 			raceToolAllowed + classToolAllowed + backgroundToolAllowed;
-		character.optionalProficiencies.tools.selected = [
-			...new Set([
-				...raceToolSelected,
-				...classToolSelected,
-				...backgroundToolSelected,
-			]),
-		];
+		character.optionalProficiencies.tools.selected =
+			sourceToolSelections.length > 0
+				? [...new Set(sourceToolSelections)]
+				: existingToolSelections; // Keep saved data if sources are empty
 		character.optionalProficiencies.tools.options = [
 			...new Set([
 				...raceToolOptions,
@@ -1207,11 +1217,16 @@ export class RaceCard {
 		const backgroundSelected =
 			character.optionalProficiencies.skills.background?.selected || [];
 
+		// Preserve existing selections if source arrays are empty
+		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
+		const existingSkillSelections = character.optionalProficiencies.skills.selected || [];
+
 		character.optionalProficiencies.skills.allowed =
 			raceAllowed + classAllowed + backgroundAllowed;
-		character.optionalProficiencies.skills.selected = [
-			...new Set([...raceSelected, ...classSelected, ...backgroundSelected]),
-		];
+		character.optionalProficiencies.skills.selected =
+			sourceSelections.length > 0
+				? [...new Set(sourceSelections)]
+				: existingSkillSelections; // Keep saved data if sources are empty
 		character.optionalProficiencies.skills.options = [
 			...new Set([...raceOptions, ...classOptions, ...backgroundOptions]),
 		];
