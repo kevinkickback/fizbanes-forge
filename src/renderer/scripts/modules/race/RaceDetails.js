@@ -270,25 +270,29 @@ export class RaceDetailsView {
 		const languages = [];
 
 		for (const langEntry of race.languageProficiencies) {
+			// First, add all fixed languages
+			for (const [lang, value] of Object.entries(langEntry)) {
+				if (value === true && lang !== 'other' && lang !== 'anystandard' && lang !== 'choose') {
+					const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
+					languages.push(langName);
+				}
+			}
+
+			// Then add optional language choices
 			if (langEntry.anystandard) {
 				languages.push(
 					`Choose ${langEntry.anystandard} standard language${langEntry.anystandard > 1 ? 's' : ''}`,
 				);
-			} else if (langEntry.choose) {
+			}
+
+			if (langEntry.choose) {
 				const count = langEntry.choose.count || 1;
 				languages.push(`Choose ${count} language${count > 1 ? 's' : ''}`);
-			} else {
-				// Fixed languages
-				for (const [lang, value] of Object.entries(langEntry)) {
-					if (value === true) {
-						if (lang === 'other') {
-							languages.push('One other language of your choice');
-						} else {
-							const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
-							languages.push(langName);
-						}
-					}
-				}
+			}
+
+			// Handle race's unique language ('other')
+			if (langEntry.other === true) {
+				languages.push('One other language of your choice');
 			}
 		}
 
