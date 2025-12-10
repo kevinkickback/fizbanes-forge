@@ -60,7 +60,7 @@ export class ProficiencyCore {
 		// If found, use the existing casing to maintain consistency
 		const targetLower = proficiency.toLowerCase();
 		const existingProf = character.proficiencies[type].find(p => p.toLowerCase() === targetLower);
-		
+
 		const wasNew = !existingProf;
 		if (wasNew) {
 			character.proficiencies[type].push(proficiency);
@@ -156,7 +156,7 @@ export class ProficiencyCore {
 	 */
 	static hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
-		
+
 		const targetLower = proficiency.toLowerCase();
 		return character.proficiencies[type].some(p => p.toLowerCase() === targetLower);
 	}
@@ -564,7 +564,7 @@ export class ProficiencyCore {
 		// Find the proficiency using case-insensitive lookup
 		const targetLower = proficiency.toLowerCase();
 		let foundProf = null;
-		
+
 		for (const [key] of character.proficiencySources[type]) {
 			if (key.toLowerCase() === targetLower) {
 				foundProf = key;
