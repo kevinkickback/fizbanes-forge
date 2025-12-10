@@ -241,25 +241,12 @@ export class ClassDetailsView {
 					// Any skills
 					parts.push(`Choose any ${count} skill${count > 1 ? 's' : ''}`);
 				} else {
-					// Specific list
-					const skillNames = from.map((skill) => {
-						// Capitalize first letter of each word
-						return skill
-							.split(' ')
-							.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-							.join(' ');
-					});
-					parts.push(`Choose ${count} from: ${skillNames.join(', ')}`);
+					// Specific list - use skills as-is from JSON
+					parts.push(`Choose ${count} from: ${from.join(', ')}`);
 				}
 			} else {
-				// Fixed proficiencies
-				const skillNames = Object.keys(skillEntry).map((skill) => {
-					return skill
-						.split(' ')
-						.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-						.join(' ');
-				});
-				parts.push(...skillNames);
+				// Fixed proficiencies - use skills as-is from JSON
+				parts.push(...Object.keys(skillEntry));
 			}
 		}
 
@@ -505,10 +492,10 @@ export class ClassDetailsView {
 				const count = toolEntry.choose.count || 1;
 				tools.push(`Choose ${count} tool${count > 1 ? 's' : ''}`);
 			} else {
-				// Object with tool types
+				// Object with tool types - use tool names as-is from JSON
 				for (const [key, value] of Object.entries(toolEntry)) {
 					if (value === true) {
-						tools.push(key.charAt(0).toUpperCase() + key.slice(1));
+						tools.push(key);
 					}
 				}
 			}

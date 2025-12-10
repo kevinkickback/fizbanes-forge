@@ -300,8 +300,9 @@ export class ProficiencyDisplayView {
 				return 'Armor';
 			case 'weapons':
 				return 'Weapons';
-			default:
-				return type.charAt(0).toUpperCase() + type.slice(1);
+		default:
+			// For any unknown types, capitalize first letter
+			return type.charAt(0).toUpperCase() + type.slice(1);
 		}
 	}
 }

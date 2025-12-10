@@ -443,8 +443,8 @@ export class ProficiencyCard {
 		switch (type) {
 			case 'skills': {
 				const allSkills = await this._proficiencyManager.getAvailableSkills();
-				// Return normalized (lowercase) to match internal format (displayed as title-case in UI)
-				return allSkills.map(skill => DataNormalizer.normalizeString(skill));
+				// Return skills with proper casing from 5etools JSON
+				return allSkills;
 			}
 			case 'savingThrows':
 				return [
@@ -456,31 +456,31 @@ export class ProficiencyCard {
 					'Charisma',
 				];
 			case 'languages': {
-				// Return normalized (lowercase) to match internal format (displayed as title-case in UI)
+				// Return languages with proper casing from 5etools JSON
 				const availableLanguages = [
-					'common',
-					'dwarvish',
-					'elvish',
-					'giant',
-					'gnomish',
-					'goblin',
-					'halfling',
-					'orc',
-					'abyssal',
-					'celestial',
-					'draconic',
-					'deep speech',
-					'infernal',
-					'primordial',
-					'sylvan',
-					'undercommon',
+					'Common',
+					'Dwarvish',
+					'Elvish',
+					'Giant',
+					'Gnomish',
+					'Goblin',
+					'Halfling',
+					'Orc',
+					'Abyssal',
+					'Celestial',
+					'Draconic',
+					'Deep Speech',
+					'Infernal',
+					'Primordial',
+					'Sylvan',
+					'Undercommon',
 				];
 				return availableLanguages;
 			}
 			case 'tools': {
 				const allTools = await this._proficiencyManager.getAvailableTools();
-				// Return normalized (lowercase) to match internal format (displayed as title-case in UI)
-				return allTools.map(tool => DataNormalizer.normalizeString(tool));
+				// Return tools with original JSON casing preserved
+				return allTools;
 			}
 			case 'armor':
 				return ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'];

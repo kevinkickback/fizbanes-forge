@@ -134,11 +134,7 @@ async function loadMonsters() {
  * @returns {Promise<Object>} Race data
  */
 async function loadRaces() {
-	const data = await loadJSON(`${state.baseUrl}races.json`);
-	if (data.race && Array.isArray(data.race)) {
-		data.race = data.race.map(race => DataNormalizer.normalizeProficienciesInData(race));
-	}
-	return data;
+	return loadJSON(`${state.baseUrl}races.json`);
 }
 
 /**
@@ -156,11 +152,7 @@ async function loadRaceFluff() {
  * @returns {Promise<Object>} Class data from single file
  */
 async function loadClasses(className = 'Fighter') {
-	const data = await loadJSON(`${state.baseUrl}class/class-${className.toLowerCase()}.json`);
-	if (data.class && Array.isArray(data.class)) {
-		data.class = data.class.map(cls => DataNormalizer.normalizeProficienciesInData(cls));
-	}
-	return data;
+	return loadJSON(`${state.baseUrl}class/class-${className.toLowerCase()}.json`);
 }
 
 /**
@@ -168,11 +160,7 @@ async function loadClasses(className = 'Fighter') {
  * @returns {Promise<Object>} Background data
  */
 async function loadBackgrounds() {
-	const data = await loadJSON(`${state.baseUrl}backgrounds.json`);
-	if (data.background && Array.isArray(data.background)) {
-		data.background = data.background.map(bg => DataNormalizer.normalizeProficienciesInData(bg));
-	}
-	return data;
+	return loadJSON(`${state.baseUrl}backgrounds.json`);
 }
 
 /**

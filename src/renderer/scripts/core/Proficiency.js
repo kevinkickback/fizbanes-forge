@@ -23,6 +23,7 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 export class ProficiencyCore {
 	/**
 	 * Adds a proficiency to a character with source tracking
+	 * Uses case-insensitive comparison to avoid duplicates with different casing
 	 * @param {Object} character - The character object
 	 * @param {string} type - Proficiency type (skills, languages, tools, armor, weapons, savingThrows)
 	 * @param {string} proficiency - The proficiency name
@@ -55,17 +56,22 @@ export class ProficiencyCore {
 			character.proficiencySources[type] = new Map();
 		}
 
-		// Add to proficiencies array if not already present
-		const wasNew = !character.proficiencies[type].includes(proficiency);
+		// Check if proficiency already exists (case-insensitive)
+		// If found, use the existing casing to maintain consistency
+		const targetLower = proficiency.toLowerCase();
+		const existingProf = character.proficiencies[type].find(p => p.toLowerCase() === targetLower);
+		
+		const wasNew = !existingProf;
 		if (wasNew) {
 			character.proficiencies[type].push(proficiency);
 		}
 
-		// Track source
-		if (!character.proficiencySources[type].has(proficiency)) {
-			character.proficiencySources[type].set(proficiency, new Set());
+		// Track source (use existing proficiency casing if it exists)
+		const trackKey = existingProf || proficiency;
+		if (!character.proficiencySources[type].has(trackKey)) {
+			character.proficiencySources[type].set(trackKey, new Set());
 		}
-		character.proficiencySources[type].get(proficiency).add(source);
+		character.proficiencySources[type].get(trackKey).add(source);
 
 		// Handle skill auto-refund if this is a fixed proficiency
 		if (type === 'skills' && !source.includes('Choice')) {
@@ -142,13 +148,17 @@ export class ProficiencyCore {
 
 	/**
 	 * Checks if a character has a proficiency (from any source)
+	 * Uses case-insensitive comparison to handle both old (lowercase) and new (original casing) saves
 	 * @param {Object} character - The character object
 	 * @param {string} type - Proficiency type
 	 * @param {string} proficiency - The proficiency name
 	 * @returns {boolean} True if the character has this proficiency
 	 */
 	static hasProficiency(character, type, proficiency) {
-		return character?.proficiencies?.[type]?.includes(proficiency) || false;
+		if (!character?.proficiencies?.[type]) return false;
+		
+		const targetLower = proficiency.toLowerCase();
+		return character.proficiencies[type].some(p => p.toLowerCase() === targetLower);
 	}
 
 	/**
@@ -551,7 +561,22 @@ export class ProficiencyCore {
 			return;
 		}
 
-		const sources = character.proficiencySources[type].get(proficiency);
+		// Find the proficiency using case-insensitive lookup
+		const targetLower = proficiency.toLowerCase();
+		let foundProf = null;
+		
+		for (const [key] of character.proficiencySources[type]) {
+			if (key.toLowerCase() === targetLower) {
+				foundProf = key;
+				break;
+			}
+		}
+
+		if (!foundProf) {
+			return;
+		}
+
+		const sources = character.proficiencySources[type].get(foundProf);
 		if (!sources) {
 			return;
 		}
@@ -560,10 +585,10 @@ export class ProficiencyCore {
 
 		// If no sources remain, remove the proficiency entirely
 		if (sources.size === 0) {
-			character.proficiencySources[type].delete(proficiency);
+			character.proficiencySources[type].delete(foundProf);
 
 			if (character.proficiencies[type]) {
-				const index = character.proficiencies[type].indexOf(proficiency);
+				const index = character.proficiencies[type].findIndex(p => p.toLowerCase() === targetLower);
 				if (index > -1) {
 					character.proficiencies[type].splice(index, 1);
 				}

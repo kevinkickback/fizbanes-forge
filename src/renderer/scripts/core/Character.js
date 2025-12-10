@@ -5,7 +5,6 @@
 
 
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
-import DataNormalizer from '../utils/DataNormalizer.js';
 import { ProficiencyCore } from './Proficiency.js';
 
 /**
@@ -17,8 +16,8 @@ export class Character {
 	 * @param {Object} [data] - Optional character data to initialize with
 	 */
 	constructor(data = {}) {
-		// Normalize proficiencies to lowercase on load for consistency with internal logic
-		Character._normalizeProficienciesInLoadedData(data);
+		// Migrate old save files that have normalized (lowercase) proficiencies
+		Character._migrateLegacySaveFile(data);
 
 		/**
 		 * Unique identifier for the character
@@ -794,78 +793,23 @@ export class Character {
 	 * @static
 	 * @private
 	 */
-	static _normalizeProficienciesInLoadedData(data) {
+	static _migrateLegacySaveFile(data) {
 		if (!data) return;
 
-		// Normalize allowedSources to UPPERCASE (internal logic uses .toUpperCase() on sources)
+		// This method migrates old save files that stored normalized (lowercase) proficiencies
+		// to the new format that preserves original JSON casing.
+		// Since we now store proficiencies with their original casing from JSON, old save files
+		// will be migrated automatically on first load.
+		//
+		// No conversion is necessary at load time anymore - proficiencies will be stored
+		// as-is from the JSON in new saves. Old saves with lowercase values will continue
+		// to work because comparisons are done case-insensitively.
+
+		// Ensure allowedSources is uppercase (this is already correct in old saves)
 		if (Array.isArray(data.allowedSources)) {
 			data.allowedSources = data.allowedSources.map(source =>
 				typeof source === 'string' ? source.toUpperCase() : source
 			);
-		}
-
-		// Normalize proficiencies
-		if (data.proficiencies) {
-			// Skills, languages, tools → lowercase (these are used in .includes() comparisons)
-			for (const type of ['skills', 'languages', 'tools']) {
-				if (Array.isArray(data.proficiencies[type])) {
-					data.proficiencies[type] = data.proficiencies[type].map(item =>
-						typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
-					);
-				}
-			}
-		}
-
-		// Normalize proficiency sources keys to match proficiency format
-		if (data.proficiencySources) {
-			// Skills, languages, tools keys → lowercase
-			for (const type of ['skills', 'languages', 'tools']) {
-				if (data.proficiencySources[type]) {
-					const normalized = {};
-					for (const [key, value] of Object.entries(data.proficiencySources[type])) {
-						normalized[DataNormalizer.normalizeString(key)] = value;
-					}
-					data.proficiencySources[type] = normalized;
-				}
-			}
-		}
-
-		// Normalize optional proficiencies to match proficiency format
-		if (data.optionalProficiencies) {
-			for (const type of ['skills', 'languages', 'tools']) {
-				const optional = data.optionalProficiencies[type];
-				if (optional) {
-					// Normalize top-level selected array
-					if (Array.isArray(optional.selected)) {
-						optional.selected = optional.selected.map(item =>
-							typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
-						);
-					}
-
-					// Normalize top-level options array
-					if (Array.isArray(optional.options)) {
-						optional.options = optional.options.map(item =>
-							typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
-						);
-					}
-
-					// Normalize source-specific (race/class/background) selections
-					for (const source of ['race', 'class', 'background']) {
-						if (optional[source]) {
-							if (Array.isArray(optional[source].selected)) {
-								optional[source].selected = optional[source].selected.map(item =>
-									typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
-								);
-							}
-							if (Array.isArray(optional[source].options)) {
-								optional[source].options = optional[source].options.map(item =>
-									typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
-								);
-							}
-						}
-					}
-				}
-			}
 		}
 	}
 }

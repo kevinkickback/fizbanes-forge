@@ -746,7 +746,7 @@ export class ClassCard {
 			} else {
 				for (const [key, value] of Object.entries(toolEntry)) {
 					if (value === true) {
-						tools.push(key.charAt(0).toUpperCase() + key.slice(1));
+						tools.push(key);
 					}
 				}
 			}
@@ -769,17 +769,50 @@ export class ClassCard {
 
 		for (const skillEntry of skills) {
 			if (skillEntry.choose?.from) {
-				skillOptions.push(...skillEntry.choose.from);
+				// Convert lowercase skill names from JSON to proper casing
+				const properCasedSkills = skillEntry.choose.from.map(skill => this._normalizeSkillName(skill));
+				skillOptions.push(...properCasedSkills);
 			} else if (skillEntry.choose?.fromFilter) {
 				// "Any" skills - return special marker
 				skillOptions.push('any');
 			} else {
-				// Fixed proficiencies
-				skillOptions.push(...Object.keys(skillEntry));
+				// Fixed proficiencies - convert to proper casing
+				const properCasedSkills = Object.keys(skillEntry).map(skill => this._normalizeSkillName(skill));
+				skillOptions.push(...properCasedSkills);
 			}
 		}
 
 		return skillOptions;
+	}
+
+	/**
+	 * Normalize skill name to proper casing matching 5etools format
+	 * @param {string} skill - Skill name (may be lowercase from JSON)
+	 * @returns {string} Skill name with proper casing
+	 * @private
+	 */
+	_normalizeSkillName(skill) {
+		const skillMap = {
+			'acrobatics': 'Acrobatics',
+			'animal handling': 'Animal Handling',
+			'arcana': 'Arcana',
+			'athletics': 'Athletics',
+			'deception': 'Deception',
+			'history': 'History',
+			'insight': 'Insight',
+			'intimidation': 'Intimidation',
+			'investigation': 'Investigation',
+			'medicine': 'Medicine',
+			'nature': 'Nature',
+			'perception': 'Perception',
+			'performance': 'Performance',
+			'persuasion': 'Persuasion',
+			'religion': 'Religion',
+			'sleight of hand': 'Sleight of Hand',
+			'stealth': 'Stealth',
+			'survival': 'Survival',
+		};
+		return skillMap[skill.toLowerCase()] || skill;
 	}
 
 	/**

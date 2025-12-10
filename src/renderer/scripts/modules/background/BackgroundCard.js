@@ -483,15 +483,17 @@ export class BackgroundCard extends BaseCard {
 			for (const langEntry of background.languageProficiencies) {
 				// Add fixed languages (specific languages set to true)
 				for (const [lang, value] of Object.entries(langEntry)) {
-					if (value === true && lang !== 'choose' && lang !== 'anystandard') {
-						const langName = lang.toLowerCase();
-						character.addProficiency('languages', langName, 'Background');
-						fixedLanguages.push(langName);
+					const langLower = lang.toLowerCase();
+					if (value === true && langLower !== 'choose' && langLower !== 'anystandard') {
+						character.addProficiency('languages', lang, 'Background');
+						fixedLanguages.push(lang);
 					}
-				}				// Accumulate optional standard language choices (keys normalized to lowercase)
-				if (langEntry.anystandard && langEntry.anystandard > 0) {
-					choiceCount += langEntry.anystandard;
-					// Use full language list for 'anystandard'
+				}
+				// Check for anyStandard or anystandard (case-insensitive)
+				const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+				if (anyStandardCount > 0) {
+					choiceCount += anyStandardCount;
+					// Use full language list for 'anyStandard'
 					const allLanguages = this._getAllLanguages();
 					for (const lang of allLanguages) {
 						if (!choiceOptions.includes(lang)) {
@@ -508,11 +510,10 @@ export class BackgroundCard extends BaseCard {
 					choiceCount += count;
 
 					if (from.length > 0) {
-						// Add specific language options (lowercase to match normalized format)
+						// Add specific language options - use as-is from JSON
 						for (const lang of from) {
-							const langName = lang.toLowerCase();
-							if (!choiceOptions.includes(langName)) {
-								choiceOptions.push(langName);
+							if (!choiceOptions.includes(lang)) {
+								choiceOptions.push(lang);
 							}
 						}
 					} else {
@@ -603,24 +604,24 @@ export class BackgroundCard extends BaseCard {
 	 * @private
 	 */
 	_getAllLanguages() {
-		// Standard D&D 5e languages (lowercase to match normalized save format)
+		// Standard D&D 5e languages with proper casing from 5etools
 		return [
-			'common',
-			'dwarvish',
-			'elvish',
-			'giant',
-			'gnomish',
-			'goblin',
-			'halfling',
-			'orc',
-			'abyssal',
-			'celestial',
-			'draconic',
-			'deep speech',
-			'infernal',
-			'primordial',
-			'sylvan',
-			'undercommon',
+			'Common',
+			'Dwarvish',
+			'Elvish',
+			'Giant',
+			'Gnomish',
+			'Goblin',
+			'Halfling',
+			'Orc',
+			'Abyssal',
+			'Celestial',
+			'Draconic',
+			'Deep Speech',
+			'Infernal',
+			'Primordial',
+			'Sylvan',
+			'Undercommon',
 		];
 	}
 

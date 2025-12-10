@@ -104,9 +104,7 @@ export class RaceDetailsView {
 				// Process fixed improvements first
 				for (const [ability, bonus] of Object.entries(abilityEntry)) {
 					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
-						const abilityName =
-							ability.charAt(0).toUpperCase() + ability.slice(1);
-						improvements.push(`${abilityName} +${bonus}`);
+						improvements.push(`${ability} +${bonus}`);
 					}
 				}
 
@@ -127,9 +125,7 @@ export class RaceDetailsView {
 				// Process fixed improvements first
 				for (const [ability, bonus] of Object.entries(abilityEntry)) {
 					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
-						const abilityName =
-							ability.charAt(0).toUpperCase() + ability.slice(1);
-						improvements.push(`${abilityName} +${bonus}`);
+						improvements.push(`${ability} +${bonus}`);
 					}
 				}
 
@@ -228,8 +224,7 @@ export class RaceDetailsView {
 		} else if (typeof race.speed === 'object') {
 			for (const [type, value] of Object.entries(race.speed)) {
 				if (value && typeof value === 'number') {
-					const speedType = type.charAt(0).toUpperCase() + type.slice(1);
-					speeds.push(`${speedType}: ${value} ft.`);
+					speeds.push(`${type}: ${value} ft.`);
 				}
 			}
 		}
@@ -273,8 +268,7 @@ export class RaceDetailsView {
 			// First, add all fixed languages
 			for (const [lang, value] of Object.entries(langEntry)) {
 				if (value === true && lang !== 'other' && lang !== 'anystandard' && lang !== 'choose') {
-					const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
-					languages.push(langName);
+					languages.push(lang);
 				}
 			}
 

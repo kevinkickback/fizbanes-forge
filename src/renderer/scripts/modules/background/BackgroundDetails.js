@@ -157,23 +157,14 @@ export class BackgroundDetailsView {
 				if (from.length === 0) {
 					skills.push(`Choose ${count} skill${count > 1 ? 's' : ''}`);
 				} else {
-					const skillNames = from.map((skill) => {
-						return skill
-							.split(' ')
-							.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-							.join(' ');
-					});
-					skills.push(`Choose ${count} from: ${skillNames.join(', ')}`);
+					// Use skills as-is from JSON
+					skills.push(`Choose ${count} from: ${from.join(', ')}`);
 				}
 			} else {
-				// Fixed proficiencies
+				// Fixed proficiencies - use skills as-is from JSON
 				for (const [skill, value] of Object.entries(skillEntry)) {
 					if (value === true) {
-						const skillName = skill
-							.split(' ')
-							.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-							.join(' ');
-						skills.push(skillName);
+						skills.push(skill);
 					}
 				}
 			}
@@ -198,14 +189,10 @@ export class BackgroundDetailsView {
 				const count = toolEntry.choose.count || 1;
 				tools.push(`Choose ${count} tool${count > 1 ? 's' : ''}`);
 			} else {
-				// Fixed proficiencies
+				// Fixed proficiencies - use tool names as-is from JSON
 				for (const [tool, value] of Object.entries(toolEntry)) {
 					if (value === true) {
-						const toolName = tool
-							.split(' ')
-							.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-							.join(' ');
-						tools.push(toolName);
+						tools.push(tool);
 					}
 				}
 			}
@@ -226,11 +213,10 @@ export class BackgroundDetailsView {
 		const languages = [];
 
 		for (const langEntry of background.languageProficiencies) {
-			// First, add all fixed languages
+			// First, add all fixed languages - use as-is from JSON
 			for (const [lang, value] of Object.entries(langEntry)) {
 				if (value === true && lang !== 'anystandard' && lang !== 'choose') {
-					const langName = lang.charAt(0).toUpperCase() + lang.slice(1);
-					languages.push(langName);
+					languages.push(lang);
 				}
 			}
 

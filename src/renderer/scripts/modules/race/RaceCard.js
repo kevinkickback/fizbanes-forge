@@ -847,52 +847,52 @@ export class RaceCard {
 
 		for (const profObj of race.languageProficiencies) {
 			for (const [key, value] of Object.entries(profObj)) {
+				const keyLower = key.toLowerCase();
 				// Handle fixed languages
 				if (
 					value === true &&
-					key !== 'anystandard' &&
-					key !== 'any' &&
-					key !== 'choose' &&
-					key !== 'other'
+					keyLower !== 'anystandard' &&
+					keyLower !== 'any' &&
+					keyLower !== 'choose' &&
+					keyLower !== 'other'
 				) {
-					const languageName = key.toLowerCase();
-					character.addProficiency('languages', languageName, 'Race');
+					character.addProficiency('languages', key, 'Race');
 				}
 				// Handle race's unique language ('other')
-				else if (key === 'other' && value === true) {
+				else if (keyLower === 'other' && value === true) {
 					if (race.name !== 'Common') {
-						character.addProficiency('languages', race.name.toLowerCase(), 'Race');
+						character.addProficiency('languages', race.name, 'Race');
 					}
 				}
-				// Handle 'any'/'anystandard' choices (keys are normalized to lowercase)
+				// Handle 'any'/'anystandard' choices
 				else if (
-					(key === 'anystandard' || key === 'any') &&
+					(keyLower === 'anystandard' || keyLower === 'any') &&
 					typeof value === 'number' &&
 					value > 0
 				) {
 					languageCount += value;
 					languageOptions = [
-						'common',
-						'dwarvish',
-						'elvish',
-						'giant',
-						'gnomish',
-						'goblin',
-						'halfling',
-						'orc',
-						'abyssal',
-						'celestial',
-						'draconic',
-						'deep speech',
-						'infernal',
-						'primordial',
-						'sylvan',
-						'undercommon',
+						'Common',
+						'Dwarvish',
+						'Elvish',
+						'Giant',
+						'Gnomish',
+						'Goblin',
+						'Halfling',
+						'Orc',
+						'Abyssal',
+						'Celestial',
+						'Draconic',
+						'Deep Speech',
+						'Infernal',
+						'Primordial',
+						'Sylvan',
+						'Undercommon',
 					];
 				}
 				// Handle specific 'choose' lists
 				else if (
-					key === 'choose' &&
+					keyLower === 'choose' &&
 					typeof value === 'object' &&
 					value.from &&
 					value.count > 0
@@ -957,8 +957,8 @@ export class RaceCard {
 			// Handle fixed tool proficiencies
 			for (const [tool, hasProf] of Object.entries(profObj)) {
 				if (hasProf === true && tool !== 'any') {
-					const normalizedTool = DataNormalizer.normalizeString(tool);
-					character.addProficiency('tools', normalizedTool, 'Race');
+					// Add tool with original JSON casing preserved
+					character.addProficiency('tools', tool, 'Race');
 				}
 			}
 
@@ -1017,26 +1017,26 @@ export class RaceCard {
 				// Handle "any" skill proficiency choice
 				if (profObj.any) {
 					raceSkillCount += profObj.any;
-					// Use normalized skill list (lowercase)
+					// Use proper-cased skill list matching 5etools JSON format
 					raceSkillOptions = [
-						'acrobatics',
-						'animal handling',
-						'arcana',
-						'athletics',
-						'deception',
-						'history',
-						'insight',
-						'intimidation',
-						'investigation',
-						'medicine',
-						'nature',
-						'perception',
-						'performance',
-						'persuasion',
-						'religion',
-						'sleight of hand',
-						'stealth',
-						'survival',
+						'Acrobatics',
+						'Animal Handling',
+						'Arcana',
+						'Athletics',
+						'Deception',
+						'History',
+						'Insight',
+						'Intimidation',
+						'Investigation',
+						'Medicine',
+						'Nature',
+						'Perception',
+						'Performance',
+						'Persuasion',
+						'Religion',
+						'Sleight of Hand',
+						'Stealth',
+						'Survival',
 					];
 					continue;
 				}
@@ -1044,7 +1044,7 @@ export class RaceCard {
 				// Handle fixed skill proficiencies
 				for (const [skill, hasProf] of Object.entries(profObj)) {
 					if (hasProf === true && skill !== 'choose') {
-						// Data is already normalized from DataLoader
+						// Add skill with original JSON casing preserved
 						character.addProficiency('skills', skill, 'Race');
 					}
 				}
@@ -1053,7 +1053,7 @@ export class RaceCard {
 				if (profObj.choose && profObj.choose.count > 0) {
 					raceSkillCount += profObj.choose.count;
 					if (profObj.choose.from && Array.isArray(profObj.choose.from)) {
-						// Data is already normalized from DataLoader
+						// Add skill options with original JSON casing preserved
 						raceSkillOptions.push(...profObj.choose.from);
 					}
 				}
@@ -1068,26 +1068,26 @@ export class RaceCard {
 			subrace.name === 'Variant'
 		) {
 			raceSkillCount = 1;
-			// Use normalized skill list (lowercase) to match internal format
+			// Use proper-cased skill list matching 5etools JSON format
 			raceSkillOptions = [
-				'acrobatics',
-				'animal handling',
-				'arcana',
-				'athletics',
-				'deception',
-				'history',
-				'insight',
-				'intimidation',
-				'investigation',
-				'medicine',
-				'nature',
-				'perception',
-				'performance',
-				'persuasion',
-				'religion',
-				'sleight of hand',
-				'stealth',
-				'survival',
+				'Acrobatics',
+				'Animal Handling',
+				'Arcana',
+				'Athletics',
+				'Deception',
+				'History',
+				'Insight',
+				'Intimidation',
+				'Investigation',
+				'Medicine',
+				'Nature',
+				'Perception',
+				'Performance',
+				'Persuasion',
+				'Religion',
+				'Sleight of Hand',
+				'Stealth',
+				'Survival',
 			];
 		}
 
