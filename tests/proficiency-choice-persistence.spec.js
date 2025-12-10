@@ -262,6 +262,31 @@ test.describe('Proficiency Choice Persistence', () => {
 
             await openCharacter(secondPage, testCharacterName);
             await verifySkillProficiencies(secondPage, proficiencyData);
+
+            // Clean up: delete the test character
+            console.log('Deleting test character:', testCharacterName);
+            await secondPage.waitForSelector('button.nav-link[data-page="home"]', { timeout: 15000 });
+            await secondPage.click('button.nav-link[data-page="home"]');
+            await secondPage.waitForSelector('[data-current-page="home"]', { timeout: 30000 });
+            await secondPage.waitForTimeout(1000);
+
+            const deleteCard = secondPage.locator('.character-card', { hasText: testCharacterName }).first();
+            await expect(deleteCard).toBeVisible({ timeout: 15000 });
+
+            const deleteButton = deleteCard.locator('.delete-character');
+            await expect(deleteButton).toBeVisible({ timeout: 10000 });
+            await deleteButton.click();
+
+            const confirmButton = secondPage.locator('#confirmDeleteBtn, .btn-danger').filter({ hasText: /delete|confirm/i }).first();
+            await confirmButton.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+            if (await confirmButton.isVisible()) {
+                await confirmButton.click();
+            }
+
+            await secondPage.waitForTimeout(1000);
+            const deletedCard = secondPage.locator('.character-card', { hasText: testCharacterName });
+            await expect(deletedCard).toHaveCount(0, { timeout: 10000 });
+            console.log('✓ Test character deleted successfully');
         } finally {
             if (electronAppTwo) {
                 await electronAppTwo.close();
@@ -302,6 +327,31 @@ test.describe('Proficiency Choice Persistence', () => {
 
             await openCharacter(secondPage, testCharacterName);
             await verifySkillProficiencies(secondPage, proficiencyData);
+
+            // Clean up: delete the test character
+            console.log('Deleting test character:', testCharacterName);
+            await secondPage.waitForSelector('button.nav-link[data-page="home"]', { timeout: 15000 });
+            await secondPage.click('button.nav-link[data-page="home"]');
+            await secondPage.waitForSelector('[data-current-page="home"]', { timeout: 30000 });
+            await secondPage.waitForTimeout(1000);
+
+            const deleteCard = secondPage.locator('.character-card', { hasText: testCharacterName }).first();
+            await expect(deleteCard).toBeVisible({ timeout: 15000 });
+
+            const deleteButton = deleteCard.locator('.delete-character');
+            await expect(deleteButton).toBeVisible({ timeout: 10000 });
+            await deleteButton.click();
+
+            const confirmButton = secondPage.locator('#confirmDeleteBtn, .btn-danger').filter({ hasText: /delete|confirm/i }).first();
+            await confirmButton.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+            if (await confirmButton.isVisible()) {
+                await confirmButton.click();
+            }
+
+            await secondPage.waitForTimeout(1000);
+            const deletedCard = secondPage.locator('.character-card', { hasText: testCharacterName });
+            await expect(deletedCard).toHaveCount(0, { timeout: 10000 });
+            console.log('✓ Test character deleted successfully');
         } finally {
             if (electronAppTwo) {
                 await electronAppTwo.close();
@@ -342,6 +392,31 @@ test.describe('Proficiency Choice Persistence', () => {
 
             await openCharacter(secondPage, testCharacterName);
             await verifySkillProficiencies(secondPage, proficiencyData);
+
+            // Clean up: delete the test character
+            console.log('Deleting test character:', testCharacterName);
+            await secondPage.waitForSelector('button.nav-link[data-page="home"]', { timeout: 15000 });
+            await secondPage.click('button.nav-link[data-page="home"]');
+            await secondPage.waitForSelector('[data-current-page="home"]', { timeout: 30000 });
+            await secondPage.waitForTimeout(1000);
+
+            const deleteCard = secondPage.locator('.character-card', { hasText: testCharacterName }).first();
+            await expect(deleteCard).toBeVisible({ timeout: 15000 });
+
+            const deleteButton = deleteCard.locator('.delete-character');
+            await expect(deleteButton).toBeVisible({ timeout: 10000 });
+            await deleteButton.click();
+
+            const confirmButton = secondPage.locator('#confirmDeleteBtn, .btn-danger').filter({ hasText: /delete|confirm/i }).first();
+            await confirmButton.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+            if (await confirmButton.isVisible()) {
+                await confirmButton.click();
+            }
+
+            await secondPage.waitForTimeout(1000);
+            const deletedCard = secondPage.locator('.character-card', { hasText: testCharacterName });
+            await expect(deletedCard).toHaveCount(0, { timeout: 10000 });
+            console.log('✓ Test character deleted successfully');
         } finally {
             if (electronAppTwo) {
                 await electronAppTwo.close();

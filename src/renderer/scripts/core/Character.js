@@ -5,6 +5,7 @@
 
 
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 import { ProficiencyCore } from './Proficiency.js';
 
 /**
@@ -809,7 +810,7 @@ export class Character {
 			for (const type of ['skills', 'languages', 'tools']) {
 				if (Array.isArray(data.proficiencies[type])) {
 					data.proficiencies[type] = data.proficiencies[type].map(item =>
-						typeof item === 'string' ? item.toLowerCase() : item
+						typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
 					);
 				}
 			}
@@ -822,7 +823,7 @@ export class Character {
 				if (data.proficiencySources[type]) {
 					const normalized = {};
 					for (const [key, value] of Object.entries(data.proficiencySources[type])) {
-						normalized[key.toLowerCase()] = value;
+						normalized[DataNormalizer.normalizeString(key)] = value;
 					}
 					data.proficiencySources[type] = normalized;
 				}
@@ -837,14 +838,14 @@ export class Character {
 					// Normalize top-level selected array
 					if (Array.isArray(optional.selected)) {
 						optional.selected = optional.selected.map(item =>
-							typeof item === 'string' ? item.toLowerCase() : item
+							typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
 						);
 					}
 
 					// Normalize top-level options array
 					if (Array.isArray(optional.options)) {
 						optional.options = optional.options.map(item =>
-							typeof item === 'string' ? item.toLowerCase() : item
+							typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
 						);
 					}
 
@@ -853,12 +854,12 @@ export class Character {
 						if (optional[source]) {
 							if (Array.isArray(optional[source].selected)) {
 								optional[source].selected = optional[source].selected.map(item =>
-									typeof item === 'string' ? item.toLowerCase() : item
+									typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
 								);
 							}
 							if (Array.isArray(optional[source].options)) {
 								optional[source].options = optional[source].options.map(item =>
-									typeof item === 'string' ? item.toLowerCase() : item
+									typeof item === 'string' ? DataNormalizer.normalizeString(item) : item
 								);
 							}
 						}

@@ -2,6 +2,7 @@
 
 import { CharacterManager } from '../../core/CharacterManager.js';
 import { ProficiencyCore } from '../../core/Proficiency.js';
+import DataNormalizer from '../../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { proficiencyService } from '../../services/ProficiencyService.js';
@@ -442,8 +443,8 @@ export class ProficiencyCard {
 		switch (type) {
 			case 'skills': {
 				const allSkills = await this._proficiencyManager.getAvailableSkills();
-				// Return lowercase to match internal format (displayed as title-case in UI)
-				return allSkills.map(skill => String(skill).toLowerCase());
+				// Return normalized (lowercase) to match internal format (displayed as title-case in UI)
+				return allSkills.map(skill => DataNormalizer.normalizeString(skill));
 			}
 			case 'savingThrows':
 				return [
@@ -455,7 +456,7 @@ export class ProficiencyCard {
 					'Charisma',
 				];
 			case 'languages': {
-				// Return lowercase to match internal format (displayed as title-case in UI)
+				// Return normalized (lowercase) to match internal format (displayed as title-case in UI)
 				const availableLanguages = [
 					'common',
 					'dwarvish',
@@ -478,8 +479,8 @@ export class ProficiencyCard {
 			}
 			case 'tools': {
 				const allTools = await this._proficiencyManager.getAvailableTools();
-				// Return lowercase to match internal format (displayed as title-case in UI)
-				return allTools.map(tool => String(tool).toLowerCase());
+				// Return normalized (lowercase) to match internal format (displayed as title-case in UI)
+				return allTools.map(tool => DataNormalizer.normalizeString(tool));
 			}
 			case 'armor':
 				return ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'];
@@ -516,7 +517,7 @@ export class ProficiencyCard {
 			return false;
 
 		// Normalize proficiency for comparison
-		const normalizedProf = String(proficiency).toLowerCase();
+		const normalizedProf = DataNormalizer.normalizeString(proficiency);
 
 		// Handle languages
 		if (type === 'languages') {
@@ -542,29 +543,29 @@ export class ProficiencyCard {
 				this._character.optionalProficiencies[type].background?.selected || [];
 
 			const raceAllowsAny = raceOptions
-				.map((o) => String(o).toLowerCase())
+				.map((o) => DataNormalizer.normalizeString(o))
 				.includes('any');
 			const classAllowsAny = classOptions
-				.map((o) => String(o).toLowerCase())
+				.map((o) => DataNormalizer.normalizeString(o))
 				.includes('any');
 			const backgroundAllowsAny = backgroundOptions
-				.map((o) => String(o).toLowerCase())
+				.map((o) => DataNormalizer.normalizeString(o))
 				.includes('any');
 
 			const isRaceOption =
 				raceAllowsAny ||
 				raceOptions
-					.map((o) => String(o).toLowerCase())
+					.map((o) => DataNormalizer.normalizeString(o))
 					.includes(normalizedProf);
 			const isClassOption =
 				classAllowsAny ||
 				classOptions
-					.map((o) => String(o).toLowerCase())
+					.map((o) => DataNormalizer.normalizeString(o))
 					.includes(normalizedProf);
 			const isBackgroundOption =
 				backgroundAllowsAny ||
 				backgroundOptions
-					.map((o) => String(o).toLowerCase())
+					.map((o) => DataNormalizer.normalizeString(o))
 					.includes(normalizedProf);
 
 			if (isRaceOption && raceSelected.length < raceAllowed) return true;
@@ -579,15 +580,15 @@ export class ProficiencyCard {
 		if (type === 'skills') {
 			const raceOptions =
 				this._character.optionalProficiencies[type].race?.options?.map((o) =>
-					o.toLowerCase(),
+					DataNormalizer.normalizeString(o),
 				) || [];
 			const classOptions =
 				this._character.optionalProficiencies[type].class?.options?.map((o) =>
-					o.toLowerCase(),
+					DataNormalizer.normalizeString(o),
 				) || [];
 			const backgroundOptions =
 				this._character.optionalProficiencies[type].background?.options?.map(
-					(o) => o.toLowerCase(),
+					(o) => DataNormalizer.normalizeString(o),
 				) || [];
 			const raceSelected =
 				this._character.optionalProficiencies[type].race?.selected || [];
@@ -630,15 +631,15 @@ export class ProficiencyCard {
 		if (type === 'tools') {
 			const raceOptions =
 				this._character.optionalProficiencies[type].race?.options?.map((o) =>
-					o.toLowerCase(),
+					DataNormalizer.normalizeString(o),
 				) || [];
 			const classOptions =
 				this._character.optionalProficiencies[type].class?.options?.map((o) =>
-					o.toLowerCase(),
+					DataNormalizer.normalizeString(o),
 				) || [];
 			const backgroundOptions =
 				this._character.optionalProficiencies[type].background?.options?.map(
-					(o) => o.toLowerCase(),
+					(o) => DataNormalizer.normalizeString(o),
 				) || [];
 			const raceSelected =
 				this._character.optionalProficiencies[type].race?.selected || [];
@@ -682,29 +683,28 @@ export class ProficiencyCard {
 			this._character.optionalProficiencies?.[type]?.allowed > 0;
 		if (otherTypeAllowed) {
 			const raceOptions =
-				this._character.optionalProficiencies?.[type]?.race?.options || [];
+				this._character.optionalProficiencies?.[type]?.race?.options?.map((o) =>
+					DataNormalizer.normalizeString(o),
+				) || [];
 			const classOptions =
-				this._character.optionalProficiencies?.[type]?.class?.options || [];
+				this._character.optionalProficiencies?.[type]?.class?.options?.map((o) =>
+					DataNormalizer.normalizeString(o),
+				) || [];
 			const backgroundOptions =
-				this._character.optionalProficiencies?.[type]?.background?.options ||
-				[];
+				this._character.optionalProficiencies?.[type]?.background?.options?.map(
+					(o) => DataNormalizer.normalizeString(o),
+				) || [];
 			const hasAnySourceOptions =
 				raceOptions.length > 0 ||
 				classOptions.length > 0 ||
 				backgroundOptions.length > 0;
 
 			if (hasAnySourceOptions) {
-				const normalizedItem = String(proficiency).toLowerCase();
+				const normalizedItem = DataNormalizer.normalizeString(proficiency);
 				return (
-					raceOptions
-						.map((o) => String(o).toLowerCase())
-						.includes(normalizedItem) ||
-					classOptions
-						.map((o) => String(o).toLowerCase())
-						.includes(normalizedItem) ||
-					backgroundOptions
-						.map((o) => String(o).toLowerCase())
-						.includes(normalizedItem)
+					raceOptions.includes(normalizedItem) ||
+					classOptions.includes(normalizedItem) ||
+					backgroundOptions.includes(normalizedItem)
 				);
 			}
 			return true;

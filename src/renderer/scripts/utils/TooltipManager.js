@@ -20,6 +20,7 @@ import {
 	renderVariantRule,
 	renderVehicle,
 } from './StatBlockRenderer.js';
+import { abbreviateAbility } from './TextFormatter.js';
 
 
 // Internal state
@@ -309,6 +310,8 @@ async function showReferenceTooltip(type, name, source, x, y) {
 		return;
 	}
 	console.info('TooltipSystem', `[showReferenceTooltip] type:`, type, 'name:', name, 'source:', source);
+	// Normalize name for reference lookup: lowercase and standardize apostrophes
+	// This is used for case-insensitive lookups in the reference resolver
 	const normalizedName = name.toLowerCase().replace(/['']/g, "'").trim();
 	const referenceKey = `${type}:${normalizedName}`;
 	const isAlreadyOpen = tooltips.some((t) => {
@@ -471,9 +474,9 @@ function _formatTooltip(data) {
 			const abilities = data.ability
 				.map((ab) => {
 					const abilityStr = Object.entries(ab)
-						.map((key, val) => {
+						.map(([key, val]) => {
 							if (key === 'choose') return '';
-							return `${key.toUpperCase()} ${val > 0 ? '+' : ''}${val}`;
+							return `${abbreviateAbility(key)} ${val > 0 ? '+' : ''}${val}`;
 						})
 						.filter((s) => s)
 						.join(', ');

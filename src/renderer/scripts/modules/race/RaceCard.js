@@ -2,6 +2,7 @@
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+import DataNormalizer from '../../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
@@ -934,9 +935,8 @@ export class RaceCard {
 				if (hasProf === true) {
 					// Extract the weapon name without the source
 					const weaponName = weapon.split('|')[0];
-					const capitalizedWeapon =
-						weaponName.charAt(0).toUpperCase() + weaponName.slice(1);
-					character.addProficiency('weapons', capitalizedWeapon, 'Race');
+					const normalizedWeapon = DataNormalizer.normalizeString(weaponName);
+					character.addProficiency('weapons', normalizedWeapon, 'Race');
 				}
 			}
 		}
@@ -957,8 +957,8 @@ export class RaceCard {
 			// Handle fixed tool proficiencies
 			for (const [tool, hasProf] of Object.entries(profObj)) {
 				if (hasProf === true && tool !== 'any') {
-					const capitalizedTool = tool.charAt(0).toUpperCase() + tool.slice(1);
-					character.addProficiency('tools', capitalizedTool, 'Race');
+					const normalizedTool = DataNormalizer.normalizeString(tool);
+					character.addProficiency('tools', normalizedTool, 'Race');
 				}
 			}
 
