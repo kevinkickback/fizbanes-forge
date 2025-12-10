@@ -1,4 +1,5 @@
 /** Pure proficiency bonus and modifier calculations. */
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /**
  * Skill to ability mapping
@@ -60,7 +61,7 @@ export function calculateProficiencyBonus(level) {
  */
 export function getSkillAbility(skillName) {
 	if (!skillName) return null;
-	const normalized = skillName.toLowerCase().trim();
+	const normalized = DataNormalizer.normalizeForLookup(skillName);
 	return SKILL_ABILITIES[normalized] || null;
 }
 
@@ -133,19 +134,20 @@ export function formatModifier(modifier) {
  * @returns {Array<string>} Merged list without duplicates
  */
 export function mergeProficiencies(...proficiencyLists) {
-	const merged = new Set();
+	const merged = new Map();
 
 	for (const list of proficiencyLists) {
-		if (Array.isArray(list)) {
-			for (const item of list) {
-				if (item && typeof item === 'string') {
-					merged.add(item.toLowerCase().trim());
-				}
+		if (!Array.isArray(list)) continue;
+		for (const item of list) {
+			if (!item || typeof item !== 'string') continue;
+			const key = DataNormalizer.normalizeForLookup(item);
+			if (!merged.has(key)) {
+				merged.set(key, item);
 			}
 		}
 	}
 
-	return Array.from(merged).sort();
+	return Array.from(merged.values()).sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -159,9 +161,9 @@ export function hasProficiency(proficiencies, proficiency) {
 		return false;
 	}
 
-	const normalized = proficiency.toLowerCase().trim();
+	const normalized = DataNormalizer.normalizeForLookup(proficiency);
 	return proficiencies.some(
-		(p) => p && typeof p === 'string' && p.toLowerCase().trim() === normalized,
+		(p) => p && typeof p === 'string' && DataNormalizer.normalizeForLookup(p) === normalized,
 	);
 }
 
@@ -233,4 +235,3 @@ export function calculatePassiveInsight(
 	);
 	return 10 + insightModifier;
 }
-

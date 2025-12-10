@@ -1,6 +1,7 @@
 /** @file Condition service for managing conditions data. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /** Manages condition data and provides access to conditions. */
 class ConditionService {
@@ -34,7 +35,7 @@ class ConditionService {
             if (this._conditionData.condition && Array.isArray(this._conditionData.condition)) {
                 for (const condition of this._conditionData.condition) {
                     if (!condition.name) continue;
-                    const key = condition.name.toLowerCase();
+                    const key = DataNormalizer.normalizeForLookup(condition.name);
                     this._conditionMap.set(key, condition);
                 }
             }
@@ -61,7 +62,11 @@ class ConditionService {
      */
     getCondition(conditionName) {
         if (!this._conditionMap) return null;
-        return this._conditionMap.get(conditionName.toLowerCase()) || null;
+        return (
+            this._conditionMap.get(
+                DataNormalizer.normalizeForLookup(conditionName),
+            ) || null
+        );
     }
 }
 

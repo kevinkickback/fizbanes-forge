@@ -7,6 +7,7 @@ import {
 	getPointBuyCost,
 	POINT_BUY_BUDGET,
 } from '../modules/abilities/AbilityCalculator.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /**
@@ -79,7 +80,6 @@ class AbilityScoreService {
 	 * @returns {string} - The normalized ability name
 	 */
 	normalizeAbilityName(abilityName) {
-		// Check if abilityName is a string before calling toLowerCase
 		if (typeof abilityName !== 'string') {
 			console.warn(
 				'AbilityScoreService',
@@ -88,7 +88,7 @@ class AbilityScoreService {
 			);
 			return '';
 		}
-		return abilityName ? abilityName.toLowerCase() : '';
+		return abilityName ? DataNormalizer.normalizeForLookup(abilityName) : '';
 	}
 
 	/**

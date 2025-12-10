@@ -1,6 +1,7 @@
 /** @file Variant Rule service for managing variant rule data. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /** Manages variant rule data and provides access to variant rules. */
 class VariantRuleService {
@@ -34,7 +35,7 @@ class VariantRuleService {
             if (this._variantRuleData.variantrule && Array.isArray(this._variantRuleData.variantrule)) {
                 for (const rule of this._variantRuleData.variantrule) {
                     if (!rule.name) continue;
-                    const key = rule.name.toLowerCase();
+                    const key = DataNormalizer.normalizeForLookup(rule.name);
                     this._variantRuleMap.set(key, rule);
                 }
             }
@@ -61,7 +62,7 @@ class VariantRuleService {
      */
     getVariantRule(ruleName) {
         if (!this._variantRuleMap) return null;
-        return this._variantRuleMap.get(ruleName.toLowerCase()) || null;
+        return this._variantRuleMap.get(DataNormalizer.normalizeForLookup(ruleName)) || null;
     }
 }
 

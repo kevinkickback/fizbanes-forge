@@ -1,6 +1,7 @@
 /** @file Monster service for managing monster/creature data. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /** Manages monster/creature data and provides access to monsters. */
 class MonsterService {
@@ -32,7 +33,7 @@ class MonsterService {
             if (this._monsterData.monster && Array.isArray(this._monsterData.monster)) {
                 for (const monster of this._monsterData.monster) {
                     if (!monster.name) continue;
-                    const key = monster.name.toLowerCase();
+                    const key = DataNormalizer.normalizeForLookup(monster.name);
                     // Store with source for disambiguation if needed
                     if (!this._monsterMap.has(key)) {
                         this._monsterMap.set(key, []);
@@ -64,7 +65,9 @@ class MonsterService {
      */
     getMonster(monsterName) {
         if (!this._monsterMap) return null;
-        const monsters = this._monsterMap.get(monsterName.toLowerCase());
+        const monsters = this._monsterMap.get(
+            DataNormalizer.normalizeForLookup(monsterName),
+        );
         return monsters && monsters.length > 0 ? monsters[0] : null;
     }
 
@@ -75,7 +78,9 @@ class MonsterService {
      */
     getMonstersByName(monsterName) {
         if (!this._monsterMap) return [];
-        return this._monsterMap.get(monsterName.toLowerCase()) || [];
+        return (
+            this._monsterMap.get(DataNormalizer.normalizeForLookup(monsterName)) || []
+        );
     }
 }
 

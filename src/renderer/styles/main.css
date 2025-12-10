@@ -272,7 +272,7 @@ body.debug-mode .nav-item.debug-only {
 	font-size: 0.9rem;
 	font-weight: 600;
 	color: var(--text-color);
-	text-transform: uppercase;
+	text-transform: none;
 	letter-spacing: 0.05em;
 }
 
@@ -777,7 +777,7 @@ body.debug-mode .nav-item.debug-only {
 	color: var(--text-muted);
 	font-weight: 600;
 	margin-bottom: 0.5rem;
-	text-transform: uppercase;
+	text-transform: none;
 	font-size: 0.8rem;
 	letter-spacing: 0.5px;
 }

@@ -1,6 +1,7 @@
 /** @file Feat service for managing feat data. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /** Manages feat data and provides access to feats. */
 class FeatService {
@@ -34,7 +35,7 @@ class FeatService {
             if (this._featData.feat && Array.isArray(this._featData.feat)) {
                 for (const feat of this._featData.feat) {
                     if (!feat.name) continue;
-                    const key = feat.name.toLowerCase();
+                    const key = DataNormalizer.normalizeForLookup(feat.name);
                     this._featMap.set(key, feat);
                 }
             }
@@ -61,7 +62,9 @@ class FeatService {
      */
     getFeat(featName) {
         if (!this._featMap) return null;
-        return this._featMap.get(featName.toLowerCase()) || null;
+        return (
+            this._featMap.get(DataNormalizer.normalizeForLookup(featName)) || null
+        );
     }
 }
 

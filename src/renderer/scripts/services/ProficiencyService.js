@@ -1,6 +1,7 @@
 /** Manages proficiencies and proficiency bonuses. */
 
 import { ProficiencyCore } from '../core/Proficiency.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 
@@ -188,12 +189,9 @@ export class ProficiencyService {
 	 */
 	getSkillAbility(skill) {
 		if (!skill) return null;
-		// Map keys use proper casing, so do case-insensitive lookup
-		const skillLower = skill.toLowerCase();
+		const target = DataNormalizer.normalizeForLookup(skill);
 		for (const [key, ability] of Object.entries(this._skillAbilityMap)) {
-			if (key.toLowerCase() === skillLower) {
-				return ability;
-			}
+			if (DataNormalizer.normalizeForLookup(key) === target) return ability;
 		}
 		return null;
 	}

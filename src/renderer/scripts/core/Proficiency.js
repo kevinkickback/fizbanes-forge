@@ -1,6 +1,7 @@
 /** Proficiency business logic with source tracking for adds/removals. */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
+import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 
@@ -58,8 +59,10 @@ export class ProficiencyCore {
 
 		// Check if proficiency already exists (case-insensitive)
 		// If found, use the existing casing to maintain consistency
-		const targetLower = proficiency.toLowerCase();
-		const existingProf = character.proficiencies[type].find(p => p.toLowerCase() === targetLower);
+		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
+		const existingProf = character.proficiencies[type].find(
+			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
+		);
 
 		const wasNew = !existingProf;
 		if (wasNew) {
@@ -157,8 +160,10 @@ export class ProficiencyCore {
 	static hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
 
-		const targetLower = proficiency.toLowerCase();
-		return character.proficiencies[type].some(p => p.toLowerCase() === targetLower);
+		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
+		return character.proficiencies[type].some(
+			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
+		);
 	}
 
 	/**
@@ -223,17 +228,17 @@ export class ProficiencyCore {
 		}
 
 		// Set configuration for this source
-		const sourceLower = source.toLowerCase();
-		if (!character.optionalProficiencies[type][sourceLower]) {
-			character.optionalProficiencies[type][sourceLower] = {
+		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		if (!character.optionalProficiencies[type][sourceKey]) {
+			character.optionalProficiencies[type][sourceKey] = {
 				allowed: 0,
 				options: [],
 				selected: [],
 			};
 		}
 
-		character.optionalProficiencies[type][sourceLower].allowed = allowed;
-		character.optionalProficiencies[type][sourceLower].options = [...options];
+		character.optionalProficiencies[type][sourceKey].allowed = allowed;
+		character.optionalProficiencies[type][sourceKey].options = [...options];
 
 		// Recalculate combined options and allowed count
 		ProficiencyCore._recalculateOptionalProficiencies(character, type);
@@ -241,7 +246,7 @@ export class ProficiencyCore {
 		// Emit event
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_CONFIGURED, {
 			type,
-			source: sourceLower,
+			source: sourceKey,
 			allowed,
 			options,
 			character,
@@ -259,11 +264,11 @@ export class ProficiencyCore {
 			return;
 		}
 
-		const sourceLower = source.toLowerCase();
-		if (character.optionalProficiencies[type][sourceLower]) {
+		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		if (character.optionalProficiencies[type][sourceKey]) {
 			// Clear selections and remove from character
 			const selected =
-				character.optionalProficiencies[type][sourceLower].selected || [];
+				character.optionalProficiencies[type][sourceKey].selected || [];
 			for (const _proficiency of selected) {
 				ProficiencyCore.removeProficienciesBySource(
 					character,
@@ -272,7 +277,7 @@ export class ProficiencyCore {
 			}
 
 			// Clear the configuration
-			character.optionalProficiencies[type][sourceLower] = {
+			character.optionalProficiencies[type][sourceKey] = {
 				allowed: 0,
 				options: [],
 				selected: [],
@@ -303,8 +308,8 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		const sourceLower = source.toLowerCase();
-		const config = character.optionalProficiencies[type][sourceLower];
+		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
 			console.warn('No optional proficiency configuration for source:', source);
@@ -347,7 +352,7 @@ export class ProficiencyCore {
 
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_SELECTED, {
 			type,
-			source: sourceLower,
+			source: sourceKey,
 			proficiency,
 			character,
 		});
@@ -368,8 +373,8 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		const sourceLower = source.toLowerCase();
-		const config = character.optionalProficiencies[type][sourceLower];
+		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
 			return false;
@@ -396,7 +401,7 @@ export class ProficiencyCore {
 
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_DESELECTED, {
 			type,
-			source: sourceLower,
+			source: sourceKey,
 			proficiency,
 			character,
 		});
@@ -412,8 +417,8 @@ export class ProficiencyCore {
 	 * @returns {string[]} Array of available proficiency names
 	 */
 	static getAvailableOptionalProficiencies(character, type, source) {
-		const sourceLower = source.toLowerCase();
-		const config = character?.optionalProficiencies?.[type]?.[sourceLower];
+		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const config = character?.optionalProficiencies?.[type]?.[sourceKey];
 
 		if (!config) {
 			return [];
@@ -494,7 +499,7 @@ export class ProficiencyCore {
 			return;
 		}
 
-		const normalizedProf = proficiency.toLowerCase().trim();
+		const normalizedProf = DataNormalizer.normalizeForLookup(proficiency);
 		const sources = ['race', 'class', 'background'];
 		let refunded = false;
 
@@ -515,7 +520,7 @@ export class ProficiencyCore {
 
 			// Check if this proficiency is in the selected list (case-insensitive)
 			const matchingProf = config.selected.find(
-				(s) => s.toLowerCase().trim() === normalizedProf,
+				(s) => DataNormalizer.normalizeForLookup(s) === normalizedProf,
 			);
 
 			if (matchingProf) {
@@ -562,11 +567,11 @@ export class ProficiencyCore {
 		}
 
 		// Find the proficiency using case-insensitive lookup
-		const targetLower = proficiency.toLowerCase();
+		const targetLower = DataNormalizer.normalizeForLookup(proficiency);
 		let foundProf = null;
 
 		for (const [key] of character.proficiencySources[type]) {
-			if (key.toLowerCase() === targetLower) {
+			if (DataNormalizer.normalizeForLookup(key) === targetLower) {
 				foundProf = key;
 				break;
 			}
@@ -588,7 +593,9 @@ export class ProficiencyCore {
 			character.proficiencySources[type].delete(foundProf);
 
 			if (character.proficiencies[type]) {
-				const index = character.proficiencies[type].findIndex(p => p.toLowerCase() === targetLower);
+				const index = character.proficiencies[type].findIndex(
+					(p) => DataNormalizer.normalizeForLookup(p) === targetLower,
+				);
 				if (index > -1) {
 					character.proficiencies[type].splice(index, 1);
 				}

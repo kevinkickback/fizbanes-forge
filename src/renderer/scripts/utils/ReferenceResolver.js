@@ -12,6 +12,7 @@ import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
 import { dataLoader } from './DataLoader.js';
+import DataNormalizer from './DataNormalizer.js';
 
 const resolverDeps = {
 	data: dataLoader,
@@ -89,7 +90,10 @@ async function resolveMonster(monsterName, _source = 'MM') {
 async function resolveClass(className, _source = 'PHB') {
 	try {
 		const allClasses = resolverDeps.classSvc.getAllClasses();
-		const classData = allClasses?.find((c) => c.name.toLowerCase() === className.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(className);
+		const classData = allClasses?.find(
+			(c) => DataNormalizer.normalizeForLookup(c.name) === target,
+		);
 		if (!classData) return { name: className, error: 'Class not found' };
 		return classData;
 	} catch (error) {
@@ -141,7 +145,10 @@ async function resolveFeat(featName, _source = 'PHB') {
 async function resolveBackground(backgroundName, _source = 'PHB') {
 	try {
 		const allBackgrounds = resolverDeps.backgroundSvc.getAllBackgrounds();
-		const background = allBackgrounds?.find((b) => b.name.toLowerCase() === backgroundName.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(backgroundName);
+		const background = allBackgrounds?.find(
+			(b) => DataNormalizer.normalizeForLookup(b.name) === target,
+		);
 		if (!background) return { name: backgroundName, error: 'Background not found' };
 		return background;
 	} catch (error) {
@@ -190,7 +197,10 @@ async function resolveAction(actionName) {
 async function resolveOptionalFeature(featureName) {
 	try {
 		const data = await resolverDeps.data.loadOptionalFeatures();
-		const feature = data.optionalfeature?.find((f) => f.name.toLowerCase() === featureName.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(featureName);
+		const feature = data.optionalfeature?.find(
+			(f) => DataNormalizer.normalizeForLookup(f.name) === target,
+		);
 		if (!feature) return { name: featureName, error: 'Optional feature not found' };
 		return feature;
 	} catch (error) {
@@ -207,7 +217,10 @@ async function resolveOptionalFeature(featureName) {
 async function resolveReward(rewardName) {
 	try {
 		const data = await resolverDeps.data.loadRewards();
-		const reward = data.reward?.find((r) => r.name.toLowerCase() === rewardName.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(rewardName);
+		const reward = data.reward?.find(
+			(r) => DataNormalizer.normalizeForLookup(r.name) === target,
+		);
 		if (!reward) return { name: rewardName, error: 'Reward not found' };
 		return reward;
 	} catch (error) {
@@ -224,7 +237,10 @@ async function resolveReward(rewardName) {
 async function resolveTrap(trapName) {
 	try {
 		const data = await resolverDeps.data.loadTrapsHazards();
-		const trap = data.trap?.find((t) => t.name.toLowerCase() === trapName.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(trapName);
+		const trap = data.trap?.find(
+			(t) => DataNormalizer.normalizeForLookup(t.name) === target,
+		);
 		if (!trap) return { name: trapName, error: 'Trap/hazard not found' };
 		return trap;
 	} catch (error) {
@@ -241,7 +257,10 @@ async function resolveTrap(trapName) {
 async function resolveVehicle(vehicleName) {
 	try {
 		const data = await resolverDeps.data.loadVehicles();
-		const vehicle = data.vehicle?.find((v) => v.name.toLowerCase() === vehicleName.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(vehicleName);
+		const vehicle = data.vehicle?.find(
+			(v) => DataNormalizer.normalizeForLookup(v.name) === target,
+		);
 		if (!vehicle) return { name: vehicleName, error: 'Vehicle not found' };
 		return vehicle;
 	} catch (error) {
@@ -258,7 +277,10 @@ async function resolveVehicle(vehicleName) {
 async function resolveObject(objectName) {
 	try {
 		const data = await resolverDeps.data.loadObjects();
-		const obj = data.object?.find((o) => o.name.toLowerCase() === objectName.toLowerCase());
+		const target = DataNormalizer.normalizeForLookup(objectName);
+		const obj = data.object?.find(
+			(o) => DataNormalizer.normalizeForLookup(o.name) === target,
+		);
 		if (!obj) return { name: objectName, error: 'Object not found' };
 		return obj;
 	} catch (error) {

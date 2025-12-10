@@ -2,6 +2,7 @@
 
 import { AppState } from '../../core/AppState.js';
 import { CharacterManager } from '../../core/CharacterManager.js';
+import DataNormalizer from '../../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { backgroundService } from '../../services/BackgroundService.js';
@@ -479,12 +480,18 @@ export class BackgroundCard extends BaseCard {
 			const fixedLanguages = [];
 			let choiceCount = 0;
 			const choiceOptions = [];
+			const normalizedOptions = new Map();
 
 			for (const langEntry of background.languageProficiencies) {
 				// Add fixed languages (specific languages set to true)
 				for (const [lang, value] of Object.entries(langEntry)) {
-					const langLower = lang.toLowerCase();
-					if (value === true && langLower !== 'choose' && langLower !== 'anystandard') {
+					const normalizedLang = DataNormalizer.normalizeForLookup(lang);
+					if (
+						value === true &&
+						normalizedLang !== 'choose' &&
+						normalizedLang !== 'anystandard' &&
+						normalizedLang !== 'any'
+					) {
 						character.addProficiency('languages', lang, 'Background');
 						fixedLanguages.push(lang);
 					}
@@ -496,8 +503,9 @@ export class BackgroundCard extends BaseCard {
 					// Use full language list for 'anyStandard'
 					const allLanguages = this._getAllLanguages();
 					for (const lang of allLanguages) {
-						if (!choiceOptions.includes(lang)) {
-							choiceOptions.push(lang);
+						const norm = DataNormalizer.normalizeForLookup(lang);
+						if (!normalizedOptions.has(norm)) {
+							normalizedOptions.set(norm, lang);
 						}
 					}
 				}
@@ -512,20 +520,26 @@ export class BackgroundCard extends BaseCard {
 					if (from.length > 0) {
 						// Add specific language options - use as-is from JSON
 						for (const lang of from) {
-							if (!choiceOptions.includes(lang)) {
-								choiceOptions.push(lang);
+							const norm = DataNormalizer.normalizeForLookup(lang);
+							if (!normalizedOptions.has(norm)) {
+								normalizedOptions.set(norm, lang);
 							}
 						}
 					} else {
 						// No specific options means any language
 						const allLanguages = this._getAllLanguages();
 						for (const lang of allLanguages) {
-							if (!choiceOptions.includes(lang)) {
-								choiceOptions.push(lang);
+							const norm = DataNormalizer.normalizeForLookup(lang);
+							if (!normalizedOptions.has(norm)) {
+								normalizedOptions.set(norm, lang);
 							}
 						}
 					}
 				}
+			}
+
+			if (normalizedOptions.size > 0) {
+				choiceOptions.splice(0, choiceOptions.length, ...normalizedOptions.values());
 			}
 
 			// Set up the optional language choices if any exist
@@ -537,10 +551,31 @@ export class BackgroundCard extends BaseCard {
 
 				// Restore valid language selections if any, excluding now-fixed languages
 				if (prevBackgroundLanguagesSelected.length > 0) {
+					const optionNorms = new Set(
+						choiceOptions.map((lang) =>
+							DataNormalizer.normalizeForLookup(lang),
+						),
+					);
+					const fixedNorms = new Set(
+						fixedLanguages.map((lang) =>
+							DataNormalizer.normalizeForLookup(lang),
+						),
+					);
+					const existingLangs = new Set(
+						character.proficiencies.languages.map((lang) =>
+							DataNormalizer.normalizeForLookup(lang),
+						),
+					);
+
 					const validSelections = prevBackgroundLanguagesSelected.filter(
-						(lang) =>
-							!character.proficiencies.languages.includes(lang) &&
-							!fixedLanguages.includes(lang),
+						(lang) => {
+							const normalizedLang = DataNormalizer.normalizeForLookup(lang);
+							return (
+								optionNorms.has(normalizedLang) &&
+								!existingLangs.has(normalizedLang) &&
+								!fixedNorms.has(normalizedLang)
+							);
+						},
 					);
 
 					character.optionalProficiencies.languages.background.selected =

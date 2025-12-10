@@ -1,7 +1,4 @@
-
 /** DataLoader.js - Caches and loads game data JSON via IPC or fetch (plain module). */
-
-import DataNormalizer from './DataNormalizer.js';
 
 const state = {
 	cache: {},
@@ -79,9 +76,6 @@ async function loadSpells(source = 'PHB') {
 
 async function loadItems() {
 	const data = await loadJSON(`${state.baseUrl}items.json`);
-	if (data.item && Array.isArray(data.item)) {
-		data.item = DataNormalizer.normalizeItems(data.item);
-	}
 	return data;
 }
 
@@ -91,9 +85,6 @@ async function loadItems() {
  */
 async function loadBaseItems() {
 	const data = await loadJSON(`${state.baseUrl}items-base.json`);
-	if (data.baseitem && Array.isArray(data.baseitem)) {
-		data.baseitem = DataNormalizer.normalizeBaseItems(data.baseitem);
-	}
 	return data;
 }
 
@@ -103,9 +94,6 @@ async function loadBaseItems() {
  */
 async function loadSkills() {
 	const data = await loadJSON(`${state.baseUrl}skills.json`);
-	if (data.skill && Array.isArray(data.skill)) {
-		data.skill = DataNormalizer.normalizeSkills(data.skill);
-	}
 	return data;
 }
 
@@ -115,9 +103,6 @@ async function loadSkills() {
  */
 async function loadActions() {
 	const data = await loadJSON(`${state.baseUrl}actions.json`);
-	if (data.action && Array.isArray(data.action)) {
-		data.action = DataNormalizer.normalizeActions(data.action);
-	}
 	return data;
 }
 
@@ -169,9 +154,6 @@ async function loadBackgrounds() {
  */
 async function loadFeats() {
 	const data = await loadJSON(`${state.baseUrl}feats.json`);
-	if (data.feat && Array.isArray(data.feat)) {
-		data.feat = DataNormalizer.normalizeFeats(data.feat);
-	}
 	return data;
 }
 
@@ -181,9 +163,6 @@ async function loadFeats() {
  */
 async function loadConditions() {
 	const data = await loadJSON(`${state.baseUrl}conditionsdiseases.json`);
-	if (data.condition && Array.isArray(data.condition)) {
-		data.condition = DataNormalizer.normalizeConditions(data.condition);
-	}
 	return data;
 }
 
@@ -201,9 +180,6 @@ async function loadFluffFeats() {
  */
 async function loadOptionalFeatures() {
 	const data = await loadJSON(`${state.baseUrl}optionalfeatures.json`);
-	if (data.optionalfeature && Array.isArray(data.optionalfeature)) {
-		data.optionalfeature = DataNormalizer.normalizeOptionalFeatures(data.optionalfeature);
-	}
 	return data;
 }
 
@@ -221,9 +197,6 @@ async function loadFluffOptionalFeatures() {
  */
 async function loadRewards() {
 	const data = await loadJSON(`${state.baseUrl}rewards.json`);
-	if (data.reward && Array.isArray(data.reward)) {
-		data.reward = DataNormalizer.normalizeRewards(data.reward);
-	}
 	return data;
 }
 
@@ -241,9 +214,6 @@ async function loadTrapsHazards() {
  */
 async function loadVehicles() {
 	const data = await loadJSON(`${state.baseUrl}vehicles.json`);
-	if (data.vehicle && Array.isArray(data.vehicle)) {
-		data.vehicle = DataNormalizer.normalizeVehicles(data.vehicle);
-	}
 	return data;
 }
 
@@ -253,9 +223,6 @@ async function loadVehicles() {
  */
 async function loadObjects() {
 	const data = await loadJSON(`${state.baseUrl}objects.json`);
-	if (data.object && Array.isArray(data.object)) {
-		data.object = DataNormalizer.normalizeObjects(data.object);
-	}
 	return data;
 }
 
@@ -380,4 +347,4 @@ dataLoader.getCacheStats = getCacheStats;
 // Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
 
-export { DataLoader, clearCache, clearCacheForUrl, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVariantRules, loadVehicles, setBaseUrl };
+export { clearCache, clearCacheForUrl, DataLoader, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVariantRules, loadVehicles, setBaseUrl };

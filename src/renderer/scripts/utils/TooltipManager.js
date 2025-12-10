@@ -2,6 +2,7 @@
 /** TooltipManager.js - Manages displaying and hiding D&D reference tooltips as a plain module. */
 
 
+import DataNormalizer from './DataNormalizer.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
 import {
 	renderAction,
@@ -310,9 +311,8 @@ async function showReferenceTooltip(type, name, source, x, y) {
 		return;
 	}
 	console.info('TooltipSystem', `[showReferenceTooltip] type:`, type, 'name:', name, 'source:', source);
-	// Normalize name for reference lookup: lowercase and standardize apostrophes
-	// This is used for case-insensitive lookups in the reference resolver
-	const normalizedName = name.toLowerCase().replace(/['']/g, "'").trim();
+	// Normalize name for reference lookup using shared helper (case-insensitive)
+	const normalizedName = DataNormalizer.normalizeForLookup(name).replace(/['']/g, "'").trim();
 	const referenceKey = `${type}:${normalizedName}`;
 	const isAlreadyOpen = tooltips.some((t) => {
 		if (!t.referenceKey) return false;

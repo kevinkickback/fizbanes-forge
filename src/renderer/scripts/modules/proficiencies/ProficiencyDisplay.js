@@ -301,8 +301,8 @@ export class ProficiencyDisplayView {
 			case 'weapons':
 				return 'Weapons';
 			default:
-				// For any unknown types, capitalize first letter
-				return type.charAt(0).toUpperCase() + type.slice(1);
+				// For any unknown types, display as-is to preserve source casing
+				return type;
 		}
 	}
 }

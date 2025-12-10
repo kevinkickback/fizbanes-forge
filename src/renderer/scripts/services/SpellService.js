@@ -1,6 +1,7 @@
 /** Manages spell data and operations for the character builder. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /** Manages spell data and provides access to spells. */
@@ -54,7 +55,7 @@ class SpellService {
 			for (const spell of aggregated.spell) {
 				// Skip spells with missing names
 				if (!spell.name) continue;
-				const key = spell.name.toLowerCase();
+				const key = DataNormalizer.normalizeForLookup(spell.name);
 				this._spellLookupMap.set(key, spell);
 			}
 
@@ -85,7 +86,7 @@ class SpellService {
 		if (!this._spellLookupMap) return null;
 
 		// O(1) lookup by name (case-insensitive)
-		const spell = this._spellLookupMap.get(name.toLowerCase());
+		const spell = this._spellLookupMap.get(DataNormalizer.normalizeForLookup(name));
 
 		// If source matters, verify it matches
 		if (spell && spell.source === source) {
@@ -123,8 +124,9 @@ class SpellService {
 
 		return this._spellData.spell.filter((s) => {
 			if (!s.classes || !s.classes.fromClassList) return false;
+			const target = DataNormalizer.normalizeForLookup(className);
 			return s.classes.fromClassList.some(
-				(c) => c.name.toLowerCase() === className.toLowerCase(),
+				(c) => DataNormalizer.normalizeForLookup(c.name) === target,
 			);
 		});
 	}

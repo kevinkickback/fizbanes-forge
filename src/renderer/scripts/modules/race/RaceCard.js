@@ -843,35 +843,35 @@ export class RaceCard {
 
 		let languageCount = 0;
 		let languageOptions = [];
-		const specificLanguageChoices = new Set();
+		const normalizedOptions = new Map();
 
 		for (const profObj of race.languageProficiencies) {
 			for (const [key, value] of Object.entries(profObj)) {
-				const keyLower = key.toLowerCase();
+				const normalizedKey = DataNormalizer.normalizeForLookup(key);
 				// Handle fixed languages
 				if (
 					value === true &&
-					keyLower !== 'anystandard' &&
-					keyLower !== 'any' &&
-					keyLower !== 'choose' &&
-					keyLower !== 'other'
+					normalizedKey !== 'anystandard' &&
+					normalizedKey !== 'any' &&
+					normalizedKey !== 'choose' &&
+					normalizedKey !== 'other'
 				) {
 					character.addProficiency('languages', key, 'Race');
 				}
 				// Handle race's unique language ('other')
-				else if (keyLower === 'other' && value === true) {
+				else if (normalizedKey === 'other' && value === true) {
 					if (race.name !== 'Common') {
 						character.addProficiency('languages', race.name, 'Race');
 					}
 				}
 				// Handle 'any'/'anystandard' choices
 				else if (
-					(keyLower === 'anystandard' || keyLower === 'any') &&
+					(normalizedKey === 'anystandard' || normalizedKey === 'any') &&
 					typeof value === 'number' &&
 					value > 0
 				) {
 					languageCount += value;
-					languageOptions = [
+					for (const lang of [
 						'Common',
 						'Dwarvish',
 						'Elvish',
@@ -888,27 +888,33 @@ export class RaceCard {
 						'Primordial',
 						'Sylvan',
 						'Undercommon',
-					];
+					]) {
+						const normLang = DataNormalizer.normalizeForLookup(lang);
+						if (!normalizedOptions.has(normLang)) {
+							normalizedOptions.set(normLang, lang);
+						}
+					}
 				}
 				// Handle specific 'choose' lists
 				else if (
-					keyLower === 'choose' &&
+					normalizedKey === 'choose' &&
 					typeof value === 'object' &&
 					value.from &&
 					value.count > 0
 				) {
 					languageCount += value.count;
-					const lowercaseOptions = value.from.map((lang) => lang.toLowerCase());
-					for (const lang of lowercaseOptions) {
-						specificLanguageChoices.add(lang);
+					for (const lang of value.from) {
+						const normLang = DataNormalizer.normalizeForLookup(lang);
+						if (!normalizedOptions.has(normLang)) {
+							normalizedOptions.set(normLang, lang);
+						}
 					}
 				}
 			}
 		}
 
-		// If specific choices were found, use those as options
-		if (specificLanguageChoices.size > 0) {
-			languageOptions = Array.from(specificLanguageChoices);
+		if (normalizedOptions.size > 0) {
+			languageOptions = Array.from(normalizedOptions.values());
 		}
 
 		// Update optional proficiencies if choices were found
@@ -916,7 +922,12 @@ export class RaceCard {
 			character.optionalProficiencies.languages.race.allowed = languageCount;
 			character.optionalProficiencies.languages.race.options = languageOptions;
 			character.optionalProficiencies.languages.race.selected =
-				previousSelections.filter((lang) => languageOptions.includes(lang));
+				previousSelections.filter((lang) => {
+					const target = DataNormalizer.normalizeForLookup(lang);
+					return languageOptions.some(
+						(opt) => DataNormalizer.normalizeForLookup(opt) === target,
+					);
+				});
 		}
 	}
 

@@ -16,9 +16,6 @@ export class Character {
 	 * @param {Object} [data] - Optional character data to initialize with
 	 */
 	constructor(data = {}) {
-		// Migrate old save files that have normalized (lowercase) proficiencies
-		Character._migrateLegacySaveFile(data);
-
 		/**
 		 * Unique identifier for the character
 		 * @type {string|null}
@@ -786,32 +783,6 @@ export class Character {
 		return this.pendingAbilityChoices;
 	}
 
-	/**
-	 * Normalize save file data to match internal logic format expectations
-	 * Ensures all data uses the correct casing and format that the internal code expects
-	 * @param {Object} data - Character data (mutated in place)
-	 * @static
-	 * @private
-	 */
-	static _migrateLegacySaveFile(data) {
-		if (!data) return;
-
-		// This method migrates old save files that stored normalized (lowercase) proficiencies
-		// to the new format that preserves original JSON casing.
-		// Since we now store proficiencies with their original casing from JSON, old save files
-		// will be migrated automatically on first load.
-		//
-		// No conversion is necessary at load time anymore - proficiencies will be stored
-		// as-is from the JSON in new saves. Old saves with lowercase values will continue
-		// to work because comparisons are done case-insensitively.
-
-		// Ensure allowedSources is uppercase (this is already correct in old saves)
-		if (Array.isArray(data.allowedSources)) {
-			data.allowedSources = data.allowedSources.map(source =>
-				typeof source === 'string' ? source.toUpperCase() : source
-			);
-		}
-	}
 }
 
 /**

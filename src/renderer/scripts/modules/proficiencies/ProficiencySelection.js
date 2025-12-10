@@ -1,6 +1,7 @@
 
 /** Handles proficiency selection/deselection with source-specific tracking. */
 
+import DataNormalizer from '../../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 /**
@@ -83,21 +84,33 @@ export class ProficiencySelectionView {
 	_toggleSkillProficiency(profItem, proficiency, character) {
 		// Data is already normalized from DataLoader
 		const skillOptions = character.optionalProficiencies.skills;
+		const normalizedProficiency = DataNormalizer.normalizeForLookup(proficiency);
 
 		// Get source options and check for 'any'
 		const raceOptions = skillOptions.race?.options || [];
 		const classOptions = skillOptions.class?.options || [];
 		const backgroundOptions = skillOptions.background?.options || [];
+		const normalizedRaceOptions = raceOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
+		const normalizedClassOptions = classOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
+		const normalizedBackgroundOptions = backgroundOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
 
-		const raceAllowsAny = raceOptions.includes('any');
-		const classAllowsAny = classOptions.includes('any');
-		const backgroundAllowsAny = backgroundOptions.includes('any');
+		const raceAllowsAny = normalizedRaceOptions.includes('any');
+		const classAllowsAny = normalizedClassOptions.includes('any');
+		const backgroundAllowsAny = normalizedBackgroundOptions.includes('any');
 
-		const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
+		const isRaceOption =
+			raceAllowsAny || normalizedRaceOptions.includes(normalizedProficiency);
 		const isClassOption =
-			classAllowsAny || classOptions.includes(proficiency);
+			classAllowsAny || normalizedClassOptions.includes(normalizedProficiency);
 		const isBackgroundOption =
-			backgroundAllowsAny || backgroundOptions.includes(proficiency);
+			backgroundAllowsAny ||
+			normalizedBackgroundOptions.includes(normalizedProficiency);
 
 		// Get current selections
 		const raceSelected = skillOptions.race?.selected || [];
@@ -118,6 +131,7 @@ export class ProficiencySelectionView {
 				classSelected,
 				backgroundSelected,
 				combinedSelected,
+				normalizedProficiency,
 			);
 		}
 		// Handle selection
@@ -148,25 +162,28 @@ export class ProficiencySelectionView {
 		classSelected,
 		backgroundSelected,
 		combinedSelected,
+		normalizedProficiency,
 	) {
 		let removedFromSource = false;
+		const matches = (value) =>
+			DataNormalizer.normalizeForLookup(value) === normalizedProficiency;
 
 		// Remove from the appropriate source selection
-		if (raceSelected.some((p) => p === _proficiency)) {
+		if (raceSelected.some(matches)) {
 			skillOptions.race.selected = raceSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
-		if (classSelected.some((p) => p === _proficiency)) {
+		if (classSelected.some(matches)) {
 			skillOptions.class.selected = classSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
-		if (backgroundSelected.some((p) => p === _proficiency)) {
+		if (backgroundSelected.some(matches)) {
 			skillOptions.background.selected = backgroundSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
@@ -179,9 +196,7 @@ export class ProficiencySelectionView {
 		}
 
 		// Update combined selection
-		skillOptions.selected = combinedSelected.filter(
-			(p) => p !== _proficiency,
-		);
+		skillOptions.selected = combinedSelected.filter((p) => !matches(p));
 
 		// Update UI
 		this._updateItemUIForDeselection(profItem);
@@ -280,20 +295,32 @@ export class ProficiencySelectionView {
 	_toggleLanguageProficiency(profItem, proficiency, character) {
 		// Data is already normalized from DataLoader
 		const languageOptions = character.optionalProficiencies.languages;
+		const normalizedProficiency = DataNormalizer.normalizeForLookup(proficiency);
 
 		const raceOptions = languageOptions.race?.options || [];
 		const classOptions = languageOptions.class?.options || [];
 		const backgroundOptions = languageOptions.background?.options || [];
+		const normalizedRaceOptions = raceOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
+		const normalizedClassOptions = classOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
+		const normalizedBackgroundOptions = backgroundOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
 
-		const raceAllowsAny = raceOptions.includes('any');
-		const classAllowsAny = classOptions.includes('any');
-		const backgroundAllowsAny = backgroundOptions.includes('any');
+		const raceAllowsAny = normalizedRaceOptions.includes('any');
+		const classAllowsAny = normalizedClassOptions.includes('any');
+		const backgroundAllowsAny = normalizedBackgroundOptions.includes('any');
 
-		const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
+		const isRaceOption =
+			raceAllowsAny || normalizedRaceOptions.includes(normalizedProficiency);
 		const isClassOption =
-			classAllowsAny || classOptions.includes(proficiency);
+			classAllowsAny || normalizedClassOptions.includes(normalizedProficiency);
 		const isBackgroundOption =
-			backgroundAllowsAny || backgroundOptions.includes(proficiency);
+			backgroundAllowsAny ||
+			normalizedBackgroundOptions.includes(normalizedProficiency);
 
 		const raceSelected = languageOptions.race?.selected || [];
 		const classSelected = languageOptions.class?.selected || [];
@@ -313,6 +340,7 @@ export class ProficiencySelectionView {
 				classSelected,
 				backgroundSelected,
 				combinedSelected,
+				normalizedProficiency,
 			);
 		}
 		// Handle selection
@@ -343,24 +371,27 @@ export class ProficiencySelectionView {
 		classSelected,
 		backgroundSelected,
 		combinedSelected,
+		normalizedProficiency,
 	) {
 		let removedFromSource = false;
+		const matches = (value) =>
+			DataNormalizer.normalizeForLookup(value) === normalizedProficiency;
 
-		if (raceSelected.some((p) => p === _proficiency)) {
+		if (raceSelected.some(matches)) {
 			languageOptions.race.selected = raceSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
-		if (classSelected.some((p) => p === _proficiency)) {
+		if (classSelected.some(matches)) {
 			languageOptions.class.selected = classSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
-		if (backgroundSelected.some((p) => p === _proficiency)) {
+		if (backgroundSelected.some(matches)) {
 			languageOptions.background.selected = backgroundSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
@@ -372,9 +403,7 @@ export class ProficiencySelectionView {
 			);
 		}
 
-		languageOptions.selected = combinedSelected.filter(
-			(p) => p !== _proficiency,
-		);
+		languageOptions.selected = combinedSelected.filter((p) => !matches(p));
 		this._updateItemUIForDeselection(profItem);
 		return true;
 	}
@@ -467,20 +496,32 @@ export class ProficiencySelectionView {
 	_toggleToolProficiency(profItem, proficiency, character) {
 		// Data is already normalized from DataLoader
 		const toolOptions = character.optionalProficiencies.tools;
+		const normalizedProficiency = DataNormalizer.normalizeForLookup(proficiency);
 
 		const raceOptions = toolOptions.race?.options || [];
 		const classOptions = toolOptions.class?.options || [];
 		const backgroundOptions = toolOptions.background?.options || [];
+		const normalizedRaceOptions = raceOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
+		const normalizedClassOptions = classOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
+		const normalizedBackgroundOptions = backgroundOptions.map((o) =>
+			DataNormalizer.normalizeForLookup(o),
+		);
 
-		const raceAllowsAny = raceOptions.includes('any');
-		const classAllowsAny = classOptions.includes('any');
-		const backgroundAllowsAny = backgroundOptions.includes('any');
+		const raceAllowsAny = normalizedRaceOptions.includes('any');
+		const classAllowsAny = normalizedClassOptions.includes('any');
+		const backgroundAllowsAny = normalizedBackgroundOptions.includes('any');
 
-		const isRaceOption = raceAllowsAny || raceOptions.includes(proficiency);
+		const isRaceOption =
+			raceAllowsAny || normalizedRaceOptions.includes(normalizedProficiency);
 		const isClassOption =
-			classAllowsAny || classOptions.includes(proficiency);
+			classAllowsAny || normalizedClassOptions.includes(normalizedProficiency);
 		const isBackgroundOption =
-			backgroundAllowsAny || backgroundOptions.includes(proficiency);
+			backgroundAllowsAny ||
+			normalizedBackgroundOptions.includes(normalizedProficiency);
 
 		const raceSelected = toolOptions.race?.selected || [];
 		const classSelected = toolOptions.class?.selected || [];
@@ -500,6 +541,7 @@ export class ProficiencySelectionView {
 				classSelected,
 				backgroundSelected,
 				combinedSelected,
+				normalizedProficiency,
 			);
 		}
 		// Handle selection
@@ -530,24 +572,27 @@ export class ProficiencySelectionView {
 		classSelected,
 		backgroundSelected,
 		combinedSelected,
+		normalizedProficiency,
 	) {
 		let removedFromSource = false;
+		const matches = (value) =>
+			DataNormalizer.normalizeForLookup(value) === normalizedProficiency;
 
-		if (raceSelected.some((p) => p === _proficiency)) {
+		if (raceSelected.some(matches)) {
 			toolOptions.race.selected = raceSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
-		if (classSelected.some((p) => p === _proficiency)) {
+		if (classSelected.some(matches)) {
 			toolOptions.class.selected = classSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
-		if (backgroundSelected.some((p) => p === _proficiency)) {
+		if (backgroundSelected.some(matches)) {
 			toolOptions.background.selected = backgroundSelected.filter(
-				(p) => p !== _proficiency,
+				(p) => !matches(p),
 			);
 			removedFromSource = true;
 		}
@@ -559,9 +604,7 @@ export class ProficiencySelectionView {
 			);
 		}
 
-		toolOptions.selected = combinedSelected.filter(
-			(p) => p !== _proficiency,
-		);
+		toolOptions.selected = combinedSelected.filter((p) => !matches(p));
 		this._updateItemUIForDeselection(profItem);
 		return true;
 	}

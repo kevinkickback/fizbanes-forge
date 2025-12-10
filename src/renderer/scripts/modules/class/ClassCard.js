@@ -769,16 +769,12 @@ export class ClassCard {
 
 		for (const skillEntry of skills) {
 			if (skillEntry.choose?.from) {
-				// Convert lowercase skill names from JSON to proper casing
-				const properCasedSkills = skillEntry.choose.from.map(skill => this._normalizeSkillName(skill));
-				skillOptions.push(...properCasedSkills);
+				skillOptions.push(...skillEntry.choose.from);
 			} else if (skillEntry.choose?.fromFilter) {
 				// "Any" skills - return special marker
 				skillOptions.push('any');
 			} else {
-				// Fixed proficiencies - convert to proper casing
-				const properCasedSkills = Object.keys(skillEntry).map(skill => this._normalizeSkillName(skill));
-				skillOptions.push(...properCasedSkills);
+				skillOptions.push(...Object.keys(skillEntry));
 			}
 		}
 
@@ -791,30 +787,6 @@ export class ClassCard {
 	 * @returns {string} Skill name with proper casing
 	 * @private
 	 */
-	_normalizeSkillName(skill) {
-		const skillMap = {
-			'acrobatics': 'Acrobatics',
-			'animal handling': 'Animal Handling',
-			'arcana': 'Arcana',
-			'athletics': 'Athletics',
-			'deception': 'Deception',
-			'history': 'History',
-			'insight': 'Insight',
-			'intimidation': 'Intimidation',
-			'investigation': 'Investigation',
-			'medicine': 'Medicine',
-			'nature': 'Nature',
-			'perception': 'Perception',
-			'performance': 'Performance',
-			'persuasion': 'Persuasion',
-			'religion': 'Religion',
-			'sleight of hand': 'Sleight of Hand',
-			'stealth': 'Stealth',
-			'survival': 'Survival',
-		};
-		return skillMap[skill.toLowerCase()] || skill;
-	}
-
 	/**
 	 * Get number of skills to choose from class data
 	 * @param {Object} classData - Class JSON object

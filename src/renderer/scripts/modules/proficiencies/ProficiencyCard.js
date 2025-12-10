@@ -752,7 +752,7 @@ export class ProficiencyCard {
 		}
 
 		// Normalize the proficiency name for case-insensitive comparison
-		const normalizedProf = profString.toLowerCase().trim();
+		const normalizedProf = DataNormalizer.normalizeForLookup(profString);
 
 		// Find the matching proficiency by case-insensitive comparison
 		let matchingProf = null;
@@ -761,7 +761,7 @@ export class ProficiencyCard {
 		].entries()) {
 			if (
 				prof.toLowerCase?.() !== undefined &&
-				prof.toLowerCase().trim() === normalizedProf
+				DataNormalizer.normalizeForLookup(prof) === normalizedProf
 			) {
 				matchingProf = prof;
 				break;

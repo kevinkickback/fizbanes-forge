@@ -1,6 +1,7 @@
 /** @file Action service for managing action data. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /** Manages action data and provides access to actions. */
 class ActionService {
@@ -32,7 +33,7 @@ class ActionService {
             if (this._actionData.action && Array.isArray(this._actionData.action)) {
                 for (const action of this._actionData.action) {
                     if (!action.name) continue;
-                    const key = action.name.toLowerCase();
+                    const key = DataNormalizer.normalizeForLookup(action.name);
                     this._actionMap.set(key, action);
                 }
             }
@@ -59,7 +60,9 @@ class ActionService {
      */
     getAction(actionName) {
         if (!this._actionMap) return null;
-        return this._actionMap.get(actionName.toLowerCase()) || null;
+        return (
+            this._actionMap.get(DataNormalizer.normalizeForLookup(actionName)) || null
+        );
     }
 }
 

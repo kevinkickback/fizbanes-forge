@@ -1,6 +1,7 @@
 /** @file Skill service for managing skill data. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 
 /** Manages skill data and provides access to skills. */
 class SkillService {
@@ -32,7 +33,7 @@ class SkillService {
             if (this._skillData.skill && Array.isArray(this._skillData.skill)) {
                 for (const skill of this._skillData.skill) {
                     if (!skill.name) continue;
-                    const key = skill.name.toLowerCase();
+                    const key = DataNormalizer.normalizeForLookup(skill.name);
                     this._skillMap.set(key, skill);
                 }
             }
@@ -59,7 +60,7 @@ class SkillService {
      */
     getSkill(skillName) {
         if (!this._skillMap) return null;
-        return this._skillMap.get(skillName.toLowerCase()) || null;
+        return this._skillMap.get(DataNormalizer.normalizeForLookup(skillName)) || null;
     }
 }
 

@@ -1,6 +1,7 @@
 /** Manages item data and operations for the character builder. */
 
 import { DataLoader } from '../utils/DataLoader.js';
+import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /** Manages item data and provides access to items. */
@@ -52,7 +53,7 @@ class ItemService {
 			for (const item of this._itemData.item || []) {
 				// Skip items with missing names
 				if (!item.name) continue;
-				const key = item.name.toLowerCase();
+				const key = DataNormalizer.normalizeForLookup(item.name);
 				this._itemLookupMap.set(key, item);
 			}
 
@@ -60,7 +61,7 @@ class ItemService {
 			for (const baseItem of this._itemData.baseItem || []) {
 				// Skip base items with missing names
 				if (!baseItem.name) continue;
-				const key = baseItem.name.toLowerCase();
+				const key = DataNormalizer.normalizeForLookup(baseItem.name);
 				this._baseItemLookupMap.set(key, baseItem);
 			}
 
@@ -99,7 +100,7 @@ class ItemService {
 		if (!this._itemLookupMap) return null;
 
 		// O(1) lookup by name (case-insensitive)
-		const item = this._itemLookupMap.get(name.toLowerCase());
+		const item = this._itemLookupMap.get(DataNormalizer.normalizeForLookup(name));
 
 		// Verify source if found
 		if (item && item.source === source) {
@@ -126,7 +127,9 @@ class ItemService {
 		if (!this._baseItemLookupMap) return null;
 
 		// O(1) lookup by name (case-insensitive)
-		const baseItem = this._baseItemLookupMap.get(name.toLowerCase());
+		const baseItem = this._baseItemLookupMap.get(
+			DataNormalizer.normalizeForLookup(name),
+		);
 
 		// Verify source if found
 		if (baseItem && baseItem.source === source) {
@@ -170,8 +173,11 @@ class ItemService {
 	getItemsByRarity(rarity) {
 		if (!this._itemData?.item) return [];
 
+		const target = DataNormalizer.normalizeForLookup(rarity);
 		return this._itemData.item.filter(
-			(i) => i.rarity && i.rarity.toLowerCase() === rarity.toLowerCase(),
+			(i) =>
+				i.rarity &&
+				DataNormalizer.normalizeForLookup(i.rarity) === target,
 		);
 	}
 }
