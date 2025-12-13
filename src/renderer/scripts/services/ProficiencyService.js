@@ -3,6 +3,11 @@
 import { ProficiencyCore } from '../core/Proficiency.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
+import {
+	STANDARD_LANGUAGE_OPTIONS,
+	STANDARD_SKILL_OPTIONS,
+	STANDARD_TOOL_OPTIONS,
+} from '../utils/ProficiencyConstants.js';
 
 
 /** Manages proficiencies and proficiency-related calculations. */
@@ -93,26 +98,7 @@ export class ProficiencyService {
 			return [...this._skills];
 		}
 
-		return [
-			'Acrobatics',
-			'Animal Handling',
-			'Arcana',
-			'Athletics',
-			'Deception',
-			'History',
-			'Insight',
-			'Intimidation',
-			'Investigation',
-			'Medicine',
-			'Nature',
-			'Perception',
-			'Performance',
-			'Persuasion',
-			'Religion',
-			'Sleight of Hand',
-			'Stealth',
-			'Survival',
-		];
+		return [...STANDARD_SKILL_OPTIONS];
 	}
 
 	/**
@@ -124,33 +110,7 @@ export class ProficiencyService {
 			return [...this._tools];
 		}
 
-		return [
-			"Alchemist's supplies",
-			"Brewer's supplies",
-			"Calligrapher's supplies",
-			"Carpenter's tools",
-			"Cartographer's tools",
-			"Cobbler's tools",
-			"Cook's utensils",
-			"Glassblower's tools",
-			"Jeweler's tools",
-			"Leatherworker's tools",
-			"Mason's tools",
-			"Painter's supplies",
-			"Potter's tools",
-			"Smith's tools",
-			"Tinker's tools",
-			"Weaver's tools",
-			"Woodcarver's tools",
-			'Disguise kit',
-			'Forgery kit',
-			'Gaming set',
-			'Herbalism kit',
-			'Musical instrument',
-			"Navigator's tools",
-			"Poisoner's kit",
-			"Thieves' tools",
-		];
+		return [...STANDARD_TOOL_OPTIONS];
 	}
 
 	/**
@@ -162,24 +122,7 @@ export class ProficiencyService {
 			return [...this._languages];
 		}
 
-		return [
-			'Common',
-			'Dwarvish',
-			'Elvish',
-			'Giant',
-			'Gnomish',
-			'Goblin',
-			'Halfling',
-			'Orc',
-			'Abyssal',
-			'Celestial',
-			'Draconic',
-			'Deep Speech',
-			'Infernal',
-			'Primordial',
-			'Sylvan',
-			'Undercommon',
-		];
+		return [...STANDARD_LANGUAGE_OPTIONS];
 	}
 
 	/**

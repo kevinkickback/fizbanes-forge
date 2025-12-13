@@ -3,7 +3,6 @@
  * Model class representing a character in the D&D Character Creator
  */
 
-
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
 import { ProficiencyCore } from './Proficiency.js';
 
@@ -783,6 +782,65 @@ export class Character {
 		return this.pendingAbilityChoices;
 	}
 
+	/**
+	 * Clear all racial benefits, bonuses, and proficiencies
+	 * Consolidates cleanup from race changes into a single call
+	 * @returns {void}
+	 */
+	clearRacialBenefits() {
+		// Clear ability bonuses from race/subrace
+		this.clearAbilityBonuses('Race');
+		this.clearAbilityBonuses('Subrace');
+		this.clearAbilityBonusesByPrefix('Race');
+		this.clearAbilityBonusesByPrefix('Subrace');
+
+		// Clear ability score service's stored choices (handled by services now)
+		// this is managed by abilityScoreService.clearStoredChoices()
+
+		// Clear the character's saved ability choices
+		if (this.race) {
+			this.race.abilityChoices = [];
+		}
+
+		// Clear all pending ability choices
+		this.clearPendingChoicesByType('ability');
+
+		// Clear all proficiencies from race and subrace
+		this.removeProficienciesBySource('Race');
+		this.removeProficienciesBySource('Subrace');
+
+		// Clear all traits from race and subrace
+		this.clearTraits('Race');
+		this.clearTraits('Subrace');
+
+		// Reset racial features
+		this.features.darkvision = 0;
+		this.features.resistances.clear();
+
+		// Clear optional proficiencies for race
+		if (this.optionalProficiencies) {
+			// Clear race skills
+			if (this.optionalProficiencies.skills?.race) {
+				this.optionalProficiencies.skills.race.allowed = 0;
+				this.optionalProficiencies.skills.race.options = [];
+				this.optionalProficiencies.skills.race.selected = [];
+			}
+
+			// Clear race languages
+			if (this.optionalProficiencies.languages?.race) {
+				this.optionalProficiencies.languages.race.allowed = 0;
+				this.optionalProficiencies.languages.race.options = [];
+				this.optionalProficiencies.languages.race.selected = [];
+			}
+
+			// Clear race tools
+			if (this.optionalProficiencies.tools?.race) {
+				this.optionalProficiencies.tools.race.allowed = 0;
+				this.optionalProficiencies.tools.race.options = [];
+				this.optionalProficiencies.tools.race.selected = [];
+			}
+		}
+	}
 }
 
 /**

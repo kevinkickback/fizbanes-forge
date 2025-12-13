@@ -1,12 +1,12 @@
 /**
  * Manages race data and operations for the character builder.
- * 
+ *
  * This service handles:
  * - Loading and caching race and subrace data
  * - Building an optimized lookup index for O(1) race access
  * - Managing race/subrace selection state
  * - Deriving variant subraces (e.g., Dragonborn colors)
- * 
+ *
  * The race data structure follows 5etools format with support for:
  * - Base races (e.g., "Elf", "Dwarf")
  * - Named subraces (e.g., "High Elf", "Wood Elf")
@@ -17,6 +17,11 @@
 import { AppState } from '../core/AppState.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
+import {
+	STANDARD_LANGUAGE_OPTIONS,
+	STANDARD_SKILL_OPTIONS,
+	STANDARD_TOOL_OPTIONS,
+} from '../utils/ProficiencyConstants.js';
 import {
 	buildRaceBundle,
 	createRaceKey,
@@ -148,19 +153,19 @@ class RaceService {
 
 	/**
 	 * Builds an optimized lookup index for fast race access.
-	 * 
+	 *
 	 * The index structure is:
 	 * Map<"racename:source", {
 	 *   race: Object,           // The base race data
 	 *   subraces: Array,        // All subraces (named + derived variants)
 	 *   baseSubrace: Object     // The unnamed/base subrace if it exists
 	 * }>
-	 * 
+	 *
 	 * This consolidates:
 	 * - Named subraces from the subrace data array
 	 * - Derived variant subraces from race._versions
 	 * - Derived variant subraces from base subrace._versions
-	 * 
+	 *
 	 * @private
 	 */
 	_buildRaceIndex() {
@@ -183,8 +188,8 @@ class RaceService {
 			// Debug logging for Human race
 			if (race.name === 'Human') {
 				console.info('[RaceService]', `Human (${raceSource}) subraces:`, {
-					explicit: explicitSubraces.map(s => s.name),
-					all: bundle.subraces.map(s => s.name),
+					explicit: explicitSubraces.map((s) => s.name),
+					all: bundle.subraces.map((s) => s.name),
 					baseSubrace: bundle.baseSubrace?.name,
 				});
 			}
@@ -261,6 +266,30 @@ class RaceService {
 	 */
 	getSelectedSubrace() {
 		return this._selectedSubrace;
+	}
+
+	/**
+	 * Get standard skill proficiency options
+	 * @returns {Array<string>} Array of all standard skill names
+	 */
+	getStandardSkillOptions() {
+		return STANDARD_SKILL_OPTIONS;
+	}
+
+	/**
+	 * Get standard tool proficiency options
+	 * @returns {Array<string>} Array of all standard tool names
+	 */
+	getStandardToolOptions() {
+		return STANDARD_TOOL_OPTIONS;
+	}
+
+	/**
+	 * Get standard language proficiency options
+	 * @returns {Array<string>} Array of all standard language names
+	 */
+	getStandardLanguageOptions() {
+		return STANDARD_LANGUAGE_OPTIONS;
 	}
 }
 

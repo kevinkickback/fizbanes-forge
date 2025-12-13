@@ -267,15 +267,17 @@ export class RaceDetailsView {
 		for (const langEntry of race.languageProficiencies) {
 			// First, add all fixed languages
 			for (const [lang, value] of Object.entries(langEntry)) {
-				if (value === true && lang !== 'other' && lang !== 'anystandard' && lang !== 'choose') {
+				const langLower = lang.toLowerCase();
+				if (value === true && langLower !== 'other' && langLower !== 'anystandard' && langLower !== 'choose') {
 					languages.push(lang);
 				}
 			}
 
 			// Then add optional language choices
-			if (langEntry.anystandard) {
+			const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+			if (anyStandardCount > 0) {
 				languages.push(
-					`Choose ${langEntry.anystandard} standard language${langEntry.anystandard > 1 ? 's' : ''}`,
+					`Choose ${anyStandardCount} standard language${anyStandardCount > 1 ? 's' : ''}`,
 				);
 			}
 

@@ -262,9 +262,10 @@ export function getLanguages(race) {
 		if (langEntry.halfling) languages.push('Halfling');
 		if (langEntry.orc) languages.push('Orc');
 
-		// Handle any-language choices (keys normalized to lowercase)
-		if (langEntry.anystandard) {
-			languages.push(`Any Standard (${langEntry.anystandard})`);
+		// Handle any-language choices (check both anyStandard and anystandard)
+		const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+		if (anyStandardCount > 0) {
+			languages.push(`Any Standard (${anyStandardCount})`);
 		}
 	}
 
