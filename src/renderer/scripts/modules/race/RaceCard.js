@@ -1005,201 +1005,205 @@ export class RaceCard {
 	 * @param {Object} character - The character object
 	 * @private
 	 */
-	_updateCombinedProficiencyOptions(character)
-	if(!character) return;
+	_updateCombinedProficiencyOptions(character) {
+		if (!character) return;
 
 		// Merge proficiency options from all sources (race, class, background)
 		this._mergeProficiencySource(character, 'skills');
-this._mergeProficiencySource(character, 'languages');
-this._mergeProficiencySource(character, 'tools');
+		this._mergeProficiencySource(character, 'languages');
+		this._mergeProficiencySource(character, 'tools');
+	}
 
-/**
- * Helper to merge proficiency options from race, class, and background sources
- * @param {Object} character - The character object
- * @param {string} profType - Proficiency type ('skills', 'languages', or 'tools')
- * @private
- */
-_mergeProficiencySource(character, profType) {
-	const profData = character.optionalProficiencies[profType];
-	if (!profData) return;
+	/**
+	 * Helper to merge proficiency options from race, class, and background sources
+	 * @param {Object} character - The character object
+	 * @param {string} profType - Proficiency type ('skills', 'languages', or 'tools')
+	 * @private
+	 */
+	_mergeProficiencySource(character, profType) {
+		const profData = character.optionalProficiencies[profType];
+		if (!profData) return;
 
-	// Extract source data
-	const raceAllowed = profData.race?.allowed || 0;
-	const classAllowed = profData.class?.allowed || 0;
-	const backgroundAllowed = profData.background?.allowed || 0;
+		// Extract source data
+		const raceAllowed = profData.race?.allowed || 0;
+		const classAllowed = profData.class?.allowed || 0;
+		const backgroundAllowed = profData.background?.allowed || 0;
 
-	const raceOptions = profData.race?.options || [];
-	const classOptions = profData.class?.options || [];
-	const backgroundOptions = profData.background?.options || [];
+		const raceOptions = profData.race?.options || [];
+		const classOptions = profData.class?.options || [];
+		const backgroundOptions = profData.background?.options || [];
 
-	const raceSelected = profData.race?.selected || [];
-	const classSelected = profData.class?.selected || [];
-	const backgroundSelected = profData.background?.selected || [];
+		const raceSelected = profData.race?.selected || [];
+		const classSelected = profData.class?.selected || [];
+		const backgroundSelected = profData.background?.selected || [];
 
-	// Merge selections, preserving existing if sources are empty
-	const sourceSelections = [
-		...raceSelected,
-		...classSelected,
-		...backgroundSelected,
-	];
-	const existingSelections = profData.selected || [];
+		// Merge selections, preserving existing if sources are empty
+		const sourceSelections = [
+			...raceSelected,
+			...classSelected,
+			...backgroundSelected,
+		];
+		const existingSelections = profData.selected || [];
 
-	// Update combined proficiency data
-	profData.allowed = raceAllowed + classAllowed + backgroundAllowed;
-	profData.selected =
-		sourceSelections.length > 0
-			? [...new Set(sourceSelections)]
-			: existingSelections;
-	profData.options = [
-		...new Set([...raceOptions, ...classOptions, ...backgroundOptions]),
-	];
-}
+		// Update combined proficiency data
+		profData.allowed = raceAllowed + classAllowed + backgroundAllowed;
+		profData.selected =
+			sourceSelections.length > 0
+				? [...new Set(sourceSelections)]
+				: existingSelections;
+		profData.options = [
+			...new Set([...raceOptions, ...classOptions, ...backgroundOptions]),
+		];
+	}
 
-/**
- * Updates the combined skill options from race, class, and background
- * @param {Object} character - The character object
- * @private
- */
-_updateCombinedSkillOptions(character)
-this._mergeProficiencySource(character, 'skills');
+	/**
+	 * Updates the combined skill options from race, class, and background
+	 * @param {Object} character - The character object
+	 * @private
+	 */
+	_updateCombinedSkillOptions(character) {
+		this._mergeProficiencySource(character, 'skills');
+	}
 
-/**
- * Update language options
- * @param {Object} character - The character object
- * @private
- */
-_updateCombinedLanguageOptions(character)
-this._mergeProficiencySource(character, 'languages');
+	/**
+	 * Update language options
+	 * @param {Object} character - The character object
+	 * @private
+	 */
+	_updateCombinedLanguageOptions(character) {
+		this._mergeProficiencySource(character, 'languages');
+	}
 
-/**
- * Update tool options
- * @param {Object} character - The character object
- * @private
- */
-_updateCombinedToolOptions(character)
-this._mergeProficiencySource(character, 'tools');
+	/**
+	 * Update tool options
+	 * @param {Object} character - The character object
+	 * @private
+	 */
+	_updateCombinedToolOptions(character) {
+		this._mergeProficiencySource(character, 'tools');
+	}
 
-//-------------------------------------------------------------------------
-// Data Extraction Helper Methods
-//-------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
+	// Data Extraction Helper Methods
+	//-------------------------------------------------------------------------
 
-/**
- * Get fixed ability improvements from race and subrace data
- * @param {Object} race - Race JSON object
- * @param {Object} subrace - Subrace JSON object (optional)
- * @returns {Array} Array of improvement objects {ability, value, source}
- * @private
- */
-_getFixedAbilityImprovements(race, subrace) {
-	const improvements = [];
+	/**
+	 * Get fixed ability improvements from race and subrace data
+	 * @param {Object} race - Race JSON object
+	 * @param {Object} subrace - Subrace JSON object (optional)
+	 * @returns {Array} Array of improvement objects {ability, value, source}
+	 * @private
+	 */
+	_getFixedAbilityImprovements(race, subrace) {
+		const improvements = [];
 
-	// Process race abilities
-	if (race?.ability) {
-		for (const abilityEntry of race.ability) {
-			if (!abilityEntry.choose) {
-				for (const [ability, bonus] of Object.entries(abilityEntry)) {
-					if (bonus && typeof bonus === 'number') {
-						improvements.push({
-							ability: ability,
-							value: bonus,
-							amount: bonus,
-							source: 'Race',
-						});
+		// Process race abilities
+		if (race?.ability) {
+			for (const abilityEntry of race.ability) {
+				if (!abilityEntry.choose) {
+					for (const [ability, bonus] of Object.entries(abilityEntry)) {
+						if (bonus && typeof bonus === 'number') {
+							improvements.push({
+								ability: ability,
+								value: bonus,
+								amount: bonus,
+								source: 'Race',
+							});
+						}
 					}
 				}
 			}
 		}
-	}
 
-	// Process subrace abilities
-	if (subrace?.ability) {
-		for (const abilityEntry of subrace.ability) {
-			if (!abilityEntry.choose) {
-				for (const [ability, bonus] of Object.entries(abilityEntry)) {
-					if (bonus && typeof bonus === 'number') {
-						improvements.push({
-							ability: ability,
-							value: bonus,
-							amount: bonus,
-							source: 'Subrace',
-						});
+		// Process subrace abilities
+		if (subrace?.ability) {
+			for (const abilityEntry of subrace.ability) {
+				if (!abilityEntry.choose) {
+					for (const [ability, bonus] of Object.entries(abilityEntry)) {
+						if (bonus && typeof bonus === 'number') {
+							improvements.push({
+								ability: ability,
+								value: bonus,
+								amount: bonus,
+								source: 'Subrace',
+							});
+						}
 					}
 				}
 			}
 		}
+
+		return improvements;
 	}
 
-	return improvements;
-}
+	/**
+	 * Get ability score choices from race and subrace data
+	 * @param {Object} race - Race data
+	 * @param {Object} subrace - Subrace data
+	 * @returns {Array} Array of choice objects
+	 * @private
+	 */
+	_getAbilityScoreChoices(race, subrace) {
+		const choices = [];
 
-/**
- * Get ability score choices from race and subrace data
- * @param {Object} race - Race data
- * @param {Object} subrace - Subrace data
- * @returns {Array} Array of choice objects
- * @private
- */
-_getAbilityScoreChoices(race, subrace) {
-	const choices = [];
+		// Process race ability choices
+		if (race?.ability) {
+			for (const abilityEntry of race.ability) {
+				if (abilityEntry.choose) {
+					const amount = abilityEntry.choose.amount || 1;
+					const choice = {
+						count: abilityEntry.choose.count || 1,
+						amount,
+						from: abilityEntry.choose.from || [
+							'str',
+							'dex',
+							'con',
+							'int',
+							'wis',
+							'cha',
+						],
+						source: 'Race Choice',
+					};
 
-	// Process race ability choices
-	if (race?.ability) {
-		for (const abilityEntry of race.ability) {
-			if (abilityEntry.choose) {
-				const amount = abilityEntry.choose.amount || 1;
-				const choice = {
-					count: abilityEntry.choose.count || 1,
-					amount,
-					from: abilityEntry.choose.from || [
-						'str',
-						'dex',
-						'con',
-						'int',
-						'wis',
-						'cha',
-					],
-					source: 'Race Choice',
-				};
+					// Half-Elf PHB should always be +1 per pick, even if data amount is 2
+					if (race.name === 'Half-Elf' && race.source === 'PHB') {
+						choice.amount = 1;
+					}
 
-				// Half-Elf PHB should always be +1 per pick, even if data amount is 2
-				if (race.name === 'Half-Elf' && race.source === 'PHB') {
-					choice.amount = 1;
+					choices.push(choice);
 				}
-
-				choices.push(choice);
 			}
 		}
-	}
 
-	// Process subrace ability choices
-	if (subrace?.ability) {
-		for (const abilityEntry of subrace.ability) {
-			if (abilityEntry.choose) {
-				const amount = abilityEntry.choose.amount || 1;
-				const choice = {
-					count: abilityEntry.choose.count || 1,
-					amount,
-					from: abilityEntry.choose.from || [
-						'str',
-						'dex',
-						'con',
-						'int',
-						'wis',
-						'cha',
-					],
-					source: 'Subrace Choice',
-				};
-				choices.push(choice);
+		// Process subrace ability choices
+		if (subrace?.ability) {
+			for (const abilityEntry of subrace.ability) {
+				if (abilityEntry.choose) {
+					const amount = abilityEntry.choose.amount || 1;
+					const choice = {
+						count: abilityEntry.choose.count || 1,
+						amount,
+						from: abilityEntry.choose.from || [
+							'str',
+							'dex',
+							'con',
+							'int',
+							'wis',
+							'cha',
+						],
+						source: 'Subrace Choice',
+					};
+					choices.push(choice);
+				}
 			}
 		}
+
+		console.debug('RaceCard', '_getAbilityScoreChoices result:', {
+			raceName: race?.name,
+			subraceName: subrace?.name,
+			choices,
+		});
+
+		return choices;
 	}
-
-	console.debug('RaceCard', '_getAbilityScoreChoices result:', {
-		raceName: race?.name,
-		subraceName: subrace?.name,
-		choices,
-	});
-
-	return choices;
-}
 }

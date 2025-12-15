@@ -7,13 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": [
-			"**",
-			"!data",
-			"!renderer/assets",
-			"!renderer/pages/tooltipTest.html",
-			"!test-results"
-		]
+		"includes": ["**", "!.github", "!data", "!renderer/assets", "!test-results"]
 	},
 	"formatter": {
 		"enabled": true,

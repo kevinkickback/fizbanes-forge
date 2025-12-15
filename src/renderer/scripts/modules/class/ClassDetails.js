@@ -3,6 +3,7 @@
 import { CharacterManager } from '../../core/CharacterManager.js';
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
+import { toSentenceCase, toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for displaying class details. */
@@ -173,8 +174,8 @@ export class ClassDetailsView {
 						chooseHeader.textContent = chooseText;
 						skillProficienciesSection.insertBefore(chooseHeader, skillList);
 
-						// Add the skills list
-						const skills = skillsText.split(', ');
+						// Add the skills list, title-cased
+						const skills = skillsText.split(', ').map(toTitleCase);
 
 						// Apply multi-column if more than 3 skills
 						if (skills.length > 3) {
@@ -191,10 +192,10 @@ export class ClassDetailsView {
 							skillList.appendChild(li);
 						}
 					} else {
-						// Fallback for other formats
+						// Fallback for other formats, title-cased
 						const li = document.createElement('li');
 						li.className = 'text-content';
-						li.textContent = formattedString;
+						li.textContent = toTitleCase(formattedString);
 						skillList.appendChild(li);
 					}
 				}
@@ -398,9 +399,8 @@ export class ClassDetailsView {
 				for (const weapon of weaponProficiencies) {
 					const li = document.createElement('li');
 					li.className = 'text-content';
-					const weaponStr =
-						typeof weapon === 'string' ? weapon : String(weapon);
-					li.textContent = weaponStr;
+					const weaponStr = typeof weapon === 'string' ? weapon : String(weapon);
+					li.textContent = toTitleCase(weaponStr);
 					weaponSection.appendChild(li);
 				}
 			} else {
@@ -462,7 +462,7 @@ export class ClassDetailsView {
 					const li = document.createElement('li');
 					li.className = 'text-content';
 					const toolStr = typeof tool === 'string' ? tool : String(tool);
-					li.textContent = toolStr;
+					li.textContent = toSentenceCase(toolStr);
 					toolSection.appendChild(li);
 				}
 			} else {

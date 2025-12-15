@@ -1,20 +1,48 @@
-# Fizbane's Forge – AI Guidance
+# Copilot Instructions for Fizbane's Forge
 
-- **Purpose:** Electron desktop D&D character creator. Main process owns window lifecycle + IPC; renderer is a single-page app loading dynamic pages/assets from the data directory.
-- **Entry points:** Main process in [src/electron/main.js](../src/electron/main.js) wires IPC handlers and creates the BrowserWindow with contextIsolation+sandbox. Preload in [src/electron/preload.cjs](../src/electron/preload.cjs) exposes whitelisted IPC helpers under `window.app`, `window.data`, and `window.characterStorage` only.
-- **IPC surfaces:** Channels are enumerated in [src/electron/ipc/channels.js](../src/electron/ipc/channels.js); use them instead of ad-hoc strings. Character CRUD/UUID go through [src/electron/ipc/handlers/CharacterHandlers.js](../src/electron/ipc/handlers/CharacterHandlers.js). File picker/open/read/write lives in [src/electron/ipc/handlers/FileHandlers.js](../src/electron/ipc/handlers/FileHandlers.js). Settings (`get/set/all`, app/userData paths) live in [src/electron/ipc/handlers/SettingsHandlers.js](../src/electron/ipc/handlers/SettingsHandlers.js).
-- **Data sources:** Game data must come from a user-configured folder or downloaded cache. Validation/manifest building/downloading resides in [src/electron/DataFolderManager.js](../src/electron/DataFolderManager.js) and is orchestrated by [src/electron/ipc/handlers/DataHandlers.js](../src/electron/ipc/handlers/DataHandlers.js). `FF_DEBUG=true` forces the bundled `src/data` without persisting prefs (used by tests/debug). Remote URLs are normalized to raw GitHub for `/data` and are cached under userData.
-- **Preferences:** Stored at `userData/preferences.json` via [src/electron/PreferencesManager.js](../src/electron/PreferencesManager.js); includes `characterSavePath`, data source config, theme/logLevel, window bounds. Window bounds are persisted on close from [src/electron/WindowManager.js](../src/electron/WindowManager.js).
-- **Renderer startup:** [src/renderer/scripts/core/AppInitializer.js](../src/renderer/scripts/core/AppInitializer.js) orchestrates startup: ensures data source, initializes text processor, page handler, navigation, settings service, then loads all data services in parallel (spells/items/classes/races/etc). Unsaved-change indicator is driven by EventBus events.
-- **Event bus:** Central events live in [src/renderer/scripts/utils/EventBus.js](../src/renderer/scripts/utils/EventBus.js); prefer emitting/listening there instead of custom DOM events. Services typically emit `SERVICE_INITIALIZED` on init.
-- **Data loading pattern:** Use [src/renderer/scripts/utils/DataLoader.js](../src/renderer/scripts/utils/DataLoader.js); it caches requests and first tries IPC `window.data.loadJSON`. Avoid direct `fetch`/`fs` calls from the renderer.
-- **Character storage:** Renderer wrapper in [src/renderer/scripts/core/Storage.js](../src/renderer/scripts/core/Storage.js) talks to preload IPC; saves `.ffp` files under the configured save path. Use `storage.getCharacter(s)/saveCharacter/deleteCharacter/import/export/generateUUID` instead of custom IPC.
-- **Services:** Feature data services (e.g., races, classes, feats, items) live in [src/renderer/scripts/services](../src/renderer/scripts/services) and expose `initialize()` that preloads JSON via `DataLoader`. Follow this pattern for new data domains.
-- **UI/navigation:** DOM shell is [src/renderer/index.html](../src/renderer/index.html); navigation buttons use `data-page` and are routed by `NavigationController`/`PageHandler` in `core/`. Floating save bar uses AppState + EventBus to show unsaved status only on build/details pages.
-- **Text/tooltip rendering:** Inline 5etools tags are parsed by [src/renderer/scripts/utils/TagProcessor.js](../src/renderer/scripts/utils/TagProcessor.js) with registered handlers for race/class/feat/spell/etc; extend via `registerHandler`. Race/subrace derivation helpers live in [src/renderer/scripts/utils/RaceDataUtils.js](../src/renderer/scripts/utils/RaceDataUtils.js).
-- **Testing:** Playwright specs in [tests](../tests) launch Electron via `_electron`. Set env `FF_DEBUG=true FF_ALLOW_DEFAULT_DATA=true` (matches `npm run debug`) so tests use bundled data and skip config modals. Use `npx playwright test` from repo root; headless is on by default in [playwright.config.js](../playwright.config.js).
-- **Tooling:** `npm start` runs Electron; `npm run debug` enables debug mode + default data; `npm run check:lint` / `check:format` (Biome) for CI-style checks; `npm run format`/`lint` to auto-fix. Packaging via `npm run pack` (dir) or `npm run dist` (installers).
-- **Data contracts:** Required data set includes files like `races.json`, `backgrounds.json`, `feats.json`, `items.json`, plus class/spell indexes; DataFolderManager will fail validation if missing. Keep JSON shape aligned with 5etools expectations (e.g., `race` array in `races.json`).
-- **Adding data-dependent features:** Validate availability through `DataLoader` and surface errors via Notifications. Respect `AppState.hasUnsavedChanges` and emit `EVENTS.CHARACTER_UPDATED` when mutating the active character so the save indicator stays accurate.
-- **Security:** Renderer runs with `contextIsolation` + `sandbox`; only expose new capabilities through preload (update both preload and IPC channels) and keep CSP in [src/renderer/index.html](../src/renderer/index.html) in mind.
-- **When in doubt:** Follow existing service + EventBus patterns, and prefer using the preload-exposed APIs instead of adding new direct Electron imports in the renderer.
+## Project Overview
+- **Fizbane's Forge** is an Electron-based D&D character creator. It uses a modular architecture with clear separation between the Electron main process (`src/electron/`) and the renderer (frontend, `src/renderer/`).
+- All D&D data (items, spells, classes, etc.) is loaded from JSON files in `src/data/` at startup. Data source configuration is required on first launch.
+- The renderer is a single-page app with dynamic page loading and a custom event bus for inter-component communication.
+
+## Key Architectural Patterns
+- **Main Process**: Entry point is `src/electron/main.js`. Registers IPC handlers for data, file, settings, and character operations. Preferences and window state are managed here.
+- **Renderer**: Bootstrapped by `src/renderer/scripts/core/AppInitializer.js`. Loads all data/services in parallel, then initializes UI and event handlers. Uses a service layer (e.g., `ActionService`, `RaceService`) for all data access.
+- **Event Bus**: `src/renderer/utils/EventBus.js` provides a pub/sub system for decoupled communication (e.g., `CHARACTER_UPDATED`, `PAGE_CHANGED`).
+- **UI**: Main HTML is `src/renderer/index.html`. Pages and modals are loaded dynamically. State is managed via `AppState`.
+
+## Developer Workflows
+- **Start app**: `npm start` (runs Electron)
+- **Debug mode**: `npm run debug` (enables debug UI and default data)
+- **Build distributable**: `npm run dist` (uses `electron-builder`)
+- **Format/lint**: `npm run format` / `npm run lint` (uses Biome)
+- **Tests**: Playwright E2E tests in `tests/` (`npx playwright test`)
+- **Assets setup**: `npm run setup` (downloads/installs required assets)
+
+## Project-Specific Conventions
+- **Module system**: Use ES modules everywhere except where Electron requires CommonJS (see `biome.json` overrides).
+- **Data loading**: All game data must be loaded via the service layer, never directly from JSON in UI code.
+- **UI state**: Use `AppState` and the event bus for all cross-component state changes.
+- **Debug UI**: Elements with `.debug-only` are only visible in debug mode (`FF_DEBUG=true`).
+- **Unsaved changes**: Managed via `AppState` and `CHARACTER_UPDATED`/`CHARACTER_SAVED` events.
+
+## Integration Points
+- **IPC**: All main/renderer communication is via IPC handlers registered in `src/electron/ipc/handlers/`.
+- **External dependencies**: Uses `5etools-utils`, `bootstrap`, `fontawesome`, and Playwright for testing.
+
+## Examples
+- To add a new data type (e.g., new D&D entity):
+  1. Add JSON to `src/data/`
+  2. Create a service in `src/renderer/scripts/services/`
+  3. Register/init in `AppInitializer.js`
+- To add a new UI page: Add to `src/renderer/pages/`, update navigation, and register with the router.
+
+## Key Files/Directories
+- `src/electron/main.js` – Electron entry, IPC setup
+- `src/renderer/scripts/core/AppInitializer.js` – Renderer bootstrap
+- `src/renderer/utils/EventBus.js` – Event system
+- `src/data/` – All D&D data
+- `tests/` – Playwright E2E tests
+
+---
+For more, see code comments in the above files. When in doubt, follow the service/event-driven patterns and avoid direct data access in UI code.

@@ -1,3 +1,14 @@
+/**
+ * Converts a string to sentence case (first letter uppercase, rest as-is except first word)
+ * @param {string} str - The string to format
+ * @returns {string} Sentence-cased string
+ */
+export function toSentenceCase(str) {
+	if (typeof str !== 'string' || str.length === 0) {
+		return '';
+	}
+	return str.charAt(0).toUpperCase() + str.slice(1);
+}
 /** TextFormatter.js - Utility helpers for formatting text strings. */
 
 /**
@@ -350,4 +361,3 @@ export function expandSource(source) {
 
 	return sources[source.toUpperCase()] || source;
 }
-

@@ -1,5 +1,6 @@
 /** Renders proficiency source notes and explanations. */
 
+import { toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
@@ -34,7 +35,7 @@ export class ProficiencyNotesView {
 				].entries()) {
 					for (const source of sources) {
 						typeGroups[type].push({
-							name: prof,
+							name: toTitleCase(prof),
 							source: source,
 						});
 					}
@@ -74,7 +75,7 @@ export class ProficiencyNotesView {
 
 					for (const source of sources) {
 						typeGroups[type].push({
-							name: prof,
+							name: toTitleCase(prof),
 							source: source,
 						});
 					}

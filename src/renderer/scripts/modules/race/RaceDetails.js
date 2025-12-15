@@ -1,6 +1,7 @@
 /** View for detailed race information (ability scores, size, speed, languages, traits). */
 
 
+import { toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for displaying race details. */
@@ -249,7 +250,12 @@ export class RaceDetailsView {
 
 		const languages = this._formatLanguages(race).split('\n');
 		languageSection.innerHTML = languages
-			.map((language) => `<li>${language}</li>`)
+			.map((language) => {
+				// Only title-case single-word or known language names, not phrases
+				if (/^choose|one other|none/i.test(language)) return `<li>${language}</li>`;
+				// Title-case each word in comma-separated lists
+				return `<li>${language.split(', ').map(toTitleCase).join(', ')}</li>`;
+			})
 			.join('');
 	}
 

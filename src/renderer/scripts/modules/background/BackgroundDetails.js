@@ -1,5 +1,6 @@
 /** View component for displaying background details. */
 
+import { toSentenceCase, toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** Handles background details rendering (proficiencies, equipment, features). */
@@ -157,14 +158,14 @@ export class BackgroundDetailsView {
 				if (from.length === 0) {
 					skills.push(`Choose ${count} skill${count > 1 ? 's' : ''}`);
 				} else {
-					// Use skills as-is from JSON
-					skills.push(`Choose ${count} from: ${from.join(', ')}`);
+					// Title-case each skill in the list
+					skills.push(`Choose ${count} from: ${from.map(toTitleCase).join(', ')}`);
 				}
 			} else {
-				// Fixed proficiencies - use skills as-is from JSON
+				// Fixed proficiencies - title-case skills
 				for (const [skill, value] of Object.entries(skillEntry)) {
 					if (value === true) {
-						skills.push(skill);
+						skills.push(toTitleCase(skill));
 					}
 				}
 			}
@@ -189,10 +190,10 @@ export class BackgroundDetailsView {
 				const count = toolEntry.choose.count || 1;
 				tools.push(`Choose ${count} tool${count > 1 ? 's' : ''}`);
 			} else {
-				// Fixed proficiencies - use tool names as-is from JSON
+				// Fixed proficiencies - sentence case tool names
 				for (const [tool, value] of Object.entries(toolEntry)) {
 					if (value === true) {
-						tools.push(tool);
+						tools.push(toSentenceCase(tool));
 					}
 				}
 			}
