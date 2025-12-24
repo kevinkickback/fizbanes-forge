@@ -85,8 +85,12 @@ export class DataConfigurationModal {
 
         if (this.savedType === 'url') {
             const urlInput = this.modal.querySelector('#dataSourceUrl');
+            const validateBtn = this.modal.querySelector('[data-action="validate-url"]');
             if (urlInput) {
                 urlInput.value = this.savedValue;
+            }
+            if (validateBtn && this.savedValue && this.savedValue.trim() !== '') {
+                validateBtn.disabled = false;
             }
         } else if (this.savedType === 'local') {
             const localInput = this.modal.querySelector('#localFolderPath');
@@ -121,8 +125,8 @@ export class DataConfigurationModal {
         const wrapper = document.createElement('div');
         wrapper.className = 'data-config-modal-overlay';
         const subtitle = this.allowClose
-            ? 'Configure where to load your D&D data.'
-            : 'D&D data files not found. Please provide a data source.';
+            ? 'Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).'
+            : 'D&D data files not found. Please provide a data source.<br>Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).';
         wrapper.innerHTML = `
 			<div class="data-config-modal-dialog">
 				<div class="data-config-modal-header">
@@ -148,10 +152,10 @@ export class DataConfigurationModal {
 								type="url"
 								id="dataSourceUrl"
 								class="form-control"
-								placeholder="https://example.com/5eData"
+								placeholder="https://example.com/5etools-src"
 							/>
 							<small class="form-text text-muted">
-                                Enter the URL to a hosted data repository. Must use <code>5etools</code> folder structure & <code>.json</code> schema.
+                                Enter the URL to a data repository. Must use <code>5etools</code> folder structure & <code>.json</code> schema.
 							</small>
 						</div>
 						<button class="btn btn-primary data-config-submit-btn" data-action="validate-url">
@@ -183,7 +187,7 @@ export class DataConfigurationModal {
 								</button>
 							</div>
                             <small class="form-text text-muted">
-                                Select a local data folder. Must use <code>5etools</code> folder structure & <code>.json</code> schema.
+                                Select a local folder. Must use <code>5etools</code> folder structure & <code>.json</code> schema.
                             </small>
 						</div>
 						<button class="btn btn-primary data-config-submit-btn" data-action="validate-local" disabled>
@@ -226,6 +230,13 @@ export class DataConfigurationModal {
             '[data-action="validate-url"]',
         );
         const urlInput = wrapper.querySelector('#dataSourceUrl');
+
+        // Disable button if input is empty
+        urlInput.addEventListener('input', () => {
+            validateUrlBtn.disabled = urlInput.value.trim() === '';
+        });
+        // Initial state
+        validateUrlBtn.disabled = urlInput.value.trim() === '';
 
         validateUrlBtn.addEventListener('click', async () => {
             const url = urlInput.value.trim();

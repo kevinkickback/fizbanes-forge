@@ -55,18 +55,27 @@ function buildRawDataBaseUrl(url) {
     if (urlObj.hostname.includes('github.com')) {
         let normalized = url.replace(/\/$/, '');
         if (normalized.includes('/tree/')) {
+            // e.g. https://github.com/user/repo/tree/main or /tree/main/data
             normalized = normalized
                 .replace(/github\.com/, 'raw.githubusercontent.com')
                 .replace(/\/tree\//, '/');
         } else {
+            // e.g. https://github.com/user/repo
             normalized = `${normalized.replace(/github\.com/, 'raw.githubusercontent.com')}/main`;
         }
-        dataUrl = `${normalized}/data`;
+        if (/\/data\/?$/.test(normalized)) {
+            dataUrl = normalized;
+        } else {
+            dataUrl = `${normalized}/data`;
+        }
     } else {
         const normalized = url.replace(/\/$/, '');
-        dataUrl = `${normalized}/data`;
+        if (/\/data\/?$/.test(normalized)) {
+            dataUrl = normalized;
+        } else {
+            dataUrl = `${normalized}/data`;
+        }
     }
-
     return dataUrl;
 }
 
@@ -540,29 +549,10 @@ export async function validateDataSourceURL(url) {
             return { valid: false, error: 'URL must use HTTP or HTTPS protocol' };
         }
 
-        let racesUrl;
 
-        // Check if it's a GitHub URL - special handling for GitHub raw content
-        if (urlObj.hostname.includes('github.com')) {
-            let dataUrl = url.replace(/\/$/, ''); // Remove trailing slash
-
-            // Convert standard GitHub URL to raw content URL
-            if (dataUrl.includes('/tree/')) {
-                // Handle tree URLs like: https://github.com/owner/repo/tree/main
-                dataUrl = dataUrl
-                    .replace(/github\.com/, 'raw.githubusercontent.com')
-                    .replace(/\/tree\//, '/');
-            } else {
-                // Handle regular repo URLs like: https://github.com/owner/repo
-                dataUrl = `${dataUrl.replace(/github\.com/, 'raw.githubusercontent.com')}/main`;
-            }
-
-            racesUrl = `${dataUrl}/data/races.json`;
-        } else {
-            // For non-GitHub URLs, try to fetch races.json from /data/ subdirectory
-            const dataUrl = url.replace(/\/$/, ''); // Remove trailing slash
-            racesUrl = `${dataUrl}/data/races.json`;
-        }
+        // Always treat the input as a folder (repo root or data folder)
+        const baseUrl = buildRawDataBaseUrl(url);
+        const racesUrl = `${baseUrl}/races.json`;
 
         MainLogger.info('DataFolderManager', 'Testing URL:', { url, racesUrl });
 

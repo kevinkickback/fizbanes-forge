@@ -471,27 +471,42 @@ export async function initializeAll(_options = {}) {
 			throw new Error('Data folder not configured');
 		}
 
-		// Step 0.5: Refresh configured data source to pick up new/changed files
-		loadingModal.updateMessage('Syncing data source...');
-		loadingModal.updateProgress(15);
-		try {
-			const refreshResult = await window.app.refreshDataSource();
-			if (!refreshResult?.success) {
-				console.warn(
-					'AppInitializer',
-					`Data source refresh skipped/failed: ${refreshResult?.error || 'Unknown error'}`,
-				);
-				await _promptDataSourceFix(refreshResult?.error || 'Data source is invalid');
-				throw new Error('Data source refresh failed');
+		// Step 0.5: Check for cached data and auto update setting
+		const config = await window.app.settings.getAll();
+		const cachePath = config.dataSourceCachePath;
+		let hasCache = !!cachePath;
+		// If local, treat as cached if valid
+		if (config.dataSourceType === 'local' && config.dataSourceValue) {
+			hasCache = true;
+		}
+
+		if (hasCache) {
+			const autoUpdate = !!config.autoUpdateData;
+			if (autoUpdate) {
+				loadingModal.updateMessage('Updating data source...');
+				loadingModal.updateProgress(15);
+				try {
+					const refreshResult = await window.app.refreshDataSource();
+					if (!refreshResult?.success) {
+						console.warn(
+							'AppInitializer',
+							`Data source update skipped/failed: ${refreshResult?.error || 'Unknown error'}`,
+						);
+						await _promptDataSourceFix(refreshResult?.error || 'Data source is invalid');
+						throw new Error('Data source update failed');
+					} else {
+						DataLoader.clearCache();
+						console.info(
+							'AppInitializer',
+							'Checked data source for updates before load; cleared data cache',
+						);
+					}
+				} catch (error) {
+					console.warn('AppInitializer', 'Data source update failed', error);
+				}
 			} else {
-				DataLoader.clearCache();
-				console.info(
-					'AppInitializer',
-					'Checked data source for updates before load; cleared data cache',
-				);
+				console.info('AppInitializer', 'Auto update disabled; skipping data sync');
 			}
-		} catch (error) {
-			console.warn('AppInitializer', 'Data source refresh failed', error);
 		}
 
 		// Step 1: Load all game data

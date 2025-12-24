@@ -14,6 +14,11 @@ export class SettingsService {
 		 * @private
 		 */
 		this._initialized = false;
+		/**
+		 * Cached auto update setting
+		 * @type {boolean}
+		 */
+		this.autoUpdateData = false;
 	}
 
 	/**
@@ -58,6 +63,14 @@ export class SettingsService {
 
 			// Update data source display
 			await this.updateDataSourceDisplay();
+
+			// Load auto update setting and set checkbox
+			const config = await window.app.settings.getAll();
+			this.autoUpdateData = !!config.autoUpdateData;
+			const autoUpdateCheckbox = document.getElementById('autoUpdateDataCheckbox');
+			if (autoUpdateCheckbox) {
+				autoUpdateCheckbox.checked = this.autoUpdateData;
+			}
 
 			// Set up event listeners for the page elements
 			this.initializeEventListeners();
@@ -166,6 +179,16 @@ export class SettingsService {
 				'reconfigureDataSourceBtn',
 			);
 			const refreshButton = document.getElementById('refreshDataSourceBtn');
+			const autoUpdateCheckbox = document.getElementById('autoUpdateDataCheckbox');
+			// Auto update data checkbox
+			if (autoUpdateCheckbox) {
+				autoUpdateCheckbox.addEventListener('change', async (e) => {
+					const checked = !!e.target.checked;
+					this.autoUpdateData = checked;
+					await window.app.settings.set('autoUpdateData', checked);
+					showNotification('Auto update data setting saved', 'success');
+				});
+			}
 
 			if (browseButton) {
 				browseButton.addEventListener('click', async () => {

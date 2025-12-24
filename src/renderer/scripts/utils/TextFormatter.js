@@ -1,4 +1,9 @@
 /**
+ * Formats an ability score abbreviation (e.g., 'cha' to 'CHA')
+ * @param {string} abbr - The ability abbreviation
+ * @returns {string} Uppercase 3-letter abbreviation
+ */
+/**
  * Converts a string to sentence case (first letter uppercase, rest as-is except first word)
  * @param {string} str - The string to format
  * @returns {string} Sentence-cased string

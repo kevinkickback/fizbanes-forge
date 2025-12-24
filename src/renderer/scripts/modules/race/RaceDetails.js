@@ -1,7 +1,7 @@
 /** View for detailed race information (ability scores, size, speed, languages, traits). */
 
 
-import { toTitleCase } from '../../utils/TextFormatter.js';
+import { abbreviateAbility, toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for displaying race details. */
@@ -105,7 +105,7 @@ export class RaceDetailsView {
 				// Process fixed improvements first
 				for (const [ability, bonus] of Object.entries(abilityEntry)) {
 					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
-						improvements.push(`${ability} +${bonus}`);
+						improvements.push(`${abbreviateAbility(ability)} +${bonus}`);
 					}
 				}
 
@@ -126,7 +126,7 @@ export class RaceDetailsView {
 				// Process fixed improvements first
 				for (const [ability, bonus] of Object.entries(abilityEntry)) {
 					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
-						improvements.push(`${ability} +${bonus}`);
+						improvements.push(`${abbreviateAbility(ability)} +${bonus}`);
 					}
 				}
 
