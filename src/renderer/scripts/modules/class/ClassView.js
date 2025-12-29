@@ -50,7 +50,7 @@ export class ClassCardView {
 					const [className, source] = selectedValue.split('_');
 					eventBus.emit(EVENTS.CLASS_SELECTED, {
 						name: className,
-						source: source,
+						source,
 						value: selectedValue,
 					});
 				}

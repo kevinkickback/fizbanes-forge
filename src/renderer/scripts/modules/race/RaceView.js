@@ -44,7 +44,7 @@ export class RaceCardView {
 					const [raceName, source] = selectedValue.split('_');
 					eventBus.emit(EVENTS.RACE_SELECTED, {
 						name: raceName,
-						source: source,
+						source,
 						value: selectedValue,
 					});
 				}

@@ -130,7 +130,9 @@ class PageHandlerImpl {
 					await modal.showNewCharacterModal(e);
 				},
 				onCreateCharacter: async (character) => {
-					console.info('PageHandler', 'Character created', { id: character.id });
+					console.info('PageHandler', 'Character created', {
+						id: character.id,
+					});
 					// Reload the character list
 					const reloadCharacters = await CharacterManager.loadCharacterList();
 					await this.renderCharacterList(reloadCharacters);
@@ -280,7 +282,9 @@ class PageHandlerImpl {
 				const subclassName =
 					typeof subclassNameRaw === 'string'
 						? subclassNameRaw
-						: subclassNameRaw?.name || subclassNameRaw?.title || subclassNameRaw?.id;
+						: subclassNameRaw?.name ||
+							subclassNameRaw?.title ||
+							subclassNameRaw?.id;
 				const classDisplay = subclassName
 					? `${subclassName} - ${characterClass}`
 					: characterClass;
@@ -303,10 +307,11 @@ class PageHandlerImpl {
 						<div class="card-body">
 							<div class="character-main">
 								<div class="character-portrait">
-									${portraitUrl
-						? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
-						: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
-					}
+									${
+										portraitUrl
+											? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
+											: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
+									}
 								</div>
 								<div class="character-info">
 									<div class="character-details">
@@ -378,9 +383,13 @@ class PageHandlerImpl {
 				);
 				try {
 					const character = await CharacterManager.loadCharacter(characterId);
-					console.info('PageHandler', `✓ Character loaded from card: ${characterId}`, {
-						character: character?.name,
-					});
+					console.info(
+						'PageHandler',
+						`✓ Character loaded from card: ${characterId}`,
+						{
+							character: character?.name,
+						},
+					);
 
 					// Check floating bar state AFTER load
 					const floatingBar = document.querySelector('.floating-actions');
@@ -568,7 +577,9 @@ class PageHandlerImpl {
 				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
 				newAddFeatBtn.addEventListener('click', async () => {
 					// Dynamically import the FeatSelectionModal to avoid circular deps
-					const { FeatSelectionModal } = await import('../modules/feats/FeatSelectionModal.js');
+					const { FeatSelectionModal } = await import(
+						'../modules/feats/FeatSelectionModal.js'
+					);
 					const modal = new FeatSelectionModal();
 					await modal.show();
 				});

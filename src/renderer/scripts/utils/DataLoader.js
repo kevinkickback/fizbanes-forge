@@ -27,7 +27,11 @@ async function loadJSON(url) {
 			let data;
 
 			// Check if running in Electron with data API available
-			if (typeof window !== 'undefined' && window.data && window.data.loadJSON) {
+			if (
+				typeof window !== 'undefined' &&
+				window.data &&
+				window.data.loadJSON
+			) {
 				try {
 					const result = await window.data.loadJSON(url);
 					if (result.success) {
@@ -36,15 +40,18 @@ async function loadJSON(url) {
 						throw new Error(result.error || `Failed to load ${url}`);
 					}
 				} catch (electronError) {
-					console.error('DataLoader', `Electron IPC load failed for ${url}:`, electronError);
+					console.error(
+						'DataLoader',
+						`Electron IPC load failed for ${url}:`,
+						electronError,
+					);
 					throw electronError;
 				}
 			} else {
 				// Fall back to fetch (browser or Electron without preload)
 				// This will require data to be served via http/https or proper file:// URLs
-				const fullUrl = url.startsWith('http') || url.startsWith('file://')
-					? url
-					: `/${url}`; // Prepend / to make it root-relative
+				const fullUrl =
+					url.startsWith('http') || url.startsWith('file://') ? url : `/${url}`; // Prepend / to make it root-relative
 
 				const response = await fetch(fullUrl);
 				if (!response.ok) {
@@ -137,7 +144,9 @@ async function loadRaceFluff() {
  * @returns {Promise<Object>} Class data from single file
  */
 async function loadClasses(className = 'Fighter') {
-	return loadJSON(`${state.baseUrl}class/class-${className.toLowerCase()}.json`);
+	return loadJSON(
+		`${state.baseUrl}class/class-${className.toLowerCase()}.json`,
+	);
 }
 
 /**
@@ -256,7 +265,11 @@ async function loadSubclassSpells(subclassId) {
 	try {
 		return await loadJSON(`${state.baseUrl}spells/sources.json`);
 	} catch (error) {
-		console.warn('DataLoader', `Could not find subclass spells for ${subclassId}:`, error);
+		console.warn(
+			'DataLoader',
+			`Could not find subclass spells for ${subclassId}:`,
+			error,
+		);
 		return { spell: [] };
 	}
 }
@@ -347,4 +360,35 @@ dataLoader.getCacheStats = getCacheStats;
 // Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
 
-export { clearCache, clearCacheForUrl, DataLoader, dataLoader, getCacheStats, loadActions, loadBackgrounds, loadBaseItems, loadClasses, loadConditions, loadFeats, loadFluffFeats, loadFluffOptionalFeatures, loadItems, loadJSON, loadJSONs, loadMonsters, loadObjects, loadOptionalFeatures, loadRaceFluff, loadRaces, loadRewards, loadSkills, loadSources, loadSpells, loadSubclassSpells, loadTrapsHazards, loadVariantRules, loadVehicles, setBaseUrl };
+export {
+	clearCache,
+	clearCacheForUrl,
+	DataLoader,
+	dataLoader,
+	getCacheStats,
+	loadActions,
+	loadBackgrounds,
+	loadBaseItems,
+	loadClasses,
+	loadConditions,
+	loadFeats,
+	loadFluffFeats,
+	loadFluffOptionalFeatures,
+	loadItems,
+	loadJSON,
+	loadJSONs,
+	loadMonsters,
+	loadObjects,
+	loadOptionalFeatures,
+	loadRaceFluff,
+	loadRaces,
+	loadRewards,
+	loadSkills,
+	loadSources,
+	loadSpells,
+	loadSubclassSpells,
+	loadTrapsHazards,
+	loadVariantRules,
+	loadVehicles,
+	setBaseUrl,
+};

@@ -52,12 +52,12 @@ export class BackgroundDetailsView {
 	 * @private
 	 */
 	_renderSkillProficiencies(background) {
-		const skillsHTML = this._formatSkillProficiencies(background);
+		const skillsHtml = this._formatSkillProficiencies(background);
 		return `
             <div class="detail-section">
                 <h6>Skill Proficiencies</h6>
                 <ul class="mb-0">
-                    <li class="text-content">${skillsHTML}</li>
+                    <li class="text-content">${skillsHtml}</li>
                 </ul>
             </div>
         `;
@@ -70,12 +70,12 @@ export class BackgroundDetailsView {
 	 * @private
 	 */
 	_renderToolProficiencies(background) {
-		const toolsHTML = this._formatToolProficiencies(background);
+		const toolsHtml = this._formatToolProficiencies(background);
 		return `
             <div class="detail-section">
                 <h6>Tool Proficiencies</h6>
                 <ul class="mb-0">
-                    <li class="text-content">${toolsHTML}</li>
+                    <li class="text-content">${toolsHtml}</li>
                 </ul>
             </div>
         `;
@@ -88,12 +88,12 @@ export class BackgroundDetailsView {
 	 * @private
 	 */
 	_renderLanguages(background) {
-		const languagesHTML = this._formatLanguages(background);
+		const languagesHtml = this._formatLanguages(background);
 		return `
             <div class="detail-section">
                 <h6>Languages</h6>
                 <ul class="mb-0">
-                    <li class="text-content">${languagesHTML}</li>
+                    <li class="text-content">${languagesHtml}</li>
                 </ul>
             </div>
         `;
@@ -106,12 +106,12 @@ export class BackgroundDetailsView {
 	 * @private
 	 */
 	_renderEquipment(background) {
-		const equipmentHTML = this._formatEquipment(background);
+		const equipmentHtml = this._formatEquipment(background);
 		return `
             <div class="detail-section">
                 <h6>Equipment</h6>
                 <ul class="mb-0">
-                    ${equipmentHTML}
+                    ${equipmentHtml}
                 </ul>
             </div>
         `;
@@ -159,7 +159,9 @@ export class BackgroundDetailsView {
 					skills.push(`Choose ${count} skill${count > 1 ? 's' : ''}`);
 				} else {
 					// Title-case each skill in the list
-					skills.push(`Choose ${count} from: ${from.map(toTitleCase).join(', ')}`);
+					skills.push(
+						`Choose ${count} from: ${from.map(toTitleCase).join(', ')}`,
+					);
 				}
 			} else {
 				// Fixed proficiencies - title-case skills
@@ -217,13 +219,18 @@ export class BackgroundDetailsView {
 			// First, add all fixed languages - use as-is from JSON
 			for (const [lang, value] of Object.entries(langEntry)) {
 				const langLower = lang.toLowerCase();
-				if (value === true && langLower !== 'anystandard' && langLower !== 'choose') {
+				if (
+					value === true &&
+					langLower !== 'anystandard' &&
+					langLower !== 'choose'
+				) {
 					languages.push(lang);
 				}
 			}
 
 			// Then add optional language choices
-			const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+			const anyStandardCount =
+				langEntry.anyStandard || langEntry.anystandard || 0;
 			if (anyStandardCount > 0) {
 				languages.push(
 					`Choose ${anyStandardCount} standard language${anyStandardCount > 1 ? 's' : ''}`,
@@ -319,7 +326,7 @@ export class BackgroundDetailsView {
 					: '';
 				return {
 					name: entry.name || 'Feature',
-					description: description,
+					description,
 				};
 			}
 			// Also check for entries with "Feature:" in the name
@@ -333,7 +340,7 @@ export class BackgroundDetailsView {
 					: '';
 				return {
 					name: entry.name,
-					description: description,
+					description,
 				};
 			}
 		}

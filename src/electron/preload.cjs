@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('app', {
 	 * @returns {() => void} unsubscribe function
 	 */
 	onDataDownloadProgress: (handler) => {
-		if (typeof handler !== 'function') return () => { };
+		if (typeof handler !== 'function') return () => {};
 		const wrapped = (_event, payload) => handler(payload);
 		ipcRenderer.on('data:downloadProgress', wrapped);
 		return () => ipcRenderer.removeListener('data:downloadProgress', wrapped);

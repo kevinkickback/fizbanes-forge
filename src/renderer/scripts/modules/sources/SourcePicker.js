@@ -176,4 +176,3 @@ export class SourcePickerView {
 }
 
 export const sourcePickerView = new SourcePickerView();
-

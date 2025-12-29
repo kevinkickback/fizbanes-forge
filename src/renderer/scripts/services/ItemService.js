@@ -31,15 +31,25 @@ class ItemService {
 			]);
 
 			// Extract results gracefully
-			const items = results[0].status === 'fulfilled' ? results[0].value : { item: [] };
-			const baseItems = results[1].status === 'fulfilled' ? results[1].value : { baseitem: [] };
+			const items =
+				results[0].status === 'fulfilled' ? results[0].value : { item: [] };
+			const baseItems =
+				results[1].status === 'fulfilled' ? results[1].value : { baseitem: [] };
 
 			// Log any failures
 			if (results[0].status === 'rejected') {
-				console.warn('ItemService', 'Failed to load items.json:', results[0].reason?.message);
+				console.warn(
+					'ItemService',
+					'Failed to load items.json:',
+					results[0].reason?.message,
+				);
 			}
 			if (results[1].status === 'rejected') {
-				console.warn('ItemService', 'Failed to load items-base.json:', results[1].reason?.message);
+				console.warn(
+					'ItemService',
+					'Failed to load items-base.json:',
+					results[1].reason?.message,
+				);
 			}
 
 			// Merge items with base items
@@ -100,7 +110,9 @@ class ItemService {
 		if (!this._itemLookupMap) return null;
 
 		// O(1) lookup by name (case-insensitive)
-		const item = this._itemLookupMap.get(DataNormalizer.normalizeForLookup(name));
+		const item = this._itemLookupMap.get(
+			DataNormalizer.normalizeForLookup(name),
+		);
 
 		// Verify source if found
 		if (item && item.source === source) {
@@ -109,9 +121,11 @@ class ItemService {
 
 		// Fall back to linear search if exact source needed
 		if (item && item.source !== source && this._itemData?.item) {
-			return this._itemData.item.find(
-				(i) => i.name === name && i.source === source
-			) || item;
+			return (
+				this._itemData.item.find(
+					(i) => i.name === name && i.source === source,
+				) || item
+			);
 		}
 
 		return item || null;
@@ -138,9 +152,11 @@ class ItemService {
 
 		// Fall back to linear search if exact source needed
 		if (baseItem && baseItem.source !== source && this._itemData?.baseItem) {
-			return this._itemData.baseItem.find(
-				(bi) => bi.name === name && bi.source === source
-			) || baseItem;
+			return (
+				this._itemData.baseItem.find(
+					(bi) => bi.name === name && bi.source === source,
+				) || baseItem
+			);
 		}
 
 		return baseItem || null;
@@ -175,9 +191,7 @@ class ItemService {
 
 		const target = DataNormalizer.normalizeForLookup(rarity);
 		return this._itemData.item.filter(
-			(i) =>
-				i.rarity &&
-				DataNormalizer.normalizeForLookup(i.rarity) === target,
+			(i) => i.rarity && DataNormalizer.normalizeForLookup(i.rarity) === target,
 		);
 	}
 }

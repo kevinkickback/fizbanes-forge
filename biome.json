@@ -22,7 +22,12 @@
 			},
 			"style": {
 				"useFilenamingConvention": "off",
-				"noDescendingSpecificity": "off"
+				"noDescendingSpecificity": "off",
+				"useConst": "on",
+				"useConsistentObjectDefinitions": "on"
+			},
+			"suspicious": {
+				"noExplicitAny": "on"
 			}
 		}
 	},

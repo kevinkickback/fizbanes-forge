@@ -94,7 +94,11 @@ class TextProcessor {
 			// Process initial page content
 			await this.processPageContent(document.body);
 		} catch (error) {
-			console.error('[TextProcessor]', 'Error initializing text processor:', error);
+			console.error(
+				'[TextProcessor]',
+				'Error initializing text processor:',
+				error,
+			);
 		}
 	}
 
@@ -109,7 +113,11 @@ class TextProcessor {
 				this._observer = null;
 			}
 		} catch (error) {
-			console.error('[TextProcessor]', 'Error destroying text processor:', error);
+			console.error(
+				'[TextProcessor]',
+				'Error destroying text processor:',
+				error,
+			);
 		}
 	}
 
@@ -249,7 +257,7 @@ class TextProcessor {
 			// If it matches neither list, it will keep the default 'tooltip' mode.
 
 			// Pass the determined mode down in the options for processString
-			const processingOptions = { ...options, resolveMode: resolveMode };
+			const processingOptions = { ...options, resolveMode };
 
 			// Only process if there's text content to avoid unnecessary async calls
 			if (element.textContent.includes('{@')) {

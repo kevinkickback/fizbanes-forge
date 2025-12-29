@@ -1,6 +1,5 @@
 /** Domain schema helpers for creating and validating character data. */
 
-
 import { validate as validateCharacter } from './CharacterValidation.js';
 
 export const CharacterSchema = {

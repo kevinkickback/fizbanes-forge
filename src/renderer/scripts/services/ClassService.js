@@ -73,7 +73,11 @@ class ClassService {
 						this._classData.subclassFeature.push(...classData.subclassFeature);
 					}
 				} else {
-					console.warn('ClassService', 'Failed to load class file:', result.reason?.message);
+					console.warn(
+						'ClassService',
+						'Failed to load class file:',
+						result.reason?.message,
+					);
 				}
 			}
 
@@ -84,11 +88,18 @@ class ClassService {
 					if (fluffData.classFluff && Array.isArray(fluffData.classFluff)) {
 						this._classData.classFluff.push(...fluffData.classFluff);
 					}
-					if (fluffData.subclassFluff && Array.isArray(fluffData.subclassFluff)) {
+					if (
+						fluffData.subclassFluff &&
+						Array.isArray(fluffData.subclassFluff)
+					) {
 						this._classData.subclassFluff.push(...fluffData.subclassFluff);
 					}
 				} else {
-					console.warn('ClassService', 'Failed to load class fluff file:', result.reason?.message);
+					console.warn(
+						'ClassService',
+						'Failed to load class fluff file:',
+						result.reason?.message,
+					);
 				}
 			}
 
@@ -104,7 +115,6 @@ class ClassService {
 
 			// Emit event
 			eventBus.emit(EVENTS.DATA_LOADED, 'classes', this._classData.class);
-
 		} catch (error) {
 			console.error('ClassService', 'Failed to initialize class data', error);
 			this._classData = {

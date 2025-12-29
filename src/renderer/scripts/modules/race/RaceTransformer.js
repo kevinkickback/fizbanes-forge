@@ -263,7 +263,8 @@ export function getLanguages(race) {
 		if (langEntry.orc) languages.push('Orc');
 
 		// Handle any-language choices (check both anyStandard and anystandard)
-		const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+		const anyStandardCount =
+			langEntry.anyStandard || langEntry.anystandard || 0;
 		if (anyStandardCount > 0) {
 			languages.push(`Any Standard (${anyStandardCount})`);
 		}

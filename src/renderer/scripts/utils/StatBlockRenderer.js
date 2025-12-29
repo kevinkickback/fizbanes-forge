@@ -16,12 +16,8 @@ export function renderSpell(spell) {
 
 	// Title and level
 	const levelText =
-		spell.level === 0
-			? 'Cantrip'
-			: `${_getOrdinal(spell.level)}-level`;
-	const schoolText = spell.school
-		? ` ${_getSchoolName(spell.school)}`
-		: '';
+		spell.level === 0 ? 'Cantrip' : `${_getOrdinal(spell.level)}-level`;
+	const schoolText = spell.school ? ` ${_getSchoolName(spell.school)}` : '';
 	const ritualText = spell.ritual ? ' (ritual)' : '';
 
 	html += `<div class="tooltip-title">${spell.name}</div>`;
@@ -707,7 +703,12 @@ export function renderVariantRule(rule) {
 	if (rule.ruleType || rule.source) {
 		html += '<div class="tooltip-metadata">';
 		if (rule.ruleType) {
-			const ruleTypeLabel = rule.ruleType === 'C' ? 'Core Rule' : rule.ruleType === 'O' ? 'Optional Rule' : 'Variant Rule';
+			const ruleTypeLabel =
+				rule.ruleType === 'C'
+					? 'Core Rule'
+					: rule.ruleType === 'O'
+						? 'Optional Rule'
+						: 'Variant Rule';
 			html += `<strong>Type:</strong> ${ruleTypeLabel}<br>`;
 		}
 		if (rule.source) {
@@ -941,4 +942,3 @@ function _formatPrerequisite(prerequisite) {
 
 	return parts.join(', ') || 'None';
 }
-

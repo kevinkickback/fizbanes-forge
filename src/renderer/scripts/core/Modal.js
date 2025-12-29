@@ -331,9 +331,7 @@ export class Modal {
 			const { CharacterManager } = await import('./CharacterManager.js');
 
 			// Create character using CharacterManager
-			const character = await CharacterManager.createCharacter(
-				formData.name,
-			);
+			const character = await CharacterManager.createCharacter(formData.name);
 
 			// Update character with form data
 			character.level = formData.level;

@@ -1,6 +1,5 @@
 /** View for rendering ability score bonus notes and explanations. */
 
-
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { abbreviateAbility } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
@@ -43,7 +42,8 @@ class BonusNotesView {
 					bonusText.push(
 						`${abbreviateAbility(ability)} ${value >= 0 ? '+' : ''}${value}`,
 					);
-				} bonusContent += this._createBonusNote(source, bonusText.join(', '));
+				}
+				bonusContent += this._createBonusNote(source, bonusText.join(', '));
 			}
 
 			this._bonusesContainer.innerHTML = bonusContent;

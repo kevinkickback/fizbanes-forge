@@ -120,7 +120,8 @@ export function showNotification(message, type = 'info') {
 		lastTick = now;
 		if (!paused) {
 			remaining -= delta;
-			const ratio = Math.max(0, remaining) / NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY;
+			const ratio =
+				Math.max(0, remaining) / NOTIFICATION_CONFIG.AUTO_CLOSE_DELAY;
 			if (progressBar) {
 				progressBar.style.width = `${Math.max(0, Math.min(1, ratio)) * 100}%`;
 			}
@@ -146,4 +147,3 @@ export function showNotification(message, type = 'info') {
 	lastTick = performance.now();
 	rafId = requestAnimationFrame(tick);
 }
-

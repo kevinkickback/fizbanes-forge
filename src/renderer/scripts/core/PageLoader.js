@@ -1,6 +1,5 @@
 /** Caches, loads, and renders page templates into the content area. */
 
-
 class PageLoaderImpl {
 	constructor() {
 		this.templateCache = new Map();

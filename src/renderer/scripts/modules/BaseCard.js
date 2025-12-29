@@ -1,6 +1,5 @@
 /** Base UI card foundation shared by entity cards (race, class, etc.). */
 
-
 import { textProcessor } from '../utils/TextProcessor.js';
 
 /** Base class providing shared card display helpers. */
@@ -230,7 +229,10 @@ export class BaseCard {
 	 */
 	addDetailParagraph(section, content) {
 		if (!section) {
-			console.warn('BaseCard', 'Invalid section provided to addDetailParagraph');
+			console.warn(
+				'BaseCard',
+				'Invalid section provided to addDetailParagraph',
+			);
 			return null;
 		}
 

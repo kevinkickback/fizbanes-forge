@@ -9,7 +9,6 @@ import {
 	STANDARD_TOOL_OPTIONS,
 } from '../utils/ProficiencyConstants.js';
 
-
 /** Manages proficiencies and proficiency-related calculations. */
 export class ProficiencyService {
 	/** Creates a new ProficiencyManager instance. */
@@ -20,24 +19,24 @@ export class ProficiencyService {
 		this._languages = null;
 		// Map uses original JSON casing for keys, normalized (lowercase) versions for lookups
 		this._skillAbilityMap = {
-			'Acrobatics': 'dexterity',
+			Acrobatics: 'dexterity',
 			'Animal Handling': 'wisdom',
-			'Arcana': 'intelligence',
-			'Athletics': 'strength',
-			'Deception': 'charisma',
-			'History': 'intelligence',
-			'Insight': 'wisdom',
-			'Intimidation': 'charisma',
-			'Investigation': 'intelligence',
-			'Medicine': 'wisdom',
-			'Nature': 'intelligence',
-			'Perception': 'wisdom',
-			'Performance': 'charisma',
-			'Persuasion': 'charisma',
-			'Religion': 'intelligence',
+			Arcana: 'intelligence',
+			Athletics: 'strength',
+			Deception: 'charisma',
+			History: 'intelligence',
+			Insight: 'wisdom',
+			Intimidation: 'charisma',
+			Investigation: 'intelligence',
+			Medicine: 'wisdom',
+			Nature: 'intelligence',
+			Perception: 'wisdom',
+			Performance: 'charisma',
+			Persuasion: 'charisma',
+			Religion: 'intelligence',
 			'Sleight of Hand': 'dexterity',
-			'Stealth': 'dexterity',
-			'Survival': 'wisdom',
+			Stealth: 'dexterity',
+			Survival: 'wisdom',
 		};
 	}
 

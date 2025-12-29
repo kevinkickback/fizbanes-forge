@@ -399,7 +399,8 @@ export class ClassDetailsView {
 				for (const weapon of weaponProficiencies) {
 					const li = document.createElement('li');
 					li.className = 'text-content';
-					const weaponStr = typeof weapon === 'string' ? weapon : String(weapon);
+					const weaponStr =
+						typeof weapon === 'string' ? weapon : String(weapon);
 					li.textContent = toTitleCase(weaponStr);
 					weaponSection.appendChild(li);
 				}

@@ -648,27 +648,27 @@ export class Character {
 					// Simple types
 					armor: this.optionalProficiencies.armor
 						? {
-							allowed: this.optionalProficiencies.armor.allowed || 0,
-							selected: safeArray(this.optionalProficiencies.armor.selected),
-						}
+								allowed: this.optionalProficiencies.armor.allowed || 0,
+								selected: safeArray(this.optionalProficiencies.armor.selected),
+							}
 						: { allowed: 0, selected: [] },
 
 					weapons: this.optionalProficiencies.weapons
 						? {
-							allowed: this.optionalProficiencies.weapons.allowed || 0,
-							selected: safeArray(
-								this.optionalProficiencies.weapons.selected,
-							),
-						}
+								allowed: this.optionalProficiencies.weapons.allowed || 0,
+								selected: safeArray(
+									this.optionalProficiencies.weapons.selected,
+								),
+							}
 						: { allowed: 0, selected: [] },
 
 					savingThrows: this.optionalProficiencies.savingThrows
 						? {
-							allowed: this.optionalProficiencies.savingThrows.allowed || 0,
-							selected: safeArray(
-								this.optionalProficiencies.savingThrows.selected,
-							),
-						}
+								allowed: this.optionalProficiencies.savingThrows.allowed || 0,
+								selected: safeArray(
+									this.optionalProficiencies.savingThrows.selected,
+								),
+							}
 						: { allowed: 0, selected: [] },
 
 					// Complex types with source-specific details

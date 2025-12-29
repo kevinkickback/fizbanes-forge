@@ -203,9 +203,7 @@ function _registerDefaultHandlers() {
 	registerHandler('weaponprof', (text) => {
 		const parts = splitTagByPipe(text);
 		const displayName =
-			parts.length > 1
-				? escapeHtml(parts[1])
-				: escapeHtml(parts[0]);
+			parts.length > 1 ? escapeHtml(parts[1]) : escapeHtml(parts[0]);
 
 		return `<span class="rd__weapon-prof">${displayName}</span>`;
 	});
@@ -214,9 +212,7 @@ function _registerDefaultHandlers() {
 	registerHandler('armorprof', (text) => {
 		const parts = splitTagByPipe(text);
 		const displayName =
-			parts.length > 1
-				? escapeHtml(parts[1])
-				: escapeHtml(parts[0]);
+			parts.length > 1 ? escapeHtml(parts[1]) : escapeHtml(parts[0]);
 
 		return `<span class="rd__armor-prof">${displayName}</span>`;
 	});
@@ -232,9 +228,7 @@ function _registerDefaultHandlers() {
 	registerHandler('5etools', (text) => {
 		const parts = splitTagByPipe(text);
 		const displayText =
-			parts.length > 1
-				? escapeHtml(parts[1])
-				: escapeHtml(parts[0]);
+			parts.length > 1 ? escapeHtml(parts[1]) : escapeHtml(parts[0]);
 		return `<span class="rd__5etools-link">${displayText}</span>`;
 	});
 
@@ -307,7 +301,6 @@ function _registerDefaultHandlers() {
 
 // Initialize handlers on module load
 _registerDefaultHandlers();
-
 
 /**
  * Render a string with inline tags

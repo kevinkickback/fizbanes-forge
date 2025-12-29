@@ -223,7 +223,8 @@ export class ProficiencyDisplayView {
 			: '';
 
 		// Format display name for skills and languages (toTitleCase), other types use as-is
-		const displayName = (type === 'skills' || type === 'languages') ? toTitleCase(item) : item;
+		const displayName =
+			type === 'skills' || type === 'languages' ? toTitleCase(item) : item;
 
 		return (
 			`<div class="${cssClasses.join(' ')}" data-proficiency="${item}" data-type="${type}">` +

@@ -687,8 +687,8 @@ export class ProficiencyCard {
 					DataNormalizer.normalizeString(o),
 				) || [];
 			const classOptions =
-				this._character.optionalProficiencies?.[type]?.class?.options?.map((o) =>
-					DataNormalizer.normalizeString(o),
+				this._character.optionalProficiencies?.[type]?.class?.options?.map(
+					(o) => DataNormalizer.normalizeString(o),
 				) || [];
 			const backgroundOptions =
 				this._character.optionalProficiencies?.[type]?.background?.options?.map(

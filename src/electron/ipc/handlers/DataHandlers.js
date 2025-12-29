@@ -147,7 +147,7 @@ export function registerDataHandlers(preferencesManager) {
 					value,
 					cachePath,
 					manifest,
-					progress => {
+					(progress) => {
 						sendDownloadProgress(event, 'progress', {
 							total: progress.total,
 							completed: progress.completed,
@@ -180,7 +180,11 @@ export function registerDataHandlers(preferencesManager) {
 					success: true,
 				});
 
-				return { success: true, downloaded: downloadResult.downloaded, skipped: downloadResult.skipped || 0 };
+				return {
+					success: true,
+					downloaded: downloadResult.downloaded,
+					skipped: downloadResult.skipped || 0,
+				};
 			}
 
 			if (type === 'local') {
@@ -249,13 +253,20 @@ export function registerDataHandlers(preferencesManager) {
 			// Join with dataPath which is now the data/ folder itself
 			const filePath = path.join(currentDataPath, normalizedFileName);
 
-			MainLogger.info('DataHandlers', 'Loading JSON:', { fileName, filePath, currentDataPath });
+			MainLogger.info('DataHandlers', 'Loading JSON:', {
+				fileName,
+				filePath,
+				currentDataPath,
+			});
 
 			// Check if file exists first
 			try {
 				await fs.stat(filePath);
 			} catch (statError) {
-				MainLogger.error('DataHandlers', 'File does not exist:', { filePath, error: statError.message });
+				MainLogger.error('DataHandlers', 'File does not exist:', {
+					filePath,
+					error: statError.message,
+				});
 				return { success: false, error: `File not found: ${filePath}` };
 			}
 
@@ -268,7 +279,10 @@ export function registerDataHandlers(preferencesManager) {
 					filePath,
 					contentPreview: trimmed.substring(0, 200),
 				});
-				return { success: false, error: `File content is not valid JSON: ${filePath}` };
+				return {
+					success: false,
+					error: `File content is not valid JSON: ${filePath}`,
+				};
 			}
 
 			const data = JSON.parse(content);
@@ -345,7 +359,11 @@ export function registerDataHandlers(preferencesManager) {
 
 				// Warn about missing indexed files if any were noted separately
 				if (result.missingIndexed && result.missingIndexed.length > 0) {
-					MainLogger.info('DataHandlers', 'Local data source missing files referenced in indexes:', result.missingIndexed);
+					MainLogger.info(
+						'DataHandlers',
+						'Local data source missing files referenced in indexes:',
+						result.missingIndexed,
+					);
 				}
 
 				// Save configuration and update active data path
@@ -392,7 +410,7 @@ export function registerDataHandlers(preferencesManager) {
 					value,
 					cachePath,
 					manifest,
-					progress => {
+					(progress) => {
 						sendDownloadProgress(event, 'progress', {
 							total: progress.total,
 							completed: progress.completed,
@@ -406,7 +424,11 @@ export function registerDataHandlers(preferencesManager) {
 
 				// Download succeeded with what's available (some files may be missing upstream)
 				if (downloadResult.warning) {
-					MainLogger.info('DataHandlers', 'Download partially succeeded', downloadResult);
+					MainLogger.info(
+						'DataHandlers',
+						'Download partially succeeded',
+						downloadResult,
+					);
 				}
 				// Sanity check cached folder has core required files
 				const cacheValidation = await validateLocalDataFolder(cachePath);
@@ -430,11 +452,15 @@ export function registerDataHandlers(preferencesManager) {
 				preferencesManager.set('dataSourceValue', value);
 				preferencesManager.set('dataSourceCachePath', cachePath);
 				currentDataPath = cachePath;
-				MainLogger.info('DataHandlers', 'URL data source downloaded and cached', {
-					cachePath,
-					downloaded: downloadResult.downloaded,
-					skipped: downloadResult.skipped || 0,
-				});
+				MainLogger.info(
+					'DataHandlers',
+					'URL data source downloaded and cached',
+					{
+						cachePath,
+						downloaded: downloadResult.downloaded,
+						skipped: downloadResult.skipped || 0,
+					},
+				);
 
 				sendDownloadProgress(event, 'complete', {
 					total: manifest.length,

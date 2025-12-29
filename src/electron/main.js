@@ -18,13 +18,12 @@ import {
 	initPreferences,
 	setLastOpenedCharacter,
 	setPreference,
-	setWindowBounds
+	setWindowBounds,
 } from './PreferencesManager.js';
 import { createMainWindow, getMainWindow } from './WindowManager.js';
 
 // Debug mode - controlled via environment variable `FF_DEBUG`
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,29 +35,31 @@ app.whenReady().then(() => {
 	// Initialize preferences
 	initPreferences(app);
 
-
 	// Register all IPC handlers directly
-	registerCharacterHandlers({
-		get: getPreference,
-		set: setPreference,
-		getWindowBounds,
-		setWindowBounds,
-		getCharacterSavePath,
-		getLastOpenedCharacter,
-		setLastOpenedCharacter,
-		getAllPreferences,
-		clearPreferences
-	}, { getMainWindow });
+	registerCharacterHandlers(
+		{
+			get: getPreference,
+			set: setPreference,
+			getWindowBounds,
+			setWindowBounds,
+			getCharacterSavePath,
+			getLastOpenedCharacter,
+			setLastOpenedCharacter,
+			getAllPreferences,
+			clearPreferences,
+		},
+		{ getMainWindow },
+	);
 	registerFileHandlers({ getMainWindow });
 	registerSettingsHandlers({
 		get: getPreference,
 		set: setPreference,
-		getAll: getAllPreferences
+		getAll: getAllPreferences,
 	});
 	registerDataHandlers({
 		get: getPreference,
 		set: setPreference,
-		app
+		app,
 	});
 
 	// Create main window

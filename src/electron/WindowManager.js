@@ -1,6 +1,5 @@
 /** BrowserWindow lifecycle helper: create, persist bounds, and expose window ops. */
 
-
 import { BrowserWindow } from 'electron';
 import path from 'node:path';
 import { MainLogger } from './MainLogger.js';
@@ -12,7 +11,12 @@ let mainWindow = null;
  * @param {object} options - { preferencesManager, rendererPath, preloadPath, debugMode }
  * @returns {BrowserWindow}
  */
-export function createMainWindow({ preferencesManager, rendererPath, preloadPath, debugMode = false }) {
+export function createMainWindow({
+	preferencesManager,
+	rendererPath,
+	preloadPath,
+	debugMode = false,
+}) {
 	MainLogger.info('WindowManager', 'Creating main window');
 
 	// Get saved window bounds

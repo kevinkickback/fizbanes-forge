@@ -221,7 +221,7 @@ export function getSubclassLevel(classData) {
  */
 export function getASILevels(classData) {
 	// Standard ASI progression for most classes
-	const standardASI = [4, 8, 12, 16, 19];
+	const standardAsi = [4, 8, 12, 16, 19];
 
 	// Fighter gets extra ASIs
 	if (classData?.name === 'Fighter') {
@@ -233,7 +233,7 @@ export function getASILevels(classData) {
 		return [4, 8, 10, 12, 16, 19];
 	}
 
-	return standardASI;
+	return standardAsi;
 }
 
 /**
@@ -276,4 +276,3 @@ export function getSpellsKnown(classData, level) {
 	const progression = classData.spellsKnownProgression[level - 1];
 	return progression || 0;
 }
-

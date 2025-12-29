@@ -227,9 +227,9 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 					return {
 						success: false,
 						duplicateId: true,
-						character: character,
+						character,
 						existingCharacter: { ...existingCharacter, createdAt },
-						sourceFilePath: sourceFilePath,
+						sourceFilePath,
 						message: `A character with ID "${character.id}" already exists. What would you like to do?`,
 					};
 				} catch {

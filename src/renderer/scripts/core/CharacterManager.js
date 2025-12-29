@@ -1,4 +1,11 @@
-/** Character lifecycle orchestrator for CRUD, state, and events. */
+/**
+ * CharacterManager module
+ *
+ * Orchestrates character CRUD operations, state management, and event emission for the character builder.
+ * Provides methods to create, load, save, and delete characters, and to synchronize with AppState and eventBus.
+ *
+ * @module CharacterManager
+ */
 
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
@@ -6,6 +13,10 @@ import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
 import { CharacterSchema } from './CharacterSchema.js';
 
+/**
+ * Character lifecycle orchestrator for CRUD, state, and events.
+ * @class
+ */
 class CharacterManagerImpl {
 	/**
 	 * Create a new character.
@@ -31,7 +42,11 @@ class CharacterManagerImpl {
 			// Validate
 			const validation = CharacterSchema.validate(characterData);
 			if (!validation.valid) {
-				console.warn('CharacterManager', 'Validation failed', validation.errors);
+				console.warn(
+					'CharacterManager',
+					'Validation failed',
+					validation.errors,
+				);
 				throw new Error(`Invalid character: ${validation.errors.join(', ')}`);
 			}
 
@@ -271,7 +286,9 @@ class CharacterManagerImpl {
 		AppState.setCurrentCharacter(character);
 		AppState.setHasUnsavedChanges(true);
 
-		console.debug('CharacterManager', 'Character updated', { id: character.id });
+		console.debug('CharacterManager', 'Character updated', {
+			id: character.id,
+		});
 	}
 
 	/**

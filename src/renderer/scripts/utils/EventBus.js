@@ -163,7 +163,10 @@ class EventBusImpl {
 				try {
 					handler(...args);
 				} catch (error) {
-					console.error('[EventBus]', 'Error in event handler', { event, error });
+					console.error('[EventBus]', 'Error in event handler', {
+						event,
+						error,
+					});
 				}
 			}
 		}
@@ -177,7 +180,10 @@ class EventBusImpl {
 				try {
 					handler(...args);
 				} catch (error) {
-					console.error('[EventBus]', 'Error in once handler', { event, error });
+					console.error('[EventBus]', 'Error in once handler', {
+						event,
+						error,
+					});
 				}
 			}
 		}

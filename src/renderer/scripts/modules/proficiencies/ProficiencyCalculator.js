@@ -163,7 +163,10 @@ export function hasProficiency(proficiencies, proficiency) {
 
 	const normalized = DataNormalizer.normalizeForLookup(proficiency);
 	return proficiencies.some(
-		(p) => p && typeof p === 'string' && DataNormalizer.normalizeForLookup(p) === normalized,
+		(p) =>
+			p &&
+			typeof p === 'string' &&
+			DataNormalizer.normalizeForLookup(p) === normalized,
 	);
 }
 

@@ -2,7 +2,6 @@
 
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
-
 /**
  * Singleton instance for Storage class
  * @type {Storage|null}
@@ -188,7 +187,7 @@ export class Storage {
 				result = await window.characterStorage.importCharacter({
 					character: result.character,
 					sourceFilePath: result.sourceFilePath,
-					action: action,
+					action,
 				});
 			}
 

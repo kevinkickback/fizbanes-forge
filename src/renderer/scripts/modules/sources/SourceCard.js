@@ -1,6 +1,5 @@
 /** Controller for source book selection during character creation. */
 
-
 import { sourceService } from '../../services/SourceService.js';
 import { showNotification } from '../../utils/Notifications.js';
 import { SourcePickerView } from './SourcePicker.js';
@@ -65,7 +64,11 @@ export class SourceCard {
 			// Pre-select PHB
 			this._preselectDefaultSources();
 		} catch (error) {
-			console.error('SourceCard', 'Error initializing source selection:', error);
+			console.error(
+				'SourceCard',
+				'Error initializing source selection:',
+				error,
+			);
 		}
 	}
 

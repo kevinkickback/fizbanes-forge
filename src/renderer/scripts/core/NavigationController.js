@@ -189,7 +189,11 @@ class NavigationControllerImpl {
 		try {
 			await PageLoader.loadAndRender(template);
 		} catch (error) {
-			console.error('NavigationController', 'Failed to load page', error.message);
+			console.error(
+				'NavigationController',
+				'Failed to load page',
+				error.message,
+			);
 			PageLoader.renderError(`Failed to load page: ${error.message}`);
 			return;
 		}
@@ -211,20 +215,24 @@ class NavigationControllerImpl {
 			: false;
 
 		// Determine if floating bar SHOULD be visible for this page
-		const shouldShowByCSS = ['build', 'equipment', 'details'].includes(
+		const shouldShowByCss = ['build', 'equipment', 'details'].includes(
 			pageName,
 		);
 
 		// Detailed floating bar analysis
-		console.debug('NavigationController', `[AFTER RENDER] Page: "${pageName}"`, {
-			floatingBarVisible: isVisible,
-			shouldShowByCSS: shouldShowByCSS,
-			dataCurrentPage: finalAttribute,
-			computedDisplay: floatingBar
-				? window.getComputedStyle(floatingBar).display
-				: 'N/A',
-			inlineDisplay: floatingBar ? floatingBar.style.display : 'N/A',
-		});
+		console.debug(
+			'NavigationController',
+			`[AFTER RENDER] Page: "${pageName}"`,
+			{
+				floatingBarVisible: isVisible,
+				shouldShowByCSS: shouldShowByCss,
+				dataCurrentPage: finalAttribute,
+				computedDisplay: floatingBar
+					? window.getComputedStyle(floatingBar).display
+					: 'N/A',
+				inlineDisplay: floatingBar ? floatingBar.style.display : 'N/A',
+			},
+		);
 
 		// WARNING if floating bar visibility doesn't match CSS selector
 		if (pageName === 'home' && isVisible) {
@@ -233,7 +241,7 @@ class NavigationControllerImpl {
 				`⚠️ FLOATING BAR ISSUE: On home page but floating bar is VISIBLE!`,
 				{
 					page: pageName,
-					shouldShowByCSS: shouldShowByCSS,
+					shouldShowByCSS: shouldShowByCss,
 					actuallyVisible: isVisible,
 					dataCurrentPage: finalAttribute,
 				},
@@ -249,7 +257,7 @@ class NavigationControllerImpl {
 				`⚠️ FLOATING BAR ISSUE: On ${pageName} page but floating bar is NOT VISIBLE!`,
 				{
 					page: pageName,
-					shouldShowByCSS: shouldShowByCSS,
+					shouldShowByCSS: shouldShowByCss,
 					actuallyVisible: isVisible,
 					dataCurrentPage: finalAttribute,
 				},
@@ -259,7 +267,7 @@ class NavigationControllerImpl {
 				'NavigationController',
 				`✓ Floating bar visibility correct for page: ${pageName}`,
 				{
-					shouldShow: shouldShowByCSS,
+					shouldShow: shouldShowByCss,
 					isShowing: isVisible,
 				},
 			);
@@ -286,7 +294,9 @@ class NavigationControllerImpl {
 			}
 		});
 
-		console.debug('NavigationController', 'Nav buttons updated', { activePage });
+		console.debug('NavigationController', 'Nav buttons updated', {
+			activePage,
+		});
 	}
 
 	/**

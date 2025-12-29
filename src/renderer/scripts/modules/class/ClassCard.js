@@ -415,8 +415,8 @@ export class ClassCard {
 		const hasChanged = !classData
 			? character.class?.name || character.class?.source
 			: character.class?.name !== classData.name ||
-			character.class?.source !== classData.source ||
-			character.subclass !== subclassName;
+				character.class?.source !== classData.source ||
+				character.subclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits
@@ -641,8 +641,13 @@ export class ClassCard {
 			character.optionalProficiencies.skills.background?.selected || [];
 
 		// Preserve existing selections if source arrays are empty
-		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
-		const existingSkillSelections = character.optionalProficiencies.skills.selected || [];
+		const sourceSelections = [
+			...raceSelected,
+			...classSelected,
+			...backgroundSelected,
+		];
+		const existingSkillSelections =
+			character.optionalProficiencies.skills.selected || [];
 
 		// Update total allowed count
 		character.optionalProficiencies.skills.allowed =

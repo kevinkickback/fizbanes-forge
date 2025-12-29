@@ -1,8 +1,18 @@
-/** Central application state singleton that emits change events. */
+/**
+ * AppState module
+ *
+ * Provides a singleton for managing global application state, emitting change events,
+ * and providing accessors and mutators for stateful data such as current character, page, and loaded data.
+ *
+ * @module AppState
+ */
 
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
-
+/**
+ * Central application state singleton that emits change events.
+ * @class
+ */
 class AppStateImpl {
 	constructor() {
 		this.state = {
@@ -100,7 +110,9 @@ class AppStateImpl {
 	 * @param {object|null} character - Character object or null
 	 */
 	setCurrentCharacter(character) {
-		console.info('AppState', 'Setting current character', { id: character?.id });
+		console.info('AppState', 'Setting current character', {
+			id: character?.id,
+		});
 		this.setState({ currentCharacter: character });
 		eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 	}

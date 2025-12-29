@@ -1,9 +1,15 @@
-/** Proficiency business logic with source tracking for adds/removals. */
+/**
+ * ProficiencyCore module
+ *
+ * Provides business logic for managing character proficiencies, including source tracking for adds/removals.
+ * Handles adding, removing, and configuring proficiencies for skills, languages, tools, and more.
+ *
+ * @module ProficiencyCore
+ */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
-
 
 /**
  * @typedef {Object} ProficiencyWithSources
@@ -20,6 +26,7 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 /**
  * Core proficiency logic handler
+ * @class
  */
 export class ProficiencyCore {
 	/**
@@ -41,21 +48,11 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		// Ensure proficiencies structure exists
-		if (!character.proficiencies) {
-			character.proficiencies = {};
-		}
-		if (!character.proficiencies[type]) {
-			character.proficiencies[type] = [];
-		}
-
-		// Ensure proficiency sources structure exists
-		if (!character.proficiencySources) {
-			character.proficiencySources = {};
-		}
-		if (!character.proficiencySources[type]) {
+		if (!character.proficiencies) character.proficiencies = {};
+		if (!character.proficiencies[type]) character.proficiencies[type] = [];
+		if (!character.proficiencySources) character.proficiencySources = {};
+		if (!character.proficiencySources[type])
 			character.proficiencySources[type] = new Map();
-		}
 
 		// Check if proficiency already exists (case-insensitive)
 		// If found, use the existing casing to maintain consistency

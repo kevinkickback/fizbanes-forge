@@ -220,4 +220,3 @@ export function formatDamageWithAverage(count, sides, modifier = 0) {
 	const average = calculateAverageDamage(count, sides, modifier);
 	return `${dice} (${average})`;
 }
-

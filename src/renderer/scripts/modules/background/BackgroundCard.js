@@ -346,8 +346,8 @@ export class BackgroundCard extends BaseCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-			character.background?.source !== background.source ||
-			character.background?.variant !== (variant?.name || null);
+				character.background?.source !== background.source ||
+				character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies
@@ -497,7 +497,8 @@ export class BackgroundCard extends BaseCard {
 					}
 				}
 				// Check for anyStandard or anystandard (case-insensitive)
-				const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+				const anyStandardCount =
+					langEntry.anyStandard || langEntry.anystandard || 0;
 				if (anyStandardCount > 0) {
 					choiceCount += anyStandardCount;
 					// Use full language list for 'anyStandard'
@@ -539,7 +540,11 @@ export class BackgroundCard extends BaseCard {
 			}
 
 			if (normalizedOptions.size > 0) {
-				choiceOptions.splice(0, choiceOptions.length, ...normalizedOptions.values());
+				choiceOptions.splice(
+					0,
+					choiceOptions.length,
+					...normalizedOptions.values(),
+				);
 			}
 
 			// Set up the optional language choices if any exist
@@ -690,8 +695,13 @@ export class BackgroundCard extends BaseCard {
 			character.optionalProficiencies.skills.background?.selected || [];
 
 		// Preserve existing selections if source arrays are empty
-		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
-		const existingSkillSelections = character.optionalProficiencies.skills.selected || [];
+		const sourceSelections = [
+			...raceSelected,
+			...classSelected,
+			...backgroundSelected,
+		];
+		const existingSkillSelections =
+			character.optionalProficiencies.skills.selected || [];
 
 		// Update total allowed count
 		character.optionalProficiencies.skills.allowed =
@@ -739,8 +749,13 @@ export class BackgroundCard extends BaseCard {
 			character.optionalProficiencies.languages.background?.selected || [];
 
 		// Preserve existing selections if source arrays are empty
-		const sourceSelections = [...raceSelected, ...classSelected, ...backgroundSelected];
-		const existingLanguageSelections = character.optionalProficiencies.languages.selected || [];
+		const sourceSelections = [
+			...raceSelected,
+			...classSelected,
+			...backgroundSelected,
+		];
+		const existingLanguageSelections =
+			character.optionalProficiencies.languages.selected || [];
 
 		// Update total allowed count
 		character.optionalProficiencies.languages.allowed =

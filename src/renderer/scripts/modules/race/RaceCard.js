@@ -1104,7 +1104,7 @@ export class RaceCard {
 					for (const [ability, bonus] of Object.entries(abilityEntry)) {
 						if (bonus && typeof bonus === 'number') {
 							improvements.push({
-								ability: ability,
+								ability,
 								value: bonus,
 								amount: bonus,
 								source: 'Race',
@@ -1122,7 +1122,7 @@ export class RaceCard {
 					for (const [ability, bonus] of Object.entries(abilityEntry)) {
 						if (bonus && typeof bonus === 'number') {
 							improvements.push({
-								ability: ability,
+								ability,
 								value: bonus,
 								amount: bonus,
 								source: 'Subrace',

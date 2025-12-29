@@ -1,6 +1,5 @@
 /** View for detailed race information (ability scores, size, speed, languages, traits). */
 
-
 import { abbreviateAbility, toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
@@ -252,7 +251,8 @@ export class RaceDetailsView {
 		languageSection.innerHTML = languages
 			.map((language) => {
 				// Only title-case single-word or known language names, not phrases
-				if (/^choose|one other|none/i.test(language)) return `<li>${language}</li>`;
+				if (/^choose|one other|none/i.test(language))
+					return `<li>${language}</li>`;
 				// Title-case each word in comma-separated lists
 				return `<li>${language.split(', ').map(toTitleCase).join(', ')}</li>`;
 			})
@@ -274,13 +274,19 @@ export class RaceDetailsView {
 			// First, add all fixed languages
 			for (const [lang, value] of Object.entries(langEntry)) {
 				const langLower = lang.toLowerCase();
-				if (value === true && langLower !== 'other' && langLower !== 'anystandard' && langLower !== 'choose') {
+				if (
+					value === true &&
+					langLower !== 'other' &&
+					langLower !== 'anystandard' &&
+					langLower !== 'choose'
+				) {
 					languages.push(lang);
 				}
 			}
 
 			// Then add optional language choices
-			const anyStandardCount = langEntry.anyStandard || langEntry.anystandard || 0;
+			const anyStandardCount =
+				langEntry.anyStandard || langEntry.anystandard || 0;
 			if (anyStandardCount > 0) {
 				languages.push(
 					`Choose ${anyStandardCount} standard language${anyStandardCount > 1 ? 's' : ''}`,

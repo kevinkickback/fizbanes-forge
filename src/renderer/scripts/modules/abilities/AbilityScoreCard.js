@@ -141,7 +141,10 @@ class AbilityScoreCard {
 
 			// Create ability scores changed listener
 			this._abilityScoresChangedListener = () => {
-				console.debug('AbilityScoreCard', 'abilityScoresChanged event received');
+				console.debug(
+					'AbilityScoreCard',
+					'abilityScoresChanged event received',
+				);
 				this.update();
 			};
 			document.addEventListener(

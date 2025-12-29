@@ -36,7 +36,7 @@ export class ProficiencyNotesView {
 					for (const source of sources) {
 						typeGroups[type].push({
 							name: toTitleCase(prof),
-							source: source,
+							source,
 						});
 					}
 				}
@@ -76,7 +76,7 @@ export class ProficiencyNotesView {
 					for (const source of sources) {
 						typeGroups[type].push({
 							name: toTitleCase(prof),
-							source: source,
+							source,
 						});
 					}
 				}
@@ -84,13 +84,13 @@ export class ProficiencyNotesView {
 		}
 
 		// Build the notes HTML
-		let notesHTML = '<h6 class="mb-2">Sources:</h6>';
+		let notesHtml = '<h6 class="mb-2">Sources:</h6>';
 
 		for (const type in typeGroups) {
 			if (typeGroups[type].length === 0) continue;
 
 			const typeLabel = getTypeLabel(type);
-			notesHTML += `<div class="proficiency-note"><strong>${typeLabel}:</strong> `;
+			notesHtml += `<div class="proficiency-note"><strong>${typeLabel}:</strong> `;
 
 			// Ensure all proficiencies have a name property that's a string
 			const validProfs = typeGroups[type]
@@ -119,15 +119,13 @@ export class ProficiencyNotesView {
 			// Create formatted strings with sources in parentheses, sorted by name
 			const profStrings = Object.keys(profsByName)
 				.sort((a, b) => a.localeCompare(b))
-				.map(
-					(name) => `${name} (${profsByName[name].join(', ')})`,
-				);
+				.map((name) => `${name} (${profsByName[name].join(', ')})`);
 
-			notesHTML += profStrings.join(', ');
-			notesHTML += '</div>';
+			notesHtml += profStrings.join(', ');
+			notesHtml += '</div>';
 		}
 
-		container.innerHTML = notesHTML;
+		container.innerHTML = notesHtml;
 
 		// Process the notes container to resolve reference tags
 		await textProcessor.processElement(container);

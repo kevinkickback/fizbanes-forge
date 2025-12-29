@@ -67,7 +67,9 @@ export class SettingsService {
 			// Load auto update setting and set checkbox
 			const config = await window.app.settings.getAll();
 			this.autoUpdateData = !!config.autoUpdateData;
-			const autoUpdateCheckbox = document.getElementById('autoUpdateDataCheckbox');
+			const autoUpdateCheckbox = document.getElementById(
+				'autoUpdateDataCheckbox',
+			);
 			if (autoUpdateCheckbox) {
 				autoUpdateCheckbox.checked = this.autoUpdateData;
 			}
@@ -179,7 +181,9 @@ export class SettingsService {
 				'reconfigureDataSourceBtn',
 			);
 			const refreshButton = document.getElementById('refreshDataSourceBtn');
-			const autoUpdateCheckbox = document.getElementById('autoUpdateDataCheckbox');
+			const autoUpdateCheckbox = document.getElementById(
+				'autoUpdateDataCheckbox',
+			);
 			// Auto update data checkbox
 			if (autoUpdateCheckbox) {
 				autoUpdateCheckbox.addEventListener('change', async (e) => {
@@ -223,7 +227,11 @@ export class SettingsService {
 							eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_RESET);
 						}
 					} catch (error) {
-						console.error('SettingsService', 'Error resetting save path', error);
+						console.error(
+							'SettingsService',
+							'Error resetting save path',
+							error,
+						);
 						showNotification('Error resetting save path', 'error');
 					}
 				});
@@ -282,26 +290,24 @@ export class SettingsService {
 						progressModal = new RefreshProgressModal();
 						progressModal.show();
 
-						unsubscribe = window.app.onDataDownloadProgress(
-							(progress) => {
-								let message = 'Checking for updates...';
-								if (progress.status === 'start') {
-									message = `Preparing to download ${progress.total} files...`;
-								} else if (progress.status === 'progress') {
-									message = `Downloaded: ${progress.file} (${progress.completed}/${progress.total})`;
-								} else if (progress.status === 'complete') {
-									message = `Complete! ${progress.completed} files updated, ${progress.skipped} unchanged.`;
-								} else if (progress.status === 'error') {
-									message = `Error: ${progress.error}`;
-								}
+						unsubscribe = window.app.onDataDownloadProgress((progress) => {
+							let message = 'Checking for updates...';
+							if (progress.status === 'start') {
+								message = `Preparing to download ${progress.total} files...`;
+							} else if (progress.status === 'progress') {
+								message = `Downloaded: ${progress.file} (${progress.completed}/${progress.total})`;
+							} else if (progress.status === 'complete') {
+								message = `Complete! ${progress.completed} files updated, ${progress.skipped} unchanged.`;
+							} else if (progress.status === 'error') {
+								message = `Error: ${progress.error}`;
+							}
 
-								const percent =
-									progress.total > 0
-										? (progress.completed / progress.total) * 100
-										: 0;
-								progressModal.updateProgress(percent, message);
-							},
-						);
+							const percent =
+								progress.total > 0
+									? (progress.completed / progress.total) * 100
+									: 0;
+							progressModal.updateProgress(percent, message);
+						});
 
 						const result = await window.app.refreshDataSource();
 
@@ -324,9 +330,7 @@ export class SettingsService {
 							error,
 						);
 						if (progressModal) {
-							progressModal.showCompletion(
-								'Error refreshing data source',
-							);
+							progressModal.showCompletion('Error refreshing data source');
 						}
 					}
 				});

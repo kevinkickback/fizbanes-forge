@@ -1,5 +1,8 @@
 /**
- * Bootstrap helper that orchestrates renderer startup and data loading.
+ * AppInitializer module
+ *
+ * Orchestrates renderer startup, data loading, and core component initialization for Fizbane's Forge.
+ * Handles asset validation, data folder checks, and service bootstrapping.
  *
  * @typedef {Object} InitializationOptions
  * @property {boolean} [loadAllData=true] - Whether to load all data sources
@@ -17,6 +20,7 @@
  */
 
 // Core imports - NEW ARCHITECTURE
+import { validateAssets } from '../utils/AssetValidator.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { showNotification } from '../utils/Notifications.js';
@@ -119,7 +123,11 @@ async function _promptDataSourceFix(errorMessage) {
 		const modal = new DataConfigurationModal({ allowClose: true });
 		await modal.show();
 	} catch (error) {
-		console.warn('AppInitializer', 'User dismissed data source fix modal', error);
+		console.warn(
+			'AppInitializer',
+			'User dismissed data source fix modal',
+			error,
+		);
 		throw error;
 	}
 }
@@ -144,7 +152,10 @@ async function _loadAllGameData() {
 			_loadDataWithErrorHandling(featService.initialize(), 'feats'),
 			_loadDataWithErrorHandling(skillService.initialize(), 'skills'),
 			_loadDataWithErrorHandling(actionService.initialize(), 'actions'),
-			_loadDataWithErrorHandling(variantRuleService.initialize(), 'variantrules'),
+			_loadDataWithErrorHandling(
+				variantRuleService.initialize(),
+				'variantrules',
+			),
 		];
 
 		await Promise.all(dataLoadPromises);
@@ -249,7 +260,7 @@ async function _initializeCoreComponents() {
  * @returns {void}
  * @private
  */
-function _setupUIEventHandlers() {
+function _setupUiEventHandlers() {
 	try {
 		console.info('AppInitializer', 'Setting up UI event handlers');
 
@@ -258,14 +269,14 @@ function _setupUIEventHandlers() {
 		const unsavedIndicator = document.getElementById('unsavedChangesIndicator');
 
 		// Centralized unsaved indicator logic
-		const PAGES_SHOW_UNSAVED = new Set(['build', 'details']);
+		const PagesShowUnsaved = new Set(['build', 'details']);
 
 		function updateUnsavedIndicator() {
 			try {
 				const hasUnsaved = AppState.get('hasUnsavedChanges');
 				const currentPage = AppState.getCurrentPage();
 				const shouldShow = Boolean(
-					hasUnsaved && PAGES_SHOW_UNSAVED.has(currentPage),
+					hasUnsaved && PagesShowUnsaved.has(currentPage),
 				);
 
 				if (!unsavedIndicator) return;
@@ -287,11 +298,11 @@ function _setupUIEventHandlers() {
 
 		// Suppress CHARACTER_UPDATED events immediately after page/character changes
 		let _suppressUntil = 0; // timestamp in ms
-		const SUPPRESS_WINDOW_MS = 150;
+		const SuppressWindowMs = 150;
 
 		// Helper to mark a short suppression window
 		function suppressTemporary() {
-			_suppressUntil = Date.now() + SUPPRESS_WINDOW_MS;
+			_suppressUntil = Date.now() + SuppressWindowMs;
 			console.debug(
 				'AppInitializer',
 				`Temporary suppression enabled until ${new Date(_suppressUntil).toISOString()}`,
@@ -373,7 +384,7 @@ function _setupUIEventHandlers() {
 				: false;
 
 			console.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
-				floatingBarVisible: floatingBarVisible,
+				floatingBarVisible,
 				unsavedIndicatorVisible: unsavedVisible,
 				dataCurrentPage: document.body.getAttribute('data-current-page'),
 			});
@@ -427,7 +438,11 @@ function _setupUIEventHandlers() {
 
 		console.info('AppInitializer', 'UI event handlers set up successfully');
 	} catch (error) {
-		console.error('AppInitializer', 'Error setting up UI event handlers', error);
+		console.error(
+			'AppInitializer',
+			'Error setting up UI event handlers',
+			error,
+		);
 	}
 }
 
@@ -448,10 +463,24 @@ export async function initializeAll(_options = {}) {
 		errors: [],
 	};
 
+	// Validate required assets before UI loads
+	validateAssets();
 	// Mark body with debug class early so debug-only UI is toggled before loading screen
 	try {
 		if (window.FF_DEBUG === true) {
 			document.body.classList.add('debug-mode');
+			// Dynamically inject debug nav item for UI isolation
+			fetch('debug/debug-nav.html')
+				.then((res) => res.text())
+				.then((html) => {
+					const nav = document.querySelector('.sidebar-nav');
+					if (nav) {
+						nav.insertAdjacentHTML('beforeend', html);
+					}
+				})
+				.catch((err) =>
+					console.warn('AppInitializer', 'Failed to load debug nav', err),
+				);
 		} else {
 			document.body.classList.remove('debug-mode');
 		}
@@ -492,7 +521,9 @@ export async function initializeAll(_options = {}) {
 							'AppInitializer',
 							`Data source update skipped/failed: ${refreshResult?.error || 'Unknown error'}`,
 						);
-						await _promptDataSourceFix(refreshResult?.error || 'Data source is invalid');
+						await _promptDataSourceFix(
+							refreshResult?.error || 'Data source is invalid',
+						);
 						throw new Error('Data source update failed');
 					} else {
 						DataLoader.clearCache();
@@ -505,7 +536,10 @@ export async function initializeAll(_options = {}) {
 					console.warn('AppInitializer', 'Data source update failed', error);
 				}
 			} else {
-				console.info('AppInitializer', 'Auto update disabled; skipping data sync');
+				console.info(
+					'AppInitializer',
+					'Auto update disabled; skipping data sync',
+				);
 			}
 		}
 
@@ -527,7 +561,7 @@ export async function initializeAll(_options = {}) {
 		// Step 3: Set up UI event handlers
 		loadingModal.updateMessage('Setting up UI...');
 		loadingModal.updateProgress(90);
-		_setupUIEventHandlers();
+		_setupUiEventHandlers();
 
 		// Set overall success based on whether any critical errors occurred
 		result.success = result.errors.length === 0;

@@ -65,14 +65,14 @@ class AbilityChoicesView {
                     data-source="${choice.source}">
                     <option value="">Choose...</option>
                     ${availableAbilities
-				.map(
-					(ability) => `
+											.map(
+												(ability) => `
                         <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
                             ${abbreviateAbility(ability)}
                         </option>
                     `,
-				)
-				.join('')}
+											)
+											.join('')}
                 </select>
             </div>
         `;
@@ -142,4 +142,3 @@ AbilityChoicesView.getInstance = (container) => {
 
 export { AbilityChoicesView };
 export const abilityChoicesView = AbilityChoicesView.getInstance;
-

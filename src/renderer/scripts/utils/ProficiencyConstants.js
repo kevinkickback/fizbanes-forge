@@ -1,17 +1,17 @@
 /**
  * Standard proficiency options for D&D 5e character building.
- * 
+ *
  * These constants represent the core proficiency options available in the game,
  * matching the 5etools JSON data format. They are used across multiple services
  * for validation, display, and selection UI.
- * 
+ *
  * @module ProficiencyConstants
  */
 
 /**
  * Standard skill proficiency options (matching 5etools JSON format).
  * These are the 18 core D&D 5e skills tied to ability scores.
- * 
+ *
  * @type {ReadonlyArray<string>}
  * @constant
  */
@@ -39,7 +39,7 @@ export const STANDARD_SKILL_OPTIONS = Object.freeze([
 /**
  * Standard language proficiency options (matching 5etools JSON format).
  * These are the 16 core D&D 5e languages available to player characters.
- * 
+ *
  * @type {ReadonlyArray<string>}
  * @constant
  */
@@ -65,7 +65,7 @@ export const STANDARD_LANGUAGE_OPTIONS = Object.freeze([
 /**
  * Standard tool proficiency options (matching 5etools JSON format).
  * These are the 24 core D&D 5e tools, kits, and artisan's tools available.
- * 
+ *
  * @type {ReadonlyArray<string>}
  * @constant
  */
@@ -98,10 +98,10 @@ export const STANDARD_TOOL_OPTIONS = Object.freeze([
 
 /**
  * Validates if a skill name is a standard D&D 5e skill.
- * 
+ *
  * @param {string} skillName - The skill name to validate
  * @returns {boolean} True if the skill is in the standard list
- * 
+ *
  * @example
  * isValidSkill('Acrobatics'); // true
  * isValidSkill('Cooking'); // false
@@ -112,10 +112,10 @@ export function isValidSkill(skillName) {
 
 /**
  * Validates if a tool name is a standard D&D 5e tool.
- * 
+ *
  * @param {string} toolName - The tool name to validate
  * @returns {boolean} True if the tool is in the standard list
- * 
+ *
  * @example
  * isValidTool("Smith's tools"); // true
  * isValidTool("Magic wand"); // false
@@ -126,10 +126,10 @@ export function isValidTool(toolName) {
 
 /**
  * Validates if a language name is a standard D&D 5e language.
- * 
+ *
  * @param {string} languageName - The language name to validate
  * @returns {boolean} True if the language is in the standard list
- * 
+ *
  * @example
  * isValidLanguage('Elvish'); // true
  * isValidLanguage('Klingon'); // false

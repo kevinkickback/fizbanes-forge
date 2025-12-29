@@ -385,9 +385,7 @@ class AbilityScoreService {
 		// Normalize incoming choices and clear current state
 		this.abilityChoices.clear();
 		const normalizedChoices = Array.isArray(choices)
-			? choices
-				.filter(Boolean)
-				.map((choice, index) => {
+			? choices.filter(Boolean).map((choice, index) => {
 					const ability = this.normalizeAbilityName(
 						choice.ability || choice.abilityScore,
 					);
@@ -406,7 +404,7 @@ class AbilityScoreService {
 						index: Number.isFinite(choice.index) ? choice.index : index,
 					};
 				})
-			: []
+			: [];
 
 		// Persist normalized choices on the character
 		character.race.abilityChoices = normalizedChoices;
@@ -605,7 +603,8 @@ class AbilityScoreService {
 			}
 
 			// Remove any empty slots to keep the array compact
-			character.race.abilityChoices = character.race.abilityChoices.filter(Boolean);
+			character.race.abilityChoices =
+				character.race.abilityChoices.filter(Boolean);
 		}
 
 		// Notify listeners of the change
