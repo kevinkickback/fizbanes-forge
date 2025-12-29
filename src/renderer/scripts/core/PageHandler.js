@@ -559,6 +559,21 @@ class PageHandlerImpl {
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
 
+			// --- FeatSelectionModal integration ---
+			// Add event listener to the "+ Add Feat" button
+			const addFeatBtn = document.getElementById('addFeatBtn');
+			if (addFeatBtn) {
+				// Remove any existing listeners by replacing the node
+				const newAddFeatBtn = addFeatBtn.cloneNode(true);
+				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
+				newAddFeatBtn.addEventListener('click', async () => {
+					// Dynamically import the FeatSelectionModal to avoid circular deps
+					const { FeatSelectionModal } = await import('../modules/feats/FeatSelectionModal.js');
+					const modal = new FeatSelectionModal();
+					await modal.show();
+				});
+			}
+
 			console.info('PageHandler', 'Build page cards initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing build page', error);
