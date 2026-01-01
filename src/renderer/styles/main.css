@@ -157,6 +157,62 @@ body.debug-mode .nav-item.debug-only {
 	color: var(--text-muted);
 }
 
+.nav-item--has-children .nav-link {
+	justify-content: space-between;
+}
+
+.nav-link-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.nav-caret {
+	margin-left: auto;
+	font-size: 0.85rem;
+	opacity: 0.9;
+	transition: transform 0.2s ease;
+}
+
+.nav-item--has-children.is-open .nav-caret {
+	transform: rotate(180deg);
+}
+
+.sidebar-subnav {
+	list-style: none;
+	margin: 0.25rem 0 0.5rem;
+	padding: 0 0.5rem 0.25rem 2.25rem;
+	display: none;
+}
+
+.nav-item--has-children.is-open .sidebar-subnav {
+	display: block;
+}
+
+.nav-sublink {
+	display: block;
+	width: 100%;
+	text-align: left;
+	padding: 0.35rem 0.5rem;
+	background: transparent;
+	border: none;
+	border-radius: var(--border-radius);
+	color: var(--text-muted);
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: var(--transition);
+}
+
+.nav-sublink:hover {
+	background: var(--secondary-color);
+	color: var(--text-color);
+}
+
+.nav-sublink.active {
+	background: rgba(255, 255, 255, 0.12);
+	color: white;
+}
+
 /* Main Content */
 .main-content {
 	flex: 1;

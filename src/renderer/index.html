@@ -40,11 +40,37 @@
                         <span>Home</span>
                     </button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-page="build">
-                        <i class="fas fa-hammer"></i>
-                        <span>Character Build</span>
+                <li class="nav-item nav-item--has-children" data-nav-group="build">
+                    <button class="nav-link" data-page="build" aria-expanded="false">
+                        <span class="nav-link-label">
+                            <i class="fas fa-hammer"></i>
+                            <span>Character Build</span>
+                        </span>
+                        <i class="fas fa-chevron-up nav-caret" aria-hidden="true"></i>
                     </button>
+                    <ul class="sidebar-subnav" aria-label="Build sections">
+                        <li>
+                            <button class="nav-sublink" data-section="build-race">Race</button>
+                        </li>
+                        <li>
+                            <button class="nav-sublink" data-section="build-class">Class</button>
+                        </li>
+                        <li>
+                            <button class="nav-sublink" data-section="build-background">Background</button>
+                        </li>
+                        <li>
+                            <button class="nav-sublink" data-section="build-ability-scores">Ability Scores</button>
+                        </li>
+                        <li>
+                            <button class="nav-sublink" data-section="build-proficiencies">Proficiencies</button>
+                        </li>
+                        <li>
+                            <button class="nav-sublink" data-section="build-feats">Feats</button>
+                        </li>
+                        <li>
+                            <button class="nav-sublink" data-section="build-optional-features">Optional Features</button>
+                        </li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" data-page="equipment">
