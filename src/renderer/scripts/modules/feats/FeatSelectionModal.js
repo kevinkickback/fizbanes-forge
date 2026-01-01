@@ -47,10 +47,10 @@ export class FeatSelectionModal {
 		this._populateFeatOrigins(); // Build the origin map
 		this.filteredFeats = this.validFeats;
 		this.selectedFeatIds.clear();
-		
+
 		// Pre-select any already-selected feats
 		this._preselectSavedFeats(character);
-		
+
 		await this._renderModal();
 		const slotNote = this.modal.querySelector('.feat-slot-note');
 		if (slotNote) {
