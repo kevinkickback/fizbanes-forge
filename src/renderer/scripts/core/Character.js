@@ -5,6 +5,7 @@
 
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
 import { ProficiencyCore } from './Proficiency.js';
+import { featService } from '../services/FeatService.js';
 
 /**
  * Represents a character with all its attributes, abilities, proficiencies, and features
@@ -473,6 +474,15 @@ export class Character {
 	}
 
 	/**
+	 * Returns how many feat choices the character is allowed to make.
+	 * Currently supports Variant Human (PHB) and the level 4 ASI swap.
+	 * @returns {{used:number,max:number,remaining:number,reasons:string[],blockedReason?:string}}
+	 */
+	getFeatAvailability() {
+		return featService.calculateFeatAvailability(this);
+	}
+
+	/**
 	 * Adds a language proficiency
 	 * @param {string} language - Language name
 	 * @param {string} source - Source of the proficiency
@@ -681,9 +691,9 @@ export class Character {
 			// Feats
 			feats: Array.isArray(this.feats)
 				? this.feats.map((feat) => ({
-						name: feat?.name || '',
-						source: feat?.source || 'Unknown',
-					}))
+					name: feat?.name || '',
+					source: feat?.source || 'Unknown',
+				}))
 				: [],
 			featSources: mapToObject(this.featSources),
 		};
@@ -695,27 +705,27 @@ export class Character {
 					// Simple types
 					armor: this.optionalProficiencies.armor
 						? {
-								allowed: this.optionalProficiencies.armor.allowed || 0,
-								selected: safeArray(this.optionalProficiencies.armor.selected),
-							}
+							allowed: this.optionalProficiencies.armor.allowed || 0,
+							selected: safeArray(this.optionalProficiencies.armor.selected),
+						}
 						: { allowed: 0, selected: [] },
 
 					weapons: this.optionalProficiencies.weapons
 						? {
-								allowed: this.optionalProficiencies.weapons.allowed || 0,
-								selected: safeArray(
-									this.optionalProficiencies.weapons.selected,
-								),
-							}
+							allowed: this.optionalProficiencies.weapons.allowed || 0,
+							selected: safeArray(
+								this.optionalProficiencies.weapons.selected,
+							),
+						}
 						: { allowed: 0, selected: [] },
 
 					savingThrows: this.optionalProficiencies.savingThrows
 						? {
-								allowed: this.optionalProficiencies.savingThrows.allowed || 0,
-								selected: safeArray(
-									this.optionalProficiencies.savingThrows.selected,
-								),
-							}
+							allowed: this.optionalProficiencies.savingThrows.allowed || 0,
+							selected: safeArray(
+								this.optionalProficiencies.savingThrows.selected,
+							),
+						}
 						: { allowed: 0, selected: [] },
 
 					// Complex types with source-specific details

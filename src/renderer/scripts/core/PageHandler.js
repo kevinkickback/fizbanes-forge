@@ -290,8 +290,8 @@ class PageHandlerImpl {
 					typeof subclassNameRaw === 'string'
 						? subclassNameRaw
 						: subclassNameRaw?.name ||
-							subclassNameRaw?.title ||
-							subclassNameRaw?.id;
+						subclassNameRaw?.title ||
+						subclassNameRaw?.id;
 				const classDisplay = subclassName
 					? `${subclassName} - ${characterClass}`
 					: characterClass;
@@ -314,11 +314,10 @@ class PageHandlerImpl {
 						<div class="card-body">
 							<div class="character-main">
 								<div class="character-portrait">
-									${
-										portraitUrl
-											? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
-											: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
-									}
+									${portraitUrl
+						? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
+						: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
+					}
 								</div>
 								<div class="character-info">
 									<div class="character-details">
@@ -593,6 +592,8 @@ class PageHandlerImpl {
 					const modal = new FeatSelectionModal();
 					await modal.show();
 				});
+
+				this._updateFeatUIState(AppState.getCurrentCharacter());
 			}
 
 			console.info('PageHandler', 'Build page cards initialized');
@@ -613,20 +614,41 @@ class PageHandlerImpl {
 			this._featSourcesContainer,
 			AppState.getCurrentCharacter(),
 		);
+		this._updateFeatUIState(AppState.getCurrentCharacter());
 
 		if (this._featListenersRegistered) {
 			return;
 		}
 
 		this._onFeatsSelected = (selectedFeats) => {
+			console.debug('PageHandler', 'FEATS_SELECTED event received', {
+				count: Array.isArray(selectedFeats) ? selectedFeats.length : 0,
+				feats: Array.isArray(selectedFeats)
+					? selectedFeats.map((f) => f.name)
+					: selectedFeats,
+			});
 			const character = AppState.getCurrentCharacter();
-			if (!character) return;
+			if (!character) {
+				console.warn('PageHandler', 'No character loaded');
+				return;
+			}
 
-			character.setFeats(selectedFeats, 'Manual selection');
+			const availability = character.getFeatAvailability?.();
+			const allowedCount = Math.max(0, availability?.max || 0);
+			const featsToStore = allowedCount
+				? selectedFeats.slice(0, allowedCount)
+				: [];
+
+			console.debug('PageHandler', 'Setting feats on character', {
+				allowedCount,
+				count: featsToStore.length,
+			});
+			character.setFeats(featsToStore, 'Manual selection');
 			this._featSourcesView.update(
 				this._featSourcesContainer,
 				character,
 			);
+			this._updateFeatUIState(character);
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 		};
 
@@ -635,6 +657,7 @@ class PageHandlerImpl {
 				this._featSourcesContainer,
 				character || AppState.getCurrentCharacter(),
 			);
+			this._updateFeatUIState(character || AppState.getCurrentCharacter());
 		};
 
 		this._onCharacterSelectedForFeats = (character) => {
@@ -642,6 +665,7 @@ class PageHandlerImpl {
 				this._featSourcesContainer,
 				character || AppState.getCurrentCharacter(),
 			);
+			this._updateFeatUIState(character || AppState.getCurrentCharacter());
 		};
 
 		eventBus.on(EVENTS.FEATS_SELECTED, this._onFeatsSelected);
@@ -655,6 +679,37 @@ class PageHandlerImpl {
 		);
 
 		this._featListenersRegistered = true;
+	}
+
+	_updateFeatUIState(character) {
+		const featCountEl = document.getElementById('featCount');
+		const maxFeatsEl = document.getElementById('maxFeats');
+		const addFeatBtn = document.getElementById('addFeatBtn');
+
+		const availability =
+			character?.getFeatAvailability?.() || {
+				used: character?.feats?.length || 0,
+				max: 0,
+				remaining: 0,
+				reasons: [],
+				blockedReason: 'No feat selections available.',
+			};
+
+		if (featCountEl) {
+			featCountEl.textContent = availability.used ?? 0;
+		}
+
+		if (maxFeatsEl) {
+			maxFeatsEl.textContent = availability.max ?? 0;
+		}
+
+		if (addFeatBtn) {
+			addFeatBtn.disabled = availability.max <= 0;
+			addFeatBtn.title = availability.max > 0
+				? ''
+				: availability.blockedReason ||
+						'No feat selections available. Choose Variant Human or reach level 4.';
+		}
 	}
 
 	/**

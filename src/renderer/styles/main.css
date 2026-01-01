@@ -234,6 +234,36 @@ body.debug-mode .nav-item.debug-only {
 	margin-bottom: 0;
 }
 
+/* Feat Selection Modal */
+.feat-item {
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.feat-item:hover {
+	background: var(--secondary-color);
+}
+
+.feat-item.selected {
+	background: rgba(76, 175, 80, 0.15);
+	border-color: #4caf80;
+}
+
+.feat-item.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background: var(--secondary-color);
+	color: var(--text-muted);
+}
+
+.feat-item.disabled .feat-desc {
+	color: var(--text-muted) !important;
+}
+
+.feat-item.disabled:hover {
+	background: var(--secondary-color);
+}
+
 /* Main Content */
 .main-content {
 	flex: 1;

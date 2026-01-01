@@ -16,13 +16,47 @@ export class FeatSelectionModal {
 		this.searchTerm = '';
 		this.selectedSources = new Set();
 		this.selectedFeatIds = new Set();
+		this.featSlotLimit = 0;
+		this._availability = null;
 	}
 
 	async show() {
+		const character = AppState.getCurrentCharacter();
+		this._availability =
+			character?.getFeatAvailability?.() || {
+				max: 0,
+				remaining: 0,
+				reasons: [],
+				blockedReason:
+					'No feat selections available. Choose Variant Human or reach level 4.',
+			};
+
+		this.featSlotLimit = this._availability.max;
+
+		if (!this.featSlotLimit) {
+			showNotification(
+				this._availability.blockedReason ||
+					'No feat selections available for this character.',
+				'warning',
+			);
+			return;
+		}
+
 		await this._loadValidFeats();
 		this.filteredFeats = this.validFeats;
 		this.selectedFeatIds.clear();
 		await this._renderModal();
+		const slotNote = this.modal.querySelector('.feat-slot-note');
+		if (slotNote) {
+			const reasonsText =
+				Array.isArray(this._availability?.reasons) &&
+				this._availability.reasons.length > 0
+					? ` Available via ${this._availability.reasons.join(', ')}.`
+					: '';
+			slotNote.textContent = `You may select up to ${this.featSlotLimit} feat${
+				this.featSlotLimit === 1 ? '' : 's'
+			} (currently ${this._availability.remaining} remaining).${reasonsText}`;
+		}
 		await this._renderFeatList();
 		this._attachEventListeners();
 		// Remove any existing modal overlays to prevent duplicates
@@ -45,9 +79,12 @@ export class FeatSelectionModal {
 		const allFeats = await featService.getAllFeats();
 		const character = AppState.getCurrentCharacter();
 		// Filter feats based on character prerequisites
-		this.validFeats = allFeats.filter((f) =>
-			this._isFeatValidForCharacter(f, character),
-		);
+		this.validFeats = allFeats
+			.filter((f) => this._isFeatValidForCharacter(f, character))
+			.map((f, index) => ({
+				...f,
+				id: f.id || `feat-${index}`, // Generate ID if not present
+			}));
 	}
 
 	_isFeatValidForCharacter(feat, _character) {
@@ -78,6 +115,7 @@ export class FeatSelectionModal {
 								<div class="dropdown-menu feat-source-menu p-2" style="max-height: 240px; overflow-y: auto; background: var(--modal-bg); color: var(--modal-fg); border: 1px solid var(--modal-border);"></div>
 							</div>
 						</div>
+						<div class="text-muted small feat-slot-note mb-2"></div>
 						<div class="feat-list" style="max-height: 50vh; overflow-y: auto;"></div>
 					</div>
 					<div class="modal-footer d-flex justify-content-end gap-2">
@@ -132,7 +170,7 @@ export class FeatSelectionModal {
 
 				const isSelected = this.selectedFeatIds.has(f.id);
 				return `
-					<div class="feat-item d-flex align-items-start gap-3 py-2 px-2 border rounded ${isSelected ? 'selected' : ''}" data-feat-id="${f.id}" role="button" tabindex="0" aria-pressed="${isSelected}">
+					<div class="feat-item d-flex align-items-start gap-3 py-2 px-2 border rounded ${isSelected ? 'selected' : ''} ${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'disabled' : ''}" data-feat-id="${f.id}" role="button" tabindex="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? '-1' : '0'}" aria-pressed="${isSelected}" aria-disabled="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'true' : 'false'}">
 						<div class="flex-grow-1">
 							<div class="d-flex align-items-center gap-2 mb-1">
 								<strong style="color: var(--modal-title);">${f.name}</strong>
@@ -154,12 +192,17 @@ export class FeatSelectionModal {
 	_attachEventListeners() {
 		// Cancel button closes modal
 		this.modal.querySelector('.btn-cancel').addEventListener('click', () => this.close());
-		// OK button emits selected feats
+		// OK button emits selected feats (should all be within allowance now)
 		this.modal.querySelector('.btn-ok').addEventListener('click', () => {
 			const selectedFeats = this.validFeats.filter((f) =>
 				this.selectedFeatIds.has(f.id),
 			);
+
 			if (selectedFeats.length > 0) {
+				console.debug('FeatSelectionModal', 'Emitting FEATS_SELECTED event', {
+					count: selectedFeats.length,
+					feats: selectedFeats.map((f) => f.name),
+				});
 				eventBus.emit(EVENTS.FEATS_SELECTED, selectedFeats);
 				showNotification(`${selectedFeats.length} feat(s) selected!`, 'success');
 			}
@@ -197,7 +240,15 @@ export class FeatSelectionModal {
 		items.forEach((item) => {
 			const featId = item.getAttribute('data-feat-id');
 			const toggle = async () => {
-				if (this.selectedFeatIds.has(featId)) {
+				const isCurrentlySelected = this.selectedFeatIds.has(featId);
+				const isDisabled = item.getAttribute('aria-disabled') === 'true';
+
+				// Only allow toggling if not disabled, or if already selected (can deselect)
+				if (isDisabled && !isCurrentlySelected) {
+					return;
+				}
+
+				if (isCurrentlySelected) {
 					this.selectedFeatIds.delete(featId);
 					item.classList.remove('selected');
 					item.setAttribute('aria-pressed', 'false');
@@ -206,6 +257,9 @@ export class FeatSelectionModal {
 					item.classList.add('selected');
 					item.setAttribute('aria-pressed', 'true');
 				}
+
+				// Update disabled state of all items after selection changes
+				this._updateItemDisabledStates(listEl);
 			};
 
 			item.addEventListener('click', (e) => {
@@ -218,6 +272,29 @@ export class FeatSelectionModal {
 					toggle();
 				}
 			});
+		});
+
+		// Initial disable state
+		this._updateItemDisabledStates(listEl);
+	}
+
+	_updateItemDisabledStates(listEl) {
+		const items = listEl.querySelectorAll('.feat-item');
+		const atLimit = this.selectedFeatIds.size >= this.featSlotLimit;
+
+		items.forEach((item) => {
+			const featId = item.getAttribute('data-feat-id');
+			const isSelected = this.selectedFeatIds.has(featId);
+
+			if (!isSelected && atLimit) {
+				item.classList.add('disabled');
+				item.setAttribute('aria-disabled', 'true');
+				item.setAttribute('tabindex', '-1');
+			} else {
+				item.classList.remove('disabled');
+				item.setAttribute('aria-disabled', 'false');
+				item.setAttribute('tabindex', '0');
+			}
 		});
 	}
 
