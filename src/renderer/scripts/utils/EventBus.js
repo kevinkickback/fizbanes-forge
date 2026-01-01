@@ -49,6 +49,9 @@ export const EVENTS = {
 	PROFICIENCY_OPTIONAL_SELECTED: 'proficiency:optionalSelected',
 	PROFICIENCY_OPTIONAL_DESELECTED: 'proficiency:optionalDeselected',
 
+	// Feat events
+	FEATS_SELECTED: 'feats:selected',
+
 	// Character creation events
 	CLASS_SELECTED: 'class:selected',
 	SUBCLASS_SELECTED: 'subclass:selected',

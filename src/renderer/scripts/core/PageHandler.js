@@ -5,6 +5,7 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../modules/background/BackgroundCard.js';
 import { ClassCard } from '../modules/class/ClassCard.js';
+import { FeatSourcesView } from '../modules/feats/FeatSourcesView.js';
 import { ProficiencyCard } from '../modules/proficiencies/ProficiencyCard.js';
 import { RaceCard } from '../modules/race/RaceCard.js';
 import { settingsService } from '../services/SettingsService.js';
@@ -17,6 +18,12 @@ import { storage } from './Storage.js';
 class PageHandlerImpl {
 	constructor() {
 		this.isInitialized = false;
+		this._featSourcesView = new FeatSourcesView();
+		this._featSourcesContainer = null;
+		this._featListenersRegistered = false;
+		this._onFeatsSelected = null;
+		this._onCharacterUpdatedForFeats = null;
+		this._onCharacterSelectedForFeats = null;
 	}
 
 	/**
@@ -568,6 +575,9 @@ class PageHandlerImpl {
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
 
+			// Set up feat sources footer rendering and listeners
+			this._initializeFeatSources();
+
 			// --- FeatSelectionModal integration ---
 			// Add event listener to the "+ Add Feat" button
 			const addFeatBtn = document.getElementById('addFeatBtn');
@@ -590,6 +600,61 @@ class PageHandlerImpl {
 			console.error('PageHandler', 'Error initializing build page', error);
 			showNotification('Error initializing build page', 'error');
 		}
+	}
+
+	_initializeFeatSources() {
+		this._featSourcesContainer = document.getElementById('featSources');
+		if (!this._featSourcesContainer) {
+			console.debug('PageHandler', 'Feat sources container not found');
+			return;
+		}
+
+		this._featSourcesView.update(
+			this._featSourcesContainer,
+			AppState.getCurrentCharacter(),
+		);
+
+		if (this._featListenersRegistered) {
+			return;
+		}
+
+		this._onFeatsSelected = (selectedFeats) => {
+			const character = AppState.getCurrentCharacter();
+			if (!character) return;
+
+			character.setFeats(selectedFeats, 'Manual selection');
+			this._featSourcesView.update(
+				this._featSourcesContainer,
+				character,
+			);
+			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+		};
+
+		this._onCharacterUpdatedForFeats = ({ character }) => {
+			this._featSourcesView.update(
+				this._featSourcesContainer,
+				character || AppState.getCurrentCharacter(),
+			);
+		};
+
+		this._onCharacterSelectedForFeats = (character) => {
+			this._featSourcesView.update(
+				this._featSourcesContainer,
+				character || AppState.getCurrentCharacter(),
+			);
+		};
+
+		eventBus.on(EVENTS.FEATS_SELECTED, this._onFeatsSelected);
+		eventBus.on(
+			EVENTS.CHARACTER_UPDATED,
+			this._onCharacterUpdatedForFeats,
+		);
+		eventBus.on(
+			EVENTS.CHARACTER_SELECTED,
+			this._onCharacterSelectedForFeats,
+		);
+
+		this._featListenersRegistered = true;
 	}
 
 	/**

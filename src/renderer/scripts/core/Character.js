@@ -107,6 +107,11 @@ export class Character {
 			),
 		};
 
+		// Initialize feats and their sources
+		this.feats = [];
+		this.featSources = new Map();
+		this.setFeats(data.feats || [], 'Imported');
+
 		// Initialize proficiencies
 		this.proficiencies = data.proficiencies || {
 			armor: [],
@@ -435,6 +440,39 @@ export class Character {
 	}
 
 	/**
+	 * Replace feats with a new set and track their sources.
+	 * @param {Array<Object|string>} feats - Array of feat objects or names
+	 * @param {string} defaultSource - Fallback source label when none provided
+	 */
+	setFeats(feats, defaultSource = 'Unknown') {
+		this.feats = [];
+		this.featSources = new Map();
+
+		if (!Array.isArray(feats)) return;
+
+		for (const feat of feats) {
+			const name =
+				typeof feat === 'string'
+					? feat
+					: feat?.name || feat?.id || feat?.feat || null;
+			if (!name) continue;
+
+			const sourceCandidate =
+				typeof feat === 'object'
+					? feat.origin || feat.grantedBy || feat.from || feat.sourceType || feat.source
+					: null;
+			const source = sourceCandidate || defaultSource;
+
+			this.feats.push({ name, source });
+
+			if (!this.featSources.has(name)) {
+				this.featSources.set(name, new Set());
+			}
+			this.featSources.get(name).add(source);
+		}
+	}
+
+	/**
 	 * Adds a language proficiency
 	 * @param {string} language - Language name
 	 * @param {string} source - Source of the proficiency
@@ -639,6 +677,15 @@ export class Character {
 				languages: mapToObject(this.proficiencySources?.languages),
 				savingThrows: mapToObject(this.proficiencySources?.savingThrows),
 			},
+
+			// Feats
+			feats: Array.isArray(this.feats)
+				? this.feats.map((feat) => ({
+						name: feat?.name || '',
+						source: feat?.source || 'Unknown',
+					}))
+				: [],
+			featSources: mapToObject(this.featSources),
 		};
 
 		// Handle optional proficiencies separately with careful error handling

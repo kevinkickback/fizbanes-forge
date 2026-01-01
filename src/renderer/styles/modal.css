@@ -51,15 +51,9 @@
 	width: var(--modal-width);
 	max-width: var(--modal-max-width);
 	margin: 1.75rem auto;
-	pointer-events: none;
-	display: flex;
-	align-items: center;
-	min-height: calc(100% - 3.5rem);
-	max-height: calc(100% - 3.5rem);
 }
 
 .modal-content {
-	display: flex;
 	flex-direction: column;
 	width: 100%;
 	pointer-events: auto;
@@ -67,17 +61,12 @@
 	overflow: hidden;
 	position: relative;
 	display: flex;
-	flex-direction: column;
-	width: 100%;
-	pointer-events: auto;
 	background-color: var(--modal-bg);
 	color: var(--modal-fg);
 	border: 1px solid var(--modal-border);
 	border-radius: var(--modal-radius);
 	box-shadow: var(--modal-shadow);
-	outline: 0;
 	max-height: calc(100vh - 3.5rem);
-	overflow: hidden;
 }
 
 .modal-header {

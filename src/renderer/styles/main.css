@@ -213,6 +213,27 @@ body.debug-mode .nav-item.debug-only {
 	color: white;
 }
 
+.feat-sources-footer {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 0.75rem;
+	font-size: 0.9rem;
+}
+
+.feat-sources-footer h6 {
+	font-size: 0.9rem;
+	margin: 0 0 0.35rem 0;
+}
+
+.feat-source-row {
+	margin-bottom: 0.25rem;
+}
+
+.feat-source-row:last-child {
+	margin-bottom: 0;
+}
+
 /* Main Content */
 .main-content {
 	flex: 1;
