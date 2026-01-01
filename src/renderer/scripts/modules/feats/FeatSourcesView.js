@@ -12,38 +12,24 @@ export class FeatSourcesView {
         if (!container) return;
 
         if (!character || !Array.isArray(character.feats) || character.feats.length === 0) {
-            container.innerHTML = `
-				<h6 class="mb-2">Sources:</h6>
-				<div class="text-muted small">No feats selected.</div>
-			`;
+            container.innerHTML = '';
             return;
         }
 
-        const featsByName = new Map();
-        for (const feat of character.feats) {
-            const name = feat?.name;
-            if (!name) continue;
+        if (character.feats.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // Format feats with their sources
+        const featLines = character.feats.map(feat => {
+            const name = feat?.name || 'Unknown';
             const source = feat?.source || 'Unknown';
-            if (!featsByName.has(name)) {
-                featsByName.set(name, new Set());
-            }
-            featsByName.get(name).add(source);
-        }
-
-        if (featsByName.size === 0) {
-            container.innerHTML = `
-				<h6 class="mb-2">Sources:</h6>
-				<div class="text-muted small">No feats selected.</div>
-			`;
-            return;
-        }
+            return `${name} (${source})`;
+        });
 
         let html = '<h6 class="mb-2">Sources:</h6>';
-        const sortedNames = Array.from(featsByName.keys()).sort((a, b) => a.localeCompare(b));
-        for (const name of sortedNames) {
-            const sources = Array.from(featsByName.get(name)).sort();
-            html += `<div class="feat-source-row"><strong>${name}</strong> <span class="text-muted">(${sources.join(', ')})</span></div>`;
-        }
+        html += `<div class="proficiency-note">${featLines.join(', ')}</div>`;
 
         container.innerHTML = html;
         await textProcessor.processElement(container);

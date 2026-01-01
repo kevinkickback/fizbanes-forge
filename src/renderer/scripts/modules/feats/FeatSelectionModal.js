@@ -18,6 +18,7 @@ export class FeatSelectionModal {
 		this.selectedFeatIds = new Set();
 		this.featSlotLimit = 0;
 		this._availability = null;
+		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Class ASI at level 4")
 	}
 
 	async show() {
@@ -36,26 +37,30 @@ export class FeatSelectionModal {
 		if (!this.featSlotLimit) {
 			showNotification(
 				this._availability.blockedReason ||
-					'No feat selections available for this character.',
+				'No feat selections available for this character.',
 				'warning',
 			);
 			return;
 		}
 
 		await this._loadValidFeats();
+		this._populateFeatOrigins(); // Build the origin map
 		this.filteredFeats = this.validFeats;
 		this.selectedFeatIds.clear();
+		
+		// Pre-select any already-selected feats
+		this._preselectSavedFeats(character);
+		
 		await this._renderModal();
 		const slotNote = this.modal.querySelector('.feat-slot-note');
 		if (slotNote) {
 			const reasonsText =
 				Array.isArray(this._availability?.reasons) &&
-				this._availability.reasons.length > 0
+					this._availability.reasons.length > 0
 					? ` Available via ${this._availability.reasons.join(', ')}.`
 					: '';
-			slotNote.textContent = `You may select up to ${this.featSlotLimit} feat${
-				this.featSlotLimit === 1 ? '' : 's'
-			} (currently ${this._availability.remaining} remaining).${reasonsText}`;
+			slotNote.textContent = `You may select up to ${this.featSlotLimit} feat${this.featSlotLimit === 1 ? '' : 's'
+				} (currently ${this._availability.remaining} remaining).${reasonsText}`;
 		}
 		await this._renderFeatList();
 		this._attachEventListeners();
@@ -93,6 +98,43 @@ export class FeatSelectionModal {
 		// Example: check for minimum level, race, class, etc.
 		// Return false if requirements not met
 		return true;
+	}
+
+	_populateFeatOrigins() {
+		this._featOrigins.clear();
+
+		if (!this._availability?.reasons || this._availability.reasons.length === 0) {
+			return;
+		}
+
+		// For now, assign each reason sequentially to feat selections
+		// A more sophisticated approach could let users choose which feat goes with which origin
+		let reasonIndex = 0;
+		for (const feat of this.validFeats) {
+			const reason = this._availability.reasons[reasonIndex % this._availability.reasons.length];
+			// Format the reason: "Race: Variant Human" -> "Variant Human"
+			const origin = reason.replace(/^[^:]+:\s*/, '').trim();
+			this._featOrigins.set(feat.id, origin);
+			reasonIndex++;
+		}
+	}
+
+	_preselectSavedFeats(character) {
+		if (!character || !Array.isArray(character.feats)) return;
+
+		// Find matching feat objects by name and pre-select them
+		for (const savedFeat of character.feats) {
+			const matchingFeat = this.validFeats.find(
+				(f) => f.name && f.name.toLowerCase() === (savedFeat.name || '').toLowerCase()
+			);
+			if (matchingFeat) {
+				this.selectedFeatIds.add(matchingFeat.id);
+				console.debug('FeatSelectionModal', 'Pre-selected saved feat', {
+					featName: matchingFeat.name,
+					featId: matchingFeat.id,
+				});
+			}
+		}
 	}
 
 	async _renderModal() {
@@ -199,12 +241,18 @@ export class FeatSelectionModal {
 			);
 
 			if (selectedFeats.length > 0) {
+				// Add origin field to each selected feat
+				const featsWithOrigin = selectedFeats.map((f) => ({
+					...f,
+					origin: this._featOrigins.get(f.id) || 'Unknown',
+				}));
+
 				console.debug('FeatSelectionModal', 'Emitting FEATS_SELECTED event', {
-					count: selectedFeats.length,
-					feats: selectedFeats.map((f) => f.name),
+					count: featsWithOrigin.length,
+					feats: featsWithOrigin.map((f) => `${f.name} (${f.origin})`),
 				});
-				eventBus.emit(EVENTS.FEATS_SELECTED, selectedFeats);
-				showNotification(`${selectedFeats.length} feat(s) selected!`, 'success');
+				eventBus.emit(EVENTS.FEATS_SELECTED, featsWithOrigin);
+				showNotification(`${featsWithOrigin.length} feat(s) selected!`, 'success');
 			}
 			this.close();
 		});

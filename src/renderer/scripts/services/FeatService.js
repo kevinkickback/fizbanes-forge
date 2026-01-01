@@ -147,7 +147,7 @@ class FeatService {
 		};
 
 		collect(raceData?.feats, raceData?.name || raceName || 'Race');
-		collect(subraceData?.feats, subraceData?.name || subraceName || 'Subrace');
+		collect(subraceData?.feats, 'Subrace');
 
 		return { slots, reasons };
 	}

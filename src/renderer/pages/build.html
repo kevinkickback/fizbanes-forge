@@ -383,20 +383,18 @@
         <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Feats</h5>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
                     <button class="btn btn-primary btn-sm" id="addFeatBtn">
                         <i class="fas fa-plus"></i> Add Feat
                     </button>
-                    <span class="text-muted">
-                        <span id="featCount">0</span> / <span id="maxFeats">0</span> feats
-                    </span>
+                    <small class="text-muted">(<span id="featCount">0</span>/<span id="maxFeats">0</span> selected)</small>
                 </div>
             </div>
             <div class="card-body">
                 <div class="feat-list" id="featList">
                     <!-- Feats will be populated dynamically -->
                 </div>
-                <div class="feat-sources-footer mt-3" id="featSources">
+                <div class="feat-notes-container mt-3" id="featSources">
                     <!-- Feat sources will be displayed here -->
                 </div>
             </div>

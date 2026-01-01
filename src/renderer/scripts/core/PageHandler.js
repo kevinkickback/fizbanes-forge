@@ -5,6 +5,7 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../modules/background/BackgroundCard.js';
 import { ClassCard } from '../modules/class/ClassCard.js';
+import { FeatListView } from '../modules/feats/FeatListView.js';
 import { FeatSourcesView } from '../modules/feats/FeatSourcesView.js';
 import { ProficiencyCard } from '../modules/proficiencies/ProficiencyCard.js';
 import { RaceCard } from '../modules/race/RaceCard.js';
@@ -18,6 +19,8 @@ import { storage } from './Storage.js';
 class PageHandlerImpl {
 	constructor() {
 		this.isInitialized = false;
+		this._featListView = new FeatListView();
+		this._featListContainer = null;
 		this._featSourcesView = new FeatSourcesView();
 		this._featSourcesContainer = null;
 		this._featListenersRegistered = false;
@@ -604,17 +607,20 @@ class PageHandlerImpl {
 	}
 
 	_initializeFeatSources() {
+		this._featListContainer = document.getElementById('featList');
 		this._featSourcesContainer = document.getElementById('featSources');
 		if (!this._featSourcesContainer) {
 			console.debug('PageHandler', 'Feat sources container not found');
 			return;
 		}
 
+		const character = AppState.getCurrentCharacter();
+		this._featListView.update(this._featListContainer, character);
 		this._featSourcesView.update(
 			this._featSourcesContainer,
-			AppState.getCurrentCharacter(),
+			character,
 		);
-		this._updateFeatUIState(AppState.getCurrentCharacter());
+		this._updateFeatUIState(character);
 
 		if (this._featListenersRegistered) {
 			return;
@@ -644,6 +650,7 @@ class PageHandlerImpl {
 				count: featsToStore.length,
 			});
 			character.setFeats(featsToStore, 'Manual selection');
+			this._featListView.update(this._featListContainer, character);
 			this._featSourcesView.update(
 				this._featSourcesContainer,
 				character,
@@ -653,6 +660,10 @@ class PageHandlerImpl {
 		};
 
 		this._onCharacterUpdatedForFeats = ({ character }) => {
+			this._featListView.update(
+				this._featListContainer,
+				character || AppState.getCurrentCharacter(),
+			);
 			this._featSourcesView.update(
 				this._featSourcesContainer,
 				character || AppState.getCurrentCharacter(),
@@ -661,6 +672,10 @@ class PageHandlerImpl {
 		};
 
 		this._onCharacterSelectedForFeats = (character) => {
+			this._featListView.update(
+				this._featListContainer,
+				character || AppState.getCurrentCharacter(),
+			);
 			this._featSourcesView.update(
 				this._featSourcesContainer,
 				character || AppState.getCurrentCharacter(),
@@ -708,7 +723,7 @@ class PageHandlerImpl {
 			addFeatBtn.title = availability.max > 0
 				? ''
 				: availability.blockedReason ||
-						'No feat selections available. Choose Variant Human or reach level 4.';
+				'No feat selections available. Choose Variant Human or reach level 4.';
 		}
 	}
 

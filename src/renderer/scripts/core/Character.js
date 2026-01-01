@@ -4,8 +4,8 @@
  */
 
 import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
-import { ProficiencyCore } from './Proficiency.js';
 import { featService } from '../services/FeatService.js';
+import { ProficiencyCore } from './Proficiency.js';
 
 /**
  * Represents a character with all its attributes, abilities, proficiencies, and features
@@ -458,6 +458,7 @@ export class Character {
 					: feat?.name || feat?.id || feat?.feat || null;
 			if (!name) continue;
 
+			// Priority: use origin field (where feat came from in character), then fall back to 5etools source
 			const sourceCandidate =
 				typeof feat === 'object'
 					? feat.origin || feat.grantedBy || feat.from || feat.sourceType || feat.source

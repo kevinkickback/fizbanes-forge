@@ -1684,6 +1684,13 @@ body[data-current-page="details"] .floating-actions {
 	padding-top: 1rem;
 }
 
+.feat-notes-container {
+	font-size: 0.85rem;
+	color: #e0e0e0;
+	border-top: 1px solid var(--border-color);
+	padding-top: 1rem;
+}
+
 .save-location-container {
 	background-color: var(--secondary-color);
 	padding: 12px 16px;
