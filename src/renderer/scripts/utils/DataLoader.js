@@ -118,7 +118,28 @@ async function loadActions() {
  * @returns {Promise<Object>} Monster data
  */
 async function loadMonsters() {
-	return loadJSON(`${state.baseUrl}bestiary.json`);
+	// Aggregate all bestiary files listed in the bestiary index
+	const index = await loadJSON(`${state.baseUrl}bestiary/index.json`);
+	const files = Object.values(index || {});
+
+	// Load all bestiary chunks in parallel
+	const datasets = await Promise.all(
+		files.map((file) => loadJSON(`${state.baseUrl}bestiary/${file}`)),
+	);
+
+	// Merge array fields (primarily `monster`) across datasets
+	const aggregated = {};
+	for (const data of datasets) {
+		if (!data || typeof data !== 'object') continue;
+		for (const [key, value] of Object.entries(data)) {
+			if (Array.isArray(value)) {
+				aggregated[key] = aggregated[key] || [];
+				aggregated[key].push(...value);
+			}
+		}
+	}
+
+	return aggregated;
 }
 
 /**
@@ -361,10 +382,8 @@ dataLoader.getCacheStats = getCacheStats;
 const DataLoader = dataLoader;
 
 export {
-	clearCache,
-	clearCacheForUrl,
-	DataLoader,
-	dataLoader,
+	DataLoader, clearCache,
+	clearCacheForUrl, dataLoader,
 	getCacheStats,
 	loadActions,
 	loadBackgrounds,
@@ -390,5 +409,5 @@ export {
 	loadTrapsHazards,
 	loadVariantRules,
 	loadVehicles,
-	setBaseUrl,
+	setBaseUrl
 };

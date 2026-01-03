@@ -125,15 +125,31 @@
 .feat-list-item-info {
 	flex-grow: 1;
 	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.feat-list-item-header {
+	display: flex;
 	align-items: center;
 	gap: 0.5rem;
 }
 
-.feat-list-item-badge {
-	background: var(--secondary-color);
-	color: var(--modal-fg);
-	font-size: 0.85rem;
-	padding: 0.25rem 0.5rem;
+.feat-list-item-name {
+	color: var(--text-color);
+	font-weight: 600;
+}
+
+.feat-list-item-desc {
+	color: var(--text-light);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+/* Feat selection counter styling to match proficiencies but with accent color */
+#build-feats .selection-counter {
+	color: var(--accent-color);
+	font-weight: 400;
 }
 
 .remove-feat-btn {

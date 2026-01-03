@@ -71,6 +71,7 @@ export class RefreshProgressModal {
 		this.updateProgress(percent, message);
 		if (this.confirmButton) {
 			this.confirmButton.classList.remove('d-none');
+			this.confirmButton.classList.add('show');
 			this.confirmButton.focus();
 		}
 	}

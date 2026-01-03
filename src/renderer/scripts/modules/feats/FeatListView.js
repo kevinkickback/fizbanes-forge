@@ -1,5 +1,6 @@
 /** Renders the list of selected feats on the build page. */
 
+import { featService } from '../../services/FeatService.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
@@ -18,34 +19,77 @@ export class FeatListView {
 
         if (!character || !Array.isArray(character.feats) || character.feats.length === 0) {
             container.innerHTML =
-                '<div class="text-muted small py-3">No feats selected.</div>';
+                '<div class="text-light text-center small py-3">No feats selected.</div>';
             return;
         }
 
-        // Render each feat as a card-like item
-        let html = '';
-        for (const feat of character.feats) {
-            const name = feat?.name || 'Unknown Feat';
-            const source = feat?.source || 'Unknown Source';
+        const renderedItems = await Promise.all(
+            character.feats.map(async (feat) => {
+                const name = feat?.name || 'Unknown Feat';
+                const desc = await this._buildFeatDescription(feat);
 
-            html += `
-				<div class="feat-list-item" data-feat-name="${name}">
-					<div class="feat-list-item-info">
-						<strong>${name}</strong>
-						<span class="badge feat-list-item-badge">${source}</span>
-					</div>
-					<button class="btn btn-sm btn-outline-danger remove-feat-btn remove-feat" type="button" aria-label="Remove feat">
-						<i class="fas fa-trash"></i>
-					</button>
-				</div>
-			`;
-        }
+                return `
+                    <div class="feat-list-item" data-feat-name="${name}">
+                        <div class="feat-list-item-info">
+                            <div class="feat-list-item-header">
+                                <strong class="feat-list-item-name">${name}</strong>
+                            </div>
+                            <div class="feat-list-item-desc">${desc}</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger remove-feat-btn remove-feat" type="button" aria-label="Remove feat">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }),
+        );
 
-        container.innerHTML = html;
+        container.innerHTML = renderedItems.join('');
         await textProcessor.processElement(container);
 
         // Attach event listeners to remove buttons
         this._attachRemoveListeners(container, character);
+    }
+
+    async _buildFeatDescription(feat) {
+        const descParts = [];
+        const resolveFeat = () => {
+            if (feat?.entries) return feat;
+            const fallback = featService.getFeat(feat?.name || '');
+            return fallback || feat;
+        };
+
+        const resolved = resolveFeat();
+
+        const pushString = async (text) => {
+            if (!text) return;
+            descParts.push(await textProcessor.processString(text));
+        };
+
+        if (Array.isArray(resolved?.entries)) {
+            for (const entry of resolved.entries) {
+                if (typeof entry === 'string') {
+                    await pushString(entry);
+                    if (descParts.length >= 2) break;
+                } else if (Array.isArray(entry?.entries)) {
+                    for (const nested of entry.entries) {
+                        if (typeof nested === 'string') {
+                            await pushString(nested);
+                            if (descParts.length >= 2) break;
+                        }
+                    }
+                    if (descParts.length >= 2) break;
+                }
+            }
+        } else if (typeof resolved?.entries === 'string') {
+            await pushString(resolved.entries);
+        }
+
+        if (descParts.length === 0) {
+            return '<span class="text-muted">No description available.</span>';
+        }
+
+        return descParts.join(' ');
     }
 
     /**

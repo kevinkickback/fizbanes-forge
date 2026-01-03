@@ -73,9 +73,9 @@
 	--proficiency-class: #4a9aff;
 	--proficiency-background: #66bb6a;
 	--proficiency-default-bg: rgba(25, 118, 210, 0.075);
-	--proficiency-disabled-bg: #f0f0f0;
+	--proficiency-disabled-bg: #d8d8d8;
 	--proficiency-disabled-text: #888888;
-	--proficiency-disabled-border: #dddddd;
+	--proficiency-disabled-border: #c8c8c8;
 	--highlight-color: #fdcb6e;
 
 	/* Tooltip & Reference Colors */

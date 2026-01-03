@@ -58,6 +58,17 @@
 .data-config-modal-header p {
 	margin: 0;
 	font-size: 14px;
+	color: var(--text-very-light);
+}
+
+/* Ensure helper text stays legible on dark modal background */
+.data-config-subtitle {
+	color: var(--text-very-light) !important;
+}
+
+#dataConfigModal .form-text.text-muted {
+	color: var(--text-very-light) !important;
+	line-height: 1.4;
 }
 
 .data-config-modal-close-btn {
