@@ -4,29 +4,176 @@
 @import url("./modal.css");
 @import url("./notification.css");
 @import url("./loading-modal.css");
+@import url("./utilities.css");
+@import url("./feat-modal.css");
+@import url("./data-loading-progress.css");
+@import url("./data-configuration-modal.css");
+@import url("./proficiency-card.css");
+@import url("./tooltip.css");
 
 /* CSS Variables */
 :root {
+	/* Primary Colors */
 	--primary-color: #1b1b1b;
 	--secondary-color: #242424;
-	--accent-color: #e40712;
-	--accent-hover: #ff1a1a;
-	--accent-secondary: #e6cc80;
-	--accent-secondary-hover: #fff2cc;
-	--success-color: #00b894;
-	--danger-color: #d63031;
-	--warning-color: #fdcb6e;
-	--info-color: #0984e3;
-	--text-color: #ffffff;
-	--text-muted: #b8b8b8;
 	--background-color: #121212;
 	--card-background: #1e1e1e;
+
+	/* Accent & Action Colors */
+	--accent-color: #e40712;
+	--accent-hover: #ff1a1a;
+	--accent-10: rgba(228, 7, 18, 0.1);
+	--accent-15: rgba(228, 7, 18, 0.15);
+	--accent-secondary: #e6cc80;
+	--accent-secondary-hover: #fff2cc;
+
+	/* Status Colors */
+	--success-color: #00b894;
+	--danger-color: #d63031;
+	--danger-dark: #c0392b;
+	--warning-color: #fdcb6e;
+	--info-color: #0984e3;
+
+	/* Text Colors */
+	--text-color: #ffffff;
+	--text-muted: #b8b8b8;
+	--text-light: #e0e0e0;
+	--text-lighter: #cccccc;
+	--text-very-light: #a0a0a0;
+
+	/* Border & Divider Colors */
+	--border-color: #333333;
+	--border-light: #444444;
+	--border-very-light: #555555;
+
+	/* Overlay & Background Opacity Colors */
+	--overlay-dark: rgba(0, 0, 0, 0.5);
+	--overlay-darker: rgba(0, 0, 0, 0.7);
+	--overlay-light: rgba(0, 0, 0, 0.1);
+	--overlay-lighter: rgba(0, 0, 0, 0.05);
+	--overlay-white-10: var(--overlay-white-10);
+	--overlay-white-12: var(--overlay-white-12);
+	--overlay-white-20: var(--overlay-white-20);
+	--overlay-secondary-50: var(--overlay-secondary-50);
+	--overlay-secondary-70: var(--overlay-secondary-70);
+	--overlay-success-15: var(--overlay-success-15);
+	--overlay-accent-25: var(--overlay-accent-25);
+
+	/* Shadow Depths */
+	--shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2);
+	--shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
+	--shadow-xl: 0 4px 8px rgba(0, 0, 0, 0.2);
+	--shadow-2xl: 0 4px 12px rgba(0, 0, 0, 0.4);
+	--shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.3);
+	--shadow-deep: 0 10px 40px rgba(0, 0, 0, 0.2);
+
+	/* Proficiency & Skill Colors */
+	--proficiency-race: #a67cff;
+	--proficiency-class: #4a9aff;
+	--proficiency-background: #66bb6a;
+	--proficiency-default-bg: rgba(25, 118, 210, 0.075);
+	--proficiency-disabled-bg: #f0f0f0;
+	--proficiency-disabled-text: #888888;
+	--proficiency-disabled-border: #dddddd;
+	--highlight-color: #fdcb6e;
+
+	/* Tooltip & Reference Colors */
+	--tooltip-bg: rgba(25, 25, 25, 0.98);
+	--tooltip-title: #e8e8e8;
+	--tooltip-title-spell: #7bb5ff;
+	--tooltip-title-condition: #ff7b7b;
+	--tooltip-title-action: #7bff7b;
+	--tooltip-title-object: #ffb77b;
+	--tooltip-title-variantrule: #c77bff;
+	--tooltip-title-book: #ffd700;
+	--tooltip-text: #e8e8e8;
+	--tooltip-text-muted: #b8b8b8;
+	--tooltip-text-small: #b0b0b0;
+	--tooltip-text-link: #4da6ff;
+	--tooltip-border: #444444;
+
+	/* Item Rarity Colors */
+	--item-common: #ffffff;
+	--item-uncommon: #1eff00;
+	--item-rare: #0070dd;
+	--item-very-rare: #a335ee;
+	--item-legendary: #ff8000;
+	--item-artifact: #e6cc80;
+
+	/* Spell School Colors */
+	--spell-school-abjuration: #4a90e2;
+	--spell-school-conjuration: #f5a623;
+	--spell-school-divination: #7ed321;
+	--spell-school-enchantment: #bd10e0;
+	--spell-school-evocation: #ff6b6b;
+	--spell-school-illusion: #50e3c2;
+	--spell-school-necromancy: #9013fe;
+	--spell-school-transmutation: #f8e71c;
+
+	/* Reference Link Colors */
+	--link-spell: #7bb5ff;
+	--link-spell-hover: #9ecfff;
+	--link-item: #ffc107;
+	--link-item-hover: #ffd54f;
+	--link-condition: #ff7b7b;
+	--link-condition-hover: #ff9999;
+	--link-monster: #f08080;
+	--link-action: #7bff7b;
+	--link-action-hover: #99ff99;
+	--link-class: #7bbdff;
+	--link-class-hover: #9ecfff;
+	--link-race: #d4a574;
+	--link-race-hover: #e8b896;
+	--link-feat: #f0a080;
+	--link-feat-hover: #ffb399;
+	--link-background: #b8a080;
+	--link-background-hover: #d4b899;
+	--link-feature: #a8a8ff;
+	--link-feature-hover: #c8c8ff;
+	--link-skill: #7bffb7;
+	--link-skill-hover: #99ffcc;
+	--link-language: #b8ff8f;
+	--link-language-hover: #d4ffb3;
+	--link-proficiency: #f0c080;
+	--link-proficiency-hover: #ffdb99;
+
+	/* Bootstrap/Setup Colors (Light theme for setup modal) */
+	--bootstrap-primary: #0d6efd;
+	--bootstrap-primary-hover: #0b5ed7;
+	--bootstrap-light-bg: #f8f9fa;
+	--bootstrap-border: #dee2e6;
+	--bootstrap-border-light: #e9ecef;
+	--bootstrap-text-muted: #6c757d;
+	--bootstrap-text-secondary: #495057;
+	--bootstrap-text-dark: #212529;
+	--bootstrap-info-bg: #e7f3ff;
+	--bootstrap-info-text: #0c5aa0;
+	--bootstrap-info-border: #0d6efd;
+
+	/* Layout Dimensions */
 	--sidebar-width: 250px;
 	--header-height: 60px;
+
+	/* Border Radius Scale */
 	--border-radius: 4px;
-	--box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	--border-radius-sm: 2px;
+	--border-radius-lg: 8px;
+
+	/* Spacing & Sizing */
+	--spacing-xs: 0.25rem;
+	--spacing-sm: 0.5rem;
+	--spacing-md: 1rem;
+	--spacing-lg: 1.5rem;
+	--spacing-xl: 2rem;
+
+	/* Transitions & Animations */
 	--transition: all 0.2s ease;
-	--border-color: #333333;
+	--transition-fast: all 0.15s ease;
+	--transition-slow: all 0.3s ease;
+	--box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+	/* Content Layout Widths */
 	--race-content-width: 62%;
 	--race-image-width: 30%;
 	--class-content-width: 62%;
@@ -94,7 +241,7 @@ body.debug-mode .nav-item.debug-only {
 
 .sidebar-header {
 	padding: 0.75rem 0.5rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	border-bottom: 1px solid var(--overlay-white-10);
 	margin-bottom: 0.75rem;
 }
 
@@ -209,7 +356,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .nav-sublink.active {
-	background: rgba(255, 255, 255, 0.12);
+	background: var(--overlay-white-12);
 	color: white;
 }
 
@@ -245,7 +392,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .feat-item.selected {
-	background: rgba(76, 175, 80, 0.15);
+	background: var(--overlay-success-15);
 	border-color: #4caf80;
 }
 
@@ -464,13 +611,13 @@ body.debug-mode .nav-item.debug-only {
 	background-color: var(--secondary-color);
 	border-color: var(--accent-color);
 	color: var(--text-color);
-	box-shadow: 0 0 0 0.2rem rgba(228, 7, 18, 0.25);
+	box-shadow: 0 0 0 0.2rem var(--overlay-accent-25);
 }
 
 /* Improve disabled dropdown styling */
 .form-select:disabled {
-	background-color: rgba(36, 36, 36, 0.7);
-	color: #cccccc;
+	background-color: var(--overlay-secondary-70);
+	color: var(--text-lighter);
 	border-color: var(--border-color);
 	opacity: 0.8;
 	cursor: not-allowed;
@@ -527,13 +674,13 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .btn-light {
-	background: rgba(255, 255, 255, 0.1);
+	background: var(--overlay-white-10);
 	border: none;
 	color: white;
 }
 
 .btn-light:hover {
-	background: rgba(255, 255, 255, 0.2);
+	background: var(--overlay-white-20);
 	color: white;
 }
 
@@ -543,7 +690,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .btn-danger:hover {
-	background: #c0392b;
+	background: var(--danger-dark);
 }
 
 /* Character Cards */
@@ -650,7 +797,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .character-card .card-text {
-	color: #e0e0e0;
+	color: var(--text-light);
 	font-size: 0.9rem;
 	margin: 0.5rem 0;
 	line-height: 1.4;
@@ -666,7 +813,7 @@ body.debug-mode .nav-item.debug-only {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	color: #e0e0e0;
+	color: var(--text-light);
 	font-size: 0.9rem;
 }
 
@@ -678,7 +825,7 @@ body.debug-mode .nav-item.debug-only {
 
 .character-card .last-modified {
 	font-size: 0.8rem;
-	color: #a0a0a0;
+	color: var(--text-very-light);
 	margin-top: auto;
 	align-self: flex-start;
 	display: flex;
@@ -945,7 +1092,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .equipment-item p {
-	color: #e0e0e0;
+	color: var(--text-light);
 	margin-bottom: 0.5rem;
 }
 
@@ -1227,7 +1374,7 @@ body[data-current-page="details"] .floating-actions {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	background: rgba(36, 36, 36, 0.5);
+	background: var(--overlay-secondary-50);
 	border-radius: var(--border-radius);
 	margin-top: 0.5rem;
 	min-height: 80px;
@@ -1469,7 +1616,7 @@ body[data-current-page="details"] .floating-actions {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	background: rgba(36, 36, 36, 0.5);
+	background: var(--overlay-secondary-50);
 	border-radius: var(--border-radius);
 	margin-top: 0.5rem;
 	min-height: 80px;
@@ -1620,7 +1767,7 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .proficiency-item.proficient.default {
-	background-color: rgba(25, 118, 210, 0.075);
+	background-color: var(--proficiency-default-bg);
 	border-left: 3px solid var(--accent-color);
 	color: var(--text-color);
 	opacity: 0.85;
@@ -1637,7 +1784,7 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .proficiency-item.proficient.optional-selected {
-	background-color: rgba(253, 203, 110, 0.15);
+	background-color: var(--proficiency-default-bg);
 	border-left: 3px solid var(--warning-color);
 }
 
@@ -1679,14 +1826,14 @@ body[data-current-page="details"] .floating-actions {
 .ability-bonuses-container,
 .proficiency-notes-container {
 	font-size: 0.85rem;
-	color: #e0e0e0;
+	color: var(--text-light);
 	border-top: 1px solid var(--border-color);
 	padding-top: 1rem;
 }
 
 .feat-notes-container {
 	font-size: 0.85rem;
-	color: #e0e0e0;
+	color: var(--text-light);
 	border-top: 1px solid var(--border-color);
 	padding-top: 1rem;
 }
@@ -1745,7 +1892,7 @@ body[data-current-page="details"] .floating-actions {
 .sidebar-sources {
 	margin-top: 1rem;
 	padding: 0.75rem;
-	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	border-top: 1px solid var(--overlay-white-10);
 	display: none; /* Hide by default */
 }
 
@@ -1915,7 +2062,7 @@ body[data-current-page="details"] .floating-actions {
 }
 
 .character-info-container .form-control::placeholder {
-	color: #a0a0a0;
+	color: var(--text-very-light);
 }
 
 .character-info-container textarea.form-control {
@@ -2374,7 +2521,7 @@ body[data-current-page="details"] .floating-actions {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	background: rgba(36, 36, 36, 0.5);
+	background: var(--overlay-secondary-50);
 	border-radius: var(--border-radius);
 	margin-top: 0.5rem;
 	min-height: 80px;

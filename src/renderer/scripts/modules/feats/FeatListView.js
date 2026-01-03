@@ -1,8 +1,13 @@
 /** Renders the list of selected feats on the build page. */
 
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 export class FeatListView {
+    constructor() {
+        this._onRemoveFeatClick = this._onRemoveFeatClick.bind(this);
+    }
+
     /**
      * Render the list of selected feats into the provided container.
      * @param {HTMLElement|null} container - Target container element (#featList)
@@ -24,14 +29,12 @@ export class FeatListView {
             const source = feat?.source || 'Unknown Source';
 
             html += `
-				<div class="feat-item d-flex align-items-start gap-2 p-2 border rounded mb-2" data-feat-name="${name}">
-					<div class="flex-grow-1">
-						<div class="d-flex align-items-center gap-2 mb-1">
-							<strong>${name}</strong>
-							<span class="badge badge-sm" style="background: var(--secondary); color: var(--secondary-fg);">${source}</span>
-						</div>
+				<div class="feat-list-item" data-feat-name="${name}">
+					<div class="feat-list-item-info">
+						<strong>${name}</strong>
+						<span class="badge feat-list-item-badge">${source}</span>
 					</div>
-					<button class="btn btn-sm btn-outline-danger remove-feat" type="button" aria-label="Remove feat" style="padding: 0.25rem 0.5rem;">
+					<button class="btn btn-sm btn-outline-danger remove-feat-btn remove-feat" type="button" aria-label="Remove feat">
 						<i class="fas fa-trash"></i>
 					</button>
 				</div>
@@ -40,5 +43,52 @@ export class FeatListView {
 
         container.innerHTML = html;
         await textProcessor.processElement(container);
+
+        // Attach event listeners to remove buttons
+        this._attachRemoveListeners(container, character);
+    }
+
+    /**
+     * Attach click listeners to remove feat buttons
+     * @param {HTMLElement} container - Container with feat items
+     * @param {import('../../core/Character.js').Character} character - Current character
+     * @private
+     */
+    _attachRemoveListeners(container, character) {
+        const removeButtons = container.querySelectorAll('.remove-feat-btn');
+        removeButtons.forEach((button) => {
+            button.addEventListener('click', (e) => {
+                this._onRemoveFeatClick(e, character);
+            });
+        });
+    }
+
+    /**
+     * Handle removal of a feat
+     * @param {Event} event - Click event
+     * @param {import('../../core/Character.js').Character} character - Current character
+     * @private
+     */
+    _onRemoveFeatClick(event, character) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!character) return;
+
+        const featItem = event.currentTarget.closest('.feat-list-item');
+        const featName = featItem?.getAttribute('data-feat-name');
+
+        if (!featName) {
+            console.warn('FeatListView', 'Could not determine feat name to remove');
+            return;
+        }
+
+        // Remove the feat from character's feats array
+        character.feats = character.feats.filter((f) => f.name !== featName);
+
+        // Emit character updated event
+        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+
+        console.info('FeatListView', 'Feat removed', { featName });
     }
 }

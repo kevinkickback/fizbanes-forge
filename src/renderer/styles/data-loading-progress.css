@@ -1,0 +1,57 @@
+/* Data Configuration Modal Progress Styles */
+
+.data-download-status {
+	display: none;
+	margin-top: 10px;
+}
+
+.data-download-status.show {
+	display: block;
+}
+
+.data-download-progress {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.data-download-progress-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.progress-container {
+	flex-grow: 1;
+	height: 6px;
+	background: var(--bootstrap-border-light);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.progress-fill {
+	width: 0%;
+	height: 100%;
+	background: var(--bootstrap-primary);
+	transition: width 0.3s ease;
+}
+
+.data-download-status-text {
+	font-size: 0.875rem;
+	color: var(--bootstrap-text-muted);
+}
+
+.data-config-spinner {
+	display: none;
+}
+
+.data-config-spinner.show {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.data-config-spinner i {
+	margin-right: 0.5rem;
+}

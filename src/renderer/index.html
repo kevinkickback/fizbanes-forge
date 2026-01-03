@@ -16,8 +16,6 @@
         base-uri 'self'
     " />
     <link rel="stylesheet" href="styles/main.css" />
-    <link rel="stylesheet" href="styles/tooltip.css" />
-    <link rel="stylesheet" href="styles/data-configuration-modal.css" />
 </head>
 
 <body>
@@ -106,7 +104,7 @@
             <!-- Floating Action Buttons -->
             <div class="floating-actions" id="characterActions">
                 <div class="d-flex align-items-center">
-                    <span id="unsavedChangesIndicator" class="text-warning me-2" style="display: none;">
+                    <span id="unsavedChangesIndicator" class="text-warning me-2">
                         <i class="fas fa-exclamation-circle"></i> Unsaved changes
                     </span>
                     <button class="btn btn-primary me-2" id="saveCharacter">
@@ -296,27 +294,6 @@
         </div>
     </div>
 
-    <!-- Feat Selection Modal -->
-    <div class="modal fade" id="featSelectionModal" tabindex="-1" aria-labelledby="featSelectionModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="featSelectionModalLabel">Add Feat</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="featSearchInput" placeholder="Search feats...">
-                    </div>
-                    <div class="feat-search-results" id="featSearchResults">
-                        <!-- Search results will be populated dynamically -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Optional Feature Selection Modal -->
     <div class="modal fade" id="featureSelectionModal" tabindex="-1" aria-labelledby="featureSelectionModalLabel"
         aria-hidden="true">
@@ -354,6 +331,36 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmButton">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feat Selection Modal -->
+    <div class="modal fade" id="featSelectionModal" tabindex="-1" aria-labelledby="featSelectionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="featSelectionModalLabel">Select a Feat</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="feat-selection-container">
+                        <input type="text" class="form-control feat-search" placeholder="Search feats..."
+                            aria-label="Search feats">
+                        <div class="dropdown feat-source-dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle feat-source-toggle" type="button"
+                                aria-expanded="false">All sources</button>
+                            <div class="dropdown-menu feat-source-menu"></div>
+                        </div>
+                    </div>
+                    <div class="text-muted small feat-slot-note mb-2"></div>
+                    <div class="feat-list"></div>
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-ok">OK</button>
                 </div>
             </div>
         </div>

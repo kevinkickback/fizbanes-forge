@@ -25,6 +25,7 @@
 - **UI state**: Use `AppState` and the event bus for all cross-component state changes.
 - **Debug UI**: Elements with `.debug-only` are only visible in debug mode (`FF_DEBUG=true`).
 - **Unsaved changes**: Managed via `AppState` and `CHARACTER_UPDATED`/`CHARACTER_SAVED` events.
+- **CSS Variables for Theming**: All colors, shadows, spacing, and other themeable properties must use CSS variables defined in `src/renderer/styles/main.css` (in the `:root` section). Never hardcode color values (hex, rgba, etc.) in CSS rules. When adding new styles, check if an appropriate variable exists; if not, add it to `:root` with other variables of its category (e.g., proficiency colors, overlay colors, etc.). This ensures the entire theme can be changed by modifying variables in one place.
 
 ## Integration Points
 - **IPC**: All main/renderer communication is via IPC handlers registered in `src/electron/ipc/handlers/`.

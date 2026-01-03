@@ -25,6 +25,80 @@ async function launchApp() {
 	return { app, page };
 }
 
+async function createCharacter(page, characterName) {
+	// Click "New Character" button
+	const newCharacterBtn = page.locator('#newCharacterBtn');
+	await expect(newCharacterBtn).toBeVisible({ timeout: 15000 });
+	await newCharacterBtn.click();
+
+	// Wait for modal to appear
+	await page.waitForSelector('#newCharacterModal.show', { timeout: 15000 });
+
+	// Fill in character name
+	const nameInput = page.locator('#newCharacterName');
+	await expect(nameInput).toBeVisible({ timeout: 10000 });
+	await nameInput.fill(characterName);
+
+	// Submit form
+	const createButton = page.locator('#createCharacterBtn');
+	await expect(createButton).toBeVisible({ timeout: 10000 });
+	await createButton.click();
+
+	// Wait for modal to close
+	await page.waitForSelector('#newCharacterModal.show', {
+		state: 'hidden',
+		timeout: 15000,
+	});
+
+	// Wait for character card to appear
+	await page.waitForTimeout(1000);
+	const characterCard = page
+		.locator('.character-card', { hasText: characterName })
+		.first();
+	await expect(characterCard).toBeVisible({ timeout: 15000 });
+}
+
+async function deleteCharacter(page, characterName) {
+	try {
+		// Navigate to home page
+		await page.waitForSelector('button.nav-link[data-page="home"]', {
+			timeout: 15000,
+		});
+		await page.click('button.nav-link[data-page="home"]');
+		await page.waitForSelector('[data-current-page="home"]', {
+			timeout: 30000,
+		});
+		await page.waitForTimeout(1000);
+
+		// Find and click delete button on character card
+		const deleteCard = page
+			.locator('.character-card', { hasText: characterName })
+			.first();
+		if (await deleteCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+			const deleteButton = deleteCard.locator('.delete-character');
+			if (await deleteButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+				await deleteButton.click();
+
+				// Confirm deletion
+				const confirmButton = page
+					.locator('#confirmDeleteBtn, .btn-danger')
+					.filter({ hasText: /delete|confirm/i })
+					.first();
+				await confirmButton
+					.waitFor({ state: 'visible', timeout: 5000 })
+					.catch(() => { });
+				if (await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+					await confirmButton.click();
+				}
+
+				await page.waitForTimeout(1000);
+			}
+		}
+	} catch (error) {
+		console.error(`Failed to delete character "${characterName}":`, error.message);
+	}
+}
+
 async function openCharacter(page, characterName) {
 	const locator = page
 		.locator('.character-card', { hasText: characterName })
@@ -44,13 +118,14 @@ test.describe('Race Change Dropdown Reset', () => {
 	test('resets ability choice dropdowns when changing race', async () => {
 		test.setTimeout(180000);
 		let electronApp;
+		const testCharacterName = `test-race-reset-${Date.now()}`;
 
 		try {
 			const { app, page } = await launchApp();
 			electronApp = app;
 
-			const characterName = 'PLZ WRK';
-			await openCharacter(page, characterName);
+			await createCharacter(page, testCharacterName);
+			await openCharacter(page, testCharacterName);
 
 			// Select Half-Elf and make ability choices
 			const raceSelect = page.locator('#raceSelect');
@@ -97,6 +172,9 @@ test.describe('Race Change Dropdown Reset', () => {
 			console.log(
 				'✓ Ability choice dropdowns properly reset when changing race',
 			);
+
+			// Clean up: delete the test character
+			await deleteCharacter(page, testCharacterName);
 		} finally {
 			if (electronApp) {
 				await electronApp.close();
@@ -107,13 +185,14 @@ test.describe('Race Change Dropdown Reset', () => {
 	test('resets ability choice dropdowns when changing subrace', async () => {
 		test.setTimeout(180000);
 		let electronApp;
+		const testCharacterName = `test-subrace-reset-${Date.now()}`;
 
 		try {
 			const { app, page } = await launchApp();
 			electronApp = app;
 
-			const characterName = 'PLZ WRK';
-			await openCharacter(page, characterName);
+			await createCharacter(page, testCharacterName);
+			await openCharacter(page, testCharacterName);
 
 			// Select Human race (which has subrace options)
 			const raceSelect = page.locator('#raceSelect');
@@ -167,6 +246,9 @@ test.describe('Race Change Dropdown Reset', () => {
 			console.log(
 				'✓ Ability choice dropdowns properly reset when changing subrace',
 			);
+
+			// Clean up: delete the test character
+			await deleteCharacter(page, testCharacterName);
 		} finally {
 			if (electronApp) {
 				await electronApp.close();

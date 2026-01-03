@@ -6,7 +6,7 @@
 	--modal-fg: var(--text-color);
 	--modal-border: var(--border-color);
 	--modal-radius: var(--border-radius);
-	--modal-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+	--modal-shadow: var(--shadow-md);
 	--modal-title: var(--text-color);
 	--modal-badge-bg: var(--accent-color);
 	--modal-badge-fg: #fff;

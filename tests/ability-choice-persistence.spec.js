@@ -25,6 +25,80 @@ async function launchApp() {
 	return { app, page };
 }
 
+async function createCharacter(page, characterName) {
+	// Click "New Character" button
+	const newCharacterBtn = page.locator('#newCharacterBtn');
+	await expect(newCharacterBtn).toBeVisible({ timeout: 15000 });
+	await newCharacterBtn.click();
+
+	// Wait for modal to appear
+	await page.waitForSelector('#newCharacterModal.show', { timeout: 15000 });
+
+	// Fill in character name
+	const nameInput = page.locator('#newCharacterName');
+	await expect(nameInput).toBeVisible({ timeout: 10000 });
+	await nameInput.fill(characterName);
+
+	// Submit form
+	const createButton = page.locator('#createCharacterBtn');
+	await expect(createButton).toBeVisible({ timeout: 10000 });
+	await createButton.click();
+
+	// Wait for modal to close
+	await page.waitForSelector('#newCharacterModal.show', {
+		state: 'hidden',
+		timeout: 15000,
+	});
+
+	// Wait for character card to appear
+	await page.waitForTimeout(1000);
+	const characterCard = page
+		.locator('.character-card', { hasText: characterName })
+		.first();
+	await expect(characterCard).toBeVisible({ timeout: 15000 });
+}
+
+async function deleteCharacter(page, characterName) {
+	try {
+		// Navigate to home page
+		await page.waitForSelector('button.nav-link[data-page="home"]', {
+			timeout: 15000,
+		});
+		await page.click('button.nav-link[data-page="home"]');
+		await page.waitForSelector('[data-current-page="home"]', {
+			timeout: 30000,
+		});
+		await page.waitForTimeout(1000);
+
+		// Find and click delete button on character card
+		const deleteCard = page
+			.locator('.character-card', { hasText: characterName })
+			.first();
+		if (await deleteCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+			const deleteButton = deleteCard.locator('.delete-character');
+			if (await deleteButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+				await deleteButton.click();
+
+				// Confirm deletion
+				const confirmButton = page
+					.locator('#confirmDeleteBtn, .btn-danger')
+					.filter({ hasText: /delete|confirm/i })
+					.first();
+				await confirmButton
+					.waitFor({ state: 'visible', timeout: 5000 })
+					.catch(() => { });
+				if (await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+					await confirmButton.click();
+				}
+
+				await page.waitForTimeout(1000);
+			}
+		}
+	} catch (error) {
+		console.error(`Failed to delete character "${characterName}":`, error.message);
+	}
+}
+
 async function openCharacter(page, characterName) {
 	const locator = page
 		.locator('.character-card', { hasText: characterName })
@@ -83,7 +157,7 @@ async function saveCharacter(page) {
 
 	// Wait for unsaved indicator to disappear if present
 	const unsaved = page.locator('#unsavedChangesIndicator');
-	await unsaved.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+	await unsaved.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => { });
 
 	// Small buffer to allow disk write
 	await page.waitForTimeout(500);
@@ -112,15 +186,16 @@ test.describe('Racial Ability Choice Persistence', () => {
 		let electronAppOne;
 		let electronAppTwo;
 		let initialBonuses;
+		const testCharacterName = `test-ability-choice-${Date.now()}`;
 
 		try {
-			// First run: set race + ability choices and let auto-save persist them
+			// First run: create character, set race + ability choices and let auto-save persist them
 			const firstLaunch = await launchApp();
 			electronAppOne = firstLaunch.app;
 			const { page: firstPage } = firstLaunch;
 
-			const characterName = 'PLZ WRK';
-			await openCharacter(firstPage, characterName);
+			await createCharacter(firstPage, testCharacterName);
+			await openCharacter(firstPage, testCharacterName);
 			initialBonuses = await selectRaceAndChoices(firstPage);
 
 			// Give the app a moment to persist changes
@@ -137,9 +212,11 @@ test.describe('Racial Ability Choice Persistence', () => {
 			electronAppTwo = secondLaunch.app;
 			const { page: secondPage } = secondLaunch;
 
-			const characterName = 'PLZ WRK';
-			await openCharacter(secondPage, characterName);
+			await openCharacter(secondPage, testCharacterName);
 			await verifyRestoredState(secondPage, initialBonuses);
+
+			// Clean up: delete the test character
+			await deleteCharacter(secondPage, testCharacterName);
 		} finally {
 			if (electronAppTwo) {
 				await electronAppTwo.close();

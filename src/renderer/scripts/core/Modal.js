@@ -547,10 +547,10 @@ export class Modal {
 			titleElement.textContent = 'Character Already Exists';
 			messageElement.innerHTML = `
                 A character with this file ID already exists. What would you like to do?<br><br>
-                <i class="fas fa-user" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">Character Name:</strong> ${characterName}<br>
-                <i class="fas fa-fingerprint" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">File ID:</strong> ${characterId}<br>
-                <i class="fas fa-clock" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">Date Created:</strong> ${createdDate}<br>
-                <i class="fas fa-pen" style="color: var(--accent-color);"></i>&nbsp;&nbsp;<strong style="color: var(--accent-color);">Last Modified:</strong> ${modifiedDate}
+                <i class="fas fa-user character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">Character Name:</strong> ${characterName}<br>
+                <i class="fas fa-fingerprint character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">File ID:</strong> ${characterId}<br>
+                <i class="fas fa-clock character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">Date Created:</strong> ${createdDate}<br>
+                <i class="fas fa-pen character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">Last Modified:</strong> ${modifiedDate}
             `;
 			confirmButton.textContent = 'Overwrite';
 

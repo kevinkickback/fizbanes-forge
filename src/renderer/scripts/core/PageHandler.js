@@ -506,7 +506,7 @@ class PageHandlerImpl {
 		if (!container) return;
 
 		container.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 200px);">
+            <div class="content-center-vertical">
                 <div class="empty-state text-center">
                     <i class="fas fa-users fa-5x mb-4 text-muted"></i>
                     <h2 class="mb-3">No Characters</h2>

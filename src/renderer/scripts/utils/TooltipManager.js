@@ -46,7 +46,7 @@ function _createTooltip() {
 	const actions = document.createElement('div');
 	actions.className = 'tooltip-actions';
 	actions.innerHTML = `
-		<div class="tooltip-drag-handle" title="Drag tooltip" style="display: none">
+		<div class="tooltip-drag-handle">
 		    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<circle cx="8" cy="6" r="1.5" />
 			<circle cx="16" cy="6" r="1.5" />
@@ -170,7 +170,7 @@ function _togglePin(tooltipObj) {
  * @private
  */
 // Copy tooltip content is disabled (button removed)
-async function _copyTooltipContent() {}
+async function _copyTooltipContent() { }
 
 /**
  * Close specific tooltip

@@ -160,16 +160,16 @@ export class DataConfigurationModal {
 							</small>
 						</div>
 						<button class="btn btn-primary data-config-submit-btn" data-action="validate-url">
-							<span class="spinner-icon" style="display: none;">
+							<span class="spinner-icon data-config-spinner">
 								<i class="fas fa-spinner fa-spin"></i>
 							</span>
                             <span class="button-text">Validate & Download</span>
 						</button>
-                        <div class="data-config-progress" id="dataDownloadStatus" style="display: none; margin-top: 10px;">
-                            <div class="progress" style="height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
-                                <div id="dataDownloadProgressBar" style="width: 0%; height: 100%; background: #0d6efd;"></div>
+                        <div class="data-download-status" id="dataDownloadStatus">
+                            <div class="progress-container">
+                                <div id="dataDownloadProgressBar" class="progress-fill"></div>
                             </div>
-                            <small id="dataDownloadStatusText" class="form-text text-muted">Preparing download...</small>
+                            <small id="dataDownloadStatusText" class="data-download-status-text">Preparing download...</small>
                         </div>
 					</div>
 
@@ -192,7 +192,7 @@ export class DataConfigurationModal {
                             </small>
 						</div>
 						<button class="btn btn-primary data-config-submit-btn" data-action="validate-local" disabled>
-							<span class="spinner-icon" style="display: none;">
+							<span class="spinner-icon data-config-spinner">
 								<i class="fas fa-spinner fa-spin"></i>
 							</span>
 							<span class="button-text">Validate & Use Folder</span>

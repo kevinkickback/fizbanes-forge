@@ -63,7 +63,7 @@
 	text-align: left;
 	background-color: var(--secondary-color);
 	border-radius: var(--border-radius);
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-lg);
 	border: 1px solid var(--border-color);
 }
 
@@ -132,8 +132,8 @@
 	max-width: 650px;
 	max-height: calc(100vh - 40px);
 	overflow-y: auto;
-	background: rgba(20, 20, 20, 0.98);
-	border: 1px solid var(--tooltip-border-color);
+	background: var(--tooltip-bg);
+	border: 1px solid var(--tooltip-border);
 	border-radius: 6px;
 	box-shadow:
 		0 0 12px rgba(0, 0, 0, 0.6),
@@ -886,7 +886,7 @@
 }
 
 .tooltip-container .tooltip-drag-handle {
-	display: flex;
+	display: none;
 	align-items: center;
 	justify-content: center;
 	width: 28px;
@@ -900,6 +900,10 @@
 	cursor: move;
 	transition: all 0.2s ease;
 	user-select: none;
+}
+
+.tooltip-container .tooltip-drag-handle.show {
+	display: flex;
 }
 
 .tooltip-container .tooltip-drag-handle:hover {

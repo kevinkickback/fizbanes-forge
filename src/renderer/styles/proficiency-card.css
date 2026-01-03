@@ -52,7 +52,7 @@
 .proficiency-item .ability {
 	margin-left: 0.5rem;
 	font-size: 0.75rem;
-	color: var(--secondary-color);
+	color: var(--text-light);
 }
 
 .proficiency-item .unselect-hint {
@@ -70,29 +70,30 @@
 }
 
 .proficiency-item.selectable {
+	background-color: var(--proficiency-default-bg);
 	border-color: var(--highlight-color);
 	cursor: pointer;
 }
 
 /* Special styling for race-only and class-only skills */
-.proficiency-item.race-only {
-	border-color: #a67cff; /* Purple for race skills */
+.proficiency-item.race-only:not(.selectable) {
+	border-color: var(--proficiency-race);
 }
 
-.proficiency-item.class-only {
-	border-color: #4a9aff; /* Blue for class skills */
+.proficiency-item.class-only:not(.selectable) {
+	border-color: var(--proficiency-class);
 }
 
-.proficiency-item.background-only {
-	border-color: #66bb6a; /* Green for background skills */
+.proficiency-item.background-only:not(.selectable) {
+	border-color: var(--proficiency-background);
 }
 
 .proficiency-item.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
-	background-color: #f0f0f0;
-	color: #888;
-	border-color: #ddd;
+	background-color: var(--proficiency-disabled-bg);
+	color: var(--proficiency-disabled-text);
+	border-color: var(--proficiency-disabled-border);
 }
 
 .proficiency-item.selectable:hover {
@@ -164,7 +165,7 @@
 	padding: 0.5rem 0.75rem;
 	border-radius: 0.25rem;
 	font-size: 0.85rem;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+	box-shadow: var(--shadow-md);
 	animation: fadeInOut 5s ease-in-out;
 	max-width: 220px;
 	pointer-events: none;

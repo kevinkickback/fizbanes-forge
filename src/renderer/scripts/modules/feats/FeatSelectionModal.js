@@ -11,6 +11,7 @@ export class FeatSelectionModal {
 	constructor({ allowClose = true } = {}) {
 		this.allowClose = allowClose;
 		this.modal = null;
+		this.bootstrapModal = null;
 		this.validFeats = [];
 		this.filteredFeats = [];
 		this.searchTerm = '';
@@ -51,7 +52,14 @@ export class FeatSelectionModal {
 		// Pre-select any already-selected feats
 		this._preselectSavedFeats(character);
 
-		await this._renderModal();
+		// Get the modal element from DOM
+		this.modal = document.getElementById('featSelectionModal');
+		if (!this.modal) {
+			console.error('FeatSelectionModal', 'Modal element not found in DOM');
+			showNotification('Could not open feat selection modal', 'error');
+			return;
+		}
+
 		const slotNote = this.modal.querySelector('.feat-slot-note');
 		if (slotNote) {
 			const reasonsText =
@@ -62,22 +70,18 @@ export class FeatSelectionModal {
 			slotNote.textContent = `You may select up to ${this.featSlotLimit} feat${this.featSlotLimit === 1 ? '' : 's'
 				} (currently ${this._availability.remaining} remaining).${reasonsText}`;
 		}
+
 		await this._renderFeatList();
 		this._attachEventListeners();
-		// Remove any existing modal overlays to prevent duplicates
-		document.querySelectorAll('.modal-overlay').forEach((el) => {
-			el.remove();
-		});
-		// Ensure modal uses fixed positioning and is appended to <body>
-		this.modal.style.position = 'fixed';
-		this.modal.style.top = '0';
-		this.modal.style.left = '0';
-		this.modal.style.width = '100vw';
-		this.modal.style.height = '100vh';
-		this.modal.style.zIndex = '2000';
-		document.body.appendChild(this.modal);
-		// Prevent background scroll when modal is open
-		document.body.classList.add('modal-open');
+
+		// Create or reuse Bootstrap modal instance
+		if (!this.bootstrapModal) {
+			this.bootstrapModal = new bootstrap.Modal(this.modal, {
+				backdrop: true,
+				keyboard: true,
+			});
+		}
+		this.bootstrapModal.show();
 	}
 
 	async _loadValidFeats() {
@@ -137,38 +141,6 @@ export class FeatSelectionModal {
 		}
 	}
 
-	async _renderModal() {
-		this.modal = document.createElement('div');
-		// Use the same modal structure/classes as the new character modal for consistency
-		this.modal.className = 'modal-overlay';
-
-		this.modal.innerHTML = `
-			<div class="modal-backdrop"></div>
-			<div class="modal-dialog" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2001;">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h2 class="modal-title" style="font-size: 1.5rem;">Select a Feat</h2>
-					</div>
-					<div class="modal-body">
-						<div class="d-flex flex-wrap gap-2 mb-3 align-items-center w-100" style="width: 100%;">
-							<input type="text" class="form-control feat-search" style="flex: 1 1 260px; min-width: 200px; max-width: 100%;" placeholder="Search feats..." aria-label="Search feats">
-							<div class="dropdown feat-source-dropdown">
-								<button class="btn btn-outline-secondary dropdown-toggle feat-source-toggle" type="button" aria-expanded="false">All sources</button>
-								<div class="dropdown-menu feat-source-menu p-2" style="max-height: 240px; overflow-y: auto; background: var(--modal-bg); color: var(--modal-fg); border: 1px solid var(--modal-border);"></div>
-							</div>
-						</div>
-						<div class="text-muted small feat-slot-note mb-2"></div>
-						<div class="feat-list" style="max-height: 50vh; overflow-y: auto;"></div>
-					</div>
-					<div class="modal-footer d-flex justify-content-end gap-2">
-						<button type="button" class="btn btn-secondary btn-cancel">Cancel</button>
-						<button type="button" class="btn btn-primary btn-ok">OK</button>
-					</div>
-				</div>
-			</div>
-		`;
-	}
-
 	async _renderFeatList() {
 		const listEl = this.modal.querySelector('.feat-list');
 		if (!listEl) return;
@@ -212,13 +184,13 @@ export class FeatSelectionModal {
 
 				const isSelected = this.selectedFeatIds.has(f.id);
 				return `
-					<div class="feat-item d-flex align-items-start gap-3 py-2 px-2 border rounded ${isSelected ? 'selected' : ''} ${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'disabled' : ''}" data-feat-id="${f.id}" role="button" tabindex="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? '-1' : '0'}" aria-pressed="${isSelected}" aria-disabled="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'true' : 'false'}">
+					<div class="feat-item ${isSelected ? 'selected' : ''} ${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'disabled' : ''}" data-feat-id="${f.id}" role="button" tabindex="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? '-1' : '0'}" aria-pressed="${isSelected}" aria-disabled="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'true' : 'false'}">
 						<div class="flex-grow-1">
-							<div class="d-flex align-items-center gap-2 mb-1">
-								<strong style="color: var(--modal-title);">${f.name}</strong>
-								<span class="badge" style="background: var(--modal-badge-bg); color: var(--modal-badge-fg);">${f.source}</span>
+							<div class="feat-item-header">
+								<strong class="feat-item-name">${f.name}</strong>
+								<span class="badge feat-item-source">${f.source}</span>
 							</div>
-							<div class="feat-desc small" style="color: var(--modal-desc);">${desc}</div>
+							<div class="feat-desc">${desc}</div>
 						</div>
 						<div class="feat-selected-indicator" aria-hidden="true">✓ Selected</div>
 					</div>
@@ -232,30 +204,37 @@ export class FeatSelectionModal {
 
 
 	_attachEventListeners() {
-		// Cancel button closes modal
-		this.modal.querySelector('.btn-cancel').addEventListener('click', () => this.close());
+		// Cancel button closes modal (using Bootstrap dismiss)
+		const cancelButton = this.modal.querySelector('.btn-secondary');
+		if (cancelButton) {
+			cancelButton.addEventListener('click', () => this.close());
+		}
+
 		// OK button emits selected feats (should all be within allowance now)
-		this.modal.querySelector('.btn-ok').addEventListener('click', () => {
-			const selectedFeats = this.validFeats.filter((f) =>
-				this.selectedFeatIds.has(f.id),
-			);
+		const okButton = this.modal.querySelector('.btn-ok');
+		if (okButton) {
+			okButton.addEventListener('click', () => {
+				const selectedFeats = this.validFeats.filter((f) =>
+					this.selectedFeatIds.has(f.id),
+				);
 
-			if (selectedFeats.length > 0) {
-				// Add origin field to each selected feat
-				const featsWithOrigin = selectedFeats.map((f) => ({
-					...f,
-					origin: this._featOrigins.get(f.id) || 'Unknown',
-				}));
+				if (selectedFeats.length > 0) {
+					// Add origin field to each selected feat
+					const featsWithOrigin = selectedFeats.map((f) => ({
+						...f,
+						origin: this._featOrigins.get(f.id) || 'Unknown',
+					}));
 
-				console.debug('FeatSelectionModal', 'Emitting FEATS_SELECTED event', {
-					count: featsWithOrigin.length,
-					feats: featsWithOrigin.map((f) => `${f.name} (${f.origin})`),
-				});
-				eventBus.emit(EVENTS.FEATS_SELECTED, featsWithOrigin);
-				showNotification(`${featsWithOrigin.length} feat(s) selected!`, 'success');
-			}
-			this.close();
-		});
+					console.debug('FeatSelectionModal', 'Emitting FEATS_SELECTED event', {
+						count: featsWithOrigin.length,
+						feats: featsWithOrigin.map((f) => `${f.name} (${f.origin})`),
+					});
+					eventBus.emit(EVENTS.FEATS_SELECTED, featsWithOrigin);
+					showNotification(`${featsWithOrigin.length} feat(s) selected!`, 'success');
+				}
+				this.close();
+			});
+		}
 
 		const searchInput = this.modal.querySelector('.feat-search');
 		const sourceMenu = this.modal.querySelector('.feat-source-menu');
@@ -396,8 +375,18 @@ export class FeatSelectionModal {
 	}
 
 	close() {
-		this.modal?.parentNode?.removeChild(this.modal);
-		// Restore background scroll
-		document.body.classList.remove('modal-open');
+		// Hide the Bootstrap modal properly without removing the element
+		if (this.bootstrapModal) {
+			this.bootstrapModal.hide();
+		}
+
+		// Clean up any lingering backdrops in case Bootstrap missed them
+		setTimeout(() => {
+			const backdrop = document.querySelector('.modal-backdrop');
+			if (backdrop) {
+				backdrop.remove();
+			}
+			document.body.classList.remove('modal-open');
+		}, 100);
 	}
 }

@@ -2,6 +2,51 @@ import { _electron as electron, expect, test } from '@playwright/test';
 
 test.describe('Feat Selection', () => {
     /**
+     * Helper: Delete a character via the UI
+     */
+    async function deleteCharacter(page, characterName) {
+        try {
+            // Navigate to home page
+            await page.waitForSelector('button.nav-link[data-page="home"]', {
+                timeout: 15000,
+            });
+            await page.click('button.nav-link[data-page="home"]');
+            await page.waitForSelector('[data-current-page="home"]', {
+                timeout: 30000,
+            });
+            await page.waitForTimeout(1000);
+
+            // Find and click delete button on character card
+            const deleteCard = page
+                .locator('.character-card', { hasText: characterName })
+                .first();
+            if (await deleteCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+                const deleteButton = deleteCard.locator('.delete-character');
+                if (await deleteButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+                    await deleteButton.click();
+
+                    // Confirm deletion
+                    const confirmButton = page
+                        .locator('#confirmDeleteBtn, .btn-danger')
+                        .filter({ hasText: /delete|confirm/i })
+                        .first();
+                    await confirmButton
+                        .waitFor({ state: 'visible', timeout: 5000 })
+                        .catch(() => { });
+                    if (await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+                        await confirmButton.click();
+                    }
+
+                    await page.waitForTimeout(1000);
+                    console.log(`✓ Test character "${characterName}" deleted`);
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to delete character "${characterName}":`, error.message);
+        }
+    }
+
+    /**
      * Helper: Create a new character
      */
     async function createCharacter(page, characterName, raceToSelect, subraceToSelect) {
@@ -226,6 +271,9 @@ test.describe('Feat Selection', () => {
             console.log(`Updated feat count: "${updatedFeatCount}"`);
 
             console.log('\n=== TEST COMPLETE ===');
+
+            // Clean up: delete the test character
+            await deleteCharacter(page, characterName);
         } finally {
             if (electronApp) await electronApp.close();
         }
@@ -392,6 +440,9 @@ test.describe('Feat Selection', () => {
             });
 
             console.log('✓ Modal closed');
+
+            // Clean up: delete the test character
+            await deleteCharacter(page, characterName);
         } finally {
             if (electronApp) await electronApp.close();
         }

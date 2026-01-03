@@ -1,0 +1,124 @@
+/* Utility Styles for Layout and Display */
+
+/* Empty State */
+.empty-state {
+	padding: 2rem;
+}
+
+.empty-state i {
+	color: var(--text-muted);
+}
+
+/* Display Utilities */
+.form-row {
+	display: flex;
+	flex-direction: row;
+	gap: 1rem;
+	align-items: stretch;
+}
+
+.form-row-full {
+	height: 100%;
+}
+
+/* Progress Bar Styles */
+.progress-bar-custom {
+	height: 6px;
+	background: var(--bootstrap-border-light);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.progress-bar-fill {
+	width: 0%;
+	height: 100%;
+	background: var(--bootstrap-primary);
+}
+
+/* Drag Handle */
+.drag-handle {
+	cursor: grab;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+	color: var(--text-color);
+}
+
+.drag-handle:active {
+	cursor: grabbing;
+}
+
+/* Spinner Icon */
+.spinner-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Small Button Padding */
+.btn-sm-compact {
+	padding: 0.25rem 0.5rem;
+}
+
+/* Centered Content */
+.content-center-vertical {
+	height: calc(100vh - 200px);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+/* Data Configuration Container */
+.data-source-status-container {
+	background-color: var(--secondary-color);
+	padding: 12px 16px;
+	border-radius: 4px;
+	border-left: 4px solid var(--bootstrap-text-muted);
+}
+
+.data-source-status-text {
+	color: var(--bootstrap-light-bg);
+}
+
+/* Traits Section */
+.traits-section {
+	margin-top: 1rem;
+}
+
+/* Unsaved Changes Indicator */
+#unsavedChangesIndicator {
+	display: none;
+}
+
+#unsavedChangesIndicator.show {
+	display: inline;
+}
+
+/* Character Exists Dialog */
+.character-exists-icon {
+	color: var(--accent-color);
+}
+
+.character-exists-label {
+	color: var(--accent-color);
+}
+
+/* Starting Equipment Section */
+#startingEquipmentSection {
+	display: none;
+}
+
+#startingEquipmentSection.show {
+	display: block;
+}
+
+/* Sort Select */
+#sortSelect,
+.sort-select {
+	width: auto;
+}

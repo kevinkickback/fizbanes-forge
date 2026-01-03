@@ -128,7 +128,7 @@ export class BackgroundDetailsView {
 		if (!feature) return '';
 
 		return `
-            <div class="traits-section detail-section" style="margin-top: 1rem;">
+            <div class="traits-section detail-section">
                 <h6>Feature</h6>
                 <div class="feature-content">
                     <ul class="mb-0">
