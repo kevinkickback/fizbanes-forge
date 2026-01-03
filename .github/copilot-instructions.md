@@ -25,6 +25,7 @@
 - **UI state**: Use `AppState` and the event bus for all cross-component state changes.
 - **Debug UI**: Elements with `.debug-only` are only visible in debug mode (`FF_DEBUG=true`).
 - **Unsaved changes**: Managed via `AppState` and `CHARACTER_UPDATED`/`CHARACTER_SAVED` events.
+- **Bootstrap Components**: Use Bootstrap 5 components (modals, tabs, progress bars, etc.) instead of custom implementations. Modal elements should be defined in `index.html` and controlled via Bootstrap's JavaScript API (`new bootstrap.Modal()`, `.show()`, `.hide()`). Always reuse Bootstrap modal instances rather than creating new ones on each show.
 - **CSS Variables for Theming**: All colors, shadows, spacing, and other themeable properties must use CSS variables defined in `src/renderer/styles/main.css` (in the `:root` section). Never hardcode color values (hex, rgba, etc.) in CSS rules. When adding new styles, check if an appropriate variable exists; if not, add it to `:root` with other variables of its category (e.g., proficiency colors, overlay colors, etc.). This ensures the entire theme can be changed by modifying variables in one place.
 
 ## Integration Points

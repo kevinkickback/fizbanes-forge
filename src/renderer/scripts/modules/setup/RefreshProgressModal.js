@@ -3,6 +3,7 @@
 export class RefreshProgressModal {
 	constructor() {
 		this.modal = null;
+		this.bootstrapModal = null;
 		this.progressBar = null;
 		this.messageElement = null;
 		this.statusElement = null;
@@ -17,45 +18,27 @@ export class RefreshProgressModal {
 			return;
 		}
 
-		const wrapper = document.createElement('div');
-		wrapper.className = 'refresh-progress-overlay';
-		wrapper.innerHTML = `
-			<div class="refresh-progress-dialog">
-				<div class="refresh-progress-header">
-					<h3>Refreshing Data Source</h3>
-				</div>
-				<div class="refresh-progress-body">
-					<p id="refreshProgressMessage" class="refresh-progress-message">Checking for updates...</p>
-					<div class="refresh-progress-bar-container">
-						<div id="refreshProgressBar" class="refresh-progress-bar"></div>
-					</div>
-					<small id="refreshProgressStatus" class="refresh-progress-status">0%</small>
-					<button
-						id="refreshProgressConfirm"
-						type="button"
-						class="btn btn-primary refresh-progress-confirm"
-					>
-						Done
-					</button>
-				</div>
-			</div>
-		`;
+		this.modal = document.getElementById('refreshProgressModal');
+		if (!this.modal) {
+			console.error('RefreshProgressModal', 'Modal element not found in DOM');
+			return;
+		}
 
-		document.body.appendChild(wrapper);
-		this.modal = wrapper;
-		this.progressBar = wrapper.querySelector('#refreshProgressBar');
-		this.messageElement = wrapper.querySelector('#refreshProgressMessage');
-		this.statusElement = wrapper.querySelector('#refreshProgressStatus');
-		this.confirmButton = wrapper.querySelector('#refreshProgressConfirm');
+		this.progressBar = this.modal.querySelector('.progress-bar');
+		this.messageElement = this.modal.querySelector('.refresh-progress-message');
+		this.statusElement = this.modal.querySelector('.refresh-progress-status');
+		this.confirmButton = this.modal.querySelector('.refresh-progress-confirm');
 
 		if (this.confirmButton) {
 			this.confirmButton.addEventListener('click', () => this.hide());
 		}
 
-		// Trigger animation
-		setTimeout(() => {
-			this.modal?.classList.add('show');
-		}, 10);
+		// Create Bootstrap modal instance
+		this.bootstrapModal = new bootstrap.Modal(this.modal, {
+			backdrop: 'static',
+			keyboard: false,
+		});
+		this.bootstrapModal.show();
 	}
 
 	/**
@@ -67,6 +50,7 @@ export class RefreshProgressModal {
 		if (this.progressBar) {
 			const safePercent = Math.min(100, Math.max(0, percent));
 			this.progressBar.style.width = `${safePercent}%`;
+			this.progressBar.setAttribute('aria-valuenow', safePercent);
 		}
 
 		if (this.statusElement) {
@@ -86,7 +70,7 @@ export class RefreshProgressModal {
 	showCompletion(message, percent = 100) {
 		this.updateProgress(percent, message);
 		if (this.confirmButton) {
-			this.confirmButton.classList.add('show');
+			this.confirmButton.classList.remove('d-none');
 			this.confirmButton.focus();
 		}
 	}
@@ -95,20 +79,18 @@ export class RefreshProgressModal {
 	 * Hide and remove the modal
 	 */
 	hide() {
-		if (!this.modal) {
+		if (!this.bootstrapModal) {
 			return;
 		}
 
-		this.modal.classList.remove('show');
-		setTimeout(() => {
-			if (this.modal?.parentElement) {
-				this.modal.remove();
-			}
-			this.modal = null;
-			this.progressBar = null;
-			this.messageElement = null;
-			this.statusElement = null;
-			this.confirmButton = null;
-		}, 300);
+		this.bootstrapModal.hide();
+
+		// Clean up references
+		this.modal = null;
+		this.bootstrapModal = null;
+		this.progressBar = null;
+		this.messageElement = null;
+		this.statusElement = null;
+		this.confirmButton = null;
 	}
 }

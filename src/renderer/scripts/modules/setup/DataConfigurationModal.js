@@ -11,9 +11,12 @@ export class DataConfigurationModal {
 	 */
 	constructor(options = {}) {
 		this.modal = null;
+		this.bootstrapModal = null;
 		this.isValidating = false;
 		this.allowClose = options.allowClose || false;
 		this.progressUnsub = null;
+		this.resolveCallback = null;
+		this.rejectCallback = null;
 	}
 
 	/**
@@ -27,17 +30,51 @@ export class DataConfigurationModal {
 		await this._loadSavedConfiguration();
 
 		return new Promise((resolve, reject) => {
-			this.modal = this._createModalElement(resolve, reject);
-			document.body.appendChild(this.modal);
+			this.resolveCallback = resolve;
+			this.rejectCallback = reject;
 
-			// Pre-populate with saved values if available
+			this.modal = document.getElementById('dataConfigModal');
+			if (!this.modal) {
+				console.error('DataConfigurationModal', 'Modal element not found in DOM');
+				reject(new Error('Modal element not found'));
+				return;
+			}
+
+			this._setupModal();
 			this._populateSavedValues();
+			this._attachEventListeners();
 
-			// Animate modal in
-			setTimeout(() => {
-				this.modal.classList.add('show');
-			}, 10);
+			// Create Bootstrap modal instance
+			this.bootstrapModal = new bootstrap.Modal(this.modal, {
+				backdrop: 'static',
+				keyboard: false,
+			});
+			this.bootstrapModal.show();
 		});
+	}
+
+	/**
+	 * Setup modal for display based on allowClose option
+	 *
+	 * @private
+	 */
+	_setupModal() {
+		const closeBtn = this.modal.querySelector('.data-config-close-btn');
+		const subtitle = this.modal.querySelector('.data-config-subtitle');
+
+		if (this.allowClose) {
+			closeBtn?.classList.remove('d-none');
+			if (subtitle) {
+				subtitle.innerHTML =
+					'Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).';
+			}
+		} else {
+			closeBtn?.classList.add('d-none');
+			if (subtitle) {
+				subtitle.innerHTML =
+					'D&D data files not found. Please provide a data source.<br>Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).';
+			}
+		}
 	}
 
 	/**
@@ -105,162 +142,56 @@ export class DataConfigurationModal {
 				validateBtn.disabled = false;
 			}
 
-			// Switch to local tab
-			const localTabBtn = this.modal.querySelector('[data-tab="local"]');
-			if (localTabBtn) {
-				localTabBtn.click();
+			// Switch to local tab using Bootstrap tab API
+			const localTab = this.modal.querySelector('#local-tab');
+			if (localTab) {
+				const tab = new bootstrap.Tab(localTab);
+				tab.show();
 			}
 		}
 	}
 
 	/**
-	 * Create the modal DOM structure with all UI elements and event handlers.
-	 * Sets up tab switching, validation buttons, and form inputs.
+	 * Attach all event listeners for the modal
 	 *
 	 * @private
-	 * @param {Function} onResolve - Called on successful validation
-	 * @param {Function} onReject - Called if user closes modal
-	 * @returns {HTMLElement} The modal element
 	 */
-	_createModalElement(onResolve, onReject) {
-		const wrapper = document.createElement('div');
-		wrapper.className = 'data-config-modal-overlay';
-		const subtitle = this.allowClose
-			? 'Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).'
-			: 'D&D data files not found. Please provide a data source.<br>Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).';
-		wrapper.innerHTML = `
-			<div class="data-config-modal-dialog">
-				<div class="data-config-modal-header">
-					<h2>Configure Data Source</h2>
-					${this.allowClose ? '<button class="data-config-modal-close-btn" aria-label="Close"><i class="fas fa-times"></i></button>' : ''}
-                    <p class="text-muted">${subtitle}</p>
-				</div>
-
-				<div class="data-config-modal-body">
-					<div class="data-config-tabs">
-						<button class="data-config-tab-btn active" data-tab="url">
-							<i class="fas fa-link"></i> URL Source
-						</button>
-						<button class="data-config-tab-btn" data-tab="local">
-							<i class="fas fa-folder"></i> Local Folder
-						</button>
-					</div>
-
-					<!-- URL Tab -->
-					<div class="data-config-tab-content active" id="data-config-url-tab">
-						<div class="form-group">
-							<input
-								type="url"
-								id="dataSourceUrl"
-								class="form-control"
-								placeholder="https://example.com/5etools-src"
-							/>
-							<small class="form-text text-muted">
-                                Enter the URL to a data repository. Must use <code>5etools</code> folder structure & <code>.json</code> schema.
-							</small>
-						</div>
-						<button class="btn btn-primary data-config-submit-btn" data-action="validate-url">
-							<span class="spinner-icon data-config-spinner">
-								<i class="fas fa-spinner fa-spin"></i>
-							</span>
-                            <span class="button-text">Validate & Download</span>
-						</button>
-                        <div class="data-download-status" id="dataDownloadStatus">
-                            <div class="progress-container">
-                                <div id="dataDownloadProgressBar" class="progress-fill"></div>
-                            </div>
-                            <small id="dataDownloadStatusText" class="data-download-status-text">Preparing download...</small>
-                        </div>
-					</div>
-
-					<!-- Local Folder Tab -->
-					<div class="data-config-tab-content" id="data-config-local-tab">
-						<div class="form-group">
-							<div class="input-group">
-								<input
-									type="text"
-									id="localFolderPath"
-									class="form-control"
-									placeholder="C:/path/to/data"
-								/>
-								<button class="btn btn-outline-secondary" id="browseLocalFolderBtn">
-									<i class="fas fa-folder-open"></i> Browse
-								</button>
-							</div>
-                            <small class="form-text text-muted">
-                                Select a local folder. Must use <code>5etools</code> folder structure & <code>.json</code> schema.
-                            </small>
-						</div>
-						<button class="btn btn-primary data-config-submit-btn" data-action="validate-local" disabled>
-							<span class="spinner-icon data-config-spinner">
-								<i class="fas fa-spinner fa-spin"></i>
-							</span>
-							<span class="button-text">Validate & Use Folder</span>
-						</button>
-					</div>
-
-			</div>
-		`;
-
-		// Tab switching
-		const tabBtns = wrapper.querySelectorAll('.data-config-tab-btn');
-		const tabContents = wrapper.querySelectorAll('.data-config-tab-content');
-
-		tabBtns.forEach((btn) => {
-			btn.addEventListener('click', () => {
-				const tab = btn.dataset.tab;
-
-				// Update active tab button
-				tabBtns.forEach((b) => {
-					b.classList.remove('active');
-				});
-				btn.classList.add('active');
-
-				// Update active tab content
-				tabContents.forEach((content) => {
-					content.classList.remove('active');
-				});
-				wrapper
-					.querySelector(`#data-config-${tab}-tab`)
-					.classList.add('active');
-			});
-		});
-
+	_attachEventListeners() {
 		// URL validation
-		const validateUrlBtn = wrapper.querySelector(
-			'[data-action="validate-url"]',
-		);
-		const urlInput = wrapper.querySelector('#dataSourceUrl');
+		const validateUrlBtn = this.modal.querySelector('[data-action="validate-url"]');
+		const urlInput = this.modal.querySelector('#dataSourceUrl');
 
 		// Disable button if input is empty
-		urlInput.addEventListener('input', () => {
+		urlInput?.addEventListener('input', () => {
 			validateUrlBtn.disabled = urlInput.value.trim() === '';
 		});
 		// Initial state
-		validateUrlBtn.disabled = urlInput.value.trim() === '';
+		if (validateUrlBtn && urlInput) {
+			validateUrlBtn.disabled = urlInput.value.trim() === '';
+		}
 
-		validateUrlBtn.addEventListener('click', async () => {
+		validateUrlBtn?.addEventListener('click', async () => {
 			const url = urlInput.value.trim();
 			if (!url) {
 				showNotification('Please enter a URL', 'error');
 				return;
 			}
 
-			await this._validateAndSubmit('url', url, validateUrlBtn, onResolve);
+			await this._validateAndSubmit('url', url, validateUrlBtn);
 		});
 
 		// Local folder browser
-		const browseBtn = wrapper.querySelector('#browseLocalFolderBtn');
-		const localPathInput = wrapper.querySelector('#localFolderPath');
-		const validateLocalBtn = wrapper.querySelector(
+		const browseBtn = this.modal.querySelector('#browseLocalFolderBtn');
+		const localPathInput = this.modal.querySelector('#localFolderPath');
+		const validateLocalBtn = this.modal.querySelector(
 			'[data-action="validate-local"]',
 		);
 
-		localPathInput.addEventListener('input', () => {
+		localPathInput?.addEventListener('input', () => {
 			validateLocalBtn.disabled = localPathInput.value.trim() === '';
 		});
 
-		browseBtn.addEventListener('click', async () => {
+		browseBtn?.addEventListener('click', async () => {
 			try {
 				const result = await window.app.selectFolder();
 				if (result.success && result.path) {
@@ -277,35 +208,31 @@ export class DataConfigurationModal {
 			}
 		});
 
-		validateLocalBtn.addEventListener('click', async () => {
+		validateLocalBtn?.addEventListener('click', async () => {
 			const path = localPathInput.value.trim();
 			if (!path) {
 				showNotification('Please select a folder', 'error');
 				return;
 			}
 
-			await this._validateAndSubmit('local', path, validateLocalBtn, onResolve);
+			await this._validateAndSubmit('local', path, validateLocalBtn);
 		});
 
 		// Allow Enter key in URL field
-		urlInput.addEventListener('keypress', (e) => {
+		urlInput?.addEventListener('keypress', (e) => {
 			if (e.key === 'Enter') {
-				validateUrlBtn.click();
+				validateUrlBtn?.click();
 			}
 		});
 
 		// Close button (if allowed)
 		if (this.allowClose) {
-			const closeBtn = wrapper.querySelector('.data-config-modal-close-btn');
-			if (closeBtn) {
-				closeBtn.addEventListener('click', () => {
-					this.modal.remove();
-					onReject(new Error('Modal closed by user'));
-				});
-			}
+			const closeBtn = this.modal.querySelector('.data-config-close-btn');
+			closeBtn?.addEventListener('click', () => {
+				this.bootstrapModal?.hide();
+				this.rejectCallback?.(new Error('Modal closed by user'));
+			});
 		}
-
-		return wrapper;
 	}
 
 	/**
@@ -321,18 +248,19 @@ export class DataConfigurationModal {
 		if (!window.app?.onDataDownloadProgress) return;
 		this.progressUnsub = window.app.onDataDownloadProgress((payload) => {
 			if (!payload) return;
-			const statusEl = this.modal.querySelector('#dataDownloadStatus');
-			const barEl = this.modal.querySelector('#dataDownloadProgressBar');
-			const textEl = this.modal.querySelector('#dataDownloadStatusText');
+			const statusEl = this.modal.querySelector('.data-download-status');
+			const barEl = this.modal.querySelector('.data-download-progress-bar');
+			const textEl = this.modal.querySelector('.data-download-status-text');
 			if (!statusEl || !barEl || !textEl) return;
 
-			statusEl.style.display = 'block';
+			statusEl.classList.remove('d-none');
 
 			const total = payload.total || 0;
 			const completed = payload.completed || 0;
 			const percent =
 				total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
 			barEl.style.width = `${percent}%`;
+			barEl.setAttribute('aria-valuenow', percent);
 
 			if (payload.status === 'start') {
 				textEl.textContent = `Starting download (${total} files)...`;
@@ -380,20 +308,21 @@ export class DataConfigurationModal {
 	 * @param {string} type - 'url' or 'local'
 	 * @param {string} value - URL or folder path
 	 * @param {HTMLElement} button - Submit button element
-	 * @param {Function} onResolve - Callback on success
 	 * @returns {Promise<void>}
 	 */
-	async _validateAndSubmit(type, value, button, onResolve) {
+	async _validateAndSubmit(type, value, button) {
 		if (this.isValidating) return;
 
 		this.isValidating = true;
 		button.disabled = true;
 
-		const spinner = button.querySelector('.spinner-icon');
+		const spinner = button.querySelector('.data-config-spinner');
 		const text = button.querySelector('.button-text');
-		spinner.style.display = 'inline-block';
-		text.textContent =
-			type === 'url' ? 'Validating & Downloading...' : 'Validating...';
+		spinner?.classList.remove('d-none');
+		if (text) {
+			text.textContent =
+				type === 'url' ? 'Validating & Downloading...' : 'Validating...';
+		}
 
 		if (type === 'url') {
 			this.attachProgressListener();
@@ -435,8 +364,8 @@ export class DataConfigurationModal {
 				window.location.reload();
 
 				this.detachProgressListener();
-				this.modal.remove();
-				onResolve({ type, value });
+				this.bootstrapModal?.hide();
+				this.resolveCallback?.({ type, value });
 			} else {
 				console.warn(
 					'DataConfigurationModal',
@@ -447,9 +376,11 @@ export class DataConfigurationModal {
 
 				this.isValidating = false;
 				button.disabled = false;
-				spinner.style.display = 'none';
-				text.textContent =
-					type === 'url' ? 'Validate & Download' : 'Validate & Use Folder';
+				spinner?.classList.add('d-none');
+				if (text) {
+					text.textContent =
+						type === 'url' ? 'Validate & Download' : 'Validate & Use Folder';
+				}
 				this.detachProgressListener();
 			}
 		} catch (error) {
@@ -462,9 +393,11 @@ export class DataConfigurationModal {
 
 			this.isValidating = false;
 			button.disabled = false;
-			spinner.style.display = 'none';
-			text.textContent =
-				type === 'url' ? 'Validate & Download' : 'Validate & Use Folder';
+			spinner?.classList.add('d-none');
+			if (text) {
+				text.textContent =
+					type === 'url' ? 'Validate & Download' : 'Validate & Use Folder';
+			}
 			this.detachProgressListener();
 		}
 	}
