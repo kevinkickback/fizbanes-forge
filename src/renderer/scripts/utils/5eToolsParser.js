@@ -1,0 +1,790 @@
+/**
+ * 5eToolsParser.js
+ *
+ * Selected utility functions extracted from 5etools Parser
+ * Source: https://github.com/5etools-mirror-3/5etools-src
+ *
+ * This module contains only the specific parsing utilities we need,
+ * without the full renderer stack. Functions are adapted for our
+ * Electron/Node environment.
+ */
+
+/**
+ * Size abbreviation to full name mapping
+ */
+const SIZE_ABV_TO_FULL = {
+	F: 'Fine',
+	D: 'Diminutive',
+	T: 'Tiny',
+	S: 'Small',
+	M: 'Medium',
+	L: 'Large',
+	H: 'Huge',
+	G: 'Gargantuan',
+	C: 'Colossal',
+	V: 'Varies',
+};
+
+/**
+ * Ability abbreviation to full name mapping
+ */
+const ATB_ABV_TO_FULL = {
+	str: 'Strength',
+	dex: 'Dexterity',
+	con: 'Constitution',
+	int: 'Intelligence',
+	wis: 'Wisdom',
+	cha: 'Charisma',
+};
+
+/**
+ * Speed modes in order of display
+ */
+const SPEED_MODES = ['walk', 'burrow', 'climb', 'fly', 'swim'];
+
+/**
+ * Skill to ability mapping (D&D 5e core rules)
+ */
+const SKILL_TO_ABILITY = {
+	acrobatics: 'dex',
+	'animal handling': 'wis',
+	arcana: 'int',
+	athletics: 'str',
+	deception: 'cha',
+	history: 'int',
+	insight: 'wis',
+	intimidation: 'cha',
+	investigation: 'int',
+	medicine: 'wis',
+	nature: 'int',
+	perception: 'wis',
+	performance: 'cha',
+	persuasion: 'cha',
+	religion: 'int',
+	'sleight of hand': 'dex',
+	stealth: 'dex',
+	survival: 'wis',
+};
+
+/**
+ * Standard languages in D&D 5e
+ */
+const LANGUAGES_STANDARD = [
+	'Common',
+	'Dwarvish',
+	'Elvish',
+	'Giant',
+	'Gnomish',
+	'Goblin',
+	'Halfling',
+	'Orc',
+];
+
+/**
+ * Exotic languages in D&D 5e
+ */
+const LANGUAGES_EXOTIC = [
+	'Abyssal',
+	'Celestial',
+	'Draconic',
+	'Deep Speech',
+	'Infernal',
+	'Primordial',
+	'Sylvan',
+	'Undercommon',
+];
+
+/**
+ * Secret languages
+ */
+const LANGUAGES_SECRET = ['Druidic', "Thieves' Cant"];
+
+/**
+ * Default character size (Medium)
+ * D&D 5e uses size arrays in the 5etools format
+ */
+const DEFAULT_CHARACTER_SIZE = ['M'];
+
+/**
+ * Default character speed (30 ft. walking)
+ * Standard speed for most Medium humanoids in D&D 5e
+ */
+const DEFAULT_CHARACTER_SPEED = { walk: 30 };
+
+/**
+ * Source book abbreviations
+ */
+const SOURCES = {
+	PHB: 'PHB',
+	XPHB: 'XPHB',
+	DMG: 'DMG',
+	XDMG: 'XDMG',
+	MM: 'MM',
+	XMM: 'XMM',
+	SCAG: 'SCAG',
+	XGE: 'XGE',
+	TCE: 'TCE',
+	VRGR: 'VRGR',
+	MPMM: 'MPMM',
+};
+
+/**
+ * Source full names
+ */
+const SOURCE_TO_FULL = {
+	PHB: "Player's Handbook (2014)",
+	XPHB: "Player's Handbook (2024)",
+	DMG: "Dungeon Master's Guide (2014)",
+	XDMG: "Dungeon Master's Guide (2024)",
+	MM: 'Monster Manual (2014)',
+	XMM: 'Monster Manual (2024)',
+	SCAG: "Sword Coast Adventurer's Guide",
+	XGE: "Xanathar's Guide to Everything",
+	TCE: "Tasha's Cauldron of Everything",
+	VRGR: "Van Richten's Guide to Ravenloft",
+	MPMM: "Mordenkainen Presents: Monsters of the Multiverse",
+};
+
+/**
+ * Source abbreviations for display
+ */
+const SOURCE_TO_ABV = {
+	PHB: 'PHB',
+	XPHB: "PHB'24",
+	DMG: 'DMG',
+	XDMG: "DMG'24",
+	MM: 'MM',
+	XMM: "MM'24",
+	SCAG: 'SCAG',
+	XGE: 'XGE',
+	TCE: 'TCE',
+	VRGR: 'VRGR',
+	MPMM: 'MPMM',
+};
+
+/**
+ * Convert size abbreviation to full name
+ * @param {string} abv - Size abbreviation (T, S, M, L, H, G, etc.)
+ * @returns {string} Full size name
+ */
+export function sizeAbvToFull(abv) {
+	if (!abv) return '';
+	return SIZE_ABV_TO_FULL[abv] || abv;
+}
+
+/**
+ * Convert ability score to modifier number
+ * @param {number} abilityScore - The ability score (e.g., 10, 16, 20)
+ * @returns {number} The modifier (e.g., 0, +3, +5)
+ */
+export function getAbilityModNumber(abilityScore) {
+	return Math.floor((abilityScore - 10) / 2);
+}
+
+/**
+ * Convert ability score to modifier string
+ * @param {number} abilityScore - The ability score
+ * @returns {string} Formatted modifier (e.g., "+0", "+3", "-1")
+ */
+export function getAbilityModifier(abilityScore) {
+	let modifier = getAbilityModNumber(abilityScore);
+	if (modifier >= 0) modifier = `+${modifier}`;
+	return `${modifier}`;
+}
+
+/**
+ * Convert ability abbreviation to full name
+ * @param {string} abv - Ability abbreviation (str, dex, con, int, wis, cha)
+ * @returns {string} Full ability name
+ */
+export function attAbvToFull(abv) {
+	if (!abv) return '';
+	return ATB_ABV_TO_FULL[abv.toLowerCase()] || abv;
+}
+
+/**
+ * Convert array of ability abbreviations to "choose from" text
+ * @param {string[]} attList - Array of ability abbreviations
+ * @returns {string} Human-readable choice text
+ *
+ * Examples:
+ * - ["str"] → "Strength modifier"
+ * - ["str", "dex"] → "Strength or Dexterity modifier (your choice)"
+ */
+export function attrChooseToFull(attList) {
+	if (!attList || !Array.isArray(attList) || attList.length === 0) {
+		return '';
+	}
+
+	if (attList.length === 1) {
+		const fullName = attAbvToFull(attList[0]);
+		return `${fullName}${attList[0] === 'spellcasting' ? ' ability' : ''} modifier`;
+	}
+
+	const attsTemp = attList.map((att) => attAbvToFull(att));
+	return `${attsTemp.join(' or ')} modifier (your choice)`;
+}
+
+/**
+ * Get speed string from entity speed data
+ * @param {object|number} ent - Entity with speed property, or speed number
+ * @returns {string} Formatted speed string
+ *
+ * Examples:
+ * - 30 returns "30 ft."
+ * - {walk: 30, fly: 60} returns "30 ft., fly 60 ft."
+ * - {walk: 30, swim: {number: 30, condition: "..."}} returns "30 ft., swim 30 ft. (...)"
+ */
+export function getSpeedString(ent) {
+	// Handle simple number
+	if (typeof ent === 'number') {
+		return `${ent} ft.`;
+	}
+
+	// Handle object with speed property
+	const speed = ent?.speed;
+	if (!speed) return '—';
+
+	// Handle simple speed number
+	if (typeof speed === 'number') {
+		return `${speed} ft.`;
+	}
+
+	// Handle complex speed object
+	if (typeof speed === 'object') {
+		const stack = [];
+		const unit = 'ft.';
+
+		// Process each speed mode
+		SPEED_MODES.filter((mode) => speed[mode] !== undefined).forEach((mode) => {
+			const modeSpeed = speed[mode];
+
+			// Skip if explicitly hidden
+			if (speed.hidden?.includes(mode)) return;
+
+			// Skip walk speed of 0 if requested
+			if (mode === 'walk' && modeSpeed === 0) return;
+
+			const speedName = mode === 'walk' ? '' : `${mode} `;
+
+			if (typeof modeSpeed === 'number' || modeSpeed === true) {
+				const val = modeSpeed === true ? 0 : modeSpeed;
+				if (val === 0 && mode !== 'walk') {
+					stack.push(`${speedName}equal to your walking speed`);
+				} else {
+					stack.push(`${speedName}${val} ${unit}`);
+				}
+			} else if (typeof modeSpeed === 'object') {
+				const num = modeSpeed.number || 0;
+				const condition = modeSpeed.condition ? ` ${modeSpeed.condition}` : '';
+				stack.push(`${speedName}${num} ${unit}${condition}`);
+			}
+		});
+
+		// Handle "choose" speeds
+		if (speed.choose && !speed.hidden?.includes('choose')) {
+			const fromModes = speed.choose.from
+				.sort()
+				.map((prop) => (prop === 'walk' ? '' : prop))
+				.filter(Boolean)
+				.join(' or ');
+			stack.push(
+				`${fromModes} ${speed.choose.amount} ${unit}${speed.choose.note ? ` ${speed.choose.note}` : ''}`,
+			);
+		}
+
+		const result = stack.join(', ');
+		return result + (speed.note ? ` ${speed.note}` : '');
+	}
+
+	return '—';
+}
+
+/**
+ * Convert monster/creature type object to full text
+ * @param {string|object} type - Type string or type object
+ * @returns {object} Object with type information
+ *
+ * Returns object with:
+ *   types: Array of type names
+ *   tags: Array of tags (e.g., "swarm")
+ *   asText: Full text description
+ *   asTextShort: Short description
+ */
+export function monTypeToFullObj(type) {
+	const out = {
+		types: [],
+		tags: [],
+		asText: '',
+		asTextShort: '',
+	};
+
+	if (type == null) return out;
+
+	// Simple string type (e.g., "humanoid")
+	if (typeof type === 'string') {
+		out.types = [type];
+		out.asText = capitalize(type);
+		out.asTextShort = out.asText;
+		return out;
+	}
+
+	// Complex type object
+	if (type.type) {
+		if (type.type.choose) {
+			out.types = type.type.choose;
+		} else {
+			out.types = [type.type];
+		}
+	}
+
+	// Handle swarm
+	if (type.swarmSize) {
+		out.tags.push('swarm');
+		const sizeText = sizeAbvToFull(type.swarmSize);
+		const typeText = out.types
+			.map((t) => pluralize(capitalize(t)))
+			.join(' or ');
+		out.asText = `swarm of ${sizeText} ${typeText}`;
+		out.asTextShort = out.asText;
+		return out;
+	}
+
+	// Handle tags
+	if (type.tags?.length) {
+		out.tags = type.tags;
+		const tagText = type.tags.map(capitalize).join(', ');
+		out.asText = `${out.types.map(capitalize).join(' or ')} (${tagText})`;
+	} else {
+		out.asText = out.types.map(capitalize).join(' or ');
+	}
+
+	out.asTextShort = out.asText;
+	return out;
+}
+
+/**
+ * Helper: Capitalize first letter
+ * @private
+ */
+function capitalize(str) {
+	if (!str) return '';
+	return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+/**
+ * Helper: Simple pluralization for creature types
+ * @private
+ */
+function pluralize(str) {
+	if (!str) return '';
+	// Simple rules for common D&D types
+	if (str.endsWith('s')) return str;
+	if (str.endsWith('y')) return `${str.slice(0, -1)}ies`;
+	return `${str}s`;
+}
+
+/**
+ * Parse alignment abbreviation to full text
+ * @param {string|object} alignment - Alignment abbreviation or object
+ * @returns {string|null} Full alignment text
+ */
+export function alignmentAbvToFull(alignment) {
+	if (!alignment) return null;
+
+	const ALIGNMENT_MAP = {
+		L: 'lawful',
+		N: 'neutral',
+		NX: 'neutral (law/chaos axis)',
+		NY: 'neutral (good/evil axis)',
+		C: 'chaotic',
+		G: 'good',
+		E: 'evil',
+		U: 'unaligned',
+		A: 'any alignment',
+	};
+
+	if (typeof alignment === 'object') {
+		if (alignment.special != null) return alignment.special;
+		// Handle complex alignment with chance
+		const alignText = alignment.alignment
+			? alignment.alignment
+				.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
+				.join(' ')
+			: '';
+		const chanceText = alignment.chance ? ` (${alignment.chance}%)` : '';
+		const noteText = alignment.note ? ` (${alignment.note})` : '';
+		return `${alignText}${chanceText}${noteText}`;
+	}
+
+	return ALIGNMENT_MAP[alignment.toUpperCase()] || alignment;
+}
+
+/**
+ * Get ordinal form of a number
+ * @param {number} i - Number to convert
+ * @returns {string} Ordinal string (e.g., "1st", "2nd", "3rd", "4th")
+ */
+export function getOrdinalForm(i) {
+	i = Number(i);
+	if (Number.isNaN(i)) return '';
+	const j = i % 10;
+	const k = i % 100;
+	if (j === 1 && k !== 11) return `${i}st`;
+	if (j === 2 && k !== 12) return `${i}nd`;
+	if (j === 3 && k !== 13) return `${i}rd`;
+	return `${i}th`;
+}
+
+/**
+ * Convert full ability name to 3-letter abbreviation
+ * @param {string} ability - Full ability name (e.g., "strength", "charisma")
+ * @returns {string} 3-letter abbreviation in lowercase (e.g., "str", "cha")
+ *
+ * Examples:
+ * - "strength" → "str"
+ * - "Dexterity" → "dex"
+ * - "CHARISMA" → "cha"
+ * - "unknown" → "unk"
+ */
+export function fullAbilityToAbbr(ability) {
+	if (!ability) return '';
+	const abilityLower = ability.toLowerCase();
+	const FULL_TO_ABV = {
+		strength: 'str',
+		dexterity: 'dex',
+		constitution: 'con',
+		intelligence: 'int',
+		wisdom: 'wis',
+		charisma: 'cha',
+	};
+	return FULL_TO_ABV[abilityLower] || abilityLower.substring(0, 3);
+}
+
+/**
+ * Get proficiency bonus for a given character level
+ * @param {number} level - Character level (1-20)
+ * @returns {number} Proficiency bonus (2-6)
+ */
+export function levelToProficiencyBonus(level) {
+	return Math.ceil(level / 4) + 1;
+}
+
+/**
+ * Get the ability that governs a skill
+ * @param {string} skill - Skill name (lowercase)
+ * @returns {string|null} Ability abbreviation or null
+ */
+export function skillToAbility(skill) {
+	return SKILL_TO_ABILITY[skill.toLowerCase()] || null;
+}
+
+/**
+ * Get all skills for a given ability
+ * @param {string} ability - Ability abbreviation (str, dex, etc.)
+ * @returns {string[]} Array of skill names
+ */
+export function abilityToSkills(ability) {
+	const abilityLower = ability.toLowerCase();
+	return Object.entries(SKILL_TO_ABILITY)
+		.filter(([, abilityAbv]) => abilityAbv === abilityLower)
+		.map(([skill]) => skill);
+}
+
+/**
+ * Pack entity into UID format: "name|source"
+ * @param {object} entity - Entity with name and source properties
+ * @returns {string} UID string
+ */
+export function packUid(entity) {
+	if (!entity?.name || !entity?.source) return '';
+	return `${entity.name.toLowerCase().trim()}|${entity.source.toLowerCase().trim()}`;
+}
+
+/**
+ * Unpack UID into name and source
+ * @param {string} uid - UID string in "name|source" format
+ * @returns {object} Object with name and source properties
+ */
+export function unpackUid(uid) {
+	if (!uid || typeof uid !== 'string') return { name: '', source: '' };
+	const [name, source] = uid.split('|');
+	return { name: name?.trim() || '', source: source?.trim() || '' };
+}
+
+/**
+ * Convert source abbreviation to full name
+ * @param {string} source - Source abbreviation
+ * @returns {string} Full source name
+ */
+export function sourceToFull(source) {
+	if (!source) return '';
+	const sourceUpper = source.toUpperCase();
+	return SOURCE_TO_FULL[sourceUpper] || source;
+}
+
+/**
+ * Convert source to display abbreviation
+ * @param {string} source - Source abbreviation
+ * @returns {string} Display abbreviation
+ */
+export function sourceToAbv(source) {
+	if (!source) return '';
+	const sourceUpper = source.toUpperCase();
+	return SOURCE_TO_ABV[sourceUpper] || source;
+}
+
+/**
+ * Check if source is a One D&D (2024) source
+ * @param {string} source - Source abbreviation
+ * @returns {boolean} True if One D&D source
+ */
+export function isOneDnD(source) {
+	if (!source) return false;
+	const sourceUpper = source.toUpperCase();
+	return sourceUpper.startsWith('X'); // XPHB, XDMG, XMM
+}
+
+/**
+ * Convert number to words
+ * @param {number} num - Number to convert
+ * @param {object} opts - Options {isOrdinal: boolean}
+ * @returns {string} Number as words
+ */
+export function numberToWords(num, opts = {}) {
+	if (Number.isNaN(num)) return '';
+
+	const ones = [
+		'',
+		'one',
+		'two',
+		'three',
+		'four',
+		'five',
+		'six',
+		'seven',
+		'eight',
+		'nine',
+	];
+	const tens = [
+		'',
+		'',
+		'twenty',
+		'thirty',
+		'forty',
+		'fifty',
+		'sixty',
+		'seventy',
+		'eighty',
+		'ninety',
+	];
+	const teens = [
+		'ten',
+		'eleven',
+		'twelve',
+		'thirteen',
+		'fourteen',
+		'fifteen',
+		'sixteen',
+		'seventeen',
+		'eighteen',
+		'nineteen',
+	];
+
+	if (opts.isOrdinal) {
+		const ordinals = {
+			one: 'first',
+			two: 'second',
+			three: 'third',
+			five: 'fifth',
+			eight: 'eighth',
+			nine: 'ninth',
+			twelve: 'twelfth',
+		};
+		const text = numberToWords(num);
+		const words = text.split(' ');
+		const lastWord = words[words.length - 1];
+
+		if (Object.hasOwn(ordinals, lastWord)) {
+			words[words.length - 1] = ordinals[lastWord];
+			return words.join(' ');
+		}
+		if (lastWord.endsWith('y')) {
+			words[words.length - 1] = `${lastWord.slice(0, -1)}ieth`;
+			return words.join(' ');
+		}
+		return `${text}th`;
+	}
+
+	if (num < 10) return ones[num];
+	if (num < 20) return teens[num - 10];
+	if (num < 100) {
+		const ten = Math.floor(num / 10);
+		const one = num % 10;
+		return `${tens[ten]}${one > 0 ? `-${ones[one]}` : ''}`;
+	}
+
+	return String(num);
+}
+
+/**
+ * Convert decimal to vulgar fraction
+ * @param {number} num - Number to convert (e.g., 0.5, 0.25)
+ * @returns {string} Vulgar fraction or original number
+ */
+export function numberToVulgarFraction(num) {
+	const fractions = {
+		0.125: '⅛',
+		0.25: '¼',
+		0.333: '⅓',
+		0.5: '½',
+		0.666: '⅔',
+		0.75: '¾',
+	};
+	const rounded = Math.round(num * 1000) / 1000;
+	return fractions[rounded] || String(num);
+}
+
+/**
+ * Parse ability improvement array from 5etools format
+ * @param {Array} improvementArray - Array of ability objects
+ * @returns {object} Parsed abilities {fixed: {}, choices: []}
+ */
+export function parseAbilityImprovements(improvementArray) {
+	if (!Array.isArray(improvementArray)) {
+		return { fixed: {}, choices: [] };
+	}
+
+	const fixed = {};
+	const choices = [];
+
+	for (const improvement of improvementArray) {
+		if (improvement.choose) {
+			// This is a choice
+			choices.push({
+				options: improvement.choose.from || [],
+				count: improvement.choose.count || 1,
+				amount: improvement.choose.amount || 1,
+			});
+		} else {
+			// Fixed bonuses
+			for (const [ability, value] of Object.entries(improvement)) {
+				if (ability !== 'choose') {
+					fixed[ability] = (fixed[ability] || 0) + value;
+				}
+			}
+		}
+	}
+
+	return { fixed, choices };
+}
+
+/**
+ * Format ability improvements for display
+ * @param {object} parsed - Parsed abilities from parseAbilityImprovements
+ * @returns {string} Human-readable string
+ */
+export function formatAbilityImprovements(parsed) {
+	const parts = [];
+
+	// Add fixed bonuses
+	for (const [ability, value] of Object.entries(parsed.fixed)) {
+		const fullName = attAbvToFull(ability);
+		parts.push(`${fullName} +${value}`);
+	}
+
+	// Add choices
+	for (const choice of parsed.choices) {
+		const options = choice.options.map((a) => attAbvToFull(a)).join(', ');
+		const amount = choice.amount;
+		const count = choice.count;
+		parts.push(
+			`choose ${count > 1 ? `${numberToWords(count)} from ` : ''}${options} +${amount}`,
+		);
+	}
+
+	return parts.join(', ');
+}
+
+/**
+ * Ascending sort (case-sensitive)
+ * @param {any} a - First value
+ * @param {any} b - Second value
+ * @returns {number} Sort order
+ */
+export function ascSort(a, b) {
+	if (a === b) return 0;
+	return a < b ? -1 : 1;
+}
+
+/**
+ * Ascending sort (case-insensitive)
+ * @param {string} a - First string
+ * @param {string} b - Second string
+ * @returns {number} Sort order
+ */
+export function ascSortLower(a, b) {
+	return ascSort(String(a).toLowerCase(), String(b).toLowerCase());
+}
+
+/**
+ * Sort by object property
+ * @param {string} prop - Property name to sort by
+ * @returns {function} Sort comparator function
+ */
+export function ascSortByProp(prop) {
+	return (a, b) => ascSort(a[prop], b[prop]);
+}
+
+/**
+ * Sort by object property (case-insensitive)
+ * @param {string} prop - Property name to sort by
+ * @returns {function} Sort comparator function
+ */
+export function ascSortByPropLower(prop) {
+	return (a, b) => ascSortLower(a[prop], b[prop]);
+}
+
+// Export constants for external use
+export {
+	DEFAULT_CHARACTER_SIZE,
+	DEFAULT_CHARACTER_SPEED,
+	LANGUAGES_EXOTIC,
+	LANGUAGES_SECRET,
+	LANGUAGES_STANDARD,
+	SIZE_ABV_TO_FULL,
+	SKILL_TO_ABILITY,
+	SOURCE_TO_ABV,
+	SOURCE_TO_FULL,
+	SOURCES,
+	SPEED_MODES
+};
+
+export default {
+	sizeAbvToFull,
+	getAbilityModNumber,
+	getAbilityModifier,
+	attAbvToFull,
+	attrChooseToFull,
+	getSpeedString,
+	monTypeToFullObj,
+	alignmentAbvToFull,
+	getOrdinalForm,
+	fullAbilityToAbbr,
+	levelToProficiencyBonus,
+	skillToAbility,
+	abilityToSkills,
+	packUid,
+	unpackUid,
+	sourceToFull,
+	sourceToAbv,
+	isOneDnD,
+	numberToWords,
+	numberToVulgarFraction,
+	parseAbilityImprovements,
+	formatAbilityImprovements,
+	ascSort,
+	ascSortLower,
+	ascSortByProp,
+	ascSortByPropLower,
+};

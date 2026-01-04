@@ -293,8 +293,8 @@ class PageHandlerImpl {
 					typeof subclassNameRaw === 'string'
 						? subclassNameRaw
 						: subclassNameRaw?.name ||
-						subclassNameRaw?.title ||
-						subclassNameRaw?.id;
+							subclassNameRaw?.title ||
+							subclassNameRaw?.id;
 				const classDisplay = subclassName
 					? `${subclassName} - ${characterClass}`
 					: characterClass;
@@ -317,10 +317,11 @@ class PageHandlerImpl {
 						<div class="card-body">
 							<div class="character-main">
 								<div class="character-portrait">
-									${portraitUrl
-						? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
-						: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
-					}
+									${
+										portraitUrl
+											? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
+											: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
+									}
 								</div>
 								<div class="character-info">
 									<div class="character-details">
@@ -616,10 +617,7 @@ class PageHandlerImpl {
 
 		const character = AppState.getCurrentCharacter();
 		this._featListView.update(this._featListContainer, character);
-		this._featSourcesView.update(
-			this._featSourcesContainer,
-			character,
-		);
+		this._featSourcesView.update(this._featSourcesContainer, character);
 		this._updateFeatUIState(character);
 
 		if (this._featListenersRegistered) {
@@ -651,10 +649,7 @@ class PageHandlerImpl {
 			});
 			character.setFeats(featsToStore, 'Manual selection');
 			this._featListView.update(this._featListContainer, character);
-			this._featSourcesView.update(
-				this._featSourcesContainer,
-				character,
-			);
+			this._featSourcesView.update(this._featSourcesContainer, character);
 			this._updateFeatUIState(character);
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 		};
@@ -684,14 +679,8 @@ class PageHandlerImpl {
 		};
 
 		eventBus.on(EVENTS.FEATS_SELECTED, this._onFeatsSelected);
-		eventBus.on(
-			EVENTS.CHARACTER_UPDATED,
-			this._onCharacterUpdatedForFeats,
-		);
-		eventBus.on(
-			EVENTS.CHARACTER_SELECTED,
-			this._onCharacterSelectedForFeats,
-		);
+		eventBus.on(EVENTS.CHARACTER_UPDATED, this._onCharacterUpdatedForFeats);
+		eventBus.on(EVENTS.CHARACTER_SELECTED, this._onCharacterSelectedForFeats);
 
 		this._featListenersRegistered = true;
 	}
@@ -701,14 +690,13 @@ class PageHandlerImpl {
 		const maxFeatsEl = document.getElementById('maxFeats');
 		const addFeatBtn = document.getElementById('addFeatBtn');
 
-		const availability =
-			character?.getFeatAvailability?.() || {
-				used: character?.feats?.length || 0,
-				max: 0,
-				remaining: 0,
-				reasons: [],
-				blockedReason: 'No feat selections available.',
-			};
+		const availability = character?.getFeatAvailability?.() || {
+			used: character?.feats?.length || 0,
+			max: 0,
+			remaining: 0,
+			reasons: [],
+			blockedReason: 'No feat selections available.',
+		};
 
 		if (featCountEl) {
 			featCountEl.textContent = availability.used ?? 0;
@@ -720,10 +708,11 @@ class PageHandlerImpl {
 
 		if (addFeatBtn) {
 			addFeatBtn.disabled = availability.max <= 0;
-			addFeatBtn.title = availability.max > 0
-				? ''
-				: availability.blockedReason ||
-				'No feat selections available. Choose Variant Human or reach level 4.';
+			addFeatBtn.title =
+				availability.max > 0
+					? ''
+					: availability.blockedReason ||
+						'No feat selections available. Choose Variant Human or reach level 4.';
 		}
 	}
 

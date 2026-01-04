@@ -1,12 +1,12 @@
 /** Manages ability score state and calculations. */
 import { CharacterManager } from '../core/CharacterManager.js';
 import {
-	calculateModifier,
 	calculatePointBuyTotal,
 	formatModifier,
 	getPointBuyCost,
 	POINT_BUY_BUDGET,
 } from '../modules/abilities/AbilityCalculator.js';
+import { attAbvToFull, getAbilityModNumber } from '../utils/5eToolsParser.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
@@ -182,7 +182,7 @@ class AbilityScoreService {
 	 */
 	getModifier(ability) {
 		const totalScore = this.getTotalScore(ability);
-		return calculateModifier(totalScore);
+		return getAbilityModNumber(totalScore);
 	}
 
 	/**
@@ -386,24 +386,24 @@ class AbilityScoreService {
 		this.abilityChoices.clear();
 		const normalizedChoices = Array.isArray(choices)
 			? choices.filter(Boolean).map((choice, index) => {
-					const ability = this.normalizeAbilityName(
-						choice.ability || choice.abilityScore,
-					);
-					const value = Number.isFinite(choice.value)
-						? choice.value
-						: Number.isFinite(choice.amount)
-							? choice.amount
-							: 1;
-					const source = choice.source?.includes('Choice')
-						? choice.source
-						: `${choice.source || 'Race'} Choice`;
-					return {
-						ability,
-						value,
-						source,
-						index: Number.isFinite(choice.index) ? choice.index : index,
-					};
-				})
+				const ability = this.normalizeAbilityName(
+					choice.ability || choice.abilityScore,
+				);
+				const value = Number.isFinite(choice.value)
+					? choice.value
+					: Number.isFinite(choice.amount)
+						? choice.amount
+						: 1;
+				const source = choice.source?.includes('Choice')
+					? choice.source
+					: `${choice.source || 'Race'} Choice`;
+				return {
+					ability,
+					value,
+					source,
+					index: Number.isFinite(choice.index) ? choice.index : index,
+				};
+			})
 			: [];
 
 		// Persist normalized choices on the character
@@ -528,14 +528,9 @@ class AbilityScoreService {
 		let availableAbilities = allAbilities;
 		if (currentChoice?.choices && currentChoice.choices.length > 0) {
 			availableAbilities = currentChoice.choices.map((a) => {
-				// Map abbreviated ability names to full names
-				if (a === 'str') return 'strength';
-				if (a === 'dex') return 'dexterity';
-				if (a === 'con') return 'constitution';
-				if (a === 'int') return 'intelligence';
-				if (a === 'wis') return 'wisdom';
-				if (a === 'cha') return 'charisma';
-				return a;
+				// Convert abbreviated ability names to full lowercase names
+				const fullName = attAbvToFull(a);
+				return fullName ? fullName.toLowerCase() : a;
 			});
 		}
 

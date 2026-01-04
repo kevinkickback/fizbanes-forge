@@ -86,8 +86,10 @@ async function deleteCharacter(page, characterName) {
 					.first();
 				await confirmButton
 					.waitFor({ state: 'visible', timeout: 5000 })
-					.catch(() => { });
-				if (await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+					.catch(() => {});
+				if (
+					await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)
+				) {
 					await confirmButton.click();
 				}
 
@@ -95,7 +97,10 @@ async function deleteCharacter(page, characterName) {
 			}
 		}
 	} catch (error) {
-		console.error(`Failed to delete character "${characterName}":`, error.message);
+		console.error(
+			`Failed to delete character "${characterName}":`,
+			error.message,
+		);
 	}
 }
 
@@ -157,7 +162,7 @@ async function saveCharacter(page) {
 
 	// Wait for unsaved indicator to disappear if present
 	const unsaved = page.locator('#unsavedChangesIndicator');
-	await unsaved.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => { });
+	await unsaved.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
 
 	// Small buffer to allow disk write
 	await page.waitForTimeout(500);

@@ -7,6 +7,7 @@ import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { raceService } from '../../services/RaceService.js';
 import { sourceService } from '../../services/SourceService.js';
+import { getRaceAbilityData } from '../../utils/AbilityScoreUtils.js';
 import { RaceDetailsView } from './RaceDetails.js';
 import { RaceCardView } from './RaceView.js';
 import { SubracePickerView } from './SubracePicker.js';
@@ -641,53 +642,36 @@ export class RaceCard {
 				character.addAbilityBonus('charisma', 2, 'Race');
 			}
 
-			// Add fixed ability improvements (passing race and subrace directly)
-			const fixedImprovements = this._getFixedAbilityImprovements(
-				race,
-				subrace,
-			);
+			// Use 5etools-based ability score parsing
+			const abilityData = getRaceAbilityData(race, subrace);
 
-			for (const improvement of fixedImprovements) {
-				if (!improvement || !improvement.ability) {
-					console.warn('RaceCard', 'Invalid ability improvement:', improvement);
-					continue;
-				}
-
+			// Add fixed ability improvements
+			for (const improvement of abilityData.fixed) {
 				// Skip Half-Elf's Charisma bonus as it's already handled
 				if (
 					race.name === 'Half-Elf' &&
 					race.source === 'PHB' &&
 					improvement.ability === 'charisma' &&
-					improvement.source === 'Race'
+					improvement.source === 'race'
 				) {
 					continue;
 				}
 
-				// Apply race improvements
-				if (improvement.source === 'Race') {
-					character.addAbilityBonus(
-						improvement.ability,
-						improvement.value || improvement.amount || 1,
-						improvement.source,
-					);
-				}
-				// Apply subrace improvements
-				else if (improvement.source === 'Subrace') {
-					character.addAbilityBonus(
-						improvement.ability,
-						improvement.value || improvement.amount || 1,
-						improvement.source,
-					);
-				}
+				character.addAbilityBonus(
+					improvement.ability,
+					improvement.value,
+					improvement.source === 'race' ? 'Race' : 'Subrace',
+				);
 			}
 
 			// Add ability score choices
-			const choices = this._getAbilityScoreChoices(race, subrace);
-
-			// If we have any choices, process them
-			if (choices && choices.length > 0) {
-				console.debug('RaceCard', 'Adding pending ability choices:', choices);
-				for (const choice of choices) {
+			if (abilityData.choices && abilityData.choices.length > 0) {
+				console.debug(
+					'RaceCard',
+					'Adding pending ability choices:',
+					abilityData.choices,
+				);
+				for (const choice of abilityData.choices) {
 					// Expand each choice based on count (e.g., count:2 becomes 2 separate dropdowns)
 					const count = choice.count || 1;
 					for (let i = 0; i < count; i++) {
@@ -695,7 +679,8 @@ export class RaceCard {
 							count: 1, // Each individual choice is count:1
 							amount: choice.amount,
 							from: choice.from,
-							source: choice.source, // Keep same source for all choices from this race/subrace
+							source:
+								choice.source === 'race' ? 'Race Choice' : 'Subrace Choice',
 							type: 'ability',
 						});
 					}
@@ -895,8 +880,8 @@ export class RaceCard {
 		for (const profObj of race.weaponProficiencies) {
 			for (const [weapon, hasProf] of Object.entries(profObj)) {
 				if (hasProf === true) {
-					// Extract the weapon name without the source
-					const weaponName = weapon.split('|')[0];
+					// Extract the weapon name without the source using unpackUid
+					const { name: weaponName } = window.api.unpackUid(weapon);
 					character.addProficiency('weapons', weaponName, 'Race');
 				}
 			}
@@ -1086,124 +1071,4 @@ export class RaceCard {
 	//-------------------------------------------------------------------------
 	// Data Extraction Helper Methods
 	//-------------------------------------------------------------------------
-
-	/**
-	 * Get fixed ability improvements from race and subrace data
-	 * @param {Object} race - Race JSON object
-	 * @param {Object} subrace - Subrace JSON object (optional)
-	 * @returns {Array} Array of improvement objects {ability, value, source}
-	 * @private
-	 */
-	_getFixedAbilityImprovements(race, subrace) {
-		const improvements = [];
-
-		// Process race abilities
-		if (race?.ability) {
-			for (const abilityEntry of race.ability) {
-				if (!abilityEntry.choose) {
-					for (const [ability, bonus] of Object.entries(abilityEntry)) {
-						if (bonus && typeof bonus === 'number') {
-							improvements.push({
-								ability,
-								value: bonus,
-								amount: bonus,
-								source: 'Race',
-							});
-						}
-					}
-				}
-			}
-		}
-
-		// Process subrace abilities
-		if (subrace?.ability) {
-			for (const abilityEntry of subrace.ability) {
-				if (!abilityEntry.choose) {
-					for (const [ability, bonus] of Object.entries(abilityEntry)) {
-						if (bonus && typeof bonus === 'number') {
-							improvements.push({
-								ability,
-								value: bonus,
-								amount: bonus,
-								source: 'Subrace',
-							});
-						}
-					}
-				}
-			}
-		}
-
-		return improvements;
-	}
-
-	/**
-	 * Get ability score choices from race and subrace data
-	 * @param {Object} race - Race data
-	 * @param {Object} subrace - Subrace data
-	 * @returns {Array} Array of choice objects
-	 * @private
-	 */
-	_getAbilityScoreChoices(race, subrace) {
-		const choices = [];
-
-		// Process race ability choices
-		if (race?.ability) {
-			for (const abilityEntry of race.ability) {
-				if (abilityEntry.choose) {
-					const amount = abilityEntry.choose.amount || 1;
-					const choice = {
-						count: abilityEntry.choose.count || 1,
-						amount,
-						from: abilityEntry.choose.from || [
-							'str',
-							'dex',
-							'con',
-							'int',
-							'wis',
-							'cha',
-						],
-						source: 'Race Choice',
-					};
-
-					// Half-Elf PHB should always be +1 per pick, even if data amount is 2
-					if (race.name === 'Half-Elf' && race.source === 'PHB') {
-						choice.amount = 1;
-					}
-
-					choices.push(choice);
-				}
-			}
-		}
-
-		// Process subrace ability choices
-		if (subrace?.ability) {
-			for (const abilityEntry of subrace.ability) {
-				if (abilityEntry.choose) {
-					const amount = abilityEntry.choose.amount || 1;
-					const choice = {
-						count: abilityEntry.choose.count || 1,
-						amount,
-						from: abilityEntry.choose.from || [
-							'str',
-							'dex',
-							'con',
-							'int',
-							'wis',
-							'cha',
-						],
-						source: 'Subrace Choice',
-					};
-					choices.push(choice);
-				}
-			}
-		}
-
-		console.debug('RaceCard', '_getAbilityScoreChoices result:', {
-			raceName: race?.name,
-			subraceName: subrace?.name,
-			choices,
-		});
-
-		return choices;
-	}
 }

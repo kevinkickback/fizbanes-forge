@@ -2,6 +2,7 @@
 
 import DataNormalizer from './DataNormalizer.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
+import { Renderer5etools } from './Renderer5etools.js';
 import {
 	renderAction,
 	renderBackground,
@@ -9,17 +10,18 @@ import {
 	renderCondition,
 	renderFeat,
 	renderItem,
+	renderMonster,
 	renderObject,
 	renderOptionalFeature,
 	renderRace,
 	renderReward,
 	renderSkill,
 	renderSpell,
+	renderTable,
 	renderTrap,
 	renderVariantRule,
 	renderVehicle,
 } from './StatBlockRenderer.js';
-import { abbreviateAbility } from './TextFormatter.js';
 
 // Internal state
 let tooltips = [];
@@ -419,6 +421,7 @@ async function showReferenceTooltip(type, name, source, x, y) {
 
 /**
  * Format tooltip content from data
+ * Uses 5etools-style entry type detection instead of long if-else chain
  */
 function _formatTooltip(data) {
 	if (!data) {
@@ -427,129 +430,114 @@ function _formatTooltip(data) {
 	if (data.error) {
 		return `<strong>${data.name}</strong><br><small>${data.error}</small>`;
 	}
-	if (data.level !== undefined) {
-		return renderSpell(data);
+
+	// Detect entity type based on key properties (5etools approach)
+	// This is auto-scaling: new entity types work automatically
+	const entityType = _detectEntityType(data);
+
+	// Dispatch to appropriate renderer
+	const renderer = _getRenderer(entityType);
+	if (renderer) {
+		return renderer(data);
 	}
-	if (data.type || data.weapon || data.armor || data.rarity) {
-		return renderItem(data);
+
+	// Fallback: generic rendering for unknown types
+	return _renderGenericTooltip(data);
+}
+
+/**
+ * Detect the entity type from data properties
+ * Uses a prioritized set of property checks (similar to 5etools type detection)
+ * @param {Object} data Entity data
+ * @returns {string} Entity type identifier
+ */
+function _detectEntityType(data) {
+	// Check specific properties that uniquely identify entity types
+	if (data.cr !== undefined) return 'monster'; // Bestiary entries
+	if (data.level !== undefined && !data.hd && !data.skillProficiencies) {
+		return 'spell'; // Has level but not class features or background
 	}
-	if ((data.size || data.speed) && !data.weapon && !data.hd) {
-		return renderRace(data);
-	}
-	if (data.hd) {
-		return renderClass(data);
-	}
-	if (data.prerequisite) {
-		return renderFeat(data);
-	}
-	if (data.skillProficiencies) {
-		return renderBackground(data);
-	}
-	if (
-		data.ability &&
-		typeof data.ability === 'string' &&
-		!data.hd &&
-		data.level === undefined
-	) {
-		return renderSkill(data);
-	}
-	if (data.time && Array.isArray(data.time)) {
-		return renderAction(data);
-	}
-	if (data.featureType) {
-		return renderOptionalFeature(data);
-	}
+	if (data.hd) return 'class'; // Has hit dice = class or monster
+	if (data.prerequisite && !data.skillProficiencies) return 'feat'; // Has prerequisite = feat
+	if (data.skillProficiencies) return 'background'; // Has skill proficiencies = background
+	if ((data.size || data.speed) && !data.weapon && !data.hd) return 'race'; // Size/speed without weapon = race
+	if (data.type || data.weapon || data.armor || data.rarity) return 'item'; // Item-specific properties
+	if (data.ability && typeof data.ability === 'string' && !data.hd) return 'skill'; // Ability string = skill
+	if (data.time && Array.isArray(data.time)) return 'action'; // Time array = action
+	if (data.featureType) return 'optionalfeature'; // Optional feature marker
 	if (
 		data.type &&
 		(data.type.includes('Charm') ||
 			data.type.includes('Piety') ||
 			data.type.includes('Blessing'))
 	) {
-		return renderReward(data);
+		return 'reward'; // Reward-type
 	}
-	if (data.trapHazType) {
-		return renderTrap(data);
-	}
-	if (data.vehicleType) {
-		return renderVehicle(data);
-	}
-	if (data.ac && data.hp && !data.cr) {
-		return renderObject(data);
-	}
+	if (data.trapHazType) return 'trap'; // Trap/hazard
+	if (data.vehicleType) return 'vehicle'; // Vehicle
+	if (data.ac && data.hp && !data.cr) return 'object'; // Object (AC and HP but no CR)
 	if (data.ruleType || (data.type === 'variantrule' && data.entries)) {
-		return renderVariantRule(data);
+		return 'variantrule'; // Variant rule
 	}
-	if (data.entries) {
-		return renderCondition(data);
-	}
+	if (data.colLabels && data.rows) return 'table'; // Table
+	if (data.entries) return 'condition'; // Fallback: has entries = condition/general
+
+	return 'generic'; // Unknown type
+}
+
+/**
+ * Get the renderer function for an entity type
+ * @param {string} type Entity type
+ * @returns {Function|null} Renderer function or null
+ */
+function _getRenderer(type) {
+	const renderers = {
+		monster: renderMonster,
+		spell: renderSpell,
+		item: renderItem,
+		race: renderRace,
+		class: renderClass,
+		feat: renderFeat,
+		background: renderBackground,
+		skill: renderSkill,
+		action: renderAction,
+		optionalfeature: renderOptionalFeature,
+		reward: renderReward,
+		trap: renderTrap,
+		vehicle: renderVehicle,
+		object: renderObject,
+		variantrule: renderVariantRule,
+		table: renderTable,
+		condition: renderCondition,
+	};
+	return renderers[type] || null;
+}
+
+/**
+ * Generic tooltip rendering fallback
+ * Used for entity types without specific renderers
+ * @param {Object} data Entity data
+ * @returns {string} HTML tooltip content
+ */
+function _renderGenericTooltip(data) {
 	let html = '';
 	html += `<div class="tooltip-title">${data.name || 'Unknown'}</div>`;
-	if (data.level !== undefined) {
-		const levelName = data.level === 0 ? 'Cantrip' : `Level ${data.level}`;
-		const school = data.school ? ` ${data.school}` : '';
-		html += `<div class="tooltip-metadata">${levelName}${school}</div>`;
-		if (data.time || data.range || data.components || data.duration) {
-			html += '<div class="tooltip-casting-details">';
-			if (data.time?.[0]) {
-				html += `<strong>Casting Time:</strong><span>${data.time[0].number || 1} ${data.time[0].unit || 'action'}</span>`;
-			}
-			if (data.range?.distance) {
-				const range = data.range.distance.amount
-					? `${data.range.distance.amount} ${data.range.distance.type}`
-					: data.range.distance.type;
-				html += `<strong>Range:</strong><span>${range}</span>`;
-			}
-			if (data.components) {
-				const comp = [];
-				if (data.components.v) comp.push('V');
-				if (data.components.s) comp.push('S');
-				if (data.components.m)
-					comp.push(`M (${data.components.m.text || data.components.m})`);
-				html += `<strong>Components:</strong><span>${comp.join(', ')}</span>`;
-			}
-			if (data.duration?.[0]) {
-				const dur = data.duration[0];
-				const durText =
-					dur.type === 'instant'
-						? 'Instantaneous'
-						: dur.concentration
-							? `Concentration, ${dur.duration?.amount || ''} ${dur.duration?.type || ''}`
-							: `${dur.duration?.amount || ''} ${dur.duration?.type || dur.type}`;
-				html += `<strong>Duration:</strong><span>${durText}</span>`;
-			}
-			html += '</div>';
-		}
+
+	if (data.source) {
+		html += `<div class="tooltip-source">${data.source}</div>`;
 	}
-	if (data.ability || data.size || data.speed) {
-		html += '<div class="tooltip-metadata">';
-		if (data.size && Array.isArray(data.size)) {
-			html += `<strong>Size:</strong> ${data.size.join(', ')}<br>`;
-		} else if (data.size) {
-			html += `<strong>Size:</strong> ${data.size}<br>`;
-		}
-		if (data.speed?.walk) {
-			html += `<strong>Speed:</strong> ${data.speed.walk} ft.<br>`;
-		}
-		if (data.ability && Array.isArray(data.ability)) {
-			const abilities = data.ability
-				.map((ab) => {
-					const abilityStr = Object.entries(ab)
-						.map(([key, val]) => {
-							if (key === 'choose') return '';
-							return `${abbreviateAbility(key)} ${val > 0 ? '+' : ''}${val}`;
-						})
-						.filter((s) => s)
-						.join(', ');
-					return abilityStr;
-				})
-				.filter((s) => s);
-			if (abilities.length > 0) {
-				html += `<strong>Ability Score Increase:</strong> ${abilities.join(', ')}<br>`;
+
+	if (data.entries && Array.isArray(data.entries)) {
+		html += '<div class="tooltip-entries">';
+		data.entries.forEach((entry) => {
+			if (typeof entry === 'string') {
+				html += `<p>${entry}</p>`;
 			}
-		}
+		});
 		html += '</div>';
 	}
-	return html;
+
+	return html || `<strong>${data.name || 'Unknown'}</strong>`;
 }
 
 /**
@@ -808,5 +796,7 @@ export function initializeTooltips(root = document) {
 
 // Exported API (functional, no singleton)
 export { getReferenceResolver } from './ReferenceResolver.js';
-export { getStringRenderer } from './TagProcessor.js';
 export { hideAllTooltips, hideTooltip, showReferenceTooltip, showTooltip };
+export function getStringRenderer() {
+	return { render: Renderer5etools.processString };
+}

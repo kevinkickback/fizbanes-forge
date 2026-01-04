@@ -14,7 +14,6 @@
  * - Version variants using abstract/implementation patterns
  */
 
-import { AppState } from '../core/AppState.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 import {
@@ -22,19 +21,131 @@ import {
 	STANDARD_SKILL_OPTIONS,
 	STANDARD_TOOL_OPTIONS,
 } from '../utils/ProficiencyConstants.js';
-import {
-	buildRaceBundle,
-	createRaceKey,
-	groupSubracesByRace,
-} from '../utils/RaceDataUtils.js';
+import { BaseDataService } from './BaseDataService.js';
+
+function groupSubracesByRace(subraceArray) {
+	const groups = new Map();
+
+	for (const subrace of subraceArray) {
+		if (!subrace?.raceName) continue;
+
+		const raceSource = subrace.raceSource || subrace.source || 'PHB';
+		const key = createRaceKey(subrace.raceName, raceSource);
+
+		if (!groups.has(key)) {
+			groups.set(key, []);
+		}
+		groups.get(key).push(subrace);
+	}
+
+	return groups;
+}
+
+function deriveVersionSubracesFromRace(race, source) {
+	if (!race?._versions) return [];
+
+	const derived = [];
+
+	for (const version of race._versions) {
+		if (version._abstract && version._implementations) {
+			derived.push(
+				...deriveFromAbstractImplementation(
+					version._abstract,
+					version._implementations,
+					race.name,
+					source,
+				),
+			);
+		} else {
+			derived.push(deriveFromSimpleVersion(version, race.name, source));
+		}
+	}
+
+	return derived;
+}
+
+function deriveVersionSubracesFromSubraceEntry(subraceEntry, raceName, raceSource) {
+	const firstVersion = subraceEntry?._versions?.[0];
+	if (!firstVersion?._implementations) return [];
+
+	return deriveFromAbstractImplementation(
+		firstVersion._abstract,
+		firstVersion._implementations,
+		raceName,
+		subraceEntry.source || subraceEntry.raceSource || raceSource,
+	);
+}
+
+function createRaceKey(name, source = 'PHB') {
+	return `${name?.toLowerCase()}:${source}`;
+}
+
+function buildRaceBundle(race, explicitSubraces, raceSource) {
+	const namedSubraces = explicitSubraces.filter((sr) => sr.name);
+	const baseSubraces = explicitSubraces.filter((sr) => !sr.name);
+
+	const derivedFromRace = deriveVersionSubracesFromRace(race, raceSource);
+
+	const derivedFromSubrace = baseSubraces.flatMap((entry) =>
+		deriveVersionSubracesFromSubraceEntry(entry, race.name, raceSource),
+	);
+
+	const allSubraces = [
+		...namedSubraces,
+		...derivedFromRace,
+		...derivedFromSubrace,
+	];
+
+	return {
+		race,
+		subraces: allSubraces,
+		baseSubrace: baseSubraces[0] || null,
+	};
+}
+
+function deriveFromAbstractImplementation(
+	abstractTemplate,
+	implementations,
+	raceName,
+	source,
+) {
+	return implementations
+		.filter((impl) => impl._variables?.color)
+		.map((impl) => ({
+			name: impl._variables.color,
+			source,
+			raceName,
+			raceSource: source,
+			_isVersion: true,
+			_implementation: impl,
+			_abstract: abstractTemplate,
+		}));
+}
+
+function deriveFromSimpleVersion(version, raceName, source) {
+	let variantName = version.name;
+
+	if (variantName?.includes(';')) {
+		variantName = variantName.split(';')[1].trim();
+	}
+
+	return {
+		name: variantName || version.name,
+		source: version.source || source,
+		raceName,
+		raceSource: source,
+		_isVersion: true,
+		_versionData: version,
+	};
+}
 
 /**
  * Service for managing character race selection and race data access.
  * Provides O(1) lookup performance for races via an internal index.
  */
-class RaceService {
+class RaceService extends BaseDataService {
 	constructor() {
-		this._raceData = null;
+		super({ cacheKey: 'races', loggerScope: 'RaceService' });
 		this._selectedRace = null;
 		this._selectedSubrace = null;
 		/** @type {Map<string, {race: Object, subraces: Array, baseSubrace: Object|null}>} */
@@ -46,43 +157,39 @@ class RaceService {
 	 * @returns {Promise<void>}
 	 */
 	async initialize() {
-		// Skip if already initialized
-		if (this._raceData) {
-			console.debug('RaceService', 'Already initialized');
-			return;
-		}
+		await this.initWithLoader(
+			async () => {
+				console.info('[RaceService]', 'Initializing race data');
+				const races = await DataLoader.loadRaces();
+				if (!races) throw new Error('Race data is null or undefined');
 
-		console.info('[RaceService]', 'Initializing race data');
-
-		try {
-			this._raceData = await DataLoader.loadRaces();
-			if (!this._raceData) throw new Error('Race data is null or undefined');
-
-			try {
-				const fluffData = await DataLoader.loadRaceFluff();
-				if (fluffData?.raceFluff) {
-					this._raceData.raceFluff = fluffData.raceFluff;
+				try {
+					const fluffData = await DataLoader.loadRaceFluff();
+					if (fluffData?.raceFluff) {
+						races.raceFluff = fluffData.raceFluff;
+					}
+				} catch (fluffError) {
+					console.warn(
+						'RaceService',
+						'Failed to load race fluff data',
+						fluffError,
+					);
+					races.raceFluff = [];
 				}
-			} catch (fluffError) {
-				console.warn(
-					'RaceService',
-					'Failed to load race fluff data',
-					fluffError,
-				);
-				this._raceData.raceFluff = [];
-			}
 
-			this._buildRaceIndex();
-
-			console.info('[RaceService]', 'Races loaded successfully', {
-				count: this._raceData.race?.length,
-			});
-			AppState.setLoadedData('races', this._raceData.race);
-			eventBus.emit(EVENTS.DATA_LOADED, 'races', this._raceData.race);
-		} catch (error) {
-			console.error('RaceService', 'Failed to initialize race data', error);
-			throw error;
-		}
+				return races;
+			},
+			{
+				onLoaded: (data, meta) => {
+					this._buildRaceIndex(data);
+					console.info('[RaceService]', 'Races loaded successfully', {
+						count: data?.race?.length,
+						fromCache: meta?.fromCache || false,
+					});
+				},
+				onError: () => ({ race: [], subrace: [], raceFluff: [] }),
+			},
+		);
 	}
 
 	/**
@@ -90,7 +197,7 @@ class RaceService {
 	 * @returns {Array<Object>} Array of race objects from JSON
 	 */
 	getAllRaces() {
-		return this._raceData?.race || [];
+		return this._data?.race || [];
 	}
 
 	/**
@@ -168,12 +275,12 @@ class RaceService {
 	 *
 	 * @private
 	 */
-	_buildRaceIndex() {
+	_buildRaceIndex(data = this._data) {
 		console.debug('[RaceService]', 'Building race index');
 
 		this._raceIndex = new Map();
-		const races = this._raceData?.race || [];
-		const subraceGroups = groupSubracesByRace(this._raceData?.subrace || []);
+		const races = data?.race || [];
+		const subraceGroups = groupSubracesByRace(data?.subrace || []);
 
 		for (const race of races) {
 			if (!race?.name) continue;
@@ -205,10 +312,10 @@ class RaceService {
 	 * @returns {Object|null} Race fluff object or null if not found
 	 */
 	getRaceFluff(raceName, source = 'PHB') {
-		if (!this._raceData?.raceFluff) return null;
+		if (!this._data?.raceFluff) return null;
 
 		return (
-			this._raceData.raceFluff.find(
+			this._data.raceFluff.find(
 				(f) => f.name === raceName && f.source === source,
 			) || null
 		);

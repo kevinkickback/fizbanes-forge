@@ -2,12 +2,13 @@
 
 import { DataLoader } from '../utils/DataLoader.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
+import { BaseDataService } from './BaseDataService.js';
 
 /** Manages monster/creature data and provides access to monsters. */
-class MonsterService {
+class MonsterService extends BaseDataService {
 	/** Initialize a new MonsterService instance. */
 	constructor() {
-		this._monsterData = null;
+		super({ loggerScope: 'MonsterService' });
 		this._monsterMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
@@ -16,45 +17,37 @@ class MonsterService {
 	 * @returns {Promise<boolean>} True if initialization succeeded
 	 */
 	async initialize() {
-		// Skip if already initialized
-		if (this._monsterData) {
-			console.debug('[MonsterService]', 'Already initialized');
-			return true;
+		await this.initWithLoader(
+			async () => {
+				console.info('[MonsterService]', 'Initializing monster data');
+				return DataLoader.loadMonsters();
+			},
+			{
+				onLoaded: (data) => {
+					console.info('[MonsterService]', 'Monsters loaded successfully', {
+						count: data?.monster?.length,
+					});
+					this._monsterMap = this._buildMonsterMap(data?.monster);
+				},
+				onError: () => {
+					this._monsterMap = new Map();
+					return { monster: [] };
+				},
+			},
+		);
+
+		return true;
+	}
+
+	_buildMonsterMap(monsters = []) {
+		const map = new Map();
+		for (const monster of monsters) {
+			if (!monster?.name) continue;
+			const key = DataNormalizer.normalizeForLookup(monster.name);
+			if (!map.has(key)) map.set(key, []);
+			map.get(key).push(monster);
 		}
-
-		console.info('[MonsterService]', 'Initializing monster data');
-		try {
-			this._monsterData = await DataLoader.loadMonsters();
-			console.info('[MonsterService]', 'Monsters loaded successfully', {
-				count: this._monsterData.monster?.length,
-			});
-
-			// Build lookup map for O(1) access by name (case-insensitive)
-			this._monsterMap = new Map();
-			if (
-				this._monsterData.monster &&
-				Array.isArray(this._monsterData.monster)
-			) {
-				for (const monster of this._monsterData.monster) {
-					if (!monster.name) continue;
-					const key = DataNormalizer.normalizeForLookup(monster.name);
-					// Store with source for disambiguation if needed
-					if (!this._monsterMap.has(key)) {
-						this._monsterMap.set(key, []);
-					}
-					this._monsterMap.get(key).push(monster);
-				}
-			}
-
-			return true;
-		} catch (error) {
-			console.error(
-				'[MonsterService]',
-				'Failed to initialize monster data',
-				error,
-			);
-			return false;
-		}
+		return map;
 	}
 
 	/**
@@ -62,7 +55,7 @@ class MonsterService {
 	 * @returns {Array<Object>} Array of monster objects
 	 */
 	getAllMonsters() {
-		return this._monsterData?.monster || [];
+		return this._data?.monster || [];
 	}
 
 	/**

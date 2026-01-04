@@ -3,24 +3,23 @@
  *
  * Provides methods to load, access, and query spell data for the character builder.
  * Handles spell data initialization, lookup, and filtering by name, level, and class.
- *
- * @module SpellService
  */
 
 import { DataLoader } from '../utils/DataLoader.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
-import { eventBus, EVENTS } from '../utils/EventBus.js';
+import { EVENTS } from '../utils/EventBus.js';
+import { BaseDataService } from './BaseDataService.js';
 
 /**
  * Manages spell data and provides access to spells.
  * @class
  */
-class SpellService {
+class SpellService extends BaseDataService {
 	/**
 	 * Create a new SpellService.
 	 */
 	constructor() {
-		this._spellData = null;
+		super({ loadEvent: EVENTS.SPELLS_LOADED, loggerScope: 'SpellService' });
 		this._spellLookupMap = null; // Map for O(1) lookups by name
 	}
 
@@ -31,57 +30,56 @@ class SpellService {
 	 * @returns {Promise<boolean>} True if initialization succeeded
 	 */
 	async initialize() {
-		// Skip if already initialized
-		if (this._spellData) {
-			return true;
-		}
+		await this.initWithLoader(
+			async () => {
+				const index = await DataLoader.loadJSON('spells/index.json');
 
-		try {
-			// Load the index to get all spell files
-			const index = await DataLoader.loadJSON('spells/index.json');
+				const spellFiles = Object.values(index);
+				const allSpells = await Promise.allSettled(
+					spellFiles.map((file) => DataLoader.loadJSON(`spells/${file}`)),
+				);
 
-			// Load all spell files with individual error handling
-			const spellFiles = Object.values(index);
-			const allSpells = await Promise.allSettled(
-				spellFiles.map((file) => DataLoader.loadJSON(`spells/${file}`)),
-			);
-
-			// Aggregate all spells into single object, handling failures gracefully
-			const aggregated = { spell: [] };
-			for (const result of allSpells) {
-				if (result.status === 'fulfilled') {
-					const spellData = result.value;
-					if (spellData.spell && Array.isArray(spellData.spell)) {
-						aggregated.spell.push(...spellData.spell);
+				const aggregated = { spell: [] };
+				for (const result of allSpells) {
+					if (result.status === 'fulfilled') {
+						const spellData = result.value;
+						if (spellData.spell && Array.isArray(spellData.spell)) {
+							aggregated.spell.push(...spellData.spell);
+						}
+					} else {
+						console.warn(
+							'SpellService',
+							'Failed to load spell file:',
+							result.reason?.message,
+						);
 					}
-				} else {
-					// Log individual file failures but continue loading others
-					console.warn(
-						'SpellService',
-						'Failed to load spell file:',
-						result.reason?.message,
-					);
 				}
-			}
 
-			this._spellData = aggregated;
+				return aggregated;
+			},
+			{
+				onLoaded: (data) => {
+					this._spellLookupMap = this._buildLookupMap(data?.spell);
+				},
+				emitPayload: (data) => data?.spell || [],
+				onError: () => {
+					this._spellLookupMap = new Map();
+					return { spell: [] };
+				},
+			},
+		);
 
-			// Build lookup map for O(1) access by name (case-insensitive)
-			this._spellLookupMap = new Map();
-			for (const spell of aggregated.spell) {
-				// Skip spells with missing names
-				if (!spell.name) continue;
-				const key = DataNormalizer.normalizeForLookup(spell.name);
-				this._spellLookupMap.set(key, spell);
-			}
+		return true;
+	}
 
-			eventBus.emit(EVENTS.SPELLS_LOADED, this._spellData.spell);
-			return true;
-		} catch (error) {
-			console.error('SpellService', 'Failed to initialize spell data:', error);
-			this._spellData = { spell: [] };
-			return false;
+	_buildLookupMap(spells = []) {
+		const map = new Map();
+		for (const spell of spells) {
+			if (!spell?.name) continue;
+			const key = DataNormalizer.normalizeForLookup(spell.name);
+			map.set(key, spell);
 		}
+		return map;
 	}
 
 	/**
@@ -89,7 +87,7 @@ class SpellService {
 	 * @returns {Array<Object>} Array of spell objects
 	 */
 	getAllSpells() {
-		return this._spellData?.spell || [];
+		return this._data?.spell || [];
 	}
 
 	/**
@@ -113,9 +111,9 @@ class SpellService {
 		}
 
 		// If source doesn't match, fall back to linear search for source-specific spell
-		if (spell && spell.source !== source && this._spellData?.spell) {
+		if (spell && spell.source !== source && this._data?.spell) {
 			return (
-				this._spellData.spell.find(
+				this._data.spell.find(
 					(s) => s.name === name && s.source === source,
 				) || spell
 			); // Return any match if exact source not found
@@ -130,9 +128,9 @@ class SpellService {
 	 * @returns {Array<Object>} Array of spell objects
 	 */
 	getSpellsByLevel(level) {
-		if (!this._spellData?.spell) return [];
+		if (!this._data?.spell) return [];
 
-		return this._spellData.spell.filter((s) => s.level === level);
+		return this._data.spell.filter((s) => s.level === level);
 	}
 
 	/**
@@ -141,9 +139,9 @@ class SpellService {
 	 * @returns {Array<Object>} Array of spell objects
 	 */
 	getSpellsByClass(className) {
-		if (!this._spellData?.spell) return [];
+		if (!this._data?.spell) return [];
 
-		return this._spellData.spell.filter((s) => {
+		return this._data.spell.filter((s) => {
 			if (!s.classes || !s.classes.fromClassList) return false;
 			const target = DataNormalizer.normalizeForLookup(className);
 			return s.classes.fromClassList.some(

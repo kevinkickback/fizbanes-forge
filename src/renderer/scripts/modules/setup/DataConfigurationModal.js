@@ -35,7 +35,10 @@ export class DataConfigurationModal {
 
 			this.modal = document.getElementById('dataConfigModal');
 			if (!this.modal) {
-				console.error('DataConfigurationModal', 'Modal element not found in DOM');
+				console.error(
+					'DataConfigurationModal',
+					'Modal element not found in DOM',
+				);
 				reject(new Error('Modal element not found'));
 				return;
 			}
@@ -158,7 +161,9 @@ export class DataConfigurationModal {
 	 */
 	_attachEventListeners() {
 		// URL validation
-		const validateUrlBtn = this.modal.querySelector('[data-action="validate-url"]');
+		const validateUrlBtn = this.modal.querySelector(
+			'[data-action="validate-url"]',
+		);
 		const urlInput = this.modal.querySelector('#dataSourceUrl');
 
 		// Disable button if input is empty

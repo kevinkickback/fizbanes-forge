@@ -1,6 +1,7 @@
 /** Manages proficiencies and proficiency bonuses. */
 
 import { ProficiencyCore } from '../core/Proficiency.js';
+import { SKILL_TO_ABILITY } from '../utils/5eToolsParser.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 import {
@@ -17,27 +18,6 @@ export class ProficiencyService {
 		this._skills = null;
 		this._tools = null;
 		this._languages = null;
-		// Map uses original JSON casing for keys, normalized (lowercase) versions for lookups
-		this._skillAbilityMap = {
-			Acrobatics: 'dexterity',
-			'Animal Handling': 'wisdom',
-			Arcana: 'intelligence',
-			Athletics: 'strength',
-			Deception: 'charisma',
-			History: 'intelligence',
-			Insight: 'wisdom',
-			Intimidation: 'charisma',
-			Investigation: 'intelligence',
-			Medicine: 'wisdom',
-			Nature: 'intelligence',
-			Perception: 'wisdom',
-			Performance: 'charisma',
-			Persuasion: 'charisma',
-			Religion: 'intelligence',
-			'Sleight of Hand': 'dexterity',
-			Stealth: 'dexterity',
-			Survival: 'wisdom',
-		};
 	}
 
 	/**
@@ -131,11 +111,20 @@ export class ProficiencyService {
 	 */
 	getSkillAbility(skill) {
 		if (!skill) return null;
-		const target = DataNormalizer.normalizeForLookup(skill);
-		for (const [key, ability] of Object.entries(this._skillAbilityMap)) {
-			if (DataNormalizer.normalizeForLookup(key) === target) return ability;
-		}
-		return null;
+		const normalized = DataNormalizer.normalizeForLookup(skill);
+		const abilityAbv = SKILL_TO_ABILITY[normalized];
+		if (!abilityAbv) return null;
+
+		// Map abbreviations to full names for compatibility
+		const abvToFull = {
+			str: 'strength',
+			dex: 'dexterity',
+			con: 'constitution',
+			int: 'intelligence',
+			wis: 'wisdom',
+			cha: 'charisma',
+		};
+		return abvToFull[abilityAbv] || null;
 	}
 
 	/**
@@ -188,8 +177,7 @@ export class ProficiencyService {
 	/**
 	 * Formats a modifier value with a + or - sign
 	 * @param {number} value - The modifier value
-	 * @returns {string} Formatted modifier string
-	 */
+	 * @returns {string} Formatted modifier string	 * @deprecated Consider using getAbilityModifier from 5eToolsParser for consistency	 */
 	formatModifier(value) {
 		return value >= 0 ? `+${value}` : value.toString();
 	}

@@ -346,8 +346,8 @@ export class BackgroundCard extends BaseCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-				character.background?.source !== background.source ||
-				character.background?.variant !== (variant?.name || null);
+			character.background?.source !== background.source ||
+			character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies
@@ -439,158 +439,42 @@ export class BackgroundCard extends BaseCard {
 		character.optionalProficiencies.languages.background.options = [];
 		character.optionalProficiencies.languages.background.selected = [];
 
-		// Set up optional skill proficiencies
-		if (background.skillProficiencies) {
-			for (const skillEntry of background.skillProficiencies) {
-				if (skillEntry.choose) {
-					const count = skillEntry.choose.count || 1;
-					const from = skillEntry.choose.from || [];
+		// Set up optional skill proficiencies (5etools normalized format)
+		const skillProfs = background?.proficiencies?.skills || [];
+		for (const skillEntry of skillProfs) {
+			if (skillEntry.choose) {
+				const count = skillEntry.choose.count || 1;
+				const from = skillEntry.choose.from || [];
 
-					character.optionalProficiencies.skills.background.allowed = count;
-					character.optionalProficiencies.skills.background.options = from;
+				character.optionalProficiencies.skills.background.allowed = count;
+				character.optionalProficiencies.skills.background.options = from;
 
-					// Restore valid selections
-					const validSelections = prevBackgroundSkillsSelected.filter(
-						(skill) =>
-							from.includes(skill) &&
-							!character.proficiencies.skills.includes(skill) &&
-							!fixedProfs.skills.includes(skill),
-					);
-
-					character.optionalProficiencies.skills.background.selected =
-						validSelections.slice(0, count);
-				}
-			}
-		}
-
-		// Set up optional tool proficiencies
-		if (background.toolProficiencies) {
-			for (const toolEntry of background.toolProficiencies) {
-				if (toolEntry.choose) {
-					const count = toolEntry.choose.count || 1;
-					character.optionalProficiencies.tools.background.allowed = count;
-					character.optionalProficiencies.tools.background.options = [];
-					character.optionalProficiencies.tools.background.selected = [];
-				}
-			}
-		}
-
-		// Handle languages from languageProficiencies array
-		if (background.languageProficiencies) {
-			const fixedLanguages = [];
-			let choiceCount = 0;
-			const choiceOptions = [];
-			const normalizedOptions = new Map();
-
-			for (const langEntry of background.languageProficiencies) {
-				// Add fixed languages (specific languages set to true)
-				for (const [lang, value] of Object.entries(langEntry)) {
-					const normalizedLang = DataNormalizer.normalizeForLookup(lang);
-					if (
-						value === true &&
-						normalizedLang !== 'choose' &&
-						normalizedLang !== 'anystandard' &&
-						normalizedLang !== 'any'
-					) {
-						character.addProficiency('languages', lang, 'Background');
-						fixedLanguages.push(lang);
-					}
-				}
-				// Check for anyStandard or anystandard (case-insensitive)
-				const anyStandardCount =
-					langEntry.anyStandard || langEntry.anystandard || 0;
-				if (anyStandardCount > 0) {
-					choiceCount += anyStandardCount;
-					// Use full language list for 'anyStandard'
-					const allLanguages = this._getAllLanguages();
-					for (const lang of allLanguages) {
-						const norm = DataNormalizer.normalizeForLookup(lang);
-						if (!normalizedOptions.has(norm)) {
-							normalizedOptions.set(norm, lang);
-						}
-					}
-				}
-
-				// Accumulate optional language choices with specific options
-				if (langEntry.choose) {
-					const count = langEntry.choose.count || 1;
-					const from = langEntry.choose.from || [];
-
-					choiceCount += count;
-
-					if (from.length > 0) {
-						// Add specific language options - use as-is from JSON
-						for (const lang of from) {
-							const norm = DataNormalizer.normalizeForLookup(lang);
-							if (!normalizedOptions.has(norm)) {
-								normalizedOptions.set(norm, lang);
-							}
-						}
-					} else {
-						// No specific options means any language
-						const allLanguages = this._getAllLanguages();
-						for (const lang of allLanguages) {
-							const norm = DataNormalizer.normalizeForLookup(lang);
-							if (!normalizedOptions.has(norm)) {
-								normalizedOptions.set(norm, lang);
-							}
-						}
-					}
-				}
-			}
-
-			if (normalizedOptions.size > 0) {
-				choiceOptions.splice(
-					0,
-					choiceOptions.length,
-					...normalizedOptions.values(),
+				// Restore valid selections
+				const validSelections = prevBackgroundSkillsSelected.filter(
+					(skill) =>
+						from.includes(skill) &&
+						!character.proficiencies.skills.includes(skill) &&
+						!fixedProfs.skills.includes(skill),
 				);
-			}
 
-			// Set up the optional language choices if any exist
-			if (choiceCount > 0) {
-				character.optionalProficiencies.languages.background.allowed =
-					choiceCount;
-				character.optionalProficiencies.languages.background.options =
-					choiceOptions;
-
-				// Restore valid language selections if any, excluding now-fixed languages
-				if (prevBackgroundLanguagesSelected.length > 0) {
-					const optionNorms = new Set(
-						choiceOptions.map((lang) =>
-							DataNormalizer.normalizeForLookup(lang),
-						),
-					);
-					const fixedNorms = new Set(
-						fixedLanguages.map((lang) =>
-							DataNormalizer.normalizeForLookup(lang),
-						),
-					);
-					const existingLangs = new Set(
-						character.proficiencies.languages.map((lang) =>
-							DataNormalizer.normalizeForLookup(lang),
-						),
-					);
-
-					const validSelections = prevBackgroundLanguagesSelected.filter(
-						(lang) => {
-							const normalizedLang = DataNormalizer.normalizeForLookup(lang);
-							return (
-								optionNorms.has(normalizedLang) &&
-								!existingLangs.has(normalizedLang) &&
-								!fixedNorms.has(normalizedLang)
-							);
-						},
-					);
-
-					character.optionalProficiencies.languages.background.selected =
-						validSelections.slice(0, choiceCount);
-				}
-
-				// Update combined language options
-				this._updateCombinedLanguageOptions(character);
+				character.optionalProficiencies.skills.background.selected =
+					validSelections.slice(0, count);
 			}
 		}
+
+		// Set up optional tool proficiencies (5etools normalized format)
+		const toolProfs = background?.proficiencies?.tools || [];
+		for (const toolEntry of toolProfs) {
+			if (toolEntry.choose) {
+				const count = toolEntry.choose.count || 1;
+				character.optionalProficiencies.tools.background.allowed = count;
+				character.optionalProficiencies.tools.background.options = [];
+				character.optionalProficiencies.tools.background.selected = [];
+			}
+		}
+
+		// Handle languages from normalized structure
+		this._updateBackgroundLanguageProficiencies(character, background, prevBackgroundLanguagesSelected);
 
 		// Update combined skill options
 		this._updateCombinedSkillOptions(character);
@@ -604,8 +488,8 @@ export class BackgroundCard extends BaseCard {
 	}
 
 	/**
-	 * Extract fixed proficiencies from raw JSON
-	 * @param {Object} background - Background JSON object
+	 * Extract fixed proficiencies from background (5etools normalized format)
+	 * @param {Object} background - Background object with proficiencies.{skills, tools, languages}
 	 * @returns {Object} Object with skills and tools arrays
 	 * @private
 	 */
@@ -613,25 +497,21 @@ export class BackgroundCard extends BaseCard {
 		const skills = [];
 		const tools = [];
 
-		// Extract skill proficiencies
-		if (background?.skillProficiencies) {
-			for (const skillEntry of background.skillProficiencies) {
-				for (const [skill, value] of Object.entries(skillEntry)) {
-					if (value === true && skill !== 'choose') {
-						skills.push(skill);
-					}
-				}
+		// Extract fixed skill proficiencies
+		const skillProfs = background?.proficiencies?.skills || [];
+		for (const skillEntry of skillProfs) {
+			// Only add skills without a choose property (these are fixed)
+			if (!skillEntry.choose && skillEntry.skill) {
+				skills.push(skillEntry.skill);
 			}
 		}
 
-		// Extract tool proficiencies
-		if (background?.toolProficiencies) {
-			for (const toolEntry of background.toolProficiencies) {
-				for (const [tool, value] of Object.entries(toolEntry)) {
-					if (value === true && tool !== 'choose') {
-						tools.push(tool);
-					}
-				}
+		// Extract fixed tool proficiencies
+		const toolProfs = background?.proficiencies?.tools || [];
+		for (const toolEntry of toolProfs) {
+			// Only add tools without a choose property (these are fixed)
+			if (!toolEntry.choose && toolEntry.tool) {
+				tools.push(toolEntry.tool);
 			}
 		}
 
@@ -771,5 +651,103 @@ export class BackgroundCard extends BaseCard {
 		character.optionalProficiencies.languages.options = [
 			...new Set([...raceOptions, ...classOptions, ...backgroundOptions]),
 		];
+	}
+
+	/**
+	 * Update background language proficiencies using 5etools normalized structure
+	 * @param {Character} character - The character object
+	 * @param {Object} background - Background object with proficiencies.languages
+	 * @param {Array<string>} prevBackgroundLanguagesSelected - Previously selected languages
+	 * @private
+	 */
+	_updateBackgroundLanguageProficiencies(character, background, prevBackgroundLanguagesSelected) {
+		const langProfs = background?.proficiencies?.languages || [];
+		const fixedLanguages = [];
+		let choiceCount = 0;
+		const choiceOptions = [];
+		const normalizedOptions = new Map();
+
+		// Process all language proficiency entries
+		for (const langEntry of langProfs) {
+			// Add fixed languages (those without a choose property)
+			if (!langEntry.choose && langEntry.language) {
+				character.addProficiency('languages', langEntry.language, 'Background');
+				fixedLanguages.push(langEntry.language);
+			}
+
+			// Handle language choices
+			if (langEntry.choose) {
+				const count = langEntry.choose.count || 1;
+				const from = langEntry.choose.from || [];
+
+				choiceCount += count;
+
+				if (from.length > 0) {
+					// Add specific language options from 'from' array
+					for (const lang of from) {
+						const norm = DataNormalizer.normalizeForLookup(lang);
+						if (!normalizedOptions.has(norm)) {
+							normalizedOptions.set(norm, lang);
+						}
+					}
+				} else {
+					// No specific options means any language
+					const allLanguages = this._getAllLanguages();
+					for (const lang of allLanguages) {
+						const norm = DataNormalizer.normalizeForLookup(lang);
+						if (!normalizedOptions.has(norm)) {
+							normalizedOptions.set(norm, lang);
+						}
+					}
+				}
+			}
+		}
+
+		if (normalizedOptions.size > 0) {
+			choiceOptions.splice(
+				0,
+				choiceOptions.length,
+				...normalizedOptions.values(),
+			);
+		}
+
+		// Set up optional language choices if any exist
+		if (choiceCount > 0) {
+			character.optionalProficiencies.languages.background.allowed = choiceCount;
+			character.optionalProficiencies.languages.background.options = choiceOptions;
+
+			// Restore valid language selections if any, excluding now-fixed languages
+			if (prevBackgroundLanguagesSelected.length > 0) {
+				const optionNorms = new Set(
+					choiceOptions.map((lang) =>
+						DataNormalizer.normalizeForLookup(lang),
+					),
+				);
+				const fixedNorms = new Set(
+					fixedLanguages.map((lang) =>
+						DataNormalizer.normalizeForLookup(lang),
+					),
+				);
+				const existingLangs = new Set(
+					character.proficiencies.languages.map((lang) =>
+						DataNormalizer.normalizeForLookup(lang),
+					),
+				);
+
+				const validSelections = prevBackgroundLanguagesSelected.filter((lang) => {
+					const normalizedLang = DataNormalizer.normalizeForLookup(lang);
+					return (
+						optionNorms.has(normalizedLang) &&
+						!existingLangs.has(normalizedLang) &&
+						!fixedNorms.has(normalizedLang)
+					);
+				});
+
+				character.optionalProficiencies.languages.background.selected = validSelections.slice(0, choiceCount);
+			}
+
+			// Update combined language options
+			this._updateCombinedLanguageOptions(character);
+		}
 	}
 }

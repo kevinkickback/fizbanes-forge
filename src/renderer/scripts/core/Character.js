@@ -3,8 +3,12 @@
  * Model class representing a character in the D&D Character Creator
  */
 
-import { calculateModifier } from '../modules/abilities/AbilityCalculator.js';
 import { featService } from '../services/FeatService.js';
+import {
+	DEFAULT_CHARACTER_SIZE,
+	DEFAULT_CHARACTER_SPEED,
+	getAbilityModNumber,
+} from '../utils/5eToolsParser.js';
 import { ProficiencyCore } from './Proficiency.js';
 
 /**
@@ -96,8 +100,9 @@ export class Character {
 		// Initialize pending ability choices
 		this.pendingAbilityChoices = data.pendingAbilityChoices || [];
 
-		this.size = data.size || 'M';
-		this.speed = data.speed || { walk: 30 };
+		// Initialize size and speed with semantic defaults
+		this.size = data.size || DEFAULT_CHARACTER_SIZE;
+		this.speed = data.speed || { ...DEFAULT_CHARACTER_SPEED };
 
 		// Initialize features
 		this.features = {
@@ -270,7 +275,7 @@ export class Character {
 	 */
 	getAbilityModifier(ability) {
 		const score = this.getAbilityScore(ability);
-		return calculateModifier(score);
+		return getAbilityModNumber(score);
 	}
 
 	/**
@@ -461,7 +466,11 @@ export class Character {
 			// Priority: use origin field (where feat came from in character), then fall back to 5etools source
 			const sourceCandidate =
 				typeof feat === 'object'
-					? feat.origin || feat.grantedBy || feat.from || feat.sourceType || feat.source
+					? feat.origin ||
+					feat.grantedBy ||
+					feat.from ||
+					feat.sourceType ||
+					feat.source
 					: null;
 			const source = sourceCandidate || defaultSource;
 
@@ -660,8 +669,8 @@ export class Character {
 				: {},
 
 			// Size and speed
-			size: this.size || 'M',
-			speed: this.speed ? { ...this.speed } : { walk: 30 },
+			size: this.size || DEFAULT_CHARACTER_SIZE,
+			speed: this.speed ? { ...this.speed } : { ...DEFAULT_CHARACTER_SPEED },
 
 			// Features and proficiencies
 			features: {

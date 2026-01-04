@@ -6,6 +6,7 @@ import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { classService } from '../../services/ClassService.js';
 import { sourceService } from '../../services/SourceService.js';
+import { attAbvToFull } from '../../utils/5eToolsParser.js';
 import { ClassDetailsView } from './ClassDetails.js';
 import { ClassCardView } from './ClassView.js';
 import { SubclassPickerView } from './SubclassPicker.js';
@@ -415,8 +416,8 @@ export class ClassCard {
 		const hasChanged = !classData
 			? character.class?.name || character.class?.source
 			: character.class?.name !== classData.name ||
-				character.class?.source !== classData.source ||
-				character.subclass !== subclassName;
+			character.class?.source !== classData.source ||
+			character.subclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits
@@ -677,17 +678,7 @@ export class ClassCard {
 	 */
 	_getSavingThrows(classData) {
 		if (!classData?.proficiency) return [];
-
-		const abilityMap = {
-			str: 'Strength',
-			dex: 'Dexterity',
-			con: 'Constitution',
-			int: 'Intelligence',
-			wis: 'Wisdom',
-			cha: 'Charisma',
-		};
-
-		return classData.proficiency.map((prof) => abilityMap[prof] || prof);
+		return classData.proficiency.map((prof) => attAbvToFull(prof) || prof);
 	}
 
 	/**

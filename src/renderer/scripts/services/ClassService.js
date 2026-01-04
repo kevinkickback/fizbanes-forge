@@ -1,14 +1,14 @@
 /** @file Manages character class selection and data access. */
 
-import { AppState } from '../core/AppState.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
+import { BaseDataService } from './BaseDataService.js';
 
 /** Manages character class selection and provides access to class data. */
-class ClassService {
+class ClassService extends BaseDataService {
 	/** Creates a new ClassManager instance. */
 	constructor() {
-		this._classData = null;
+		super({ cacheKey: 'classes', loggerScope: 'ClassService' });
 		this._selectedClass = null;
 		this._selectedSubclass = null;
 	}
@@ -18,115 +18,113 @@ class ClassService {
 	 * @returns {Promise<void>} Resolves when data is loaded
 	 */
 	async initialize() {
-		// Check if already initialized
-		const existingData = AppState.getLoadedData('classes');
-		if (existingData) {
-			console.debug('ClassService', 'Already initialized, using cached data');
-			this._classData = existingData;
-			return;
-		}
+		await this.initWithLoader(
+			async () => {
+				console.info('[ClassService]', 'Initializing class data');
+				const index = await DataLoader.loadJSON('class/index.json');
+				const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json');
 
-		console.info('[ClassService]', 'Initializing class data');
+				const classFiles = Object.values(index);
+				const allClasses = await Promise.allSettled(
+					classFiles.map((file) => DataLoader.loadJSON(`class/${file}`)),
+				);
 
-		try {
-			const index = await DataLoader.loadJSON('class/index.json');
-			const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json');
+				const fluffFiles = Object.values(fluffIndex);
+				const allFluff = await Promise.allSettled(
+					fluffFiles.map((file) => DataLoader.loadJSON(`class/${file}`)),
+				);
 
-			// Load all class files with individual error handling
-			const classFiles = Object.values(index);
-			const allClasses = await Promise.allSettled(
-				classFiles.map((file) => DataLoader.loadJSON(`class/${file}`)),
-			);
+				const aggregated = {
+					class: [],
+					classFeature: [],
+					subclass: [],
+					subclassFeature: [],
+					classFluff: [],
+					subclassFluff: [],
+				};
 
-			// Load all fluff files with individual error handling
-			const fluffFiles = Object.values(fluffIndex);
-			const allFluff = await Promise.allSettled(
-				fluffFiles.map((file) => DataLoader.loadJSON(`class/${file}`)),
-			);
-
-			// Aggregate all classes and class features into single object, handling failures gracefully
-			this._classData = {
-				class: [],
-				classFeature: [],
-				subclass: [],
-				subclassFeature: [],
-				classFluff: [],
-				subclassFluff: [],
-			};
-
-			for (const result of allClasses) {
-				if (result.status === 'fulfilled') {
-					const classData = result.value;
-					if (classData.class && Array.isArray(classData.class)) {
-						this._classData.class.push(...classData.class);
+				for (const result of allClasses) {
+					if (result.status === 'fulfilled') {
+						const classData = result.value;
+						if (classData.class && Array.isArray(classData.class)) {
+							aggregated.class.push(...classData.class);
+						}
+						if (
+							classData.classFeature &&
+							Array.isArray(classData.classFeature)
+						) {
+							aggregated.classFeature.push(...classData.classFeature);
+						}
+						if (classData.subclass && Array.isArray(classData.subclass)) {
+							aggregated.subclass.push(...classData.subclass);
+						}
+						if (
+							classData.subclassFeature &&
+							Array.isArray(classData.subclassFeature)
+						) {
+							aggregated.subclassFeature.push(...classData.subclassFeature);
+						}
+					} else {
+						console.warn(
+							'ClassService',
+							'Failed to load class file:',
+							result.reason?.message,
+						);
 					}
-					if (classData.classFeature && Array.isArray(classData.classFeature)) {
-						this._classData.classFeature.push(...classData.classFeature);
-					}
-					if (classData.subclass && Array.isArray(classData.subclass)) {
-						this._classData.subclass.push(...classData.subclass);
-					}
-					if (
-						classData.subclassFeature &&
-						Array.isArray(classData.subclassFeature)
-					) {
-						this._classData.subclassFeature.push(...classData.subclassFeature);
-					}
-				} else {
-					console.warn(
-						'ClassService',
-						'Failed to load class file:',
-						result.reason?.message,
-					);
 				}
-			}
 
-			// Aggregate fluff data
-			for (const result of allFluff) {
-				if (result.status === 'fulfilled') {
-					const fluffData = result.value;
-					if (fluffData.classFluff && Array.isArray(fluffData.classFluff)) {
-						this._classData.classFluff.push(...fluffData.classFluff);
+				for (const result of allFluff) {
+					if (result.status === 'fulfilled') {
+						const fluffData = result.value;
+						if (fluffData.classFluff && Array.isArray(fluffData.classFluff)) {
+							aggregated.classFluff.push(...fluffData.classFluff);
+						}
+						if (
+							fluffData.subclassFluff &&
+							Array.isArray(fluffData.subclassFluff)
+						) {
+							aggregated.subclassFluff.push(...fluffData.subclassFluff);
+						}
+					} else {
+						console.warn(
+							'ClassService',
+							'Failed to load class fluff file:',
+							result.reason?.message,
+						);
 					}
-					if (
-						fluffData.subclassFluff &&
-						Array.isArray(fluffData.subclassFluff)
-					) {
-						this._classData.subclassFluff.push(...fluffData.subclassFluff);
-					}
-				} else {
-					console.warn(
-						'ClassService',
-						'Failed to load class fluff file:',
-						result.reason?.message,
-					);
 				}
-			}
 
-			console.info('[ClassService]', 'Class data loaded', {
-				classes: this._classData.class.length,
-				classFeatures: this._classData.classFeature.length,
-				subclasses: this._classData.subclass.length,
-				subclassFeatures: this._classData.subclassFeature.length,
-			});
+				return aggregated;
+			},
+			{
+				onLoaded: (data, meta) => {
+					const dataset = data || {
+						class: [],
+						classFeature: [],
+						subclass: [],
+						subclassFeature: [],
+						classFluff: [],
+						subclassFluff: [],
+					};
 
-			// Store in AppState
-			AppState.setLoadedData('classes', this._classData);
-
-			// Emit event
-			eventBus.emit(EVENTS.DATA_LOADED, 'classes', this._classData.class);
-		} catch (error) {
-			console.error('ClassService', 'Failed to initialize class data', error);
-			this._classData = {
-				class: [],
-				classFeature: [],
-				subclass: [],
-				subclassFeature: [],
-				classFluff: [],
-				subclassFluff: [],
-			};
-			throw error;
-		}
+					console.info('[ClassService]', 'Class data loaded', {
+						classes: dataset.class.length,
+						classFeatures: dataset.classFeature.length,
+						subclasses: dataset.subclass.length,
+						subclassFeatures: dataset.subclassFeature.length,
+						fromCache: meta?.fromCache || false,
+					});
+				},
+				onError: () => ({
+					class: [],
+					classFeature: [],
+					subclass: [],
+					subclassFeature: [],
+					classFluff: [],
+					subclassFluff: [],
+				}),
+			},
+		);
 	}
 
 	/**
@@ -134,7 +132,7 @@ class ClassService {
 	 * @returns {Array<Object>} Array of class objects from JSON
 	 */
 	getAllClasses() {
-		return this._classData?.class || [];
+		return this._data?.class || [];
 	}
 
 	/**
@@ -144,12 +142,11 @@ class ClassService {
 	 * @returns {Object|null} Class object from JSON or null if not found
 	 */
 	getClass(name, source = 'PHB') {
-		if (!this._classData?.class) return null;
+		if (!this._data?.class) return null;
 
 		return (
-			this._classData.class.find(
-				(c) => c.name === name && c.source === source,
-			) || null
+			this._data.class.find((c) => c.name === name && c.source === source) ||
+			null
 		);
 	}
 
@@ -161,9 +158,9 @@ class ClassService {
 	 * @returns {Array<Object>} Array of class feature objects
 	 */
 	getClassFeatures(className, level, source = 'PHB') {
-		if (!this._classData?.classFeature) return [];
+		if (!this._data?.classFeature) return [];
 
-		return this._classData.classFeature.filter(
+		return this._data.classFeature.filter(
 			(feature) =>
 				feature.className === className &&
 				(feature.classSource === source || feature.source === source) &&
@@ -178,9 +175,9 @@ class ClassService {
 	 * @returns {Array<Object>} Array of subclass objects
 	 */
 	getSubclasses(className, source = 'PHB') {
-		if (!this._classData?.subclass) return [];
+		if (!this._data?.subclass) return [];
 
-		return this._classData.subclass.filter(
+		return this._data.subclass.filter(
 			(sc) =>
 				sc.className === className &&
 				(sc.classSource === source || !sc.classSource),
@@ -212,9 +209,9 @@ class ClassService {
 	 * @returns {Array<Object>} Array of subclass feature objects
 	 */
 	getSubclassFeatures(className, subclassShortName, level, source = 'PHB') {
-		if (!this._classData?.subclassFeature) return [];
+		if (!this._data?.subclassFeature) return [];
 
-		return this._classData.subclassFeature.filter(
+		return this._data.subclassFeature.filter(
 			(feature) =>
 				feature.className === className &&
 				feature.subclassShortName === subclassShortName &&
@@ -230,10 +227,10 @@ class ClassService {
 	 * @returns {Object|null} Class fluff object or null if not found
 	 */
 	getClassFluff(className, source = 'PHB') {
-		if (!this._classData?.classFluff) return null;
+		if (!this._data?.classFluff) return null;
 
 		return (
-			this._classData.classFluff.find(
+			this._data.classFluff.find(
 				(f) => f.name === className && f.source === source,
 			) || null
 		);

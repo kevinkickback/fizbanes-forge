@@ -8,7 +8,7 @@
  * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
  */
 
-import { renderString } from './TagProcessor.js';
+import { processString as renderStringWithTags } from './Renderer5etools.js';
 import { initializeTooltipListeners } from './TooltipManager.js';
 
 /** Processes text content, handling references and formatting for static/dynamic content. */
@@ -45,7 +45,7 @@ class TextProcessor {
 
 	/**
 	 * Creates a TextProcessor instance
-	 * Uses TagProcessor for processing references
+	 * Uses Renderer5etools for processing references
 	 */
 	constructor() {
 		/**
@@ -331,8 +331,8 @@ class TextProcessor {
 	 * @private
 	 */
 	_replaceReferences(text, _options = {}) {
-		// renderString() is synchronous and processes all inline tags
-		return renderString(text);
+		// Use Renderer5etools for consistent tag processing
+		return renderStringWithTags(text);
 	}
 
 	/**

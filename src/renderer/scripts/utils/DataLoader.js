@@ -382,8 +382,10 @@ dataLoader.getCacheStats = getCacheStats;
 const DataLoader = dataLoader;
 
 export {
-	DataLoader, clearCache,
-	clearCacheForUrl, dataLoader,
+	DataLoader,
+	clearCache,
+	clearCacheForUrl,
+	dataLoader,
 	getCacheStats,
 	loadActions,
 	loadBackgrounds,
@@ -409,5 +411,5 @@ export {
 	loadTrapsHazards,
 	loadVariantRules,
 	loadVehicles,
-	setBaseUrl
+	setBaseUrl,
 };

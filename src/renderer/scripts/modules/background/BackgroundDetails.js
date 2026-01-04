@@ -141,176 +141,138 @@ export class BackgroundDetailsView {
 
 	/**
 	 * Format skill proficiencies from background data
+	 * Uses 5etools normalized structure
 	 * @param {Object} background - Background JSON object
 	 * @returns {string} Formatted skill proficiencies HTML
 	 * @private
 	 */
 	_formatSkillProficiencies(background) {
-		if (!background?.skillProficiencies) return 'None';
+		if (!background?.proficiencies?.skills) return 'None';
 
-		const skills = [];
-
-		for (const skillEntry of background.skillProficiencies) {
-			if (skillEntry.choose) {
-				const count = skillEntry.choose.count || 1;
-				const from = skillEntry.choose.from || [];
-
-				if (from.length === 0) {
-					skills.push(`Choose ${count} skill${count > 1 ? 's' : ''}`);
-				} else {
-					// Title-case each skill in the list
-					skills.push(
-						`Choose ${count} from: ${from.map(toTitleCase).join(', ')}`,
-					);
+		// 5etools uses normalized structure: proficiencies.skills = [{skill: "...", optional: bool}]
+		const skills = background.proficiencies.skills
+			.map((prof) => {
+				if (prof.choose) {
+					return `Choose ${prof.choose.count || 1} from: ${prof.choose.from?.map(toTitleCase).join(', ') || 'any'}`;
 				}
-			} else {
-				// Fixed proficiencies - title-case skills
-				for (const [skill, value] of Object.entries(skillEntry)) {
-					if (value === true) {
-						skills.push(toTitleCase(skill));
-					}
-				}
-			}
-		}
+				return toTitleCase(prof.skill || prof);
+			})
+			.filter(Boolean);
 
 		return skills.join(', ') || 'None';
 	}
 
 	/**
 	 * Format tool proficiencies from background data
+	 * Uses 5etools normalized structure
 	 * @param {Object} background - Background JSON object
 	 * @returns {string} Formatted tool proficiencies HTML
 	 * @private
 	 */
 	_formatToolProficiencies(background) {
-		if (!background?.toolProficiencies) return 'None';
+		if (!background?.proficiencies?.tools) return 'None';
 
-		const tools = [];
-
-		for (const toolEntry of background.toolProficiencies) {
-			if (toolEntry.choose) {
-				const count = toolEntry.choose.count || 1;
-				tools.push(`Choose ${count} tool${count > 1 ? 's' : ''}`);
-			} else {
-				// Fixed proficiencies - sentence case tool names
-				for (const [tool, value] of Object.entries(toolEntry)) {
-					if (value === true) {
-						tools.push(toSentenceCase(tool));
-					}
+		// 5etools uses normalized structure: proficiencies.tools = [{tool: "...", optional: bool}]
+		const tools = background.proficiencies.tools
+			.map((prof) => {
+				if (prof.choose) {
+					return `Choose ${prof.choose.count || 1} tool${prof.choose.count > 1 ? 's' : ''}`;
 				}
-			}
-		}
+				return toSentenceCase(prof.tool || prof);
+			})
+			.filter(Boolean);
 
 		return tools.join(', ') || 'None';
 	}
 
 	/**
 	 * Format languages from background data
+	 * Uses 5etools normalized structure
 	 * @param {Object} background - Background JSON object
 	 * @returns {string} Formatted languages HTML
 	 * @private
 	 */
 	_formatLanguages(background) {
-		if (!background?.languageProficiencies) return 'None';
+		if (!background?.proficiencies?.languages) return 'None';
 
-		const languages = [];
-
-		for (const langEntry of background.languageProficiencies) {
-			// First, add all fixed languages - use as-is from JSON
-			for (const [lang, value] of Object.entries(langEntry)) {
-				const langLower = lang.toLowerCase();
-				if (
-					value === true &&
-					langLower !== 'anystandard' &&
-					langLower !== 'choose'
-				) {
-					languages.push(lang);
+		// 5etools uses normalized structure: proficiencies.languages = [{language: "...", optional: bool}]
+		const languages = background.proficiencies.languages
+			.map((prof) => {
+				if (prof.choose) {
+					const count = prof.choose.count || 1;
+					const suffix =
+						prof.choose.type === 'anystandard'
+							? ' (standard)'
+							: prof.choose.type === 'any'
+								? ' (any)'
+								: '';
+					return `Choose ${count} language${count > 1 ? 's' : ''}${suffix}`;
 				}
-			}
-
-			// Then add optional language choices
-			const anyStandardCount =
-				langEntry.anyStandard || langEntry.anystandard || 0;
-			if (anyStandardCount > 0) {
-				languages.push(
-					`Choose ${anyStandardCount} standard language${anyStandardCount > 1 ? 's' : ''}`,
-				);
-			}
-
-			if (langEntry.choose) {
-				const count = langEntry.choose.count || 1;
-				languages.push(`Choose ${count} language${count > 1 ? 's' : ''}`);
-			}
-		}
+				return prof.language || prof;
+			})
+			.filter(Boolean);
 
 		return languages.join(', ') || 'None';
 	}
 
 	/**
 	 * Format equipment from background data
+	 * Uses 5etools normalized structure
 	 * @param {Object} background - Background JSON object
 	 * @returns {string} Formatted equipment HTML
 	 * @private
 	 */
 	_formatEquipment(background) {
-		if (!background?.startingEquipment) return '<li>None</li>';
+		if (!background?.equipment) return '<li>None</li>';
 
+		// 5etools normalizes equipment: equipment = [{item: "...", quantity: n}] or [{a: [...], b: [...]}]
 		const equipment = [];
 
-		for (const equipEntry of background.startingEquipment) {
-			if (equipEntry._) {
-				// Array of items
-				for (const item of equipEntry._) {
-					if (typeof item === 'string') {
-						equipment.push(item);
-					} else if (item.item) {
-						const name = item.displayName || item.item.split('|')[0];
-						const qty = item.quantity ? `${item.quantity}x ` : '';
-						equipment.push(`${qty}${name}`);
-					} else if (item.special) {
-						const qty = item.quantity ? `${item.quantity}x ` : '';
-						equipment.push(`${qty}${item.special}`);
-					}
-				}
-			} else if (equipEntry.a || equipEntry.b) {
+		for (const eq of background.equipment) {
+			if (eq.a && eq.b) {
 				// Choice between options
-				const choices = [];
-				if (equipEntry.a)
-					choices.push(`(a) ${this._formatEquipmentOption(equipEntry.a)}`);
-				if (equipEntry.b)
-					choices.push(`(b) ${this._formatEquipmentOption(equipEntry.b)}`);
-				equipment.push(choices.join(' or '));
+				equipment.push(`(a) ${this._formatEquipmentList(eq.a)} or (b) ${this._formatEquipmentList(eq.b)}`);
+			} else if (Array.isArray(eq)) {
+				// Direct equipment list
+				equipment.push(this._formatEquipmentList(eq));
+			} else {
+				// Single item
+				equipment.push(this._formatSingleEquipment(eq));
 			}
 		}
 
-		return equipment.map((e) => `<li>${e}</li>`).join('') || 'None';
+		return equipment.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
 	}
 
 	/**
-	 * Format a single equipment option (helper for _formatEquipment)
-	 * @param {Array} option - Equipment option array
-	 * @returns {string} Formatted equipment option text
+	 * Format a list of equipment items
+	 * @param {Array} items - Equipment items array
+	 * @returns {string} Formatted items
 	 * @private
 	 */
-	_formatEquipmentOption(option) {
-		const items = [];
-		for (const item of option) {
-			if (typeof item === 'string') {
-				items.push(item);
-			} else if (item.item) {
-				const name = item.displayName || item.item.split('|')[0];
-				const qty = item.quantity ? `${item.quantity}x ` : '';
-				items.push(`${qty}${name}`);
-			} else if (item.special) {
-				const qty = item.quantity ? `${item.quantity}x ` : '';
-				items.push(`${qty}${item.special}`);
-			}
+	_formatEquipmentList(items) {
+		return items.map((item) => this._formatSingleEquipment(item)).join(', ');
+	}
+
+	/**
+	 * Format a single equipment item
+	 * @param {string|Object} item - Equipment item
+	 * @returns {string} Formatted item
+	 * @private
+	 */
+	_formatSingleEquipment(item) {
+		if (typeof item === 'string') {
+			return item;
 		}
-		return items.join(', ');
+		const qty = item.quantity ? `${item.quantity}x ` : '';
+		const itemRef = item.item || '';
+		const name = item.displayName || (itemRef ? window.api.unpackUid(itemRef).name : '') || item.name || item.special || '';
+		return `${qty}${name}`.trim();
 	}
 
 	/**
 	 * Extract background feature from raw JSON
+	 * Uses 5etools normalized structure where feature is in entries
 	 * @param {Object} background - Background JSON object
 	 * @returns {Object|null} Feature object with name and description
 	 * @private
@@ -318,32 +280,20 @@ export class BackgroundDetailsView {
 	_extractFeature(background) {
 		if (!background?.entries) return null;
 
-		for (const entry of background.entries) {
-			// Look for entries marked as features
-			if (entry.type === 'entries' && entry.data?.isFeature) {
-				const description = entry.entries
-					? entry.entries.map((e) => (typeof e === 'string' ? e : '')).join(' ')
-					: '';
-				return {
-					name: entry.name || 'Feature',
-					description,
-				};
-			}
-			// Also check for entries with "Feature:" in the name
-			if (
-				entry.type === 'entries' &&
-				entry.name &&
-				entry.name.toLowerCase().includes('feature')
-			) {
-				const description = entry.entries
-					? entry.entries.map((e) => (typeof e === 'string' ? e : '')).join(' ')
-					: '';
-				return {
-					name: entry.name,
-					description,
-				};
-			}
-		}
-		return null;
+		// 5etools typically marks features in entries array
+		const featureEntry = background.entries.find(
+			(entry) => entry.name?.toLowerCase().includes('feature') || entry.data?.isFeature
+		);
+
+		if (!featureEntry) return null;
+
+		const description = Array.isArray(featureEntry.entries)
+			? featureEntry.entries.map((e) => (typeof e === 'string' ? e : '')).filter(Boolean).join(' ')
+			: featureEntry.entry || '';
+
+		return {
+			name: featureEntry.name || 'Feature',
+			description: description.trim(),
+		};
 	}
 }

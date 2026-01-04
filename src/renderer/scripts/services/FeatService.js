@@ -115,7 +115,10 @@ class FeatService {
 			max,
 			remaining: Math.max(0, max - used),
 			reasons,
-			blockedReason: max === 0 ? 'No feat selections available for this character.' : undefined,
+			blockedReason:
+				max === 0
+					? 'No feat selections available for this character.'
+					: undefined,
 		};
 	}
 
@@ -162,7 +165,11 @@ class FeatService {
 
 		if (!className || !Number.isFinite(level)) return { slots, reasons };
 
-		const features = classService.getClassFeatures(className, level, classSource);
+		const features = classService.getClassFeatures(
+			className,
+			level,
+			classSource,
+		);
 		for (const feature of features) {
 			const name = feature?.name || '';
 			const isASI = name.toLowerCase() === 'ability score improvement';
@@ -182,7 +189,8 @@ class FeatService {
 		if (typeof featEntry.any === 'number') return featEntry.any;
 		if (typeof featEntry.anyFromCategory?.count === 'number')
 			return featEntry.anyFromCategory.count;
-		if (typeof featEntry.choose?.count === 'number') return featEntry.choose.count;
+		if (typeof featEntry.choose?.count === 'number')
+			return featEntry.choose.count;
 		return 0;
 	}
 }

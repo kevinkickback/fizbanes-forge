@@ -3,6 +3,10 @@
 import { CharacterManager } from '../../core/CharacterManager.js';
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
+import {
+	attAbvToFull,
+	levelToProficiencyBonus,
+} from '../../utils/5eToolsParser.js';
 import { toSentenceCase, toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
@@ -293,17 +297,7 @@ export class ClassDetailsView {
 	 */
 	_formatSavingThrows(classData) {
 		if (!classData?.proficiency) return [];
-
-		const abilityMap = {
-			str: 'Strength',
-			dex: 'Dexterity',
-			con: 'Constitution',
-			int: 'Intelligence',
-			wis: 'Wisdom',
-			cha: 'Charisma',
-		};
-
-		return classData.proficiency.map((prof) => abilityMap[prof] || prof);
+		return classData.proficiency.map((prof) => attAbvToFull(prof) || prof);
 	}
 
 	//-------------------------------------------------------------------------
@@ -715,19 +709,11 @@ export class ClassDetailsView {
 					if (!character || !abilityAbbr) {
 						result += '<p>Error calculating Spell Save DC.</p>';
 					} else {
-						const abilityMap = {
-							str: 'Strength',
-							dex: 'Dexterity',
-							con: 'Constitution',
-							int: 'Intelligence',
-							wis: 'Wisdom',
-							cha: 'Charisma',
-						};
-						const abilityName = abilityMap[abilityAbbr] || abilityAbbr;
+						const abilityName = attAbvToFull(abilityAbbr) || abilityAbbr;
 						const modifier = abilityScoreService.getModifier(abilityAbbr);
 						const profBonus = character.getProficiencyBonus
 							? character.getProficiencyBonus()
-							: Math.ceil(1 + character.level / 4);
+							: levelToProficiencyBonus(character.level);
 						const dc = 8 + profBonus + modifier;
 						const processedName = await textProcessor.processString(
 							entry.name || 'Spell Save DC',
@@ -742,19 +728,11 @@ export class ClassDetailsView {
 					if (!character || !abilityAbbr) {
 						result += '<p>Error calculating Spell Attack Modifier.</p>';
 					} else {
-						const abilityMap = {
-							str: 'Strength',
-							dex: 'Dexterity',
-							con: 'Constitution',
-							int: 'Intelligence',
-							wis: 'Wisdom',
-							cha: 'Charisma',
-						};
-						const abilityName = abilityMap[abilityAbbr] || abilityAbbr;
+						const abilityName = attAbvToFull(abilityAbbr) || abilityAbbr;
 						const modifier = abilityScoreService.getModifier(abilityAbbr);
 						const profBonus = character.getProficiencyBonus
 							? character.getProficiencyBonus()
-							: Math.ceil(1 + character.level / 4);
+							: levelToProficiencyBonus(character.level);
 						const attackMod = profBonus + modifier;
 						const sign = attackMod >= 0 ? '+' : '';
 						const processedName = await textProcessor.processString(
@@ -775,8 +753,7 @@ export class ClassDetailsView {
 				else if (entry.type === 'refClassFeature') {
 					const featureRef = entry.classFeature;
 					if (featureRef) {
-						const parts = featureRef.split('|');
-						const featureName = parts[0];
+						const { name: featureName } = window.api.unpackUid(featureRef);
 						const processed = await textProcessor.processString(featureName);
 						result += `<p><em>${processed}</em></p>`;
 					}

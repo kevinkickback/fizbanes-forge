@@ -1,29 +1,6 @@
 /** Pure proficiency bonus and modifier calculations. */
+import { SKILL_TO_ABILITY } from '../../utils/5eToolsParser.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
-
-/**
- * Skill to ability mapping
- */
-export const SKILL_ABILITIES = {
-	acrobatics: 'dexterity',
-	'animal handling': 'wisdom',
-	arcana: 'intelligence',
-	athletics: 'strength',
-	deception: 'charisma',
-	history: 'intelligence',
-	insight: 'wisdom',
-	intimidation: 'charisma',
-	investigation: 'intelligence',
-	medicine: 'wisdom',
-	nature: 'intelligence',
-	perception: 'wisdom',
-	performance: 'charisma',
-	persuasion: 'charisma',
-	religion: 'intelligence',
-	'sleight of hand': 'dexterity',
-	stealth: 'dexterity',
-	survival: 'wisdom',
-};
 
 /**
  * Saving throw to ability mapping
@@ -38,23 +15,6 @@ export const SAVING_THROW_ABILITIES = {
 };
 
 /**
- * Calculates proficiency bonus based on character level
- * @param {number} level - Character level (1-20)
- * @returns {number} Proficiency bonus (2-6)
- */
-export function calculateProficiencyBonus(level) {
-	if (typeof level !== 'number' || level < 1) {
-		return 2;
-	}
-
-	if (level >= 17) return 6;
-	if (level >= 13) return 5;
-	if (level >= 9) return 4;
-	if (level >= 5) return 3;
-	return 2;
-}
-
-/**
  * Gets the ability associated with a skill
  * @param {string} skillName - The skill name
  * @returns {string|null} The ability name or null if not found
@@ -62,7 +22,21 @@ export function calculateProficiencyBonus(level) {
 export function getSkillAbility(skillName) {
 	if (!skillName) return null;
 	const normalized = DataNormalizer.normalizeForLookup(skillName);
-	return SKILL_ABILITIES[normalized] || null;
+	// SKILL_TO_ABILITY uses lowercase ability abbreviations (str, dex, etc.)
+	// Convert to full names for compatibility
+	const abilityAbv = SKILL_TO_ABILITY[normalized];
+	if (!abilityAbv) return null;
+
+	// Map abbreviations to full names
+	const abvToFull = {
+		str: 'strength',
+		dex: 'dexterity',
+		con: 'constitution',
+		int: 'intelligence',
+		wis: 'wisdom',
+		cha: 'charisma',
+	};
+	return abvToFull[abilityAbv] || null;
 }
 
 /**
@@ -115,6 +89,7 @@ export function calculateSavingThrowModifier(
  * Formats a modifier value with proper sign
  * @param {number} modifier - The modifier value
  * @returns {string} Formatted string (e.g., "+3", "-1", "+0")
+ * @deprecated This duplicates formatModifier logic. Consider using getAbilityModifier from 5eToolsParser for consistency.
  */
 export function formatModifier(modifier) {
 	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {

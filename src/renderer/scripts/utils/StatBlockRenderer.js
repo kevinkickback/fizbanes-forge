@@ -1,6 +1,8 @@
 /** StatBlockRenderer.js - Renders enhanced stat blocks for tooltips (5etools-inspired). */
 
-import { renderString } from './TagProcessor.js';
+import { getOrdinalForm, getSpeedString, sizeAbvToFull } from './5eToolsParser.js';
+import { getAbilityData } from './AbilityScoreUtils.js';
+import { Renderer5etools } from './Renderer5etools.js';
 
 /**
  * Render a spell stat block
@@ -16,7 +18,7 @@ export function renderSpell(spell) {
 
 	// Title and level
 	const levelText =
-		spell.level === 0 ? 'Cantrip' : `${_getOrdinal(spell.level)}-level`;
+		spell.level === 0 ? 'Cantrip' : `${getOrdinalForm(spell.level)}-level`;
 	const schoolText = spell.school ? ` ${_getSchoolName(spell.school)}` : '';
 	const ritualText = spell.ritual ? ' (ritual)' : '';
 
@@ -188,18 +190,14 @@ export function renderRace(race) {
 
 	if (race.size) {
 		const sizeText = Array.isArray(race.size)
-			? race.size.join(', ')
-			: race.size;
+			? race.size.map((sz) => sizeAbvToFull(sz)).join('/')
+			: sizeAbvToFull(race.size);
 		html += `<strong>Size:</strong> ${sizeText}<br>`;
 	}
 
 	if (race.speed) {
-		const speeds = [];
-		if (race.speed.walk) speeds.push(`${race.speed.walk} ft.`);
-		if (race.speed.fly) speeds.push(`fly ${race.speed.fly} ft.`);
-		if (race.speed.swim) speeds.push(`swim ${race.speed.swim} ft.`);
-		if (race.speed.climb) speeds.push(`climb ${race.speed.climb} ft.`);
-		html += `<strong>Speed:</strong> ${speeds.join(', ')}<br>`;
+		const speedText = getSpeedString(race);
+		html += `<strong>Speed:</strong> ${speedText}<br>`;
 	}
 
 	// Ability Score Increases
@@ -292,7 +290,7 @@ export function renderClass(cls) {
 			if (typeof text === 'string') {
 				const shortDesc =
 					text.length > 150 ? `${text.substring(0, 150)}...` : text;
-				html += renderString(shortDesc);
+				html += Renderer5etools.processString(shortDesc);
 			}
 		}
 		html += '</div>';
@@ -645,6 +643,115 @@ export function renderVehicle(vehicle) {
 }
 
 /**
+ * Render a monster stat block (lightweight summary)
+ * @param {Object} monster Monster data
+ * @returns {string} HTML
+ */
+export function renderMonster(monster) {
+	if (!monster || monster.error) {
+		return `<strong>${monster?.name || 'Unknown'}</strong><br><small>${monster?.error || 'No data'}</small>`;
+	}
+
+	let html = `<div class="tooltip-content" data-type="monster">`;
+
+	// Title and basic meta
+	html += `<div class="tooltip-title">${monster.name}</div>`;
+	const typeText = monster.type ? (typeof monster.type === 'string' ? monster.type : monster.type.type || '') : '';
+	const crText = monster.cr !== undefined ? `CR ${Array.isArray(monster.cr) ? monster.cr[0] : monster.cr}` : '';
+	const sizeText = monster.size ? sizeAbvToFull(monster.size) : '';
+	const metaParts = [typeText, sizeText, crText].filter(Boolean);
+	if (metaParts.length) {
+		html += `<div class="tooltip-metadata">${metaParts.join(' · ')}</div>`;
+	}
+
+	// Defensive stats
+	if (monster.ac || monster.hp || monster.speed) {
+		html += '<div class="tooltip-metadata">';
+		if (monster.ac) html += `<strong>AC:</strong> ${Array.isArray(monster.ac) ? monster.ac[0].ac || monster.ac[0] : monster.ac}<br>`;
+		if (monster.hp) html += `<strong>HP:</strong> ${monster.hp.average || monster.hp.formula || monster.hp}<br>`;
+		if (monster.speed) html += `<strong>Speed:</strong> ${getSpeedString(monster.speed)}<br>`;
+		html += '</div>';
+	}
+
+	// Ability scores (if present)
+	if (monster.str || monster.dex || monster.con || monster.int || monster.wis || monster.cha) {
+		html += '<div class="tooltip-abilities">';
+		const abilities = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+		for (const ab of abilities) {
+			if (monster[ab] !== undefined) {
+				html += `<span><strong>${ab.toUpperCase()}:</strong> ${monster[ab]}</span>`;
+			}
+		}
+		html += '</div>';
+	}
+
+	// Description/entries
+	if (monster.entries) {
+		html += _renderEntries(monster.entries, 3);
+	}
+
+	// Source
+	html += _renderSource(monster);
+	html += '</div>';
+
+	return html;
+}
+
+/**
+ * Render a table tooltip
+ * @param {Object} table Table data
+ * @returns {string} HTML
+ */
+export function renderTable(table) {
+	if (!table || table.error) {
+		return `<strong>${table?.name || 'Unknown'}</strong><br><small>${table?.error || 'No data'}</small>`;
+	}
+
+	let html = `<div class="tooltip-content" data-type="table">`;
+	html += `<div class="tooltip-title">${table.name || 'Table'}</div>`;
+
+	const headers = Array.isArray(table.colLabels) ? table.colLabels : [];
+	const rows = Array.isArray(table.rows) ? table.rows : [];
+
+	if (headers.length || rows.length) {
+		html += '<div class="tooltip-table-wrapper">';
+		html += '<table class="tooltip-table">';
+		if (headers.length) {
+			html += `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`;
+		}
+		if (rows.length) {
+			html += '<tbody>';
+			for (const row of rows) {
+				const cells = Array.isArray(row)
+					? row
+					: Array.isArray(row.cells)
+						? row.cells
+						: Array.isArray(row.row)
+							? row.row
+							: [];
+				html += `<tr>${cells
+					.map((c) => `<td>${typeof c === 'string' ? c : c?.entry || c?.label || c?.roll || ''}</td>`)
+					.join('')}</tr>`;
+			}
+			html += '</tbody>';
+		}
+		html += '</table>';
+		html += '</div>';
+	}
+
+	// Fallback entries if present
+	if (table.entries) {
+		html += _renderEntries(table.entries, 3);
+	}
+
+	// Source
+	html += _renderSource(table);
+	html += '</div>';
+
+	return html;
+}
+
+/**
  * Render an object stat block
  * @param {Object} obj Object data
  * @returns {string} HTML
@@ -751,7 +858,7 @@ function _renderEntries(entries, maxEntries = 5) {
 		const entry = entries[i];
 
 		if (typeof entry === 'string') {
-			html += `<p>${renderString(entry)}</p>`;
+			html += `<p>${Renderer5etools.processString(entry)}</p>`;
 		} else if (entry.type === 'list' && entry.items) {
 			// Skip certain list styles
 			if (entry.style === 'list-hang-notitle') continue;
@@ -760,10 +867,10 @@ function _renderEntries(entries, maxEntries = 5) {
 			for (let j = 0; j < Math.min(entry.items.length, 5); j++) {
 				const item = entry.items[j];
 				if (typeof item === 'string') {
-					html += `<li>${renderString(item)}</li>`;
+					html += `<li>${Renderer5etools.processString(item)}</li>`;
 				} else if (item.type === 'item' && item.entry) {
 					const nameText = item.name ? `<strong>${item.name}.</strong> ` : '';
-					html += `<li>${nameText}${renderString(item.entry)}</li>`;
+					html += `<li>${nameText}${Renderer5etools.processString(item.entry)}</li>`;
 				}
 			}
 			html += '</ul>';
@@ -777,7 +884,7 @@ function _renderEntries(entries, maxEntries = 5) {
 				for (let j = 0; j < Math.min(entry.entries.length, 2); j++) {
 					const subEntry = entry.entries[j];
 					if (typeof subEntry === 'string') {
-						html += `${renderString(subEntry)} `;
+						html += `${Renderer5etools.processString(subEntry)} `;
 					}
 				}
 			}
@@ -822,18 +929,6 @@ function _getSchoolName(code) {
 		V: 'Evocation',
 	};
 	return schools[code] || code;
-}
-
-/**
- * Get ordinal number (1st, 2nd, etc.)
- * @param {number} n Number
- * @returns {string} Ordinal
- * @private
- */
-function _getOrdinal(n) {
-	const s = ['th', 'st', 'nd', 'rd'];
-	const v = n % 100;
-	return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 /**
@@ -902,21 +997,16 @@ function _getDurationText(duration) {
  * @private
  */
 function _getAbilityScoreText(abilities) {
-	const parts = [];
-	for (const ab of abilities) {
-		for (const [key, val] of Object.entries(ab)) {
-			if (key === 'choose') {
-				if (val.from) {
-					const count = val.count || 1;
-					const amount = val.amount || 1;
-					parts.push(`+${amount} to ${count} from ${val.from.join(', ')}`);
-				}
-			} else {
-				parts.push(`${key.toUpperCase()} ${val > 0 ? '+' : ''}${val}`);
-			}
-		}
+	if (!abilities || !Array.isArray(abilities) || abilities.length === 0) {
+		return '';
 	}
-	return parts.join(', ');
+
+	// Use the proven 5etools ability parsing logic
+	const data = getAbilityData(abilities);
+
+	// For stat blocks, use the short text format which is more concise
+	// e.g., "+2 Str, +1 Con, +1 two choice" instead of full sentences
+	return data.asTextShort || data.asText || '';
 }
 
 /**

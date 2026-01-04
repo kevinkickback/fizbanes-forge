@@ -271,7 +271,10 @@ class NavigationControllerImpl {
 		});
 
 		if (!sections.length) {
-			console.debug('NavigationController', 'No build sections found to observe');
+			console.debug(
+				'NavigationController',
+				'No build sections found to observe',
+			);
 			return;
 		}
 
@@ -289,7 +292,10 @@ class NavigationControllerImpl {
 
 				// Fallback: find the section closest to the top of the viewport
 				const nearest = entries
-					.map((entry) => ({ id: entry.target.id, top: entry.boundingClientRect.top }))
+					.map((entry) => ({
+						id: entry.target.id,
+						top: entry.boundingClientRect.top,
+					}))
 					.sort((a, b) => Math.abs(a.top) - Math.abs(b.top))[0];
 
 				if (nearest?.id) {

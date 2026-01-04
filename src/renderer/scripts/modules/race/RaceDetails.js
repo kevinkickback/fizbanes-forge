@@ -1,7 +1,16 @@
 /** View for detailed race information (ability scores, size, speed, languages, traits). */
 
-import { abbreviateAbility, toTitleCase } from '../../utils/TextFormatter.js';
+import {
+	getSpeedString,
+	SIZE_ABV_TO_FULL,
+	sizeAbvToFull,
+} from '../../utils/5eToolsParser.js';
+import { getAbilityData } from '../../utils/AbilityScoreUtils.js';
+import { toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
+
+// Default D&D 5e speed for most races
+const DEFAULT_SPEED = 30; // 30 ft. walking speed
 
 /** View for displaying race details. */
 export class RaceDetailsView {
@@ -96,51 +105,21 @@ export class RaceDetailsView {
 	 * @private
 	 */
 	_formatAbilityImprovements(race, subrace) {
-		const improvements = [];
+		// Combine race and subrace ability arrays
+		const abilityArray = [
+			...(race?.ability || []),
+			...(subrace?.ability || []),
+		];
 
-		// Process race abilities
-		if (race?.ability) {
-			for (const abilityEntry of race.ability) {
-				// Process fixed improvements first
-				for (const [ability, bonus] of Object.entries(abilityEntry)) {
-					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
-						improvements.push(`${abbreviateAbility(ability)} +${bonus}`);
-					}
-				}
-
-				// Then process choice-based improvements
-				if (abilityEntry.choose) {
-					const count = abilityEntry.choose.count || 1;
-					const amount = abilityEntry.choose.amount || 1;
-					improvements.push(
-						`Increase ${count} ability score${count > 1 ? 's' : ''} by ${amount}`,
-					);
-				}
-			}
+		if (abilityArray.length === 0) {
+			return 'None';
 		}
 
-		// Process subrace abilities
-		if (subrace?.ability) {
-			for (const abilityEntry of subrace.ability) {
-				// Process fixed improvements first
-				for (const [ability, bonus] of Object.entries(abilityEntry)) {
-					if (bonus && typeof bonus === 'number' && ability !== 'choose') {
-						improvements.push(`${abbreviateAbility(ability)} +${bonus}`);
-					}
-				}
+		// Use the unified ability parsing utility
+		const data = getAbilityData(abilityArray);
 
-				// Then process choice-based improvements
-				if (abilityEntry.choose) {
-					const count = abilityEntry.choose.count || 1;
-					const amount = abilityEntry.choose.amount || 1;
-					improvements.push(
-						`Increase ${count} ability score${count > 1 ? 's' : ''} by ${amount}`,
-					);
-				}
-			}
-		}
-
-		return improvements.join('\n') || 'None';
+		// Return formatted text (use short format for compact display)
+		return data.asTextShort || data.asText || 'None';
 	}
 
 	//-------------------------------------------------------------------------
@@ -173,12 +152,14 @@ export class RaceDetailsView {
 			const sizeSection = this._raceDetails.querySelector(
 				'.detail-section:nth-child(2) ul',
 			);
-			sizeSection.innerHTML = '<li>Medium</li>';
+			const defaultSize = SIZE_ABV_TO_FULL.M; // 'Medium'
+			sizeSection.innerHTML = `<li>${defaultSize}</li>`;
 
 			const speedSection = this._raceDetails.querySelector(
 				'.detail-section:nth-child(3) ul',
 			);
-			speedSection.innerHTML = '<li>Walk: 30 ft.</li>';
+			const defaultSpeed = getSpeedString(DEFAULT_SPEED); // '30 ft.'
+			speedSection.innerHTML = `<li>${defaultSpeed}</li>`;
 		}
 	}
 
@@ -189,23 +170,15 @@ export class RaceDetailsView {
 	 * @private
 	 */
 	_formatSize(race) {
-		if (!race?.size) return 'Medium';
-
-		const sizeMap = {
-			T: 'Tiny',
-			S: 'Small',
-			M: 'Medium',
-			L: 'Large',
-			H: 'Huge',
-			G: 'Gargantuan',
-		};
+		// Default to Medium size if not specified
+		if (!race?.size) return SIZE_ABV_TO_FULL.M;
 
 		if (Array.isArray(race.size)) {
 			// Multiple size options
-			return race.size.map((s) => sizeMap[s] || s).join(' or ');
+			return race.size.map((s) => sizeAbvToFull(s)).join(' or ');
 		}
 
-		return sizeMap[race.size] || race.size;
+		return sizeAbvToFull(race.size);
 	}
 
 	/**
@@ -215,21 +188,36 @@ export class RaceDetailsView {
 	 * @private
 	 */
 	_formatMovementSpeeds(race) {
-		if (!race?.speed) return 'Walk: 30 ft.';
+		// Default to standard 30 ft. walking speed if not specified
+		if (!race?.speed) return 'Walk: ' + getSpeedString(DEFAULT_SPEED);
 
-		const speeds = [];
+		// Use 5etools Parser utility for consistent speed formatting
+		const speedText = getSpeedString(race);
+		if (speedText) {
+			// Split by comma to get individual speed modes
+			const speedModes = speedText.split(', ');
 
-		if (typeof race.speed === 'number') {
-			speeds.push(`Walk: ${race.speed} ft.`);
-		} else if (typeof race.speed === 'object') {
-			for (const [type, value] of Object.entries(race.speed)) {
-				if (value && typeof value === 'number') {
-					speeds.push(`${type}: ${value} ft.`);
-				}
+			// If only one speed and it doesn't have a mode label (i.e., walk speed only),
+			// add the "Walk:" prefix for clarity
+			if (speedModes.length === 1 && !speedModes[0].match(/^(burrow|climb|fly|swim)/i)) {
+				return 'Walk: ' + speedModes[0];
 			}
+
+			// For multiple speeds or labeled speeds, join with newlines
+			// Capitalize the first letter of each mode for consistency
+			return speedModes
+				.map(mode => {
+					// If mode doesn't start with a movement type, it's walk speed
+					if (!mode.match(/^(burrow|climb|fly|swim)/i)) {
+						return 'Walk: ' + mode;
+					}
+					// Capitalize first letter of other movement types
+					return mode.charAt(0).toUpperCase() + mode.slice(1);
+				})
+				.join('\n');
 		}
 
-		return speeds.join('\n') || 'Walk: 30 ft.';
+		return 'Walk: ' + getSpeedString(DEFAULT_SPEED);
 	}
 
 	//-------------------------------------------------------------------------

@@ -2,13 +2,14 @@
 
 import { DataLoader } from '../utils/DataLoader.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
-import { eventBus, EVENTS } from '../utils/EventBus.js';
+import { EVENTS } from '../utils/EventBus.js';
+import { BaseDataService } from './BaseDataService.js';
 
 /** Manages item data and provides access to items. */
-class ItemService {
+class ItemService extends BaseDataService {
 	/** Initialize a new ItemManager. */
 	constructor() {
-		this._itemData = null;
+		super({ loadEvent: EVENTS.ITEMS_LOADED, loggerScope: 'ItemService' });
 		this._itemLookupMap = null; // Map for O(1) item lookups
 		this._baseItemLookupMap = null; // Map for O(1) base item lookups
 	}
@@ -18,70 +19,80 @@ class ItemService {
 	 * @returns {Promise<boolean>} True if initialization succeeded
 	 */
 	async initialize() {
-		// Skip if already initialized
-		if (this._itemData) {
-			return true;
+		await this.initWithLoader(
+			async () => {
+				const results = await Promise.allSettled([
+					DataLoader.loadJSON('items.json'),
+					DataLoader.loadJSON('items-base.json'),
+				]);
+
+				const items =
+					results[0].status === 'fulfilled'
+						? results[0].value
+						: { item: [] };
+				const baseItems =
+					results[1].status === 'fulfilled'
+						? results[1].value
+						: { baseitem: [] };
+
+				if (results[0].status === 'rejected') {
+					console.warn(
+						'ItemService',
+						'Failed to load items.json:',
+						results[0].reason?.message,
+					);
+				}
+				if (results[1].status === 'rejected') {
+					console.warn(
+						'ItemService',
+						'Failed to load items-base.json:',
+						results[1].reason?.message,
+					);
+				}
+
+				return {
+					...items,
+					baseItem: baseItems.baseitem || [],
+				};
+			},
+			{
+				onLoaded: (data) => {
+					const merged = data || { item: [], baseItem: [] };
+					this._itemLookupMap = this._buildItemLookup(merged.item);
+					this._baseItemLookupMap = this._buildBaseItemLookup(
+						merged.baseItem,
+					);
+				},
+				emitPayload: (data) => data?.item || [],
+				onError: () => {
+					this._itemLookupMap = new Map();
+					this._baseItemLookupMap = new Map();
+					return { item: [], baseItem: [] };
+				},
+			},
+		);
+
+		return true;
+	}
+
+	_buildItemLookup(items = []) {
+		const map = new Map();
+		for (const item of items) {
+			if (!item?.name) continue;
+			const key = DataNormalizer.normalizeForLookup(item.name);
+			map.set(key, item);
 		}
+		return map;
+	}
 
-		try {
-			// Load both items and base items with individual error handling
-			const results = await Promise.allSettled([
-				DataLoader.loadJSON('items.json'),
-				DataLoader.loadJSON('items-base.json'),
-			]);
-
-			// Extract results gracefully
-			const items =
-				results[0].status === 'fulfilled' ? results[0].value : { item: [] };
-			const baseItems =
-				results[1].status === 'fulfilled' ? results[1].value : { baseitem: [] };
-
-			// Log any failures
-			if (results[0].status === 'rejected') {
-				console.warn(
-					'ItemService',
-					'Failed to load items.json:',
-					results[0].reason?.message,
-				);
-			}
-			if (results[1].status === 'rejected') {
-				console.warn(
-					'ItemService',
-					'Failed to load items-base.json:',
-					results[1].reason?.message,
-				);
-			}
-
-			// Merge items with base items
-			this._itemData = {
-				...items,
-				baseItem: baseItems.baseitem || [],
-			};
-
-			// Build lookup maps for O(1) access
-			this._itemLookupMap = new Map();
-			for (const item of this._itemData.item || []) {
-				// Skip items with missing names
-				if (!item.name) continue;
-				const key = DataNormalizer.normalizeForLookup(item.name);
-				this._itemLookupMap.set(key, item);
-			}
-
-			this._baseItemLookupMap = new Map();
-			for (const baseItem of this._itemData.baseItem || []) {
-				// Skip base items with missing names
-				if (!baseItem.name) continue;
-				const key = DataNormalizer.normalizeForLookup(baseItem.name);
-				this._baseItemLookupMap.set(key, baseItem);
-			}
-
-			eventBus.emit(EVENTS.ITEMS_LOADED, this._itemData.item);
-			return true;
-		} catch (error) {
-			console.error('ItemService', 'Failed to initialize item data:', error);
-			this._itemData = { item: [], baseItem: [] };
-			return false;
+	_buildBaseItemLookup(baseItems = []) {
+		const map = new Map();
+		for (const baseItem of baseItems) {
+			if (!baseItem?.name) continue;
+			const key = DataNormalizer.normalizeForLookup(baseItem.name);
+			map.set(key, baseItem);
 		}
+		return map;
 	}
 
 	/**
@@ -89,7 +100,7 @@ class ItemService {
 	 * @returns {Array<Object>} Array of item objects
 	 */
 	getAllItems() {
-		return this._itemData?.item || [];
+		return this._data?.item || [];
 	}
 
 	/**
@@ -97,7 +108,7 @@ class ItemService {
 	 * @returns {Array<Object>} Array of base item objects
 	 */
 	getAllBaseItems() {
-		return this._itemData?.baseItem || [];
+		return this._data?.baseItem || [];
 	}
 
 	/**
@@ -120,9 +131,9 @@ class ItemService {
 		}
 
 		// Fall back to linear search if exact source needed
-		if (item && item.source !== source && this._itemData?.item) {
+		if (item && item.source !== source && this._data?.item) {
 			return (
-				this._itemData.item.find(
+				this._data.item.find(
 					(i) => i.name === name && i.source === source,
 				) || item
 			);
@@ -151,9 +162,13 @@ class ItemService {
 		}
 
 		// Fall back to linear search if exact source needed
-		if (baseItem && baseItem.source !== source && this._itemData?.baseItem) {
+		if (
+			baseItem &&
+			baseItem.source !== source &&
+			this._data?.baseItem
+		) {
 			return (
-				this._itemData.baseItem.find(
+				this._data.baseItem.find(
 					(bi) => bi.name === name && bi.source === source,
 				) || baseItem
 			);
@@ -170,12 +185,12 @@ class ItemService {
 	getItemsByType(type) {
 		const items = [];
 
-		if (this._itemData?.item) {
-			items.push(...this._itemData.item.filter((i) => i.type === type));
+		if (this._data?.item) {
+			items.push(...this._data.item.filter((i) => i.type === type));
 		}
 
-		if (this._itemData?.baseItem) {
-			items.push(...this._itemData.baseItem.filter((bi) => bi.type === type));
+		if (this._data?.baseItem) {
+			items.push(...this._data.baseItem.filter((bi) => bi.type === type));
 		}
 
 		return items;
@@ -187,10 +202,10 @@ class ItemService {
 	 * @returns {Array<Object>} Array of item objects
 	 */
 	getItemsByRarity(rarity) {
-		if (!this._itemData?.item) return [];
+		if (!this._data?.item) return [];
 
 		const target = DataNormalizer.normalizeForLookup(rarity);
-		return this._itemData.item.filter(
+		return this._data.item.filter(
 			(i) => i.rarity && DataNormalizer.normalizeForLookup(i.rarity) === target,
 		);
 	}

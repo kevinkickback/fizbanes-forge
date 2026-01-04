@@ -1,18 +1,6 @@
 /** Pure ability-score calculations (modifiers, point buy totals, validation). */
 
 /**
- * Calculates the ability modifier for a given ability score
- * @param {number} score - The ability score (1-30)
- * @returns {number} The ability modifier
- */
-export function calculateModifier(score) {
-	if (typeof score !== 'number' || Number.isNaN(score)) {
-		return 0;
-	}
-	return Math.floor((score - 10) / 2);
-}
-
-/**
  * Formats an ability modifier with proper sign
  * @param {number} modifier - The modifier value
  * @returns {string} Formatted modifier (e.g., "+2", "-1", "+0")
