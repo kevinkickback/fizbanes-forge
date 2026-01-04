@@ -115,9 +115,49 @@ test.describe('Character Creation', () => {
 
             expect(criticalErrors).toHaveLength(0);
 
+            // Clean up: delete the test character
+            console.log('9. Cleaning up test character...');
+            try {
+                // Navigate to home page
+                const homeBtn = page.locator('button.nav-link[data-page="home"]');
+                if (await homeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+                    await homeBtn.click();
+                    await page.waitForSelector('[data-current-page="home"]', { timeout: 15000 });
+                    await page.waitForTimeout(1000);
+                }
+
+                // Find and click delete button on character card
+                const deleteCard = page
+                    .locator('.character-card', { hasText: testCharacterName })
+                    .first();
+                if (await deleteCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+                    const deleteButton = deleteCard.locator('.delete-character');
+                    if (await deleteButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+                        await deleteButton.click();
+
+                        // Confirm deletion
+                        const confirmButton = page
+                            .locator('#confirmDeleteBtn, .btn-danger')
+                            .filter({ hasText: /delete|confirm/i })
+                            .first();
+                        await confirmButton
+                            .waitFor({ state: 'visible', timeout: 5000 })
+                            .catch(() => { });
+                        if (await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+                            await confirmButton.click();
+                        }
+
+                        await page.waitForTimeout(500);
+                        console.log(`✓ Test character "${testCharacterName}" deleted`);
+                    }
+                }
+            } catch (cleanupError) {
+                console.error('Cleanup error (non-critical):', cleanupError.message);
+            }
+
         } finally {
             // Close app
-            console.log('9. Closing app...');
+            console.log('10. Closing app...');
             await electronApp.close();
         }
     });

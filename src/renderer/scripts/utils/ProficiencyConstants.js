@@ -8,6 +8,8 @@
  * @module ProficiencyConstants
  */
 
+import { LANGUAGES_EXOTIC, LANGUAGES_STANDARD } from './5eToolsParser.js';
+
 /**
  * Standard skill proficiency options (matching 5etools JSON format).
  * These are the 18 core D&D 5e skills tied to ability scores.
@@ -38,28 +40,15 @@ export const STANDARD_SKILL_OPTIONS = Object.freeze([
 
 /**
  * Standard language proficiency options (matching 5etools JSON format).
- * These are the 16 core D&D 5e languages available to player characters.
+ * These are the core D&D 5e languages available to player characters.
+ * Imported from 5eToolsParser for canonical language list.
  *
  * @type {ReadonlyArray<string>}
  * @constant
  */
 export const STANDARD_LANGUAGE_OPTIONS = Object.freeze([
-	'Common',
-	'Dwarvish',
-	'Elvish',
-	'Giant',
-	'Gnomish',
-	'Goblin',
-	'Halfling',
-	'Orc',
-	'Abyssal',
-	'Celestial',
-	'Draconic',
-	'Deep Speech',
-	'Infernal',
-	'Primordial',
-	'Sylvan',
-	'Undercommon',
+	...LANGUAGES_STANDARD,
+	...LANGUAGES_EXOTIC,
 ]);
 
 /**

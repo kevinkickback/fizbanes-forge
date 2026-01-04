@@ -1,5 +1,6 @@
 /** TooltipManager.js - Manages displaying and hiding D&D reference tooltips as a plain module. */
 
+import { DEFAULT_SOURCE } from './5eToolsParser.js';
 import DataNormalizer from './DataNormalizer.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
 import { Renderer5etools } from './Renderer5etools.js';
@@ -556,7 +557,7 @@ export function initializeTooltipListeners() {
 			link.dataset.tooltipName ||
 			link.textContent?.trim();
 		const hoverSource =
-			link.dataset.hoverSource || link.dataset.tooltipSource || 'PHB';
+			link.dataset.hoverSource || link.dataset.tooltipSource || DEFAULT_SOURCE;
 		if (!hoverType || !hoverName) return null;
 		return { hoverType, hoverName, hoverSource };
 	}

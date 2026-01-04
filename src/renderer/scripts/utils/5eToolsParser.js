@@ -112,6 +112,12 @@ const DEFAULT_CHARACTER_SIZE = ['M'];
 const DEFAULT_CHARACTER_SPEED = { walk: 30 };
 
 /**
+ * Default source book abbreviation
+ * Used when source is not specified in tag content or data
+ */
+const DEFAULT_SOURCE = 'PHB';
+
+/**
  * Source book abbreviations
  */
 const SOURCES = {
@@ -189,6 +195,21 @@ export function getAbilityModNumber(abilityScore) {
 export function getAbilityModifier(abilityScore) {
 	let modifier = getAbilityModNumber(abilityScore);
 	if (modifier >= 0) modifier = `+${modifier}`;
+	return `${modifier}`;
+}
+
+/**
+ * Format an already-computed modifier number as a string
+ * @param {number} modifier - The modifier value (e.g., 3, -1, 0)
+ * @returns {string} Formatted modifier string (e.g., "+3", "-1", "+0")
+ */
+export function formatModifierNumber(modifier) {
+	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
+		return '+0';
+	}
+	if (modifier >= 0) {
+		return `+${modifier}`;
+	}
 	return `${modifier}`;
 }
 
@@ -749,21 +770,20 @@ export function ascSortByPropLower(prop) {
 export {
 	DEFAULT_CHARACTER_SIZE,
 	DEFAULT_CHARACTER_SPEED,
+	DEFAULT_SOURCE,
 	LANGUAGES_EXOTIC,
 	LANGUAGES_SECRET,
 	LANGUAGES_STANDARD,
 	SIZE_ABV_TO_FULL,
-	SKILL_TO_ABILITY,
-	SOURCE_TO_ABV,
-	SOURCE_TO_FULL,
-	SOURCES,
-	SPEED_MODES
+	SKILL_TO_ABILITY, SOURCE_TO_ABV,
+	SOURCE_TO_FULL, SOURCES, SPEED_MODES
 };
 
 export default {
 	sizeAbvToFull,
 	getAbilityModNumber,
 	getAbilityModifier,
+	formatModifierNumber,
 	attAbvToFull,
 	attrChooseToFull,
 	getSpeedString,

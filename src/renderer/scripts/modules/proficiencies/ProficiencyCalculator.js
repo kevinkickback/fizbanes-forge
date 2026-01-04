@@ -1,5 +1,5 @@
 /** Pure proficiency bonus and modifier calculations. */
-import { SKILL_TO_ABILITY } from '../../utils/5eToolsParser.js';
+import { SKILL_TO_ABILITY, ascSortLower, attAbvToFull, formatModifierNumber } from '../../utils/5eToolsParser.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
 
 /**
@@ -27,16 +27,9 @@ export function getSkillAbility(skillName) {
 	const abilityAbv = SKILL_TO_ABILITY[normalized];
 	if (!abilityAbv) return null;
 
-	// Map abbreviations to full names
-	const abvToFull = {
-		str: 'strength',
-		dex: 'dexterity',
-		con: 'constitution',
-		int: 'intelligence',
-		wis: 'wisdom',
-		cha: 'charisma',
-	};
-	return abvToFull[abilityAbv] || null;
+	// Use 5eToolsParser helper to convert abbreviation to full name
+	// attAbvToFull returns capitalized names (e.g., 'Strength'); convert to lowercase for internal use
+	return attAbvToFull(abilityAbv).toLowerCase();
 }
 
 /**
@@ -89,18 +82,11 @@ export function calculateSavingThrowModifier(
  * Formats a modifier value with proper sign
  * @param {number} modifier - The modifier value
  * @returns {string} Formatted string (e.g., "+3", "-1", "+0")
- * @deprecated This duplicates formatModifier logic. Consider using getAbilityModifier from 5eToolsParser for consistency.
+ * @deprecated Use formatModifierNumber from 5eToolsParser for consistency
  */
 export function formatModifier(modifier) {
-	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
-		return '+0';
-	}
-
-	if (modifier >= 0) {
-		return `+${modifier}`;
-	}
-
-	return `${modifier}`;
+	// Use 5eToolsParser helper for consistent formatting
+	return formatModifierNumber(modifier);
 }
 
 /**
@@ -122,7 +108,8 @@ export function mergeProficiencies(...proficiencyLists) {
 		}
 	}
 
-	return Array.from(merged.values()).sort((a, b) => a.localeCompare(b));
+	// Use 5eToolsParser sorting helper for consistent ordering
+	return Array.from(merged.values()).sort(ascSortLower);
 }
 
 /**

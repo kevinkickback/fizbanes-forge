@@ -15,6 +15,7 @@ export function toSentenceCase(str) {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 }
 /** TextFormatter.js - Utility helpers for formatting text strings. */
+import { fullAbilityToAbbr, sourceToFull } from './5eToolsParser.js';
 
 /**
  * Capitalizes the first letter of a string
@@ -322,24 +323,10 @@ export function abbreviateAbility(ability) {
 		return '';
 	}
 
-	const abilityLower = ability.toLowerCase();
-	const abbr = {
-		strength: 'STR',
-		dexterity: 'DEX',
-		constitution: 'CON',
-		intelligence: 'INT',
-		wisdom: 'WIS',
-		charisma: 'CHA',
-		// Handle already-abbreviated inputs
-		str: 'STR',
-		dex: 'DEX',
-		con: 'CON',
-		int: 'INT',
-		wis: 'WIS',
-		cha: 'CHA',
-	};
-
-	return abbr[abilityLower] || ability.substring(0, 3).toUpperCase();
+	// Use 5eToolsParser helper which converts full names or abbreviations to 3-letter lowercase abbr
+	// Then uppercase the result
+	const abbr = fullAbilityToAbbr(ability);
+	return abbr.toUpperCase();
 }
 
 /**
@@ -352,17 +339,7 @@ export function expandSource(source) {
 		return '';
 	}
 
-	const sources = {
-		PHB: "Player's Handbook",
-		DMG: "Dungeon Master's Guide",
-		MM: 'Monster Manual',
-		XGTE: "Xanathar's Guide to Everything",
-		TCOE: "Tasha's Cauldron of Everything",
-		VGTM: "Volo's Guide to Monsters",
-		MTOF: "Mordenkainen's Tome of Foes",
-		SCAG: "Sword Coast Adventurer's Guide",
-		EE: "Elemental Evil Player's Companion",
-	};
-
-	return sources[source.toUpperCase()] || source;
+	// Use 5eToolsParser helper for canonical source name conversion
+	const expanded = sourceToFull(source);
+	return expanded || source;
 }

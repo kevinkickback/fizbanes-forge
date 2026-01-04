@@ -4,6 +4,8 @@
  * Consolidates TextProcessor and TagProcessor functionality into a single, focused utility.
  */
 
+import { DEFAULT_SOURCE } from './5eToolsParser.js';
+
 /**
  * Escape HTML special characters in attribute values
  * @param {string} text Text to escape
@@ -91,7 +93,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('class', (text) => {
         const parts = splitTagByPipe(text);
         const className = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__class-link rd__hover-link" data-hover-type="class" data-hover-name="${className}" data-hover-source="${source}">${className}</a>`;
     });
 
@@ -99,7 +101,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('race', (text) => {
         const parts = splitTagByPipe(text);
         const raceName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__race-link rd__hover-link" data-hover-type="race" data-hover-name="${raceName}" data-hover-source="${source}">${raceName}</a>`;
     });
 
@@ -107,7 +109,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('background', (text) => {
         const parts = splitTagByPipe(text);
         const bgName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__background-link rd__hover-link" data-hover-type="background" data-hover-name="${bgName}" data-hover-source="${source}">${bgName}</a>`;
     });
 
@@ -115,7 +117,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('feat', (text) => {
         const parts = splitTagByPipe(text);
         const featName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__feat-link rd__hover-link" data-hover-type="feat" data-hover-name="${featName}" data-hover-source="${source}">${featName}</a>`;
     });
 
@@ -123,7 +125,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('feature', (text) => {
         const parts = splitTagByPipe(text);
         const featureName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__feature-link rd__hover-link" data-hover-type="feature" data-hover-name="${featureName}" data-hover-source="${source}">${featureName}</a>`;
     });
 
@@ -131,7 +133,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('spell', (text) => {
         const parts = splitTagByPipe(text);
         const spellName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__spell-link rd__hover-link" data-hover-type="spell" data-hover-name="${spellName}" data-hover-source="${source}">${spellName}</a>`;
     });
 
@@ -139,7 +141,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('item', (text) => {
         const parts = splitTagByPipe(text);
         const itemName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__item-link rd__hover-link" data-hover-type="item" data-hover-name="${itemName}" data-hover-source="${source}">${itemName}</a>`;
     });
 
@@ -147,7 +149,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('optfeature', (text) => {
         const parts = splitTagByPipe(text);
         const featName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__optfeature-link rd__hover-link" data-hover-type="optfeature" data-hover-name="${featName}" data-hover-source="${source}">${featName}</a>`;
     });
 
@@ -155,7 +157,7 @@ function initializeDefaultHandlers() {
     registerTagHandler('condition', (text) => {
         const parts = splitTagByPipe(text);
         const condName = escapeHtml(parts[0]);
-        const source = escapeHtml(parts[1] || 'PHB');
+        const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
         return `<a class="rd__condition-link rd__hover-link" data-hover-type="condition" data-hover-name="${condName}" data-hover-source="${source}">${condName}</a>`;
     });
 
