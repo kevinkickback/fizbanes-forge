@@ -9,8 +9,7 @@ import { raceService } from '../../services/RaceService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { getRaceAbilityData } from '../../utils/AbilityScoreUtils.js';
 import { RaceDetailsView } from './RaceDetails.js';
-import { RaceCardView } from './RaceView.js';
-import { SubracePickerView } from './SubracePicker.js';
+import { RaceCardView, SubracePickerView } from './RaceViews.js';
 
 /** Controller for race selection and display. */
 export class RaceCard {

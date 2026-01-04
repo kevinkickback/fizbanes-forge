@@ -173,7 +173,7 @@ function _togglePin(tooltipObj) {
  * @private
  */
 // Copy tooltip content is disabled (button removed)
-async function _copyTooltipContent() { }
+async function _copyTooltipContent() {}
 
 /**
  * Close specific tooltip
@@ -463,7 +463,8 @@ function _detectEntityType(data) {
 	if (data.skillProficiencies) return 'background'; // Has skill proficiencies = background
 	if ((data.size || data.speed) && !data.weapon && !data.hd) return 'race'; // Size/speed without weapon = race
 	if (data.type || data.weapon || data.armor || data.rarity) return 'item'; // Item-specific properties
-	if (data.ability && typeof data.ability === 'string' && !data.hd) return 'skill'; // Ability string = skill
+	if (data.ability && typeof data.ability === 'string' && !data.hd)
+		return 'skill'; // Ability string = skill
 	if (data.time && Array.isArray(data.time)) return 'action'; // Time array = action
 	if (data.featureType) return 'optionalfeature'; // Optional feature marker
 	if (

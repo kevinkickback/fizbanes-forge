@@ -39,7 +39,7 @@ export class FeatSelectionModal {
 		if (!this.featSlotLimit) {
 			showNotification(
 				this._availability.blockedReason ||
-				'No feat selections available for this character.',
+					'No feat selections available for this character.',
 				'warning',
 			);
 			return;
@@ -106,7 +106,9 @@ export class FeatSelectionModal {
 		}
 
 		// All prerequisite conditions must be met (AND logic)
-		return feat.prerequisite.every(prereq => this._validatePrerequisiteCondition(prereq, character));
+		return feat.prerequisite.every((prereq) =>
+			this._validatePrerequisiteCondition(prereq, character),
+		);
 	}
 
 	_validatePrerequisiteCondition(prereq, character) {
@@ -123,7 +125,7 @@ export class FeatSelectionModal {
 		// Ability score requirement
 		if (Array.isArray(prereq.ability)) {
 			const abilityScores = character.abilityScores || {};
-			const meetsAbilityRequirement = prereq.ability.some(abilityReq => {
+			const meetsAbilityRequirement = prereq.ability.some((abilityReq) => {
 				if (typeof abilityReq === 'string') {
 					// Simple ability string (e.g., "str", "dex")
 					const score = abilityScores[abilityReq] || 0;
@@ -142,7 +144,7 @@ export class FeatSelectionModal {
 		// Race requirement - skip if ignoreRaceRestrictions is enabled
 		if (!this.ignoreRaceRestrictions && Array.isArray(prereq.race)) {
 			const characterRace = character.race?.name?.toLowerCase() || '';
-			const meetsRaceRequirement = prereq.race.some(raceReq => {
+			const meetsRaceRequirement = prereq.race.some((raceReq) => {
 				if (typeof raceReq === 'string') {
 					return characterRace === raceReq.toLowerCase();
 				} else if (typeof raceReq === 'object' && raceReq.name) {
@@ -156,7 +158,7 @@ export class FeatSelectionModal {
 		// Class requirement
 		if (Array.isArray(prereq.class)) {
 			const characterClass = character.class?.name?.toLowerCase() || '';
-			const meetsClassRequirement = prereq.class.some(classReq => {
+			const meetsClassRequirement = prereq.class.some((classReq) => {
 				if (typeof classReq === 'string') {
 					return characterClass === classReq.toLowerCase();
 				} else if (typeof classReq === 'object' && classReq.name) {
@@ -169,19 +171,22 @@ export class FeatSelectionModal {
 
 		// Spellcasting requirement (character must be a spellcaster)
 		if (prereq.spellcasting === true) {
-			const hasSpellcasting = character.spellcastingAbility || character.class?.hasSpellcasting;
+			const hasSpellcasting =
+				character.spellcastingAbility || character.class?.hasSpellcasting;
 			if (!hasSpellcasting) return false;
 		}
 
 		// Spellcasting 2020 requirement (character must be a spellcaster with 2020+ rules)
 		if (prereq.spellcasting2020 === true) {
-			const hasSpellcasting = character.spellcastingAbility || character.class?.hasSpellcasting;
+			const hasSpellcasting =
+				character.spellcastingAbility || character.class?.hasSpellcasting;
 			if (!hasSpellcasting) return false;
 		}
 
 		// Spellcasting prepared requirement (character must prepare spells)
 		if (prereq.spellcastingPrepared === true) {
-			const canPrepareSpells = character.class?.name?.toLowerCase().includes('cleric') ||
+			const canPrepareSpells =
+				character.class?.name?.toLowerCase().includes('cleric') ||
 				character.class?.name?.toLowerCase().includes('druid') ||
 				character.class?.name?.toLowerCase().includes('wizard') ||
 				character.class?.name?.toLowerCase().includes('paladin');
@@ -190,14 +195,15 @@ export class FeatSelectionModal {
 
 		// Spellcasting feature requirement
 		if (prereq.spellcastingFeature === true) {
-			const hasSpellcasting = character.spellcastingAbility || character.class?.hasSpellcasting;
+			const hasSpellcasting =
+				character.spellcastingAbility || character.class?.hasSpellcasting;
 			if (!hasSpellcasting) return false;
 		}
 
 		// Proficiency requirement (weapon/armor)
 		if (Array.isArray(prereq.proficiency)) {
 			const proficiencies = character.proficiencies || {};
-			const meetsProficiencyRequirement = prereq.proficiency.some(profReq => {
+			const meetsProficiencyRequirement = prereq.proficiency.some((profReq) => {
 				if (typeof profReq === 'string') {
 					return proficiencies[profReq] === true;
 				} else if (typeof profReq === 'object' && profReq.proficiency) {
@@ -210,14 +216,15 @@ export class FeatSelectionModal {
 
 		// Previous feat requirement
 		if (Array.isArray(prereq.feat)) {
-			const characterFeats = (character.feats || []).map(f =>
-				typeof f === 'string' ? f.toLowerCase() : (f.name || '').toLowerCase()
+			const characterFeats = (character.feats || []).map((f) =>
+				typeof f === 'string' ? f.toLowerCase() : (f.name || '').toLowerCase(),
 			);
-			const meetsFeatRequirement = prereq.feat.some(featReq => {
-				const reqName = typeof featReq === 'string'
-					? featReq.toLowerCase()
-					: (featReq.name || '').toLowerCase();
-				return characterFeats.some(cf => cf.includes(reqName));
+			const meetsFeatRequirement = prereq.feat.some((featReq) => {
+				const reqName =
+					typeof featReq === 'string'
+						? featReq.toLowerCase()
+						: (featReq.name || '').toLowerCase();
+				return characterFeats.some((cf) => cf.includes(reqName));
 			});
 			if (!meetsFeatRequirement) return false;
 		}
@@ -225,10 +232,13 @@ export class FeatSelectionModal {
 		// Feature requirement (class feature, like "Fighting Style")
 		if (Array.isArray(prereq.feature)) {
 			const classFeatures = character.class?.features || [];
-			const meetsFeatureRequirement = prereq.feature.some(featureReq => {
-				const reqName = typeof featureReq === 'string' ? featureReq : featureReq.name || '';
-				return classFeatures.some(cf =>
-					(typeof cf === 'string' ? cf : cf.name || '').toLowerCase().includes(reqName.toLowerCase())
+			const meetsFeatureRequirement = prereq.feature.some((featureReq) => {
+				const reqName =
+					typeof featureReq === 'string' ? featureReq : featureReq.name || '';
+				return classFeatures.some((cf) =>
+					(typeof cf === 'string' ? cf : cf.name || '')
+						.toLowerCase()
+						.includes(reqName.toLowerCase()),
 				);
 			});
 			if (!meetsFeatureRequirement) return false;
@@ -237,8 +247,8 @@ export class FeatSelectionModal {
 		// Campaign requirement (specific campaign, e.g., Eberron)
 		if (Array.isArray(prereq.campaign)) {
 			const characterCampaign = character.campaign?.toLowerCase() || '';
-			const meetsCampaignRequirement = prereq.campaign.some(camp =>
-				characterCampaign === camp.toLowerCase()
+			const meetsCampaignRequirement = prereq.campaign.some(
+				(camp) => characterCampaign === camp.toLowerCase(),
 			);
 			if (!meetsCampaignRequirement) return false;
 		}
@@ -271,7 +281,7 @@ export class FeatSelectionModal {
 		for (const feat of this.validFeats) {
 			const reason =
 				this._availability.reasons[
-				reasonIndex % this._availability.reasons.length
+					reasonIndex % this._availability.reasons.length
 				];
 			// Format the reason: "Race: Variant Human" -> "Variant Human"
 			const origin = reason.replace(/^[^:]+:\s*/, '').trim();
@@ -401,7 +411,9 @@ export class FeatSelectionModal {
 		const searchInput = this.modal.querySelector('.feat-search');
 		const sourceMenu = this.modal.querySelector('.feat-source-menu');
 		const sourceToggle = this.modal.querySelector('.feat-source-toggle');
-		const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreRestrictionsToggle');
+		const ignoreRestrictionsBtn = this.modal.querySelector(
+			'#ignoreRestrictionsToggle',
+		);
 
 		if (searchInput) {
 			searchInput.addEventListener('input', async () => {
@@ -413,7 +425,10 @@ export class FeatSelectionModal {
 		if (ignoreRestrictionsBtn) {
 			ignoreRestrictionsBtn.addEventListener('click', async () => {
 				this.ignoreRaceRestrictions = !this.ignoreRaceRestrictions;
-				ignoreRestrictionsBtn.setAttribute('data-restrictions', !this.ignoreRaceRestrictions);
+				ignoreRestrictionsBtn.setAttribute(
+					'data-restrictions',
+					!this.ignoreRaceRestrictions,
+				);
 				// Reload valid feats with new race restriction setting
 				await this._loadValidFeats();
 				this.filteredFeats = this.validFeats;

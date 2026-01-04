@@ -27,9 +27,7 @@ class ItemService extends BaseDataService {
 				]);
 
 				const items =
-					results[0].status === 'fulfilled'
-						? results[0].value
-						: { item: [] };
+					results[0].status === 'fulfilled' ? results[0].value : { item: [] };
 				const baseItems =
 					results[1].status === 'fulfilled'
 						? results[1].value
@@ -59,9 +57,7 @@ class ItemService extends BaseDataService {
 				onLoaded: (data) => {
 					const merged = data || { item: [], baseItem: [] };
 					this._itemLookupMap = this._buildItemLookup(merged.item);
-					this._baseItemLookupMap = this._buildBaseItemLookup(
-						merged.baseItem,
-					);
+					this._baseItemLookupMap = this._buildBaseItemLookup(merged.baseItem);
 				},
 				emitPayload: (data) => data?.item || [],
 				onError: () => {
@@ -133,9 +129,8 @@ class ItemService extends BaseDataService {
 		// Fall back to linear search if exact source needed
 		if (item && item.source !== source && this._data?.item) {
 			return (
-				this._data.item.find(
-					(i) => i.name === name && i.source === source,
-				) || item
+				this._data.item.find((i) => i.name === name && i.source === source) ||
+				item
 			);
 		}
 
@@ -162,11 +157,7 @@ class ItemService extends BaseDataService {
 		}
 
 		// Fall back to linear search if exact source needed
-		if (
-			baseItem &&
-			baseItem.source !== source &&
-			this._data?.baseItem
-		) {
+		if (baseItem && baseItem.source !== source && this._data?.baseItem) {
 			return (
 				this._data.baseItem.find(
 					(bi) => bi.name === name && bi.source === source,

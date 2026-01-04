@@ -8,8 +8,7 @@ import { classService } from '../../services/ClassService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { attAbvToFull } from '../../utils/5eToolsParser.js';
 import { ClassDetailsView } from './ClassDetails.js';
-import { ClassCardView } from './ClassView.js';
-import { SubclassPickerView } from './SubclassPicker.js';
+import { ClassCardView, SubclassPickerView } from './ClassViews.js';
 
 /** Controller for class selection and display. */
 export class ClassCard {

@@ -2,7 +2,7 @@
 
 import { BrowserWindow } from 'electron';
 import path from 'node:path';
-import { MainLogger } from './MainLogger.js';
+import { MainLogger } from './Logger.js';
 
 let mainWindow = null;
 

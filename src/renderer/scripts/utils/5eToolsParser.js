@@ -148,7 +148,7 @@ const SOURCE_TO_FULL = {
 	XGE: "Xanathar's Guide to Everything",
 	TCE: "Tasha's Cauldron of Everything",
 	VRGR: "Van Richten's Guide to Ravenloft",
-	MPMM: "Mordenkainen Presents: Monsters of the Multiverse",
+	MPMM: 'Mordenkainen Presents: Monsters of the Multiverse',
 };
 
 /**
@@ -430,8 +430,8 @@ export function alignmentAbvToFull(alignment) {
 		// Handle complex alignment with chance
 		const alignText = alignment.alignment
 			? alignment.alignment
-				.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
-				.join(' ')
+					.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
+					.join(' ')
 			: '';
 		const chanceText = alignment.chance ? ` (${alignment.chance}%)` : '';
 		const noteText = alignment.note ? ` (${alignment.note})` : '';
@@ -775,8 +775,11 @@ export {
 	LANGUAGES_SECRET,
 	LANGUAGES_STANDARD,
 	SIZE_ABV_TO_FULL,
-	SKILL_TO_ABILITY, SOURCE_TO_ABV,
-	SOURCE_TO_FULL, SOURCES, SPEED_MODES
+	SKILL_TO_ABILITY,
+	SOURCE_TO_ABV,
+	SOURCE_TO_FULL,
+	SOURCES,
+	SPEED_MODES,
 };
 
 export default {

@@ -5,7 +5,7 @@ import fssync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
-import { MainLogger } from '../../MainLogger.js';
+import { MainLogger } from '../../Logger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
 import { validate as validateCharacter } from '../../../renderer/scripts/core/CharacterValidation.js';

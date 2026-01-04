@@ -1,7 +1,7 @@
 /** IPC handlers for settings operations. */
 
 import { app, ipcMain } from 'electron';
-import { MainLogger } from '../../MainLogger.js';
+import { MainLogger } from '../../Logger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
 export function registerSettingsHandlers(preferencesManager) {

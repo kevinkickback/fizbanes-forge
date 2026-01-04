@@ -386,24 +386,24 @@ class AbilityScoreService {
 		this.abilityChoices.clear();
 		const normalizedChoices = Array.isArray(choices)
 			? choices.filter(Boolean).map((choice, index) => {
-				const ability = this.normalizeAbilityName(
-					choice.ability || choice.abilityScore,
-				);
-				const value = Number.isFinite(choice.value)
-					? choice.value
-					: Number.isFinite(choice.amount)
-						? choice.amount
-						: 1;
-				const source = choice.source?.includes('Choice')
-					? choice.source
-					: `${choice.source || 'Race'} Choice`;
-				return {
-					ability,
-					value,
-					source,
-					index: Number.isFinite(choice.index) ? choice.index : index,
-				};
-			})
+					const ability = this.normalizeAbilityName(
+						choice.ability || choice.abilityScore,
+					);
+					const value = Number.isFinite(choice.value)
+						? choice.value
+						: Number.isFinite(choice.amount)
+							? choice.amount
+							: 1;
+					const source = choice.source?.includes('Choice')
+						? choice.source
+						: `${choice.source || 'Race'} Choice`;
+					return {
+						ability,
+						value,
+						source,
+						index: Number.isFinite(choice.index) ? choice.index : index,
+					};
+				})
 			: [];
 
 		// Persist normalized choices on the character

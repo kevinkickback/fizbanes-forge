@@ -45,3 +45,37 @@ const DataNormalizer = {
 };
 
 export default DataNormalizer;
+
+//=============================================================================
+// Asset Validator - Checks for required assets
+//=============================================================================
+
+const REQUIRED_ASSETS = [
+	'assets/bootstrap/dist/css/bootstrap.min.css',
+	'assets/fontawesome/css/all.min.css',
+	'assets/fontawesome/webfonts/fa-solid-900.woff2',
+];
+
+/**
+ * Validates that required assets are present
+ * @returns {string[]} Array of missing asset paths (empty if all found)
+ */
+export function validateAssets() {
+	const missing = [];
+	REQUIRED_ASSETS.forEach((relPath) => {
+		const url = relPath;
+		const req = new XMLHttpRequest();
+		req.open('HEAD', url, false); // synchronous for startup check
+		req.send();
+		if (req.status !== 200) {
+			missing.push(relPath);
+		}
+	});
+	if (missing.length > 0) {
+		console.warn('Missing required assets:', missing);
+		if (window.FF_DEBUG) {
+			alert(`Missing required assets: ${missing.join(', ')}`);
+		}
+	}
+	return missing;
+}

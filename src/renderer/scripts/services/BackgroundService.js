@@ -145,14 +145,16 @@ class BackgroundService {
 		// Create normalized proficiencies structure
 		const normalized = { ...background };
 
-		if (background.skillProficiencies || background.toolProficiencies || background.languageProficiencies) {
+		if (
+			background.skillProficiencies ||
+			background.toolProficiencies ||
+			background.languageProficiencies
+		) {
 			normalized.proficiencies = {
 				skills: this._normalizeSkillProficiencies(
 					background.skillProficiencies,
 				),
-				tools: this._normalizeToolProficiencies(
-					background.toolProficiencies,
-				),
+				tools: this._normalizeToolProficiencies(background.toolProficiencies),
 				languages: this._normalizeLanguageProficiencies(
 					background.languageProficiencies,
 				),

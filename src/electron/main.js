@@ -7,7 +7,7 @@ import { registerSettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { app } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MainLogger } from './MainLogger.js';
+import { MainLogger } from './Logger.js';
 import {
 	clearPreferences,
 	getAllPreferences,
@@ -19,8 +19,8 @@ import {
 	setLastOpenedCharacter,
 	setPreference,
 	setWindowBounds,
-} from './PreferencesManager.js';
-import { createMainWindow, getMainWindow } from './WindowManager.js';
+} from './Settings.js';
+import { createMainWindow, getMainWindow } from './Window.js';
 
 // Debug mode - controlled via environment variable `FF_DEBUG`
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;

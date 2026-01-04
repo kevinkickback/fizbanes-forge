@@ -2,7 +2,7 @@
 
 import { dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';
-import { MainLogger } from '../../MainLogger.js';
+import { MainLogger } from '../../Logger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
 export function registerFileHandlers(windowManager) {

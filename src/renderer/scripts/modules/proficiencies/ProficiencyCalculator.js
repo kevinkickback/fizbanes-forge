@@ -1,5 +1,10 @@
 /** Pure proficiency bonus and modifier calculations. */
-import { SKILL_TO_ABILITY, ascSortLower, attAbvToFull, formatModifierNumber } from '../../utils/5eToolsParser.js';
+import {
+	SKILL_TO_ABILITY,
+	ascSortLower,
+	attAbvToFull,
+	formatModifierNumber,
+} from '../../utils/5eToolsParser.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
 
 /**

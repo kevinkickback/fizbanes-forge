@@ -9,8 +9,8 @@ import {
 	downloadDataFromUrl,
 	validateDataSourceURL,
 	validateLocalDataFolder,
-} from '../../DataFolderManager.js';
-import { MainLogger } from '../../MainLogger.js';
+} from '../../Data.js';
+import { MainLogger } from '../../Logger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
 const __filename = fileURLToPath(import.meta.url);

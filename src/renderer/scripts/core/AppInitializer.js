@@ -20,7 +20,7 @@
  */
 
 // Core imports - NEW ARCHITECTURE
-import { validateAssets } from '../utils/AssetValidator.js';
+import { validateAssets } from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { showNotification } from '../utils/Notifications.js';
@@ -31,7 +31,7 @@ import { PageHandler } from './PageHandler.js';
 
 // Modal for data configuration
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
-import { LoadingModal } from '../modules/setup/LoadingModal.js';
+import { LoadingModal } from '../modules/setup/SetupModals.js';
 
 // Service imports
 import { actionService } from '../services/ActionService.js';

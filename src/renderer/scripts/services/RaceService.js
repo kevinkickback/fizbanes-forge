@@ -64,7 +64,11 @@ function deriveVersionSubracesFromRace(race, source) {
 	return derived;
 }
 
-function deriveVersionSubracesFromSubraceEntry(subraceEntry, raceName, raceSource) {
+function deriveVersionSubracesFromSubraceEntry(
+	subraceEntry,
+	raceName,
+	raceSource,
+) {
 	const firstVersion = subraceEntry?._versions?.[0];
 	if (!firstVersion?._implementations) return [];
 

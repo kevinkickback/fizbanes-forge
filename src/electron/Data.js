@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import https from 'node:https';
 import path from 'node:path';
-import { MainLogger } from './MainLogger.js';
+import { MainLogger } from './Logger.js';
 
 // Core required files - validation fails if missing
 const CORE_REQUIRED_FILES = [

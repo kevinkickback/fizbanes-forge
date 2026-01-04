@@ -199,14 +199,17 @@ export class RaceDetailsView {
 
 			// If only one speed and it doesn't have a mode label (i.e., walk speed only),
 			// add the "Walk:" prefix for clarity
-			if (speedModes.length === 1 && !speedModes[0].match(/^(burrow|climb|fly|swim)/i)) {
+			if (
+				speedModes.length === 1 &&
+				!speedModes[0].match(/^(burrow|climb|fly|swim)/i)
+			) {
 				return 'Walk: ' + speedModes[0];
 			}
 
 			// For multiple speeds or labeled speeds, join with newlines
 			// Capitalize the first letter of each mode for consistency
 			return speedModes
-				.map(mode => {
+				.map((mode) => {
 					// If mode doesn't start with a movement type, it's walk speed
 					if (!mode.match(/^(burrow|climb|fly|swim)/i)) {
 						return 'Walk: ' + mode;

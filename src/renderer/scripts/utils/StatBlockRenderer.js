@@ -1,6 +1,10 @@
 /** StatBlockRenderer.js - Renders enhanced stat blocks for tooltips (5etools-inspired). */
 
-import { getOrdinalForm, getSpeedString, sizeAbvToFull } from './5eToolsParser.js';
+import {
+	getOrdinalForm,
+	getSpeedString,
+	sizeAbvToFull,
+} from './5eToolsParser.js';
 import { getAbilityData } from './AbilityScoreUtils.js';
 import { Renderer5etools } from './Renderer5etools.js';
 
@@ -656,8 +660,15 @@ export function renderMonster(monster) {
 
 	// Title and basic meta
 	html += `<div class="tooltip-title">${monster.name}</div>`;
-	const typeText = monster.type ? (typeof monster.type === 'string' ? monster.type : monster.type.type || '') : '';
-	const crText = monster.cr !== undefined ? `CR ${Array.isArray(monster.cr) ? monster.cr[0] : monster.cr}` : '';
+	const typeText = monster.type
+		? typeof monster.type === 'string'
+			? monster.type
+			: monster.type.type || ''
+		: '';
+	const crText =
+		monster.cr !== undefined
+			? `CR ${Array.isArray(monster.cr) ? monster.cr[0] : monster.cr}`
+			: '';
 	const sizeText = monster.size ? sizeAbvToFull(monster.size) : '';
 	const metaParts = [typeText, sizeText, crText].filter(Boolean);
 	if (metaParts.length) {
@@ -667,14 +678,24 @@ export function renderMonster(monster) {
 	// Defensive stats
 	if (monster.ac || monster.hp || monster.speed) {
 		html += '<div class="tooltip-metadata">';
-		if (monster.ac) html += `<strong>AC:</strong> ${Array.isArray(monster.ac) ? monster.ac[0].ac || monster.ac[0] : monster.ac}<br>`;
-		if (monster.hp) html += `<strong>HP:</strong> ${monster.hp.average || monster.hp.formula || monster.hp}<br>`;
-		if (monster.speed) html += `<strong>Speed:</strong> ${getSpeedString(monster.speed)}<br>`;
+		if (monster.ac)
+			html += `<strong>AC:</strong> ${Array.isArray(monster.ac) ? monster.ac[0].ac || monster.ac[0] : monster.ac}<br>`;
+		if (monster.hp)
+			html += `<strong>HP:</strong> ${monster.hp.average || monster.hp.formula || monster.hp}<br>`;
+		if (monster.speed)
+			html += `<strong>Speed:</strong> ${getSpeedString(monster.speed)}<br>`;
 		html += '</div>';
 	}
 
 	// Ability scores (if present)
-	if (monster.str || monster.dex || monster.con || monster.int || monster.wis || monster.cha) {
+	if (
+		monster.str ||
+		monster.dex ||
+		monster.con ||
+		monster.int ||
+		monster.wis ||
+		monster.cha
+	) {
 		html += '<div class="tooltip-abilities">';
 		const abilities = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 		for (const ab of abilities) {
@@ -730,7 +751,10 @@ export function renderTable(table) {
 							? row.row
 							: [];
 				html += `<tr>${cells
-					.map((c) => `<td>${typeof c === 'string' ? c : c?.entry || c?.label || c?.roll || ''}</td>`)
+					.map(
+						(c) =>
+							`<td>${typeof c === 'string' ? c : c?.entry || c?.label || c?.roll || ''}</td>`,
+					)
 					.join('')}</tr>`;
 			}
 			html += '</tbody>';

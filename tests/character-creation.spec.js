@@ -6,159 +6,176 @@ import { _electron as electron, expect, test } from '@playwright/test';
  */
 
 test.describe('Character Creation', () => {
-    test('should create a new character', async () => {
-        test.setTimeout(120000);
+	test('should create a new character', async () => {
+		test.setTimeout(120000);
 
-        const testCharacterName = `TestChar-${Date.now()}`;
-        console.log(`\n=== Testing Character Creation: "${testCharacterName}" ===\n`);
+		const testCharacterName = `TestChar-${Date.now()}`;
+		console.log(
+			`\n=== Testing Character Creation: "${testCharacterName}" ===\n`,
+		);
 
-        // Launch app
-        console.log('1. Launching app...');
-        const electronApp = await electron.launch({
-            args: ['.'],
-            env: {
-                ...process.env,
-                FF_DEBUG: 'true',
-                FF_ALLOW_DEFAULT_DATA: 'true',
-            },
-        });
+		// Launch app
+		console.log('1. Launching app...');
+		const electronApp = await electron.launch({
+			args: ['.'],
+			env: {
+				...process.env,
+				FF_DEBUG: 'true',
+				FF_ALLOW_DEFAULT_DATA: 'true',
+			},
+		});
 
-        try {
-            // Get main window
-            let page = electronApp
-                .windows()
-                .find((win) => !win.url().startsWith('devtools://'));
-            if (!page) {
-                page = await electronApp.waitForEvent(
-                    'window',
-                    (win) => !win.url().startsWith('devtools://'),
-                );
-            }
+		try {
+			// Get main window
+			let page = electronApp
+				.windows()
+				.find((win) => !win.url().startsWith('devtools://'));
+			if (!page) {
+				page = await electronApp.waitForEvent(
+					'window',
+					(win) => !win.url().startsWith('devtools://'),
+				);
+			}
 
-            // Capture console errors
-            const errors = [];
-            page.on('console', (msg) => {
-                const text = msg.text();
-                console.log(`[${msg.type()}] ${text}`);
-                if (msg.type() === 'error') {
-                    errors.push(text);
-                }
-            });
+			// Capture console errors
+			const errors = [];
+			page.on('console', (msg) => {
+				const text = msg.text();
+				console.log(`[${msg.type()}] ${text}`);
+				if (msg.type() === 'error') {
+					errors.push(text);
+				}
+			});
 
-            // Wait for app to load
-            console.log('2. Waiting for app to load...');
-            await page.waitForLoadState('domcontentloaded');
-            await page.waitForSelector('#pageContent', { timeout: 60000 });
-            await page.waitForSelector('[data-current-page="home"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+			// Wait for app to load
+			console.log('2. Waiting for app to load...');
+			await page.waitForLoadState('domcontentloaded');
+			await page.waitForSelector('#pageContent', { timeout: 60000 });
+			await page.waitForSelector('[data-current-page="home"]', {
+				timeout: 30000,
+			});
+			await page.waitForTimeout(3000);
 
-            // Click create character button (either welcome or new button)
-            console.log('3. Looking for Create Character button...');
+			// Click create character button (either welcome or new button)
+			console.log('3. Looking for Create Character button...');
 
-            // Try welcome button first (shown when no characters)
-            const welcomeBtn = await page.locator('#welcomeCreateCharacterBtn').isVisible()
-                .catch(() => false);
+			// Try welcome button first (shown when no characters)
+			const welcomeBtn = await page
+				.locator('#welcomeCreateCharacterBtn')
+				.isVisible()
+				.catch(() => false);
 
-            if (welcomeBtn) {
-                console.log('   Found welcome create button, clicking...');
-                await page.locator('#welcomeCreateCharacterBtn').click();
-            } else {
-                // Try regular new character button
-                console.log('   Found new character button, clicking...');
-                await page.locator('#newCharacterBtn').click();
-            }
+			if (welcomeBtn) {
+				console.log('   Found welcome create button, clicking...');
+				await page.locator('#welcomeCreateCharacterBtn').click();
+			} else {
+				// Try regular new character button
+				console.log('   Found new character button, clicking...');
+				await page.locator('#newCharacterBtn').click();
+			}
 
-            // Wait for modal
-            console.log('4. Waiting for modal to open...');
-            await page.waitForSelector('#newCharacterModal.show', { timeout: 15000 });
+			// Wait for modal
+			console.log('4. Waiting for modal to open...');
+			await page.waitForSelector('#newCharacterModal.show', { timeout: 15000 });
 
-            // Fill in name
-            console.log('5. Filling in character name...');
-            await page.locator('#newCharacterName').fill(testCharacterName);
+			// Fill in name
+			console.log('5. Filling in character name...');
+			await page.locator('#newCharacterName').fill(testCharacterName);
 
-            // Click create button
-            console.log('6. Clicking Create button...');
-            await page.locator('#createCharacterBtn').click();
+			// Click create button
+			console.log('6. Clicking Create button...');
+			await page.locator('#createCharacterBtn').click();
 
-            // Wait for modal to close
-            console.log('7. Waiting for modal to close...');
-            await page.waitForSelector('#newCharacterModal.show', {
-                state: 'hidden',
-                timeout: 15000,
-            });
+			// Wait for modal to close
+			console.log('7. Waiting for modal to close...');
+			await page.waitForSelector('#newCharacterModal.show', {
+				state: 'hidden',
+				timeout: 15000,
+			});
 
-            // Verify character was created
-            console.log('8. Verifying character was created...');
-            await page.waitForTimeout(2000);
-            const characterCard = page.locator('.character-card', {
-                hasText: testCharacterName
-            }).first();
-            await expect(characterCard).toBeVisible({ timeout: 15000 });
+			// Verify character was created
+			console.log('8. Verifying character was created...');
+			await page.waitForTimeout(2000);
+			const characterCard = page
+				.locator('.character-card', {
+					hasText: testCharacterName,
+				})
+				.first();
+			await expect(characterCard).toBeVisible({ timeout: 15000 });
 
-            console.log(`\n✓ Character "${testCharacterName}" created successfully!\n`);
+			console.log(
+				`\n✓ Character "${testCharacterName}" created successfully!\n`,
+			);
 
-            // Check for errors
-            const criticalErrors = errors.filter(
-                (error) =>
-                    !error.includes('DevTools') &&
-                    !error.includes('warning') &&
-                    !error.includes('deprecated')
-            );
+			// Check for errors
+			const criticalErrors = errors.filter(
+				(error) =>
+					!error.includes('DevTools') &&
+					!error.includes('warning') &&
+					!error.includes('deprecated'),
+			);
 
-            if (criticalErrors.length > 0) {
-                console.error('\n=== ERRORS DETECTED ===');
-                for (const error of criticalErrors) {
-                    console.error(error);
-                }
-                console.error('=======================\n');
-            }
+			if (criticalErrors.length > 0) {
+				console.error('\n=== ERRORS DETECTED ===');
+				for (const error of criticalErrors) {
+					console.error(error);
+				}
+				console.error('=======================\n');
+			}
 
-            expect(criticalErrors).toHaveLength(0);
+			expect(criticalErrors).toHaveLength(0);
 
-            // Clean up: delete the test character
-            console.log('9. Cleaning up test character...');
-            try {
-                // Navigate to home page
-                const homeBtn = page.locator('button.nav-link[data-page="home"]');
-                if (await homeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-                    await homeBtn.click();
-                    await page.waitForSelector('[data-current-page="home"]', { timeout: 15000 });
-                    await page.waitForTimeout(1000);
-                }
+			// Clean up: delete the test character
+			console.log('9. Cleaning up test character...');
+			try {
+				// Navigate to home page
+				const homeBtn = page.locator('button.nav-link[data-page="home"]');
+				if (await homeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+					await homeBtn.click();
+					await page.waitForSelector('[data-current-page="home"]', {
+						timeout: 15000,
+					});
+					await page.waitForTimeout(1000);
+				}
 
-                // Find and click delete button on character card
-                const deleteCard = page
-                    .locator('.character-card', { hasText: testCharacterName })
-                    .first();
-                if (await deleteCard.isVisible({ timeout: 5000 }).catch(() => false)) {
-                    const deleteButton = deleteCard.locator('.delete-character');
-                    if (await deleteButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-                        await deleteButton.click();
+				// Find and click delete button on character card
+				const deleteCard = page
+					.locator('.character-card', { hasText: testCharacterName })
+					.first();
+				if (await deleteCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+					const deleteButton = deleteCard.locator('.delete-character');
+					if (
+						await deleteButton.isVisible({ timeout: 5000 }).catch(() => false)
+					) {
+						await deleteButton.click();
 
-                        // Confirm deletion
-                        const confirmButton = page
-                            .locator('#confirmDeleteBtn, .btn-danger')
-                            .filter({ hasText: /delete|confirm/i })
-                            .first();
-                        await confirmButton
-                            .waitFor({ state: 'visible', timeout: 5000 })
-                            .catch(() => { });
-                        if (await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-                            await confirmButton.click();
-                        }
+						// Confirm deletion
+						const confirmButton = page
+							.locator('#confirmDeleteBtn, .btn-danger')
+							.filter({ hasText: /delete|confirm/i })
+							.first();
+						await confirmButton
+							.waitFor({ state: 'visible', timeout: 5000 })
+							.catch(() => {});
+						if (
+							await confirmButton
+								.isVisible({ timeout: 5000 })
+								.catch(() => false)
+						) {
+							await confirmButton.click();
+						}
 
-                        await page.waitForTimeout(500);
-                        console.log(`✓ Test character "${testCharacterName}" deleted`);
-                    }
-                }
-            } catch (cleanupError) {
-                console.error('Cleanup error (non-critical):', cleanupError.message);
-            }
-
-        } finally {
-            // Close app
-            console.log('10. Closing app...');
-            await electronApp.close();
-        }
-    });
+						await page.waitForTimeout(500);
+						console.log(`✓ Test character "${testCharacterName}" deleted`);
+					}
+				}
+			} catch (cleanupError) {
+				console.error('Cleanup error (non-critical):', cleanupError.message);
+			}
+		} finally {
+			// Close app
+			console.log('10. Closing app...');
+			await electronApp.close();
+		}
+	});
 });

@@ -1,6 +1,6 @@
 /** Manages application settings and configuration. */
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
-import { RefreshProgressModal } from '../modules/setup/RefreshProgressModal.js';
+import { RefreshProgressModal } from '../modules/setup/SetupModals.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 

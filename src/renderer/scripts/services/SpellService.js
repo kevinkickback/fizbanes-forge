@@ -113,9 +113,8 @@ class SpellService extends BaseDataService {
 		// If source doesn't match, fall back to linear search for source-specific spell
 		if (spell && spell.source !== source && this._data?.spell) {
 			return (
-				this._data.spell.find(
-					(s) => s.name === name && s.source === source,
-				) || spell
+				this._data.spell.find((s) => s.name === name && s.source === source) ||
+				spell
 			); // Return any match if exact source not found
 		}
 

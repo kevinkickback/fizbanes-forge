@@ -8,8 +8,10 @@ import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { backgroundService } from '../../services/BackgroundService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { BaseCard } from '../BaseCard.js';
-import { BackgroundDetailsView } from './BackgroundDetails.js';
-import { BackgroundCardView } from './BackgroundView.js';
+import {
+	BackgroundCardView,
+	BackgroundDetailsView,
+} from './BackgroundViews.js';
 
 /** Manages the background selection UI and related character updates. */
 export class BackgroundCard extends BaseCard {
@@ -474,7 +476,11 @@ export class BackgroundCard extends BaseCard {
 		}
 
 		// Handle languages from normalized structure
-		this._updateBackgroundLanguageProficiencies(character, background, prevBackgroundLanguagesSelected);
+		this._updateBackgroundLanguageProficiencies(
+			character,
+			background,
+			prevBackgroundLanguagesSelected,
+		);
 
 		// Update combined skill options
 		this._updateCombinedSkillOptions(character);
@@ -660,7 +666,11 @@ export class BackgroundCard extends BaseCard {
 	 * @param {Array<string>} prevBackgroundLanguagesSelected - Previously selected languages
 	 * @private
 	 */
-	_updateBackgroundLanguageProficiencies(character, background, prevBackgroundLanguagesSelected) {
+	_updateBackgroundLanguageProficiencies(
+		character,
+		background,
+		prevBackgroundLanguagesSelected,
+	) {
 		const langProfs = background?.proficiencies?.languages || [];
 		const fixedLanguages = [];
 		let choiceCount = 0;
@@ -713,20 +723,18 @@ export class BackgroundCard extends BaseCard {
 
 		// Set up optional language choices if any exist
 		if (choiceCount > 0) {
-			character.optionalProficiencies.languages.background.allowed = choiceCount;
-			character.optionalProficiencies.languages.background.options = choiceOptions;
+			character.optionalProficiencies.languages.background.allowed =
+				choiceCount;
+			character.optionalProficiencies.languages.background.options =
+				choiceOptions;
 
 			// Restore valid language selections if any, excluding now-fixed languages
 			if (prevBackgroundLanguagesSelected.length > 0) {
 				const optionNorms = new Set(
-					choiceOptions.map((lang) =>
-						DataNormalizer.normalizeForLookup(lang),
-					),
+					choiceOptions.map((lang) => DataNormalizer.normalizeForLookup(lang)),
 				);
 				const fixedNorms = new Set(
-					fixedLanguages.map((lang) =>
-						DataNormalizer.normalizeForLookup(lang),
-					),
+					fixedLanguages.map((lang) => DataNormalizer.normalizeForLookup(lang)),
 				);
 				const existingLangs = new Set(
 					character.proficiencies.languages.map((lang) =>
@@ -734,16 +742,19 @@ export class BackgroundCard extends BaseCard {
 					),
 				);
 
-				const validSelections = prevBackgroundLanguagesSelected.filter((lang) => {
-					const normalizedLang = DataNormalizer.normalizeForLookup(lang);
-					return (
-						optionNorms.has(normalizedLang) &&
-						!existingLangs.has(normalizedLang) &&
-						!fixedNorms.has(normalizedLang)
-					);
-				});
+				const validSelections = prevBackgroundLanguagesSelected.filter(
+					(lang) => {
+						const normalizedLang = DataNormalizer.normalizeForLookup(lang);
+						return (
+							optionNorms.has(normalizedLang) &&
+							!existingLangs.has(normalizedLang) &&
+							!fixedNorms.has(normalizedLang)
+						);
+					},
+				);
 
-				character.optionalProficiencies.languages.background.selected = validSelections.slice(0, choiceCount);
+				character.optionalProficiencies.languages.background.selected =
+					validSelections.slice(0, choiceCount);
 			}
 
 			// Update combined language options

@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { MainLogger } from './MainLogger.js';
+import { MainLogger } from './Logger.js';
 
 let preferencesPath;
 let defaults;
