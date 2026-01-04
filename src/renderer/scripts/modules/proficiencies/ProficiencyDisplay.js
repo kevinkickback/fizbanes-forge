@@ -47,10 +47,27 @@ export class ProficiencyDisplayView {
 			const availableOptions = availableOptionsMap[type] || [];
 
 			// Check combined slot availability BEFORE the loop
-			const optionalAllowed =
+			// For source-tracked types (skills, languages, tools), sum up slots from all sources
+			let optionalAllowed =
 				character?.optionalProficiencies?.[type]?.allowed || 0;
 			const selectedCount =
 				character?.optionalProficiencies?.[type]?.selected?.length || 0;
+
+			// Add source-specific slots for skills, languages, and tools
+			if (type === 'skills' || type === 'languages' || type === 'tools') {
+				const raceAllowed =
+					character?.optionalProficiencies?.[type]?.race?.allowed || 0;
+				const classAllowed =
+					character?.optionalProficiencies?.[type]?.class?.allowed || 0;
+				const backgroundAllowed =
+					character?.optionalProficiencies?.[type]?.background?.allowed || 0;
+
+				// Use source-specific totals if available
+				if (raceAllowed > 0 || classAllowed > 0 || backgroundAllowed > 0) {
+					optionalAllowed = raceAllowed + classAllowed + backgroundAllowed;
+				}
+			}
+
 			const combinedSlotsAvailable =
 				optionalAllowed > 0 && selectedCount < optionalAllowed;
 
@@ -151,13 +168,8 @@ export class ProficiencyDisplayView {
 				cssClasses.push('disabled');
 			}
 
-			// Add source-specific classes ONLY if it's visually selectable
-			if (
-				cssClasses.includes('selectable') &&
-				(type === 'skills' || type === 'languages')
-			) {
-				this._addSourceSpecificClasses(cssClasses, type, item, character);
-			}
+			// Note: Source-specific colored borders removed - only default and selected states remain
+			// This matches the UX of other proficiency sections
 
 			// Build the item HTML
 			containerHtml += this._buildItemHtml(

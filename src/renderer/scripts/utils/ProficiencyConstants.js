@@ -86,6 +86,31 @@ export const STANDARD_TOOL_OPTIONS = Object.freeze([
 ]);
 
 /**
+ * List of all artisan's tools in D&D 5e
+ * This is a subset of STANDARD_TOOL_OPTIONS used when a class/race/background
+ * grants "any artisan's tools" as a choice
+ */
+export const ARTISAN_TOOLS = Object.freeze([
+	"Alchemist's supplies",
+	"Brewer's supplies",
+	"Calligrapher's supplies",
+	"Carpenter's tools",
+	"Cartographer's tools",
+	"Cobbler's tools",
+	"Cook's utensils",
+	"Glassblower's tools",
+	"Jeweler's tools",
+	"Leatherworker's tools",
+	"Mason's tools",
+	"Painter's supplies",
+	"Potter's tools",
+	"Smith's tools",
+	"Tinker's tools",
+	"Weaver's tools",
+	"Woodcarver's tools",
+]);
+
+/**
  * Validates if a skill name is a standard D&D 5e skill.
  *
  * @param {string} skillName - The skill name to validate

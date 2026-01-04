@@ -7,6 +7,7 @@ import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { classService } from '../../services/ClassService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { attAbvToFull } from '../../utils/5eToolsParser.js';
+import { ARTISAN_TOOLS } from '../../utils/ProficiencyConstants.js';
 import { ClassDetailsView } from './ClassDetails.js';
 import { ClassCardView, SubclassPickerView } from './ClassViews.js';
 
@@ -525,13 +526,19 @@ export class ClassCard {
 			}
 		}
 
-		// Add tool proficiencies
+		// Add tool proficiencies (fixed proficiencies from tools field)
 		const toolProficiencies = this._getToolProficiencies(classData);
 		if (toolProficiencies && toolProficiencies.length > 0) {
 			for (const tool of toolProficiencies) {
-				character.addProficiency('tools', tool, 'Class');
+				// Skip display strings like "Choose X tools"
+				if (!tool.toLowerCase().startsWith('choose')) {
+					character.addProficiency('tools', tool, 'Class');
+				}
 			}
 		}
+
+		// Handle tool proficiency choices (from toolProficiencies field)
+		this._processClassToolProficiencies(classData, character);
 
 		// Handle skill proficiencies
 		const skills = this._getSkillProficiencies(classData);
@@ -723,6 +730,68 @@ export class ClassCard {
 	}
 
 	/**
+	 * Process tool proficiency choices from class data
+	 * Handles special fields like anyMusicalInstrument for Bard
+	 * @param {Object} classData - Class JSON object
+	 * @param {Object} character - Character object
+	 * @private
+	 */
+	_processClassToolProficiencies(classData, character) {
+		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
+		if (!toolProfs || !Array.isArray(toolProfs)) return;
+
+		// Accumulate all choices across multiple objects
+		let maxAllowed = 0;
+		const allOptions = [];
+
+		for (const profObj of toolProfs) {
+			// Handle fixed tool proficiencies (e.g., Druid with "herbalism kit": true)
+			for (const [tool, hasProf] of Object.entries(profObj)) {
+				if (hasProf === true && tool !== 'any' && tool !== 'anyMusicalInstrument' && tool !== 'anyArtisansTool' && tool !== 'choose') {
+					// Add tool with original JSON casing preserved
+					character.addProficiency('tools', tool, 'Class');
+				}
+			}
+
+			// Handle "any musical instrument" choice (e.g., Bard with anyMusicalInstrument: 3)
+			if (profObj.anyMusicalInstrument) {
+				const count = profObj.anyMusicalInstrument;
+				maxAllowed = Math.max(maxAllowed, count);
+				allOptions.push('Musical instrument');
+			}
+
+			// Handle "any artisan's tool" choice (e.g., Monk with anyArtisansTool: 1)
+			if (profObj.anyArtisansTool) {
+				const count = profObj.anyArtisansTool;
+				maxAllowed = Math.max(maxAllowed, count);
+				// Add all individual artisan tools as options
+				allOptions.push(...ARTISAN_TOOLS);
+			}
+
+			// Handle "any" tool proficiency choice
+			if (profObj.any && profObj.any > 0) {
+				maxAllowed = Math.max(maxAllowed, profObj.any);
+				allOptions.push('any');
+			}
+
+			// Handle choose from specific list
+			if (profObj.choose) {
+				const count = profObj.choose.count || 1;
+				const options = profObj.choose.from || [];
+				maxAllowed = Math.max(maxAllowed, count);
+				allOptions.push(...options);
+			}
+		}
+
+		// Apply accumulated tool choices if any
+		if (maxAllowed > 0) {
+			character.optionalProficiencies.tools.class.allowed = maxAllowed;
+			character.optionalProficiencies.tools.class.options = allOptions;
+			character.optionalProficiencies.tools.class.selected = [];
+		}
+	}
+
+	/**
 	 * Get tool proficiencies from class data
 	 * @param {Object} classData - Class JSON object
 	 * @returns {Array<string>} Array of tool proficiency names
@@ -731,10 +800,20 @@ export class ClassCard {
 	_getToolProficiencies(classData) {
 		if (!classData?.startingProficiencies?.tools) return [];
 
+		// If toolProficiencies field exists, it handles the actual choices
+		// so we should skip display text that represents those choices
+		const hasToolProficienciesField =
+			classData?.startingProficiencies?.toolProficiencies?.length > 0;
+
 		const tools = [];
 		for (const toolEntry of classData.startingProficiencies.tools) {
 			if (typeof toolEntry === 'string') {
-				tools.push(toolEntry);
+				// Skip display text for choices if toolProficiencies field handles them
+				// Display text typically contains phrases like "any one", "of your choice"
+				const isChoiceText = /\b(any|choose|of your choice)\b/i.test(toolEntry);
+				if (!hasToolProficienciesField || !isChoiceText) {
+					tools.push(toolEntry);
+				}
 			} else if (toolEntry.choose) {
 				const count = toolEntry.choose.count || 1;
 				tools.push(`Choose ${count} tool${count > 1 ? 's' : ''}`);
