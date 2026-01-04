@@ -6,7 +6,7 @@
 - The renderer is a single-page app with dynamic page loading and a custom event bus for inter-component communication.
 
 ## Key Architectural Patterns
-- **Main Process**: Entry point is `src/electron/main.js`. Registers IPC handlers for data, file, settings, and character operations. Preferences and window state are managed here.
+- **Main Process**: Entry point is `src/electron/Main.js`. Registers IPC handlers for data, file, settings, and character operations. Preferences and window state are managed here.
 - **Renderer**: Bootstrapped by `src/renderer/scripts/core/AppInitializer.js`. Loads all data/services in parallel, then initializes UI and event handlers. Uses a service layer (e.g., `ActionService`, `RaceService`) for all data access.
 - **Event Bus**: `src/renderer/utils/EventBus.js` provides a pub/sub system for decoupled communication (e.g., `CHARACTER_UPDATED`, `PAGE_CHANGED`).
 - **UI**: Main HTML is `src/renderer/index.html`. Pages and modals are loaded dynamically. State is managed via `AppState`.
@@ -27,6 +27,7 @@
 - **Unsaved changes**: Managed via `AppState` and `CHARACTER_UPDATED`/`CHARACTER_SAVED` events.
 - **Bootstrap Components**: Use Bootstrap 5 components (modals, tabs, progress bars, etc.) instead of custom implementations. Modal elements should be defined in `index.html` and controlled via Bootstrap's JavaScript API (`new bootstrap.Modal()`, `.show()`, `.hide()`). Always reuse Bootstrap modal instances rather than creating new ones on each show.
 - **CSS Variables for Theming**: All colors, shadows, spacing, and other themeable properties must use CSS variables defined in `src/renderer/styles/main.css` (in the `:root` section). Never hardcode color values (hex, rgba, etc.) in CSS rules. When adding new styles, check if an appropriate variable exists; if not, add it to `:root` with other variables of its category (e.g., proficiency colors, overlay colors, etc.). This ensures the entire theme can be changed by modifying variables in one place.
+- **Parsing Helpers**: Shared D&D parsing helpers live in `src/renderer/scripts/utils/5eToolsParser.js`; check there before adding new helper functions to avoid duplicating existing utilities.
 
 ## Integration Points
 - **IPC**: All main/renderer communication is via IPC handlers registered in `src/electron/ipc/handlers/`.
@@ -40,7 +41,7 @@
 - To add a new UI page: Add to `src/renderer/pages/`, update navigation, and register with the router.
 
 ## Key Files/Directories
-- `src/electron/main.js` – Electron entry, IPC setup
+- `src/electron/Main.js` – Electron entry, IPC setup
 - `src/renderer/scripts/core/AppInitializer.js` – Renderer bootstrap
 - `src/renderer/utils/EventBus.js` – Event system
 - `src/data/` – All D&D data

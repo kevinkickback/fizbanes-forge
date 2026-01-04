@@ -788,6 +788,16 @@ export class ClassCard {
 			character.optionalProficiencies.tools.class.allowed = maxAllowed;
 			character.optionalProficiencies.tools.class.options = allOptions;
 			character.optionalProficiencies.tools.class.selected = [];
+
+			// Special case: if ONLY "Musical instrument" is offered (like Bard),
+			// auto-populate the selected array so it shows as granted/default
+			if (allOptions.length === 1 && allOptions[0] === 'Musical instrument') {
+				for (let i = 0; i < maxAllowed; i++) {
+					character.optionalProficiencies.tools.class.selected.push(
+						'Musical instrument',
+					);
+				}
+			}
 		}
 	}
 

@@ -976,6 +976,43 @@ body.debug-mode .nav-item.debug-only {
 	max-width: fit-content;
 }
 
+/* Instrument choice dropdowns */
+.instrument-choices-container {
+	width: 100%;
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	display: flex;
+	justify-content: center;
+}
+
+.instrument-choices-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	width: 100%;
+	max-width: 800px;
+}
+
+.instrument-choice-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.instrument-choice-group label {
+	font-weight: 500;
+	font-size: 0.9rem;
+	text-align: center;
+	color: var(--text-light);
+}
+
+.instrument-choice-group select {
+	width: auto;
+	min-width: 150px;
+	max-width: fit-content;
+}
+
 /* Responsive breakpoints for ability score grid */
 @media (max-width: 1200px) {
 	.ability-score-grid {

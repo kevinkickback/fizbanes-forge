@@ -86,6 +86,23 @@ export const STANDARD_TOOL_OPTIONS = Object.freeze([
 ]);
 
 /**
+ * Canonical list of musical instruments in D&D 5e.
+ * Used when a generic "Musical instrument" proficiency requires a specific choice.
+ */
+export const MUSICAL_INSTRUMENTS = Object.freeze([
+	'Bagpipes',
+	'Drum',
+	'Dulcimer',
+	'Flute',
+	'Lute',
+	'Lyre',
+	'Horn',
+	'Pan flute',
+	'Shawm',
+	'Viol',
+]);
+
+/**
  * List of all artisan's tools in D&D 5e
  * This is a subset of STANDARD_TOOL_OPTIONS used when a class/race/background
  * grants "any artisan's tools" as a choice
