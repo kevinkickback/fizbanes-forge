@@ -3,6 +3,7 @@
 
 import { AppState } from '../../core/AppState.js';
 import { featService } from '../../services/FeatService.js';
+import { sourceService } from '../../services/SourceService.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { showNotification } from '../../utils/Notifications.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
@@ -20,6 +21,7 @@ export class FeatSelectionModal {
 		this.featSlotLimit = 0;
 		this._availability = null;
 		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Class ASI at level 4")
+		this.ignoreRaceRestrictions = false; // Start with restrictions enforced
 	}
 
 	async show() {
@@ -59,17 +61,6 @@ export class FeatSelectionModal {
 			return;
 		}
 
-		const slotNote = this.modal.querySelector('.feat-slot-note');
-		if (slotNote) {
-			const reasonsText =
-				Array.isArray(this._availability?.reasons) &&
-					this._availability.reasons.length > 0
-					? ` Available via ${this._availability.reasons.join(', ')}.`
-					: '';
-			slotNote.textContent = `You may select up to ${this.featSlotLimit} feat${this.featSlotLimit === 1 ? '' : 's'
-				} (currently ${this._availability.remaining} remaining).${reasonsText}`;
-		}
-
 		await this._renderFeatList();
 		this._attachEventListeners();
 
@@ -86,9 +77,23 @@ export class FeatSelectionModal {
 	async _loadValidFeats() {
 		const allFeats = await featService.getAllFeats();
 		const character = AppState.getCurrentCharacter();
-		// Filter feats based on character prerequisites
+		const allowedSources = sourceService.getAllowedSources();
+
+		// Filter feats based on:
+		// 1. Source is in allowed sources
+		// 2. Character prerequisites (level, race, etc.)
 		this.validFeats = allFeats
-			.filter((f) => this._isFeatValidForCharacter(f, character))
+			.filter((f) => {
+				// Check if source is allowed
+				const featSource = (f.source || '').toLowerCase();
+				const isSourceAllowed = allowedSources.some(
+					(s) => s.toLowerCase() === featSource,
+				);
+				if (!isSourceAllowed) return false;
+
+				// Check character prerequisites
+				return this._isFeatValidForCharacter(f, character);
+			})
 			.map((f, index) => ({
 				...f,
 				id: f.id || `feat-${index}`, // Generate ID if not present
@@ -134,8 +139,8 @@ export class FeatSelectionModal {
 			if (!meetsAbilityRequirement) return false;
 		}
 
-		// Race requirement
-		if (Array.isArray(prereq.race)) {
+		// Race requirement - skip if ignoreRaceRestrictions is enabled
+		if (!this.ignoreRaceRestrictions && Array.isArray(prereq.race)) {
 			const characterRace = character.race?.name?.toLowerCase() || '';
 			const meetsRaceRequirement = prereq.race.some(raceReq => {
 				if (typeof raceReq === 'string') {
@@ -312,7 +317,7 @@ export class FeatSelectionModal {
 
 		if (featsToShow.length === 0) {
 			listEl.innerHTML =
-				'<div class="text-center text-muted py-4">No feats match your filters.</div>';
+				'<div class="text-center py-4">No feats match your filters.</div>';
 			return;
 		}
 
@@ -396,12 +401,26 @@ export class FeatSelectionModal {
 		const searchInput = this.modal.querySelector('.feat-search');
 		const sourceMenu = this.modal.querySelector('.feat-source-menu');
 		const sourceToggle = this.modal.querySelector('.feat-source-toggle');
+		const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreRestrictionsToggle');
+
 		if (searchInput) {
 			searchInput.addEventListener('input', async () => {
 				this.searchTerm = searchInput.value.trim().toLowerCase();
 				await this._renderFeatList();
 			});
 		}
+
+		if (ignoreRestrictionsBtn) {
+			ignoreRestrictionsBtn.addEventListener('click', async () => {
+				this.ignoreRaceRestrictions = !this.ignoreRaceRestrictions;
+				ignoreRestrictionsBtn.setAttribute('data-restrictions', !this.ignoreRaceRestrictions);
+				// Reload valid feats with new race restriction setting
+				await this._loadValidFeats();
+				this.filteredFeats = this.validFeats;
+				await this._renderFeatList();
+			});
+		}
+
 		if (sourceMenu && sourceToggle) {
 			this._populateSourceFilter(sourceMenu, sourceToggle);
 			sourceToggle.addEventListener('click', (e) => {
@@ -489,11 +508,19 @@ export class FeatSelectionModal {
 	}
 
 	_populateSourceFilter(menuEl, toggleBtn) {
+		// Get all sources from valid feats, filtered to only allowed sources
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => s.toLowerCase()),
+		);
+
 		const sources = Array.from(
 			new Set(
 				this.validFeats
 					.map((f) => (f.source || '').trim())
-					.filter(Boolean)
+					.filter((source) => {
+						// Only include sources that are in the allowed sources list
+						return source && allowedSources.has(source.toLowerCase());
+					})
 					.map((s) => s.toLowerCase()),
 			),
 		);

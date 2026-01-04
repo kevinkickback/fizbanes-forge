@@ -93,7 +93,7 @@
 
 .feat-selected-indicator {
 	flex-shrink: 0;
-	color: var(--success-color);
+	color: var(--text-color);
 	font-weight: 600;
 	min-width: 80px;
 	text-align: right;
@@ -155,4 +155,61 @@
 .remove-feat-btn {
 	padding: 0.25rem 0.5rem;
 	flex-shrink: 0;
+}
+/* Ignore Restrictions Toggle Icon */
+.feat-restrictions-button-wrapper {
+	display: inline-block;
+}
+
+.feat-restrictions-toggle {
+	border: 2px solid var(--border-color);
+	background: var(--secondary-color);
+	color: var(--text-color);
+	transition: all 0.2s ease;
+	padding: 0.75rem 1rem;
+	font-size: 1.2rem;
+	min-height: 40px;
+	min-width: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.feat-restrictions-toggle i {
+	font-size: 1.5rem;
+}
+
+.feat-restrictions-toggle:hover {
+	background: var(--secondary-color);
+	border-color: var(--border-color);
+	opacity: 0.8;
+}
+
+.feat-restrictions-toggle[data-restrictions="false"] {
+	background: #dc3545;
+	border-color: #dc3545;
+	color: #fff;
+}
+
+.feat-restrictions-toggle[data-restrictions="false"]:hover {
+	background: #c82333;
+	border-color: #c82333;
+}
+
+.feat-restrictions-toggle[data-restrictions="true"] {
+	background: var(--secondary-color);
+	border-color: var(--border-color);
+}
+
+/* Help Icon for Restrictions */
+.feat-restrictions-help {
+	font-size: 1rem;
+	color: var(--accent-color);
+	cursor: help;
+	transition: all 0.2s ease;
+}
+
+.feat-restrictions-help:hover {
+	color: var(--text-color);
+	transform: scale(1.15);
 }

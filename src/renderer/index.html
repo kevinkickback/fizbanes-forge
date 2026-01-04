@@ -349,10 +349,22 @@
                     <div class="feat-selection-container">
                         <input type="text" class="form-control feat-search" placeholder="Search feats..."
                             aria-label="Search feats">
-                        <div class="dropdown feat-source-dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle feat-source-toggle" type="button"
-                                aria-expanded="false">All sources</button>
-                            <div class="dropdown-menu feat-source-menu"></div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="dropdown feat-source-dropdown flex-grow-1">
+                                <button class="btn btn-outline-secondary dropdown-toggle feat-source-toggle"
+                                    type="button" aria-expanded="false">All sources</button>
+                                <div class="dropdown-menu feat-source-menu"></div>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="feat-restrictions-button-wrapper">
+                                    <button class="btn feat-restrictions-toggle" type="button"
+                                        id="ignoreRestrictionsToggle" title="Restrictions" data-restrictions="false">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </button>
+                                </div>
+                                <i class="fas fa-question-circle feat-restrictions-help"
+                                    title="Toggle enforcement of feature restrictions (race, level, etc.)"></i>
+                            </div>
                         </div>
                     </div>
                     <div class="text-muted small feat-slot-note mb-2"></div>

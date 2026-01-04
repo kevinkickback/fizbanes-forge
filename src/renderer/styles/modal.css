@@ -240,7 +240,7 @@
 	top: 0.35rem;
 	right: 0.35rem;
 	background: var(--accent-color);
-	color: #fff;
+	color: var(--text-color);
 	padding: 0.2rem 0.5rem;
 	border-radius: 999px;
 	font-size: 0.75rem;

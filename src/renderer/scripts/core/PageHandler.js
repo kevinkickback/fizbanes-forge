@@ -293,8 +293,8 @@ class PageHandlerImpl {
 					typeof subclassNameRaw === 'string'
 						? subclassNameRaw
 						: subclassNameRaw?.name ||
-							subclassNameRaw?.title ||
-							subclassNameRaw?.id;
+						subclassNameRaw?.title ||
+						subclassNameRaw?.id;
 				const classDisplay = subclassName
 					? `${subclassName} - ${characterClass}`
 					: characterClass;
@@ -317,11 +317,10 @@ class PageHandlerImpl {
 						<div class="card-body">
 							<div class="character-main">
 								<div class="character-portrait">
-									${
-										portraitUrl
-											? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
-											: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
-									}
+									${portraitUrl
+						? `<img src="${portraitUrl}" alt="${character.name || 'Character portrait'}" />`
+						: '<div class="portrait-fallback"><i class="fas fa-user"></i></div>'
+					}
 								</div>
 								<div class="character-info">
 									<div class="character-details">
@@ -688,6 +687,7 @@ class PageHandlerImpl {
 	_updateFeatUIState(character) {
 		const featCountEl = document.getElementById('featCount');
 		const maxFeatsEl = document.getElementById('maxFeats');
+		const selectionCounter = document.querySelector('.selection-counter');
 		const addFeatBtn = document.getElementById('addFeatBtn');
 
 		const availability = character?.getFeatAvailability?.() || {
@@ -706,13 +706,18 @@ class PageHandlerImpl {
 			maxFeatsEl.textContent = availability.max ?? 0;
 		}
 
+		// Hide selection counter when no feats are available
+		if (selectionCounter) {
+			selectionCounter.style.display = availability.max > 0 ? '' : 'none';
+		}
+
 		if (addFeatBtn) {
 			addFeatBtn.disabled = availability.max <= 0;
 			addFeatBtn.title =
 				availability.max > 0
 					? ''
 					: availability.blockedReason ||
-						'No feat selections available. Choose Variant Human or reach level 4.';
+					'No feat selections available. Choose Variant Human or reach level 4.';
 		}
 	}
 

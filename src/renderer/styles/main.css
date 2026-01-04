@@ -393,7 +393,7 @@ body.debug-mode .nav-item.debug-only {
 
 .feat-item.selected {
 	background: var(--overlay-success-15);
-	border-color: #4caf80;
+	border-color: var(--accent-color);
 }
 
 .feat-item.disabled {
