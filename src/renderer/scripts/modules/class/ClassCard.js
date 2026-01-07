@@ -480,11 +480,11 @@ export class ClassCard {
 	 */
 	_updateProficiencies(classData) {
 		console.log('[ClassCard] _updateProficiencies() called');
-		
+
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !classData) return;
 
-		console.log('[ClassCard] tools.class BEFORE reset:', 
+		console.log('[ClassCard] tools.class BEFORE reset:',
 			JSON.stringify(character.optionalProficiencies?.tools?.class || {}));
 
 		// Store previous selected proficiencies to restore valid ones later
@@ -506,8 +506,8 @@ export class ClassCard {
 		character.optionalProficiencies.tools.class.allowed = 0;
 		character.optionalProficiencies.tools.class.options = [];
 		character.optionalProficiencies.tools.class.selected = [];
-		
-		console.log('[ClassCard] tools.class AFTER reset:', 
+
+		console.log('[ClassCard] tools.class AFTER reset:',
 			JSON.stringify(character.optionalProficiencies?.tools?.class || {}));
 
 		// Add saving throw proficiencies
@@ -746,7 +746,7 @@ export class ClassCard {
 	 */
 	_processClassToolProficiencies(classData, character) {
 		console.log('[ClassCard] _processClassToolProficiencies() called');
-		
+
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
 			console.log('[ClassCard] No toolProficiencies found, returning');
@@ -798,7 +798,7 @@ export class ClassCard {
 
 		// Apply accumulated tool choices if any
 		console.log('[ClassCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
-		
+
 		if (maxAllowed > 0) {
 			character.optionalProficiencies.tools.class.allowed = maxAllowed;
 			character.optionalProficiencies.tools.class.options = allOptions;

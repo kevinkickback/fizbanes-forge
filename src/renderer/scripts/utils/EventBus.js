@@ -65,6 +65,34 @@ export const EVENTS = {
 	SPELLS_LOADED: 'spells:loaded',
 	ITEMS_LOADED: 'items:loaded',
 
+	// Equipment/Inventory events
+	ITEM_ADDED: 'item:added',
+	ITEM_REMOVED: 'item:removed',
+	ITEM_EQUIPPED: 'item:equipped',
+	ITEM_UNEQUIPPED: 'item:unequipped',
+	ITEM_ATTUNED: 'item:attuned',
+	ITEM_UNATTUNED: 'item:unattuned',
+	INVENTORY_UPDATED: 'inventory:updated',
+	ENCUMBRANCE_CHANGED: 'encumbrance:changed',
+
+	// Spell events
+	SPELL_ADDED: 'spell:added',
+	SPELL_REMOVED: 'spell:removed',
+	SPELL_PREPARED: 'spell:prepared',
+	SPELL_UNPREPARED: 'spell:unprepared',
+	SPELL_SLOTS_USED: 'spell-slots:used',
+	SPELL_SLOTS_RESTORED: 'spell-slots:restored',
+	SPELLS_UPDATED: 'spells:updated',
+
+	// Level-up and progression events
+	CHARACTER_LEVEL_CHANGED: 'character:levelChanged',
+	CHARACTER_LEVELED_UP: 'character:leveledUp',
+	CHARACTER_LEVELED_DOWN: 'character:leveledDown',
+	MULTICLASS_ADDED: 'multiclass:added',
+	MULTICLASS_REMOVED: 'multiclass:removed',
+	FEATURES_ADDED: 'features:added',
+	FEATURES_REMOVED: 'features:removed',
+
 	// Settings events
 	SETTINGS_SAVE_PATH_CHANGED: 'settings:savePathChanged',
 	SETTINGS_SAVE_PATH_RESET: 'settings:savePathReset',

@@ -660,7 +660,7 @@ export class ProficiencyCore {
 				if (prof.allowed === undefined) prof.allowed = 0;
 				if (!prof.options) prof.options = [];
 				if (!prof.selected) prof.selected = [];
-				
+
 				for (const source of ['race', 'class', 'background']) {
 					if (!prof[source]) {
 						prof[source] = { allowed: 0, options: [], selected: [] };

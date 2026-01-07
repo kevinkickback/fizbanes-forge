@@ -55,6 +55,47 @@ export const CharacterSchema = {
 				temp: 0,
 			},
 
+			// Inventory system
+			inventory: {
+				items: [],
+				equipped: {
+					head: null,
+					body: null,
+					hands: [],
+					feet: null,
+					back: null,
+					neck: null,
+					wrists: [],
+					fingers: [],
+					waist: null,
+				},
+				attuned: [],
+				weight: {
+					current: 0,
+					capacity: 0,
+				},
+			},
+
+			// Spellcasting system
+			spellcasting: {
+				classes: {},
+				multiclass: {
+					isCastingMulticlass: false,
+					combinedSlots: {},
+				},
+				other: {
+					spellsKnown: [],
+					itemSpells: [],
+				},
+			},
+
+			// Progression system (per-class tracking)
+			progression: {
+				classes: [],
+				experiencePoints: 0,
+				levelUps: [],
+			},
+
 			// Notes
 			notes: '',
 

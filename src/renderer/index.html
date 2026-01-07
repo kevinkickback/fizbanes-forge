@@ -78,6 +78,12 @@
                     </button>
                 </li>
                 <li class="nav-item">
+                    <button class="nav-link" data-page="spells">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                        <span>Spells</span>
+                    </button>
+                </li>
+                <li class="nav-item">
                     <button class="nav-link" data-page="details">
                         <i class="fas fa-user"></i>
                         <span>Details</span>
@@ -267,6 +273,222 @@
                     <div class="item-list" id="itemSearchResults">
                         <!-- Search results will be populated dynamically -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spell Selection Modal -->
+    <div class="modal fade" id="spellSelectionModal" tabindex="-1" aria-labelledby="spellSelectionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="spellSelectionModalLabel">Add Spell</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Search Bar (Full Width) -->
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="text" class="form-control spell-search-input flex-grow-1"
+                            placeholder="Search spells...">
+                        <div class="dropdown spell-source-dropdown" style="min-width: 150px;">
+                            <button class="btn btn-outline-secondary dropdown-toggle spell-source-toggle w-100"
+                                type="button" aria-expanded="false">All sources</button>
+                            <div class="dropdown-menu spell-source-menu"></div>
+                        </div>
+                    </div>
+                    <!-- Filters and Results Row -->
+                    <div class="row">
+                        <!-- Filters -->
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseLevel" aria-expanded="true" aria-controls="collapseLevel">
+                                    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                        <span>Spell Level</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse show" id="collapseLevel">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="0"
+                                                        data-filter-type="level" id="level0">
+                                                    <label class="form-check-label" for="level0">Cantrip</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="1"
+                                                        data-filter-type="level" id="level1">
+                                                    <label class="form-check-label" for="level1">1st</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="2"
+                                                        data-filter-type="level" id="level2">
+                                                    <label class="form-check-label" for="level2">2nd</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="3"
+                                                        data-filter-type="level" id="level3">
+                                                    <label class="form-check-label" for="level3">3rd</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="4"
+                                                        data-filter-type="level" id="level4">
+                                                    <label class="form-check-label" for="level4">4th</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="5"
+                                                        data-filter-type="level" id="level5">
+                                                    <label class="form-check-label" for="level5">5th</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="6"
+                                                        data-filter-type="level" id="level6">
+                                                    <label class="form-check-label" for="level6">6th</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="7"
+                                                        data-filter-type="level" id="level7">
+                                                    <label class="form-check-label" for="level7">7th</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="8"
+                                                        data-filter-type="level" id="level8">
+                                                    <label class="form-check-label" for="level8">8th</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="9"
+                                                        data-filter-type="level" id="level9">
+                                                    <label class="form-check-label" for="level9">9th</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-3">
+                                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseSchool" aria-expanded="true"
+                                    aria-controls="collapseSchool">
+                                    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                        <span>School</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse show" id="collapseSchool">
+                                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Abjuration"
+                                                        data-filter-type="school" id="schoolAbjuration">
+                                                    <label class="form-check-label"
+                                                        for="schoolAbjuration">Abjuration</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Conjuration"
+                                                        data-filter-type="school" id="schoolConjuration">
+                                                    <label class="form-check-label"
+                                                        for="schoolConjuration">Conjuration</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Divination"
+                                                        data-filter-type="school" id="schoolDivination">
+                                                    <label class="form-check-label"
+                                                        for="schoolDivination">Divination</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Enchantment"
+                                                        data-filter-type="school" id="schoolEnchantment">
+                                                    <label class="form-check-label"
+                                                        for="schoolEnchantment">Enchantment</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Evocation"
+                                                        data-filter-type="school" id="schoolEvocation">
+                                                    <label class="form-check-label"
+                                                        for="schoolEvocation">Evocation</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Illusion"
+                                                        data-filter-type="school" id="schoolIllusion">
+                                                    <label class="form-check-label"
+                                                        for="schoolIllusion">Illusion</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="Necromancy"
+                                                        data-filter-type="school" id="schoolNecromancy">
+                                                    <label class="form-check-label"
+                                                        for="schoolNecromancy">Necromancy</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox"
+                                                        value="Transmutation" data-filter-type="school"
+                                                        id="schoolTransmutation">
+                                                    <label class="form-check-label"
+                                                        for="schoolTransmutation">Transmutation</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseProperties" aria-expanded="true"
+                                    aria-controls="collapseProperties">
+                                    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                        <span>Properties</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse show" id="collapseProperties">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" data-filter-type="ritual"
+                                                id="filterRitual">
+                                            <label class="form-check-label" for="filterRitual">Ritual Only</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                data-filter-type="concentration" id="filterConcentration">
+                                            <label class="form-check-label"
+                                                for="filterConcentration">Concentration</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Spell List -->
+                        <div class="col-md-8">
+                            <div
+                                style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px;">
+                                <div class="spell-list-container">
+                                    <!-- Spell list will be populated dynamically -->
+                                </div>
+                            </div>
+                            <!-- Selected Spells Display -->
+                            <div class="mt-3 p-3"
+                                style="background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <h6 class="mb-2">Selected Spells</h6>
+                                <div class="selected-spells-container">
+                                    <!-- Selected spells will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-cancel-spell"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-add-spell" disabled>Add Spell</button>
                 </div>
             </div>
         </div>

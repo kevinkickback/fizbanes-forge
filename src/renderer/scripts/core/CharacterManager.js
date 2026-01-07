@@ -110,7 +110,7 @@ class CharacterManagerImpl {
 			}
 
 			// Convert to Character instance to enable domain methods
-			console.log('[CharacterManager] Loading character - optionalProficiencies.tools.class:', 
+			console.log('[CharacterManager] Loading character - optionalProficiencies.tools.class:',
 				JSON.stringify(characterData.optionalProficiencies?.tools?.class || {}));
 			const character = new Character(characterData);
 

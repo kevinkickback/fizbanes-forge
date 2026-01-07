@@ -442,14 +442,14 @@ export class ProficiencyCard {
 	 */
 	_handleCharacterChanged(_event) {
 		console.log('[ProficiencyCard] _handleCharacterChanged() called');
-		
+
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
 
 			if (this._character) {
-				console.log('[ProficiencyCard] _handleCharacterChanged - optionalProficiencies.tools.class before reinit:', 
+				console.log('[ProficiencyCard] _handleCharacterChanged - optionalProficiencies.tools.class before reinit:',
 					JSON.stringify(this._character.optionalProficiencies?.tools?.class || {}));
-				
+
 				ProficiencyCore.initializeProficiencyStructures(this._character);
 				this._initializeCharacterProficiencies();
 				this._reinitializeClassToolProficiencies();
@@ -480,7 +480,7 @@ export class ProficiencyCard {
 	 */
 	_reinitializeClassToolProficiencies() {
 		console.log('[ProficiencyCard] _reinitializeClassToolProficiencies() called');
-		
+
 		if (!this._character?.class) {
 			console.log('[ProficiencyCard] No character or class, returning');
 			return;
@@ -566,9 +566,9 @@ export class ProficiencyCard {
 				// For Bard: always ensure we have maxAllowed "Musical instrument" entries
 				const musicalInstrumentCount = (this._character.optionalProficiencies.tools.class.selected || [])
 					.filter(sel => sel === 'Musical instrument').length;
-				
+
 				console.log('[ProficiencyCard] Bard detected - current instrument count:', musicalInstrumentCount, 'maxAllowed:', maxAllowed);
-				
+
 				if (musicalInstrumentCount < maxAllowed) {
 					// Ensure selected array exists and has correct entries
 					this._character.optionalProficiencies.tools.class.selected = [];
@@ -751,7 +751,7 @@ export class ProficiencyCard {
 	 */
 	_computeInstrumentSlots() {
 		console.log('[ProficiencyCard] _computeInstrumentSlots() called');
-		
+
 		const normalizedInstrument = DataNormalizer.normalizeForLookup(
 			'Musical instrument',
 		);
@@ -784,7 +784,7 @@ export class ProficiencyCard {
 			// Check if user explicitly selected Musical Instrument
 			const selected = config.selected || [];
 			console.log(`[ProficiencyCard] Source ${key}: selected=`, selected);
-			
+
 			const isExplicitlySelected = selected.some(
 				(sel) => DataNormalizer.normalizeForLookup(sel) === normalizedInstrument,
 			);
@@ -1318,9 +1318,9 @@ export class ProficiencyCard {
 	 */
 	_cleanupOptionalProficiencies() {
 		console.log('[ProficiencyCard] _cleanupOptionalProficiencies() called');
-		console.log('[ProficiencyCard] tools.class BEFORE cleanup:', 
+		console.log('[ProficiencyCard] tools.class BEFORE cleanup:',
 			JSON.stringify(this._character?.optionalProficiencies?.tools?.class || {}));
-			
+
 		if (!this._character || !this._character.optionalProficiencies) return;
 
 		let changesDetected = false;
@@ -1348,7 +1348,7 @@ export class ProficiencyCard {
 			});
 		}
 
-		console.log('[ProficiencyCard] tools.class AFTER cleanup:', 
+		console.log('[ProficiencyCard] tools.class AFTER cleanup:',
 			JSON.stringify(this._character?.optionalProficiencies?.tools?.class || {}));
 
 		return changesDetected;

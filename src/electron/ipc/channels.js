@@ -32,4 +32,30 @@ export const IPC_CHANNELS = {
 	// Utility operations
 	UTIL_GET_APP_PATH: 'util:getAppPath',
 	UTIL_GET_USER_DATA: 'util:getUserData',
+
+	// Equipment operations
+	EQUIPMENT_ADD_ITEM: 'equipment:addItem',
+	EQUIPMENT_REMOVE_ITEM: 'equipment:removeItem',
+	EQUIPMENT_EQUIP_ITEM: 'equipment:equipItem',
+	EQUIPMENT_UNEQUIP_ITEM: 'equipment:unequipItem',
+	EQUIPMENT_ATTUNE_ITEM: 'equipment:attuneItem',
+	EQUIPMENT_UNATTUNE_ITEM: 'equipment:unattuneItem',
+	EQUIPMENT_CALCULATE_WEIGHT: 'equipment:calculateWeight',
+	EQUIPMENT_CHECK_ENCUMBRANCE: 'equipment:checkEncumbrance',
+
+	// Spell operations
+	SPELL_ADD_KNOWN: 'spell:addKnown',
+	SPELL_REMOVE_KNOWN: 'spell:removeKnown',
+	SPELL_PREPARE_SPELL: 'spell:prepareSpell',
+	SPELL_UNPREPARE_SPELL: 'spell:unprepareSpell',
+	SPELL_USE_SLOT: 'spell:useSlot',
+	SPELL_RESTORE_SLOTS: 'spell:restoreSlots',
+	SPELL_INITIALIZE_CLASS: 'spell:initializeClass',
+
+	// Level-up operations
+	PROGRESSION_INCREASE_LEVEL: 'progression:increaseLevel',
+	PROGRESSION_DECREASE_LEVEL: 'progression:decreaseLevel',
+	PROGRESSION_ADD_CLASS_LEVEL: 'progression:addClassLevel',
+	PROGRESSION_REMOVE_CLASS_LEVEL: 'progression:removeClassLevel',
+	PROGRESSION_CALCULATE_HP: 'progression:calculateHP',
 };

@@ -1293,6 +1293,7 @@ body.debug-mode .nav-item.debug-only {
 /* Remove old padding styles and replace with new margin approach */
 body[data-current-page="build"] .container-fluid,
 body[data-current-page="equipment"] .container-fluid,
+body[data-current-page="spells"] .container-fluid,
 body[data-current-page="details"] .container-fluid {
 	margin-bottom: 0; /* Remove old padding */
 }
@@ -1300,6 +1301,7 @@ body[data-current-page="details"] .container-fluid {
 /* Show action bar only on character pages */
 body[data-current-page="build"] .floating-actions,
 body[data-current-page="equipment"] .floating-actions,
+body[data-current-page="spells"] .floating-actions,
 body[data-current-page="details"] .floating-actions {
 	display: flex;
 }
@@ -2753,4 +2755,112 @@ body[data-current-page="details"] .floating-actions {
 	.background-image-container {
 		display: none !important;
 	}
+}
+
+/* Spell List Modal Styling */
+.spell-list-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.5rem;
+}
+
+.spell-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.spell-card:hover {
+	border-color: var(--accent-color);
+	background: var(--accent-10);
+}
+
+.spell-card.selected {
+	border-color: var(--accent-color);
+	background: var(--accent-15);
+	box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.spell-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.spell-card.selected .spell-card-header {
+	background: var(--accent-15);
+}
+
+.spell-card-header strong {
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.spell-card-body {
+	padding: 1rem;
+}
+
+.spell-stats {
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.spell-stat-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.spell-stat-row:last-child {
+	margin-bottom: 0;
+}
+
+.spell-stat {
+	color: var(--text-color);
+	font-size: 0.9rem;
+}
+
+.spell-stat strong {
+	color: var(--text-light);
+}
+
+.spell-description {
+	color: var(--text-color);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.selected-spells-container {
+	min-height: 2rem;
+}
+
+.selected-spells-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.selected-spells-list .badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 0.75rem;
+}
+
+.selected-spells-list .btn-close {
+	padding: 0;
+	margin: 0;
+	opacity: 0.7;
+}
+
+.selected-spells-list .btn-close:hover {
+	opacity: 1;
 }

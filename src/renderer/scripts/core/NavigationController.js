@@ -415,7 +415,7 @@ class NavigationControllerImpl {
 			: false;
 
 		// Determine if floating bar SHOULD be visible for this page
-		const shouldShowByCss = ['build', 'equipment', 'details'].includes(
+		const shouldShowByCss = ['build', 'equipment', 'spells', 'details'].includes(
 			pageName,
 		);
 
@@ -449,6 +449,7 @@ class NavigationControllerImpl {
 		} else if (
 			(pageName === 'build' ||
 				pageName === 'equipment' ||
+				pageName === 'spells' ||
 				pageName === 'details') &&
 			!isVisible
 		) {

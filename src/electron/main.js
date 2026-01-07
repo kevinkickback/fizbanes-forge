@@ -1,7 +1,10 @@
 import { registerCharacterHandlers } from './ipc/handlers/CharacterHandlers.js';
 import { registerDataHandlers } from './ipc/handlers/DataHandlers.js';
+import { registerEquipmentHandlers } from './ipc/handlers/EquipmentHandlers.js';
 import { registerFileHandlers } from './ipc/handlers/FileHandlers.js';
+import { registerProgressionHandlers } from './ipc/handlers/ProgressionHandlers.js';
 import { registerSettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
+import { registerSpellHandlers } from './ipc/handlers/SpellHandlers.js';
 /** Electron application entry point. */
 
 import { app } from 'electron';
@@ -61,6 +64,9 @@ app.whenReady().then(() => {
 		set: setPreference,
 		app,
 	});
+	registerEquipmentHandlers();
+	registerSpellHandlers();
+	registerProgressionHandlers();
 
 	// Create main window
 	createMainWindow({

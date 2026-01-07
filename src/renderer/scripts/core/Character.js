@@ -257,6 +257,47 @@ export class Character {
 			abilityScoreMethod: 'custom', // Options: 'custom', 'pointBuy', 'standardArray'
 		};
 
+		// Initialize inventory system
+		this.inventory = data.inventory || {
+			items: [], // Array of { id, name, baseItemId, quantity, equipped, attuned, cost, weight, source, metadata }
+			equipped: {
+				head: null,
+				body: null,
+				hands: [],
+				feet: null,
+				back: null,
+				neck: null,
+				wrists: [],
+				fingers: [],
+				waist: null,
+			},
+			attuned: [], // Array of item instance IDs
+			weight: {
+				current: 0,
+				capacity: 0, // Calculated as strength * 15
+			},
+		};
+
+		// Initialize spellcasting system (tracks spells by class)
+		this.spellcasting = data.spellcasting || {
+			classes: {}, // { "Wizard": { level, spellsKnown, spellsPrepared, spellSlots, ... }, ... }
+			multiclass: {
+				isCastingMulticlass: false,
+				combinedSlots: {}, // Combined spell slots for multiclass
+			},
+			other: {
+				spellsKnown: [], // From items, feats, etc.
+				itemSpells: [],
+			},
+		};
+
+		// Initialize character progression (tracks per-class levels and features)
+		this.progression = data.progression || {
+			classes: [], // Array of { name, level, subclass, hitDice, hitPoints, features, spellSlots }
+			experiencePoints: 0,
+			levelUps: [], // Track history of level-ups for debugging/rollback
+		};
+
 		// Use ProficiencyCore to initialize proficiency structures
 		ProficiencyCore.initializeProficiencyStructures(this);
 	}
@@ -614,9 +655,9 @@ export class Character {
 	 * @returns {Object} JSON representation of the character
 	 */
 	toJSON() {
-		console.log('[Character.toJSON] Called - optionalProficiencies.tools.class BEFORE serialization:', 
+		console.log('[Character.toJSON] Called - optionalProficiencies.tools.class BEFORE serialization:',
 			JSON.stringify(this.optionalProficiencies?.tools?.class || {}));
-		
+
 		// Helper function to safely convert a Map to an object
 		const mapToObject = (map) => {
 			if (!map || typeof map !== 'object') return {};
@@ -749,8 +790,8 @@ export class Character {
 					languages: this._serializeComplexProficiency('languages'),
 					tools: this._serializeComplexProficiency('tools'),
 				};
-				
-				console.log('[Character.toJSON] Serialized optionalProficiencies.tools.class:', 
+
+				console.log('[Character.toJSON] Serialized optionalProficiencies.tools.class:',
 					JSON.stringify(serializedData.optionalProficiencies.tools.class));
 			}
 		} catch {
@@ -800,6 +841,63 @@ export class Character {
 			current: this.hitPoints?.current || 0,
 			max: this.hitPoints?.max || 0,
 			temp: this.hitPoints?.temp || 0,
+		};
+
+		// Add inventory system
+		serializedData.inventory = {
+			items: (this.inventory?.items || []).map((item) => ({
+				id: item.id,
+				name: item.name,
+				baseItemId: item.baseItemId,
+				quantity: item.quantity || 1,
+				equipped: item.equipped || false,
+				attuned: item.attuned || false,
+				cost: item.cost ? { ...item.cost } : null,
+				weight: item.weight || 0,
+				source: item.source || 'Unknown',
+				metadata: item.metadata ? { ...item.metadata } : {},
+			})),
+			equipped: this.inventory?.equipped ? { ...this.inventory.equipped } : {},
+			attuned: safeArray(this.inventory?.attuned),
+			weight: {
+				current: this.inventory?.weight?.current || 0,
+				capacity: this.inventory?.weight?.capacity || 0,
+			},
+		};
+
+		// Add spellcasting system
+		serializedData.spellcasting = {
+			classes: this.spellcasting?.classes ? { ...this.spellcasting.classes } : {},
+			multiclass: this.spellcasting?.multiclass ? { ...this.spellcasting.multiclass } : {
+				isCastingMulticlass: false,
+				combinedSlots: {},
+			},
+			other: {
+				spellsKnown: safeArray(this.spellcasting?.other?.spellsKnown),
+				itemSpells: safeArray(this.spellcasting?.other?.itemSpells),
+			},
+		};
+
+		// Add progression system
+		serializedData.progression = {
+			classes: (this.progression?.classes || []).map((cls) => ({
+				name: cls.name,
+				level: cls.level,
+				subclass: cls.subclass ? { ...cls.subclass } : null,
+				hitDice: cls.hitDice,
+				hitPoints: safeArray(cls.hitPoints),
+				features: safeArray(cls.features),
+				spellSlots: cls.spellSlots ? { ...cls.spellSlots } : {},
+			})),
+			experiencePoints: this.progression?.experiencePoints || 0,
+			levelUps: (this.progression?.levelUps || []).map((levelUp) => ({
+				fromLevel: levelUp.fromLevel,
+				toLevel: levelUp.toLevel,
+				appliedFeats: safeArray(levelUp.appliedFeats),
+				appliedFeatures: safeArray(levelUp.appliedFeatures),
+				changedAbilities: levelUp.changedAbilities ? { ...levelUp.changedAbilities } : {},
+				timestamp: levelUp.timestamp,
+			})),
 		};
 
 		return serializedData;

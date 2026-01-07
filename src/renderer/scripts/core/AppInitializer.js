@@ -28,6 +28,7 @@ import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
+import { spellsPageController } from './SpellsPageController.js';
 
 // Modal for data configuration
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
@@ -210,6 +211,7 @@ async function _initializeCoreComponents() {
 				name: 'navigation controller',
 				init: () => NavigationController.initialize(),
 			},
+			{ name: 'spells page controller', init: () => spellsPageController.initialize() },
 			{ name: 'settings service', init: () => settingsService.initialize() },
 		];
 

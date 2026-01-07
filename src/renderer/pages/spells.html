@@ -1,0 +1,80 @@
+<div class="row">
+    <!-- Known Spells by Level -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Known Spells</h5>
+                <button class="btn btn-primary btn-sm" id="addSpellBtn">
+                    <i class="fas fa-plus"></i> Add Spell
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="knownSpellsList" class="known-spells-list">
+                    <!-- Known spells will be populated by spell level here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prepared Spells (if applicable) -->
+    <div class="col-12 mb-4" id="preparedSpellsSection" style="display: none;">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Prepared Spells</h5>
+                <span class="text-muted" id="preparedSpellsLimit">
+                    0 / 0 prepared
+                </span>
+            </div>
+            <div class="card-body">
+                <div id="preparedSpellsList" class="prepared-spells-list">
+                    <!-- Prepared spells will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cantrips -->
+    <div class="col-12 mb-4" id="cantripsSection" style="display: none;">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Cantrips</h5>
+                <span class="text-muted" id="cantripsList">
+                    <!-- Cantrip count will be shown here -->
+                </span>
+            </div>
+            <div class="card-body">
+                <div id="cantripsListDisplay" class="cantrips-list">
+                    <!-- Cantrips will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spellcasting Info -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Spellcasting Information</h5>
+            </div>
+            <div class="card-body">
+                <div id="spellcastingInfo" class="spellcasting-info">
+                    <!-- Spellcasting details (ability mod, DC, save, etc.) will be shown here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multiclass Spellcasting (if applicable) -->
+    <div class="col-12 mb-4" id="multiclassSpellsSection" style="display: none;">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Multiclass Spellcasting</h5>
+            </div>
+            <div class="card-body">
+                <div id="multiclassSpellsList" class="multiclass-spells-list">
+                    <!-- Multiclass spellcasting information will be shown here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
