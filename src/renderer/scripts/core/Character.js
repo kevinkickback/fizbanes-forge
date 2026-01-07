@@ -614,6 +614,9 @@ export class Character {
 	 * @returns {Object} JSON representation of the character
 	 */
 	toJSON() {
+		console.log('[Character.toJSON] Called - optionalProficiencies.tools.class BEFORE serialization:', 
+			JSON.stringify(this.optionalProficiencies?.tools?.class || {}));
+		
 		// Helper function to safely convert a Map to an object
 		const mapToObject = (map) => {
 			if (!map || typeof map !== 'object') return {};
@@ -746,6 +749,9 @@ export class Character {
 					languages: this._serializeComplexProficiency('languages'),
 					tools: this._serializeComplexProficiency('tools'),
 				};
+				
+				console.log('[Character.toJSON] Serialized optionalProficiencies.tools.class:', 
+					JSON.stringify(serializedData.optionalProficiencies.tools.class));
 			}
 		} catch {
 			// Provide empty default structure
@@ -777,23 +783,8 @@ export class Character {
 			serializedData.instrumentChoices = this.instrumentChoices.map((slot) => ({
 				key: slot.key,
 				sourceLabel: slot.sourceLabel,
+				slotIndex: slot.slotIndex,
 				selection: slot.selection || null,
-				isAutomatic: slot.isAutomatic || false,
-			}));
-		} else {
-			serializedData.instrumentChoices = [];
-		}
-
-		// Add instrument choices if they exist
-		if (
-			this.instrumentChoices &&
-			Array.isArray(this.instrumentChoices)
-		) {
-			serializedData.instrumentChoices = this.instrumentChoices.map((slot) => ({
-				key: slot.key,
-				sourceLabel: slot.sourceLabel,
-				selection: slot.selection || null,
-				isAutomatic: slot.isAutomatic || false,
 			}));
 		} else {
 			serializedData.instrumentChoices = [];

@@ -1,0 +1,449 @@
+
+Running 1 test using 1 worker
+
+(node:25676) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+APP LOG: [InstrumentRehydrate] Rehydrating slots: [Object, Object, Object]
+APP LOG: [InstrumentRehydrate] Adding proficiency: Bagpipes from Class
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentRehydrate] Adding proficiency: Drum from Class
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentRehydrate] Adding proficiency: Dulcimer from Class
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: Bagpipes, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: Drum, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: Dulcimer, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":"Bagpipes","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Drum","isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":"Dulcimer","isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] class offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: []
+APP LOG: [InstrumentSlots] Final computed slots before sync: []
+APP LOG: [InstrumentSync] Syncing - computed: [] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: []
+APP LOG: [InstrumentView] Rendering with slots: []
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: []
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] class existing slots after filtering: []
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: undefined
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: undefined
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: undefined
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: []
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentRehydrate] Rehydrating slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentRehydrate] Rehydrating slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+APP LOG: [InstrumentSlots] Computing slots, savedSlots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] buildSlotsForSource(race): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] race offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] buildSlotsForSource(class): {config: Object, hasConfig: true, options: Array(1), allowed: 3}
+APP LOG: [InstrumentSlots] class offersInstruments: true allowed: 3
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] Validating saved slot for class: {key: class, sourceLabel: Class, selection: null, isAutomatic: true} valid: true
+APP LOG: [InstrumentSlots] class existing slots after filtering: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Building slot 0 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 1 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] Building slot 2 for class, prev: {key: class, sourceLabel: Class, selection: null, isAutomatic: true}
+APP LOG: [InstrumentSlots] buildSlotsForSource(background): {config: Object, hasConfig: true, options: Array(0), allowed: 0}
+APP LOG: [InstrumentSlots] background offersInstruments: false allowed: 0
+APP LOG: [InstrumentSlots] After building source slots: [Object, Object, Object]
+APP LOG: [InstrumentSlots] Final computed slots before sync: [Object, Object, Object]
+APP LOG: [InstrumentSync] Syncing - computed: [Object, Object, Object] old: [Object, Object, Object]
+APP LOG: [InstrumentSync] After sync, character.instrumentChoices: [Object, Object, Object]
+APP LOG: [InstrumentView] Rendering with slots: [{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true},{"key":"class","sourceLabel":"Class","selection":null,"isAutomatic":true}]
+Found 3 instrument dropdowns
+Dropdown 0 value: 
+  Ô£ÿ  1 tests\instrument-choice-persistence.spec.js:68:3 ÔÇ║ Musical Instrument Choice Persistence ÔÇ║ loads saved instrument selections for BandMan character (3.4s)
+
+
+  1) tests\instrument-choice-persistence.spec.js:68:3 ÔÇ║ Musical Instrument Choice Persistence ÔÇ║ loads saved instrument selections for BandMan character 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: not [32m""[39m
+
+      93 | 				
+      94 | 				// The value should not be empty (which means "Choose..." is selected)
+    > 95 | 				expect(selectedValue).not.toBe('');
+         | 				                          ^
+      96 | 				expect(selectedValue).toBeTruthy();
+      97 | 				
+      98 | 				// Optional: check that it's a valid instrument name
+        at C:\Users\K\Workbench\Dev\Electron\fizbanes-forge\tests\instrument-choice-persistence.spec.js:95:31
+
+  1 failed
+    tests\instrument-choice-persistence.spec.js:68:3 ÔÇ║ Musical Instrument Choice Persistence ÔÇ║ loads saved instrument selections for BandMan character 

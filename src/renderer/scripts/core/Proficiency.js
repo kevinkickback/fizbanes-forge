@@ -654,6 +654,22 @@ export class ProficiencyCore {
 					class: { allowed: 0, options: [], selected: [] },
 					background: { allowed: 0, options: [], selected: [] },
 				};
+			} else {
+				// Deep-initialize nested properties that might be missing
+				const prof = character.optionalProficiencies[type];
+				if (prof.allowed === undefined) prof.allowed = 0;
+				if (!prof.options) prof.options = [];
+				if (!prof.selected) prof.selected = [];
+				
+				for (const source of ['race', 'class', 'background']) {
+					if (!prof[source]) {
+						prof[source] = { allowed: 0, options: [], selected: [] };
+					} else {
+						if (prof[source].allowed === undefined) prof[source].allowed = 0;
+						if (!prof[source].options) prof[source].options = [];
+						if (!prof[source].selected) prof[source].selected = [];
+					}
+				}
 			}
 		}
 

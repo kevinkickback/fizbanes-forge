@@ -479,8 +479,13 @@ export class ClassCard {
 	 * @private
 	 */
 	_updateProficiencies(classData) {
+		console.log('[ClassCard] _updateProficiencies() called');
+		
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !classData) return;
+
+		console.log('[ClassCard] tools.class BEFORE reset:', 
+			JSON.stringify(character.optionalProficiencies?.tools?.class || {}));
 
 		// Store previous selected proficiencies to restore valid ones later
 		const previousClassSkills =
@@ -501,6 +506,9 @@ export class ClassCard {
 		character.optionalProficiencies.tools.class.allowed = 0;
 		character.optionalProficiencies.tools.class.options = [];
 		character.optionalProficiencies.tools.class.selected = [];
+		
+		console.log('[ClassCard] tools.class AFTER reset:', 
+			JSON.stringify(character.optionalProficiencies?.tools?.class || {}));
 
 		// Add saving throw proficiencies
 		const savingThrows = this._getSavingThrows(classData);
@@ -737,8 +745,13 @@ export class ClassCard {
 	 * @private
 	 */
 	_processClassToolProficiencies(classData, character) {
+		console.log('[ClassCard] _processClassToolProficiencies() called');
+		
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
-		if (!toolProfs || !Array.isArray(toolProfs)) return;
+		if (!toolProfs || !Array.isArray(toolProfs)) {
+			console.log('[ClassCard] No toolProficiencies found, returning');
+			return;
+		}
 
 		// Accumulate all choices across multiple objects
 		let maxAllowed = 0;
@@ -784,10 +797,14 @@ export class ClassCard {
 		}
 
 		// Apply accumulated tool choices if any
+		console.log('[ClassCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
+		
 		if (maxAllowed > 0) {
 			character.optionalProficiencies.tools.class.allowed = maxAllowed;
 			character.optionalProficiencies.tools.class.options = allOptions;
 			character.optionalProficiencies.tools.class.selected = [];
+
+			console.log('[ClassCard] Set tools.class:', JSON.stringify(character.optionalProficiencies.tools.class));
 
 			// Special case: if ONLY "Musical instrument" is offered (like Bard),
 			// auto-populate the selected array so it shows as granted/default
@@ -797,6 +814,7 @@ export class ClassCard {
 						'Musical instrument',
 					);
 				}
+				console.log('[ClassCard] Bard detected - populated selected array:', character.optionalProficiencies.tools.class.selected);
 			}
 		}
 	}

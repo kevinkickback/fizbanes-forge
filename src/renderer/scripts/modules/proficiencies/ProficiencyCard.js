@@ -6,13 +6,14 @@ import DataNormalizer from '../../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 
 import { proficiencyService } from '../../services/ProficiencyService.js';
-import { MUSICAL_INSTRUMENTS } from '../../utils/ProficiencyConstants.js';
+import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../../utils/ProficiencyConstants.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
 import { ProficiencySelectionView } from './ProficiencySelection.js';
 
 /**
- * View for rendering musical instrument dropdown choices tied to generic "Musical instrument" proficiencies.
+ * Minimal view for rendering musical instrument dropdown choices.
+ * Focuses only on rendering and event wiring; logic is in ProficiencyCard.
  */
 class InstrumentChoicesView {
 	constructor() {
@@ -39,14 +40,15 @@ class InstrumentChoicesView {
 		this._wireEvents(host, onChange);
 	}
 
+	/**
+	 * Build HTML content for instrument dropdowns with mutual exclusion.
+	 * Disabled options are those already selected in other slots.
+	 * @private
+	 */
 	_buildContent(slots) {
-		// Build set of already-selected instruments to prevent duplicates
-		const selectedInstruments = new Set();
-		for (const slot of slots) {
-			if (slot.selection) {
-				selectedInstruments.add(slot.selection);
-			}
-		}
+		const selectedInstruments = new Set(
+			slots.map((s) => s.selection).filter(Boolean),
+		);
 
 		return `
 			<div class="instrument-choices-grid">
@@ -58,11 +60,10 @@ class InstrumentChoicesView {
 								<select class="form-select form-select-sm instrument-choice-select" data-slot-index="${index}" data-source-label="${slot.sourceLabel}" data-key="${slot.key}">
 									<option value="">Choose...</option>
 									${MUSICAL_INSTRUMENTS.map((inst) => {
-										// Hide instruments already selected in other slots, but always show current slot's selection
-										const isSelected = slot.selection === inst;
-										const isUsedElsewhere = selectedInstruments.has(inst) && !isSelected;
-										return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
-									}).join('')}
+						const isSelected = slot.selection === inst;
+						const isUsedElsewhere = selectedInstruments.has(inst) && !isSelected;
+						return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
+					}).join('')}
 								</select>
 							</div>
 						`;
@@ -72,17 +73,21 @@ class InstrumentChoicesView {
 		`;
 	}
 
+	/**
+	 * Wire change event handlers to all dropdowns.
+	 * @private
+	 */
 	_wireEvents(host, onChange) {
 		const selects = host.querySelectorAll('.instrument-choice-select');
 		for (const select of selects) {
-			select.addEventListener('change', (e) => {
-				if (typeof onChange === 'function') {
-					onChange(e);
-				}
-			});
+			select.addEventListener('change', onChange);
 		}
 	}
 
+	/**
+	 * Get or create the container for instrument dropdowns.
+	 * @private
+	 */
 	_getOrCreateHost(toolsContainer) {
 		let host = toolsContainer.querySelector('.instrument-choices-container');
 		if (!host) {
@@ -145,6 +150,7 @@ export class ProficiencyCard {
 			this._initializeDomReferences();
 			this._setupEventListeners();
 			this._initializeCharacterProficiencies();
+			this._rehydrateInstrumentChoices();
 			await this._populateProficiencyContainers();
 			this._updateProficiencyNotes();
 		} catch (error) {
@@ -317,6 +323,9 @@ export class ProficiencyCard {
 				this._handleCharacterChanged.bind(this),
 			);
 
+			// Listen for character being loaded/selected from file
+			eventBus.on(EVENTS.CHARACTER_SELECTED, this._handleCharacterChanged.bind(this));
+
 			// Listen for proficiency changes via EventBus
 			eventBus.on('proficiency:added', this._handleProficiencyAdded.bind(this));
 			eventBus.on(
@@ -432,12 +441,18 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_handleCharacterChanged(_event) {
+		console.log('[ProficiencyCard] _handleCharacterChanged() called');
+		
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
 
 			if (this._character) {
+				console.log('[ProficiencyCard] _handleCharacterChanged - optionalProficiencies.tools.class before reinit:', 
+					JSON.stringify(this._character.optionalProficiencies?.tools?.class || {}));
+				
 				ProficiencyCore.initializeProficiencyStructures(this._character);
 				this._initializeCharacterProficiencies();
+				this._reinitializeClassToolProficiencies();
 				this._cleanupOptionalProficiencies();
 				this._rehydrateInstrumentChoices();
 				this._populateProficiencyContainers();
@@ -450,6 +465,126 @@ export class ProficiencyCard {
 				'Error handling character change:',
 				error,
 			);
+		}
+	}
+
+	/**
+	 * Re-initialize class tool proficiencies when character is loaded.
+	 * This ensures optionalProficiencies.tools.class.options is populated
+	 * so instrument slots can be computed correctly.
+	 * 
+	 * NOTE: This method attempts to reload class data to repopulate options.
+	 * However, if classService isn't available yet (during initial load),
+	 * the data should already be present from Character.toJSON/fromJSON.
+	 * @private
+	 */
+	_reinitializeClassToolProficiencies() {
+		console.log('[ProficiencyCard] _reinitializeClassToolProficiencies() called');
+		
+		if (!this._character?.class) {
+			console.log('[ProficiencyCard] No character or class, returning');
+			return;
+		}
+
+		// If options and selected arrays are already populated from saved data, we're done
+		const currentOptions = this._character.optionalProficiencies?.tools?.class?.options || [];
+		const currentSelected = this._character.optionalProficiencies?.tools?.class?.selected || [];
+		const currentAllowed = this._character.optionalProficiencies?.tools?.class?.allowed || 0;
+
+		console.log('[ProficiencyCard] Current state: options=', currentOptions, 'selected=', currentSelected, 'allowed=', currentAllowed);
+
+		// If we already have valid data, don't overwrite it
+		if (currentOptions.length > 0 && currentSelected.length > 0 && currentAllowed > 0) {
+			console.log('[ProficiencyCard] Data already populated from save, skipping reinit');
+			return;
+		}
+
+		const classService = window.classService;
+		if (!classService) {
+			console.log('[ProficiencyCard] No classService yet - data should be loaded from save file');
+			return;
+		}
+
+		const classData = classService.getClassByName(this._character.class);
+		if (!classData) {
+			console.log('[ProficiencyCard] No classData for', this._character.class);
+			return;
+		}
+
+		console.log('[ProficiencyCard] Processing class:', this._character.class);
+
+		// Re-process class tool proficiencies using the same logic as ClassCard
+		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
+		if (!toolProfs || !Array.isArray(toolProfs)) {
+			console.log('[ProficiencyCard] No toolProficiencies, returning');
+			return;
+		}
+
+		let maxAllowed = 0;
+		const allOptions = [];
+
+		for (const profObj of toolProfs) {
+			// Handle "any musical instrument" choice (e.g., Bard with anyMusicalInstrument: 3)
+			if (profObj.anyMusicalInstrument) {
+				const count = profObj.anyMusicalInstrument;
+				maxAllowed = Math.max(maxAllowed, count);
+				allOptions.push('Musical instrument');
+			}
+
+			// Handle "any artisan's tool" choice (e.g., Monk with anyArtisansTool: 1)
+			if (profObj.anyArtisansTool) {
+				const count = profObj.anyArtisansTool;
+				maxAllowed = Math.max(maxAllowed, count);
+				allOptions.push(...ARTISAN_TOOLS);
+			}
+
+			// Handle "any" tool proficiency choice
+			if (profObj.any && profObj.any > 0) {
+				maxAllowed = Math.max(maxAllowed, profObj.any);
+				allOptions.push('any');
+			}
+
+			// Handle choose from specific list
+			if (profObj.choose) {
+				const count = profObj.choose.count || 1;
+				const options = profObj.choose.from || [];
+				maxAllowed = Math.max(maxAllowed, count);
+				allOptions.push(...options);
+			}
+		}
+
+		console.log('[ProficiencyCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
+
+		// Apply accumulated tool choices if any
+		if (maxAllowed > 0) {
+			this._character.optionalProficiencies.tools.class.allowed = maxAllowed;
+			this._character.optionalProficiencies.tools.class.options = allOptions;
+
+			// Special case: if ONLY "Musical instrument" is offered (like Bard),
+			// ensure the selected array has the right number of entries
+			if (allOptions.length === 1 && allOptions[0] === 'Musical instrument') {
+				// For Bard: always ensure we have maxAllowed "Musical instrument" entries
+				const musicalInstrumentCount = (this._character.optionalProficiencies.tools.class.selected || [])
+					.filter(sel => sel === 'Musical instrument').length;
+				
+				console.log('[ProficiencyCard] Bard detected - current instrument count:', musicalInstrumentCount, 'maxAllowed:', maxAllowed);
+				
+				if (musicalInstrumentCount < maxAllowed) {
+					// Ensure selected array exists and has correct entries
+					this._character.optionalProficiencies.tools.class.selected = [];
+					for (let i = 0; i < maxAllowed; i++) {
+						this._character.optionalProficiencies.tools.class.selected.push('Musical instrument');
+					}
+					console.log('[ProficiencyCard] Set selected array to:', this._character.optionalProficiencies.tools.class.selected);
+				}
+			} else {
+				// For other classes: preserve existing selections if they're still valid
+				const existingSelected = this._character.optionalProficiencies.tools.class.selected || [];
+				this._character.optionalProficiencies.tools.class.selected = existingSelected.filter(
+					(sel) => allOptions.includes(sel) || allOptions.includes('any')
+				);
+				console.log('[ProficiencyCard] Filtered selected array to:', this._character.optionalProficiencies.tools.class.selected);
+			}
 		}
 	}
 
@@ -538,6 +673,7 @@ export class ProficiencyCard {
 		if (!toolsContainer) return;
 
 		const slots = this._computeInstrumentSlots();
+		console.log('[ProficiencyCard] Rendering instrument choices with', slots.length, 'slots:', slots);
 		this._instrumentChoicesView.render(
 			toolsContainer,
 			slots,
@@ -604,184 +740,153 @@ export class ProficiencyCard {
 	}
 
 	/**
-	 * Compute current instrument slots based on generic "Musical instrument" proficiencies.
-	 * Slots are created for: (a) selected optional tools named "Musical instrument",
-	 * (b) granted proficiencies with that name, and (c) sources that ONLY offer instrument choices
-	 * (like Bard) — these get automatic slots.
-	 * @returns {Array<{key: string, sourceLabel: string, selection?: string}>}
+	 * Compute instrument slots based on sources that offer "Musical instrument".
+	 * Creates one slot for each allowed instrument choice from a source.
+	 * 
+	 * IMPORTANT: Only creates slots if Musical Instrument is the ONLY tool option.
+	 * If it's one of several options, user must explicitly select it first.
+	 * 
+	 * @returns {Array<{key: string, sourceLabel: string, slotIndex: number, selection?: string}>}
 	 * @private
 	 */
 	_computeInstrumentSlots() {
-		// First, check if we have saved instrumentChoices with selections
-		// If so, use them as the base to preserve selections across load/save cycles
-		if (
-			Array.isArray(this._character?.instrumentChoices) &&
-			this._character.instrumentChoices.length > 0
-		) {
-			// Return saved slots - they should have selections preserved
-			// (validation happens during _syncInstrumentChoices if slots become stale)
-			return this._character.instrumentChoices;
-		}
-
-		// Compute fresh slots from current state
-		const slots = [];
+		console.log('[ProficiencyCard] _computeInstrumentSlots() called');
+		
 		const normalizedInstrument = DataNormalizer.normalizeForLookup(
 			'Musical instrument',
 		);
+		const slots = [];
 
-		const addOptionalSlots = (sourceKey, sourceLabel) => {
-			const selected =
-				this._character?.optionalProficiencies?.tools?.[sourceKey]?.selected ||
-				[];
-			const options =
-				this._character?.optionalProficiencies?.tools?.[sourceKey]?.options ||
-				[];
-			const allowed =
-				this._character?.optionalProficiencies?.tools?.[sourceKey]?.allowed ||
-				0;
+		// Check each source (race, class, background) for instrument offerings
+		const sources = [
+			{ key: 'race', label: 'Race' },
+			{ key: 'class', label: 'Class' },
+			{ key: 'background', label: 'Background' },
+		];
 
-			// Count how many "Musical instrument" selections exist for this source
-			let instrumentCount = 0;
-			for (const prof of selected) {
-				if (
-					DataNormalizer.normalizeForLookup(prof) === normalizedInstrument
-				) {
-					instrumentCount++;
-					slots.push({ key: sourceKey, sourceLabel });
-				}
+		for (const { key, label } of sources) {
+			const config = this._character?.optionalProficiencies?.tools?.[key];
+			if (!config) {
+				console.log(`[ProficiencyCard] No config for source: ${key}`);
+				continue;
 			}
 
-			// If this source ONLY offers instruments (options = ['Musical instrument'])
-			// and allowed > 0, create automatic slots for the unfilled quota
-			const onlyOffersInstruments =
-				options.length === 1 &&
-				DataNormalizer.normalizeForLookup(options[0]) === normalizedInstrument;
-			if (
-				onlyOffersInstruments &&
-				allowed > 0 &&
-				instrumentCount < allowed
-			) {
-				// Auto-create remaining slots
-				for (let i = instrumentCount; i < allowed; i++) {
+			const options = config.options || [];
+			const allowed = config.allowed || 0;
+
+			console.log(`[ProficiencyCard] Source ${key}: options=`, options, 'allowed=', allowed);
+
+			// Check if this source offers Musical Instrument
+			const offersInstruments = options.some(
+				(opt) => DataNormalizer.normalizeForLookup(opt) === normalizedInstrument,
+			);
+
+			// Check if user explicitly selected Musical Instrument
+			const selected = config.selected || [];
+			console.log(`[ProficiencyCard] Source ${key}: selected=`, selected);
+			
+			const isExplicitlySelected = selected.some(
+				(sel) => DataNormalizer.normalizeForLookup(sel) === normalizedInstrument,
+			);
+
+			console.log(`[ProficiencyCard] Source ${key}: offersInstruments=${offersInstruments}, isExplicitlySelected=${isExplicitlySelected}`);
+
+			// Create slots if:
+			// 1. Musical Instrument is the ONLY option (e.g., Bard gets 3 slots automatically), OR
+			// 2. Musical Instrument was explicitly selected by user (e.g., Monk choosing it)
+			const isOnlyOption = options.length === 1 && offersInstruments;
+			const shouldCreateSlots = (isOnlyOption || isExplicitlySelected) && allowed > 0;
+
+			console.log(`[ProficiencyCard] Source ${key}: isOnlyOption=${isOnlyOption}, shouldCreateSlots=${shouldCreateSlots}`);
+
+			if (shouldCreateSlots) {
+				// Create a slot for each choice allowed by this source
+				for (let i = 0; i < allowed; i++) {
 					slots.push({
-						key: sourceKey,
-						sourceLabel,
-						isAutomatic: true,
+						key,
+						sourceLabel: label,
+						slotIndex: i, // Index within this source's slots
+						selection: null,
 					});
 				}
 			}
-		};
-
-		addOptionalSlots('race', 'Race');
-		addOptionalSlots('class', 'Class');
-		addOptionalSlots('background', 'Background');
-
-		// Granted generic instrument proficiencies (fixed sources)
-		const toolSources = this._character?.proficiencySources?.tools;
-		if (toolSources instanceof Map) {
-			for (const [prof, sources] of toolSources.entries()) {
-				if (
-					DataNormalizer.normalizeForLookup(prof) !== normalizedInstrument
-				) {
-					continue;
-				}
-
-				for (const src of sources) {
-					slots.push({ key: 'granted', sourceLabel: src });
-				}
-			}
 		}
 
-		return this._syncInstrumentChoices(slots);
+		// Restore saved selections from character data
+		return this._restoreSavedSelections(slots);
 	}
 
 	/**
-	 * Validate that a saved instrument slot is still applicable.
-	 * A slot is valid if its source (race/class/background) still offers instrument choices.
-	 * @param {Object} slot - Slot object with key (race/class/background) and sourceLabel
-	 * @returns {boolean} True if the slot's source still offers instruments
+	 * Restore saved instrument selections from character data to the computed slots.
+	 * Matches slots by key, sourceLabel, and slotIndex to handle multiple slots per source.
 	 * @private
 	 */
-	_isValidInstrumentSlot(slot) {
-		if (!slot || !slot.key) return false;
+	_restoreSavedSelections(computedSlots) {
+		const saved = this._character.instrumentChoices || [];
+		const remaining = [...saved];
+		const result = [];
 
-		const normalizedInstrument = DataNormalizer.normalizeForLookup(
-			'Musical instrument',
-		);
-
-		// Check if this source still offers instrument options
-		const options =
-			this._character?.optionalProficiencies?.tools?.[slot.key]?.options || [];
-		const allowed =
-			this._character?.optionalProficiencies?.tools?.[slot.key]?.allowed || 0;
-
-		// Slot is valid if source still offers instruments and has allowed > 0
-		const offersInstruments = options.some(
-			(opt) =>
-				DataNormalizer.normalizeForLookup(opt) === normalizedInstrument,
-		);
-		return offersInstruments && allowed > 0;
-	}
-
-	/**
-	 * Sync character.instrumentChoices with current slot definitions, preserving selections
-	 * when possible and removing orphaned instrument proficiencies.
-	 * @param {Array} computedSlots - Slots without selections
-	 * @returns {Array} Slots with preserved selections
-	 * @private
-	 */
-	_syncInstrumentChoices(computedSlots) {
-		if (!Array.isArray(this._character.instrumentChoices)) {
-			this._character.instrumentChoices = [];
-		}
-
-		const oldSlots = [...this._character.instrumentChoices];
-		const remainingOld = [...oldSlots];
-		const newSlots = computedSlots.map((slot) => {
-			const idx = remainingOld.findIndex(
-				(prev) =>
-					prev.key === slot.key && prev.sourceLabel === slot.sourceLabel,
+		// Match computed slots with saved selections
+		for (const slot of computedSlots) {
+			const idx = remaining.findIndex(
+				(s) =>
+					s.key === slot.key &&
+					s.sourceLabel === slot.sourceLabel &&
+					s.slotIndex === slot.slotIndex,
 			);
 			let selection = null;
 			if (idx !== -1) {
-				selection = remainingOld[idx].selection || null;
-				remainingOld.splice(idx, 1);
+				selection = remaining[idx].selection || null;
+				remaining.splice(idx, 1);
 			}
-			return { ...slot, selection };
-		});
+			result.push({ ...slot, selection });
+		}
 
-		// Remove proficiencies tied to slots that no longer exist
-		for (const leftover of remainingOld) {
-			if (leftover.selection) {
+		// Remove proficiencies for slots that no longer exist
+		for (const orphaned of remaining) {
+			if (orphaned.selection) {
 				ProficiencyCore._removeProficiencyFromSource(
 					this._character,
 					'tools',
-					leftover.selection,
-					`${leftover.sourceLabel} Instrument Choice`,
+					orphaned.selection,
+					`${orphaned.sourceLabel} Instrument Choice`,
 				);
 			}
 		}
 
-		this._character.instrumentChoices = newSlots;
-		return newSlots;
+		this._character.instrumentChoices = result;
+		return result;
 	}
 
 	/**
-	 * Ensure saved instrument selections are reflected in character proficiencies on load.
+	 * Rehydrate instrument proficiencies and rebuild instrumentChoices from saved selections.
+	 * This reconstructs the dropdowns based on what's in character.proficiencies.tools
+	 * with sources like "Class Instrument Choice".
 	 * @private
 	 */
 	_rehydrateInstrumentChoices() {
+		if (!this._character) return;
+
+		// First, rebuild instrumentChoices from saved proficiencies
+		const instrumentProficiencies = this._extractInstrumentProficiencies();
+
+		// If we found instrument proficiencies but instrumentChoices is empty, reconstruct it
+		if (instrumentProficiencies.length > 0 && (!this._character.instrumentChoices || this._character.instrumentChoices.length === 0)) {
+			this._character.instrumentChoices = instrumentProficiencies;
+		}
+
+		// Rehydrate proficiencies from stored slots
 		if (!Array.isArray(this._character?.instrumentChoices)) return;
 
 		for (const slot of this._character.instrumentChoices) {
 			if (!slot?.selection) continue;
 
-			const sourceLabel = slot.sourceLabel || 'Instrument Choice';
+			// Check if proficiency already exists to avoid duplicates
 			const alreadyHas = this._character.proficiencies?.tools?.some(
 				(p) =>
-					DataNormalizer.normalizeForLookup(p.name) ===
-						DataNormalizer.normalizeForLookup(slot.selection) &&
-					p.source === `${sourceLabel} Instrument Choice`,
+					DataNormalizer.normalizeForLookup(p.name || p) ===
+					DataNormalizer.normalizeForLookup(slot.selection) &&
+					(p.source || '') === `${slot.sourceLabel} Instrument Choice`,
 			);
 
 			if (!alreadyHas) {
@@ -789,14 +894,52 @@ export class ProficiencyCard {
 					this._character,
 					'tools',
 					slot.selection,
-					`${sourceLabel} Instrument Choice`,
+					`${slot.sourceLabel} Instrument Choice`,
 				);
 			}
 		}
 	}
 
 	/**
-	 * Handle instrument dropdown changes (assign a specific instrument to a slot).
+	 * Extract instrument proficiencies from character.proficiencies.tools.
+	 * Returns array of slot-like objects matching proficiencies with Instrument Choice sources.
+	 * @returns {Array} Array of instrument slots extracted from proficiencies
+	 * @private
+	 */
+	_extractInstrumentProficiencies() {
+		const slots = [];
+		const proficiencies = this._character?.proficiencies?.tools || [];
+		const profSources = this._character?.proficiencySources?.tools || new Map();
+
+		// Find all proficiencies with "Instrument Choice" sources
+		for (const prof of proficiencies) {
+			// Proficiency is stored as a string
+			const profName = prof;
+			const sources = profSources.get(profName) || new Set();
+
+			// Look for sources ending in "Instrument Choice"
+			for (const source of sources) {
+				if (source.includes('Instrument Choice')) {
+					// Extract source label (e.g., "Class" from "Class Instrument Choice")
+					const sourceLabel = source.replace(' Instrument Choice', '');
+					// Extract key (race/class/background) from sourceLabel
+					const key = sourceLabel.toLowerCase();
+
+					slots.push({
+						key,
+						sourceLabel,
+						selection: profName,
+						isDefault: false,
+					});
+				}
+			}
+		}
+
+		return slots;
+	}
+
+	/**
+	 * Handle instrument dropdown changes (user selects/changes an instrument for a slot).
 	 * @param {Event} event - Change event from the dropdown
 	 * @private
 	 */
@@ -807,37 +950,45 @@ export class ProficiencyCard {
 
 		const key = select.dataset.key;
 		const sourceLabel = select.dataset.sourceLabel || 'Instrument Choice';
-		const value = select.value || '';
+		const newSelection = select.value || '';
 
 		const slot = this._character.instrumentChoices?.[slotIndex];
 		if (!slot || slot.key !== key || slot.sourceLabel !== sourceLabel) return;
 
-		const prevSelection = slot.selection;
-		if (prevSelection === value) return;
+		const previousSelection = slot.selection;
+		if (previousSelection === newSelection) return; // No change
 
-		// Remove previously chosen instrument for this slot
-		if (prevSelection) {
+		// Remove old instrument proficiency if one was selected
+		if (previousSelection) {
 			ProficiencyCore._removeProficiencyFromSource(
 				this._character,
 				'tools',
-				prevSelection,
+				previousSelection,
 				`${sourceLabel} Instrument Choice`,
 			);
 		}
 
-		slot.selection = value || null;
+		// Update slot selection
+		slot.selection = newSelection || null;
 
-		// Add new instrument proficiency if chosen
-		if (value) {
+		// Add new instrument proficiency if a new one was selected
+		if (newSelection) {
 			ProficiencyCore.addProficiency(
 				this._character,
 				'tools',
-				value,
+				newSelection,
 				`${sourceLabel} Instrument Choice`,
 			);
 		}
 
+		// Re-render to update mutual exclusion
+		this._renderInstrumentChoices();
+
+		// Notify of change
 		this._updateProficiencyNotes();
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+			character: CharacterManager.getCurrentCharacter(),
+		});
 	}
 
 	/**
@@ -1166,6 +1317,10 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_cleanupOptionalProficiencies() {
+		console.log('[ProficiencyCard] _cleanupOptionalProficiencies() called');
+		console.log('[ProficiencyCard] tools.class BEFORE cleanup:', 
+			JSON.stringify(this._character?.optionalProficiencies?.tools?.class || {}));
+			
 		if (!this._character || !this._character.optionalProficiencies) return;
 
 		let changesDetected = false;
@@ -1192,6 +1347,9 @@ export class ProficiencyCard {
 				character: CharacterManager.getCurrentCharacter(),
 			});
 		}
+
+		console.log('[ProficiencyCard] tools.class AFTER cleanup:', 
+			JSON.stringify(this._character?.optionalProficiencies?.tools?.class || {}));
 
 		return changesDetected;
 	}
