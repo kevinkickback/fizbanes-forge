@@ -813,6 +813,8 @@ class PageHandlerImpl {
 		}
 	}
 
+
+
 	/**
 	 * Initialize the preview page
 	 */

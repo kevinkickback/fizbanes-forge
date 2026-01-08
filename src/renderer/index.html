@@ -84,6 +84,9 @@
                     </button>
                 </li>
                 <li class="nav-item">
+                    <!-- Level page removed; modal handles level up -->
+                </li>
+                <li class="nav-item">
                     <button class="nav-link" data-page="details">
                         <i class="fas fa-user"></i>
                         <span>Details</span>
@@ -113,6 +116,10 @@
                     <span id="unsavedChangesIndicator" class="text-warning me-2">
                         <i class="fas fa-exclamation-circle"></i> Unsaved changes
                     </span>
+                    <button class="btn btn-outline-primary me-2" id="openLevelUpModalBtn">
+                        <i class="fas fa-level-up-alt"></i>
+                        <span>Level Up</span>
+                    </button>
                     <button class="btn btn-primary me-2" id="saveCharacter">
                         <i class="fas fa-save"></i>
                         <span>Save</span>
@@ -256,6 +263,8 @@
             </div>
         </div>
     </div>
+
+
 
     <!-- Item Selection Modal -->
     <div class="modal fade" id="itemSelectionModal" tabindex="-1" aria-labelledby="itemSelectionModalLabel"
@@ -709,8 +718,8 @@
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" value="attunement"
                                                         data-filter-type="property" id="filterAttunement">
-                                                    <label class="form-check-label"
-                                                        for="filterAttunement">Requires Attunement</label>
+                                                    <label class="form-check-label" for="filterAttunement">Requires
+                                                        Attunement</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -847,6 +856,135 @@
                 <div class="modal-footer d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary btn-ok">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Up Modal -->
+    <div class="modal fade" id="levelUpModal" tabindex="-1" aria-labelledby="levelUpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="levelUpModalLabel">Level Up</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Overview -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Overview</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-4 text-center">
+                                    <div class="display-6 fw-bold text-primary" id="levelUpTotalLevel">1</div>
+                                    <div class="text-muted">Total Level</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div id="levelUpClassBreakdown"></div>
+                                </div>
+                            </div>
+                            <div class="mt-2" id="levelUpASIIndicator" style="display: none;">
+                                <span class="badge bg-warning text-dark"><i class="fas fa-star"></i> Ability Score
+                                    Improvement available</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Actions</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-primary w-100" id="levelUpIncreaseBtn"><i
+                                            class="fas fa-arrow-up"></i> Level Up</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-secondary w-100"
+                                        id="levelUpDecreaseBtn"><i class="fas fa-arrow-down"></i> Level Down</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-warning w-100" id="levelUpSelectFeatBtn"
+                                        style="display: none;"><i class="fas fa-trophy"></i> Select Feat/ASI</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multiclass -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Multiclass</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-auto">
+                                    <div class="feat-restrictions-button-wrapper">
+                                        <button class="btn feat-restrictions-toggle" type="button"
+                                            id="ignoreMulticlassReqsToggle" title="Toggle ability score requirements"
+                                            data-restrictions="false">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <select class="form-select" id="levelUpClassSelect">
+                                        <option value="">Select a class...</option>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="button" class="btn btn-outline-primary" id="levelUpAddClassBtn"><i
+                                            class="fas fa-plus"></i> Add Class</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Features</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="levelUpFeaturesList" class="list-group"></div>
+                        </div>
+                    </div>
+
+                    <!-- Hit Points & Spell Slots -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Hit Points</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div><strong>Max HP:</strong> <span class="text-primary" id="levelUpMaxHP">0</span>
+                                    </div>
+                                    <div class="text-muted small" id="levelUpHPBreakdown"></div>
+                                    <button type="button" class="btn btn-outline-primary mt-2 w-100"
+                                        id="levelUpRecalcHPBtn"><i class="fas fa-calculator"></i> Recalculate
+                                        HP</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Spell Slots</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="levelUpSpellSlotsContainer" class="d-flex gap-2 flex-wrap"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

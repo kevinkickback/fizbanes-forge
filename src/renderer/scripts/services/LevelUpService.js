@@ -374,23 +374,129 @@ class LevelUpService {
     }
 
     /**
+     * D&D 5e multiclass ability score requirements.
+     * @type {Object<string, Object>}
+     */
+    MULTICLASS_REQUIREMENTS = {
+        'Barbarian': { strength: 13 },
+        'Bard': { charisma: 13 },
+        'Cleric': { wisdom: 13 },
+        'Druid': { wisdom: 13 },
+        'Fighter': { strength: 13, dexterity: 13 }, // Either STR or DEX
+        'Monk': { dexterity: 13, wisdom: 13 },
+        'Paladin': { strength: 13, charisma: 13 },
+        'Ranger': { dexterity: 13, wisdom: 13 },
+        'Rogue': { dexterity: 13 },
+        'Sorcerer': { charisma: 13 },
+        'Warlock': { charisma: 13 },
+        'Wizard': { intelligence: 13 },
+    };
+
+    _ABILITY_ABBREVIATIONS = {
+        strength: 'Str',
+        dexterity: 'Dex',
+        constitution: 'Con',
+        intelligence: 'Int',
+        wisdom: 'Wis',
+        charisma: 'Cha',
+    };
+
+    _getAllClasses() {
+        return ['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter',
+            'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'];
+    }
+
+    /**
+     * Return a human-readable requirement string for a class (e.g., "Str 13 or Dex 13").
+     * @param {string} className
+     * @returns {string}
+     */
+    getRequirementText(className) {
+        const req = this.MULTICLASS_REQUIREMENTS[className];
+        if (!req) return '';
+
+        // Fighter is special: either Str or Dex
+        if (className === 'Fighter') {
+            return `${this._ABILITY_ABBREVIATIONS.strength} 13 or ${this._ABILITY_ABBREVIATIONS.dexterity} 13`;
+        }
+
+        const parts = Object.entries(req).map(([ability, score]) => `${this._ABILITY_ABBREVIATIONS[ability] || ability} ${score}`);
+        return parts.join(' & ');
+    }
+
+    /**
+     * Check if a character meets multiclass requirements for a specific class.
+     * @param {Object} character - Character object
+     * @param {string} className - Class name to check
+     * @returns {boolean} True if requirements are met
+     */
+    checkMulticlassRequirements(character, className) {
+        const requirements = this.MULTICLASS_REQUIREMENTS[className];
+        if (!requirements) {
+            console.warn(`[${this.loggerScope}]`, `No requirements defined for class ${className}`);
+            return true; // Unknown class, allow it
+        }
+
+        const getScore = (ability) => {
+            if (typeof character.getAbilityScore === 'function') {
+                return character.getAbilityScore(ability);
+            }
+            const raw = character.abilityScores?.[ability];
+            return typeof raw === 'number' ? raw : 0;
+        };
+
+        // Check if character meets the requirements
+        // For Fighter: Either STR >= 13 OR DEX >= 13
+        if (className === 'Fighter') {
+            const str = getScore('strength');
+            const dex = getScore('dexterity');
+            return str >= 13 || dex >= 13;
+        }
+
+        // For all other classes: ALL requirements must be met
+        for (const [ability, minScore] of Object.entries(requirements)) {
+            const score = getScore(ability);
+            if (score < minScore) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Get available classes for multiclassing based on character prerequisites.
      * @param {Object} character - Character object
+     * @param {boolean} ignoreRequirements - If true, skip ability score checks
      * @returns {Array} Array of available class names
      */
-    getAvailableClassesForMulticlass(character) {
-        const allClasses = ['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter',
-            'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'];
+    getAvailableClassesForMulticlass(character, ignoreRequirements = false) {
+        const options = this.getMulticlassOptions(character, ignoreRequirements);
+        return options.filter((opt) => opt.meetsRequirements).map((opt) => opt.name);
+    }
 
-        // Filter out classes that character already has
+    /**
+     * Get multiclass options including requirement status and label text.
+     * @param {Object} character
+     * @param {boolean} ignoreRequirements
+     * @returns {Array<{name: string, meetsRequirements: boolean, requirementText: string}>}
+     */
+    getMulticlassOptions(character, ignoreRequirements = false) {
+        const allClasses = this._getAllClasses();
         const existingClasses = character.progression?.classes?.map((c) => c.name) || [];
-        const available = allClasses.filter((cls) => !existingClasses.includes(cls));
 
-        // For now, no additional multiclass restrictions
-        // In the future, could add ability score prerequisites, feat requirements, etc.
-        // Note: 5e typically doesn't restrict multiclassing heavily at base level
-
-        return available;
+        return allClasses
+            .filter((cls) => !existingClasses.includes(cls))
+            .map((cls) => {
+                const meetsRequirements = ignoreRequirements
+                    ? true
+                    : this.checkMulticlassRequirements(character, cls);
+                return {
+                    name: cls,
+                    meetsRequirements,
+                    requirementText: this.getRequirementText(cls),
+                };
+            });
     }
 
     /**

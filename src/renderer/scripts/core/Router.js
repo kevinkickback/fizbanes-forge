@@ -120,6 +120,7 @@ Router.register('spells', {
 	title: 'Spells',
 });
 
+
 Router.register('details', {
 	template: 'details.html',
 	requiresCharacter: true,

@@ -440,6 +440,50 @@ function _setupUiEventHandlers() {
 			console.warn('AppInitializer', 'Save button not found');
 		}
 
+		// Level Up modal button
+		const levelUpBtn = document.getElementById('openLevelUpModalBtn');
+		if (levelUpBtn) {
+			let levelUpModalInstance = null;
+			levelUpBtn.addEventListener('click', async () => {
+				console.info('AppInitializer', '[LevelUp] Button clicked');
+				try {
+					const character = AppState.getCurrentCharacter();
+					if (!character) {
+						console.warn('AppInitializer', '[LevelUp] No current character');
+						showNotification('No character selected', 'warning');
+						return;
+					}
+
+					if (!levelUpModalInstance) {
+						console.debug('AppInitializer', '[LevelUp] Importing LevelUpModal');
+						const { LevelUpModal } = await import('../modules/level/LevelUpModal.js');
+						levelUpModalInstance = new LevelUpModal();
+					}
+					console.debug('AppInitializer', '[LevelUp] Showing modal via controller');
+					await levelUpModalInstance.show();
+				} catch (error) {
+					console.error('AppInitializer', 'Failed to open Level Up modal', error);
+					// Fallback: attempt to open the modal directly if Bootstrap is available and element exists
+					try {
+						const el = document.getElementById('levelUpModal');
+						const bs = window.bootstrap || globalThis.bootstrap;
+						if (el && bs) {
+							console.warn('AppInitializer', '[LevelUp] Falling back to direct Bootstrap.Modal.show()');
+							new bs.Modal(el, { backdrop: true, keyboard: true }).show();
+							showNotification('Level Up modal opened with fallback', 'warning');
+						} else {
+							showNotification('Failed to open Level Up modal', 'error');
+						}
+					} catch (fallbackErr) {
+						console.error('AppInitializer', '[LevelUp] Fallback open failed', fallbackErr);
+						showNotification('Failed to open Level Up modal', 'error');
+					}
+				}
+			});
+		} else {
+			console.warn('AppInitializer', 'Level Up button not found');
+		}
+
 		console.info('AppInitializer', 'UI event handlers set up successfully');
 	} catch (error) {
 		console.error(
