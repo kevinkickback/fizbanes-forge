@@ -21,6 +21,7 @@ class SpellService extends BaseDataService {
 	constructor() {
 		super({ loadEvent: EVENTS.SPELLS_LOADED, loggerScope: 'SpellService' });
 		this._spellLookupMap = null; // Map for O(1) lookups by name
+		this._spellClassLookup = null; // Lookup for spell-to-class associations
 	}
 
 	/**
@@ -32,7 +33,10 @@ class SpellService extends BaseDataService {
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
-				const index = await DataLoader.loadJSON('spells/index.json');
+				const [index, classLookup] = await Promise.all([
+					DataLoader.loadJSON('spells/index.json'),
+					DataLoader.loadJSON('generated/gendata-spell-source-lookup.json'),
+				]);
 
 				const spellFiles = Object.values(index);
 				const allSpells = await Promise.allSettled(
@@ -55,15 +59,18 @@ class SpellService extends BaseDataService {
 					}
 				}
 
+				aggregated.classLookup = classLookup;
 				return aggregated;
 			},
 			{
 				onLoaded: (data) => {
 					this._spellLookupMap = this._buildLookupMap(data?.spell);
+					this._spellClassLookup = data?.classLookup || {};
 				},
 				emitPayload: (data) => data?.spell || [],
 				onError: () => {
 					this._spellLookupMap = new Map();
+					this._spellClassLookup = {};
 					return { spell: [] };
 				},
 			},
@@ -133,6 +140,42 @@ class SpellService extends BaseDataService {
 	}
 
 	/**
+	 * Check if a spell is available for a specific class.
+	 * Uses the generated spell-class lookup data.
+	 * @param {Object} spell - Spell object with name and source
+	 * @param {string} className - Class name (e.g., "Wizard", "Cleric")
+	 * @returns {boolean} True if spell is available for the class
+	 */
+	isSpellAvailableForClass(spell, className) {
+		if (!this._spellClassLookup || !spell?.name || !spell?.source) {
+			return false;
+		}
+
+		const spellSource = spell.source.toLowerCase();
+		const spellName = spell.name.toLowerCase();
+
+		// Check if source exists in lookup
+		if (!this._spellClassLookup[spellSource]) {
+			return false;
+		}
+
+		// Check if spell exists in that source
+		const spellEntry = this._spellClassLookup[spellSource][spellName];
+		if (!spellEntry?.class) {
+			return false;
+		}
+
+		// Check if className appears in any of the class sources
+		for (const classSource of Object.keys(spellEntry.class)) {
+			if (spellEntry.class[classSource][className]) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Get spells by class.
 	 * @param {string} className - Class name
 	 * @returns {Array<Object>} Array of spell objects
@@ -140,13 +183,7 @@ class SpellService extends BaseDataService {
 	getSpellsByClass(className) {
 		if (!this._data?.spell) return [];
 
-		return this._data.spell.filter((s) => {
-			if (!s.classes || !s.classes.fromClassList) return false;
-			const target = DataNormalizer.normalizeForLookup(className);
-			return s.classes.fromClassList.some(
-				(c) => DataNormalizer.normalizeForLookup(c.name) === target,
-			);
-		});
+		return this._data.spell.filter((s) => this.isSpellAvailableForClass(s, className));
 	}
 }
 

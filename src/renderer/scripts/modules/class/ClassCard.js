@@ -7,6 +7,7 @@ import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { classService } from '../../services/ClassService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { attAbvToFull } from '../../utils/5eToolsParser.js';
+import DataNormalizer from '../../utils/DataNormalizer.js';
 import { ARTISAN_TOOLS } from '../../utils/ProficiencyConstants.js';
 import { ClassDetailsView } from './ClassDetails.js';
 import { ClassCardView, SubclassPickerView } from './ClassViews.js';
@@ -45,6 +46,13 @@ export class ClassCard {
 		 * @private
 		 */
 		this._detailsView = new ClassDetailsView();
+
+		/**
+		 * Track active multiclass tab and DOM references
+		 */
+		this._activeClassTab = null;
+		this._classTabsWrapper = document.getElementById('classTabs');
+		this._classTabsList = document.getElementById('classTabsList');
 
 		// Initialize the component
 		this.initialize();
@@ -86,6 +94,11 @@ export class ClassCard {
 			this._handleSubclassChange({ target: { value: subclassData.value } });
 		});
 
+		// Sync build page when character is updated elsewhere (e.g., Level Up modal)
+		eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+			this._syncWithCharacterProgression();
+		});
+
 		// Listen for character selection changes (when new character is loaded)
 		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
@@ -113,6 +126,7 @@ export class ClassCard {
 
 			const character = AppState.getCurrentCharacter();
 			if (!character?.class?.name || !character?.class?.source) {
+				await this._renderClassTabsFromProgression();
 				return; // No saved class to load
 			}
 
@@ -143,6 +157,9 @@ export class ClassCard {
 					`Saved class "${classValue}" not found in available options. Character might use a source that's not currently allowed.`,
 				);
 			}
+
+			// Render multiclass tabs based on progression
+			await this._renderClassTabsFromProgression();
 		} catch (error) {
 			console.error('ClassCard', 'Error loading saved class selection:', error);
 		}
@@ -252,6 +269,10 @@ export class ClassCard {
 				classData.source,
 			);
 
+			// Keep tab state aligned with the selected class
+			this._activeClassTab = classData.name;
+			await this._renderClassTabsFromProgression();
+
 			// Update the UI with the selected class data
 			await this._cardView.updateQuickDescription(classData, fluffData);
 			await this.updateClassDetails(classData);
@@ -322,12 +343,22 @@ export class ClassCard {
 		try {
 			// Reload class selection to match character's class
 			await this._loadSavedClassSelection();
+			await this._renderClassTabsFromProgression();
 		} catch (error) {
 			console.error(
 				'ClassCard',
 				'Error handling character changed event:',
 				error,
 			);
+		}
+	}
+
+	async _syncWithCharacterProgression() {
+		await this._renderClassTabsFromProgression();
+
+		// If the active tab changed, also sync the class select/details without firing change events
+		if (this._activeClassTab) {
+			await this._selectClassByName(this._activeClassTab, { triggerChange: false });
 		}
 	}
 
@@ -352,6 +383,104 @@ export class ClassCard {
 
 		// Update features separately
 		await this._updateFeatures(classData, subclassData);
+	}
+
+	/**
+	 * Render multiclass tabs from character progression and wire tab switching.
+	 * @private
+	 */
+	async _renderClassTabsFromProgression() {
+		if (!this._classTabsWrapper || !this._classTabsList) return;
+
+		const character = AppState.getCurrentCharacter();
+		const classes = character?.progression?.classes || [];
+
+		if (!classes.length || classes.length < 2) {
+			this._classTabsWrapper.style.display = 'none';
+			this._classTabsList.innerHTML = '';
+			this._activeClassTab = classes[0]?.name || null;
+			return;
+		}
+
+		// Preserve current active tab if it still exists; otherwise use first class
+		const availableNames = classes.map((c) => c.name);
+		if (!this._activeClassTab || !availableNames.includes(this._activeClassTab)) {
+			this._activeClassTab = classes[0].name;
+		}
+
+		const buttonsHtml = classes
+			.map((cls) => {
+				const isActive = cls.name === this._activeClassTab;
+				const activeClass = isActive ? 'active' : '';
+				return `<button type="button" class="nav-link ${activeClass}" data-class-name="${cls.name}">
+					${cls.name} <span class="badge bg-secondary ms-1">Lv ${cls.level}</span>
+				</button>`;
+			})
+			.join('');
+
+		this._classTabsList.innerHTML = buttonsHtml;
+		this._classTabsWrapper.style.display = 'block';
+
+		// Bind click handlers
+		this._classTabsList.querySelectorAll('[data-class-name]').forEach((btn) => {
+			btn.addEventListener('click', async () => {
+				const name = btn.getAttribute('data-class-name');
+				this._activeClassTab = name;
+
+				// Update active state
+				this._classTabsList.querySelectorAll('[data-class-name]').forEach((b) => {
+					b.classList.toggle('active', b === btn);
+				});
+
+				await this._selectClassByName(name, { triggerChange: true });
+			});
+		});
+	}
+
+	/**
+	 * Select a class in the dropdown (or directly) by name and refresh details.
+	 * @param {string} className
+	 * @param {boolean} [skipTabUpdate=false]
+	 * @private
+	 */
+	async _selectClassByName(className, { triggerChange = true, skipTabUpdate = false } = {}) {
+		if (!className) return;
+
+		// Try to match existing class select option by name prefix
+		const classSelect = this._cardView.getClassSelect();
+		const match = Array.from(classSelect?.options || []).find((opt) =>
+			opt.value.startsWith(`${className}_`),
+		);
+
+		if (match) {
+			classSelect.value = match.value;
+			if (triggerChange) {
+				// Trigger normal flow (this will emit CHARACTER_UPDATED once)
+				classSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			} else {
+				// Update UI without emitting events
+				const [clsName, source] = match.value.split('_');
+				const classData = this._classService.getClass(clsName, source);
+				if (classData) {
+					const fluffData = this._classService.getClassFluff(classData.name, classData.source);
+					await this._cardView.updateQuickDescription(classData, fluffData);
+					await this.updateClassDetails(classData);
+					await this._populateSubclassSelect(classData);
+				}
+			}
+			return;
+		}
+
+		// Fallback: load class data directly by name
+		const classData = this._classService.getClass(className);
+		if (!classData) return;
+		const fluffData = this._classService.getClassFluff(classData.name, classData.source);
+		await this._cardView.updateQuickDescription(classData, fluffData);
+		await this.updateClassDetails(classData);
+
+		if (!skipTabUpdate) {
+			await this._renderClassTabsFromProgression();
+		}
 	}
 
 	/**
@@ -557,9 +686,16 @@ export class ClassCard {
 			character.optionalProficiencies.skills.class.allowed = skillChoiceCount;
 			character.optionalProficiencies.skills.class.options = skills;
 
-			// Restore valid selections using the extracted names
+			// Restore valid selections using normalized name comparison
+			const normalizedSkills = skills.map((skill) =>
+				DataNormalizer.normalizeForLookup(skill),
+			);
 			character.optionalProficiencies.skills.class.selected =
-				previousClassSkills.filter((skill) => skills.includes(skill));
+				previousClassSkills.filter((skill) =>
+					normalizedSkills.includes(
+						DataNormalizer.normalizeForLookup(skill),
+					),
+				);
 		}
 
 		// Update combined options for all proficiency types

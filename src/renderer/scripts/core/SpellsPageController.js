@@ -1,6 +1,7 @@
 /** @file Controller for the Spells page. Manages spell display, selection, and slot tracking. */
 
 import { SpellSelectionModal } from '../modules/spells/SpellSelectionModal.js';
+import { levelUpService } from '../services/LevelUpService.js';
 import { spellSelectionService } from '../services/SpellSelectionService.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
@@ -118,6 +119,10 @@ class SpellsPageController {
         }
 
         console.info(`[${this.loggerScope}]`, 'Rendering spells page');
+
+        // Ensure progression and spellcasting are initialized before rendering
+        // This handles cases where user navigates to spells page before visiting level page
+        levelUpService.initializeProgression(character);
 
         this.renderKnownSpells(character);
         this.renderPreparedSpells(character);

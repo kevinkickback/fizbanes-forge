@@ -1,6 +1,7 @@
 /** @file Manages spell selection, known/prepared spells, and spell slots for characters. */
 
 import { eventBus, EVENTS } from '../utils/EventBus.js';
+import { classService } from './ClassService.js';
 import { spellService } from './SpellService.js';
 
 /**
@@ -57,85 +58,70 @@ class SpellSelectionService {
     }
 
     /**
-     * Get class spellcasting info (ability, ritual casting, etc.).
+     * Get class spellcasting info from JSON data.
      * @param {string} className - Name of the class
      * @returns {Object|null} Class spellcasting info or null if not a spellcaster
      * @private
      */
     _getClassSpellcastingInfo(className) {
-        // Map of spellcasting classes to their abilities
-        const spellcasters = {
-            'Bard': {
-                spellcastingAbility: 'charisma',
-                ritualCasting: true,
-                knownType: 'known', // Bards know spells
-            },
-            'Cleric': {
-                spellcastingAbility: 'wisdom',
-                ritualCasting: true,
-                knownType: 'prepared', // Clerics prepare spells
-            },
-            'Druid': {
-                spellcastingAbility: 'wisdom',
-                ritualCasting: true,
-                knownType: 'prepared',
-            },
-            'Paladin': {
-                spellcastingAbility: 'charisma',
-                ritualCasting: false,
-                knownType: 'prepared',
-            },
-            'Ranger': {
-                spellcastingAbility: 'wisdom',
-                ritualCasting: false,
-                knownType: 'known',
-            },
-            'Sorcerer': {
-                spellcastingAbility: 'charisma',
-                ritualCasting: false,
-                knownType: 'known',
-            },
-            'Warlock': {
-                spellcastingAbility: 'charisma',
-                ritualCasting: false,
-                knownType: 'known',
-                isWarlock: true, // Special pact magic slots
-            },
-            'Wizard': {
-                spellcastingAbility: 'intelligence',
-                ritualCasting: true,
-                knownType: 'prepared',
-            },
+        const classData = classService.getClass(className);
+        if (!classData || !classData.spellcastingAbility) {
+            return null;
+        }
+
+        // Map 5etools ability abbreviations to full names
+        const abilityMap = {
+            'str': 'strength',
+            'dex': 'dexterity',
+            'con': 'constitution',
+            'int': 'intelligence',
+            'wis': 'wisdom',
+            'cha': 'charisma'
         };
 
-        return spellcasters[className] || null;
+        const ability = abilityMap[classData.spellcastingAbility] || classData.spellcastingAbility;
+
+        return {
+            spellcastingAbility: ability,
+            ritualCasting: this._hasRitualCasting(className),
+            knownType: classData.preparedSpells ? 'prepared' : 'known',
+            isWarlock: classData.casterProgression === 'pact',
+            casterProgression: classData.casterProgression
+        };
     }
 
     /**
-     * Get number of cantrips known at a given level for a class.
+     * Check if class has ritual casting capability.
+     * @param {string} className - Name of the class
+     * @returns {boolean} True if class can ritual cast
+     * @private
+     */
+    _hasRitualCasting(className) {
+        // Classes with ritual casting: Bard, Cleric, Druid, Wizard
+        const ritualClasses = ['Bard', 'Cleric', 'Druid', 'Wizard'];
+        return ritualClasses.includes(className);
+    }
+
+    /**
+     * Get number of cantrips known at a given level for a class from JSON data.
      * @param {string} className - Class name
      * @param {number} level - Class level
      * @returns {number} Number of cantrips known
      * @private
      */
     _getCantripsKnown(className, level) {
-        const cantrips = {
-            'Bard': [0, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-            'Cleric': [0, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            'Druid': [0, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-            'Sorcerer': [0, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-            'Warlock': [0, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-            'Wizard': [0, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-        };
+        const classData = classService.getClass(className);
+        if (!classData || !classData.cantripProgression) {
+            return 0;
+        }
 
-        const levelArray = cantrips[className];
-        if (!levelArray) return 0;
-
-        return levelArray[Math.min(level, 19)]; // Cap at level 20
+        // cantripProgression is 0-indexed in 5etools (starts at level 1)
+        const index = Math.max(0, Math.min(level - 1, classData.cantripProgression.length - 1));
+        return classData.cantripProgression[index] || 0;
     }
 
     /**
-     * Get number of spells known at a given level for a class.
+     * Get number of spells known at a given level for a class from JSON data.
      * Only applies to classes with "known" type (Bard, Sorcerer, Warlock, Ranger).
      * Classes that prepare spells (Cleric, Druid, Paladin, Wizard) use _getPreparedSpellLimit instead.
      * @param {string} className - Class name
@@ -144,17 +130,23 @@ class SpellSelectionService {
      * @private
      */
     _getSpellsKnownLimit(className, level) {
-        const spellsKnown = {
-            'Bard': [0, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 15, 16, 18, 19, 19, 20, 22, 22, 22, 22],
-            'Sorcerer': [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
-            'Warlock': [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
-            'Ranger': [0, 0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11],
-        };
+        const classData = classService.getClass(className);
+        if (!classData) return 0;
 
-        const levelArray = spellsKnown[className];
-        if (!levelArray) return 0;
+        // Check for spellsKnownProgression (Bard, Sorcerer, Warlock, Ranger)
+        if (classData.spellsKnownProgression) {
+            const index = Math.max(0, Math.min(level - 1, classData.spellsKnownProgression.length - 1));
+            return classData.spellsKnownProgression[index] || 0;
+        }
 
-        return levelArray[Math.min(level, 20)]; // Cap at level 20
+        // Check for spellsKnownProgressionFixed (Wizard - learns X spells per level)
+        if (classData.spellsKnownProgressionFixed) {
+            // For Wizard, this is spells learned per level, not total
+            const index = Math.max(0, Math.min(level - 1, classData.spellsKnownProgressionFixed.length - 1));
+            return classData.spellsKnownProgressionFixed[index] || 0;
+        }
+
+        return 0;
     }
 
     /**
@@ -164,78 +156,51 @@ class SpellSelectionService {
      * @returns {Object} Spell slots { 1: { max: n, current: n }, 2: ... 9: ... }
      */
     calculateSpellSlots(className, level) {
-        // Spell slots per level per class
-        const slots = {
-            'Bard': [
-                [],
-                [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1],
-                [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1],
-                [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
-                [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1],
-                [4, 3, 3, 3, 3, 2, 1, 1, 1],
-            ],
-            'Cleric': [
-                [],
-                [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1],
-                [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1],
-                [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
-                [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 2, 2, 1, 1],
-            ],
-            'Druid': [
-                [],
-                [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1],
-                [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1],
-                [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
-                [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 2, 2, 1, 1],
-            ],
-            'Paladin': [
-                [],
-                [], [], [], [2], [3], [3], [4], [4], [4, 2], [4, 2], [4, 2],
-                [4, 3], [4, 3], [4, 3], [4, 3, 2], [4, 3, 2], [4, 3, 2], [4, 3, 3],
-                [4, 3, 3],
-            ],
-            'Ranger': [
-                [],
-                [], [2], [2], [3], [3], [3], [4], [4], [4, 2], [4, 2], [4, 2],
-                [4, 3], [4, 3], [4, 3], [4, 3, 2], [4, 3, 2], [4, 3, 2], [4, 3, 3],
-                [4, 3, 3],
-            ],
-            'Sorcerer': [
-                [],
-                [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1],
-                [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1],
-                [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
-                [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 2, 2, 1, 1],
-            ],
-            'Warlock': [
-                [],
-                [1], [1], [2], [2], [3], [3], [4], [4], [5], [5], [6],
-                [6], [7], [7], [8], [8], [9], [9], [10],
-            ],
-            'Wizard': [
-                [],
-                [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1],
-                [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1],
-                [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
-                [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1],
-                [4, 3, 3, 3, 3, 2, 2, 1, 1],
-            ],
-        };
-
-        const classSlots = slots[className];
-        if (!classSlots || level < 1 || level > 20) {
+        const classData = classService.getClass(className);
+        if (!classData || !classData.casterProgression) {
             return {};
         }
 
-        const levelSlots = classSlots[level] || [];
+        const progression = classData.casterProgression;
+        let casterLevel = level;
+
+        // Calculate effective caster level based on progression type
+        if (progression === '1/2') {
+            casterLevel = Math.floor(level / 2);
+        } else if (progression === '1/3') {
+            casterLevel = Math.floor(level / 3);
+        } else if (progression === 'pact') {
+            // Warlock uses pact magic - special progression
+            return this._getPactMagicSlots(level);
+        }
+
+        // Use standard spell slot table for full/half/third casters
+        return this._getStandardSpellSlots(casterLevel);
+    }
+
+    /**
+     * Get standard spell slots for a given caster level.
+     * @param {number} casterLevel - Effective caster level
+     * @returns {Object} Spell slots
+     * @private
+     */
+    _getStandardSpellSlots(casterLevel) {
+        // Standard D&D 5e spell slot progression table
+        const standardSlots = [
+            [],
+            [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1],
+            [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1],
+            [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
+            [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
+            [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1],
+            [4, 3, 3, 3, 3, 2, 2, 1, 1]
+        ];
+
+        if (casterLevel < 1 || casterLevel >= standardSlots.length) {
+            return {};
+        }
+
+        const levelSlots = standardSlots[casterLevel] || [];
         const result = {};
 
         for (let spellLevel = 1; spellLevel <= 9; spellLevel++) {
@@ -248,6 +213,43 @@ class SpellSelectionService {
         }
 
         return result;
+    }
+
+    /**
+     * Get Warlock pact magic slots (separate from standard spellcasting).
+     * @param {number} level - Warlock level
+     * @returns {Object} Pact magic slots
+     * @private
+     */
+    _getPactMagicSlots(level) {
+        // Warlock pact magic progression
+        const pactSlots = [
+            [],
+            [1], [2], [2], [2], [2], [2], [2], [2], [2], [2],
+            [3], [3], [3], [3], [3], [3], [4], [4], [4], [4]
+        ];
+
+        const pactSlotLevels = [
+            0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5
+        ];
+
+        if (level < 1 || level > 20) {
+            return {};
+        }
+
+        const slotCount = pactSlots[level] || 0;
+        const slotLevel = pactSlotLevels[level] || 1;
+
+        if (slotCount === 0) return {};
+
+        return {
+            [slotLevel]: {
+                max: slotCount,
+                current: slotCount,
+                isPactMagic: true  // Mark as pact magic for UI differentiation
+            }
+        };
     }
 
     /**

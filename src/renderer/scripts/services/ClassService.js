@@ -144,10 +144,19 @@ class ClassService extends BaseDataService {
 	getClass(name, source = 'PHB') {
 		if (!this._data?.class) return null;
 
-		return (
-			this._data.class.find((c) => c.name === name && c.source === source) ||
-			null
-		);
+		// Try to find exact source match first
+		const exactMatch = this._data.class.find((c) => c.name === name && c.source === source);
+		if (exactMatch) {
+			return exactMatch;
+		}
+
+		// Fall back to any source for the class (preference: PHB, then classic edition, then any)
+		const byName = this._data.class.filter((c) => c.name === name);
+		if (byName.length === 0) return null;
+
+		// Return first matching class if exact source not found
+		// Prefer classic/primary editions over newer ones
+		return byName.find((c) => c.edition !== 'modern') || byName[0];
 	}
 
 	/**

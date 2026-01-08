@@ -451,10 +451,15 @@ export class BackgroundCard extends BaseCard {
 				character.optionalProficiencies.skills.background.allowed = count;
 				character.optionalProficiencies.skills.background.options = from;
 
-				// Restore valid selections
+				// Restore valid selections using normalized comparison
+				const normalizedFrom = from.map((skill) =>
+					DataNormalizer.normalizeForLookup(skill),
+				);
 				const validSelections = prevBackgroundSkillsSelected.filter(
 					(skill) =>
-						from.includes(skill) &&
+						normalizedFrom.includes(
+							DataNormalizer.normalizeForLookup(skill),
+						) &&
 						!character.proficiencies.skills.includes(skill) &&
 						!fixedProfs.skills.includes(skill),
 				);

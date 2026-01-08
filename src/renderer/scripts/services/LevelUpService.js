@@ -11,9 +11,6 @@ import { spellSelectionService } from './SpellSelectionService.js';
 class LevelUpService {
     constructor() {
         this.loggerScope = 'LevelUpService';
-
-        // Levels where ability score improvements occur (shared across classes)
-        this.ASI_LEVELS = [4, 8, 12, 16, 19];
     }
 
     /**
@@ -32,6 +29,17 @@ class LevelUpService {
 
         // If character has a class but no progression tracking, create entry
         if (character.class?.name && character.progression.classes.length === 0) {
+            this.addClassLevel(character, character.class.name, character.level || 1);
+        }
+
+        // If character has a class but the progression doesn't match (class was changed),
+        // reset progression to match current class
+        if (character.class?.name &&
+            character.progression.classes.length > 0 &&
+            !character.progression.classes.find(c => c.name === character.class.name)) {
+            console.info(`[${this.loggerScope}]`, 'Class mismatch detected, resetting progression');
+            character.progression.classes = [];
+            character.spellcasting = { classes: {} };
             this.addClassLevel(character, character.class.name, character.level || 1);
         }
     }
@@ -254,22 +262,91 @@ class LevelUpService {
     }
 
     /**
-     * Get levels where this class gains ASI/feat options.
-     * @returns {Array} Array of levels where ASI is available
+     * Get ASI levels for a specific class by parsing class features from JSON.
+     * @param {string} className - Name of the class
+     * @returns {Array<number>} Array of levels where ASI is available
+     * @private
      */
-    getASILevels() {
-        // Return standard D&D 5e ASI levels: 4, 8, 12, 16, 19
-        return this.ASI_LEVELS;
+    _getASILevelsForClass(className) {
+        const classData = classService.getClass(className);
+        if (!classData?.classFeatures) {
+            // Fallback to standard ASI levels if no class data found
+            return [4, 8, 12, 16, 19];
+        }
+
+        const asiLevels = new Set();
+        const features = classData.classFeatures;
+
+        // Parse classFeatures array looking for "Ability Score Improvement" features
+        for (const feature of features) {
+            let featureName = '';
+            let featureLevel = null;
+
+            // Feature can be a string like "Ability Score Improvement|Fighter||4"
+            // or an object with "classFeature" property
+            if (typeof feature === 'string') {
+                const parts = feature.split('|');
+                featureName = parts[0];
+                // Last non-empty part is typically the level
+                for (let i = parts.length - 1; i >= 0; i--) {
+                    if (parts[i] && Number.isNaN(Number(parts[i])) === false) {
+                        featureLevel = parseInt(parts[i], 10);
+                        break;
+                    }
+                }
+            } else if (feature && typeof feature === 'object') {
+                // Skip object-based features for now (usually subclass features)
+                continue;
+            }
+
+            // Check if this is an ASI feature
+            if (featureName.includes('Ability Score Improvement') && featureLevel !== null) {
+                asiLevels.add(featureLevel);
+            }
+        }
+
+        // If we found ASI levels in the JSON, return them sorted
+        if (asiLevels.size > 0) {
+            return Array.from(asiLevels).sort((a, b) => a - b);
+        }
+
+        // Fallback to standard ASI levels
+        return [4, 8, 12, 16, 19];
+    }
+
+    /**
+     * Get combined ASI levels for a multiclass character.
+     * Returns unique levels where ANY of the character's classes gains an ASI.
+     * @param {Object} character - Character object
+     * @returns {Array<number>} Array of levels where ASI is available
+     */
+    getASILevels(character) {
+        if (!character?.progression?.classes || character.progression.classes.length === 0) {
+            // No classes yet, return standard
+            return [4, 8, 12, 16, 19];
+        }
+
+        // Collect all ASI levels from all classes
+        const allASILevels = new Set();
+        for (const classEntry of character.progression.classes) {
+            const asiLevels = this._getASILevelsForClass(classEntry.name);
+            for (const level of asiLevels) {
+                allASILevels.add(level);
+            }
+        }
+
+        return Array.from(allASILevels).sort((a, b) => a - b);
     }
 
     /**
      * Check if a character has an ASI/feat option available at current level.
      * @param {Object} character - Character object
-     * @returns {boolean} True if ASI is available
+     * @returns {boolean} True if ASI is available at current level
      */
     hasASIAvailable(character) {
         const currentLevel = character.level || 1;
-        return this.ASI_LEVELS.includes(currentLevel);
+        const asiLevels = this.getASILevels(character);
+        return asiLevels.includes(currentLevel);
     }
 
     /**
@@ -374,68 +451,119 @@ class LevelUpService {
     }
 
     /**
-     * D&D 5e multiclass ability score requirements.
-     * @type {Object<string, Object>}
+     * Map 5etools ability abbreviations to full names.
+     * @param {string} abbr - Ability abbreviation
+     * @returns {string} Full ability name
+     * @private
      */
-    MULTICLASS_REQUIREMENTS = {
-        'Barbarian': { strength: 13 },
-        'Bard': { charisma: 13 },
-        'Cleric': { wisdom: 13 },
-        'Druid': { wisdom: 13 },
-        'Fighter': { strength: 13, dexterity: 13 }, // Either STR or DEX
-        'Monk': { dexterity: 13, wisdom: 13 },
-        'Paladin': { strength: 13, charisma: 13 },
-        'Ranger': { dexterity: 13, wisdom: 13 },
-        'Rogue': { dexterity: 13 },
-        'Sorcerer': { charisma: 13 },
-        'Warlock': { charisma: 13 },
-        'Wizard': { intelligence: 13 },
-    };
-
-    _ABILITY_ABBREVIATIONS = {
-        strength: 'Str',
-        dexterity: 'Dex',
-        constitution: 'Con',
-        intelligence: 'Int',
-        wisdom: 'Wis',
-        charisma: 'Cha',
-    };
-
-    _getAllClasses() {
-        return ['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter',
-            'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'];
+    _mapAbilityAbbreviation(abbr) {
+        const abilityMap = {
+            'str': 'strength',
+            'dex': 'dexterity',
+            'con': 'constitution',
+            'int': 'intelligence',
+            'wis': 'wisdom',
+            'cha': 'charisma'
+        };
+        return abilityMap[abbr] || abbr;
     }
 
     /**
-     * Return a human-readable requirement string for a class (e.g., "Str 13 or Dex 13").
+     * Get abbreviated ability name for display.
+     * @param {string} ability - Full ability name
+     * @returns {string} Abbreviated name
+     * @private
+     */
+    _getAbilityAbbreviation(ability) {
+        const abbreviations = {
+            strength: 'Str',
+            dexterity: 'Dex',
+            constitution: 'Con',
+            intelligence: 'Int',
+            wisdom: 'Wis',
+            charisma: 'Cha',
+        };
+        return abbreviations[ability] || ability;
+    }
+
+    /**
+     * Get all available classes from JSON data.
+     * @returns {Array<string>} Array of unique class names
+     * @private
+     */
+    _getAllClasses() {
+        const classes = classService.getAllClasses();
+        // Get unique class names and filter to PHB edition only to avoid duplicates
+        // Also exclude sidekick classes
+        const uniqueNames = new Set();
+        const result = [];
+
+        for (const cls of classes) {
+            // Skip sidekick classes (Spellcaster Sidekick, Warrior Sidekick, etc.)
+            if (cls.isSidekick) {
+                continue;
+            }
+
+            // Prefer PHB edition, or 'classic' edition
+            if (!uniqueNames.has(cls.name) && (cls.source === 'PHB' || cls.edition === 'classic')) {
+                uniqueNames.add(cls.name);
+                result.push(cls.name);
+            }
+        }
+
+        return result.sort();
+    }
+
+    /**
+     * Return a human-readable requirement string for a class from JSON data.
      * @param {string} className
      * @returns {string}
      */
     getRequirementText(className) {
-        const req = this.MULTICLASS_REQUIREMENTS[className];
-        if (!req) return '';
-
-        // Fighter is special: either Str or Dex
-        if (className === 'Fighter') {
-            return `${this._ABILITY_ABBREVIATIONS.strength} 13 or ${this._ABILITY_ABBREVIATIONS.dexterity} 13`;
+        const classData = classService.getClass(className);
+        if (!classData?.multiclassing?.requirements) {
+            return '';
         }
 
-        const parts = Object.entries(req).map(([ability, score]) => `${this._ABILITY_ABBREVIATIONS[ability] || ability} ${score}`);
+        const req = classData.multiclassing.requirements;
+
+        // Handle OR requirements (e.g., Fighter: Str 13 or Dex 13)
+        if (req.or && Array.isArray(req.or)) {
+            const orParts = [];
+            for (const orGroup of req.or) {
+                const abilities = Object.entries(orGroup)
+                    .map(([abbr, score]) => {
+                        const fullName = this._mapAbilityAbbreviation(abbr);
+                        return `${this._getAbilityAbbreviation(fullName)} ${score}`;
+                    });
+                orParts.push(abilities.join(' & '));
+            }
+            return orParts.join(' or ');
+        }
+
+        // Handle regular AND requirements
+        const parts = Object.entries(req)
+            .map(([abbr, score]) => {
+                const fullName = this._mapAbilityAbbreviation(abbr);
+                return `${this._getAbilityAbbreviation(fullName)} ${score}`;
+            });
         return parts.join(' & ');
     }
 
     /**
-     * Check if a character meets multiclass requirements for a specific class.
+     * Check if a character meets multiclass requirements for a specific class from JSON data.
      * @param {Object} character - Character object
      * @param {string} className - Class name to check
      * @returns {boolean} True if requirements are met
      */
     checkMulticlassRequirements(character, className) {
-        const requirements = this.MULTICLASS_REQUIREMENTS[className];
-        if (!requirements) {
-            console.warn(`[${this.loggerScope}]`, `No requirements defined for class ${className}`);
-            return true; // Unknown class, allow it
+        const classData = classService.getClass(className);
+        if (!classData?.multiclassing?.requirements) {
+            console.warn(`[${this.loggerScope}]`, `No multiclass requirements for class ${className}`);
+            return true; // No requirements, allow it
         }
+
+        const requirements = classData.multiclassing.requirements;
 
         const getScore = (ability) => {
             if (typeof character.getAbilityScore === 'function') {
@@ -445,17 +573,26 @@ class LevelUpService {
             return typeof raw === 'number' ? raw : 0;
         };
 
-        // Check if character meets the requirements
-        // For Fighter: Either STR >= 13 OR DEX >= 13
-        if (className === 'Fighter') {
-            const str = getScore('strength');
-            const dex = getScore('dexterity');
-            return str >= 13 || dex >= 13;
+        // Handle OR requirements (e.g., Fighter: Str 13 OR Dex 13)
+        if (requirements.or && Array.isArray(requirements.or)) {
+            for (const orGroup of requirements.or) {
+                // Check if ALL requirements in this OR group are met
+                const allMet = Object.entries(orGroup).every(([abbr, minScore]) => {
+                    const fullName = this._mapAbilityAbbreviation(abbr);
+                    const score = getScore(fullName);
+                    return score >= minScore;
+                });
+                if (allMet) {
+                    return true; // At least one OR group satisfied
+                }
+            }
+            return false; // No OR groups satisfied
         }
 
-        // For all other classes: ALL requirements must be met
-        for (const [ability, minScore] of Object.entries(requirements)) {
-            const score = getScore(ability);
+        // Handle regular AND requirements
+        for (const [abbr, minScore] of Object.entries(requirements)) {
+            const fullName = this._mapAbilityAbbreviation(abbr);
+            const score = getScore(fullName);
             if (score < minScore) {
                 return false;
             }
@@ -478,7 +615,7 @@ class LevelUpService {
     /**
      * Get multiclass options including requirement status and label text.
      * @param {Object} character
-     * @param {boolean} ignoreRequirements
+     * @param {boolean} ignoreRequirements - If true, all classes meet requirements
      * @returns {Array<{name: string, meetsRequirements: boolean, requirementText: string}>}
      */
     getMulticlassOptions(character, ignoreRequirements = false) {
@@ -488,9 +625,8 @@ class LevelUpService {
         return allClasses
             .filter((cls) => !existingClasses.includes(cls))
             .map((cls) => {
-                const meetsRequirements = ignoreRequirements
-                    ? true
-                    : this.checkMulticlassRequirements(character, cls);
+                // When ignoring requirements, mark all as meeting requirements
+                const meetsRequirements = ignoreRequirements || this.checkMulticlassRequirements(character, cls);
                 return {
                     name: cls,
                     meetsRequirements,
@@ -501,36 +637,47 @@ class LevelUpService {
 
     /**
      * Get multiclass spell slot combination rules.
-     * Applies D&D 5e multiclass spellcasting rules if character is a spellcaster.
+     * Applies D&D 5e multiclass spellcasting rules properly.
      * @param {Object} character - Character object
      * @returns {Object} Combined spell slots or empty if not applicable
      */
     calculateMulticlassSpellSlots(character) {
-        if (!character.spellcasting?.classes || Object.keys(character.spellcasting.classes).length <= 1) {
-            return {}; // Not multiclass casting
+        if (!character.progression?.classes || character.progression.classes.length <= 1) {
+            return {}; // Not multiclassing
         }
 
-        // Check if character is a full, half, or third caster
-        const spellcastingClasses = Object.entries(character.spellcasting.classes).filter(
-            ([_, classData]) => classData.spellSlots && Object.keys(classData.spellSlots).length > 0,
-        );
+        let totalCasterLevel = 0;
+        const warlockLevels = [];
 
-        if (spellcastingClasses.length === 0) return {};
+        // Calculate combined caster level per D&D 5e rules
+        for (const classEntry of character.progression.classes) {
+            const classData = classService.getClass(classEntry.name);
+            if (!classData || !classData.casterProgression) {
+                continue; // Non-spellcaster
+            }
 
-        // Combine spell slots per D&D 5e rules
-        const combinedSlots = {};
+            const progression = classData.casterProgression;
 
-        // For simplicity, combine available slots from all classes
-        // In a full implementation, would follow half-caster / third-caster rules
-        for (const [, classData] of spellcastingClasses) {
-            for (const level in classData.spellSlots) {
-                if (!combinedSlots[level]) {
-                    combinedSlots[level] = { max: 0, current: 0 };
-                }
-                combinedSlots[level].max += classData.spellSlots[level].max;
-                combinedSlots[level].current += classData.spellSlots[level].current;
+            if (progression === 'pact') {
+                // Warlock pact magic doesn't combine - track separately
+                warlockLevels.push(classEntry.level);
+            } else if (progression === 'full') {
+                // Full casters contribute full level
+                totalCasterLevel += classEntry.level;
+            } else if (progression === '1/2') {
+                // Half casters contribute half level (rounded down)
+                totalCasterLevel += Math.floor(classEntry.level / 2);
+            } else if (progression === '1/3') {
+                // Third casters contribute third level (rounded down)
+                totalCasterLevel += Math.floor(classEntry.level / 3);
             }
         }
+
+        // Get spell slots based on total caster level
+        const combinedSlots = spellSelectionService._getStandardSpellSlots(totalCasterLevel);
+
+        // Note: Warlock pact magic slots remain separate and are tracked per-class
+        // They don't combine with standard spellcasting spell slots
 
         return combinedSlots;
     }

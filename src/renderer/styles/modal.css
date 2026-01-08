@@ -131,6 +131,37 @@
 	opacity: 1;
 }
 
+/* Multiclass Restrictions Toggle Button */
+.multiclass-restrictions-toggle {
+	background-color: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	padding: 0.4rem 0.6rem;
+	transition: all 0.2s ease;
+}
+
+.multiclass-restrictions-toggle:hover {
+	background-color: var(--border-light);
+	color: var(--text-light);
+}
+
+.multiclass-restrictions-toggle[data-restrictions="false"] {
+	background-color: var(--accent-color);
+	border-color: var(--accent-color);
+	color: white;
+}
+
+.multiclass-restrictions-toggle[data-restrictions="false"]:hover {
+	background-color: var(--accent-hover);
+	border-color: var(--accent-hover);
+}
+
+.multiclass-restrictions-toggle[data-restrictions="true"] {
+	background-color: var(--secondary-color);
+	border-color: var(--border-color);
+	color: var(--text-muted);
+}
+
 .modal .form-check-input {
 	background-color: var(--secondary-color);
 	border: 1px solid var(--border-color);
@@ -476,4 +507,59 @@
 	.modal .source-toggle .source-name {
 		font-size: 0.85rem;
 	}
+}
+
+/* Spell Restrictions Toggle */
+.spell-restrictions-toggle {
+	border: 2px solid var(--border-color);
+	background: var(--secondary-color);
+	color: var(--text-color);
+	transition: all 0.2s ease;
+	padding: 0.75rem 1rem;
+	font-size: 1.2rem;
+	min-height: 40px;
+	min-width: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.spell-restrictions-toggle i {
+	font-size: 1.5rem;
+}
+
+.spell-restrictions-toggle:hover {
+	background: var(--secondary-color);
+	border-color: var(--border-color);
+	opacity: 0.8;
+}
+
+.spell-restrictions-toggle[data-restrictions="true"] {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	color: #fff;
+}
+
+.spell-restrictions-toggle[data-restrictions="true"]:hover {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	opacity: 0.8;
+}
+
+.spell-restrictions-toggle[data-restrictions="false"] {
+	background: var(--secondary-color);
+	border-color: var(--border-color);
+}
+
+/* Help Icon for Spell Restrictions */
+.spell-restrictions-help {
+	font-size: 1rem;
+	color: var(--accent-color);
+	cursor: help;
+	transition: all 0.2s ease;
+}
+
+.spell-restrictions-help:hover {
+	color: var(--text-color);
+	transform: scale(1.15);
 }

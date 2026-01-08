@@ -32,6 +32,14 @@ class EquipmentService extends BaseDataService {
 
         // Max attuned items (3 by default, can be increased by features)
         this.MAX_ATTUNEMENT_SLOTS = 3;
+
+        // D&D 5e carrying capacity constants (PHB p.176)
+        // Capacity = Strength × CARRY_CAPACITY_MULTIPLIER
+        this.CARRY_CAPACITY_MULTIPLIER = 15;
+        // Light encumbrance threshold = Strength × LIGHT_ENCUMBRANCE_MULTIPLIER
+        this.LIGHT_ENCUMBRANCE_MULTIPLIER = 5;
+        // Heavy encumbrance threshold = Strength × HEAVY_ENCUMBRANCE_MULTIPLIER
+        this.HEAVY_ENCUMBRANCE_MULTIPLIER = 10;
     }
 
     /**
@@ -360,27 +368,56 @@ class EquipmentService extends BaseDataService {
     }
 
     /**
+     * Check if character has a feature that modifies carry capacity.
+     * Examples: Powerful Build (races/features that double carry capacity)
+     * @param {Object} character - Character object
+     * @returns {number} Multiplier for carry capacity (1.0 = normal, 2.0 = double, etc.)
+     * @private
+     */
+    _getCarryCapacityModifier(character) {
+        // Check for Powerful Build feature or trait
+        // This would need to be extended if more features modify carry capacity
+        if (character.traits?.includes('Powerful Build')) {
+            return 2;
+        }
+
+        // Check race/class features for capacity modifiers
+        // (Would be populated from feature data if available)
+        if (character.race?.traits?.includes('Powerful Build')) {
+            return 2;
+        }
+
+        return 1; // Default: no modifier
+    }
+
+    /**
      * Calculate character's carry capacity.
-     * Capacity = Strength × 15 lbs
+     * Based on D&D 5e rules (PHB p.176): Capacity = Strength × 15 lbs
+     * Supports feature modifiers (e.g., Powerful Build doubles capacity)
      * @param {Object} character - Character object
      * @returns {number} Carry capacity in pounds
      */
     calculateCarryCapacity(character) {
         const strength = character.abilityScores?.strength || 10;
-        return strength * 15;
+        const baseCapacity = strength * this.CARRY_CAPACITY_MULTIPLIER;
+        const modifier = this._getCarryCapacityModifier(character);
+        return Math.floor(baseCapacity * modifier);
     }
 
     /**
      * Check if character is overencumbered.
-     * Encumbered at 5 × STR, Heavily Encumbered at 10 × STR
+     * Based on D&D 5e rules (PHB p.176):
+     * - Lightly Encumbered at 5 × STR (speed reduced by 10 ft)
+     * - Heavily Encumbered at 10 × STR (speed reduced by 20 ft, disadvantage on attacks/ability checks)
      * @param {Object} character - Character object
      * @returns {Object} { encumbered: boolean, heavilyEncumbered: boolean, total: number, capacity: number }
      */
     checkEncumbrance(character) {
         const total = this.calculateTotalWeight(character);
         const capacity = this.calculateCarryCapacity(character);
-        const lightEncumbrance = character.abilityScores?.strength * 5 || 50;
-        const heavyEncumbrance = character.abilityScores?.strength * 10 || 100;
+        const strength = character.abilityScores?.strength || 10;
+        const lightEncumbrance = strength * this.LIGHT_ENCUMBRANCE_MULTIPLIER;
+        const heavyEncumbrance = strength * this.HEAVY_ENCUMBRANCE_MULTIPLIER;
 
         return {
             total,

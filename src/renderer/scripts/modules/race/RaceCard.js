@@ -8,6 +8,7 @@ import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import { raceService } from '../../services/RaceService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { getRaceAbilityData } from '../../utils/AbilityScoreUtils.js';
+import DataNormalizer from '../../utils/DataNormalizer.js';
 import { RaceDetailsView } from './RaceDetails.js';
 import { RaceCardView, SubracePickerView } from './RaceViews.js';
 
@@ -861,8 +862,16 @@ export class RaceCard {
 		if (languageCount > 0) {
 			character.optionalProficiencies.languages.race.allowed = languageCount;
 			character.optionalProficiencies.languages.race.options = languageOptions;
+			// Restore valid selections using normalized comparison
+			const normalizedLanguageOptions = languageOptions.map((lang) =>
+				DataNormalizer.normalizeForLookup(lang),
+			);
 			character.optionalProficiencies.languages.race.selected =
-				previousSelections.filter((lang) => languageOptions.includes(lang));
+				previousSelections.filter((lang) =>
+					normalizedLanguageOptions.includes(
+						DataNormalizer.normalizeForLookup(lang),
+					),
+				);
 		}
 	}
 
@@ -913,9 +922,15 @@ export class RaceCard {
 				// Get standard tool options from RaceService
 				character.optionalProficiencies.tools.race.options =
 					this._raceService.getStandardToolOptions();
+				// Restore valid selections using normalized comparison
+				const normalizedToolOptions = character.optionalProficiencies.tools.race.options.map(
+					(tool) => DataNormalizer.normalizeForLookup(tool),
+				);
 				character.optionalProficiencies.tools.race.selected =
 					previousSelections.filter((tool) =>
-						character.optionalProficiencies.tools.race.options.includes(tool),
+						normalizedToolOptions.includes(
+							DataNormalizer.normalizeForLookup(tool),
+						),
 					);
 			}
 		}
@@ -979,8 +994,16 @@ export class RaceCard {
 		if (raceSkillCount > 0) {
 			character.optionalProficiencies.skills.race.allowed = raceSkillCount;
 			character.optionalProficiencies.skills.race.options = raceSkillOptions;
+			// Restore valid selections using normalized comparison
+			const normalizedRaceSkillOptions = raceSkillOptions.map((skill) =>
+				DataNormalizer.normalizeForLookup(skill),
+			);
 			character.optionalProficiencies.skills.race.selected =
-				previousSelections.filter((skill) => raceSkillOptions.includes(skill));
+				previousSelections.filter((skill) =>
+					normalizedRaceSkillOptions.includes(
+						DataNormalizer.normalizeForLookup(skill),
+					),
+				);
 		}
 	}
 

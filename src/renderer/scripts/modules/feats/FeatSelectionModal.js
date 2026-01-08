@@ -22,6 +22,10 @@ export class FeatSelectionModal {
 		this._availability = null;
 		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Class ASI at level 4")
 		this.ignoreRaceRestrictions = false; // Start with restrictions enforced
+
+		// Bound handlers to prevent duplicate global listeners across shows
+		this._documentClickHandler = null;
+		this._restrictionsToggleHandler = null;
 	}
 
 	async show() {
@@ -39,7 +43,7 @@ export class FeatSelectionModal {
 		if (!this.featSlotLimit) {
 			showNotification(
 				this._availability.blockedReason ||
-					'No feat selections available for this character.',
+				'No feat selections available for this character.',
 				'warning',
 			);
 			return;
@@ -63,6 +67,15 @@ export class FeatSelectionModal {
 
 		await this._renderFeatList();
 		this._attachEventListeners();
+
+		// Set initial state of restrictions toggle button
+		const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreRestrictionsToggle');
+		if (ignoreRestrictionsBtn) {
+			ignoreRestrictionsBtn.setAttribute(
+				'data-restrictions',
+				!this.ignoreRaceRestrictions,
+			);
+		}
 
 		// Create or reuse Bootstrap modal instance
 		if (!this.bootstrapModal) {
@@ -281,7 +294,7 @@ export class FeatSelectionModal {
 		for (const feat of this.validFeats) {
 			const reason =
 				this._availability.reasons[
-					reasonIndex % this._availability.reasons.length
+				reasonIndex % this._availability.reasons.length
 				];
 			// Format the reason: "Race: Variant Human" -> "Variant Human"
 			const origin = reason.replace(/^[^:]+:\s*/, '').trim();
@@ -423,7 +436,13 @@ export class FeatSelectionModal {
 		}
 
 		if (ignoreRestrictionsBtn) {
-			ignoreRestrictionsBtn.addEventListener('click', async () => {
+			// Remove old listener if it exists
+			if (this._restrictionsToggleHandler) {
+				ignoreRestrictionsBtn.removeEventListener('click', this._restrictionsToggleHandler);
+			}
+
+			// Create and store the handler
+			this._restrictionsToggleHandler = async () => {
 				this.ignoreRaceRestrictions = !this.ignoreRaceRestrictions;
 				ignoreRestrictionsBtn.setAttribute(
 					'data-restrictions',
@@ -433,20 +452,27 @@ export class FeatSelectionModal {
 				await this._loadValidFeats();
 				this.filteredFeats = this.validFeats;
 				await this._renderFeatList();
-			});
+			};
+
+			ignoreRestrictionsBtn.addEventListener('click', this._restrictionsToggleHandler);
 		}
 
 		if (sourceMenu && sourceToggle) {
 			this._populateSourceFilter(sourceMenu, sourceToggle);
 			sourceToggle.addEventListener('click', (e) => {
 				e.preventDefault();
+				e.stopPropagation();
 				sourceMenu.classList.toggle('show');
 				sourceToggle.setAttribute(
 					'aria-expanded',
 					sourceMenu.classList.contains('show'),
 				);
 			});
-			document.addEventListener('click', (e) => {
+			// Ensure only one document click handler is active
+			if (this._documentClickHandler) {
+				document.removeEventListener('click', this._documentClickHandler);
+			}
+			this._documentClickHandler = (e) => {
 				if (!this.modal.contains(e.target)) return;
 				if (
 					!sourceMenu.contains(e.target) &&
@@ -455,7 +481,8 @@ export class FeatSelectionModal {
 					sourceMenu.classList.remove('show');
 					sourceToggle.setAttribute('aria-expanded', 'false');
 				}
-			});
+			};
+			document.addEventListener('click', this._documentClickHandler);
 		}
 	}
 
@@ -523,6 +550,9 @@ export class FeatSelectionModal {
 	}
 
 	_populateSourceFilter(menuEl, toggleBtn) {
+		// Reset existing items to avoid duplicates across multiple shows
+		menuEl.innerHTML = '';
+
 		// Get all sources from valid feats, filtered to only allowed sources
 		const allowedSources = new Set(
 			sourceService.getAllowedSources().map((s) => s.toLowerCase()),
@@ -583,6 +613,12 @@ export class FeatSelectionModal {
 		// Hide the Bootstrap modal properly without removing the element
 		if (this.bootstrapModal) {
 			this.bootstrapModal.hide();
+		}
+
+		// Clean up global document listener
+		if (this._documentClickHandler) {
+			document.removeEventListener('click', this._documentClickHandler);
+			this._documentClickHandler = null;
 		}
 
 		// Clean up any lingering backdrops in case Bootstrap missed them

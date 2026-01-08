@@ -23,6 +23,7 @@ export class SpellSelectionModal {
         this.searchTerm = '';
         this.selectedSpells = []; // Changed to array for multi-select
         this.selectedSources = new Set();
+        this.ignoreClassRestrictions = false; // Toggle for showing spells from all classes
 
         // Filter state
         this.filters = {
@@ -71,6 +72,15 @@ export class SpellSelectionModal {
             await this._renderSpellList();
             this._attachEventListeners();
 
+            // Set initial state of restrictions toggle button
+            const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
+            if (ignoreRestrictionsBtn) {
+                ignoreRestrictionsBtn.setAttribute(
+                    'data-restrictions',
+                    !this.ignoreClassRestrictions,
+                );
+            }
+
             // Create or reuse Bootstrap modal instance
             if (!this.bootstrapModal) {
                 this.bootstrapModal = new bootstrap.Modal(this.modal, {
@@ -110,9 +120,10 @@ export class SpellSelectionModal {
                 );
                 if (!isSourceAllowed) return false;
 
-                // Check if spell is available for this class
-                if (spell.classes && Array.isArray(spell.classes)) {
-                    if (!spell.classes.includes(this.className)) return false;
+                // Check if spell is available for this class (unless restrictions ignored)
+                if (!this.ignoreClassRestrictions) {
+                    const isAvailableForClass = spellService.isSpellAvailableForClass(spell, this.className);
+                    if (!isAvailableForClass) return false;
                 }
 
                 // Check if already known
@@ -593,6 +604,31 @@ export class SpellSelectionModal {
                 this.searchTerm = e.target.value;
                 this._renderSpellList();
             });
+        }
+
+        // Restrictions toggle
+        const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
+        if (ignoreRestrictionsBtn) {
+            // Remove old listener if it exists
+            if (this._restrictionsToggleHandler) {
+                ignoreRestrictionsBtn.removeEventListener('click', this._restrictionsToggleHandler);
+            }
+
+            // Create and store the handler
+            this._restrictionsToggleHandler = async () => {
+                this.ignoreClassRestrictions = !this.ignoreClassRestrictions;
+                ignoreRestrictionsBtn.setAttribute(
+                    'data-restrictions',
+                    !this.ignoreClassRestrictions,
+                );
+                // Reload valid spells with new restriction setting
+                const character = AppState.getCurrentCharacter();
+                await this._loadValidSpells(character);
+                this.filteredSpells = this.validSpells;
+                await this._renderSpellList();
+            };
+
+            ignoreRestrictionsBtn.addEventListener('click', this._restrictionsToggleHandler);
         }
 
         // Source filter dropdown

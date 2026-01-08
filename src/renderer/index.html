@@ -306,6 +306,16 @@
                                 type="button" aria-expanded="false">All sources</button>
                             <div class="dropdown-menu spell-source-menu"></div>
                         </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="spell-restrictions-button-wrapper">
+                                <button class="btn spell-restrictions-toggle" type="button"
+                                    id="ignoreSpellRestrictionsToggle" title="Restrictions" data-restrictions="false">
+                                    <i class="fas fa-shield-alt"></i>
+                                </button>
+                            </div>
+                            <i class="fas fa-question-circle spell-restrictions-help"
+                                title="Toggle enforcement of class spell list restrictions"></i>
+                        </div>
                     </div>
                     <!-- Filters and Results Row -->
                     <div class="row">
@@ -923,8 +933,8 @@
                         <div class="card-body">
                             <div class="row g-2 align-items-center">
                                 <div class="col-auto">
-                                    <div class="feat-restrictions-button-wrapper">
-                                        <button class="btn feat-restrictions-toggle" type="button"
+                                    <div class="multiclass-restrictions-button-wrapper">
+                                        <button class="btn multiclass-restrictions-toggle" type="button"
                                             id="ignoreMulticlassReqsToggle" title="Toggle ability score requirements"
                                             data-restrictions="false">
                                             <i class="fas fa-shield-alt"></i>

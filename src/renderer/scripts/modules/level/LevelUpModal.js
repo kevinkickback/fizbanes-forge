@@ -303,10 +303,11 @@ export class LevelUpModal {
             const prev = select.value;
             const optionHtml = options.map((o) => {
                 const label = o.requirementText ? `${o.name} (${o.requirementText})` : o.name;
-                const disabledAttr = o.meetsRequirements ? '' : ' disabled';
+                // When ignoring requirements, don't disable any options
+                const disabledAttr = (this.ignoreMulticlassReqs || o.meetsRequirements) ? '' : ' disabled';
                 return `<option value="${o.name}"${disabledAttr}>${label}</option>`;
             }).join('');
-            select.innerHTML = '<option value="">Select a class...</option>' + optionHtml;
+            select.innerHTML = `<option value="">Select a class...</option>${optionHtml}`;
             if (options.some((o) => o.name === prev)) select.value = prev;
             console.debug('LevelUpModal', `Populated class select with ${options.length} options (requirements ${this.ignoreMulticlassReqs ? 'off' : 'on'})`);
         } catch (err) {
@@ -452,7 +453,7 @@ export class LevelUpModal {
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
-            .replace(/\"/g, '&quot;')
+            .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
     }
 
