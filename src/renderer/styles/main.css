@@ -6,6 +6,7 @@
 @import url("./loading-modal.css");
 @import url("./utilities.css");
 @import url("./feat-modal.css");
+@import url("./equipment-modal.css");
 @import url("./data-loading-progress.css");
 @import url("./data-configuration-modal.css");
 @import url("./proficiency-card.css");
@@ -2847,6 +2848,86 @@ body[data-current-page="details"] .floating-actions {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.25rem;
+}
+
+/* Equipment Selection Modal Styles */
+.item-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	margin-bottom: 0.75rem;
+}
+
+.item-card:hover {
+	border-color: var(--accent-color);
+	background: var(--accent-10);
+}
+
+.item-card.selected {
+	border-color: var(--accent-color);
+	background: var(--accent-15);
+	box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.item-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.item-card.selected .item-card-header {
+	background: var(--accent-15);
+}
+
+.item-card-header strong {
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.item-card-body {
+	padding: 1rem;
+}
+
+.item-stats {
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.item-stat-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.item-stat-row:last-child {
+	margin-bottom: 0;
+}
+
+.item-stat {
+	color: var(--text-color);
+	font-size: 0.9rem;
+}
+
+.item-stat strong {
+	color: var(--text-light);
+}
+
+.item-description {
+	color: var(--text-color);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.selected-equipment-list {
+	min-height: 2rem;
 }
 
 .selected-spells-list .badge {

@@ -494,6 +494,258 @@
         </div>
     </div>
 
+    <!-- Equipment Selection Modal -->
+    <div class="modal fade" id="equipmentSelectionModal" tabindex="-1" aria-labelledby="equipmentSelectionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="equipmentSelectionModalLabel">Add Equipment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Search and Source Filter Row -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="equipment-selection-container">
+                                <input type="text" class="form-control equipment-search" id="equipmentSearch"
+                                    placeholder="Search equipment..." aria-label="Search equipment">
+                                <div class="dropdown equipment-source-dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle equipment-source-toggle"
+                                        type="button" aria-expanded="false">All sources</button>
+                                    <div class="dropdown-menu equipment-source-menu"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Filters and Results Row -->
+                    <div class="row">
+                        <!-- Filters -->
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseEquipmentType" aria-expanded="true"
+                                    aria-controls="collapseEquipmentType">
+                                    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                        <span>Item Type</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse show" id="collapseEquipmentType">
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="W"
+                                                        data-filter-type="item-type" id="filterWeapon">
+                                                    <label class="form-check-label" for="filterWeapon">Weapon</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="A"
+                                                        data-filter-type="item-type" id="filterArmor">
+                                                    <label class="form-check-label" for="filterArmor">Armor</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="G"
+                                                        data-filter-type="item-type" id="filterGear">
+                                                    <label class="form-check-label" for="filterGear">Gear</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="P"
+                                                        data-filter-type="item-type" id="filterPotion">
+                                                    <label class="form-check-label" for="filterPotion">Potion</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="SC"
+                                                        data-filter-type="item-type" id="filterScroll">
+                                                    <label class="form-check-label" for="filterScroll">Scroll</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="RG"
+                                                        data-filter-type="item-type" id="filterRing">
+                                                    <label class="form-check-label" for="filterRing">Ring</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="RD"
+                                                        data-filter-type="item-type" id="filterRod">
+                                                    <label class="form-check-label" for="filterRod">Rod</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="ST"
+                                                        data-filter-type="item-type" id="filterStaff">
+                                                    <label class="form-check-label" for="filterStaff">Staff</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="WD"
+                                                        data-filter-type="item-type" id="filterWand">
+                                                    <label class="form-check-label" for="filterWand">Wand</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-3">
+                                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseRarity" aria-expanded="true"
+                                    aria-controls="collapseRarity">
+                                    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                        <span>Rarity</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse show" id="collapseRarity">
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="common"
+                                                        data-filter-type="rarity" id="filterCommon">
+                                                    <label class="form-check-label" for="filterCommon">Common</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="uncommon"
+                                                        data-filter-type="rarity" id="filterUncommon">
+                                                    <label class="form-check-label"
+                                                        for="filterUncommon">Uncommon</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="rare"
+                                                        data-filter-type="rarity" id="filterRare">
+                                                    <label class="form-check-label" for="filterRare">Rare</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="very rare"
+                                                        data-filter-type="rarity" id="filterVeryRare">
+                                                    <label class="form-check-label" for="filterVeryRare">Very
+                                                        Rare</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="legendary"
+                                                        data-filter-type="rarity" id="filterLegendary">
+                                                    <label class="form-check-label"
+                                                        for="filterLegendary">Legendary</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="artifact"
+                                                        data-filter-type="rarity" id="filterArtifact">
+                                                    <label class="form-check-label"
+                                                        for="filterArtifact">Artifact</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-3">
+                                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseProperty" aria-expanded="true"
+                                    aria-controls="collapseProperty">
+                                    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                                        <span>Properties</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse show" id="collapseProperty">
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="magic"
+                                                        data-filter-type="property" id="filterMagic">
+                                                    <label class="form-check-label" for="filterMagic">Magic</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="cursed"
+                                                        data-filter-type="property" id="filterCursed">
+                                                    <label class="form-check-label" for="filterCursed">Cursed</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="consumable"
+                                                        data-filter-type="property" id="filterConsumable">
+                                                    <label class="form-check-label"
+                                                        for="filterConsumable">Consumable</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="wondrous"
+                                                        data-filter-type="property" id="filterWondrous">
+                                                    <label class="form-check-label"
+                                                        for="filterWondrous">Wondrous</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="attunement"
+                                                        data-filter-type="property" id="filterAttunement">
+                                                    <label class="form-check-label"
+                                                        for="filterAttunement">Requires Attunement</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Equipment List -->
+                        <div class="col-md-8">
+                            <div
+                                style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px;">
+                                <div class="equipment-list-container">
+                                    <!-- Equipment list will be populated dynamically -->
+                                </div>
+                            </div>
+                            <!-- Selected Equipment Display -->
+                            <div class="mt-3 p-3"
+                                style="background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <h6 class="mb-2">Selected Items</h6>
+                                <div class="selected-equipment-list">
+                                    <!-- Selected equipment will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelEquipmentSelection"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="addSelectedEquipmentBtn">Add Selected</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Pack Contents Modal -->
     <div class="modal fade" id="packContentsModal" tabindex="-1" aria-labelledby="packContentsModalLabel"
         aria-hidden="true">

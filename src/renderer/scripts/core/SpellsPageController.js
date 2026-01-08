@@ -121,7 +121,6 @@ class SpellsPageController {
 
         this.renderKnownSpells(character);
         this.renderPreparedSpells(character);
-        this.renderCantrips(character);
         this.renderSpellcastingInfo(character);
         this.renderMulticlassSpellcasting(character);
     }
@@ -155,14 +154,8 @@ class SpellsPageController {
 
             // Add class header with spell limit (if multiclass or has limit)
             if (isMulticlass || limitInfo.limit > 0) {
-                const limitText = limitInfo.type === 'known'
-                    ? `${limitInfo.current} / ${limitInfo.limit} Spells Known`
-                    : limitInfo.type === 'prepared'
-                        ? `${limitInfo.current} / ${limitInfo.limit} Spells Prepared`
-                        : '';
-
                 html += `<div class="class-spell-section mb-4">
-                    <h5 class="mb-2">${className} ${limitText ? `<span class="badge bg-secondary">${limitText}</span>` : ''}</h5>`;
+                    <h5 class="mb-2">${className}</h5>`;
             }
 
             // Group spells by level
@@ -349,46 +342,6 @@ class SpellsPageController {
      * @param {Object} character - Character object
      * @private
      */
-    renderCantrips(character) {
-        const container = document.getElementById('cantripsListDisplay');
-        const section = document.getElementById('cantripsSection');
-        if (!container || !section) return;
-
-        const spellcasting = character.spellcasting;
-        const classNames = Object.keys(spellcasting?.classes || {});
-
-        let html = '';
-        let cantripCount = 0;
-
-        for (const className of classNames) {
-            const classData = spellcasting.classes[className];
-            const cantrips = classData?.spellsKnown?.filter((s) => s.level === 0) || [];
-
-            for (const cantrip of cantrips) {
-                cantripCount++;
-                html += `<div class="cantrip-item card card-sm mb-2">
-					<div class="card-body d-flex justify-content-between align-items-center">
-						<div>
-							<h6 class="mb-1">${cantrip.name}</h6>
-							<small class="text-muted">${className} • ${cantrip.school || 'Abjuration'}</small>
-						</div>
-						<button class="btn btn-sm btn-outline-danger" data-remove-spell="${cantrip.name}">
-							<i class="fas fa-trash"></i>
-						</button>
-					</div>
-				</div>`;
-            }
-        }
-
-        const cantripsList = document.getElementById('cantripsList');
-        if (cantripsList) {
-            cantripsList.textContent = `${cantripCount} cantrips`;
-        }
-
-        container.innerHTML = html || '<p class="text-muted">No cantrips.</p>';
-        section.style.display = cantripCount > 0 ? 'block' : 'none';
-    }
-
     /**
      * Render spellcasting ability and spell save DC.
      * @param {Object} character - Character object
@@ -451,16 +404,30 @@ class SpellsPageController {
 
             // Add prepared spell limit for classes that prepare spells
             const preparedSpellClasses = ['Cleric', 'Druid', 'Paladin', 'Ranger', 'Wizard'];
-            if (preparedSpellClasses.includes(className)) {
-                const classLevel = classData.level || 1;
-                const limitInfo = spellSelectionService.getSpellLimitInfo(character, className, classLevel);
+            const classLevel = classData.level || 1;
+            const limitInfo = spellSelectionService.getSpellLimitInfo(character, className, classLevel);
 
+            // Add spell counters section
+            if (limitInfo.limit > 0) {
                 html += `<div class="mt-3">
-					<small class="d-block text-muted mb-2">Prepared Spells</small>
-					<div class="badge bg-info">
-						${limitInfo.current} / ${limitInfo.limit} Prepared
-					</div>
-				</div>`;
+					<small class="d-block text-muted mb-2">Spell Counters</small>
+					<div class="d-flex flex-wrap gap-2">`;
+
+                // Add Spells Known badge if applicable
+                if (limitInfo.type === 'known') {
+                    html += `<div class="badge bg-primary">
+							Spells Known: ${limitInfo.current} / ${limitInfo.limit}
+						</div>`;
+                }
+
+                // Add Prepared Spells badge if applicable
+                if (preparedSpellClasses.includes(className)) {
+                    html += `<div class="badge bg-info">
+							Prepared Spells: ${limitInfo.current} / ${limitInfo.limit}
+						</div>`;
+                }
+
+                html += `</div></div>`;
             }
 
             html += `</div>`;

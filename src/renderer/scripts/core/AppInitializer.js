@@ -26,6 +26,7 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
+import { equipmentPageController } from './EquipmentPageController.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
 import { spellsPageController } from './SpellsPageController.js';
@@ -212,6 +213,7 @@ async function _initializeCoreComponents() {
 				init: () => NavigationController.initialize(),
 			},
 			{ name: 'spells page controller', init: () => spellsPageController.initialize() },
+			{ name: 'equipment page controller', init: () => equipmentPageController.initialize() },
 			{ name: 'settings service', init: () => settingsService.initialize() },
 		];
 

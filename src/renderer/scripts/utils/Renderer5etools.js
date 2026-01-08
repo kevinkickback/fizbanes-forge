@@ -190,6 +190,271 @@ function initializeDefaultHandlers() {
 	registerTagHandler('italic', (text) => {
 		return `<em>${escapeHtml(text)}</em>`;
 	});
+
+	// Shorthand bold tag (same as 'bold')
+	registerTagHandler('b', (text) => {
+		return `<strong>${escapeHtml(text)}</strong>`;
+	});
+
+	// Shorthand italic tag (same as 'italic')
+	registerTagHandler('i', (text) => {
+		return `<em>${escapeHtml(text)}</em>`;
+	});
+
+	// Damage type reference
+	registerTagHandler('damage', (text) => {
+		const parts = splitTagByPipe(text);
+		const damageType = escapeHtml(parts[0]);
+		return `<span class="rd__damage-type">${damageType}</span>`;
+	});
+
+	// Dice roll notation
+	registerTagHandler('dice', (text) => {
+		const parts = splitTagByPipe(text);
+		const diceNotation = escapeHtml(parts[0]);
+		return `<span class="rd__dice" data-roll="${diceNotation}">${diceNotation}</span>`;
+	});
+
+	// Difficulty Class reference
+	registerTagHandler('dc', (text) => {
+		const parts = splitTagByPipe(text);
+		const dcValue = escapeHtml(parts[0]);
+		return `<span class="rd__dc">DC ${dcValue}</span>`;
+	});
+
+	// Creature reference
+	registerTagHandler('creature', (text) => {
+		const parts = splitTagByPipe(text);
+		const creatureName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__creature-link rd__hover-link" data-hover-type="creature" data-hover-name="${creatureName}" data-hover-source="${source}">${creatureName}</a>`;
+	});
+
+	// Book reference
+	registerTagHandler('book', (text) => {
+		const parts = splitTagByPipe(text);
+		const displayText = escapeHtml(parts[0]);
+		const bookCode = escapeHtml(parts[1] || parts[0]);
+		return `<span class="rd__book-ref" data-book="${bookCode}">${displayText}</span>`;
+	});
+
+	// Variant rule reference
+	registerTagHandler('variantrule', (text) => {
+		const parts = splitTagByPipe(text);
+		const ruleName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__variantrule-link rd__hover-link" data-hover-type="variantrule" data-hover-name="${ruleName}" data-hover-source="${source}">${ruleName}</a>`;
+	});
+
+	// Quick reference (rules)
+	registerTagHandler('quickref', (text) => {
+		const parts = splitTagByPipe(text);
+		const refName = escapeHtml(parts[0]);
+		return `<span class="rd__quickref">${refName}</span>`;
+	});
+
+	// Item property reference
+	registerTagHandler('itemProperty', (text) => {
+		const parts = splitTagByPipe(text);
+		const propName = escapeHtml(parts[0]);
+		return `<span class="rd__item-property">${propName}</span>`;
+	});
+
+	// Sense reference
+	registerTagHandler('sense', (text) => {
+		const parts = splitTagByPipe(text);
+		const senseName = escapeHtml(parts[0]);
+		return `<span class="rd__sense">${senseName}</span>`;
+	});
+
+	// Attack type reference (for creature statblocks)
+	registerTagHandler('atk', (text) => {
+		const parts = splitTagByPipe(text);
+		const attackType = escapeHtml(parts[0]);
+		return `<span class="rd__atk">${attackType}</span>`;
+	});
+
+	// Hit/Miss labels (for creature attacks)
+	registerTagHandler('h', (text) => {
+		return `<span class="rd__hit"><em>Hit:</em> </span>`;
+	});
+
+	registerTagHandler('m', (text) => {
+		return `<span class="rd__miss"><em>Miss:</em> </span>`;
+	});
+
+	registerTagHandler('hom', (text) => {
+		return `<span class="rd__hit-or-miss"><em>Hit or Miss:</em> </span>`;
+	});
+
+	// Recharge notation (e.g., "Recharge 5-6")
+	registerTagHandler('recharge', (text) => {
+		const parts = splitTagByPipe(text);
+		const rechargeValue = escapeHtml(parts[0]);
+		return `<span class="rd__recharge">(Recharge ${rechargeValue})</span>`;
+	});
+
+	// Ability score reference
+	registerTagHandler('ability', (text) => {
+		const parts = splitTagByPipe(text);
+		const abilityScore = escapeHtml(parts[0]);
+		return `<span class="rd__ability">${abilityScore}</span>`;
+	});
+
+	// Area of effect reference
+	registerTagHandler('area', (text) => {
+		const parts = splitTagByPipe(text);
+		const areaName = escapeHtml(parts[0]);
+		return `<span class="rd__area">${areaName}</span>`;
+	});
+
+	// Chance/probability notation
+	registerTagHandler('chance', (text) => {
+		const parts = splitTagByPipe(text);
+		const chanceValue = escapeHtml(parts[0]);
+		return `<span class="rd__chance">${chanceValue}%</span>`;
+	});
+
+	// Scaled dice notation (for leveled effects)
+	registerTagHandler('scaledice', (text) => {
+		const parts = splitTagByPipe(text);
+		const scaledDice = escapeHtml(parts[0]);
+		return `<span class="rd__scaledice">${scaledDice}</span>`;
+	});
+
+	// Scaled damage notation
+	registerTagHandler('scaledamage', (text) => {
+		const parts = splitTagByPipe(text);
+		const scaledDamage = escapeHtml(parts[0]);
+		return `<span class="rd__scaledamage">${scaledDamage}</span>`;
+	});
+
+	// D20 roll notation (for advantage/disadvantage rolls)
+	registerTagHandler('d20', (text) => {
+		const parts = splitTagByPipe(text);
+		const d20Text = escapeHtml(parts[0]);
+		return `<span class="rd__d20">${d20Text}</span>`;
+	});
+
+	// Hit bonus notation (for attack rolls)
+	registerTagHandler('hit', (text) => {
+		const parts = splitTagByPipe(text);
+		const hitBonus = escapeHtml(parts[0]);
+		return `<span class="rd__hit-bonus">${hitBonus}</span>`;
+	});
+
+	// Filter link (for homebrew/advanced features)
+	registerTagHandler('filter', (text) => {
+		const parts = splitTagByPipe(text);
+		const filterText = escapeHtml(parts[0]);
+		return `<span class="rd__filter">${filterText}</span>`;
+	});
+
+	// Status/condition inflicted
+	registerTagHandler('status', (text) => {
+		const parts = splitTagByPipe(text);
+		const statusName = escapeHtml(parts[0]);
+		return `<span class="rd__status">${statusName}</span>`;
+	});
+
+	// Adventure reference
+	registerTagHandler('adventure', (text) => {
+		const parts = splitTagByPipe(text);
+		const adventureName = escapeHtml(parts[0]);
+		const adventureSource = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__adventure-link" data-adventure="${adventureSource}">${adventureName}</a>`;
+	});
+
+	// Trap/Hazard reference
+	registerTagHandler('trap', (text) => {
+		const parts = splitTagByPipe(text);
+		const trapName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__trap-link rd__hover-link" data-hover-type="trap" data-hover-name="${trapName}" data-hover-source="${source}">${trapName}</a>`;
+	});
+
+	registerTagHandler('hazard', (text) => {
+		const parts = splitTagByPipe(text);
+		const hazardName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__hazard-link rd__hover-link" data-hover-type="hazard" data-hover-name="${hazardName}" data-hover-source="${source}">${hazardName}</a>`;
+	});
+
+	// Vehicle reference
+	registerTagHandler('vehicle', (text) => {
+		const parts = splitTagByPipe(text);
+		const vehicleName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__vehicle-link rd__hover-link" data-hover-type="vehicle" data-hover-name="${vehicleName}" data-hover-source="${source}">${vehicleName}</a>`;
+	});
+
+	// Object reference
+	registerTagHandler('object', (text) => {
+		const parts = splitTagByPipe(text);
+		const objectName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__object-link rd__hover-link" data-hover-type="object" data-hover-name="${objectName}" data-hover-source="${source}">${objectName}</a>`;
+	});
+
+	// Deity reference
+	registerTagHandler('deity', (text) => {
+		const parts = splitTagByPipe(text);
+		const deityName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__deity-link rd__hover-link" data-hover-type="deity" data-hover-name="${deityName}" data-hover-source="${source}">${deityName}</a>`;
+	});
+
+	// Reward reference (supernatural gifts, blessings, etc.)
+	registerTagHandler('reward', (text) => {
+		const parts = splitTagByPipe(text);
+		const rewardName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__reward-link rd__hover-link" data-hover-type="reward" data-hover-name="${rewardName}" data-hover-source="${source}">${rewardName}</a>`;
+	});
+
+	// Language reference
+	registerTagHandler('language', (text) => {
+		const parts = splitTagByPipe(text);
+		const languageName = escapeHtml(parts[0]);
+		return `<span class="rd__language">${languageName}</span>`;
+	});
+
+	// Coinflip notation
+	registerTagHandler('coinflip', (text) => {
+		return `<span class="rd__coinflip">flip a coin</span>`;
+	});
+
+	// Table reference
+	registerTagHandler('table', (text) => {
+		const parts = splitTagByPipe(text);
+		const tableName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__table-link rd__hover-link" data-hover-type="table" data-hover-name="${tableName}" data-hover-source="${source}">${tableName}</a>`;
+	});
+
+	// Card reference (for decks of cards)
+	registerTagHandler('card', (text) => {
+		const parts = splitTagByPipe(text);
+		const cardName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__card-link rd__hover-link" data-hover-type="card" data-hover-name="${cardName}" data-hover-source="${source}">${cardName}</a>`;
+	});
+
+	// Deck reference (for decks of cards)
+	registerTagHandler('deck', (text) => {
+		const parts = splitTagByPipe(text);
+		const deckName = escapeHtml(parts[0]);
+		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
+		return `<a class="rd__deck-link rd__hover-link" data-hover-type="deck" data-hover-name="${deckName}" data-hover-source="${source}">${deckName}</a>`;
+	});
+
+	// Generic link (external or internal)
+	registerTagHandler('link', (text) => {
+		const parts = splitTagByPipe(text);
+		const linkText = escapeHtml(parts[0]);
+		const url = parts[1] || '#';
+		return `<a class="rd__link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+	});
 }
 
 /**

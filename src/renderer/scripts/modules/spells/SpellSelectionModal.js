@@ -6,6 +6,7 @@ import { spellSelectionService } from '../../services/SpellSelectionService.js';
 import { spellService } from '../../services/SpellService.js';
 import { eventBus, EVENTS } from '../../utils/EventBus.js';
 import { showNotification } from '../../utils/Notifications.js';
+import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**
  * Modal for selecting spells to add to character's known/prepared lists.
@@ -180,13 +181,26 @@ export class SpellSelectionModal {
                     components = parts.length > 0 ? parts.join(', ') : 'N/A';
                 }
 
-                const ritual = spell.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : '';
-                const concentration = spell.concentration ? '<span class="badge bg-warning ms-2">Concentration</span>' : '';
+                const ritual = spell.meta?.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : '';
+                const concentration = spell.duration?.[0]?.concentration ? '<span class="badge bg-warning ms-2">Concentration</span>' : '';
 
-                // Get description
-                const description = spell.entries && spell.entries.length > 0
-                    ? (typeof spell.entries[0] === 'string' ? spell.entries[0] : 'No description')
-                    : 'No description';
+                // Get description with textProcessor for custom tooltips and tags
+                let description = 'No description';
+                if (spell.entries && spell.entries.length > 0) {
+                    const descParts = [];
+                    for (const entry of spell.entries) {
+                        if (typeof entry === 'string') {
+                            descParts.push(await textProcessor.processString(entry));
+                        } else if (entry?.entries && Array.isArray(entry.entries)) {
+                            for (const subEntry of entry.entries) {
+                                if (typeof subEntry === 'string') {
+                                    descParts.push(await textProcessor.processString(subEntry));
+                                }
+                            }
+                        }
+                    }
+                    description = descParts.join(' ');
+                }
 
                 const isSelected = this.selectedSpells.some(s => s.id === spell.id);
                 const selectedClass = isSelected ? 'selected' : '';
@@ -380,7 +394,7 @@ export class SpellSelectionModal {
 
         // Ritual filter
         if (this.filters.ritual !== null) {
-            const isRitual = spell.ritual || false;
+            const isRitual = spell.meta?.ritual || false;
             if (this.filters.ritual !== isRitual) {
                 return false;
             }
@@ -388,7 +402,7 @@ export class SpellSelectionModal {
 
         // Concentration filter
         if (this.filters.concentration !== null) {
-            const needsConcentration = spell.concentration || false;
+            const needsConcentration = spell.duration?.[0]?.concentration || false;
             if (this.filters.concentration !== needsConcentration) {
                 return false;
             }
@@ -428,7 +442,7 @@ export class SpellSelectionModal {
             components = parts.length > 0 ? parts.join(', ') : 'N/A';
         }
 
-        const ritual = spell.ritual ? 'Yes' : 'No';
+        const ritual = spell.meta?.ritual ? 'Yes' : 'No';
         const concentration = spell.concentration ? 'Yes' : 'No';
         const description = spell.entries
             ? spell.entries.map((e) => typeof e === 'string' ? e : '').join('\n\n')
