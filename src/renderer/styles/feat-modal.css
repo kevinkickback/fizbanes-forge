@@ -185,20 +185,20 @@
 	opacity: 0.8;
 }
 
-.feat-restrictions-toggle[data-restrictions="false"] {
-	background: #dc3545;
-	border-color: #dc3545;
+.feat-restrictions-toggle[data-restrictions="true"] {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
 	color: #fff;
 }
 
-.feat-restrictions-toggle[data-restrictions="false"]:hover {
-	background: #c82333;
-	border-color: #c82333;
+.feat-restrictions-toggle[data-restrictions="true"]:hover {
+	opacity: 0.9;
 }
 
-.feat-restrictions-toggle[data-restrictions="true"] {
+.feat-restrictions-toggle[data-restrictions="false"] {
 	background: var(--secondary-color);
 	border-color: var(--border-color);
+	opacity: 0.6;
 }
 
 /* Help Icon for Restrictions */

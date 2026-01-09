@@ -11,4 +11,7 @@ export default defineConfig({
 		actionTimeout: 0,
 		trace: 'on-first-retry',
 	},
+	webServer: undefined,
+	// Capture console and page messages for debugging
+	globalSetup: undefined,
 });
