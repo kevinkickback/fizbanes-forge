@@ -275,15 +275,15 @@ function initializeDefaultHandlers() {
 	});
 
 	// Hit/Miss labels (for creature attacks)
-	registerTagHandler('h', (text) => {
+	registerTagHandler('h', (_text) => {
 		return `<span class="rd__hit"><em>Hit:</em> </span>`;
 	});
 
-	registerTagHandler('m', (text) => {
+	registerTagHandler('m', (_text) => {
 		return `<span class="rd__miss"><em>Miss:</em> </span>`;
 	});
 
-	registerTagHandler('hom', (text) => {
+	registerTagHandler('hom', (_text) => {
 		return `<span class="rd__hit-or-miss"><em>Hit or Miss:</em> </span>`;
 	});
 
@@ -420,7 +420,7 @@ function initializeDefaultHandlers() {
 	});
 
 	// Coinflip notation
-	registerTagHandler('coinflip', (text) => {
+	registerTagHandler('coinflip', (_text) => {
 		return `<span class="rd__coinflip">flip a coin</span>`;
 	});
 

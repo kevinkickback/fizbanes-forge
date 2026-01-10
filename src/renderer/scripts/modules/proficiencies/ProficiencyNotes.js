@@ -1,6 +1,6 @@
 /** Renders proficiency source notes and explanations. */
 
-import { toTitleCase } from '../../utils/TextFormatter.js';
+import { toTitleCase } from '../../utils/5eToolsParser.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /**

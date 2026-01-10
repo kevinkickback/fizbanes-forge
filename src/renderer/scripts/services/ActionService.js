@@ -2,12 +2,18 @@
 
 import { DataLoader } from '../utils/DataLoader.js';
 import DataNormalizer from '../utils/DataNormalizer.js';
+import { BaseDataService } from './BaseDataService.js';
 
 /** Manages action data and provides access to actions. */
-class ActionService {
+class ActionService extends BaseDataService {
 	/** Initialize a new ActionService instance. */
 	constructor() {
-		this._actionData = null;
+		super({
+			cacheKey: 'actions',
+			loggerScope: 'ActionService',
+			eventKey: 'ACTIONS_LOADED',
+			dataKey: 'action',
+		});
 		this._actionMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
@@ -16,38 +22,30 @@ class ActionService {
 	 * @returns {Promise<boolean>} True if initialization succeeded
 	 */
 	async initialize() {
-		// Skip if already initialized
-		if (this._actionData) {
-			console.debug('[ActionService]', 'Already initialized');
-			return true;
-		}
+		await this.initWithLoader(
+			async () => DataLoader.loadJSON('actions.json'),
+			{
+				onLoaded: (data) => {
+					// Build lookup map for O(1) access by name (case-insensitive)
+					this._actionMap = new Map();
+					const actions = data?.action || [];
+					if (Array.isArray(actions)) {
+						for (const action of actions) {
+							if (!action.name) continue;
+							const key = DataNormalizer.normalizeForLookup(action.name);
+							this._actionMap.set(key, action);
+						}
+					}
+				},
+				emitPayload: (data) => data?.action || [],
+				onError: () => {
+					this._actionMap = new Map();
+					return { action: [] };
+				},
+			},
+		);
 
-		console.info('[ActionService]', 'Initializing action data');
-		try {
-			this._actionData = await DataLoader.loadActions();
-			console.info('[ActionService]', 'Actions loaded successfully', {
-				count: this._actionData.action?.length,
-			});
-
-			// Build lookup map for O(1) access by name (case-insensitive)
-			this._actionMap = new Map();
-			if (this._actionData.action && Array.isArray(this._actionData.action)) {
-				for (const action of this._actionData.action) {
-					if (!action.name) continue;
-					const key = DataNormalizer.normalizeForLookup(action.name);
-					this._actionMap.set(key, action);
-				}
-			}
-
-			return true;
-		} catch (error) {
-			console.error(
-				'[ActionService]',
-				'Failed to initialize action data',
-				error,
-			);
-			return false;
-		}
+		return true;
 	}
 
 	/**
@@ -55,7 +53,7 @@ class ActionService {
 	 * @returns {Array<Object>} Array of action objects
 	 */
 	getAllActions() {
-		return this._actionData?.action || [];
+		return this._data?.action || [];
 	}
 
 	/**

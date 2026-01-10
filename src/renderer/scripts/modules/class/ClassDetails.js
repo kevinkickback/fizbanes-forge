@@ -6,8 +6,8 @@ import { abilityScoreService } from '../../services/AbilityScoreService.js';
 import {
 	attAbvToFull,
 	levelToProficiencyBonus,
+	toSentenceCase, toTitleCase,
 } from '../../utils/5eToolsParser.js';
-import { toSentenceCase, toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for displaying class details. */

@@ -4,9 +4,9 @@ import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
+	toTitleCase,
 } from '../../utils/5eToolsParser.js';
 import { getAbilityData } from '../../utils/AbilityScoreUtils.js';
-import { toTitleCase } from '../../utils/TextFormatter.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 // Default D&D 5e speed for most races
@@ -189,7 +189,7 @@ export class RaceDetailsView {
 	 */
 	_formatMovementSpeeds(race) {
 		// Default to standard 30 ft. walking speed if not specified
-		if (!race?.speed) return 'Walk: ' + getSpeedString(DEFAULT_SPEED);
+		if (!race?.speed) return `Walk: ${getSpeedString(DEFAULT_SPEED)}`;
 
 		// Use 5etools Parser utility for consistent speed formatting
 		const speedText = getSpeedString(race);
@@ -203,7 +203,7 @@ export class RaceDetailsView {
 				speedModes.length === 1 &&
 				!speedModes[0].match(/^(burrow|climb|fly|swim)/i)
 			) {
-				return 'Walk: ' + speedModes[0];
+				return `Walk: ${speedModes[0]}`;
 			}
 
 			// For multiple speeds or labeled speeds, join with newlines
@@ -212,7 +212,7 @@ export class RaceDetailsView {
 				.map((mode) => {
 					// If mode doesn't start with a movement type, it's walk speed
 					if (!mode.match(/^(burrow|climb|fly|swim)/i)) {
-						return 'Walk: ' + mode;
+						return `Walk: ${mode}`;
 					}
 					// Capitalize first letter of other movement types
 					return mode.charAt(0).toUpperCase() + mode.slice(1);
@@ -220,7 +220,7 @@ export class RaceDetailsView {
 				.join('\n');
 		}
 
-		return 'Walk: ' + getSpeedString(DEFAULT_SPEED);
+		return `Walk: ${getSpeedString(DEFAULT_SPEED)}`;
 	}
 
 	//-------------------------------------------------------------------------

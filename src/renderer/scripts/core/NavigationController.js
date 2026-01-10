@@ -1,11 +1,257 @@
-/** Presentation controller coordinating router, page loader, and nav UI. */
+/**
+ * NavigationController - Handles routing, page loading, and navigation UI
+ * 
+ * Integrated router and page loader for efficient navigation management.
+ */
 
 import { eventBus, EVENTS } from '../utils/EventBus.js';
-
 import { AppState } from './AppState.js';
-import { PageLoader } from './PageLoader.js';
-import { Router } from './Router.js';
 
+/**
+ * Router implementation - manages route registration and navigation.
+ * @private
+ */
+class RouterImpl {
+	constructor() {
+		this.routes = new Map();
+		this.currentRoute = null;
+		console.info('[Router]', 'Router initialized');
+	}
+
+	/**
+	 * Register a route.
+	 * @param {string} path - Route path
+	 * @param {object} config - Route configuration
+	 */
+	register(path, config) {
+		console.info('[Router]', 'Registering route', { path, config });
+		this.routes.set(path, {
+			template: config.template || `${path}.html`,
+			requiresCharacter: config.requiresCharacter || false,
+			title: config.title || path,
+		});
+	}
+
+	/**
+	 * Navigate to a route.
+	 * @param {string} path - Route path to navigate to
+	 * @returns {object} Route config
+	 */
+	async navigate(path) {
+		console.info('[Router]', 'Navigating to', { path });
+
+		if (!this.routes.has(path)) {
+			console.error('[Router]', 'Route not found', { path });
+			throw new Error(`Route not found: ${path}`);
+		}
+
+		const route = this.routes.get(path);
+
+		// Check if character required
+		if (route.requiresCharacter && !AppState.getCurrentCharacter()) {
+			console.info('[Router]', 'Route requires character', { path });
+			throw new Error('Character required for this page');
+		}
+
+		// Update state
+		this.currentRoute = path;
+		AppState.setCurrentPage(path);
+
+		// Emit event
+		eventBus.emit(EVENTS.PAGE_CHANGED, path);
+
+		console.info('[Router]', 'Navigation successful', { path });
+		return route;
+	}
+
+	/**
+	 * Get current route path.
+	 * @returns {string|null} Current route path
+	 */
+	getCurrentRoute() {
+		return this.currentRoute;
+	}
+
+	/**
+	 * Get route configuration.
+	 * @param {string} path - Route path
+	 * @returns {object|null} Route config or null
+	 */
+	getRoute(path) {
+		return this.routes.get(path) || null;
+	}
+
+	/**
+	 * Check if route exists.
+	 * @param {string} path - Route path
+	 * @returns {boolean} True if route exists
+	 */
+	hasRoute(path) {
+		return this.routes.has(path);
+	}
+
+	/**
+	 * Get all registered routes.
+	 * @returns {Array} Array of route paths
+	 */
+	getAllRoutes() {
+		return Array.from(this.routes.keys());
+	}
+}
+
+/**
+ * PageLoader implementation - caches and loads page templates.
+ * @private
+ */
+class PageLoaderImpl {
+	constructor() {
+		this.templateCache = new Map();
+		this.contentArea = null;
+		console.info('PageLoader', 'PageLoader initialized');
+	}
+
+	/**
+	 * Initialize the page loader with content area.
+	 * @param {string} contentAreaId - ID of the content area element
+	 * @returns {void}
+	 */
+	initialize(contentAreaId = 'pageContent') {
+		this.contentArea = document.getElementById(contentAreaId);
+
+		if (!this.contentArea) {
+			console.error('PageLoader', 'Content area not found', { contentAreaId });
+			throw new Error('Content area not found');
+		}
+
+		console.info('PageLoader', 'Initialized with content area', {
+			contentAreaId,
+		});
+	}
+
+	/**
+	 * Load a page template.
+	 * @param {string} templateName - Name of the template file
+	 * @returns {Promise<string>} HTML string
+	 */
+	async loadPage(templateName) {
+		console.debug('PageLoader', 'Loading page', { templateName });
+
+		// Check cache first
+		if (this.templateCache.has(templateName)) {
+			console.debug('PageLoader', 'Using cached template', { templateName });
+			return this.templateCache.get(templateName);
+		}
+
+		try {
+			// Try to load from pages directory
+			const response = await fetch(`pages/${templateName}`);
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to load ${templateName}: ${response.statusText}`,
+				);
+			}
+
+			const html = await response.text();
+
+			// Cache the template
+			this.templateCache.set(templateName, html);
+
+			console.info('PageLoader', 'Page loaded and cached', { templateName });
+			return html;
+		} catch (error) {
+			console.error('PageLoader', 'Load failed', {
+				templateName,
+				error: error.message,
+			});
+			throw error;
+		}
+	}
+
+	/**
+	 * Render HTML into the content area.
+	 * @param {string} html - HTML content to render
+	 * @returns {void}
+	 */
+	renderPage(html) {
+		if (!this.contentArea) {
+			console.error('PageLoader', 'Content area not initialized');
+			throw new Error('Content area not initialized');
+		}
+
+		try {
+			this.contentArea.innerHTML = html;
+			console.debug('PageLoader', 'Page rendered successfully');
+		} catch (error) {
+			console.error('PageLoader', 'Render failed', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Load and render a page in one operation.
+	 * @param {string} templateName - Name of the template file
+	 * @returns {Promise<void>}
+	 */
+	async loadAndRender(templateName) {
+		console.info('PageLoader', 'Load and render', { templateName });
+
+		const html = await this.loadPage(templateName);
+		this.renderPage(html);
+	}
+
+	/**
+	 * Clear the template cache.
+	 */
+	clearCache() {
+		const cacheSize = this.templateCache.size;
+		this.templateCache.clear();
+		console.info('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
+	}
+
+	/**
+	 * Get cached template count.
+	 * @returns {number} Number of cached templates
+	 */
+	getCacheSize() {
+		return this.templateCache.size;
+	}
+
+	/**
+	 * Render a loading state.
+	 */
+	renderLoading() {
+		if (!this.contentArea) return;
+
+		this.contentArea.innerHTML = `
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    `;
+	}
+
+	/**
+	 * Render an error state.
+	 * @param {string} message - Error message to display
+	 */
+	renderError(message) {
+		if (!this.contentArea) return;
+
+		this.contentArea.innerHTML = `
+      <div class="error-container">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h2>Error</h2>
+        <p>${message}</p>
+        <button onclick="location.reload()">Reload</button>
+      </div>
+    `;
+	}
+}
+
+/**
+ * NavigationController - Orchestrates routing, page loading, and navigation UI.
+ */
 class NavigationControllerImpl {
 	constructor() {
 		this.isInitialized = false;
@@ -14,7 +260,67 @@ class NavigationControllerImpl {
 		this.pendingSectionScroll = null;
 		this.sectionObserver = null;
 		this.sectionElements = [];
+
+		// Initialize internal router and page loader
+		this.router = new RouterImpl();
+		this.pageLoader = new PageLoaderImpl();
+
+		// Register all application routes
+		this.registerRoutes();
+
 		console.info('NavigationController', 'Controller created');
+	}
+
+	/**
+	 * Register all application routes.
+	 * @private
+	 */
+	registerRoutes() {
+		this.router.register('home', {
+			template: 'home.html',
+			requiresCharacter: false,
+			title: 'Home',
+		});
+
+		this.router.register('build', {
+			template: 'build.html',
+			requiresCharacter: true,
+			title: 'Build',
+		});
+
+		this.router.register('equipment', {
+			template: 'equipment.html',
+			requiresCharacter: true,
+			title: 'Equipment',
+		});
+
+		this.router.register('spells', {
+			template: 'spells.html',
+			requiresCharacter: true,
+			title: 'Spells',
+		});
+
+		this.router.register('details', {
+			template: 'details.html',
+			requiresCharacter: true,
+			title: 'Details',
+		});
+
+		this.router.register('settings', {
+			template: 'settings.html',
+			requiresCharacter: false,
+			title: 'Settings',
+		});
+
+		this.router.register('preview', {
+			template: 'preview.html',
+			requiresCharacter: true,
+			title: 'Preview',
+		});
+
+		console.info('[Router]', 'All routes registered', {
+			routes: this.router.getAllRoutes(),
+		});
 	}
 
 	/**
@@ -31,10 +337,10 @@ class NavigationControllerImpl {
 
 		// Initialize PageLoader
 		try {
-			PageLoader.initialize('pageContent');
+			this.pageLoader.initialize('pageContent');
 		} catch (error) {
 			console.error('NavigationController', 'Failed to initialize PageLoader');
-			PageLoader.renderError(error.message);
+			this.pageLoader.renderError(error.message);
 			return;
 		}
 
@@ -167,14 +473,14 @@ class NavigationControllerImpl {
 		);
 
 		// Show loading state
-		PageLoader.renderLoading();
+		this.pageLoader.renderLoading();
 
 		let route;
 		try {
-			route = await Router.navigate(page);
+			route = await this.router.navigate(page);
 		} catch (error) {
 			console.error('NavigationController', 'Navigation failed', error.message);
-			PageLoader.renderError(error.message);
+			this.pageLoader.renderError(error.message);
 			return;
 		}
 
@@ -232,7 +538,7 @@ class NavigationControllerImpl {
 		}
 
 		this.pendingSectionScroll = sectionId;
-		const currentPage = Router.getCurrentRoute();
+		const currentPage = this.router.getCurrentRoute();
 		if (currentPage !== 'build') {
 			try {
 				await this.navigateTo('build');
@@ -245,7 +551,7 @@ class NavigationControllerImpl {
 				return;
 			}
 
-			if (Router.getCurrentRoute() !== 'build') {
+			if (this.router.getCurrentRoute() !== 'build') {
 				this.pendingSectionScroll = null;
 				return;
 			}
@@ -387,14 +693,14 @@ class NavigationControllerImpl {
 		);
 
 		try {
-			await PageLoader.loadAndRender(template);
+			await this.pageLoader.loadAndRender(template);
 		} catch (error) {
 			console.error(
 				'NavigationController',
 				'Failed to load page',
 				error.message,
 			);
-			PageLoader.renderError(`Failed to load page: ${error.message}`);
+			this.pageLoader.renderError(`Failed to load page: ${error.message}`);
 			return;
 		}
 
@@ -512,7 +818,7 @@ class NavigationControllerImpl {
 		const hasCharacter = AppState.getCurrentCharacter() !== null;
 
 		this.navButtons.forEach((button, page) => {
-			const route = Router.getRoute(page);
+			const route = this.router.getRoute(page);
 
 			if (route?.requiresCharacter) {
 				if (hasCharacter) {
@@ -563,7 +869,7 @@ class NavigationControllerImpl {
 	 * @returns {string|null} Current page
 	 */
 	getCurrentPage() {
-		return Router.getCurrentRoute();
+		return this.router.getCurrentRoute();
 	}
 }
 

@@ -1,7 +1,7 @@
 /** View for rendering ability choice dropdowns for race/class bonuses. */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { abbreviateAbility } from '../../utils/TextFormatter.js';
+import { fullAbilityToAbbr } from '../../utils/5eToolsParser.js';
 
 /** View for rendering ability choice dropdowns. */
 class AbilityChoicesView {
@@ -65,14 +65,14 @@ class AbilityChoicesView {
                     data-source="${choice.source}">
                     <option value="">Choose...</option>
                     ${availableAbilities
-											.map(
-												(ability) => `
+				.map(
+					(ability) => `
                         <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
-                            ${abbreviateAbility(ability)}
+                            ${fullAbilityToAbbr(ability).toUpperCase()}
                         </option>
                     `,
-											)
-											.join('')}
+				)
+				.join('')}
                 </select>
             </div>
         `;

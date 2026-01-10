@@ -1,6 +1,6 @@
 /** Renders proficiency containers and items for each type. */
 
-import { toTitleCase } from '../../utils/TextFormatter.js';
+import { toTitleCase } from '../../utils/5eToolsParser.js';
 
 /**
  * View component for rendering proficiency lists and items

@@ -435,36 +435,6 @@
 	font-style: italic;
 }
 
-/* Tooltip test section styles */
-.tooltip-test-content {
-	color: var(--text-color);
-}
-
-.tooltip-test-content h3 {
-	color: var(--accent-color);
-	margin-bottom: 1rem;
-}
-
-.tooltip-test-content p {
-	margin-bottom: 0.5rem;
-	line-height: 1.5;
-}
-
-.tooltip-test-content .reference-group {
-	margin-bottom: 1rem;
-}
-
-.tooltip-test-content .reference-group h4 {
-	color: var(--accent-color);
-	margin-bottom: 0.5rem;
-}
-
-.tooltip-test-content .reference-group .reference-item {
-	display: inline-block;
-	margin-right: 1rem;
-	margin-bottom: 0.5rem;
-}
-
 /* Hover Links for Tag References */
 .rd__hover-link {
 	cursor: pointer;

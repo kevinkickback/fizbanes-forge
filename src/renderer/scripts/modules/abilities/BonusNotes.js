@@ -1,7 +1,7 @@
 /** View for rendering ability score bonus notes and explanations. */
 
 import { abilityScoreService } from '../../services/AbilityScoreService.js';
-import { abbreviateAbility } from '../../utils/TextFormatter.js';
+import { fullAbilityToAbbr } from '../../utils/5eToolsParser.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 /** View for rendering ability score bonus notes. */
@@ -97,7 +97,7 @@ class BonusNotesView {
 			const formattedBonuses = fixedBonuses
 				.map(
 					(bonus) =>
-						`${abbreviateAbility(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`,
+						`${fullAbilityToAbbr(bonus.ability).toUpperCase()} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`,
 				)
 				.join(', ');
 			allRaceBonuses.push(formattedBonuses);
@@ -108,7 +108,7 @@ class BonusNotesView {
 			if (source.includes('Choice')) {
 				for (const [ability, value] of bonusMap.entries()) {
 					allRaceBonuses.push(
-						`${abbreviateAbility(ability)} ${value >= 0 ? '+' : ''}${value} (choice)`,
+						`${fullAbilityToAbbr(ability).toUpperCase()} ${value >= 0 ? '+' : ''}${value} (choice)`,
 					);
 				}
 			}

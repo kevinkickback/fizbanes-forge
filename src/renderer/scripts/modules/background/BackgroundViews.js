@@ -1,6 +1,6 @@
 /** View components for background selection and details display. */
 
-import { toSentenceCase, toTitleCase } from '../../utils/TextFormatter.js';
+import { toSentenceCase, toTitleCase } from '../../utils/5eToolsParser.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 //=============================================================================

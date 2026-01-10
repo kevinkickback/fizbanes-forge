@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { MainLogger } from '../../Logger.js';
 import { IPC_CHANNELS } from '../channels.js';
 
-import { validate as validateCharacter } from '../../../renderer/scripts/core/CharacterValidation.js';
+import { CharacterSchema } from '../../../renderer/scripts/core/CharacterSchema.js';
 
 export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.info('CharacterHandlers', 'Registering character handlers');
@@ -22,7 +22,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 					? JSON.parse(characterData)
 					: characterData;
 			// Validate before saving
-			const validation = await validateCharacter(character);
+			const validation = CharacterSchema.validate(character);
 			if (!validation.valid) {
 				return {
 					success: false,
@@ -187,7 +187,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				}
 
 				// Validate character data structure
-				const validation = await validateCharacter(character);
+				const validation = CharacterSchema.validate(character);
 				if (!validation.valid) {
 					return {
 						success: false,
@@ -196,7 +196,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				}
 				// If a character payload was provided directly, validate it before proceeding
 				if (character) {
-					const validation = await validateCharacter(character);
+					const validation = CharacterSchema.validate(character);
 					if (!validation.valid) {
 						return {
 							success: false,

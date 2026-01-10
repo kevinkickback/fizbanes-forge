@@ -394,6 +394,34 @@ function capitalize(str) {
 }
 
 /**
+ * Converts a string to title case (capitalizes each word)
+ * @param {string} str - The string to format
+ * @returns {string} Title-cased string
+ */
+export function toTitleCase(str) {
+	if (typeof str !== 'string' || str.length === 0) {
+		return '';
+	}
+	return str
+		.toLowerCase()
+		.split(' ')
+		.map((word) => capitalize(word))
+		.join(' ');
+}
+
+/**
+ * Converts a string to sentence case (first letter uppercase, rest as-is)
+ * @param {string} str - The string to format
+ * @returns {string} Sentence-cased string
+ */
+export function toSentenceCase(str) {
+	if (typeof str !== 'string' || str.length === 0) {
+		return '';
+	}
+	return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
  * Helper: Simple pluralization for creature types
  * @private
  */
@@ -430,8 +458,8 @@ export function alignmentAbvToFull(alignment) {
 		// Handle complex alignment with chance
 		const alignText = alignment.alignment
 			? alignment.alignment
-					.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
-					.join(' ')
+				.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
+				.join(' ')
 			: '';
 		const chanceText = alignment.chance ? ` (${alignment.chance}%)` : '';
 		const noteText = alignment.note ? ` (${alignment.note})` : '';
@@ -779,7 +807,7 @@ export {
 	SOURCE_TO_ABV,
 	SOURCE_TO_FULL,
 	SOURCES,
-	SPEED_MODES,
+	SPEED_MODES
 };
 
 export default {
@@ -806,6 +834,8 @@ export default {
 	numberToVulgarFraction,
 	parseAbilityImprovements,
 	formatAbilityImprovements,
+	toTitleCase,
+	toSentenceCase,
 	ascSort,
 	ascSortLower,
 	ascSortByProp,

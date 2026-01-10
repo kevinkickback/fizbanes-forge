@@ -20,7 +20,6 @@
  */
 
 // Core imports - NEW ARCHITECTURE
-import { validateAssets } from '../utils/DataNormalizer.js';
 import { eventBus, EVENTS } from '../utils/EventBus.js';
 
 import { showNotification } from '../utils/Notifications.js';
@@ -512,23 +511,34 @@ export async function initializeAll(_options = {}) {
 	};
 
 	// Validate required assets before UI loads
-	validateAssets();
+	const REQUIRED_ASSETS = [
+		'assets/bootstrap/dist/css/bootstrap.min.css',
+		'assets/fontawesome/css/all.min.css',
+		'assets/fontawesome/webfonts/fa-solid-900.woff2',
+	];
+	const missingAssets = [];
+	for (const relPath of REQUIRED_ASSETS) {
+		const req = new XMLHttpRequest();
+		req.open('HEAD', relPath, false);
+		try {
+			req.send();
+			if (req.status !== 200) {
+				missingAssets.push(relPath);
+			}
+		} catch {
+			missingAssets.push(relPath);
+		}
+	}
+	if (missingAssets.length > 0) {
+		console.warn('Missing required assets:', missingAssets);
+		if (window.FF_DEBUG) {
+			alert(`Missing required assets: ${missingAssets.join(', ')}`);
+		}
+	}
 	// Mark body with debug class early so debug-only UI is toggled before loading screen
 	try {
 		if (window.FF_DEBUG === true) {
 			document.body.classList.add('debug-mode');
-			// Dynamically inject debug nav item for UI isolation
-			fetch('debug/debug-nav.html')
-				.then((res) => res.text())
-				.then((html) => {
-					const nav = document.querySelector('.sidebar-nav');
-					if (nav) {
-						nav.insertAdjacentHTML('beforeend', html);
-					}
-				})
-				.catch((err) =>
-					console.warn('AppInitializer', 'Failed to load debug nav', err),
-				);
 		} else {
 			document.body.classList.remove('debug-mode');
 		}

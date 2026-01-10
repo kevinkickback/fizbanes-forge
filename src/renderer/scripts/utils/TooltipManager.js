@@ -345,63 +345,8 @@ async function showReferenceTooltip(type, name, source, x, y) {
 	}
 	try {
 		console.info('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
-		let data = null;
-		switch (type) {
-			case 'spell':
-				data = await referenceResolver.resolveSpell(name, source);
-				break;
-			case 'item':
-				data = await referenceResolver.resolveItem(name, source);
-				break;
-			case 'condition':
-				data = await referenceResolver.resolveCondition(name);
-				break;
-			case 'monster':
-				data = await referenceResolver.resolveMonster(name, source);
-				break;
-			case 'class':
-				data = await referenceResolver.resolveClass(name, source);
-				break;
-			case 'race':
-				data = await referenceResolver.resolveRace(name, source);
-				break;
-			case 'feat':
-				data = await referenceResolver.resolveFeat(name, source);
-				break;
-			case 'background':
-				data = await referenceResolver.resolveBackground(name, source);
-				break;
-			case 'skill':
-				data = await referenceResolver.resolveSkill(name);
-				break;
-			case 'action':
-				data = await referenceResolver.resolveAction(name);
-				break;
-			case 'creature':
-				data = await referenceResolver.resolveMonster(name, source);
-				break;
-			case 'optionalfeature':
-				data = await referenceResolver.resolveOptionalFeature(name);
-				break;
-			case 'reward':
-				data = await referenceResolver.resolveReward(name);
-				break;
-			case 'trap':
-			case 'hazard':
-				data = await referenceResolver.resolveTrap(name);
-				break;
-			case 'vehicle':
-				data = await referenceResolver.resolveVehicle(name);
-				break;
-			case 'object':
-				data = await referenceResolver.resolveObject(name);
-				break;
-			case 'variantrule':
-				data = await referenceResolver.resolveVariantRule(name);
-				break;
-			default:
-				data = { name, type };
-		}
+		// Use generic resolver - single dispatch point for all types
+		const data = await referenceResolver.resolve(type, name, source);
 		console.info(
 			'TooltipSystem',
 			`[showReferenceTooltip] resolver result:`,
