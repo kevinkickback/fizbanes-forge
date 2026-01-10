@@ -5,7 +5,7 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { AbilityScoreCard } from '../modules/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../modules/background/BackgroundCard.js';
 import { ClassCard } from '../modules/class/ClassCard.js';
-import { FeatListView, FeatSourcesView } from '../modules/feats/FeatViews.js';
+import { FeatListView, FeatSourcesView } from '../modules/feats/FeatCard.js';
 import { ProficiencyCard } from '../modules/proficiencies/ProficiencyCard.js';
 import { RaceCard } from '../modules/race/RaceCard.js';
 import { settingsService } from '../services/SettingsService.js';
@@ -78,6 +78,9 @@ class PageHandlerImpl {
 					break;
 				case 'equipment':
 					await this.initializeEquipmentPage();
+					break;
+				case 'spells':
+					await this.initializeSpellsPage();
 					break;
 				case 'preview':
 					await this.initializePreviewPage();
@@ -588,10 +591,10 @@ class PageHandlerImpl {
 				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
 				newAddFeatBtn.addEventListener('click', async () => {
 					// Dynamically import the FeatSelectionModal to avoid circular deps
-					const { FeatSelectionModal } = await import(
-						'../modules/feats/FeatSelectionModal.js'
+					const { FeatCard } = await import(
+						'../modules/feats/FeatCard.js'
 					);
-					const modal = new FeatSelectionModal();
+					const modal = new FeatCard();
 					await modal.show();
 				});
 
@@ -804,8 +807,21 @@ class PageHandlerImpl {
 				return;
 			}
 
-			// Equipment page components can be initialized here
-			// For now, just log that the page is ready
+			// Initialize equipment manager component
+			const { EquipmentManager } = await import(
+				'../modules/equipment/EquipmentManager.js'
+			);
+			const equipmentManager = new EquipmentManager();
+			equipmentManager.render();
+
+			// Listen for updates and re-render
+			const updateHandler = () => equipmentManager.render();
+			eventBus.on(EVENTS.CHARACTER_UPDATED, updateHandler);
+			eventBus.on(EVENTS.ITEM_ADDED, updateHandler);
+			eventBus.on(EVENTS.ITEM_REMOVED, updateHandler);
+			eventBus.on(EVENTS.ITEM_EQUIPPED, updateHandler);
+			eventBus.on(EVENTS.ITEM_UNEQUIPPED, updateHandler);
+
 			console.info('PageHandler', 'Equipment page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing equipment page', error);
@@ -834,6 +850,43 @@ class PageHandlerImpl {
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing preview page', error);
 			showNotification('Error loading preview page', 'error');
+		}
+	}
+
+	/**
+	 * Initialize the spells page
+	 */
+	async initializeSpellsPage() {
+		console.info('PageHandler', 'Initializing spells page');
+
+		try {
+			const character = AppState.getCurrentCharacter();
+			if (!character) {
+				console.warn('PageHandler', 'No character loaded for spells page');
+				return;
+			}
+
+			// Initialize spells manager component
+			const { SpellsManager } = await import(
+				'../modules/spells/SpellsManager.js'
+			);
+			const spellsManager = new SpellsManager();
+			spellsManager.render();
+
+			// Listen for updates and re-render
+			const updateHandler = () => spellsManager.render();
+			eventBus.on(EVENTS.CHARACTER_UPDATED, updateHandler);
+			eventBus.on(EVENTS.SPELL_ADDED, updateHandler);
+			eventBus.on(EVENTS.SPELL_REMOVED, updateHandler);
+			eventBus.on(EVENTS.SPELL_PREPARED, updateHandler);
+			eventBus.on(EVENTS.SPELL_UNPREPARED, updateHandler);
+			eventBus.on(EVENTS.SPELL_SLOTS_USED, updateHandler);
+			eventBus.on(EVENTS.SPELL_SLOTS_RESTORED, updateHandler);
+
+			console.info('PageHandler', 'Spells page initialized');
+		} catch (error) {
+			console.error('PageHandler', 'Error initializing spells page', error);
+			showNotification('Error loading spells page', 'error');
 		}
 	}
 }

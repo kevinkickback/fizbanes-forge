@@ -1,12 +1,12 @@
 /** View for detailed race information (ability scores, size, speed, languages, traits). */
 
+import { getAbilityData } from '../../services/AbilityScoreService.js';
 import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
 	toTitleCase,
 } from '../../utils/5eToolsParser.js';
-import { getAbilityData } from '../../utils/AbilityScoreUtils.js';
 import { textProcessor } from '../../utils/TextProcessor.js';
 
 // Default D&D 5e speed for most races

@@ -220,8 +220,8 @@ export class LevelUpModal {
 
     async _handleSelectFeat() {
         // Lazy import to avoid circular deps
-        const { FeatSelectionModal } = await import('../feats/FeatSelectionModal.js');
-        const modal = new FeatSelectionModal();
+        const { FeatCard } = await import('../feats/FeatCard.js');
+        const modal = new FeatCard();
         await modal.show();
     }
 

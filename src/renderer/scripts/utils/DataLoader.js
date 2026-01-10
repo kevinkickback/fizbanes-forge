@@ -4,7 +4,61 @@ const state = {
 	cache: {},
 	loading: {},
 	baseUrl: '', // Base URL now empty since data is at root
+	persisted: null,
 };
+
+const PERSIST_KEY = 'ff:data-cache:v1';
+
+function _loadPersistedCache() {
+	if (state.persisted) return state.persisted;
+	try {
+		const raw = window?.localStorage?.getItem(PERSIST_KEY);
+		if (!raw) {
+			state.persisted = {};
+			return state.persisted;
+		}
+		state.persisted = JSON.parse(raw) || {};
+	} catch (error) {
+		console.warn('DataLoader', 'Failed to load persisted cache', error);
+		state.persisted = {};
+	}
+	return state.persisted;
+}
+
+function _savePersistedCache() {
+	try {
+		if (!state.persisted) return;
+		window?.localStorage?.setItem(PERSIST_KEY, JSON.stringify(state.persisted));
+	} catch (error) {
+		console.warn('DataLoader', 'Failed to save persisted cache', error);
+	}
+}
+
+async function _hashData(data) {
+	try {
+		const json = JSON.stringify(data || {});
+		const encoded = new TextEncoder().encode(json);
+		const digest = await crypto.subtle.digest('SHA-256', encoded);
+		const bytes = new Uint8Array(digest);
+		return Array.from(bytes)
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
+	} catch (error) {
+		console.warn('DataLoader', 'Hashing failed, skipping version tag', error);
+		return null;
+	}
+}
+
+function _getPersistedEntry(url) {
+	const persisted = _loadPersistedCache();
+	return persisted?.[url] || null;
+}
+
+function _setPersistedEntry(url, data, hash) {
+	const persisted = _loadPersistedCache();
+	persisted[url] = { data, hash: hash || null };
+	_savePersistedCache();
+}
 
 function setBaseUrl(url) {
 	state.baseUrl = url;
@@ -20,6 +74,12 @@ function setBaseUrl(url) {
  */
 async function loadJSON(url) {
 	if (state.cache[url]) return state.cache[url];
+
+	const persisted = _getPersistedEntry(url);
+	if (persisted?.data) {
+		state.cache[url] = persisted.data;
+		return persisted.data;
+	}
 	if (state.loading[url]) return state.loading[url];
 
 	state.loading[url] = (async () => {
@@ -60,7 +120,9 @@ async function loadJSON(url) {
 				data = await response.json();
 			}
 
+			const hash = await _hashData(data);
 			state.cache[url] = data;
+			_setPersistedEntry(url, data, hash);
 			delete state.loading[url];
 			return data;
 		} catch (error) {
@@ -298,6 +360,12 @@ async function loadSubclassSpells(subclassId) {
 function clearCache() {
 	state.cache = {};
 	state.loading = {};
+	state.persisted = {};
+	try {
+		window?.localStorage?.removeItem(PERSIST_KEY);
+	} catch (error) {
+		console.warn('DataLoader', 'Failed to clear persisted cache', error);
+	}
 	return dataLoader;
 }
 
@@ -411,5 +479,5 @@ export {
 	loadTrapsHazards,
 	loadVariantRules,
 	loadVehicles,
-	setBaseUrl,
+	setBaseUrl
 };

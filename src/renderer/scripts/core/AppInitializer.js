@@ -25,10 +25,8 @@ import { eventBus, EVENTS } from '../utils/EventBus.js';
 import { showNotification } from '../utils/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
-import { equipmentPageController } from './EquipmentPageController.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
-import { spellsPageController } from './SpellsPageController.js';
 
 // Modal for data configuration
 import { DataConfigurationModal } from '../modules/setup/DataConfigurationModal.js';
@@ -49,6 +47,13 @@ import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
 import { DataLoader } from '../utils/DataLoader.js';
 import { textProcessor } from '../utils/TextProcessor.js';
+
+const MAX_DATA_LOAD_ATTEMPTS = 2;
+const DATA_LOAD_BACKOFF_MS = 350;
+
+function _sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Wrapper for data loader calls that handles errors consistently
@@ -104,6 +109,26 @@ async function _checkDataFolder() {
 		console.error('AppInitializer', 'Error checking data folder:', error);
 		showNotification('Error checking data folder. Please try again.', 'error');
 		return false;
+	}
+}
+
+async function _validateDataSource() {
+	const saved = await window.app.getDataSource();
+	if (!saved?.type || !saved?.value) {
+		return { ok: false, error: 'No data source configured' };
+	}
+
+	try {
+		const validation = await window.app.validateDataSource({
+			type: saved.type,
+			value: saved.value,
+		});
+		if (!validation?.success) {
+			return { ok: false, error: validation?.error || 'Validation failed' };
+		}
+		return { ok: true };
+	} catch (error) {
+		return { ok: false, error: error?.message || 'Validation error' };
 	}
 }
 
@@ -168,6 +193,53 @@ async function _loadAllGameData() {
 	}
 }
 
+async function _loadAllGameDataWithRetry() {
+	let lastError = null;
+	for (let attempt = 1; attempt <= MAX_DATA_LOAD_ATTEMPTS; attempt++) {
+		if (attempt > 1) {
+			await _sleep(DATA_LOAD_BACKOFF_MS * (attempt - 1));
+		}
+
+		const validation = await _validateDataSource();
+		if (!validation.ok) {
+			lastError = new Error(validation.error || 'Data source validation failed');
+			if (attempt === MAX_DATA_LOAD_ATTEMPTS) {
+				showNotification(
+					`Data source validation failed: ${lastError.message}`,
+					'error',
+				);
+				await _promptDataSourceFix(lastError.message);
+				return { success: false, errors: [lastError] };
+			}
+			showNotification(
+				`Data source validation failed (attempt ${attempt}/${MAX_DATA_LOAD_ATTEMPTS}). Retrying...`,
+				'warning',
+			);
+			continue;
+		}
+
+		const loadResult = await _loadAllGameData();
+		if (loadResult.success) return loadResult;
+
+		lastError = loadResult.errors?.[0] || new Error('Data load failed');
+		if (attempt === MAX_DATA_LOAD_ATTEMPTS) {
+			showNotification(
+				`Failed to load game data: ${lastError.message}`,
+				'error',
+			);
+			await _promptDataSourceFix(lastError.message);
+			return loadResult;
+		}
+
+		showNotification(
+			`Game data load failed (attempt ${attempt}/${MAX_DATA_LOAD_ATTEMPTS}). Retrying...`,
+			'warning',
+		);
+	}
+
+	return { success: false, errors: lastError ? [lastError] : [] };
+}
+
 /**
  * Initializes a single core component with error handling
  * @param {string} name - The name of the component
@@ -211,8 +283,6 @@ async function _initializeCoreComponents() {
 				name: 'navigation controller',
 				init: () => NavigationController.initialize(),
 			},
-			{ name: 'spells page controller', init: () => spellsPageController.initialize() },
-			{ name: 'equipment page controller', init: () => equipmentPageController.initialize() },
 			{ name: 'settings service', init: () => settingsService.initialize() },
 		];
 
@@ -604,7 +674,7 @@ export async function initializeAll(_options = {}) {
 		// Step 1: Load all game data
 		loadingModal.updateMessage('Loading game data...');
 		loadingModal.updateProgress(30);
-		const dataLoadResult = await _loadAllGameData();
+		const dataLoadResult = await _loadAllGameDataWithRetry();
 		if (!dataLoadResult.success) {
 			result.errors.push(...dataLoadResult.errors);
 		}

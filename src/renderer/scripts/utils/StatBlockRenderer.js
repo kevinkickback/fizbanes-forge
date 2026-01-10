@@ -5,8 +5,8 @@ import {
 	getSpeedString,
 	sizeAbvToFull,
 } from './5eToolsParser.js';
-import { getAbilityData } from './AbilityScoreUtils.js';
-import { Renderer5etools } from './Renderer5etools.js';
+import { getAbilityData } from '../services/AbilityScoreService.js';
+import { Renderer5etools } from './5eToolsRenderer.js';
 
 /**
  * Render a spell stat block

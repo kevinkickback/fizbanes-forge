@@ -1,75 +1,21 @@
-/** @file Controller for the Spells page. Manages spell display, selection, and slot tracking. */
+/** @file Component for managing the Spells page */
 
-import { SpellSelectionModal } from '../modules/spells/SpellSelectionModal.js';
-import { levelUpService } from '../services/LevelUpService.js';
-import { spellSelectionService } from '../services/SpellSelectionService.js';
-import { eventBus, EVENTS } from '../utils/EventBus.js';
-import { showNotification } from '../utils/Notifications.js';
-import { AppState } from './AppState.js';
+import { AppState } from '../../core/AppState.js';
+import { levelUpService } from '../../services/LevelUpService.js';
+import { spellSelectionService } from '../../services/SpellSelectionService.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
+import { showNotification } from '../../utils/Notifications.js';
+import { SpellSelectionModal } from './SpellSelectionModal.js';
 
 /**
- * Controller for the Spells character page.
+ * Component for the Spells character page.
  * Handles display of known/prepared spells, spell slots, and spellcasting abilities.
  */
-class SpellsPageController {
+export class SpellsManager {
     constructor() {
-        this.loggerScope = 'SpellsPageController';
+        this.loggerScope = 'SpellsManager';
         this.spellSelectionModal = null;
-        this.isInitialized = false;
-    }
-
-    /**
-     * Initialize the spells page controller.
-     * @returns {void}
-     */
-    initialize() {
-        if (this.isInitialized) {
-            console.warn(`[${this.loggerScope}]`, 'Already initialized');
-            return;
-        }
-
-        console.info(`[${this.loggerScope}]`, 'Initializing');
-
-        // Setup event listeners
-        eventBus.on(EVENTS.PAGE_LOADED, (page) => {
-            if (page === 'spells') {
-                this.render();
-            }
-        });
-
-        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.SPELL_ADDED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.SPELL_REMOVED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.SPELL_PREPARED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.SPELL_UNPREPARED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.SPELL_SLOTS_USED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.SPELL_SLOTS_RESTORED, () => {
-            this.render();
-        });
-
-        // Setup UI event listeners
         this.setupEventListeners();
-
-        this.isInitialized = true;
-        console.info(`[${this.loggerScope}]`, 'Initialized successfully');
     }
 
     /**
@@ -121,7 +67,6 @@ class SpellsPageController {
         console.info(`[${this.loggerScope}]`, 'Rendering spells page');
 
         // Ensure progression and spellcasting are initialized before rendering
-        // This handles cases where user navigates to spells page before visiting level page
         levelUpService.initializeProgression(character);
 
         this.renderKnownSpells(character);
@@ -141,7 +86,8 @@ class SpellsPageController {
 
         const spellcasting = character.spellcasting;
         if (!spellcasting || Object.keys(spellcasting.classes).length === 0) {
-            container.innerHTML = '<p style="color: var(--text-color)">No spellcasting class selected.</p>';
+            container.innerHTML =
+                '<p style="color: var(--text-color)">No spellcasting class selected.</p>';
             return;
         }
 
@@ -155,7 +101,11 @@ class SpellsPageController {
 
             // Get spell limit info for this class
             const classLevel = classData.level || 1;
-            const limitInfo = spellSelectionService.getSpellLimitInfo(character, className, classLevel);
+            const limitInfo = spellSelectionService.getSpellLimitInfo(
+                character,
+                className,
+                classLevel,
+            );
 
             // Add class header with spell limit (if multiclass or has limit)
             if (isMulticlass || limitInfo.limit > 0) {
@@ -183,13 +133,16 @@ class SpellsPageController {
 					<div class="spell-list">`;
 
                 for (const spell of spells) {
-                    const isPrepared = classData.spellsPrepared?.some(
-                        (s) => s.name === spell.name,
-                    ) || false;
+                    const isPrepared =
+                        classData.spellsPrepared?.some((s) => s.name === spell.name) ||
+                        false;
 
-                    const prepareBtn = level > 0 ? `<button class="btn btn-sm btn-outline-secondary" data-prepare-spell="${spell.name}" data-class-name="${className}" title="${isPrepared ? 'Unprepare' : 'Prepare'}">
+                    const prepareBtn =
+                        level > 0
+                            ? `<button class="btn btn-sm btn-outline-secondary" data-prepare-spell="${spell.name}" data-class-name="${className}" title="${isPrepared ? 'Unprepare' : 'Prepare'}">
 						<i class="fas fa-check${isPrepared ? '' : '-circle'}"></i>
-					</button>` : '';
+					</button>`
+                            : '';
 
                     html += `<div class="spell-item card card-sm mb-2">
 						<div class="card-body d-flex justify-content-between align-items-center">
@@ -219,7 +172,8 @@ class SpellsPageController {
         }
 
         if (html === '') {
-            html = '<p class="text-muted">No known spells. Click "Add Spell" to select spells.</p>';
+            html =
+                '<p class="text-muted">No known spells. Click "Add Spell" to select spells.</p>';
         }
 
         container.innerHTML = html;
@@ -237,7 +191,13 @@ class SpellsPageController {
 
         const spellcasting = character.spellcasting;
         const classNames = Object.keys(spellcasting?.classes || {});
-        const preparedSpellClasses = ['Cleric', 'Druid', 'Paladin', 'Ranger', 'Wizard'];
+        const preparedSpellClasses = [
+            'Cleric',
+            'Druid',
+            'Paladin',
+            'Ranger',
+            'Wizard',
+        ];
 
         let html = '';
         let totalPrepared = 0;
@@ -281,72 +241,10 @@ class SpellsPageController {
         }
 
         container.innerHTML = html;
-        section.style.display = totalPrepared > 0 || totalLimit > 0 ? 'block' : 'none';
+        section.style.display =
+            totalPrepared > 0 || totalLimit > 0 ? 'block' : 'none';
     }
 
-    /**
-     * Render spell slots by level.
-     * @param {Object} character - Character object
-     * @private
-     */
-    renderSpellSlots(character) {
-        const container = document.getElementById('spellSlotsList');
-        const section = document.getElementById('spellSlotsSection');
-        if (!container || !section) return;
-
-        const spellcasting = character.spellcasting;
-        const classNames = Object.keys(spellcasting?.classes || {});
-
-        let html = '';
-        let hasSlots = false;
-
-        for (const className of classNames) {
-            const classData = spellcasting.classes[className];
-            if (!classData?.spellSlots || Object.keys(classData.spellSlots).length === 0) {
-                continue;
-            }
-
-            hasSlots = true;
-            html += `<div class="spell-slots-class mb-4">
-				<h6 class="mb-3">${className}</h6>
-				<div class="row g-3">`;
-
-            for (let level = 1; level <= 9; level++) {
-                const slotData = classData.spellSlots[level];
-                if (!slotData) continue;
-
-                const used = slotData.max - slotData.current;
-                html += `<div class="col-md-4">
-					<div class="card bg-light">
-						<div class="card-body">
-							<h6 class="card-title mb-2">${this._getLevelLabel(level)}</h6>
-							<div class="d-flex justify-content-between align-items-center mb-2">
-								<span>${slotData.current} / ${slotData.max}</span>
-								<small class="text-muted">used: ${used}</small>
-							</div>
-							<div class="progress" style="height: 20px;">
-								<div class="progress-bar" style="width: ${((slotData.current / slotData.max) * 100) || 0}%"></div>
-							</div>
-							${slotData.current > 0 ? `<button class="btn btn-sm btn-warning mt-2 w-100" data-use-slot="${level}">
-								Use Slot
-							</button>` : ''}
-						</div>
-					</div>
-				</div>`;
-            }
-
-            html += `</div></div>`;
-        }
-
-        container.innerHTML = html || '<p class="text-muted">No spell slots.</p>';
-        section.style.display = hasSlots ? 'block' : 'none';
-    }
-
-    /**
-     * Render cantrips.
-     * @param {Object} character - Character object
-     * @private
-     */
     /**
      * Render spellcasting ability and spell save DC.
      * @param {Object} character - Character object
@@ -390,7 +288,10 @@ class SpellsPageController {
 				</div>`;
 
             // Add spell slots information
-            if (classData?.spellSlots && Object.keys(classData.spellSlots).length > 0) {
+            if (
+                classData?.spellSlots &&
+                Object.keys(classData.spellSlots).length > 0
+            ) {
                 html += `<div class="mt-3">
 					<small class="d-block text-muted mb-2">Spell Slots</small>
 					<div class="d-flex flex-wrap gap-2">`;
@@ -408,9 +309,19 @@ class SpellsPageController {
             }
 
             // Add prepared spell limit for classes that prepare spells
-            const preparedSpellClasses = ['Cleric', 'Druid', 'Paladin', 'Ranger', 'Wizard'];
+            const preparedSpellClasses = [
+                'Cleric',
+                'Druid',
+                'Paladin',
+                'Ranger',
+                'Wizard',
+            ];
             const classLevel = classData.level || 1;
-            const limitInfo = spellSelectionService.getSpellLimitInfo(character, className, classLevel);
+            const limitInfo = spellSelectionService.getSpellLimitInfo(
+                character,
+                className,
+                classLevel,
+            );
 
             // Add spell counters section
             if (limitInfo.limit > 0) {
@@ -438,7 +349,9 @@ class SpellsPageController {
             html += `</div>`;
         }
 
-        container.innerHTML = html || '<p style="color: var(--text-color)">No spellcasting ability.</p>';
+        container.innerHTML =
+            html ||
+            '<p style="color: var(--text-color)">No spellcasting ability.</p>';
     }
 
     /**
@@ -459,7 +372,8 @@ class SpellsPageController {
             return;
         }
 
-        let html = '<p class="text-info mb-3">Multiclass spellcasting rules apply. Spell slots are combined across classes.</p>';
+        let html =
+            '<p class="text-info mb-3">Multiclass spellcasting rules apply. Spell slots are combined across classes.</p>';
 
         const multiclassSlots = spellcasting?.multiclass || {};
         if (Object.keys(multiclassSlots).length > 0) {
@@ -500,7 +414,7 @@ class SpellsPageController {
             if (result) {
                 console.info(`[${this.loggerScope}]`, 'Spells added', {
                     count: result.successCount,
-                    className: result.className
+                    className: result.className,
                 });
             }
         } catch (error) {
@@ -523,19 +437,25 @@ class SpellsPageController {
         }
 
         const spellcasting = character.spellcasting;
-        const classesToCheck = className ? [className] : Object.keys(spellcasting?.classes || {});
+        const classesToCheck = className
+            ? [className]
+            : Object.keys(spellcasting?.classes || {});
 
         for (const cls of classesToCheck) {
             const classData = spellcasting.classes[cls];
 
             // Remove from known spells
-            const knownIndex = classData.spellsKnown?.findIndex((s) => s.name === spellName);
+            const knownIndex = classData.spellsKnown?.findIndex(
+                (s) => s.name === spellName,
+            );
             if (knownIndex !== -1) {
                 classData.spellsKnown.splice(knownIndex, 1);
             }
 
             // Remove from prepared spells
-            const preparedIndex = classData.spellsPrepared?.findIndex((s) => s.name === spellName);
+            const preparedIndex = classData.spellsPrepared?.findIndex(
+                (s) => s.name === spellName,
+            );
             if (preparedIndex !== -1) {
                 classData.spellsPrepared.splice(preparedIndex, 1);
             }
@@ -559,19 +479,24 @@ class SpellsPageController {
         }
 
         const spellcasting = character.spellcasting;
-        const classesToCheck = className ? [className] : Object.keys(spellcasting?.classes || {});
+        const classesToCheck = className
+            ? [className]
+            : Object.keys(spellcasting?.classes || {});
 
         for (const cls of classesToCheck) {
             const classData = spellcasting.classes[cls];
-            const knownSpell = classData.spellsKnown?.find((s) => s.name === spellName);
+            const knownSpell = classData.spellsKnown?.find(
+                (s) => s.name === spellName,
+            );
 
             if (knownSpell) {
-                const isPrepared = classData.spellsPrepared?.some(
-                    (s) => s.name === spellName,
-                ) || false;
+                const isPrepared =
+                    classData.spellsPrepared?.some((s) => s.name === spellName) || false;
 
                 if (isPrepared) {
-                    const idx = classData.spellsPrepared.findIndex((s) => s.name === spellName);
+                    const idx = classData.spellsPrepared.findIndex(
+                        (s) => s.name === spellName,
+                    );
                     classData.spellsPrepared.splice(idx, 1);
                     eventBus.emit(EVENTS.SPELL_UNPREPARED, character, cls, spellName);
                 } else {
@@ -579,7 +504,10 @@ class SpellsPageController {
                     eventBus.emit(EVENTS.SPELL_PREPARED, character, cls, spellName);
                 }
 
-                showNotification(`${isPrepared ? 'Unprepared' : 'Prepared'} ${spellName}`, 'success');
+                showNotification(
+                    `${isPrepared ? 'Unprepared' : 'Prepared'} ${spellName}`,
+                    'success',
+                );
                 break;
             }
         }
@@ -630,6 +558,3 @@ class SpellsPageController {
         return `${level}${suffixes[level]} Level`;
     }
 }
-
-// Export singleton
-export const spellsPageController = new SpellsPageController();

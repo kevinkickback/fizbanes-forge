@@ -1,65 +1,20 @@
-/** @file Controller for the Equipment character page */
+/** @file Component for managing the Equipment page */
 
-import { EquipmentSelectionModal } from '../modules/equipment/EquipmentSelectionModal.js';
-import { equipmentService } from '../services/EquipmentService.js';
-import { eventBus, EVENTS } from '../utils/EventBus.js';
-import { showNotification } from '../utils/Notifications.js';
-import { AppState } from './AppState.js';
+import { AppState } from '../../core/AppState.js';
+import { equipmentService } from '../../services/EquipmentService.js';
+import { eventBus, EVENTS } from '../../utils/EventBus.js';
+import { showNotification } from '../../utils/Notifications.js';
+import { EquipmentSelectionModal } from './EquipmentSelectionModal.js';
 
 /**
- * Controller for the Equipment character page.
+ * Component for the Equipment character page.
  * Handles display of inventory, equipped items, and attunement.
  */
-class EquipmentPageController {
+export class EquipmentManager {
     constructor() {
-        this.loggerScope = 'EquipmentPageController';
-        this.isInitialized = false;
+        this.loggerScope = 'EquipmentManager';
         this.equipmentSelectionModal = null;
-    }
-
-    /**
-     * Initialize the equipment page controller.
-     * @returns {void}
-     */
-    initialize() {
-        if (this.isInitialized) {
-            console.warn(`[${this.loggerScope}]`, 'Already initialized');
-            return;
-        }
-
-        console.info(`[${this.loggerScope}]`, 'Initializing');
-
-        // Setup event listeners
-        eventBus.on(EVENTS.PAGE_LOADED, (page) => {
-            if (page === 'equipment') {
-                this.render();
-            }
-        });
-
-        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.ITEM_ADDED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.ITEM_REMOVED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.ITEM_EQUIPPED, () => {
-            this.render();
-        });
-
-        eventBus.on(EVENTS.ITEM_UNEQUIPPED, () => {
-            this.render();
-        });
-
         this.setupEventListeners();
-
-        this.isInitialized = true;
-        console.info(`[${this.loggerScope}]`, 'Initialized');
     }
 
     /**
@@ -385,11 +340,11 @@ class EquipmentPageController {
 
     /**
      * Handle equipping an item.
-     * @param {string} itemId - Item instance ID
-     * @param {string} slot - Equipment slot
+     * @param {string} _itemId - Item instance ID (unused - feature in progress)
+     * @param {string} _slot - Equipment slot (unused - feature in progress)
      * @private
      */
-    handleEquipItem(itemId, slot) {
+    handleEquipItem(_itemId, _slot) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
             showNotification('No character selected', 'error');
@@ -397,7 +352,10 @@ class EquipmentPageController {
         }
 
         // TODO: Implement slot selection modal/dropdown
-        showNotification('Please select an equipment slot (feature in progress)', 'info');
+        showNotification(
+            'Please select an equipment slot (feature in progress)',
+            'info',
+        );
     }
 
     /**
@@ -438,7 +396,10 @@ class EquipmentPageController {
             eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
             showNotification('Item attuned', 'success');
         } else {
-            showNotification('Failed to attune item (check attunement limit)', 'error');
+            showNotification(
+                'Failed to attune item (check attunement limit)',
+                'error',
+            );
         }
     }
 
@@ -463,6 +424,3 @@ class EquipmentPageController {
         }
     }
 }
-
-// Export singleton instance
-export const equipmentPageController = new EquipmentPageController();

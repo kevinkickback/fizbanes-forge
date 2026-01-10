@@ -8,7 +8,7 @@
  * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
  */
 
-import { processString as renderStringWithTags } from './Renderer5etools.js';
+import { processString as renderStringWithTags } from './5eToolsRenderer.js';
 import { initializeTooltipListeners } from './TooltipManager.js';
 
 /** Processes text content, handling references and formatting for static/dynamic content. */

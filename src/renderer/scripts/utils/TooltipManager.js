@@ -1,9 +1,9 @@
 /** TooltipManager.js - Manages displaying and hiding D&D reference tooltips as a plain module. */
 
 import { DEFAULT_SOURCE } from './5eToolsParser.js';
+import { Renderer5etools } from './5eToolsRenderer.js';
 import DataNormalizer from './DataNormalizer.js';
 import { getReferenceResolver } from './ReferenceResolver.js';
-import { Renderer5etools } from './Renderer5etools.js';
 import {
 	renderAction,
 	renderBackground,
@@ -173,7 +173,7 @@ function _togglePin(tooltipObj) {
  * @private
  */
 // Copy tooltip content is disabled (button removed)
-async function _copyTooltipContent() {}
+async function _copyTooltipContent() { }
 
 /**
  * Close specific tooltip
