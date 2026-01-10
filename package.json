@@ -3,7 +3,7 @@
 	"productName": "Fizbane's Forge",
 	"version": "1.0.0",
 	"description": "Fizbane's Forge - A comprehensive Dungeons & Dragons character creator application",
-	"main": "./src/electron/main.js",
+	"main": "./src/main/Main.js",
 	"type": "module",
 	"scripts": {
 		"start": "electron .",
@@ -61,6 +61,7 @@
 		"@fortawesome/fontawesome-free": "^6.5.1",
 		"5etools-utils": "^0.14.22",
 		"bootstrap": "^5.3.2",
+		"electron-log": "^5.4.3",
 		"uuid": "^9.0.1"
 	}
 }
