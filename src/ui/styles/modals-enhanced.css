@@ -1,0 +1,124 @@
+/* ===================================
+   MODALS - Native App Style
+   Enhanced modal dialogs
+   =================================== */
+
+/* Modal backdrop */
+.modal-backdrop {
+	background-color: var(--overlay-darker);
+	backdrop-filter: blur(4px);
+}
+
+/* Modal dialog */
+.modal-dialog {
+	box-shadow: var(--shadow-elevated);
+}
+
+/* Modal content */
+.modal-content {
+	background-color: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	box-shadow: var(--shadow-elevated);
+	color: var(--text-color);
+}
+
+/* Modal header */
+.modal-header {
+	background-color: var(--primary-color);
+	border-bottom: 1px solid var(--border-color);
+	padding: 1.25rem 1.5rem;
+	border-top-left-radius: var(--border-radius-lg);
+	border-top-right-radius: var(--border-radius-lg);
+}
+
+.modal-title {
+	color: var(--text-color);
+	font-weight: 600;
+	font-size: 1.1rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.modal-title i {
+	color: var(--accent-color);
+}
+
+/* Close button */
+.btn-close {
+	filter: var(--btn-close-filter, invert(0.7));
+	opacity: 0.7;
+	transition: all 0.15s ease;
+}
+
+.btn-close:hover {
+	opacity: 1;
+	transform: rotate(90deg);
+}
+
+[data-theme="light"] .btn-close {
+	--btn-close-filter: invert(0);
+}
+
+/* Modal body */
+.modal-body {
+	background-color: var(--card-background);
+	padding: 1.5rem;
+	color: var(--text-color);
+}
+
+/* Modal footer */
+.modal-footer {
+	background-color: var(--primary-color);
+	border-top: 1px solid var(--border-color);
+	padding: 1rem 1.5rem;
+	border-bottom-left-radius: var(--border-radius-lg);
+	border-bottom-right-radius: var(--border-radius-lg);
+}
+
+/* Modal sizes */
+.modal-sm .modal-content {
+	box-shadow: var(--shadow-xl);
+}
+
+.modal-lg .modal-content,
+.modal-xl .modal-content {
+	box-shadow: var(--shadow-deep);
+}
+
+/* Modal animations */
+.modal.fade .modal-dialog {
+	transform: scale(0.95) translateY(-20px);
+	opacity: 0;
+	transition: all 0.2s ease;
+}
+
+.modal.show .modal-dialog {
+	transform: scale(1) translateY(0);
+	opacity: 1;
+}
+
+/* Scrollable modals */
+.modal-body {
+	max-height: calc(100vh - 250px);
+	overflow-y: auto;
+}
+
+.modal-body::-webkit-scrollbar {
+	width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+	background: var(--secondary-color);
+	border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+	background: var(--border-light);
+	border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+	background: var(--border-very-light);
+}

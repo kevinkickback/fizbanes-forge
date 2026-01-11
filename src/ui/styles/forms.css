@@ -1,0 +1,119 @@
+/* ===================================
+   FORMS - Native App Style
+   Enhanced form controls
+   =================================== */
+
+/* Form controls */
+.form-control,
+.form-select {
+	background-color: var(--card-background);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	border-radius: var(--border-radius);
+	transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+	background-color: var(--card-background);
+	border-color: var(--accent-color);
+	color: var(--text-color);
+	box-shadow: 0 0 0 3px var(--accent-10);
+	outline: none;
+}
+
+.form-control::placeholder {
+	color: var(--text-muted);
+	opacity: 0.6;
+}
+
+/* Form labels */
+.form-label {
+	color: var(--text-color);
+	font-weight: 500;
+	margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.form-label i {
+	color: var(--text-muted);
+	font-size: 0.9rem;
+}
+
+/* Checkboxes and radios */
+.form-check-input {
+	border: 1px solid var(--border-color);
+	background-color: var(--card-background);
+	cursor: pointer;
+}
+
+.form-check-input:checked {
+	background-color: var(--accent-color);
+	border-color: var(--accent-color);
+}
+
+.form-check-input:focus {
+	border-color: var(--accent-color);
+	box-shadow: 0 0 0 3px var(--accent-10);
+}
+
+.form-check-label {
+	color: var(--text-color);
+	cursor: pointer;
+	user-select: none;
+}
+
+/* Input groups */
+.input-group {
+	box-shadow: var(--shadow-sm);
+	border-radius: var(--border-radius);
+	overflow: hidden;
+}
+
+.input-group .form-control {
+	border-radius: 0;
+}
+
+.input-group-text {
+	background-color: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	color: var(--text-muted);
+}
+
+/* Select dropdowns */
+.form-select {
+	cursor: pointer;
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23999' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.form-select option {
+	background-color: var(--card-background);
+	color: var(--text-color);
+}
+
+/* Disabled states */
+.form-control:disabled,
+.form-select:disabled,
+.form-check-input:disabled {
+	background-color: var(--secondary-color);
+	border-color: var(--border-color);
+	color: var(--text-muted);
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Form sections */
+.form-section {
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	padding: 1.25rem;
+	margin-bottom: 1.5rem;
+	box-shadow: var(--shadow-sm);
+}
+
+.form-section + .form-section {
+	margin-top: 1rem;
+}

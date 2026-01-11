@@ -1,0 +1,52 @@
+/* ===================================
+   SCROLLBARS - Custom Styling
+   Native app-style scrollbars
+   =================================== */
+
+/* Webkit scrollbars (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+	width: 12px;
+	height: 12px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--secondary-color);
+	border-radius: 6px;
+	margin: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--border-light);
+	border-radius: 6px;
+	border: 2px solid var(--secondary-color);
+	transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--border-very-light);
+}
+
+::-webkit-scrollbar-thumb:active {
+	background: var(--text-muted);
+}
+
+/* Thin scrollbars for smaller areas */
+.thin-scrollbar::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+	border: 1px solid var(--secondary-color);
+}
+
+/* Firefox scrollbars */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border-light) var(--secondary-color);
+}
+
+/* Horizontal scrollbar */
+::-webkit-scrollbar:horizontal {
+	height: 10px;
+}

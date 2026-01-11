@@ -1,0 +1,113 @@
+/* ===================================
+   BUTTONS - Native App Style
+   Enhanced button styles for desktop feel
+   =================================== */
+
+/* Base button improvements */
+.btn {
+	border-radius: var(--border-radius);
+	font-weight: 500;
+	transition: all 0.15s ease;
+	border: 1px solid transparent;
+	box-shadow: var(--shadow-sm);
+}
+
+.btn:hover {
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+	transform: translateY(0);
+	box-shadow: var(--shadow-sm);
+}
+
+/* Primary button */
+.btn-primary {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	color: white;
+}
+
+.btn-primary:hover {
+	background: var(--accent-hover);
+	border-color: var(--accent-hover);
+	color: white;
+}
+
+/* Secondary button */
+.btn-secondary {
+	background: var(--secondary-color);
+	border-color: var(--border-color);
+	color: var(--text-color);
+}
+
+.btn-secondary:hover {
+	background: var(--primary-color);
+	border-color: var(--border-light);
+	color: var(--text-color);
+}
+
+/* Outline buttons */
+.btn-outline-primary {
+	border-color: var(--accent-color);
+	color: var(--accent-color);
+	background: transparent;
+}
+
+.btn-outline-primary:hover {
+	background: var(--accent-color);
+	color: white;
+}
+
+.btn-outline-secondary {
+	border-color: var(--border-color);
+	color: var(--text-color);
+	background: transparent;
+}
+
+.btn-outline-secondary:hover {
+	background: var(--secondary-color);
+	border-color: var(--border-light);
+}
+
+/* Success/Danger buttons */
+.btn-success {
+	background: var(--success-color);
+	border-color: var(--success-color);
+	color: white;
+}
+
+.btn-danger {
+	background: var(--danger-color);
+	border-color: var(--danger-color);
+	color: white;
+}
+
+/* Icon buttons */
+.btn i {
+	margin-right: 0.35rem;
+}
+
+.btn i:only-child {
+	margin-right: 0;
+}
+
+/* Button groups */
+.btn-group .btn {
+	margin-right: -1px;
+}
+
+.btn-group .btn:first-child {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.btn-group .btn:last-child {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+
+.btn-group .btn:not(:first-child):not(:last-child) {
+	border-radius: 0;
+}
