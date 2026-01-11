@@ -51,7 +51,8 @@
 
 /* Pulse animation */
 @keyframes pulse {
-	0%, 100% {
+	0%,
+	100% {
 		opacity: 1;
 	}
 	50% {
@@ -81,7 +82,8 @@
 
 /* Bounce animation */
 @keyframes bounce {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0);
 	}
 	50% {
@@ -102,12 +104,24 @@
 }
 
 /* Stagger card animations */
-.character-card:nth-child(1) { animation-delay: 0s; }
-.character-card:nth-child(2) { animation-delay: 0.05s; }
-.character-card:nth-child(3) { animation-delay: 0.1s; }
-.character-card:nth-child(4) { animation-delay: 0.15s; }
-.character-card:nth-child(5) { animation-delay: 0.2s; }
-.character-card:nth-child(6) { animation-delay: 0.25s; }
+.character-card:nth-child(1) {
+	animation-delay: 0s;
+}
+.character-card:nth-child(2) {
+	animation-delay: 0.05s;
+}
+.character-card:nth-child(3) {
+	animation-delay: 0.1s;
+}
+.character-card:nth-child(4) {
+	animation-delay: 0.15s;
+}
+.character-card:nth-child(5) {
+	animation-delay: 0.2s;
+}
+.character-card:nth-child(6) {
+	animation-delay: 0.25s;
+}
 
 /* Loading spinner */
 .spinner {

@@ -13,14 +13,28 @@ export class LoadingModal {
     }
 
     show(initialMessage = 'Loading...') {
-        if (this.modal) {
-            return; // Already shown
+        // Clean up any leftover modals from previous session
+        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+        for (const backdrop of existingBackdrops) {
+            backdrop.remove();
         }
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
 
         this.modal = document.getElementById('loadingModal');
         if (!this.modal) {
             console.error('LoadingModal', 'Modal element not found in DOM');
             return;
+        }
+
+        // Dispose of any existing Bootstrap modal instance
+        if (this.bootstrapModal) {
+            try {
+                this.bootstrapModal.dispose();
+            } catch {
+                // Silently continue
+            }
         }
 
         this.messageElement = this.modal.querySelector('.loading-message');
@@ -53,11 +67,34 @@ export class LoadingModal {
     }
 
     hide() {
-        if (!this.bootstrapModal) {
+        if (!this.bootstrapModal && !this.modal) {
             return;
         }
 
-        this.bootstrapModal.hide();
+        try {
+            if (this.bootstrapModal) {
+                this.bootstrapModal.hide();
+            }
+
+            // Immediate cleanup - no setTimeout to avoid timing issues on reload
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            for (const backdrop of backdrops) {
+                backdrop.remove();
+            }
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+
+            // Force hide the modal element itself
+            if (this.modal) {
+                this.modal.classList.remove('show');
+                this.modal.style.display = 'none';
+                this.modal.setAttribute('aria-hidden', 'true');
+                this.modal.removeAttribute('aria-modal');
+            }
+        } catch (e) {
+            console.error('LoadingModal', 'Error hiding modal:', e);
+        }
 
         // Clean up references
         this.modal = null;

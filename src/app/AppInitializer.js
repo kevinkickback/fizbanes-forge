@@ -34,6 +34,10 @@ import { variantRuleService } from '../services/VariantRuleService.js';
 const MAX_DATA_LOAD_ATTEMPTS = 2;
 const DATA_LOAD_BACKOFF_MS = 350;
 
+// Guard against multiple initializations
+let _isInitialized = false;
+let _isInitializing = false;
+
 function _sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -384,27 +388,6 @@ function _setupUiEventHandlers() {
 			updateUnsavedIndicator();
 		});
 
-		// Listen for PAGE_CHANGED events to log floating bar visibility
-		eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
-			console.debug(
-				'AppInitializer',
-				`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
-			);
-			const floatingBar = document.querySelector('.floating-actions');
-			const floatingBarVisible = floatingBar
-				? window.getComputedStyle(floatingBar).display !== 'none'
-				: false;
-			const unsavedVisible = unsavedIndicator
-				? unsavedIndicator.style.display !== 'none'
-				: false;
-
-			console.debug('AppInitializer', `On PAGE_CHANGED to "${page}"`, {
-				floatingBarVisible,
-				unsavedIndicatorVisible: unsavedVisible,
-				dataCurrentPage: document.body.getAttribute('data-current-page'),
-			});
-		});
-
 		if (saveButton) {
 			saveButton.addEventListener('click', async () => {
 				try {
@@ -516,6 +499,21 @@ function _setupUiEventHandlers() {
  * @throws {Error} If initialization fails catastrophically
  */
 export async function initializeAll(_options = {}) {
+	// Prevent multiple simultaneous initializations
+	if (_isInitializing) {
+		console.warn('AppInitializer', 'Initialization already in progress, skipping');
+		return { success: false, errors: ['Initialization already in progress'] };
+	}
+
+	if (_isInitialized) {
+		console.info('AppInitializer', 'Application already initialized, cleaning up for reload');
+		// Clear event bus to prevent duplicate listeners
+		eventBus.clearAll();
+		_isInitialized = false;
+	}
+
+	_isInitializing = true;
+
 	const result = {
 		success: true,
 		loadedComponents: [],
@@ -566,6 +564,22 @@ export async function initializeAll(_options = {}) {
 		console.warn('AppInitializer', 'Failed to initialize theme manager', error);
 		result.errors.push(error);
 	}
+
+	// Clean up any leftover loading modal from previous session (e.g., reload)
+	const existingModal = document.getElementById('loadingModal');
+	if (existingModal) {
+		existingModal.classList.remove('show');
+		existingModal.style.display = 'none';
+		existingModal.setAttribute('aria-hidden', 'true');
+		existingModal.removeAttribute('aria-modal');
+	}
+	const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+	for (const backdrop of existingBackdrops) {
+		backdrop.remove();
+	}
+	document.body.classList.remove('modal-open');
+	document.body.style.overflow = '';
+	document.body.style.paddingRight = '';
 
 	const loadingModal = new LoadingModal();
 	loadingModal.show('Checking data files...');
@@ -640,7 +654,12 @@ export async function initializeAll(_options = {}) {
 		// Step 3: Set up UI event handlers
 		loadingModal.updateMessage('Setting up UI...');
 		loadingModal.updateProgress(90);
-		_setupUiEventHandlers();
+		try {
+			_setupUiEventHandlers();
+		} catch (error) {
+			console.error('AppInitializer', 'Error setting up UI event handlers:', error);
+			result.errors.push(error);
+		}
 
 		// Set overall success based on whether any critical errors occurred
 		result.success = result.errors.length === 0;
@@ -657,9 +676,14 @@ export async function initializeAll(_options = {}) {
 			);
 		}
 
+		_isInitializing = false;
+		_isInitialized = true;
+		console.info('AppInitializer', 'Initialization complete');
+
 		return result;
 	} catch (error) {
 		loadingModal.hide();
+		_isInitializing = false;
 		console.error(
 			'AppInitializer',
 			'Fatal error during application initialization:',

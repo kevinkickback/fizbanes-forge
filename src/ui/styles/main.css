@@ -1,23 +1,27 @@
 /* Import External CSS */
 @import url("../assets/bootstrap/dist/css/bootstrap.min.css");
 @import url("../assets/fontawesome/css/all.min.css");
+
+/* Core Styles */
 @import url("./themes.css");
 @import url("./titlebar.css");
-@import url("./buttons.css");
-@import url("./forms.css");
-@import url("./modals-enhanced.css");
 @import url("./scrollbars.css");
 @import url("./animations.css");
-@import url("./modal.css");
-@import url("./notification.css");
-@import url("./loading-modal.css");
 @import url("./utilities.css");
-@import url("./feat-modal.css");
-@import url("./equipment-modal.css");
-@import url("./data-loading-progress.css");
-@import url("./data-configuration-modal.css");
-@import url("./proficiency-card.css");
+@import url("./notification.css");
 @import url("./tooltip.css");
+
+/* Form & Input Components */
+@import url("./buttons.css");
+@import url("./forms.css");
+
+/* Modal Components */
+@import url("./modals.css");
+@import url("./components-feat-selection.css");
+@import url("./components-equipment-selection.css");
+@import url("./components-proficiency.css");
+@import url("./components-data-configuration.css");
+@import url("./components-data-progress.css");
 
 /* Shared CSS Variables (theme-independent) */
 :root {
@@ -662,9 +666,6 @@ body.debug-mode .nav-item.debug-only {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(320px, 400px));
 	gap: 1.5rem;
-	justify-content: center;
-	max-width: 1400px;
-	margin: 0 auto;
 	padding: 0;
 }
 
@@ -695,11 +696,14 @@ body.debug-mode .nav-item.debug-only {
 	color: var(--text-color);
 	display: flex;
 	align-items: center;
+	justify-content: flex-end;
 	gap: 0.35rem;
 	line-height: 1.2;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	text-align: right;
+	flex: 1;
 }
 
 .character-card .character-meta {
@@ -718,11 +722,13 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .character-card .card-body {
-	padding: 1.5rem;
+	padding: 0;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
 	height: 100%;
+	position: relative;
+	overflow: hidden;
 }
 
 .character-card .character-info {
@@ -730,46 +736,81 @@ body.debug-mode .nav-item.debug-only {
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
+	padding: 1.5rem;
+	padding-left: 50%;
+	position: relative;
+	z-index: 1;
 }
 
 .character-card .character-main {
 	display: flex;
-	gap: 1.25rem;
-	align-items: flex-start;
+	flex-direction: column;
+	gap: 0.75rem;
 }
 
+.character-card .card-actions {
+	position: relative;
+	z-index: 1;
+	padding: 0 1.5rem 1.5rem;
+	margin-top: 0;
+}
+
+/* Portrait as background with opacity fade */
 .character-card .character-portrait {
-	width: 96px;
-	height: 96px;
-	border-radius: var(--border-radius-lg);
-	background: var(--secondary-color);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-	flex-shrink: 0;
-	border: 2px solid var(--border-color);
-	box-shadow: var(--shadow-md);
-}
-
-.character-card .character-portrait img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+	position: absolute;
+	top: 0;
+	left: -20%;
+	width: 75%;
+	bottom: 0;
+	z-index: 0;
+	background-size: cover;
+	background-position: center center;
+	background-repeat: no-repeat;
+	-webkit-mask-image: linear-gradient(
+		to right,
+		rgba(0, 0, 0, 1) 0%,
+		rgba(0, 0, 0, 0.8) 40%,
+		rgba(0, 0, 0, 0.3) 70%,
+		rgba(0, 0, 0, 0) 100%
+	);
+	mask-image: linear-gradient(
+		to right,
+		rgba(0, 0, 0, 1) 0%,
+		rgba(0, 0, 0, 0.8) 40%,
+		rgba(0, 0, 0, 0.3) 70%,
+		rgba(0, 0, 0, 0) 100%
+	);
 }
 
 .character-card .portrait-fallback {
-	width: 100%;
-	height: 100%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-start;
+	padding-left: 2rem;
 	color: var(--text-muted);
-	font-size: 2.5rem;
+	font-size: 4rem;
+	opacity: 0.3;
 	background: radial-gradient(
 		circle at 30% 30%,
 		color-mix(in srgb, var(--accent-color) 25%, transparent),
 		transparent 60%
+	);
+	-webkit-mask-image: linear-gradient(
+		to right,
+		rgba(0, 0, 0, 1) 0%,
+		rgba(0, 0, 0, 1) 40%,
+		rgba(0, 0, 0, 0) 100%
+	);
+	mask-image: linear-gradient(
+		to right,
+		rgba(0, 0, 0, 1) 0%,
+		rgba(0, 0, 0, 1) 40%,
+		rgba(0, 0, 0, 0) 100%
 	);
 }
 
