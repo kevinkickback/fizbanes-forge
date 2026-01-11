@@ -1,4 +1,4 @@
-/** @file Component for managing the Equipment page */
+// Component for managing the Equipment page
 
 import { AppState } from '../../../app/AppState.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
@@ -6,10 +6,6 @@ import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
 import { EquipmentSelectionModal } from './Modal.js';
 
-/**
- * Component for the Equipment character page.
- * Handles display of inventory, equipped items, and attunement.
- */
 export class EquipmentManager {
     constructor() {
         this.loggerScope = 'EquipmentManager';
@@ -17,10 +13,6 @@ export class EquipmentManager {
         this.setupEventListeners();
     }
 
-    /**
-     * Setup UI event listeners for the equipment page.
-     * @private
-     */
     setupEventListeners() {
         // Event delegation for buttons
         document.addEventListener('click', (e) => {
@@ -73,10 +65,6 @@ export class EquipmentManager {
         });
     }
 
-    /**
-     * Render the equipment page with current character data.
-     * @returns {void}
-     */
     render() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -92,11 +80,6 @@ export class EquipmentManager {
         this.renderWeight(character);
     }
 
-    /**
-     * Render the inventory list.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderInventory(character) {
         const container = document.getElementById('inventoryList');
         if (!container) return;
@@ -150,11 +133,6 @@ export class EquipmentManager {
         container.innerHTML = html;
     }
 
-    /**
-     * Render equipped items.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderEquippedItems(character) {
         const container = document.getElementById('equipmentSlots');
         if (!container) return;
@@ -221,11 +199,6 @@ export class EquipmentManager {
         container.innerHTML = html;
     }
 
-    /**
-     * Render attuned items.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderAttunedItems(character) {
         const container = document.getElementById('attunedItems');
         const countSpan = document.getElementById('attunedCount');
@@ -264,11 +237,6 @@ export class EquipmentManager {
         container.innerHTML = html;
     }
 
-    /**
-     * Render weight information.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderWeight(character) {
         const weightSpan = document.getElementById('inventoryWeight');
         const capacitySpan = document.getElementById('weightCapacity');
@@ -284,10 +252,6 @@ export class EquipmentManager {
         }
     }
 
-    /**
-     * Handle adding an item.
-     * @private
-     */
     async handleAddItem() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -311,11 +275,6 @@ export class EquipmentManager {
         }
     }
 
-    /**
-     * Handle removing an item.
-     * @param {string} itemId - Item instance ID
-     * @private
-     */
     handleRemoveItem(itemId) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -338,12 +297,6 @@ export class EquipmentManager {
         }
     }
 
-    /**
-     * Handle equipping an item.
-     * @param {string} _itemId - Item instance ID (unused - feature in progress)
-     * @param {string} _slot - Equipment slot (unused - feature in progress)
-     * @private
-     */
     handleEquipItem(_itemId, _slot) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -358,11 +311,6 @@ export class EquipmentManager {
         );
     }
 
-    /**
-     * Handle unequipping an item.
-     * @param {string} itemId - Item instance ID
-     * @private
-     */
     handleUnequipItem(itemId) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -379,11 +327,6 @@ export class EquipmentManager {
         }
     }
 
-    /**
-     * Handle attuning an item.
-     * @param {string} itemId - Item instance ID
-     * @private
-     */
     handleAttuneItem(itemId) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -403,11 +346,6 @@ export class EquipmentManager {
         }
     }
 
-    /**
-     * Handle unattuning an item.
-     * @param {string} itemId - Item instance ID
-     * @private
-     */
     handleUnattuneItem(itemId) {
         const character = AppState.getCurrentCharacter();
         if (!character) {

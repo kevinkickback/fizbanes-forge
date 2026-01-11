@@ -1,31 +1,21 @@
-/** Controller for proficiency display/selection/notes UI. */
+// Controller for proficiency display/selection/notes UI
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { ProficiencyCore } from '../../../app/Proficiency.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
-import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../../../lib/ProficiencyConstants.js';
+import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './Display.js';
 import { ProficiencyNotesView } from './Notes.js';
 import { ProficiencySelectionView } from './Selection.js';
 
-/**
- * Minimal view for rendering musical instrument dropdown choices.
- * Focuses only on rendering and event wiring; logic is in ProficiencyCard.
- */
 class InstrumentChoicesView {
 	constructor() {
 		this._container = null;
 	}
 
-	/**
-	 * Render instrument dropdowns for the provided slots.
-	 * @param {HTMLElement} toolsContainer - The tools proficiency container element
-	 * @param {Array} slots - Array of { key, sourceLabel, selection }
-	 * @param {Function} onChange - Change handler callback
-	 */
 	render(toolsContainer, slots, onChange) {
 		if (!toolsContainer) return;
 
@@ -40,11 +30,6 @@ class InstrumentChoicesView {
 		this._wireEvents(host, onChange);
 	}
 
-	/**
-	 * Build HTML content for instrument dropdowns with mutual exclusion.
-	 * Disabled options are those already selected in other slots.
-	 * @private
-	 */
 	_buildContent(slots) {
 		const selectedInstruments = new Set(
 			slots.map((s) => s.selection).filter(Boolean),
@@ -73,10 +58,6 @@ class InstrumentChoicesView {
 		`;
 	}
 
-	/**
-	 * Wire change event handlers to all dropdowns.
-	 * @private
-	 */
 	_wireEvents(host, onChange) {
 		const selects = host.querySelectorAll('.instrument-choice-select');
 		for (const select of selects) {
@@ -84,10 +65,6 @@ class InstrumentChoicesView {
 		}
 	}
 
-	/**
-	 * Get or create the container for instrument dropdowns.
-	 * @private
-	 */
 	_getOrCreateHost(toolsContainer) {
 		let host = toolsContainer.querySelector('.instrument-choices-container');
 		if (!host) {
@@ -99,11 +76,7 @@ class InstrumentChoicesView {
 	}
 }
 
-/** Manages the proficiency card UI component and related functionality. */
 export class ProficiencyCard {
-	/**
-	 * Creates a new ProficiencyCard instance
-	 */
 	constructor() {
 		this._character = null;
 		this._proficiencyManager = proficiencyService;
@@ -135,10 +108,6 @@ export class ProficiencyCard {
 		this._instrumentChoicesView = new InstrumentChoicesView();
 	}
 
-	/**
-	 * Initialize the proficiency card UI and data
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
@@ -158,10 +127,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Initialize DOM element references for all proficiency containers
-	 * @private
-	 */
 	_initializeDomReferences() {
 		for (const type of this._proficiencyTypes) {
 			const containerId = `${type}Container`;
@@ -183,10 +148,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Initialize character proficiency structures if they don't exist
-	 * @private
-	 */
 	_initializeCharacterProficiencies() {
 		if (!this._character) return;
 
@@ -248,11 +209,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Initialize nested proficiency structures for skills, languages, and tools
-	 * @param {string} type - The proficiency type to initialize
-	 * @private
-	 */
 	_initializeNestedProficiencyStructures(type) {
 		// Make sure top level options array exists
 		if (!this._character.optionalProficiencies[type].options) {
@@ -294,10 +250,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Add default proficiencies to the character
-	 * @private
-	 */
 	_addDefaultProficiencies() {
 		for (const [type, defaults] of Object.entries(this._defaultProficiencies)) {
 			for (const prof of defaults) {
@@ -308,10 +260,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Set up event listeners for proficiency containers
-	 * @private
-	 */
 	_setupEventListeners() {
 		try {
 			// Set up click listeners for each proficiency container
@@ -358,10 +306,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Set up click listeners for each proficiency container
-	 * @private
-	 */
 	_setupContainerClickListeners() {
 		for (const type of this._proficiencyTypes) {
 			const container = this._proficiencyContainers[type];
@@ -402,29 +346,14 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Handle proficiency added event from EventBus
-	 * @param {Object} data - Event data with type, proficiency, source, character
-	 * @private
-	 */
 	_handleProficiencyAdded(data) {
 		this._handleProficiencyChanged({ detail: data });
 	}
 
-	/**
-	 * Handle proficiency removed by source event from EventBus
-	 * @param {Object} _data - Event data with source, removed, character
-	 * @private
-	 */
 	_handleProficiencyRemoved(_data) {
 		this._handleProficiencyChanged({ detail: { forcedRefresh: true } });
 	}
 
-	/**
-	 * Handle proficiency refunded event from EventBus
-	 * @param {Object} data - Event data with type, proficiency, character
-	 * @private
-	 */
 	_handleProficiencyRefunded(data) {
 		this._handleProficiencyChanged({
 			detail: {
@@ -435,11 +364,6 @@ export class ProficiencyCard {
 		});
 	}
 
-	/**
-	 * Handle character change events
-	 * @param {CustomEvent} _event - The character changed event
-	 * @private
-	 */
 	_handleCharacterChanged(_event) {
 		console.log('[ProficiencyCard] _handleCharacterChanged() called');
 
@@ -588,11 +512,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Handle proficiency change events
-	 * @param {CustomEvent} event - The proficiency change event
-	 * @private
-	 */
 	_handleProficiencyChanged(event) {
 		try {
 			const detail = event.detail || {};
@@ -625,20 +544,10 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Shows a notification when a skill proficiency has been refunded
-	 * @param {string} skill - The name of the skill that was refunded
-	 * @private
-	 */
 	_showRefundNotification(skill) {
 		console.info('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
 	}
 
-	/**
-	 * Populate the proficiency containers with available options
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _populateProficiencyContainers() {
 		if (!this._character) return;
 
@@ -664,10 +573,6 @@ export class ProficiencyCard {
 		this._renderInstrumentChoices();
 	}
 
-	/**
-	 * Render instrument choice dropdowns based on current instrument slots.
-	 * @private
-	 */
 	_renderInstrumentChoices() {
 		const toolsContainer = this._proficiencyContainers?.tools;
 		if (!toolsContainer) return;
@@ -681,12 +586,6 @@ export class ProficiencyCard {
 		);
 	}
 
-	/**
-	 * Get available options for a proficiency type
-	 * @param {string} type - The proficiency type
-	 * @returns {Promise<string[]>} Array of available options
-	 * @private
-	 */
 	async _getAvailableOptions(type) {
 		switch (type) {
 			case 'skills': {
@@ -816,11 +715,6 @@ export class ProficiencyCard {
 		return this._restoreSavedSelections(slots);
 	}
 
-	/**
-	 * Restore saved instrument selections from character data to the computed slots.
-	 * Matches slots by key, sourceLabel, and slotIndex to handle multiple slots per source.
-	 * @private
-	 */
 	_restoreSavedSelections(computedSlots) {
 		const saved = this._character.instrumentChoices || [];
 		const remaining = [...saved];
@@ -900,12 +794,6 @@ export class ProficiencyCard {
 		}
 	}
 
-	/**
-	 * Extract instrument proficiencies from character.proficiencies.tools.
-	 * Returns array of slot-like objects matching proficiencies with Instrument Choice sources.
-	 * @returns {Array} Array of instrument slots extracted from proficiencies
-	 * @private
-	 */
 	_extractInstrumentProficiencies() {
 		const slots = [];
 		const proficiencies = this._character?.proficiencies?.tools || [];
@@ -938,11 +826,6 @@ export class ProficiencyCard {
 		return slots;
 	}
 
-	/**
-	 * Handle instrument dropdown changes (user selects/changes an instrument for a slot).
-	 * @param {Event} event - Change event from the dropdown
-	 * @private
-	 */
 	_handleInstrumentChoiceChange(event) {
 		const select = event.target;
 		const slotIndex = Number.parseInt(select.dataset.slotIndex, 10);
@@ -991,13 +874,6 @@ export class ProficiencyCard {
 		});
 	}
 
-	/**
-	 * Check if a proficiency can be selected by the user
-	 * @param {string} type - Proficiency type
-	 * @param {string} proficiency - Proficiency name
-	 * @returns {boolean} Whether the proficiency can be selected
-	 * @private
-	 */
 	_isProficiencyAvailable(type, proficiency) {
 		if (!this._character) return false;
 
@@ -1212,10 +1088,6 @@ export class ProficiencyCard {
 		return false;
 	}
 
-	/**
-	 * Update the proficiency notes display
-	 * @private
-	 */
 	_updateProficiencyNotes() {
 		this._notesView.updateProficiencyNotes(
 			this._proficiencyNotesContainer,
@@ -1224,16 +1096,6 @@ export class ProficiencyCard {
 		);
 	}
 
-	/**
-	 * Mark that there are unsaved changes
-	 * @private
-	/**
-	 * Check if a proficiency is granted by a fixed source (not a choice)
-	 * @param {string} type - Proficiency type
-	 * @param {string|Object} proficiency - The proficiency to check
-	 * @returns {boolean} True if granted by a fixed source
-	 * @private
-	 */
 	_isGrantedBySource(type, proficiency) {
 		// For tools, first check if this is an auto-granted item in optional selections
 		// (e.g., Bard's auto-selected "Musical instrument")
@@ -1312,10 +1174,6 @@ export class ProficiencyCard {
 		return fixedSources.length > 0;
 	}
 
-	/**
-	 * Remove proficiencies from the optional selected list when they become granted by a fixed source
-	 * @private
-	 */
 	_cleanupOptionalProficiencies() {
 		console.log('[ProficiencyCard] _cleanupOptionalProficiencies() called');
 		console.log('[ProficiencyCard] tools.class BEFORE cleanup:',
@@ -1354,10 +1212,6 @@ export class ProficiencyCard {
 		return changesDetected;
 	}
 
-	/**
-	 * Cleanup proficiencies with source-specific tracking
-	 * @private
-	 */
 	_cleanupSourceSpecificProficiencies(type) {
 		let changesDetected = false;
 		const fixedProficiencies = this._character.proficiencies[type] || [];
@@ -1426,10 +1280,6 @@ export class ProficiencyCard {
 		return changesDetected;
 	}
 
-	/**
-	 * Cleanup simple proficiencies without source tracking
-	 * @private
-	 */
 	_cleanupSimpleProficiencies(type) {
 		let changesDetected = false;
 		const selectedOptional = [
@@ -1463,12 +1313,6 @@ export class ProficiencyCard {
 		return changesDetected;
 	}
 
-	/**
-	 * Calculate the total number of optional proficiencies allowed from all sources
-	 * @param {string} type - The proficiency type
-	 * @returns {number} Total number of optional proficiencies allowed
-	 * @private
-	 */
 	_getTotalOptionalAllowedFromSources(type) {
 		if (
 			!this._character ||

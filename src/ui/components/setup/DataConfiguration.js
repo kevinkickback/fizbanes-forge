@@ -1,14 +1,8 @@
-/** Modal for configuring D&D data source (URL or local folder) with validation/download UI. */
+// Modal for configuring D&D data source (URL or local folder) with validation/download UI.
 
 import { showNotification } from '../../../lib/Notifications.js';
 
 export class DataConfigurationModal {
-	/**
-	 * Initialize the modal.
-	 *
-	 * @param {Object} [options={}] - Configuration options
-	 * @param {boolean} [options.allowClose=false] - Allow user to close without selecting data source
-	 */
 	constructor(options = {}) {
 		this.modal = null;
 		this.bootstrapModal = null;
@@ -19,12 +13,6 @@ export class DataConfigurationModal {
 		this.rejectCallback = null;
 	}
 
-	/**
-	 * Show the modal and wait for user selection.
-	 * Pre-loads any previously saved configuration.
-	 *
-	 * @returns {Promise<{type: 'url'|'local', value: string}>} User's configuration choice
-	 */
 	async show() {
 		// Load saved configuration to pre-populate fields
 		await this._loadSavedConfiguration();
@@ -56,11 +44,6 @@ export class DataConfigurationModal {
 		});
 	}
 
-	/**
-	 * Setup modal for display based on allowClose option
-	 *
-	 * @private
-	 */
 	_setupModal() {
 		const closeBtn = this.modal.querySelector('.data-config-close-btn');
 		const subtitle = this.modal.querySelector('.data-config-subtitle');
@@ -80,13 +63,6 @@ export class DataConfigurationModal {
 		}
 	}
 
-	/**
-	 * Load saved data source configuration from preferences.
-	 * This allows the modal to pre-populate with the user's previous choice.
-	 *
-	 * @private
-	 * @returns {Promise<void>}
-	 */
 	async _loadSavedConfiguration() {
 		try {
 			const result = await window.app.getDataSource();
@@ -109,14 +85,6 @@ export class DataConfigurationModal {
 		}
 	}
 
-	/**
-	 * Populate input fields with saved configuration values.
-	 * For URL: puts URL in input field, switches to URL tab.
-	 * For Local: puts path in input field, switches to Local tab, enables validate button.
-	 *
-	 * @private
-	 * @returns {void}
-	 */
 	_populateSavedValues() {
 		if (!this.savedType || !this.savedValue) {
 			return;
@@ -154,11 +122,6 @@ export class DataConfigurationModal {
 		}
 	}
 
-	/**
-	 * Attach all event listeners for the modal
-	 *
-	 * @private
-	 */
 	_attachEventListeners() {
 		// URL validation
 		const validateUrlBtn = this.modal.querySelector(
@@ -240,14 +203,6 @@ export class DataConfigurationModal {
 		}
 	}
 
-	/**
-	 * Attach listener for download progress events.
-	 * Shows progress bar with file count as downloads occur.
-	 * Used during URL validation to show real-time feedback.
-	 *
-	 * @returns {void}
-	 * @private
-	 */
 	attachProgressListener() {
 		this.detachProgressListener();
 		if (!window.app?.onDataDownloadProgress) return;
@@ -288,13 +243,6 @@ export class DataConfigurationModal {
 		});
 	}
 
-	/**
-	 * Remove the download progress event listener.
-	 * Clean up resources after validation completes or fails.
-	 *
-	 * @returns {void}
-	 * @private
-	 */
 	detachProgressListener() {
 		if (this.progressUnsub) {
 			this.progressUnsub();
@@ -302,19 +250,6 @@ export class DataConfigurationModal {
 		}
 	}
 
-	/**
-	 * Validate data source and submit configuration.
-	 * For URLs: validates accessibility and downloads all files.
-	 * For Local: validates folder structure and required files.
-	 * On success: saves config to preferences, reloads app.
-	 * On failure: shows error message, allows user to retry.
-	 *
-	 * @private
-	 * @param {string} type - 'url' or 'local'
-	 * @param {string} value - URL or folder path
-	 * @param {HTMLElement} button - Submit button element
-	 * @returns {Promise<void>}
-	 */
 	async _validateAndSubmit(type, value, button) {
 		if (this.isValidating) return;
 

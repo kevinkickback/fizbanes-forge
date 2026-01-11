@@ -1,9 +1,5 @@
 /** Decoupled event bus for renderer components (infrastructure layer). */
 
-/**
- * Standard event names used throughout the application.
- * Add new events here as needed.
- */
 export const EVENTS = {
 	// Application lifecycle
 	APP_READY: 'app:ready',
@@ -110,11 +106,6 @@ class EventBusImpl {
 		this.onceListeners = new Map();
 	}
 
-	/**
-	 * Register an event listener.
-	 * @param {string} event - Event name
-	 * @param {Function} handler - Event handler function
-	 */
 	on(event, handler) {
 		if (typeof handler !== 'function') {
 			console.error('[EventBus]', 'Handler must be a function', { event });
@@ -132,11 +123,6 @@ class EventBusImpl {
 		});
 	}
 
-	/**
-	 * Register a one-time event listener.
-	 * @param {string} event - Event name
-	 * @param {Function} handler - Event handler function
-	 */
 	once(event, handler) {
 		if (typeof handler !== 'function') {
 			console.error('[EventBus]', 'Handler must be a function', { event });
@@ -151,11 +137,6 @@ class EventBusImpl {
 		console.debug('[EventBus]', 'One-time listener registered', { event });
 	}
 
-	/**
-	 * Remove an event listener.
-	 * @param {string} event - Event name
-	 * @param {Function} handler - Event handler function to remove
-	 */
 	off(event, handler) {
 		if (this.listeners.has(event)) {
 			const handlers = this.listeners.get(event);
@@ -175,11 +156,6 @@ class EventBusImpl {
 		}
 	}
 
-	/**
-	 * Emit an event with optional data.
-	 * @param {string} event - Event name
-	 * @param {...*} args - Arguments to pass to handlers
-	 */
 	emit(event, ...args) {
 		console.debug('[EventBus]', 'Event emitted', {
 			event,
@@ -220,30 +196,18 @@ class EventBusImpl {
 		}
 	}
 
-	/**
-	 * Remove all listeners for a specific event.
-	 * @param {string} event - Event name
-	 */
 	clearEvent(event) {
 		this.listeners.delete(event);
 		this.onceListeners.delete(event);
 		console.debug('[EventBus]', 'Event cleared', { event });
 	}
 
-	/**
-	 * Remove all listeners for all events.
-	 */
 	clearAll() {
 		this.listeners.clear();
 		this.onceListeners.clear();
 		console.debug('[EventBus]', 'All events cleared');
 	}
 
-	/**
-	 * Get count of listeners for an event.
-	 * @param {string} event - Event name
-	 * @returns {number} Number of listeners
-	 */
 	listenerCount(event) {
 		const regularCount = this.listeners.has(event)
 			? this.listeners.get(event).length
@@ -254,10 +218,6 @@ class EventBusImpl {
 		return regularCount + onceCount;
 	}
 
-	/**
-	 * Get all registered event names.
-	 * @returns {string[]} Array of event names
-	 */
 	eventNames() {
 		const regular = Array.from(this.listeners.keys());
 		const once = Array.from(this.onceListeners.keys());

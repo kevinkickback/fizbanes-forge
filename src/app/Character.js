@@ -1,47 +1,19 @@
-/**
- * Character.js
- * Model class representing a character in the D&D Character Creator
- */
+/** Character model class with abilities, proficiencies, and features. */
 
-import { featService } from '../services/FeatService.js';
 import {
 	DEFAULT_CHARACTER_SIZE,
 	DEFAULT_CHARACTER_SPEED,
 	getAbilityModNumber,
 } from '../lib/5eToolsParser.js';
+import { featService } from '../services/FeatService.js';
 import { ProficiencyCore } from './Proficiency.js';
 
-/**
- * Represents a character with all its attributes, abilities, proficiencies, and features
- */
 export class Character {
-	/**
-	 * Creates a new Character instance
-	 * @param {Object} [data] - Optional character data to initialize with
-	 */
 	constructor(data = {}) {
-		/**
-		 * Unique identifier for the character
-		 * @type {string|null}
-		 */
 		this.id = data.id || null;
-
-		/**
-		 * Character's name
-		 * @type {string}
-		 */
 		this.name = data.name || '';
-
-		/**
-		 * Player's name
-		 * @type {string}
-		 */
 		this.playerName = data.playerName || '';
 
-		/**
-		 * Character's race information
-		 * @type {Object}
-		 */
 		this.race = data.race || {
 			name: '',
 			source: '',
@@ -54,10 +26,6 @@ export class Character {
 			this.race.abilityChoices = [];
 		}
 
-		/**
-		 * Character's class information
-		 * @type {Object}
-		 */
 		this.class = data.class || {
 			level: 1,
 		};
@@ -302,34 +270,16 @@ export class Character {
 		ProficiencyCore.initializeProficiencyStructures(this);
 	}
 
-	/**
-	 * Gets an ability score value
-	 * @param {string} ability - Ability score name
-	 * @returns {number} The ability score value
-	 */
 	getAbilityScore(ability) {
-		// Simple getter without manager dependency
 		return this.abilityScores[ability] || 0;
 	}
 
-	/**
-	 * Gets an ability score modifier
-	 * @param {string} ability - Ability score name
-	 * @returns {number} The ability score modifier
-	 */
 	getAbilityModifier(ability) {
 		const score = this.getAbilityScore(ability);
 		return getAbilityModNumber(score);
 	}
 
-	/**
-	 * Adds an ability score bonus from a source
-	 * @param {string} ability - The ability to add the bonus to
-	 * @param {number} value - The bonus value
-	 * @param {string} source - The source of the bonus
-	 */
 	addAbilityBonus(ability, value, source) {
-		// Handle null or undefined ability
 		if (!ability) {
 			console.warn(
 				'Character',
@@ -365,12 +315,6 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Removes a specific ability bonus by ability, value, and source
-	 * @param {string} ability - The ability score name
-	 * @param {number} value - The bonus value
-	 * @param {string} source - The source of the bonus
-	 */
 	removeAbilityBonus(ability, value, source) {
 		const normalizedAbility = ability?.toLowerCase();
 		if (!normalizedAbility || !this.abilityBonuses[normalizedAbility]) return;
@@ -380,10 +324,6 @@ export class Character {
 		].filter((bonus) => !(bonus.value === value && bonus.source === source));
 	}
 
-	/**
-	 * Clears ability bonuses from a specific source
-	 * @param {string} source - Source to clear bonuses from
-	 */
 	clearAbilityBonuses(source) {
 		for (const ability in this.abilityBonuses) {
 			this.abilityBonuses[ability] = this.abilityBonuses[ability].filter(
@@ -392,10 +332,6 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Clears ability bonuses from the character model that start with a specific prefix.
-	 * @param {string} prefix - The prefix to match against the bonus source (case-insensitive).
-	 */
 	clearAbilityBonusesByPrefix(prefix) {
 		if (!prefix) return;
 		const lowerCasePrefix = prefix.toLowerCase();
@@ -410,11 +346,6 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Adds a pending choice of a specific type
-	 * @param {string} type - Choice type
-	 * @param {Object} choice - Choice details
-	 */
 	addPendingChoice(type, choice) {
 		if (!this.pendingChoices.has(type)) {
 			this.pendingChoices.set(type, []);
@@ -427,34 +358,18 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Gets simple pending ability choices
-	 * @returns {Array} Pending ability choices
-	 */
 	getSimplePendingAbilityChoices() {
 		return this.pendingAbilityChoices;
 	}
 
-	/**
-	 * Clears all pending ability choices
-	 */
 	clearPendingAbilityChoices() {
 		this.pendingAbilityChoices = [];
 	}
 
-	/**
-	 * Gets pending choices of a specific type
-	 * @param {string} type - Choice type to get
-	 * @returns {Array} Choices of the specified type
-	 */
 	getPendingChoicesByType(type) {
 		return this.pendingChoices.get(type) || [];
 	}
 
-	/**
-	 * Clears pending choices of a specific type or all types
-	 * @param {string} [type] - Choice type to clear (omit to clear all)
-	 */
 	clearPendingChoicesByType(type) {
 		if (type === 'ability') {
 			// Clear ability choices array
@@ -469,31 +384,14 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Adds a proficiency with its source
-	 * Delegates to ProficiencyCore for business logic
-	 * @param {string} type - Proficiency type
-	 * @param {string} proficiency - Proficiency name
-	 * @param {string} source - Source of the proficiency
-	 */
 	addProficiency(type, proficiency, source) {
 		return ProficiencyCore.addProficiency(this, type, proficiency, source);
 	}
 
-	/**
-	 * Removes proficiencies from a specific source
-	 * Delegates to ProficiencyCore for business logic
-	 * @param {string} source - Source to remove proficiencies from
-	 */
 	removeProficienciesBySource(source) {
 		return ProficiencyCore.removeProficienciesBySource(this, source);
 	}
 
-	/**
-	 * Replace feats with a new set and track their sources.
-	 * @param {Array<Object|string>} feats - Array of feat objects or names
-	 * @param {string} defaultSource - Fallback source label when none provided
-	 */
 	setFeats(feats, defaultSource = 'Unknown') {
 		this.feats = [];
 		this.featSources = new Map();
@@ -536,54 +434,26 @@ export class Character {
 		return featService.calculateFeatAvailability(this);
 	}
 
-	/**
-	 * Adds a language proficiency
-	 * @param {string} language - Language name
-	 * @param {string} source - Source of the proficiency
-	 */
 	addLanguage(language, source) {
 		return this.addProficiency('languages', language, source);
 	}
 
-	/**
-	 * Removes languages from a specific source
-	 * @param {string} source - Source to remove languages from
-	 */
 	removeLanguagesBySource(source) {
 		return this.removeProficienciesBySource(source);
 	}
 
-	/**
-	 * Adds a damage resistance
-	 * @param {string} resistance - Resistance type
-	 * @param {string} _source - Source of the resistance
-	 */
 	addResistance(resistance, _source) {
 		this.features.resistances.add(resistance);
 	}
 
-	/**
-	 * Clears all resistances
-	 * @param {string} _source - Source to clear resistances from
-	 */
 	clearResistances(_source) {
 		this.features.resistances.clear();
 	}
 
-	/**
-	 * Adds a trait to the character
-	 * @param {string} name - Trait name
-	 * @param {string} description - Trait description
-	 * @param {string} source - Source of the trait
-	 */
 	addTrait(name, description, source) {
 		this.features.traits.set(name, { description, source });
 	}
 
-	/**
-	 * Clears traits from a specific source
-	 * @param {string} source - Source to clear traits from
-	 */
 	clearTraits(source) {
 		for (const [name, trait] of this.features.traits.entries()) {
 			if (trait.source === source) {
@@ -592,31 +462,18 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Adds an allowed source book
-	 * @param {string} source - Source book to allow
-	 */
 	addAllowedSource(source) {
 		if (source) {
 			this.allowedSources.add(source.toUpperCase());
 		}
 	}
 
-	/**
-	 * Removes an allowed source book
-	 * @param {string} source - Source book to disallow
-	 */
 	removeAllowedSource(source) {
 		if (source) {
 			this.allowedSources.delete(source.toUpperCase());
 		}
 	}
 
-	/**
-	 * Checks if a source book is allowed
-	 * @param {string} source - Source book to check
-	 * @returns {boolean} Whether the source is allowed
-	 */
 	isSourceAllowed(source) {
 		const isAllowed = source
 			? this.allowedSources.has(source.toUpperCase())
@@ -624,36 +481,18 @@ export class Character {
 		return isAllowed;
 	}
 
-	/**
-	 * Sets the entire list of allowed source books
-	 * @param {Array<string>} sources - List of source books to allow
-	 */
 	setAllowedSources(sources) {
 		this.allowedSources = new Set(sources);
 	}
 
-	/**
-	 * Gets all allowed source books
-	 * @returns {Set<string>} Set of allowed source books
-	 */
 	getAllowedSources() {
 		return new Set(this.allowedSources);
 	}
 
-	/**
-	 * Creates a Character instance from JSON data
-	 * @param {Object} data - Serialized character data
-	 * @returns {Character} New Character instance
-	 * @static
-	 */
 	static fromJSON(data) {
 		return new Character(data);
 	}
 
-	/**
-	 * Converts the character to a JSON object for saving
-	 * @returns {Object} JSON representation of the character
-	 */
 	toJSON() {
 		console.log('[Character.toJSON] Called - optionalProficiencies.tools.class BEFORE serialization:',
 			JSON.stringify(this.optionalProficiencies?.tools?.class || {}));
@@ -903,12 +742,6 @@ export class Character {
 		return serializedData;
 	}
 
-	/**
-	 * Helper method to serialize complex proficiency types (skills, languages, tools)
-	 * @param {string} type - The proficiency type (skills, languages, tools)
-	 * @returns {Object} The serialized proficiency object
-	 * @private
-	 */
 	_serializeComplexProficiency(type) {
 		// Helper function to ensure arrays are safe for serialization
 		const safeArray = (arr) => {
@@ -955,18 +788,10 @@ export class Character {
 		return result;
 	}
 
-	/**
-	 * Add a pending ability choice
-	 * @param {Object} choice - The ability choice object
-	 */
 	addPendingAbilityChoice(choice) {
 		this.pendingAbilityChoices.push(choice);
 	}
 
-	/**
-	 * Get all pending ability choices
-	 * @returns {Array} Array of pending ability choices
-	 */
 	getPendingAbilityChoices() {
 		return this.pendingAbilityChoices;
 	}
@@ -982,9 +807,6 @@ export class Character {
 		this.clearAbilityBonuses('Subrace');
 		this.clearAbilityBonusesByPrefix('Race');
 		this.clearAbilityBonusesByPrefix('Subrace');
-
-		// Clear ability score service's stored choices (handled by services now)
-		// this is managed by abilityScoreService.clearStoredChoices()
 
 		// Clear the character's saved ability choices
 		if (this.race) {

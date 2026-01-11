@@ -1,21 +1,14 @@
-/** @file Monster service for managing monster/creature data. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { BaseDataService } from './BaseDataService.js';
 
 /** Manages monster/creature data and provides access to monsters. */
 class MonsterService extends BaseDataService {
-	/** Initialize a new MonsterService instance. */
 	constructor() {
 		super({ loggerScope: 'MonsterService' });
 		this._monsterMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
-	/**
-	 * Initialize monster data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {

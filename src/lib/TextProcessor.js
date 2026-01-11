@@ -1,37 +1,14 @@
 /** TextProcessor.js - Processes text content, references, and formatting for D&D content. */
 
-/**
- * @typedef {Object} TextProcessingOptions
- * @property {boolean} [processReferences=true] - Whether to process references in text
- * @property {boolean} [processFormatting=true] - Whether to process text formatting
- * @property {boolean} [processDynamicContent=true] - Whether to process dynamically added content
- * @property {('tooltip'|'displayName')} [resolveMode] - How to resolve references ('tooltip' or 'displayName')
- */
-
 import { processString as renderStringWithTags } from './5eToolsRenderer.js';
 import { initializeTooltipListeners } from './TooltipManager.js';
 
-/** Processes text content, handling references and formatting for static/dynamic content. */
 class TextProcessor {
-	/**
-	 * Configuration: CSS selectors for elements where references should be resolved
-	 * to display name only (no tooltip).
-	 * @type {string[]}
-	 * @private
-	 * @static
-	 */
 	static _DISPLAY_NAME_SELECTORS = [
 		'.text-content',
 		// Add other selectors here if needed, e.g., '.some-other-class'
 	];
 
-	/**
-	 * Configuration: CSS selectors for elements where references should be resolved
-	 * into full tooltips.
-	 * @type {string[]}
-	 * @private
-	 * @static
-	 */
 	static _TOOLTIP_SELECTORS = [
 		'.description',
 		'.tooltip-content',
@@ -43,23 +20,9 @@ class TextProcessor {
 		// Add other selectors here if needed
 	];
 
-	/**
-	 * Creates a TextProcessor instance
-	 * Uses Renderer5etools for processing references
-	 */
 	constructor() {
-		/**
-		 * Mutation observer for dynamic content processing
-		 * @type {MutationObserver|null}
-		 * @private
-		 */
 		this._observer = null;
 
-		/**
-		 * Default options for text processing
-		 * @type {TextProcessingOptions}
-		 * @private
-		 */
 		this._defaultOptions = {
 			processReferences: true,
 			processFormatting: true,
@@ -68,13 +31,6 @@ class TextProcessor {
 		};
 	}
 
-	/**
-	 * Initialize the text processor and set up observers for dynamic content processing.
-	 * Sets up a MutationObserver to watch for DOM changes and processes new content.
-	 * Also processes the initial page content.
-	 *
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		try {
 			// Initialize tooltip system
@@ -102,10 +58,6 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Clean up resources and disconnect observers.
-	 * Should be called when the text processor is no longer needed.
-	 */
 	destroy() {
 		try {
 			if (this._observer) {
@@ -121,11 +73,6 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Handles DOM mutations by processing added nodes
-	 * @param {MutationRecord[]} mutations - The mutation records to process
-	 * @private
-	 */
 	_handleDOMChanges(mutations) {
 		try {
 			for (const mutation of mutations) {
@@ -143,15 +90,6 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Process all content within a container element.
-	 * Finds text elements and applies reference resolution and formatting.
-	 *
-	 * @param {HTMLElement} container - The container element to process
-	 * @param {TextProcessingOptions} [options] - Processing options to override defaults
-	 * @param {boolean} [forceReprocess=false] - Whether to reprocess elements even if already processed
-	 * @returns {Promise<void>}
-	 */
 	async processPageContent(container, options = {}, forceReprocess = false) {
 		try {
 			// Ensure container is an HTMLElement
@@ -199,13 +137,6 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Process a specific DOM element
-	 * Use this method when you need to immediately process content that was just added
-	 *
-	 * @param {HTMLElement} element - The element to process
-	 * @returns {Promise<void>}
-	 */
 	async processElement(element) {
 		try {
 			if (!element) {
@@ -218,15 +149,6 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Process a single text element with the given options
-	 *
-	 * @param {HTMLElement} element - The element to process
-	 * @param {TextProcessingOptions} options - Processing options passed down (may include resolveMode)
-	 * @param {boolean} forceReprocess - Whether to reprocess already processed elements
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _processTextElement(element, options, forceReprocess) {
 		try {
 			const originalText = element.innerHTML;
@@ -288,14 +210,6 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Process a string value and handle references and formatting.
-	 * Applies reference resolution and text formatting based on provided options.
-	 *
-	 * @param {string} text - The string to process
-	 * @param {TextProcessingOptions} [options] - Processing options to override defaults (includes resolveMode)
-	 * @returns {Promise<string>} The processed string with resolved references and formatting
-	 */
 	async processString(text, options = {}) {
 		try {
 			if (!text) return '';
@@ -321,28 +235,11 @@ class TextProcessor {
 		}
 	}
 
-	/**
-	 * Replace references in text with their resolved values.
-	 * Handles D&D-style references in the format {@reference}.
-	 *
-	 * @param {string} text - The text containing references
-	 * @param {TextProcessingOptions} _options - Processing options (includes resolveMode)
-	 * @returns {string} The text with resolved references
-	 * @private
-	 */
 	_replaceReferences(text, _options = {}) {
 		// Use Renderer5etools for consistent tag processing
 		return renderStringWithTags(text);
 	}
 
-	/**
-	 * Process text formatting (bold, italic, headers).
-	 * Applies markdown-style formatting to text content.
-	 *
-	 * @param {string} input - The text to format
-	 * @returns {string} The formatted text with HTML tags
-	 * @private
-	 */
 	_processFormatting(input) {
 		try {
 			if (!input) return '';

@@ -1,12 +1,9 @@
-/** @file Action service for managing action data. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { BaseDataService } from './BaseDataService.js';
 
 /** Manages action data and provides access to actions. */
 class ActionService extends BaseDataService {
-	/** Initialize a new ActionService instance. */
 	constructor() {
 		super({
 			cacheKey: 'actions',
@@ -17,10 +14,6 @@ class ActionService extends BaseDataService {
 		this._actionMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
-	/**
-	 * Initialize action data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		await this.initWithLoader(
 			async () => DataLoader.loadJSON('actions.json'),

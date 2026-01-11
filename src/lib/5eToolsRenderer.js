@@ -1,16 +1,7 @@
-/**
- * Renderer5etools.js
- * Unified tag and text rendering based on 5etools architecture patterns.
- * Consolidates TextProcessor and TagProcessor functionality into a single, focused utility.
- */
+/** Unified tag and text rendering based on 5etools architecture patterns. */
 
 import { DEFAULT_SOURCE } from './5eToolsParser.js';
 
-/**
- * Escape HTML special characters in attribute values
- * @param {string} text Text to escape
- * @returns {string} Escaped text
- */
 function escapeHtml(text) {
 	if (!text) return '';
 	return String(text)
@@ -21,36 +12,16 @@ function escapeHtml(text) {
 		.replace(/'/g, '&#x27;');
 }
 
-/**
- * Split tag by pipe character
- * @param {string} text Text to split
- * @returns {Array<string>} Parts
- */
 function splitTagByPipe(text) {
 	return text.split('|').map((s) => s.trim());
 }
 
-/**
- * Tag handler registry - maps tag type to render function
- * @private
- */
 const tagHandlers = {};
 
-/**
- * Register a tag handler function
- * @param {string} tag Tag name (e.g., "spell", "item", "class")
- * @param {Function} handler Handler function(content) => html
- */
 export function registerTagHandler(tag, handler) {
 	tagHandlers[tag] = handler;
 }
 
-/**
- * Render a single tag reference
- * @param {string} tag Tag type (e.g., "spell", "class")
- * @param {string} content Tag content (e.g., "Fireball|PHB")
- * @returns {string} HTML link element
- */
 export function renderTag(tag, content) {
 	const handler = tagHandlers[tag];
 	if (!handler) {
@@ -60,12 +31,6 @@ export function renderTag(tag, content) {
 	return handler(content);
 }
 
-/**
- * Render a string with embedded tags
- * Converts {@tag content} syntax to HTML links
- * @param {string} text Input text with embedded tags
- * @returns {string} HTML with rendered tags
- */
 export function renderStringWithTags(text) {
 	if (!text) return '';
 
@@ -84,10 +49,6 @@ export function renderStringWithTags(text) {
 	return result;
 }
 
-/**
- * Initialize default tag handlers for D&D content types
- * Called automatically on module load
- */
 function initializeDefaultHandlers() {
 	// Class reference
 	registerTagHandler('class', (text) => {
@@ -457,22 +418,11 @@ function initializeDefaultHandlers() {
 	});
 }
 
-/**
- * Process a text string and render all embedded tags
- * This is the primary entry point for text processing
- * @param {string} text Text with embedded tags
- * @returns {string} HTML with rendered tags
- */
 export function processString(text) {
 	if (!text) return '';
 	return renderStringWithTags(text);
 }
 
-/**
- * Process an array of text entries
- * @param {Array<string|Object>} entries Array of strings or entry objects
- * @returns {string} Concatenated HTML
- */
 export function processEntries(entries) {
 	if (!Array.isArray(entries)) {
 		return processString(String(entries));

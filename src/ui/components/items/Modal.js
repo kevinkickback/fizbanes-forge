@@ -1,16 +1,12 @@
-/** @file Modal for selecting and adding items to character inventory */
+// Modal for selecting and adding items to character inventory
 
 import { AppState } from '../../../app/AppState.js';
+import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
 import { itemService } from '../../../services/ItemService.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { eventBus, EVENTS } from '../../../lib/EventBus.js';
-import { showNotification } from '../../../lib/Notifications.js';
 
-/**
- * Modal for selecting items to add to character inventory.
- * Provides search, filtering by rarity/type/cost, and quantity selection.
- */
 export class ItemSelectionModal {
     constructor({ allowClose = true } = {}) {
         this.allowClose = allowClose;
@@ -33,10 +29,6 @@ export class ItemSelectionModal {
         };
     }
 
-    /**
-     * Show the modal for item selection.
-     * @returns {Promise<Object|null>} Selected item data or null if cancelled
-     */
     async show() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -82,10 +74,6 @@ export class ItemSelectionModal {
         }
     }
 
-    /**
-     * Load and filter valid items based on character.
-     * @private
-     */
     async _loadValidItems() {
         const allItems = itemService.getAllItems();
         const allowedSources = sourceService.getAllowedSources();
@@ -109,10 +97,6 @@ export class ItemSelectionModal {
         });
     }
 
-    /**
-     * Render the item list based on filters.
-     * @private
-     */
     async _renderItemList() {
         const listContainer = this.modal.querySelector('.item-list-container');
         if (!listContainer) {
@@ -167,10 +151,6 @@ export class ItemSelectionModal {
         });
     }
 
-    /**
-     * Check if an item matches current filters.
-     * @private
-     */
     _itemMatchesFilters(item) {
         // Search term
         if (this.searchTerm && !item.name.toLowerCase().includes(this.searchTerm.toLowerCase())) {
@@ -206,10 +186,6 @@ export class ItemSelectionModal {
         return true;
     }
 
-    /**
-     * Update the item preview panel.
-     * @private
-     */
     _updateItemPreview() {
         const previewContainer = this.modal.querySelector('.item-preview-container');
         if (!previewContainer || !this.selectedItem) return;
@@ -258,10 +234,6 @@ export class ItemSelectionModal {
         }
     }
 
-    /**
-     * Attach event listeners to modal controls.
-     * @private
-     */
     _attachEventListeners() {
         // Search input
         const searchInput = this.modal.querySelector('.item-search-input');
@@ -337,10 +309,6 @@ export class ItemSelectionModal {
         }
     }
 
-    /**
-     * Handle adding the selected item.
-     * @private
-     */
     _handleAddItem() {
         if (!this.selectedItem) {
             showNotification('Please select an item first', 'warning');
@@ -378,10 +346,6 @@ export class ItemSelectionModal {
         }
     }
 
-    /**
-     * Handle canceling the modal.
-     * @private
-     */
     _handleCancel() {
         this.bootstrapModal.hide();
         if (this._resolvePromise) {

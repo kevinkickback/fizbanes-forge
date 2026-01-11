@@ -1,5 +1,3 @@
-/** IPC handlers for D&D data sources (local folders or remote URLs with caching). */
-
 import { ipcMain } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -19,7 +17,6 @@ const DEBUG_MODE = process.env.FF_DEBUG === 'true';
 const DEV_DATA_PATH = DEBUG_MODE
 	? path.resolve(__dirname, '..', '..', '..', 'data')
 	: null;
-
 /** Register all data-related IPC handlers. */
 export function registerDataHandlers(preferencesManager) {
 	MainLogger.info('DataHandlers', 'Registering data handlers');
@@ -40,7 +37,6 @@ export function registerDataHandlers(preferencesManager) {
 		);
 	}
 
-	/** Build a safe cache directory path from a URL (base64). */
 	const getCachePathForUrl = (url) => {
 		const safeName = Buffer.from(url)
 			.toString('base64')
@@ -69,7 +65,6 @@ export function registerDataHandlers(preferencesManager) {
 		currentDataPath = null;
 	};
 
-	/** Send download progress to renderer (start/progress/complete/error). */
 	const sendDownloadProgress = (event, status, data = {}) => {
 		if (event?.sender) {
 			event.sender.send(IPC_CHANNELS.DATA_DOWNLOAD_PROGRESS, {
@@ -79,7 +74,6 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	};
 
-	/** Refresh current data source (validate local or download/update URL cache). */
 	const refreshCurrentDataSource = async (event) => {
 		try {
 			if (DEBUG_MODE) {
@@ -209,7 +203,6 @@ export function registerDataHandlers(preferencesManager) {
 	// Initialize path from existing preferences
 	syncDataPathFromPreferences();
 
-	/** Load a JSON file from the configured data source (normalizes legacy paths). */
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
 		try {
 			if (DEBUG_MODE) {
@@ -297,12 +290,10 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	});
 
-	/** Legacy default-data check (returns false; kept for compatibility). */
 	ipcMain.handle(IPC_CHANNELS.DATA_CHECK_DEFAULT, async () => {
 		return { success: true, hasDefaultData: false };
 	});
 
-	/** Get the configured data source (type and value). */
 	ipcMain.handle(IPC_CHANNELS.DATA_GET_SOURCE, async () => {
 		try {
 			if (DEBUG_MODE) {
@@ -328,12 +319,10 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	});
 
-	/** Refresh/sync the configured data source (downloads for URL, validates local). */
 	ipcMain.handle(IPC_CHANNELS.DATA_REFRESH_SOURCE, async (event) => {
 		return refreshCurrentDataSource(event);
 	});
 
-	/** Validate and configure a new data source (local or URL + cached download). */
 	ipcMain.handle(IPC_CHANNELS.DATA_VALIDATE_SOURCE, async (event, source) => {
 		if (DEBUG_MODE) {
 			return {

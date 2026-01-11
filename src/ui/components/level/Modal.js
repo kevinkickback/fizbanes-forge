@@ -1,10 +1,10 @@
-/** @file Modal wizard for character level progression and multiclass management. */
+// Modal wizard for character level progression and multiclass management.
 
 import { AppState } from '../../../app/AppState.js';
-import { levelUpService } from '../../../services/LevelUpService.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { levelUpService } from '../../../services/LevelUpService.js';
 
 export class LevelUpModal {
     constructor() {

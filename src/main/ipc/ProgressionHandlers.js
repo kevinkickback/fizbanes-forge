@@ -1,5 +1,3 @@
-/** IPC handlers for character progression and level-up operations. */
-
 import { ipcMain } from 'electron';
 import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
@@ -161,8 +159,7 @@ export function registerProgressionHandlers() {
                     };
                 }
 
-                // Simplified HP calculation
-                // In a real implementation, this would use the LevelUpService
+                // TODO: Integrate with LevelUpService for complete HP calculation
                 let totalHP = 0;
 
                 if (classData.level) {

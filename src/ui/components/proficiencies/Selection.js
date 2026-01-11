@@ -1,18 +1,9 @@
-/** Handles proficiency selection/deselection with source-specific tracking. */
+// Handles proficiency selection/deselection with source-specific tracking
 
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
-/**
- * View component for handling proficiency selection/deselection interactions
- */
 export class ProficiencySelectionView {
-	/**
-	 * Toggle optional proficiency selection
-	 * @param {HTMLElement} profItem - The proficiency item element
-	 * @param {Character} character - The character object
-	 * @returns {boolean} True if selection was changed
-	 */
 	toggleOptionalProficiency(profItem, character) {
 		if (!character) return false;
 
@@ -79,10 +70,6 @@ export class ProficiencySelectionView {
 		return changed;
 	}
 
-	/**
-	 * Toggle skill proficiency with source-specific tracking
-	 * @private
-	 */
 	_toggleSkillProficiency(profItem, proficiency, character) {
 		// Data is already normalized from DataLoader
 		const skillOptions = character.optionalProficiencies.skills;
@@ -153,10 +140,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Deselect a skill proficiency
-	 * @private
-	 */
 	_deselectSkill(
 		profItem,
 		_proficiency,
@@ -203,10 +186,6 @@ export class ProficiencySelectionView {
 		return true;
 	}
 
-	/**
-	 * Select a skill proficiency
-	 * @private
-	 */
 	_selectSkill(
 		profItem,
 		proficiency,
@@ -287,10 +266,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Toggle language proficiency with source-specific tracking
-	 * @private
-	 */
 	_toggleLanguageProficiency(profItem, proficiency, character) {
 		// Data is already normalized from DataLoader
 		const languageOptions = character.optionalProficiencies.languages;
@@ -359,10 +334,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Deselect a language proficiency
-	 * @private
-	 */
 	_deselectLanguage(
 		profItem,
 		_proficiency,
@@ -404,10 +375,6 @@ export class ProficiencySelectionView {
 		return true;
 	}
 
-	/**
-	 * Select a language proficiency
-	 * @private
-	 */
 	_selectLanguage(
 		profItem,
 		proficiency,
@@ -485,10 +452,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Toggle tool proficiency with source-specific tracking
-	 * @private
-	 */
 	_toggleToolProficiency(profItem, proficiency, character) {
 		// Data is already normalized from DataLoader
 		const toolOptions = character.optionalProficiencies.tools;
@@ -557,10 +520,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Deselect a tool proficiency
-	 * @private
-	 */
 	_deselectTool(
 		profItem,
 		_proficiency,
@@ -602,10 +561,6 @@ export class ProficiencySelectionView {
 		return true;
 	}
 
-	/**
-	 * Select a tool proficiency
-	 * @private
-	 */
 	_selectTool(
 		profItem,
 		proficiency,
@@ -683,10 +638,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Toggle simple proficiency (armor/weapons) without source tracking
-	 * @private
-	 */
 	_toggleSimpleProficiency(profItem, proficiency, profType, character) {
 		const selectedProfs =
 			character.optionalProficiencies[profType]?.selected || [];
@@ -715,10 +666,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Update item UI for selection
-	 * @private
-	 */
 	_updateItemUIForSelection(profItem) {
 		profItem.classList.add('selected', 'optional-selected', 'proficient');
 		const icon = profItem.querySelector('i.fas');
@@ -731,10 +678,6 @@ export class ProficiencySelectionView {
 		}
 	}
 
-	/**
-	 * Update item UI for deselection
-	 * @private
-	 */
 	_updateItemUIForDeselection(profItem) {
 		profItem.classList.remove('selected', 'optional-selected', 'proficient');
 		const icon = profItem.querySelector('i.fas');

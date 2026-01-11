@@ -1,18 +1,9 @@
-/** Renders proficiency source notes and explanations. */
+// Renders proficiency source notes and explanations
 
 import { toTitleCase } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 
-/**
- * View component for rendering proficiency notes and source tracking
- */
 export class ProficiencyNotesView {
-	/**
-	 * Update the proficiency notes display
-	 * @param {HTMLElement} container - The notes container element
-	 * @param {Character} character - The character object
-	 * @param {Function} getTypeLabel - Function to get type label
-	 */
 	async updateProficiencyNotes(container, character, getTypeLabel) {
 		if (!character) {
 			container.innerHTML = '';

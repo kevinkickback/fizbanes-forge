@@ -1,13 +1,8 @@
-/** Base UI card foundation shared by entity cards (race, class, etc.). */
+// Base UI card foundation shared by entity cards (race, class, etc.)
 
 import { textProcessor } from '../../lib/TextProcessor.js';
 
-/** Base class providing shared card display helpers. */
 export class BaseCard {
-	/**
-	 * Creates a new EntityCard instance
-	 * @param {string} cardId - The ID of the HTML element containing the card
-	 */
 	constructor(cardId) {
 		if (!cardId) {
 			return;
@@ -51,12 +46,6 @@ export class BaseCard {
 	// Image Management Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Updates the entity image in the card
-	 * @param {string} imagePath - The path to the image
-	 * @param {string} altText - Alternative text for the image
-	 * @returns {void}
-	 */
 	updateEntityImage(imagePath, altText) {
 		if (!this._entityImage) {
 			return;
@@ -82,11 +71,6 @@ export class BaseCard {
 		}
 	}
 
-	/**
-	 * Sets a default placeholder image when no image is available
-	 * @param {string} altText - Alternative text for the placeholder
-	 * @private
-	 */
 	_setDefaultImage(altText) {
 		const placeholder = document.createElement('div');
 		placeholder.classList.add('placeholder-image');
@@ -98,12 +82,6 @@ export class BaseCard {
 	// Description Management Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Updates the quick description section of the card
-	 * @param {string} title - The title to display
-	 * @param {string} description - The description text
-	 * @returns {Promise<void>}
-	 */
 	async updateQuickDescription(title, description) {
 		if (!this._quickDesc) {
 			return;
@@ -134,12 +112,6 @@ export class BaseCard {
 		}
 	}
 
-	/**
-	 * Sets placeholder content when no entity is selected
-	 * @param {string} title - Optional custom title for the placeholder
-	 * @param {string} message - Optional custom message for the placeholder
-	 * @returns {void}
-	 */
 	setPlaceholderContent(
 		title = 'Select an Entity',
 		message = 'Choose an entity to view its details.',
@@ -168,12 +140,6 @@ export class BaseCard {
 	// Details Management Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Creates a section in the details area with the given title
-	 * @param {string} title - The title of the section
-	 * @param {boolean} asList - Whether to create a list container in the section
-	 * @returns {HTMLElement} The created section element
-	 */
 	createDetailSection(title, asList = true) {
 		if (!this._details) {
 			console.warn('BaseCard', 'Details element not found in card');
@@ -196,12 +162,6 @@ export class BaseCard {
 		return section;
 	}
 
-	/**
-	 * Adds an item to a section list
-	 * @param {HTMLElement} section - The section to add the item to
-	 * @param {string} content - The content of the item
-	 * @returns {HTMLElement} The created list item
-	 */
 	addDetailItem(section, content) {
 		if (!section) {
 			console.warn('BaseCard', 'Invalid section provided to addDetailItem');
@@ -221,12 +181,6 @@ export class BaseCard {
 		return item;
 	}
 
-	/**
-	 * Adds a text paragraph to a section
-	 * @param {HTMLElement} section - The section to add the paragraph to
-	 * @param {string} content - The content of the paragraph
-	 * @returns {HTMLElement} The created paragraph element
-	 */
 	addDetailParagraph(section, content) {
 		if (!section) {
 			console.warn(
@@ -244,10 +198,6 @@ export class BaseCard {
 		return para;
 	}
 
-	/**
-	 * Clears all content from the details area
-	 * @returns {void}
-	 */
 	clearDetails() {
 		if (this._details) {
 			this._details.innerHTML = '';
@@ -258,10 +208,6 @@ export class BaseCard {
 	// Utility Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Processes all text content in the card for reference tags and formatting
-	 * @returns {Promise<void>}
-	 */
 	async processCardText() {
 		if (!textProcessor.isInitialized) {
 			await textProcessor.initialize();
@@ -272,10 +218,6 @@ export class BaseCard {
 		}
 	}
 
-	/**
-	 * Checks if the card is fully initialized and ready to use
-	 * @returns {boolean} True if the card is ready, false otherwise
-	 */
 	isReady() {
 		return !!(
 			this._card &&

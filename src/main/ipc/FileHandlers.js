@@ -1,5 +1,3 @@
-/** IPC handlers for file operations. */
-
 import { dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';
 import { MainLogger } from '../Logger.js';

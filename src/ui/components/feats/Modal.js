@@ -2,11 +2,11 @@
 // Modal for selecting feats valid for the current character
 
 import { AppState } from '../../../app/AppState.js';
-import { featService } from '../../../services/FeatService.js';
-import { sourceService } from '../../../services/SourceService.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { featService } from '../../../services/FeatService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
 export class FeatCard {
 	constructor({ allowClose = true } = {}) {
@@ -636,20 +636,11 @@ export class FeatCard {
 // Feat List View - Main feat display
 //=============================================================================
 
-/**
- * Renders the list of selected feats and source information on the build page.
- * @internal
- */
 export class FeatListView {
 	constructor() {
 		this._onRemoveFeatClick = this._onRemoveFeatClick.bind(this);
 	}
 
-	/**
-	 * Render the list of selected feats into the provided container.
-	 * @param {HTMLElement|null} container - Target container element (#featList)
-	 * @param {import('../../core/Character.js').Character|null} character - Current character
-	 */
 	async update(container, character) {
 		if (!container) return;
 
@@ -732,12 +723,6 @@ export class FeatListView {
 		return descParts.join(' ');
 	}
 
-	/**
-	 * Attach click listeners to remove feat buttons
-	 * @param {HTMLElement} container - Container with feat items
-	 * @param {import('../../core/Character.js').Character} character - Current character
-	 * @private
-	 */
 	_attachRemoveListeners(container, character) {
 		const removeButtons = container.querySelectorAll('.remove-feat-btn');
 		removeButtons.forEach((button) => {
@@ -747,12 +732,6 @@ export class FeatListView {
 		});
 	}
 
-	/**
-	 * Handle removal of a feat
-	 * @param {Event} event - Click event
-	 * @param {import('../../core/Character.js').Character} character - Current character
-	 * @private
-	 */
 	_onRemoveFeatClick(event, character) {
 		event.preventDefault();
 		event.stopPropagation();
@@ -781,16 +760,7 @@ export class FeatListView {
 // Feat Sources View - Source summary display
 //=============================================================================
 
-/**
- * Renders feat sources summary.
- * @internal
- */
 export class FeatSourcesView {
-	/**
-	 * Render the feat source summary into the provided container.
-	 * @param {HTMLElement|null} container - Target container element
-	 * @param {import('../../core/Character.js').Character|null} character - Current character
-	 */
 	async update(container, character) {
 		if (!container) return;
 

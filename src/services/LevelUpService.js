@@ -1,13 +1,8 @@
-/** @file Manages character level progression, multiclass tracking, and feature application. */
-
+/** Manages character level progression, multiclass tracking, and feature application. */
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
 import { spellSelectionService } from './SpellSelectionService.js';
 
-/**
- * Manages character level progression, multiclass support, and class feature application.
- * Handles level-ups, feature progression, spell slot recalculation, and multiclass mechanics.
- */
 class LevelUpService {
     constructor() {
         this.loggerScope = 'LevelUpService';

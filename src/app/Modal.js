@@ -31,48 +31,19 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 import { SourceCard } from '../ui/components/sources/Card.js';
 
-/**
- * Singleton instance for Modal class
- * @type {Modal|null}
- * @private
- */
 let _instance = null;
 
-/**
- * Utility class for managing modal dialogs
- */
 export class Modal {
-	/**
-	 * Initializes a new Modal instance
-	 * @private
-	 */
 	constructor() {
 		if (_instance) {
 			throw new Error('Modal is a singleton. Use Modal.getInstance() instead.');
 		}
 
-		/**
-		 * Source card for managing source book selection
-		 * @type {SourceCard}
-		 * @private
-		 */
 		this._sourceCard = new SourceCard();
-
-		/**
-		 * Event handlers for modal interactions
-		 * @type {ModalEventHandlers}
-		 * @private
-		 */
 		this._eventHandlers = {
 			onShowModal: null,
 			onCreateCharacter: null,
 		};
-
-		/**
-		 * Flag to track if button listeners have been set up
-		 * @type {boolean}
-		 * @private
-		 */
 		this._buttonListenersSetup = false;
 
 		_instance = this;
@@ -82,10 +53,6 @@ export class Modal {
 	// Event Handling
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Sets up event listeners for modal interactions
-	 * @param {ModalEventHandlers} handlers - Event handlers
-	 */
 	setupEventListeners(handlers = {}) {
 		try {
 			// Store event handlers
@@ -98,11 +65,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Ensures that button listeners have been set up
-	 * Called when the home page initializes (guaranteed DOM is ready)
-	 * @public
-	 */
 	ensureInitialized() {
 		try {
 			this._setupButtonEventListeners();
@@ -116,10 +78,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Sets up button event listeners for the new character modal
-	 * @private
-	 */
 	_setupButtonEventListeners() {
 		// Set up new character button
 		this._setupButtonEventListener('newCharacterBtn', (e) => {
@@ -136,12 +94,6 @@ export class Modal {
 		);
 	}
 
-	/**
-	 * Sets up an event listener for a button, replacing any existing listeners
-	 * @param {string} buttonId - The ID of the button element
-	 * @param {Function} handler - The event handler function
-	 * @private
-	 */
 	_setupButtonEventListener(buttonId, handler) {
 		try {
 			const button = document.getElementById(buttonId);
@@ -165,10 +117,6 @@ export class Modal {
 	// Character Creation Modal
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Shows the new character modal
-	 * @param {Event} [e] - The event that triggered showing the modal
-	 */
 	async showNewCharacterModal(e) {
 		try {
 			if (e) e.preventDefault();
@@ -194,10 +142,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Closes the new character modal and resets the form
-	 * @private
-	 */
 	_closeNewCharacterModal() {
 		try {
 			const modal = document.getElementById('newCharacterModal');
@@ -225,11 +169,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Gets form data from the new character modal
-	 * @returns {CharacterFormData|null} The form data or null if form is invalid
-	 * @private
-	 */
 	_getFormData() {
 		try {
 			const form = document.getElementById('newCharacterForm');
@@ -280,11 +219,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Gets selected sources from the source card
-	 * @returns {Set<string>} Set of selected source codes
-	 * @private
-	 */
 	_getSelectedSources() {
 		try {
 			const selectedSources = new Set();
@@ -310,10 +244,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Creates a new character from the modal form data
-	 * @private
-	 */
 	async _createCharacterFromModal() {
 		try {
 			// Get form data
@@ -374,10 +304,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Reloads the character list if it exists
-	 * @private
-	 */
 	async _reloadCharacterList() {
 		try {
 			const characterList = document.getElementById('characterList');
@@ -621,11 +547,6 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Gets the singleton instance of Modal
-	 * @returns {Modal} The singleton instance
-	 * @static
-	 */
 	static getInstance() {
 		if (!_instance) {
 			_instance = new Modal();

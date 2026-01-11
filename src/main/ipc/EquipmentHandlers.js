@@ -1,5 +1,3 @@
-/** IPC handlers for equipment and inventory operations. */
-
 import { ipcMain } from 'electron';
 import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
@@ -156,7 +154,7 @@ export function registerEquipmentHandlers() {
             try {
                 MainLogger.info(
                     'EquipmentHandlers',
-                    'Unattuing item for character:',
+                    'Unattuneing item for character:',
                     characterId,
                 );
 
@@ -167,7 +165,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item unattued' };
+                return { success: true, message: 'Item unattuneed' };
             } catch (error) {
                 MainLogger.error(
                     'EquipmentHandlers',

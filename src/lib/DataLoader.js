@@ -65,13 +65,6 @@ function setBaseUrl(url) {
 	return dataLoader;
 }
 
-/**
- * Load JSON data from file
- * Implements automatic caching and error handling
- * In Electron, uses IPC-based data loading; in browser, uses fetch
- * @param {string} url Path to JSON file (relative or absolute)
- * @returns {Promise<Object>} Parsed JSON data
- */
 async function loadJSON(url) {
 	if (state.cache[url]) return state.cache[url];
 
@@ -148,37 +141,21 @@ async function loadItems() {
 	return data;
 }
 
-/**
- * Get or load base items data (weapons, armor, etc.)
- * @returns {Promise<Object>} Base items data
- */
 async function loadBaseItems() {
 	const data = await loadJSON(`${state.baseUrl}items-base.json`);
 	return data;
 }
 
-/**
- * Get or load skills data
- * @returns {Promise<Object>} Skills data
- */
 async function loadSkills() {
 	const data = await loadJSON(`${state.baseUrl}skills.json`);
 	return data;
 }
 
-/**
- * Get or load actions data
- * @returns {Promise<Object>} Actions data
- */
 async function loadActions() {
 	const data = await loadJSON(`${state.baseUrl}actions.json`);
 	return data;
 }
 
-/**
- * Get or load monster/creature data
- * @returns {Promise<Object>} Monster data
- */
 async function loadMonsters() {
 	// Aggregate all bestiary files listed in the bestiary index
 	const index = await loadJSON(`${state.baseUrl}bestiary/index.json`);
@@ -204,132 +181,71 @@ async function loadMonsters() {
 	return aggregated;
 }
 
-/**
- * Get or load race data
- * @returns {Promise<Object>} Race data
- */
 async function loadRaces() {
 	return loadJSON(`${state.baseUrl}races.json`);
 }
 
-/**
- * Get or load race fluff data
- * @returns {Promise<Object>} Race fluff data
- */
 async function loadRaceFluff() {
 	return loadJSON(`${state.baseUrl}fluff-races.json`);
 }
 
-/**
- * Get or load class data
- * Note: Use ClassManager for aggregated class data
- * @param {string} className Class name (e.g., 'Fighter', 'Wizard')
- * @returns {Promise<Object>} Class data from single file
- */
+// Note: Use ClassManager for aggregated class data
 async function loadClasses(className = 'Fighter') {
 	return loadJSON(
 		`${state.baseUrl}class/class-${className.toLowerCase()}.json`,
 	);
 }
 
-/**
- * Get or load background data
- * @returns {Promise<Object>} Background data
- */
 async function loadBackgrounds() {
 	return loadJSON(`${state.baseUrl}backgrounds.json`);
 }
 
-/**
- * Get or load feat data
- * @returns {Promise<Object>} Feat data
- */
 async function loadFeats() {
 	const data = await loadJSON(`${state.baseUrl}feats.json`);
 	return data;
 }
 
-/**
- * Get or load condition data
- * @returns {Promise<Object>} Condition data
- */
 async function loadConditions() {
 	const data = await loadJSON(`${state.baseUrl}conditionsdiseases.json`);
 	return data;
 }
 
-/**
- * Get or load fluff feats data
- * @returns {Promise<Object>} Fluff feats data
- */
 async function loadFluffFeats() {
 	return loadJSON(`${state.baseUrl}fluff-feats.json`);
 }
 
-/**
- * Get or load optional features data
- * @returns {Promise<Object>} Optional features data
- */
 async function loadOptionalFeatures() {
 	const data = await loadJSON(`${state.baseUrl}optionalfeatures.json`);
 	return data;
 }
 
-/**
- * Get or load fluff optional features data
- * @returns {Promise<Object>} Fluff optional features data
- */
 async function loadFluffOptionalFeatures() {
 	return loadJSON(`${state.baseUrl}fluff-optionalfeatures.json`);
 }
 
-/**
- * Get or load rewards data
- * @returns {Promise<Object>} Rewards data
- */
 async function loadRewards() {
 	const data = await loadJSON(`${state.baseUrl}rewards.json`);
 	return data;
 }
 
-/**
- * Get or load traps and hazards data
- * @returns {Promise<Object>} Traps/hazards data
- */
 async function loadTrapsHazards() {
 	return loadJSON(`${state.baseUrl}trapshazards.json`);
 }
 
-/**
- * Get or load vehicles data
- * @returns {Promise<Object>} Vehicles data
- */
 async function loadVehicles() {
 	const data = await loadJSON(`${state.baseUrl}vehicles.json`);
 	return data;
 }
 
-/**
- * Get or load objects data
- * @returns {Promise<Object>} Objects data
- */
 async function loadObjects() {
 	const data = await loadJSON(`${state.baseUrl}objects.json`);
 	return data;
 }
 
-/**
- * Get or load variant rules data
- * @returns {Promise<Object>} Variant rules data
- */
 async function loadVariantRules() {
 	return loadJSON(`${state.baseUrl}variantrules.json`);
 }
 
-/**
- * Get or load sources data
- * @returns {Promise<Object>} Sources data
- */
 async function loadSources() {
 	try {
 		return await loadJSON(`${state.baseUrl}books.json`);
@@ -339,11 +255,6 @@ async function loadSources() {
 	}
 }
 
-/**
- * Get or load subclass spells data
- * @param {string} subclassId - The subclass ID
- * @returns {Promise<Object>} Subclass spells data
- */
 async function loadSubclassSpells(subclassId) {
 	try {
 		return await loadJSON(`${state.baseUrl}spells/sources.json`);
@@ -383,9 +294,6 @@ function getCacheStats() {
 	};
 }
 
-/**
- * Backward-compatible object export (no class/instance needed).
- */
 const dataLoader = {
 	setBaseUrl,
 	loadJSON,
@@ -417,43 +325,12 @@ const dataLoader = {
 	getCacheStats,
 };
 
-// Static-style convenience methods (map directly to underlying functions)
-dataLoader.loadJSON = loadJSON;
-dataLoader.loadJSONs = loadJSONs;
-dataLoader.loadSpells = loadSpells;
-dataLoader.loadItems = loadItems;
-dataLoader.loadBaseItems = loadBaseItems;
-dataLoader.loadSkills = loadSkills;
-dataLoader.loadActions = loadActions;
-dataLoader.loadMonsters = loadMonsters;
-dataLoader.loadRaces = loadRaces;
-dataLoader.loadRaceFluff = loadRaceFluff;
-dataLoader.loadClasses = loadClasses;
-dataLoader.loadBackgrounds = loadBackgrounds;
-dataLoader.loadFeats = loadFeats;
-dataLoader.loadConditions = loadConditions;
-dataLoader.loadFluffFeats = loadFluffFeats;
-dataLoader.loadOptionalFeatures = loadOptionalFeatures;
-dataLoader.loadFluffOptionalFeatures = loadFluffOptionalFeatures;
-dataLoader.loadRewards = loadRewards;
-dataLoader.loadTrapsHazards = loadTrapsHazards;
-dataLoader.loadVehicles = loadVehicles;
-dataLoader.loadObjects = loadObjects;
-dataLoader.loadVariantRules = loadVariantRules;
-dataLoader.loadSources = loadSources;
-dataLoader.loadSubclassSpells = loadSubclassSpells;
-dataLoader.clearCache = clearCache;
-dataLoader.clearCacheForUrl = clearCacheForUrl;
-dataLoader.getCacheStats = getCacheStats;
-
 // Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
 
 export {
-	DataLoader,
 	clearCache,
-	clearCacheForUrl,
-	dataLoader,
+	clearCacheForUrl, DataLoader, dataLoader,
 	getCacheStats,
 	loadActions,
 	loadBackgrounds,

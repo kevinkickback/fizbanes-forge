@@ -1,4 +1,4 @@
-/** Bootstrap modal components for app initialization and data refresh. */
+// Bootstrap modal components for app initialization and data refresh.
 
 //=============================================================================
 // Loading Modal - Initial app startup
@@ -12,10 +12,6 @@ export class LoadingModal {
         this.progressBar = null;
     }
 
-    /**
-     * Show the loading modal with an optional initial message
-     * @param {string} [initialMessage='Loading...'] - Initial message to display
-     */
     show(initialMessage = 'Loading...') {
         if (this.modal) {
             return; // Already shown
@@ -42,20 +38,12 @@ export class LoadingModal {
         this.bootstrapModal.show();
     }
 
-    /**
-     * Update the loading message
-     * @param {string} message - New message to display
-     */
     updateMessage(message) {
         if (this.messageElement) {
             this.messageElement.textContent = message;
         }
     }
 
-    /**
-     * Update progress bar (0-100)
-     * @param {number} percent - Progress percentage (0-100)
-     */
     updateProgress(percent) {
         if (this.progressBar) {
             const safePercent = Math.min(100, Math.max(0, percent));
@@ -64,9 +52,6 @@ export class LoadingModal {
         }
     }
 
-    /**
-     * Hide and remove the loading modal
-     */
     hide() {
         if (!this.bootstrapModal) {
             return;
@@ -96,9 +81,6 @@ export class RefreshProgressModal {
         this.confirmButton = null;
     }
 
-    /**
-     * Show the refresh progress modal
-     */
     show() {
         if (this.modal) {
             return;
@@ -127,11 +109,6 @@ export class RefreshProgressModal {
         this.bootstrapModal.show();
     }
 
-    /**
-     * Update the progress bar and message
-     * @param {number} percent - Progress percentage (0-100)
-     * @param {string} [message] - Optional message to display
-     */
     updateProgress(percent, message) {
         if (this.progressBar) {
             const safePercent = Math.min(100, Math.max(0, percent));
@@ -148,11 +125,6 @@ export class RefreshProgressModal {
         }
     }
 
-    /**
-     * Show completion state and enable confirm button
-     * @param {string} message - Completion message to display
-     * @param {number} [percent=100] - Final percentage to display
-     */
     showCompletion(message, percent = 100) {
         this.updateProgress(percent, message);
         if (this.confirmButton) {
@@ -162,9 +134,6 @@ export class RefreshProgressModal {
         }
     }
 
-    /**
-     * Hide and remove the modal
-     */
     hide() {
         if (!this.bootstrapModal) {
             return;

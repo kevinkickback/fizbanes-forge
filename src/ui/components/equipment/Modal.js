@@ -1,17 +1,13 @@
-/** @file Modal for selecting and adding equipment/items to character inventory */
+// Modal for selecting and adding equipment/items to character inventory
 
 import { AppState } from '../../../app/AppState.js';
-import { equipmentService } from '../../../services/EquipmentService.js';
-import { itemService } from '../../../services/ItemService.js';
-import { sourceService } from '../../../services/SourceService.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { equipmentService } from '../../../services/EquipmentService.js';
+import { itemService } from '../../../services/ItemService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
-/**
- * Modal for selecting items to add to character's inventory.
- * Provides search, filtering by type/rarity/source/properties.
- */
 export class EquipmentSelectionModal {
     constructor({ allowClose = true } = {}) {
         this.allowClose = allowClose;
@@ -31,10 +27,6 @@ export class EquipmentSelectionModal {
         };
     }
 
-    /**
-     * Show the modal for equipment selection.
-     * @returns {Promise<Array|null>} Selected items or null if cancelled
-     */
     async show() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -60,10 +52,6 @@ export class EquipmentSelectionModal {
         }
     }
 
-    /**
-     * Initialize the modal HTML structure and Bootstrap modal instance.
-     * @private
-     */
     async _initializeModal() {
         this.modal = document.getElementById('equipmentSelectionModal');
 
@@ -78,10 +66,6 @@ export class EquipmentSelectionModal {
         });
     }
 
-    /**
-     * Setup the source filter dropdown.
-     * @private
-     */
     async _setupSourceDropdown() {
         const sourceMenu = this.modal.querySelector('.equipment-source-menu');
         const sourceToggle = this.modal.querySelector('.equipment-source-toggle');
@@ -138,10 +122,6 @@ export class EquipmentSelectionModal {
         }
     }
 
-    /**
-     * Load all items from ItemService.
-     * @private
-     */
     async _loadItems() {
         try {
             // Get all items (both regular items and base items)
@@ -183,10 +163,6 @@ export class EquipmentSelectionModal {
         }
     }
 
-    /**
-     * Setup event listeners for the modal.
-     * @private
-     */
     _setupEventListeners() {
         // Search input
         const searchInput = this.modal.querySelector('#equipmentSearch');
@@ -297,10 +273,6 @@ export class EquipmentSelectionModal {
         });
     }
 
-    /**
-     * Filter items based on search and filters.
-     * @private
-     */
     _filterItems() {
         this.filteredItems = this.allItems.filter((item) =>
             this._itemMatchesFilters(item),
@@ -308,12 +280,6 @@ export class EquipmentSelectionModal {
         this._renderItemList();
     }
 
-    /**
-     * Check if an item matches current filters.
-     * @param {Object} item - Item to check
-     * @returns {boolean} True if item matches
-     * @private
-     */
     _itemMatchesFilters(item) {
         // Search term
         if (this.searchTerm) {
@@ -382,10 +348,6 @@ export class EquipmentSelectionModal {
         return true;
     }
 
-    /**
-     * Render the filtered item list.
-     * @private
-     */
     async _renderItemList() {
         const listContainer = this.modal.querySelector('.equipment-list-container');
         if (!listContainer) return;
@@ -467,10 +429,6 @@ export class EquipmentSelectionModal {
         this._renderSelectedItemsList();
     }
 
-    /**
-     * Render the selected items list.
-     * @private
-     */
     _renderSelectedItemsList() {
         const selectedContainer = this.modal.querySelector(
             '.selected-equipment-list',
@@ -511,11 +469,6 @@ export class EquipmentSelectionModal {
         });
     }
 
-    /**
-     * Toggle item selection.
-     * @param {string} itemId - Item ID
-     * @private
-     */
     _toggleItemSelection(itemId) {
         const index = this.selectedItems.indexOf(itemId);
         if (index > -1) {
@@ -533,12 +486,6 @@ export class EquipmentSelectionModal {
         this._renderSelectedItemsList();
     }
 
-    /**
-     * Derive type codes for filtering, covering items without explicit type values.
-     * @param {Object} item - Item to inspect
-     * @returns {string[]} Uppercase type codes
-     * @private
-     */
     _getItemTypeCodes(item) {
         const types = new Set();
 
@@ -564,12 +511,6 @@ export class EquipmentSelectionModal {
         return Array.from(types);
     }
 
-    /**
-     * Determine if an item requires attunement.
-     * @param {Object} item - Item to inspect
-     * @returns {boolean} True if attunement is required
-     * @private
-     */
     _requiresAttunement(item) {
         if (!item) return false;
         const { reqAttune, reqAttuneAlt, requiresAttunement, reqAttuneTags } = item;
@@ -578,12 +519,6 @@ export class EquipmentSelectionModal {
         return false;
     }
 
-    /**
-     * Get item type display name.
-     * @param {string} typeCode - Type code
-     * @returns {string} Display name
-     * @private
-     */
     _getItemTypeName(typeCode) {
         const types = {
             W: 'Weapon',
@@ -603,11 +538,6 @@ export class EquipmentSelectionModal {
         return types[typeCode] || 'Item';
     }
 
-    /**
-     * Update source filter toggle label.
-     * @param {HTMLElement} toggleBtn - Toggle button element
-     * @private
-     */
     _updateSourceLabel(toggleBtn) {
         if (!toggleBtn) return;
         if (this.selectedSources.size === 0) {
@@ -623,10 +553,6 @@ export class EquipmentSelectionModal {
         toggleBtn.textContent = `${preview}${suffix}`;
     }
 
-    /**
-     * Clear all filters.
-     * @private
-     */
     _clearFilters() {
         this.searchTerm = '';
         this.selectedSources.clear();
@@ -648,10 +574,6 @@ export class EquipmentSelectionModal {
         this._filterItems();
     }
 
-    /**
-     * Handle adding selected items.
-     * @private
-     */
     async _handleAddSelected() {
         if (this.selectedItems.length === 0) {
             showNotification('No items selected', 'warning');
@@ -699,19 +621,11 @@ export class EquipmentSelectionModal {
         }
     }
 
-    /**
-     * Handle cancel action.
-     * @private
-     */
     _handleCancel() {
         this.bootstrapModal.hide();
         this.resolvePromise(null);
     }
 
-    /**
-     * Cleanup when modal is hidden.
-     * @private
-     */
     _cleanup() {
         this.selectedItems = [];
         this.searchTerm = '';

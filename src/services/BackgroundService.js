@@ -1,22 +1,14 @@
-/** @file Simplified background manager for selection and JSON access. */
-
 import { AppState } from '../app/AppState.js';
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 /** Manages background selection and access to background data. */
 class BackgroundService {
-	/** Creates a new BackgroundManager instance. */
 	constructor() {
 		this._backgroundData = null;
 		this._selectedBackground = null;
 	}
 
-	/**
-	 * Initialize background data by loading from DataUtil
-	 * Normalizes legacy proficiency structure to 5etools format
-	 * @returns {Promise<boolean>} Promise resolving to true if initialization succeeded
-	 */
 	async initialize() {
 		// Skip if already initialized
 		if (this._backgroundData) {

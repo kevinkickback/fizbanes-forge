@@ -1,11 +1,4 @@
-/**
- * ProficiencyCore module
- *
- * Provides business logic for managing character proficiencies, including source tracking for adds/removals.
- * Handles adding, removing, and configuring proficiencies for skills, languages, tools, and more.
- *
- * @module ProficiencyCore
- */
+/** Business logic for managing character proficiencies with source tracking. */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import DataNormalizer from '../lib/DataNormalizer.js';
@@ -24,19 +17,10 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
  * @property {string[]} selected - Currently selected proficiencies
  */
 
-/**
- * Core proficiency logic handler
- * @class
- */
 export class ProficiencyCore {
 	/**
-	 * Adds a proficiency to a character with source tracking
-	 * Uses case-insensitive comparison to avoid duplicates with different casing
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type (skills, languages, tools, armor, weapons, savingThrows)
-	 * @param {string} proficiency - The proficiency name
-	 * @param {string} source - The source granting this proficiency (e.g., 'Race', 'Class', 'Background')
-	 * @returns {boolean} True if added, false if it was already present
+	 * Adds a proficiency to a character with source tracking.
+	 * Uses case-insensitive comparison to avoid duplicates with different casing.
 	 */
 	static addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
@@ -89,12 +73,6 @@ export class ProficiencyCore {
 		return wasNew;
 	}
 
-	/**
-	 * Removes proficiencies from a specific source
-	 * @param {Object} character - The character object
-	 * @param {string} source - The source to remove proficiencies from
-	 * @returns {Object} Object with arrays of removed proficiencies by type
-	 */
 	static removeProficienciesBySource(character, source) {
 		if (!character || !source) {
 			console.warn('Invalid parameters for removeProficienciesBySource');
@@ -147,12 +125,8 @@ export class ProficiencyCore {
 	}
 
 	/**
-	 * Checks if a character has a proficiency (from any source)
-	 * Uses case-insensitive comparison to handle both old (lowercase) and new (original casing) saves
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} proficiency - The proficiency name
-	 * @returns {boolean} True if the character has this proficiency
+	 * Checks if a character has a proficiency (from any source).
+	 * Uses case-insensitive comparison to handle both old (lowercase) and new (original casing) saves.
 	 */
 	static hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
@@ -163,23 +137,10 @@ export class ProficiencyCore {
 		);
 	}
 
-	/**
-	 * Gets all sources for a specific proficiency
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} proficiency - The proficiency name
-	 * @returns {Set<string>} Set of sources granting this proficiency
-	 */
 	static getProficiencySources(character, type, proficiency) {
 		return character?.proficiencySources?.[type]?.get(proficiency) || new Set();
 	}
 
-	/**
-	 * Gets all proficiencies of a type with their sources
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @returns {ProficiencyWithSources[]} Array of proficiencies with their sources
-	 */
 	static getProficienciesWithSources(character, type) {
 		if (!character?.proficiencies?.[type]) {
 			return [];
@@ -195,14 +156,6 @@ export class ProficiencyCore {
 		}));
 	}
 
-	/**
-	 * Sets up optional proficiency configuration for a source
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type (skills, languages, tools)
-	 * @param {string} source - Source identifier ('race', 'class', 'background')
-	 * @param {number} allowed - Number of proficiencies allowed to be selected
-	 * @param {string[]} options - Available proficiency options
-	 */
 	static setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
 			console.warn('Invalid parameters for setOptionalProficiencies');
@@ -250,12 +203,6 @@ export class ProficiencyCore {
 		});
 	}
 
-	/**
-	 * Clears optional proficiency configuration for a source
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier ('race', 'class', 'background')
-	 */
 	static clearOptionalProficiencies(character, type, source) {
 		if (!character?.optionalProficiencies?.[type]) {
 			return;
@@ -291,14 +238,6 @@ export class ProficiencyCore {
 		});
 	}
 
-	/**
-	 * Selects an optional proficiency for a character
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier ('race', 'class', 'background')
-	 * @param {string} proficiency - The proficiency to select
-	 * @returns {boolean} True if selection was successful
-	 */
 	static selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
 			console.warn('Optional proficiencies not initialized for type:', type);
@@ -357,14 +296,6 @@ export class ProficiencyCore {
 		return true;
 	}
 
-	/**
-	 * Deselects an optional proficiency
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier ('race', 'class', 'background')
-	 * @param {string} proficiency - The proficiency to deselect
-	 * @returns {boolean} True if deselection was successful
-	 */
 	static deselectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
 			return false;
@@ -406,13 +337,6 @@ export class ProficiencyCore {
 		return true;
 	}
 
-	/**
-	 * Gets available options for optional proficiency selection
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier
-	 * @returns {string[]} Array of available proficiency names
-	 */
 	static getAvailableOptionalProficiencies(character, type, source) {
 		const sourceKey = DataNormalizer.normalizeForLookup(source);
 		const config = character?.optionalProficiencies?.[type]?.[sourceKey];
@@ -442,12 +366,6 @@ export class ProficiencyCore {
 		});
 	}
 
-	/**
-	 * Recalculates combined optional proficiency data
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @private
-	 */
 	static _recalculateOptionalProficiencies(character, type) {
 		if (!character?.optionalProficiencies?.[type]) {
 			return;
@@ -484,13 +402,7 @@ export class ProficiencyCore {
 		config.selected = Array.from(allSelected);
 	}
 
-	/**
-	 * Automatically refund a skill selection if it's now granted as a fixed proficiency
-	 * @param {Object} character - The character object
-	 * @param {string} proficiency - The proficiency being added as fixed
-	 * @param {string} newSource - The source adding the fixed proficiency
-	 * @private
-	 */
+	/** Automatically refunds a skill selection if it's now granted as a fixed proficiency. */
 	static _refundOptionalSkill(character, proficiency, newSource) {
 		if (!character?.optionalProficiencies?.skills) {
 			return;
@@ -550,14 +462,6 @@ export class ProficiencyCore {
 		}
 	}
 
-	/**
-	 * Removes a proficiency from a specific source only
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} proficiency - The proficiency name
-	 * @param {string} source - The specific source to remove
-	 * @private
-	 */
 	static _removeProficiencyFromSource(character, type, proficiency, source) {
 		if (!character?.proficiencySources?.[type]) {
 			return;
@@ -600,10 +504,6 @@ export class ProficiencyCore {
 		}
 	}
 
-	/**
-	 * Initializes proficiency structures on a character if they don't exist
-	 * @param {Object} character - The character object
-	 */
 	static initializeProficiencyStructures(character) {
 		if (!character) {
 			return;

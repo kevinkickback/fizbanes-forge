@@ -1,5 +1,3 @@
-/** IPC handlers for character operations. */
-
 import { dialog, ipcMain } from 'electron';
 import fssync from 'node:fs';
 import fs from 'node:fs/promises';
@@ -193,16 +191,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 						success: false,
 						error: `Invalid character data: ${validation.errors.join(', ')}`,
 					};
-				}
-				// If a character payload was provided directly, validate it before proceeding
-				if (character) {
-					const validation = CharacterSchema.validate(character);
-					if (!validation.valid) {
-						return {
-							success: false,
-							error: `Invalid character data: ${validation.errors.join(', ')}`,
-						};
-					}
 				}
 
 				const savePath = preferencesManager.getCharacterSavePath();

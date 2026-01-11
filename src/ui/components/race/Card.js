@@ -1,12 +1,9 @@
-/** Controller for race selection UI, coordinating views and subrace logic. */
+// Controller for race selection UI, coordinating views and subrace logic.
 
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
-import { abilityScoreService, getAbilityData, getRaceAbilityData } from '../../../services/AbilityScoreService.js';
-import { raceService } from '../../../services/RaceService.js';
-import { sourceService } from '../../../services/SourceService.js';
 import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
@@ -15,39 +12,18 @@ import {
 } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { abilityScoreService, getAbilityData, getRaceAbilityData } from '../../../services/AbilityScoreService.js';
+import { raceService } from '../../../services/RaceService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
-/** Controller for race selection and display. */
 export class RaceCard {
-	/**
-	 * Creates a new RaceCard instance
-	 */
 	constructor() {
-		/**
-		 * Reference to the race service
-		 * @type {RaceService}
-		 * @private
-		 */
 		this._raceService = raceService;
 
-		/**
-		 * View for race selection and quick description
-		 * @type {RaceCardView}
-		 * @private
-		 */
 		this._cardView = new RaceCardView();
 
-		/**
-		 * View for subrace selection
-		 * @type {SubracePickerView}
-		 * @private
-		 */
 		this._subraceView = new SubracePickerView();
 
-		/**
-		 * View for race details display
-		 * @type {RaceDetailsView}
-		 * @private
-		 */
 		this._detailsView = new RaceDetailsView();
 
 		// Initialize the component
@@ -58,10 +34,6 @@ export class RaceCard {
 	// Initialization Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Initializes the race card UI components and event listeners.
-	 * Sets up views and binds event handlers for race and subrace selection.
-	 */
 	initialize() {
 		try {
 			// Initialize race service FIRST before setting up listeners
@@ -85,10 +57,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Sets up event listeners for race and subrace selection changes
-	 * @private
-	 */
 	_setupEventListeners() {
 		// Listen to view events via EventBus instead of callbacks
 		eventBus.on(EVENTS.RACE_SELECTED, (raceData) => {
@@ -113,11 +81,6 @@ export class RaceCard {
 	// Data Loading Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Loads and sets the saved race selection from the character data
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _loadSavedRaceSelection() {
 		try {
 			// Populate race dropdown first
@@ -198,12 +161,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Populates the race selection dropdown with all available races
-	 * filtered by allowed sources
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _populateRaceSelect() {
 		try {
 			const races = this._raceService.getAllRaces();
@@ -229,13 +186,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Populates the subrace selection dropdown based on the currently selected race
-	 * filtered by allowed sources
-	 * @param {Object} race - The selected race data
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _populateSubraceSelect(race) {
 		if (!race) {
 			this._subraceView.reset();
@@ -314,12 +264,6 @@ export class RaceCard {
 	// Event Handlers
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Handles race selection change events
-	 * @param {Event} event - The change event
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _handleRaceChange(event, skipCharacterUpdate = false) {
 		try {
 			const [raceName, source] = event.target.value.split('_');
@@ -367,14 +311,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Handles subrace selection change events
-	 * @param {Event} event - The change event
-	 * @param {boolean} skipEventDuringInit - Skip emitting CHARACTER_UPDATED during initialization
-	 * @param {boolean} restoreAbilityChoices - Restore saved ability choices when loading
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _handleSubraceChange(
 		event,
 		skipEventDuringInit = false,
@@ -437,11 +373,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Handles character selection change events
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _handleCharacterChanged() {
 		try {
 			// Reload race selection to match character's race
@@ -459,19 +390,11 @@ export class RaceCard {
 	// UI Update Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Reset race details to placeholder state
-	 */
 	resetRaceDetails() {
 		this._cardView.resetQuickDescription();
 		this._detailsView.resetAllDetails();
 	}
 
-	/**
-	 * Updates the display of race details for the selected race
-	 * @param {Object} raceData - The race data to display
-	 * @returns {Promise<void>}
-	 */
 	async updateRaceDetails(raceData) {
 		if (!raceData) {
 			this.resetRaceDetails();
@@ -501,12 +424,6 @@ export class RaceCard {
 	// Character Data Management
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update character's race information
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @private
-	 */
 	_updateCharacterRace(race, subrace, options = {}) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -624,12 +541,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Updates ability bonuses based on race and subrace
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @private
-	 */
 	_updateAbilityBonuses(race, subrace) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !race) return;
@@ -707,12 +618,6 @@ export class RaceCard {
 		);
 	}
 
-	/**
-	 * Updates racial traits based on race and subrace
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @private
-	 */
 	_updateRacialTraits(race, subrace) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !race) return;
@@ -742,12 +647,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Update character's proficiencies based on race and subrace
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @private
-	 */
 	_updateRaceProficiencies(race, subrace, previousRaceOptionalSelections = {}) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !race) return;
@@ -795,13 +694,6 @@ export class RaceCard {
 		document.dispatchEvent(new CustomEvent('proficiencyChanged'));
 	}
 
-	/**
-	 * Process language proficiencies from race data
-	 * @param {Object} race - Race data
-	 * @param {Object} character - Character object
-	 * @param {Array} previousSelections - Previously selected languages
-	 * @private
-	 */
 	_processLanguageProficiencies(race, character, previousSelections) {
 		if (
 			!race.languageProficiencies ||
@@ -879,12 +771,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Process weapon proficiencies from race data
-	 * @param {Object} race - Race data
-	 * @param {Object} character - Character object
-	 * @private
-	 */
 	_processWeaponProficiencies(race, character) {
 		if (!race.weaponProficiencies || !Array.isArray(race.weaponProficiencies))
 			return;
@@ -900,13 +786,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Process tool proficiencies from race data
-	 * @param {Object} race - Race data
-	 * @param {Object} character - Character object
-	 * @param {Array} previousSelections - Previously selected tools
-	 * @private
-	 */
 	_processToolProficiencies(race, character, previousSelections) {
 		if (!race.toolProficiencies || !Array.isArray(race.toolProficiencies))
 			return;
@@ -940,14 +819,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Process skill proficiencies from race data
-	 * @param {Object} race - Race data
-	 * @param {Object} subrace - Subrace data
-	 * @param {Object} character - Character object
-	 * @param {Array} previousSelections - Previously selected skills
-	 * @private
-	 */
 	_processSkillProficiencies(race, subrace, character, previousSelections) {
 		let raceSkillCount = 0;
 		let raceSkillOptions = [];
@@ -1011,11 +882,6 @@ export class RaceCard {
 		}
 	}
 
-	/**
-	 * Updates the combined proficiency options from race, class, and background
-	 * @param {Object} character - The character object
-	 * @private
-	 */
 	_updateCombinedProficiencyOptions(character) {
 		if (!character) return;
 
@@ -1025,12 +891,6 @@ export class RaceCard {
 		this._mergeProficiencySource(character, 'tools');
 	}
 
-	/**
-	 * Helper to merge proficiency options from race, class, and background sources
-	 * @param {Object} character - The character object
-	 * @param {string} profType - Proficiency type ('skills', 'languages', or 'tools')
-	 * @private
-	 */
 	_mergeProficiencySource(character, profType) {
 		const profData = character.optionalProficiencies[profType];
 		if (!profData) return;
@@ -1067,29 +927,14 @@ export class RaceCard {
 		];
 	}
 
-	/**
-	 * Updates the combined skill options from race, class, and background
-	 * @param {Object} character - The character object
-	 * @private
-	 */
 	_updateCombinedSkillOptions(character) {
 		this._mergeProficiencySource(character, 'skills');
 	}
 
-	/**
-	 * Update language options
-	 * @param {Object} character - The character object
-	 * @private
-	 */
 	_updateCombinedLanguageOptions(character) {
 		this._mergeProficiencySource(character, 'languages');
 	}
 
-	/**
-	 * Update tool options
-	 * @param {Object} character - The character object
-	 * @private
-	 */
 	_updateCombinedToolOptions(character) {
 		this._mergeProficiencySource(character, 'tools');
 	}
@@ -1104,17 +949,8 @@ const DEFAULT_SPEED = 30; // 30 ft. walking speed
 // RaceDetailsView - Consolidated from RaceDetails.js
 //=============================================================================
 
-/** View for displaying race details. */
 class RaceDetailsView {
-	/**
-	 * Creates a new RaceDetailsView instance
-	 */
 	constructor() {
-		/**
-		 * The container element for race details
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._raceDetails = document.getElementById('raceDetails');
 	}
 
@@ -1122,12 +958,6 @@ class RaceDetailsView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update all race details sections
-	 * @param {Object} race - The race data
-	 * @param {Object|null} subrace - Optional subrace data
-	 * @returns {Promise<void>}
-	 */
 	async updateAllDetails(race, subrace = null) {
 		if (!race) {
 			this.resetAllDetails();
@@ -1143,9 +973,6 @@ class RaceDetailsView {
 		await textProcessor.processElement(this._raceDetails);
 	}
 
-	/**
-	 * Reset all details sections to placeholder state
-	 */
 	resetAllDetails() {
 		const sections = this._raceDetails.querySelectorAll('.detail-section ul');
 		for (const section of sections) {
@@ -1168,12 +995,6 @@ class RaceDetailsView {
 	// Ability Scores Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update ability scores section
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @returns {Promise<void>}
-	 */
 	async updateAbilityScores(race, subrace) {
 		const abilitySection = this._raceDetails.querySelector(
 			'.detail-section:nth-child(1) ul',
@@ -1189,13 +1010,6 @@ class RaceDetailsView {
 			.join('');
 	}
 
-	/**
-	 * Format ability score improvements from race and subrace data
-	 * @param {Object} race - Race JSON object
-	 * @param {Object} subrace - Subrace JSON object (optional)
-	 * @returns {string} Formatted ability improvements text
-	 * @private
-	 */
 	_formatAbilityImprovements(race, subrace) {
 		// Combine race and subrace ability arrays
 		const abilityArray = [
@@ -1218,11 +1032,6 @@ class RaceDetailsView {
 	// Size and Speed Sections
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update size and speed sections
-	 * @param {Object} race - Selected race
-	 * @returns {Promise<void>}
-	 */
 	async updateSizeAndSpeed(race) {
 		try {
 			const sizeSection = this._raceDetails.querySelector(
@@ -1255,12 +1064,6 @@ class RaceDetailsView {
 		}
 	}
 
-	/**
-	 * Format size from race data
-	 * @param {Object} race - Race JSON object
-	 * @returns {string} Formatted size text
-	 * @private
-	 */
 	_formatSize(race) {
 		// Default to Medium size if not specified
 		if (!race?.size) return SIZE_ABV_TO_FULL.M;
@@ -1273,12 +1076,6 @@ class RaceDetailsView {
 		return sizeAbvToFull(race.size);
 	}
 
-	/**
-	 * Format movement speeds from race data
-	 * @param {Object} race - Race JSON object
-	 * @returns {string} Formatted movement speeds text
-	 * @private
-	 */
 	_formatMovementSpeeds(race) {
 		// Default to standard 30 ft. walking speed if not specified
 		if (!race?.speed) return `Walk: ${getSpeedString(DEFAULT_SPEED)}`;
@@ -1319,11 +1116,6 @@ class RaceDetailsView {
 	// Languages Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update languages section
-	 * @param {Object} race - Selected race
-	 * @returns {Promise<void>}
-	 */
 	async updateLanguages(race) {
 		const languageSection = this._raceDetails.querySelector(
 			'.detail-section:nth-child(4) ul',
@@ -1342,12 +1134,6 @@ class RaceDetailsView {
 			.join('');
 	}
 
-	/**
-	 * Format languages from race data
-	 * @param {Object} race - Race JSON object
-	 * @returns {string} Formatted languages text
-	 * @private
-	 */
 	_formatLanguages(race) {
 		if (!race?.languageProficiencies) return 'None';
 
@@ -1394,12 +1180,6 @@ class RaceDetailsView {
 	// Traits Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update traits section
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @returns {Promise<void>}
-	 */
 	async updateTraits(race, subrace) {
 		const traitsSection = this._raceDetails.querySelector('.traits-section');
 		if (!traitsSection) return;
@@ -1464,13 +1244,6 @@ class RaceDetailsView {
 		}
 	}
 
-	/**
-	 * Get combined traits from race and subrace
-	 * @param {Object} race - Race JSON object
-	 * @param {Object} subrace - Subrace JSON object (optional)
-	 * @returns {Array} Array of trait objects
-	 * @private
-	 */
 	_getCombinedTraits(race, subrace) {
 		const traits = [];
 		// Entries to exclude - they have dedicated sections
@@ -1510,24 +1283,10 @@ class RaceDetailsView {
 // RaceCardView - Consolidated from RaceViews.js (Main race dropdown and quick description)
 //=============================================================================
 
-/** View for the race card's main display (dropdown + quick description). */
 class RaceCardView {
-	/**
-	 * Creates a new RaceCardView instance
-	 */
 	constructor() {
-		/**
-		 * The main race selection dropdown element
-		 * @type {HTMLSelectElement}
-		 * @private
-		 */
 		this._raceSelect = document.getElementById('raceSelect');
 
-		/**
-		 * The quick description element for displaying race summary
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._raceQuickDesc = document.getElementById('raceQuickDesc');
 
 		// Set up event listeners
@@ -1538,10 +1297,6 @@ class RaceCardView {
 	// Event Setup
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Sets up event listeners for race selection changes
-	 * @private
-	 */
 	_setupEventListeners() {
 		if (this._raceSelect) {
 			this._raceSelect.addEventListener('change', (event) => {
@@ -1562,34 +1317,18 @@ class RaceCardView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Get the race select element
-	 * @returns {HTMLSelectElement}
-	 */
 	getRaceSelect() {
 		return this._raceSelect;
 	}
 
-	/**
-	 * Get the currently selected race value
-	 * @returns {string} Format: "RaceName_Source" or empty string
-	 */
 	getSelectedRaceValue() {
 		return this._raceSelect.value;
 	}
 
-	/**
-	 * Set the selected race value
-	 * @param {string} value - Format: "RaceName_Source"
-	 */
 	setSelectedRaceValue(value) {
 		this._raceSelect.value = value;
 	}
 
-	/**
-	 * Populate the race selection dropdown
-	 * @param {Array<Object>} races - Array of race objects
-	 */
 	populateRaceSelect(races) {
 		this._raceSelect.innerHTML = '<option value="">Select a Race</option>';
 
@@ -1610,12 +1349,6 @@ class RaceCardView {
 		}
 	}
 
-	/**
-	 * Update the quick description for the selected race
-	 * @param {Object} race - The race data
-	 * @param {Object|null} fluffData - The race fluff data
-	 * @returns {Promise<void>}
-	 */
 	async updateQuickDescription(race, fluffData = null) {
 		if (!race) {
 			this.resetQuickDescription();
@@ -1658,9 +1391,6 @@ class RaceCardView {
         `;
 	}
 
-	/**
-	 * Reset quick description to placeholder state
-	 */
 	resetQuickDescription() {
 		this._raceQuickDesc.innerHTML = `
             <div class="placeholder-content">
@@ -1670,20 +1400,12 @@ class RaceCardView {
         `;
 	}
 
-	/**
-	 * Check if a race option exists in the dropdown
-	 * @param {string} raceValue - Format: "RaceName_Source"
-	 * @returns {boolean}
-	 */
 	hasRaceOption(raceValue) {
 		return Array.from(this._raceSelect.options).some(
 			(option) => option.value === raceValue,
 		);
 	}
 
-	/**
-	 * Trigger a change event on the race select
-	 */
 	triggerRaceSelectChange() {
 		this._raceSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
@@ -1693,17 +1415,8 @@ class RaceCardView {
 // SubracePickerView - Consolidated from RaceViews.js (Subrace dropdown)
 //=============================================================================
 
-/** View for the subrace selection dropdown. */
 class SubracePickerView {
-	/**
-	 * Creates a new SubracePickerView instance
-	 */
 	constructor() {
-		/**
-		 * The subrace selection dropdown element
-		 * @type {HTMLSelectElement}
-		 * @private
-		 */
 		this._subraceSelect = document.getElementById('subraceSelect');
 
 		// Set up event listeners
@@ -1714,10 +1427,6 @@ class SubracePickerView {
 	// Event Setup
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Sets up event listeners for subrace selection changes
-	 * @private
-	 */
 	_setupEventListeners() {
 		if (this._subraceSelect) {
 			this._subraceSelect.addEventListener('change', (event) => {
@@ -1735,35 +1444,18 @@ class SubracePickerView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Get the subrace select element
-	 * @returns {HTMLSelectElement}
-	 */
 	getSubraceSelect() {
 		return this._subraceSelect;
 	}
 
-	/**
-	 * Get the currently selected subrace value
-	 * @returns {string} Subrace name or empty string
-	 */
 	getSelectedSubraceValue() {
 		return this._subraceSelect.value;
 	}
 
-	/**
-	 * Set the selected subrace value
-	 * @param {string} value - Subrace name
-	 */
 	setSelectedSubraceValue(value) {
 		this._subraceSelect.value = value;
 	}
 
-	/**
-	 * Populate the subrace selection dropdown
-	 * @param {Array<Object>} subraces - Array of subrace objects
-	 * @param {boolean} isRequired - Whether subrace selection is required
-	 */
 	populateSubraceSelect(subraces, isRequired = false) {
 		this._subraceSelect.innerHTML = '<option value="">No Subraces</option>';
 		this._subraceSelect.disabled = true;
@@ -1805,28 +1497,17 @@ class SubracePickerView {
 		}
 	}
 
-	/**
-	 * Clear and disable the subrace select
-	 */
 	reset() {
 		this._subraceSelect.innerHTML = '<option value="">No Subraces</option>';
 		this._subraceSelect.disabled = true;
 	}
 
-	/**
-	 * Check if a subrace option exists in the dropdown
-	 * @param {string} subraceName - Subrace name
-	 * @returns {boolean}
-	 */
 	hasSubraceOption(subraceName) {
 		return Array.from(this._subraceSelect.options).some(
 			(option) => option.value === subraceName,
 		);
 	}
 
-	/**
-	 * Trigger a change event on the subrace select
-	 */
 	triggerSubraceSelectChange() {
 		this._subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}

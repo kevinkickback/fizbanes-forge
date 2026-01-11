@@ -1,17 +1,13 @@
-/** @file Modal for selecting and adding spells to character spellcasting */
+// Modal for selecting and adding spells to character spellcasting
 
 import { AppState } from '../../../app/AppState.js';
-import { sourceService } from '../../../services/SourceService.js';
-import { spellSelectionService } from '../../../services/SpellSelectionService.js';
-import { spellService } from '../../../services/SpellService.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { sourceService } from '../../../services/SourceService.js';
+import { spellSelectionService } from '../../../services/SpellSelectionService.js';
+import { spellService } from '../../../services/SpellService.js';
 
-/**
- * Modal for selecting spells to add to character's known/prepared lists.
- * Provides search, filtering by level/school/class/ritual/concentration.
- */
 export class SpellSelectionModal {
     constructor({ className = null, allowClose = true } = {}) {
         this.className = className;
@@ -35,10 +31,6 @@ export class SpellSelectionModal {
         };
     }
 
-    /**
-     * Show the modal for spell selection.
-     * @returns {Promise<Object|null>} Selected spell data or null if cancelled
-     */
     async show() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -102,10 +94,6 @@ export class SpellSelectionModal {
         }
     }
 
-    /**
-     * Load and filter valid spells for character's class.
-     * @private
-     */
     async _loadValidSpells(character) {
         const allSpells = spellService.getAllSpells();
         const allowedSources = sourceService.getAllowedSources();
@@ -148,10 +136,6 @@ export class SpellSelectionModal {
         });
     }
 
-    /**
-     * Render the spell list based on filters.
-     * @private
-     */
     async _renderSpellList() {
         const listContainer = this.modal.querySelector('.spell-list-container');
         if (!listContainer) {
@@ -269,10 +253,6 @@ export class SpellSelectionModal {
         });
     }
 
-    /**
-     * Helper to get ordinal suffix for numbers (1st, 2nd, 3rd, etc.)
-     * @private
-     */
     _getOrdinalSuffix(num) {
         const j = num % 10;
         const k = num % 100;
@@ -282,10 +262,6 @@ export class SpellSelectionModal {
         return 'th';
     }
 
-    /**
-     * Toggle spell selection.
-     * @private
-     */
     _toggleSpellSelection(spellId) {
         const spell = this.validSpells.find(s => s.id === spellId);
         if (!spell) return;
@@ -304,10 +280,6 @@ export class SpellSelectionModal {
         this._updateAddButtonState();
     }
 
-    /**
-     * Render the list of currently selected spells.
-     * @private
-     */
     _renderSelectedSpellsList() {
         const container = this.modal.querySelector('.selected-spells-container');
         if (!container) return;
@@ -341,10 +313,6 @@ export class SpellSelectionModal {
         });
     }
 
-    /**
-     * Update the add button state based on selections.
-     * @private
-     */
     _updateAddButtonState() {
         const addButton = this.modal.querySelector('.btn-add-spell');
         if (addButton) {
@@ -357,10 +325,6 @@ export class SpellSelectionModal {
         }
     }
 
-    /**
-     * Check if a spell matches current filters.
-     * @private
-     */
     _spellMatchesFilters(spell) {
         // Search term
         if (this.searchTerm && !spell.name.toLowerCase().includes(this.searchTerm.toLowerCase())) {
@@ -500,10 +464,6 @@ export class SpellSelectionModal {
         }
     }
 
-    /**
-     * Setup source dropdown filter.
-     * @private
-     */
     _setupSourceDropdown() {
         try {
             const toggle = this.modal.querySelector('.spell-source-toggle');
@@ -592,10 +552,6 @@ export class SpellSelectionModal {
         }
     }
 
-    /**
-     * Attach event listeners to modal controls.
-     * @private
-     */
     _attachEventListeners() {
         // Search input
         const searchInput = this.modal.querySelector('.spell-search-input');
@@ -708,10 +664,6 @@ export class SpellSelectionModal {
         }
     }
 
-    /**
-     * Handle adding the selected spells.
-     * @private
-     */
     _handleAddSpell() {
         if (this.selectedSpells.length === 0) {
             showNotification('Please select at least one spell', 'warning');
@@ -792,10 +744,6 @@ export class SpellSelectionModal {
         }
     }
 
-    /**
-     * Handle canceling the modal.
-     * @private
-     */
     _handleCancel() {
         this.bootstrapModal.hide();
         if (this._resolvePromise) {

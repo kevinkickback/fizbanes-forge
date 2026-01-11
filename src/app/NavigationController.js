@@ -1,8 +1,4 @@
-/**
- * NavigationController - Handles routing, page loading, and navigation UI
- * 
- * Integrated router and page loader for efficient navigation management.
- */
+/** Handles routing, page loading, and navigation UI. */
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { AppState } from './AppState.js';
@@ -18,11 +14,6 @@ class RouterImpl {
 		console.info('[Router]', 'Router initialized');
 	}
 
-	/**
-	 * Register a route.
-	 * @param {string} path - Route path
-	 * @param {object} config - Route configuration
-	 */
 	register(path, config) {
 		console.info('[Router]', 'Registering route', { path, config });
 		this.routes.set(path, {
@@ -32,11 +23,6 @@ class RouterImpl {
 		});
 	}
 
-	/**
-	 * Navigate to a route.
-	 * @param {string} path - Route path to navigate to
-	 * @returns {object} Route config
-	 */
 	async navigate(path) {
 		console.info('[Router]', 'Navigating to', { path });
 
@@ -64,36 +50,18 @@ class RouterImpl {
 		return route;
 	}
 
-	/**
-	 * Get current route path.
-	 * @returns {string|null} Current route path
-	 */
 	getCurrentRoute() {
 		return this.currentRoute;
 	}
 
-	/**
-	 * Get route configuration.
-	 * @param {string} path - Route path
-	 * @returns {object|null} Route config or null
-	 */
 	getRoute(path) {
 		return this.routes.get(path) || null;
 	}
 
-	/**
-	 * Check if route exists.
-	 * @param {string} path - Route path
-	 * @returns {boolean} True if route exists
-	 */
 	hasRoute(path) {
 		return this.routes.has(path);
 	}
 
-	/**
-	 * Get all registered routes.
-	 * @returns {Array} Array of route paths
-	 */
 	getAllRoutes() {
 		return Array.from(this.routes.keys());
 	}
@@ -110,11 +78,6 @@ class PageLoaderImpl {
 		console.info('PageLoader', 'PageLoader initialized');
 	}
 
-	/**
-	 * Initialize the page loader with content area.
-	 * @param {string} contentAreaId - ID of the content area element
-	 * @returns {void}
-	 */
 	initialize(contentAreaId = 'pageContent') {
 		this.contentArea = document.getElementById(contentAreaId);
 
@@ -128,11 +91,6 @@ class PageLoaderImpl {
 		});
 	}
 
-	/**
-	 * Load a page template.
-	 * @param {string} templateName - Name of the template file
-	 * @returns {Promise<string>} HTML string
-	 */
 	async loadPage(templateName) {
 		console.debug('PageLoader', 'Loading page', { templateName });
 
@@ -168,11 +126,6 @@ class PageLoaderImpl {
 		}
 	}
 
-	/**
-	 * Render HTML into the content area.
-	 * @param {string} html - HTML content to render
-	 * @returns {void}
-	 */
 	renderPage(html) {
 		if (!this.contentArea) {
 			console.error('PageLoader', 'Content area not initialized');
@@ -188,11 +141,6 @@ class PageLoaderImpl {
 		}
 	}
 
-	/**
-	 * Load and render a page in one operation.
-	 * @param {string} templateName - Name of the template file
-	 * @returns {Promise<void>}
-	 */
 	async loadAndRender(templateName) {
 		console.info('PageLoader', 'Load and render', { templateName });
 
@@ -200,26 +148,16 @@ class PageLoaderImpl {
 		this.renderPage(html);
 	}
 
-	/**
-	 * Clear the template cache.
-	 */
 	clearCache() {
 		const cacheSize = this.templateCache.size;
 		this.templateCache.clear();
 		console.info('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
 	}
 
-	/**
-	 * Get cached template count.
-	 * @returns {number} Number of cached templates
-	 */
 	getCacheSize() {
 		return this.templateCache.size;
 	}
 
-	/**
-	 * Render a loading state.
-	 */
 	renderLoading() {
 		if (!this.contentArea) return;
 
@@ -231,10 +169,6 @@ class PageLoaderImpl {
     `;
 	}
 
-	/**
-	 * Render an error state.
-	 * @param {string} message - Error message to display
-	 */
 	renderError(message) {
 		if (!this.contentArea) return;
 
@@ -271,10 +205,6 @@ class NavigationControllerImpl {
 		console.info('NavigationController', 'Controller created');
 	}
 
-	/**
-	 * Register all application routes.
-	 * @private
-	 */
 	registerRoutes() {
 		this.router.register('home', {
 			template: 'home.html',

@@ -1,27 +1,9 @@
 /** Manages source book selection and filtering for character creation. */
-
-/**
- * @typedef {Object} SourceDetails
- * @property {string} name - Full name of the source book
- * @property {string} abbreviation - Short code for the source book
- * @property {boolean} isCore - Whether this is a core rulebook
- * @property {string} group - The group/category of the source book
- * @property {string} version - Version of the source book
- * @property {boolean} hasErrata - Whether the source has errata
- * @property {string} targetLanguage - Target language of the source
- * @property {string} url - URL to the source
- * @property {string} description - Description of the source
- * @property {Array} contents - Contents of the source
- * @property {boolean} isDefault - Whether this is a default source
- */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 
-/** Manages source book selection and filtering for character creation. */
 export class SourceService {
-	/** Create a new SourceManager instance. */
 	constructor() {
 		this.availableSources = new Map();
 		this.coreSources = new Set();

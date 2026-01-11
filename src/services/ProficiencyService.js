@@ -1,5 +1,4 @@
 /** Manages proficiencies and proficiency bonuses. */
-
 import { ProficiencyCore } from '../app/Proficiency.js';
 import { SKILL_TO_ABILITY } from '../lib/5eToolsParser.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
@@ -10,9 +9,7 @@ import {
 	STANDARD_TOOL_OPTIONS,
 } from '../lib/ProficiencyConstants.js';
 
-/** Manages proficiencies and proficiency-related calculations. */
 export class ProficiencyService {
-	/** Creates a new ProficiencyManager instance. */
 	constructor() {
 		this._initialized = false;
 		this._skills = null;
@@ -20,10 +17,6 @@ export class ProficiencyService {
 		this._languages = null;
 	}
 
-	/**
-	 * Initializes the proficiency manager
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		if (this._initialized) {
 			console.debug('ProficiencyService', 'Already initialized');
@@ -175,9 +168,9 @@ export class ProficiencyService {
 	}
 
 	/**
-	 * Formats a modifier value with a + or - sign
-	 * @param {number} value - The modifier value
-	 * @returns {string} Formatted modifier string	 * @deprecated Consider using getAbilityModifier from 5eToolsParser for consistency	 */
+	 * Formats a modifier value with a + or - sign.
+	 * @deprecated Use getAbilityModifier from 5eToolsParser instead.
+	 */
 	formatModifier(value) {
 		return value >= 0 ? `+${value}` : value.toString();
 	}

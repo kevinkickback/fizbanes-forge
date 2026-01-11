@@ -1,22 +1,13 @@
-/** View for rendering ability score bonus notes and explanations. */
-
-import { abilityScoreService } from '../../../services/AbilityScoreService.js';
+// View for rendering ability score bonus notes and explanations.
 import { fullAbilityToAbbr } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
-/** View for rendering ability score bonus notes. */
 class BonusNotesView {
-	/**
-	 * Creates a new BonusNotesView
-	 * @param {HTMLElement} bonusesContainer - The bonus notes container element
-	 */
 	constructor(bonusesContainer) {
 		this._bonusesContainer = bonusesContainer;
 	}
 
-	/**
-	 * Renders the bonus notes section that explains all active ability score bonuses
-	 */
 	render() {
 		try {
 			const bonusGroups = abilityScoreService.getBonusGroups();
@@ -57,12 +48,6 @@ class BonusNotesView {
 		}
 	}
 
-	/**
-	 * Processes race-related bonuses and formats them for display
-	 * @param {Map<string, Map<string, number>>} bonusGroups - Map of all bonus groups
-	 * @returns {Array<string>} Array of formatted race bonus strings
-	 * @private
-	 */
 	_processRaceBonuses(bonusGroups) {
 		const raceBonuses = new Map();
 		const allRaceBonuses = [];
@@ -117,23 +102,12 @@ class BonusNotesView {
 		return allRaceBonuses;
 	}
 
-	/**
-	 * Creates a bonus note HTML element
-	 * @param {string} source - The source of the bonus
-	 * @param {string} content - The bonus content
-	 * @returns {string} HTML for the bonus note
-	 * @private
-	 */
 	_createBonusNote(source, content) {
 		return `<div class="bonus-note">
             <strong>${source}</strong>: ${content}
         </div>`;
 	}
 
-	/**
-	 * Updates the container reference for the view
-	 * @param {HTMLElement} bonusesContainer - The new container element
-	 */
 	setContainer(bonusesContainer) {
 		this._bonusesContainer = bonusesContainer;
 	}
@@ -141,9 +115,6 @@ class BonusNotesView {
 
 let _instance = null;
 
-/**
- * Singleton accessor for BonusNotesView
- */
 BonusNotesView.getInstance = (bonusesContainer) => {
 	if (!_instance) {
 		_instance = new BonusNotesView(bonusesContainer);

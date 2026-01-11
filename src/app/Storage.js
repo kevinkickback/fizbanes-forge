@@ -1,4 +1,4 @@
-/** Persistence helper for saving, loading, importing, exporting characters. */
+/** Persistence helper for character storage operations. */
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
@@ -13,10 +13,6 @@ let _instance = null;
  * Class responsible for managing character storage operations
  */
 export class Storage {
-	/**
-	 * Initializes a new Storage instance
-	 * @private
-	 */
 	constructor() {
 		if (_instance) {
 			throw new Error(
@@ -26,10 +22,6 @@ export class Storage {
 		_instance = this;
 	}
 
-	/**
-	 * Gets all characters from storage
-	 * @returns {Promise<Array>} Array of character objects
-	 */
 	async getCharacters() {
 		try {
 			const characters = await window.characterStorage.loadCharacters();
@@ -40,11 +32,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Gets a specific character by ID
-	 * @param {string} characterId - The ID of the character to load
-	 * @returns {Promise<Object|null>} The character object or null if not found
-	 */
 	async getCharacter(characterId) {
 		try {
 			const characters = await this.getCharacters();
@@ -64,11 +51,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Saves a character to storage
-	 * @param {Object} character - The character to save
-	 * @returns {Promise<boolean>} True if save was successful
-	 */
 	async saveCharacter(character) {
 		try {
 			if (!character || !character.id) {
@@ -95,11 +77,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Deletes a character from storage
-	 * @param {string} characterId - The ID of the character to delete
-	 * @returns {Promise<boolean>} True if deletion was successful
-	 */
 	async deleteCharacter(characterId) {
 		try {
 			if (!characterId) {
@@ -127,11 +104,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Exports a character to a JSON file via Electron's file dialog
-	 * @param {string} characterId - The ID of the character to export
-	 * @returns {Promise<boolean>} True if export was successful
-	 */
 	async exportCharacter(characterId) {
 		try {
 			if (!characterId) {
@@ -155,10 +127,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Imports a character from a JSON file via Electron's file dialog
-	 * @returns {Promise<{success: boolean, character: Object|null}>} Object with success status and imported character
-	 */
 	async importCharacter() {
 		try {
 			// First call to select and validate the file
@@ -211,10 +179,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Generates a UUID for a new character
-	 * @returns {Promise<string>} A new UUID
-	 */
 	async generateUUID() {
 		try {
 			return await window.characterStorage.generateUUID();
@@ -229,11 +193,6 @@ export class Storage {
 		}
 	}
 
-	/**
-	 * Gets the singleton instance of Storage
-	 * @returns {Storage} The singleton instance
-	 * @static
-	 */
 	static getInstance() {
 		if (!_instance) {
 			_instance = new Storage();

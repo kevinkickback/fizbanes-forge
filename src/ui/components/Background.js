@@ -1,4 +1,4 @@
-/** Controller for background selection UI (card + details + service wiring). */
+// Controller for background selection UI (card + details + service wiring)
 
 import { AppState } from '../../app/AppState.js';
 import { CharacterManager } from '../../app/CharacterManager.js';
@@ -11,11 +11,7 @@ import { backgroundService } from '../../services/BackgroundService.js';
 import { sourceService } from '../../services/SourceService.js';
 import { BaseCard } from './BaseCard.js';
 
-/** Manages the background selection UI and related character updates. */
 export class BackgroundCard extends BaseCard {
-	/**
-	 * Creates a new BackgroundCard instance
-	 */
 	constructor() {
 		// Use null for parent constructor
 		super(null);
@@ -35,10 +31,6 @@ export class BackgroundCard extends BaseCard {
 		this.initialize();
 	}
 
-	/**
-	 * Initializes the background card UI components and event listeners
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		try {
 			// Initialize required dependencies
@@ -61,11 +53,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Populates the background selection dropdown with available backgrounds
-	 * filtered by allowed sources
-	 * @private
-	 */
 	_renderBackgroundSelection() {
 		try {
 			const backgrounds = backgroundService.getAllBackgrounds();
@@ -100,11 +87,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Loads and sets the saved background selection from the character data
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _loadSavedBackgroundSelection() {
 		try {
 			const character = AppState.getCurrentCharacter();
@@ -151,10 +133,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Attaches event listeners to the background and variant selectors
-	 * @private
-	 */
 	_attachSelectionListeners() {
 		this._cardView.attachListeners(
 			() => this._handleBackgroundChange(),
@@ -169,10 +147,6 @@ export class BackgroundCard extends BaseCard {
 		});
 	}
 
-	/**
-	 * Handles background selection change events
-	 * @private
-	 */
 	_handleBackgroundChange(skipEventDuringInit = false) {
 		try {
 			const backgroundId = this._cardView.getSelectedBackground();
@@ -221,10 +195,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Handles variant selection change events
-	 * @private
-	 */
 	_handleVariantChange(skipEventDuringInit = false) {
 		try {
 			const variantName = this._cardView.getSelectedVariant();
@@ -268,11 +238,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Updates the variant selection dropdown based on available variants
-	 * @param {Object} background - The selected background
-	 * @private
-	 */
 	_updateVariantOptions(background) {
 		try {
 			if (background.variants?.length > 0) {
@@ -299,11 +264,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Renders the details of a specific background
-	 * @param {Object} background - The background to render
-	 * @private
-	 */
 	async _renderEntityDetails(background) {
 		if (!background) {
 			this._cardView.resetQuickDescription();
@@ -332,12 +292,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Update character's background information
-	 * @param {Object} background - Selected background
-	 * @param {Object} variant - Selected variant
-	 * @private
-	 */
 	_updateCharacterBackground(background, variant) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -400,12 +354,6 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	/**
-	 * Update character proficiencies based on selected background
-	 * @param {Object} background - The selected background
-	 * @param {Object} _variant - Selected variant
-	 * @private
-	 */
 	_updateBackgroundProficiencies(background, _variant) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !background) return;
@@ -496,12 +444,6 @@ export class BackgroundCard extends BaseCard {
 		);
 	}
 
-	/**
-	 * Extract fixed proficiencies from background (5etools normalized format)
-	 * @param {Object} background - Background object with proficiencies.{skills, tools, languages}
-	 * @returns {Object} Object with skills and tools arrays
-	 * @private
-	 */
 	_getFixedProficiencies(background) {
 		const skills = [];
 		const tools = [];
@@ -527,11 +469,6 @@ export class BackgroundCard extends BaseCard {
 		return { skills, tools };
 	}
 
-	/**
-	 * Get all available languages
-	 * @returns {Array<string>} Array of language names
-	 * @private
-	 */
 	_getAllLanguages() {
 		// Standard D&D 5e languages with proper casing from 5etools
 		return [
@@ -554,11 +491,6 @@ export class BackgroundCard extends BaseCard {
 		];
 	}
 
-	/**
-	 * Updates the combined skill options from race, class and background
-	 * @param {Character} character - The character object
-	 * @private
-	 */
 	_updateCombinedSkillOptions(character) {
 		if (!character) return;
 
@@ -608,11 +540,6 @@ export class BackgroundCard extends BaseCard {
 		];
 	}
 
-	/**
-	 * Updates the combined language options from race, class and background
-	 * @param {Character} character - The character object
-	 * @private
-	 */
 	_updateCombinedLanguageOptions(character) {
 		if (!character) return;
 
@@ -662,13 +589,6 @@ export class BackgroundCard extends BaseCard {
 		];
 	}
 
-	/**
-	 * Update background language proficiencies using 5etools normalized structure
-	 * @param {Character} character - The character object
-	 * @param {Object} background - Background object with proficiencies.languages
-	 * @param {Array<string>} prevBackgroundLanguagesSelected - Previously selected languages
-	 * @private
-	 */
 	_updateBackgroundLanguageProficiencies(
 		character,
 		background,
@@ -770,11 +690,7 @@ export class BackgroundCard extends BaseCard {
 // Background Card View - Selection dropdowns and quick description
 //=============================================================================
 
-/** @internal - Manages background selection view (dropdowns + quick description). */
 class BackgroundCardView {
-	/**
-	 * @param {HTMLElement} card - Root card element
-	 */
 	constructor(card) {
 		this._card = card;
 		this._backgroundSelect = document.getElementById('backgroundSelect');
@@ -789,10 +705,6 @@ class BackgroundCardView {
 		}
 	}
 
-	/**
-	 * Creates the variant selection container if it doesn't exist
-	 * @private
-	 */
 	_createVariantContainer() {
 		const selectors = document.querySelector('.background-selectors');
 		if (!selectors) {
@@ -819,10 +731,6 @@ class BackgroundCardView {
 		this._variantSelect = document.getElementById('variantSelect');
 	}
 
-	/**
-	 * Populate background selection dropdown
-	 * @param {Array} backgrounds - Array of background objects from backgroundService
-	 */
 	populateBackgroundSelect(backgrounds) {
 		if (!this._backgroundSelect) return;
 
@@ -840,10 +748,6 @@ class BackgroundCardView {
 		});
 	}
 
-	/**
-	 * Populate variant selection dropdown
-	 * @param {Array} variants - Array of variant background objects
-	 */
 	populateVariantSelect(variants) {
 		if (!this._variantSelect) return;
 
@@ -861,10 +765,6 @@ class BackgroundCardView {
 		});
 	}
 
-	/**
-	 * Update quick description display
-	 * @param {Object} background - Background object
-	 */
 	async updateQuickDescription(background) {
 		if (!this._quickDescription || !background) return;
 
@@ -873,9 +773,6 @@ class BackgroundCardView {
 		await textProcessor.processElement(this._quickDescription);
 	}
 
-	/**
-	 * Reset quick description to default state
-	 */
 	resetQuickDescription() {
 		if (!this._quickDescription) return;
 		this._quickDescription.innerHTML = `
@@ -886,11 +783,6 @@ class BackgroundCardView {
 		`;
 	}
 
-	/**
-	 * Update background image
-	 * @param {string} imageSrc - Image source URL
-	 * @param {string} altText - Alternative text for the image
-	 */
 	updateBackgroundImage(imageSrc, altText = 'Background image') {
 		if (!this._imageElement) return;
 
@@ -922,18 +814,12 @@ class BackgroundCardView {
 		}
 	}
 
-	/**
-	 * Show variant selector
-	 */
 	showVariantSelector() {
 		if (this._variantContainer) {
 			this._variantContainer.style.display = 'block';
 		}
 	}
 
-	/**
-	 * Hide variant selector and reset selection
-	 */
 	hideVariantSelector() {
 		if (this._variantContainer) {
 			this._variantContainer.style.display = 'none';
@@ -943,26 +829,14 @@ class BackgroundCardView {
 		}
 	}
 
-	/**
-	 * Get current background selection
-	 * @returns {string} Selected background name
-	 */
 	getSelectedBackground() {
 		return this._backgroundSelect?.value || '';
 	}
 
-	/**
-	 * Get current variant selection
-	 * @returns {string} Selected variant name
-	 */
 	getSelectedVariant() {
 		return this._variantSelect?.value || '';
 	}
 
-	/**
-	 * Set background selection
-	 * @param {string} backgroundName - Background name to select
-	 */
 	setSelectedBackground(backgroundName) {
 		if (!this._backgroundSelect) return;
 
@@ -975,10 +849,6 @@ class BackgroundCardView {
 		}
 	}
 
-	/**
-	 * Set variant selection
-	 * @param {string} variantName - Variant name to select
-	 */
 	setSelectedVariant(variantName) {
 		if (!this._variantSelect) return;
 
@@ -991,11 +861,6 @@ class BackgroundCardView {
 		}
 	}
 
-	/**
-	 * Attach event listeners
-	 * @param {Function} onBackgroundChange - Handler for background selection change
-	 * @param {Function} onVariantChange - Handler for variant selection change
-	 */
 	attachListeners(onBackgroundChange, onVariantChange) {
 		if (this._backgroundSelect) {
 			this._backgroundSelect.addEventListener('change', onBackgroundChange);
@@ -1005,12 +870,6 @@ class BackgroundCardView {
 		}
 	}
 
-	/**
-	 * Extract description from background data
-	 * @param {Object} background - Background object
-	 * @returns {string} HTML description
-	 * @private
-	 */
 	_extractDescription(background) {
 		if (background?.entries) {
 			for (const entry of background.entries) {
@@ -1034,20 +893,12 @@ class BackgroundCardView {
 // Background Details View - Proficiencies, equipment, features
 //=============================================================================
 
-/** @internal - Handles background details rendering (proficiencies, equipment, features). */
 class BackgroundDetailsView {
-	/**
-	 * @param {HTMLElement} card - Root card element
-	 */
 	constructor(card) {
 		this._card = card;
 		this._detailsContainer = document.getElementById('backgroundDetails');
 	}
 
-	/**
-	 * Update all background details
-	 * @param {Object} background - Background object from backgroundService
-	 */
 	async updateAllDetails(background) {
 		if (!this._detailsContainer || !background) {
 			this.clearDetails();
@@ -1068,20 +919,11 @@ class BackgroundDetailsView {
 		await textProcessor.processElement(this._detailsContainer);
 	}
 
-	/**
-	 * Clear all details - do nothing, leave HTML placeholder intact
-	 */
 	clearDetails() {
 		// Do nothing - the HTML already has the placeholder structure
 		// We don't want to clear it
 	}
 
-	/**
-	 * Render skill proficiencies section
-	 * @param {Object} background - Background object
-	 * @returns {string} HTML for skill proficiencies
-	 * @private
-	 */
 	_renderSkillProficiencies(background) {
 		const skillsHtml = this._formatSkillProficiencies(background);
 		return `
@@ -1094,12 +936,6 @@ class BackgroundDetailsView {
 		`;
 	}
 
-	/**
-	 * Render tool proficiencies section
-	 * @param {Object} background - Background object
-	 * @returns {string} HTML for tool proficiencies
-	 * @private
-	 */
 	_renderToolProficiencies(background) {
 		const toolsHtml = this._formatToolProficiencies(background);
 		return `
@@ -1112,12 +948,6 @@ class BackgroundDetailsView {
 		`;
 	}
 
-	/**
-	 * Render languages section
-	 * @param {Object} background - Background object
-	 * @returns {string} HTML for languages
-	 * @private
-	 */
 	_renderLanguages(background) {
 		const languagesHtml = this._formatLanguages(background);
 		return `
@@ -1130,12 +960,6 @@ class BackgroundDetailsView {
 		`;
 	}
 
-	/**
-	 * Render equipment section
-	 * @param {Object} background - Background object
-	 * @returns {string} HTML for equipment
-	 * @private
-	 */
 	_renderEquipment(background) {
 		const equipmentHtml = this._formatEquipment(background);
 		return `
@@ -1148,12 +972,6 @@ class BackgroundDetailsView {
 		`;
 	}
 
-	/**
-	 * Render feature section
-	 * @param {Object} background - Background object
-	 * @returns {string} HTML for feature
-	 * @private
-	 */
 	_renderFeature(background) {
 		const feature = this._extractFeature(background);
 		if (!feature) return '';
@@ -1170,13 +988,6 @@ class BackgroundDetailsView {
 		`;
 	}
 
-	/**
-	 * Format skill proficiencies from background data
-	 * Uses 5etools normalized structure
-	 * @param {Object} background - Background JSON object
-	 * @returns {string} Formatted skill proficiencies HTML
-	 * @private
-	 */
 	_formatSkillProficiencies(background) {
 		if (!background?.proficiencies?.skills) return 'None';
 
@@ -1193,13 +1004,6 @@ class BackgroundDetailsView {
 		return skills.join(', ') || 'None';
 	}
 
-	/**
-	 * Format tool proficiencies from background data
-	 * Uses 5etools normalized structure
-	 * @param {Object} background - Background JSON object
-	 * @returns {string} Formatted tool proficiencies HTML
-	 * @private
-	 */
 	_formatToolProficiencies(background) {
 		if (!background?.proficiencies?.tools) return 'None';
 
@@ -1216,13 +1020,6 @@ class BackgroundDetailsView {
 		return tools.join(', ') || 'None';
 	}
 
-	/**
-	 * Format languages from background data
-	 * Uses 5etools normalized structure
-	 * @param {Object} background - Background JSON object
-	 * @returns {string} Formatted languages HTML
-	 * @private
-	 */
 	_formatLanguages(background) {
 		if (!background?.proficiencies?.languages) return 'None';
 
@@ -1246,13 +1043,6 @@ class BackgroundDetailsView {
 		return languages.join(', ') || 'None';
 	}
 
-	/**
-	 * Format equipment from background data
-	 * Uses 5etools normalized structure
-	 * @param {Object} background - Background JSON object
-	 * @returns {string} Formatted equipment HTML
-	 * @private
-	 */
 	_formatEquipment(background) {
 		if (!background?.equipment) return '<li>None</li>';
 
@@ -1277,22 +1067,10 @@ class BackgroundDetailsView {
 		return equipment.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
 	}
 
-	/**
-	 * Format a list of equipment items
-	 * @param {Array} items - Equipment items array
-	 * @returns {string} Formatted items
-	 * @private
-	 */
 	_formatEquipmentList(items) {
 		return items.map((item) => this._formatSingleEquipment(item)).join(', ');
 	}
 
-	/**
-	 * Format a single equipment item
-	 * @param {string|Object} item - Equipment item
-	 * @returns {string} Formatted item
-	 * @private
-	 */
 	_formatSingleEquipment(item) {
 		if (typeof item === 'string') {
 			return item;
@@ -1308,13 +1086,6 @@ class BackgroundDetailsView {
 		return `${qty}${name}`.trim();
 	}
 
-	/**
-	 * Extract background feature from raw JSON
-	 * Uses 5etools normalized structure where feature is in entries
-	 * @param {Object} background - Background JSON object
-	 * @returns {Object|null} Feature object with name and description
-	 * @private
-	 */
 	_extractFeature(background) {
 		if (!background?.entries) return null;
 

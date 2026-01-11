@@ -1,25 +1,12 @@
-/** View for rendering ability score boxes with scores, modifiers, and bonuses. */
-
+// View for rendering ability score boxes with scores, modifiers, and bonuses.
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { methodControlsView } from './MethodControls.js';
 
-/** View for rendering ability score boxes. */
 class AbilityScoreBoxView {
-	/**
-	 * Creates a new AbilityScoreBoxView
-	 * @param {HTMLElement} container - The main ability score container
-	 */
 	constructor(container) {
 		this._container = container;
 	}
 
-	/**
-	 * Renders all ability score boxes
-	 * @param {boolean} isStandardArray - Whether standard array method is being used
-	 * @param {boolean} isPointBuy - Whether point buy method is being used
-	 * @param {boolean} isCustom - Whether custom method is being used
-	 * @param {Function} onStandardArrayChange - Callback for standard array changes
-	 */
 	renderAllAbilityScores(
 		isStandardArray,
 		isPointBuy,
@@ -46,14 +33,6 @@ class AbilityScoreBoxView {
 		}
 	}
 
-	/**
-	 * Renders a single ability score box
-	 * @param {string} ability - The ability name (str, dex, etc.)
-	 * @param {boolean} isStandardArray - Whether standard array method is being used
-	 * @param {boolean} isPointBuy - Whether point buy method is being used
-	 * @param {boolean} isCustom - Whether custom method is being used
-	 * @param {Function} onStandardArrayChange - Callback for standard array changes
-	 */
 	renderAbilityScoreBox(
 		ability,
 		isStandardArray,
@@ -129,10 +108,6 @@ class AbilityScoreBoxView {
 		box.appendChild(controlsContainer);
 	}
 
-	/**
-	 * Updates only the ability score values without re-rendering the whole card
-	 * @param {boolean} isPointBuy - Whether point buy method is active
-	 */
 	updateAbilityScoreValues(isPointBuy) {
 		for (const ability of abilityScoreService.getAllAbilities()) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
@@ -191,9 +166,6 @@ class AbilityScoreBoxView {
 		}
 	}
 
-	/**
-	 * Updates all ability score displays including scores, modifiers, and bonus display
-	 */
 	updateAllAbilityScores() {
 		try {
 			// Get the current ability scores from the manager
@@ -243,10 +215,6 @@ class AbilityScoreBoxView {
 		}
 	}
 
-	/**
-	 * Adds a flash border animation to an ability box
-	 * @param {string} ability - The ability name
-	 */
 	flashBorder(ability) {
 		const box = this._container.querySelector(`[data-ability="${ability}"]`);
 		if (!box) return;
@@ -257,10 +225,6 @@ class AbilityScoreBoxView {
 		}, 500);
 	}
 
-	/**
-	 * Updates the container reference for the view
-	 * @param {HTMLElement} container - The new container element
-	 */
 	setContainer(container) {
 		this._container = container;
 	}
@@ -268,9 +232,6 @@ class AbilityScoreBoxView {
 
 let _instance = null;
 
-/**
- * Singleton accessor for AbilityScoreBoxView
- */
 AbilityScoreBoxView.getInstance = (container) => {
 	if (!_instance) {
 		_instance = new AbilityScoreBoxView(container);

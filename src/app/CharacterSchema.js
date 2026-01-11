@@ -1,11 +1,5 @@
-/** Domain schema helpers for creating and validating character data. */
+/** Schema helpers for creating and validating character data. */
 
-/**
- * Lightweight character validation function.
- * @param {object} character - Character payload to validate
- * @returns {{valid: boolean, errors: string[]}} Validation result with errors
- * @private
- */
 function validateCharacterData(character) {
 	const errors = [];
 	if (!character) {

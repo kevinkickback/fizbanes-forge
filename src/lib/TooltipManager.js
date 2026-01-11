@@ -98,12 +98,6 @@ function _createTooltip() {
 	return tooltipObj;
 }
 
-/**
- * Enable dragging a tooltip when it is pinned.
- * @param {Object} tooltipObj
- * @param {HTMLElement} handleElement
- * @private
- */
 function _makeDraggable(tooltipObj, handleElement) {
 	let isDragging = false;
 	let offsetX = 0;
@@ -143,11 +137,6 @@ function _makeDraggable(tooltipObj, handleElement) {
 	});
 }
 
-/**
- * Toggle pin state of tooltip
- * @param {Object} tooltipObj Tooltip object
- * @private
- */
 function _togglePin(tooltipObj) {
 	tooltipObj.isPinned = !tooltipObj.isPinned;
 	const pinBtn = tooltipObj.tooltip.querySelector('.tooltip-pin-btn');
@@ -167,19 +156,8 @@ function _togglePin(tooltipObj) {
 	}
 }
 
-/**
- * Copy tooltip content to clipboard
- * @param {Object} tooltipObj Tooltip object
- * @private
- */
-// Copy tooltip content is disabled (button removed)
 async function _copyTooltipContent() { }
 
-/**
- * Close specific tooltip
- * @param {Object} tooltipObj Tooltip object
- * @private
- */
 function _closeTooltip(tooltipObj) {
 	const index = tooltips.indexOf(tooltipObj);
 	if (index !== -1) {
@@ -194,13 +172,6 @@ function _closeTooltip(tooltipObj) {
 	}, 200);
 }
 
-/**
- * Show tooltip at position with data
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- * @param {string} content Content to display
- * @param {Object} options Additional options
- */
 function showTooltip(x, y, content, options = {}) {
 	const tooltipObj = _createTooltip();
 	const contentWrapper = document.createElement('div');
@@ -236,9 +207,6 @@ function showTooltip(x, y, content, options = {}) {
 	});
 }
 
-/**
- * Hide the most recent tooltip (unless pinned)
- */
 function hideTooltip() {
 	if (tooltips.length === 0) return;
 	for (let i = tooltips.length - 1; i >= 0; i--) {
@@ -250,9 +218,6 @@ function hideTooltip() {
 	}
 }
 
-/**
- * Hide all tooltips (including pinned)
- */
 function hideAllTooltips() {
 	const tooltipsToClose = [...tooltips];
 	tooltips = [];
@@ -267,10 +232,6 @@ function hideAllTooltips() {
 	});
 }
 
-/**
- * Setup keyboard shortcuts for tooltips
- * @private
- */
 function _setupKeyboardShortcuts() {
 	document.addEventListener('keydown', (e) => {
 		const activeTooltip = tooltips[tooltips.length - 1];
@@ -300,14 +261,6 @@ function _setupKeyboardShortcuts() {
 	});
 }
 
-/**
- * Load and display tooltip for a reference
- * @param {string} type Reference type (spell, item, etc)
- * @param {string} name Reference name
- * @param {string} source Source abbreviation
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- */
 async function showReferenceTooltip(type, name, source, x, y) {
 	if (!referenceResolver) {
 		showTooltip(x, y, `<strong>${name}</strong>`);
@@ -365,10 +318,6 @@ async function showReferenceTooltip(type, name, source, x, y) {
 	}
 }
 
-/**
- * Format tooltip content from data
- * Uses 5etools-style entry type detection instead of long if-else chain
- */
 function _formatTooltip(data) {
 	if (!data) {
 		return '<em>No data available</em>';
@@ -391,12 +340,6 @@ function _formatTooltip(data) {
 	return _renderGenericTooltip(data);
 }
 
-/**
- * Detect the entity type from data properties
- * Uses a prioritized set of property checks (similar to 5etools type detection)
- * @param {Object} data Entity data
- * @returns {string} Entity type identifier
- */
 function _detectEntityType(data) {
 	// Check specific properties that uniquely identify entity types
 	if (data.cr !== undefined) return 'monster'; // Bestiary entries
@@ -432,11 +375,6 @@ function _detectEntityType(data) {
 	return 'generic'; // Unknown type
 }
 
-/**
- * Get the renderer function for an entity type
- * @param {string} type Entity type
- * @returns {Function|null} Renderer function or null
- */
 function _getRenderer(type) {
 	const renderers = {
 		monster: renderMonster,
@@ -460,12 +398,6 @@ function _getRenderer(type) {
 	return renderers[type] || null;
 }
 
-/**
- * Generic tooltip rendering fallback
- * Used for entity types without specific renderers
- * @param {Object} data Entity data
- * @returns {string} HTML tooltip content
- */
 function _renderGenericTooltip(data) {
 	let html = '';
 	html += `<div class="tooltip-title">${data.name || 'Unknown'}</div>`;
@@ -487,9 +419,6 @@ function _renderGenericTooltip(data) {
 	return html || `<strong>${data.name || 'Unknown'}</strong>`;
 }
 
-/**
- * Initialize tooltip event listeners for all hover links
- */
 export function initializeTooltipListeners() {
 	console.info('TooltipSystem', 'Initializing event listeners');
 	const activeElements = new Map();
@@ -691,13 +620,6 @@ export function initializeTooltipListeners() {
 	});
 }
 
-/**
- * Convenience initializer for pages that use either @tags (rd__hover-link)
- * or legacy `.reference-link` spans with data-tooltip-* attributes.
- * Adds the necessary listeners and upgrades spans to behave like hover links.
- * @param {ParentNode} [root=document]
- * @returns {{tooltipManager: TooltipManager, upgraded: Element[]}}
- */
 export function initializeTooltips(root = document) {
 	initializeTooltipListeners();
 	const upgraded = [];

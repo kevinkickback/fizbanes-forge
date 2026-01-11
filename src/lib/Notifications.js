@@ -1,30 +1,13 @@
 /** Notifications.js - Temporary user notifications with debouncing and auto-close. */
 
-/**
- * @typedef {'info'|'success'|'warning'|'danger'} NotificationType
- * @property {string} message - The message to display in the notification
- * @property {NotificationType} type - The type of notification that determines its appearance
- * @property {number} timestamp - When the notification was created
- */
-
-// Constants for notification behavior
 const NOTIFICATION_CONFIG = Object.freeze({
-	/** @type {number} Time in ms to prevent duplicate notifications from appearing */
 	DEBOUNCE_DELAY: 3000,
-	/** @type {number} Time in ms for the close animation when removing notifications */
 	CLOSE_ANIMATION_DURATION: 150,
-	/** @type {number} Time in ms before notifications automatically close */
 	AUTO_CLOSE_DELAY: 5000,
 });
 
-/** @type {{message: string, type: string, timestamp: number}} */
 let lastNotification = { message: '', type: '', timestamp: 0 };
 
-/**
- * Creates the notification container if it doesn't exist
- * @returns {HTMLElement} The notification container element that holds all notifications
- * @private
- */
 function getOrCreateNotificationContainer() {
 	let container = document.getElementById('notificationContainer');
 	if (!container) {
@@ -36,13 +19,6 @@ function getOrCreateNotificationContainer() {
 	return container;
 }
 
-/**
- * Creates a notification element with the given message and type
- * @param {string} message - The notification message to display
- * @param {NotificationType} type - The notification type that determines its appearance
- * @returns {HTMLElement} The notification element with message and close button
- * @private
- */
 function createNotificationElement(message, type) {
 	const notification = document.createElement('div');
 	notification.className = `notification ${type}`;
@@ -58,11 +34,6 @@ function createNotificationElement(message, type) {
 	return notification;
 }
 
-/**
- * Shows a notification to the user with debouncing and auto-closing
- * @param {string} message - The message to display in the notification
- * @param {NotificationType} [type='info'] - The type of notification that determines its appearance
- */
 export function showNotification(message, type = 'info') {
 	// Check if this is a duplicate notification within the debounce window
 	const now = Date.now();

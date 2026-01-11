@@ -1,23 +1,10 @@
-/**
- * SpellService module
- *
- * Provides methods to load, access, and query spell data for the character builder.
- * Handles spell data initialization, lookup, and filtering by name, level, and class.
- */
-
+/** Manages spell data and provides access to spells. */
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 
-/**
- * Manages spell data and provides access to spells.
- * @class
- */
 class SpellService extends BaseDataService {
-	/**
-	 * Create a new SpellService.
-	 */
 	constructor() {
 		super({ loadEvent: EVENTS.SPELLS_LOADED, loggerScope: 'SpellService' });
 		this._spellLookupMap = null; // Map for O(1) lookups by name

@@ -1,14 +1,7 @@
-/** Manages ability score state and calculations. */
 import { CharacterManager } from '../app/CharacterManager.js';
 import { attAbvToFull, getAbilityModNumber, numberToWords } from '../lib/5eToolsParser.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-
-/**
- * @typedef {Object} AbilityChoice
- * @property {string} ability - The ability name
- * @property {number} value - The bonus value
- */
 
 /** Manages D&D character ability scores. */
 class AbilityScoreService {

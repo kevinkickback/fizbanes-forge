@@ -1,20 +1,15 @@
-/** Controller for managing ability score UI and interactions. */
-
+// Controller for managing ability score UI and interactions.
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
-import { abilityChoicesView } from './Choices.js';
-import { abilityScoreBoxView } from './ScoreBox.js';
 import { bonusNotesView } from './BonusNotes.js';
+import { abilityChoicesView } from './Choices.js';
 import { methodControlsView } from './MethodControls.js';
 import { methodSwitcherView } from './MethodSwitcher.js';
+import { abilityScoreBoxView } from './ScoreBox.js';
 
-/** Manages the ability score UI card (method selection, score input, bonuses). */
 class AbilityScoreCard {
-	/**
-	 * Creates a new AbilityScoreCard
-	 */
 	constructor() {
 		// Main DOM containers (querySelector for container, getElementById for bonuses)
 		this._container = document.querySelector('.ability-score-container');
@@ -37,10 +32,6 @@ class AbilityScoreCard {
 		this._lastInitializedMethod = null;
 	}
 
-	/**
-	 * Initializes the ability score card
-	 * @returns {boolean} True if initialization was successful
-	 */
 	async initialize() {
 		try {
 			// Re-fetch container references each time in case DOM has been rebuilt
@@ -83,10 +74,6 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Synchronizes the ability score manager with the current character
-	 * @private
-	 */
 	_syncWithCurrentCharacter() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -110,10 +97,7 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Sets up event listeners for ability score card interactions
-	 * @private
-	 */
+
 	_setupEventListeners() {
 		try {
 			// Remove any existing listeners first to prevent duplicates
@@ -248,11 +232,7 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Handles all change events within the ability score container (delegation)
-	 * @param {Event} event - The change event
-	 * @private
-	 */
+
 	_handleContainerChangeEvent(event) {
 		if (event.target.classList.contains('ability-choice-select')) {
 			this._handleAbilityChoice(event);
@@ -263,11 +243,6 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Handles method change events
-	 * @param {Event} event - The change event
-	 * @private
-	 */
 	_handleMethodChange(event) {
 		const method = event.target.value;
 		const character = CharacterManager.getCurrentCharacter();
@@ -291,11 +266,6 @@ class AbilityScoreCard {
 		);
 	}
 
-	/**
-	 * Handles standard array selection change
-	 * @param {Event} event - The change event
-	 * @private
-	 */
 	_handleStandardArraySelection(event) {
 		const ability = event.target.dataset.ability;
 		const newValue = Number.parseInt(event.target.value, 10);
@@ -408,11 +378,6 @@ class AbilityScoreCard {
 		});
 	}
 
-	/**
-	 * Handles decreasing ability scores for point buy
-	 * @param {HTMLElement} btn - The button element
-	 * @private
-	 */
 	_handlePointBuyDecrease(btn) {
 		const ability = btn.dataset.ability;
 		if (!ability) return;
@@ -466,11 +431,6 @@ class AbilityScoreCard {
 		});
 	}
 
-	/**
-	 * Handles custom ability score input
-	 * @param {Event} event - The input event
-	 * @private
-	 */
 	_handleCustomInput(event) {
 		const ability = event.target.dataset.ability;
 		if (!ability) return;
@@ -535,10 +495,6 @@ class AbilityScoreCard {
 	// Rendering Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Renders the entire ability score card, including scores, choices, and bonus notes
-	 * @returns {void}
-	 */
 	render() {
 		try {
 			// Initialize scoring method system if needed
@@ -572,20 +528,12 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Updates only the ability score values without a full re-render
-	 * @returns {void}
-	 */
 	update() {
 		this._updateAbilityScoreValues();
 		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
 		this._bonusNotesView.render();
 	}
 
-	/**
-	 * Renders the ability score boxes with their current values and modifiers
-	 * @private
-	 */
 	_renderAbilityScores() {
 		try {
 			// Get the ability score method directly from character
@@ -622,10 +570,6 @@ class AbilityScoreCard {
 	// Update Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Updates only the ability score values without re-rendering the whole card
-	 * @private
-	 */
 	_updateAbilityScoreValues() {
 		const isPointBuy =
 			CharacterManager.getCurrentCharacter()?.variantRules
@@ -649,10 +593,6 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Updates ability scores from external changes (race, subrace, etc.)
-	 * @private
-	 */
 	_updateAbilityScores() {
 		this._abilityScoreBoxView.updateAllAbilityScores();
 		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
@@ -663,10 +603,6 @@ class AbilityScoreCard {
 	// Utility Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Initialize ability scores based on the selected method when a character is first loaded
-	 * @private
-	 */
 	_initializeAbilityScoreMethod() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -701,13 +637,6 @@ class AbilityScoreCard {
 		}
 	}
 
-	/**
-	 * Simple debounce function for limiting function call frequency
-	 * @param {Function} func - Function to debounce
-	 * @param {number} wait - Wait time in milliseconds
-	 * @returns {Function} Debounced function
-	 * @private
-	 */
 	_debounce(func, wait) {
 		let timeout;
 		return function executedFunction(...args) {
@@ -720,10 +649,6 @@ class AbilityScoreCard {
 		};
 	}
 
-	/**
-	 * Adds custom styles for ability score methods
-	 * @private
-	 */
 	_addStyles() {
 		const style = document.createElement('style');
 		style.id = 'ability-score-methods-styles';

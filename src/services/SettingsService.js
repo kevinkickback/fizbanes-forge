@@ -6,25 +6,11 @@ import { RefreshProgressModal } from '../ui/components/setup/Modals.js';
 
 /** Manages application settings and configuration. */
 export class SettingsService {
-	/** Creates a new SettingsService instance. */
 	constructor() {
-		/**
-		 * Flag to track initialization state
-		 * @type {boolean}
-		 * @private
-		 */
 		this._initialized = false;
-		/**
-		 * Cached auto update setting
-		 * @type {boolean}
-		 */
 		this.autoUpdateData = false;
 	}
 
-	/**
-	 * Initializes the settings manager
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		if (this._initialized) {
 			console.debug('SettingsService', 'Already initialized');

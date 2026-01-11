@@ -1,16 +1,8 @@
-/** @file Manages character inventory, equipment slots, attunement, and encumbrance. */
-
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 
-/**
- * Manages character equipment, inventory, and attunement.
- * Handles equipping, unequipping, attuning items, and encumbrance calculations.
- */
+/** Manages character equipment, inventory, and attunement. */
 class EquipmentService extends BaseDataService {
-    /**
-     * Creates a new EquipmentService instance.
-     */
     constructor() {
         super({
             cacheKey: null,

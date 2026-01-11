@@ -1,12 +1,8 @@
-/** Controller for class selection UI, coordinating views and subclass logic. */
-
+// Controller for class selection UI, coordinating views and subclass logic.
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
-import { abilityScoreService } from '../../../services/AbilityScoreService.js';
-import { classService } from '../../../services/ClassService.js';
-import { sourceService } from '../../../services/SourceService.js';
 import {
 	attAbvToFull,
 	levelToProficiencyBonus,
@@ -15,45 +11,20 @@ import {
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { ARTISAN_TOOLS } from '../../../lib/ProficiencyConstants.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { abilityScoreService } from '../../../services/AbilityScoreService.js';
+import { classService } from '../../../services/ClassService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
-/** Controller for class selection and display. */
 export class ClassCard {
-	/**
-	 * Creates a new ClassCard instance
-	 * @param {HTMLElement} _container - The container element for the class card UI
-	 */
 	constructor(_container) {
-		/**
-		 * Reference to the class service
-		 * @type {ClassService}
-		 * @private
-		 */
 		this._classService = classService;
 
-		/**
-		 * View for class selection and quick description
-		 * @type {ClassCardView}
-		 * @private
-		 */
 		this._cardView = new ClassCardView();
 
-		/**
-		 * View for subclass selection
-		 * @type {SubclassPickerView}
-		 * @private
-		 */
 		this._subclassView = new SubclassPickerView();
 
-		/**
-		 * View for class details display
-		 * @type {ClassDetailsView}
-		 * @private
-		 */
 		this._detailsView = new ClassDetailsView();
 
-		/**
-		 * Track active multiclass tab and DOM references
-		 */
 		this._activeClassTab = null;
 		this._classTabsWrapper = document.getElementById('classTabs');
 		this._classTabsList = document.getElementById('classTabsList');
@@ -66,10 +37,6 @@ export class ClassCard {
 	// Initialization Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Initializes the class card UI components and event listeners
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		try {
 			// Initialize required dependencies
@@ -85,10 +52,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Sets up event listeners for class and subclass selection changes
-	 * @private
-	 */
 	_setupEventListeners() {
 		// Listen to view events via EventBus instead of callbacks
 		eventBus.on(EVENTS.CLASS_SELECTED, (classData) => {
@@ -118,11 +81,6 @@ export class ClassCard {
 	// Data Loading Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Loads and sets the saved class selection from the character data
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _loadSavedClassSelection() {
 		try {
 			// Populate class dropdown first
@@ -169,12 +127,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Populates the class selection dropdown with all available classes
-	 * filtered by allowed sources
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _populateClassSelect() {
 		try {
 			const classes = this._classService.getAllClasses();
@@ -203,9 +155,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Populates the subclass selection dropdown based on the currently selected class
-	 */
 	async _populateSubclassSelect(classData) {
 		if (!classData) {
 			this._subclassView.reset();
@@ -246,12 +195,6 @@ export class ClassCard {
 	// Event Handlers
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Handles class selection change events
-	 * @param {Event} event - The change event
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _handleClassChange(event) {
 		try {
 			const [className, source] = event.target.value.split('_');
@@ -294,12 +237,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Handles subclass selection change events
-	 * @param {Event} event - The change event
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _handleSubclassChange(event) {
 		try {
 			const subclassName = event.target.value;
@@ -337,12 +274,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Handles character changed events
-	 * @param {Event} event - The character changed event
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _handleCharacterChanged() {
 		try {
 			// Reload class selection to match character's class
@@ -370,12 +301,6 @@ export class ClassCard {
 	// UI Update Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Updates the display of class details for the selected class and subclass
-	 * @param {Object} classData - The class data to display
-	 * @param {Object} subclassData - The optional subclass data
-	 * @returns {Promise<void>}
-	 */
 	async updateClassDetails(classData, subclassData = null) {
 		if (!classData) {
 			this.resetClassDetails();
@@ -389,10 +314,6 @@ export class ClassCard {
 		await this._updateFeatures(classData, subclassData);
 	}
 
-	/**
-	 * Render multiclass tabs from character progression and wire tab switching.
-	 * @private
-	 */
 	async _renderClassTabsFromProgression() {
 		if (!this._classTabsWrapper || !this._classTabsList) return;
 
@@ -441,12 +362,6 @@ export class ClassCard {
 		});
 	}
 
-	/**
-	 * Select a class in the dropdown (or directly) by name and refresh details.
-	 * @param {string} className
-	 * @param {boolean} [skipTabUpdate=false]
-	 * @private
-	 */
 	async _selectClassByName(className, { triggerChange = true, skipTabUpdate = false } = {}) {
 		if (!className) return;
 
@@ -487,13 +402,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Update the features section based on class and level
-	 * @param {Object} classData - Selected class
-	 * @param {Object} subclassData - Selected subclass (optional)
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async _updateFeatures(classData, subclassData = null) {
 		const character = CharacterManager.getCurrentCharacter();
 		const level = character?.level || 1;
@@ -523,9 +431,6 @@ export class ClassCard {
 		await this._detailsView.updateFeatures(classData, allFeatures);
 	}
 
-	/**
-	 * Reset class details to placeholder state
-	 */
 	resetClassDetails() {
 		this._cardView.resetQuickDescription();
 		this._detailsView.resetAllDetails();
@@ -535,12 +440,6 @@ export class ClassCard {
 	// Character Data Management
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update character's class information
-	 * @param {Object} classData - Selected class
-	 * @param {string} subclassName - Selected subclass name
-	 * @private
-	 */
 	_updateCharacterClass(classData, subclassName = '') {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -606,11 +505,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Update proficiencies based on class data
-	 * @param {Object} classData - The class data
-	 * @private
-	 */
 	_updateProficiencies(classData) {
 		console.log('[ClassCard] _updateProficiencies() called');
 
@@ -710,11 +604,6 @@ export class ClassCard {
 		document.dispatchEvent(new CustomEvent('characterChanged'));
 	}
 
-	/**
-	 * Updates the combined proficiency options from race, class, and background
-	 * @param {Character} character - The character object
-	 * @private
-	 */
 	_updateCombinedProficiencyOptions(character) {
 		if (!character) return;
 
@@ -766,11 +655,6 @@ export class ClassCard {
 		];
 	}
 
-	/**
-	 * Updates the combined skill options from race, class, and background
-	 * @param {Character} character - The character object
-	 * @private
-	 */
 	_updateCombinedSkillOptions(character) {
 		if (!character) return;
 
@@ -824,23 +708,11 @@ export class ClassCard {
 	// Data Extraction Helper Methods
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Get saving throws from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of saving throw names
-	 * @private
-	 */
 	_getSavingThrows(classData) {
 		if (!classData?.proficiency) return [];
 		return classData.proficiency.map((prof) => attAbvToFull(prof) || prof);
 	}
 
-	/**
-	 * Get armor proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of armor proficiency names
-	 * @private
-	 */
 	_getArmorProficiencies(classData) {
 		if (!classData?.startingProficiencies?.armor) return [];
 
@@ -857,12 +729,6 @@ export class ClassCard {
 		});
 	}
 
-	/**
-	 * Get weapon proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of weapon proficiency names
-	 * @private
-	 */
 	_getWeaponProficiencies(classData) {
 		if (!classData?.startingProficiencies?.weapons) return [];
 
@@ -877,13 +743,6 @@ export class ClassCard {
 		});
 	}
 
-	/**
-	 * Process tool proficiency choices from class data
-	 * Handles special fields like anyMusicalInstrument for Bard
-	 * @param {Object} classData - Class JSON object
-	 * @param {Object} character - Character object
-	 * @private
-	 */
 	_processClassToolProficiencies(classData, character) {
 		console.log('[ClassCard] _processClassToolProficiencies() called');
 
@@ -959,12 +818,6 @@ export class ClassCard {
 		}
 	}
 
-	/**
-	 * Get tool proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of tool proficiency names
-	 * @private
-	 */
 	_getToolProficiencies(classData) {
 		if (!classData?.startingProficiencies?.tools) return [];
 
@@ -997,12 +850,6 @@ export class ClassCard {
 		return tools;
 	}
 
-	/**
-	 * Get skill proficiency options from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of skill names
-	 * @private
-	 */
 	_getSkillProficiencies(classData) {
 		if (!classData?.startingProficiencies?.skills) return [];
 
@@ -1023,18 +870,6 @@ export class ClassCard {
 		return skillOptions;
 	}
 
-	/**
-	 * Normalize skill name to proper casing matching 5etools format
-	 * @param {string} skill - Skill name (may be lowercase from JSON)
-	 * @returns {string} Skill name with proper casing
-	 * @private
-	 */
-	/**
-	 * Get number of skills to choose from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {number} Number of skills to choose
-	 * @private
-	 */
 	_getSkillChoiceCount(classData) {
 		if (!classData?.startingProficiencies?.skills) return 0;
 
@@ -1054,20 +889,8 @@ export class ClassCard {
 // Class Details View - Detailed class information display
 //=============================================================================
 
-/**
- * View for displaying detailed class information (hit die, proficiencies, saves, features).
- * @internal
- */
 class ClassDetailsView {
-	/**
-	 * Creates a new ClassDetailsView instance
-	 */
 	constructor() {
-		/**
-		 * The container element for class details
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._classDetails = document.getElementById('classDetails');
 	}
 
@@ -1075,11 +898,6 @@ class ClassDetailsView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update all class details sections (except features)
-	 * @param {Object} classData - The class data
-	 * @returns {Promise<void>}
-	 */
 	async updateAllDetails(classData) {
 		if (!classData) {
 			this.resetAllDetails();
@@ -1098,9 +916,6 @@ class ClassDetailsView {
 		await textProcessor.processElement(this._classDetails);
 	}
 
-	/**
-	 * Reset all details sections to placeholder state
-	 */
 	resetAllDetails() {
 		const detailSections =
 			this._classDetails.querySelectorAll('.detail-section');
@@ -1137,10 +952,6 @@ class ClassDetailsView {
 	// Hit Die Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the hit die information display
-	 * @param {Object} classData - The class data
-	 */
 	updateHitDie(classData) {
 		const hitDieSection = this._classDetails.querySelector(
 			'.detail-section:nth-child(1) ul',
@@ -1155,12 +966,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Format hit die information from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {string} Formatted hit die text
-	 * @private
-	 */
 	_formatHitDie(classData) {
 		if (!classData?.hd) return 'Unknown';
 		const faces = classData.hd.faces || classData.hd;
@@ -1171,10 +976,6 @@ class ClassDetailsView {
 	// Skill Proficiencies Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the skill proficiencies information display
-	 * @param {Object} classData - The class data
-	 */
 	updateSkillProficiencies(classData) {
 		const skillProficienciesSection = this._classDetails.querySelector(
 			'.detail-section:nth-child(2)',
@@ -1272,12 +1073,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Format skill proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {string} Formatted skill proficiencies text
-	 * @private
-	 */
 	_formatSkillProficiencies(classData) {
 		if (!classData?.startingProficiencies?.skills) return 'None';
 
@@ -1309,10 +1104,6 @@ class ClassDetailsView {
 	// Saving Throws Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the saving throws information display
-	 * @param {Object} classData - The class data
-	 */
 	updateSavingThrows(classData) {
 		const savingThrowsSection = this._classDetails.querySelector(
 			'.detail-section:nth-child(3) ul',
@@ -1336,12 +1127,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Format saving throws from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of saving throw names
-	 * @private
-	 */
 	_formatSavingThrows(classData) {
 		if (!classData?.proficiency) return [];
 		return classData.proficiency.map((prof) => attAbvToFull(prof) || prof);
@@ -1351,10 +1136,6 @@ class ClassDetailsView {
 	// Armor Proficiencies Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the armor proficiencies information display
-	 * @param {Object} classData - The class data
-	 */
 	updateArmorProficiencies(classData) {
 		const armorSection = this._classDetails.querySelector(
 			'.detail-section:nth-child(4) ul',
@@ -1388,12 +1169,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Format armor proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of armor proficiency names
-	 * @private
-	 */
 	_formatArmorProficiencies(classData) {
 		if (!classData?.startingProficiencies?.armor) return [];
 
@@ -1415,10 +1190,6 @@ class ClassDetailsView {
 	// Weapon Proficiencies Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the weapon proficiencies information display
-	 * @param {Object} classData - The class data
-	 */
 	updateWeaponProficiencies(classData) {
 		const weaponSection = this._classDetails.querySelector(
 			'.detail-section:nth-child(5) ul',
@@ -1453,12 +1224,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Format weapon proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of weapon proficiency names
-	 * @private
-	 */
 	_formatWeaponProficiencies(classData) {
 		if (!classData?.startingProficiencies?.weapons) return [];
 
@@ -1478,10 +1243,6 @@ class ClassDetailsView {
 	// Tool Proficiencies Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the tool proficiencies information display
-	 * @param {Object} classData - The class data
-	 */
 	updateToolProficiencies(classData) {
 		const toolSection = this._classDetails.querySelector(
 			'.detail-section:nth-child(6) ul',
@@ -1515,12 +1276,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Format tool proficiencies from class data
-	 * @param {Object} classData - Class JSON object
-	 * @returns {Array<string>} Array of tool proficiency names
-	 * @private
-	 */
 	_formatToolProficiencies(classData) {
 		if (!classData?.startingProficiencies?.tools) return [];
 
@@ -1550,12 +1305,6 @@ class ClassDetailsView {
 	// Features Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update the features section with feature data
-	 * @param {Object} classData - Selected class (for source fallback)
-	 * @param {Array} allFeatures - Combined array of class and subclass features
-	 * @returns {Promise<void>}
-	 */
 	async updateFeatures(classData, allFeatures) {
 		const featuresSection =
 			this._classDetails.querySelector('.features-section');
@@ -1624,12 +1373,6 @@ class ClassDetailsView {
 		}
 	}
 
-	/**
-	 * Formats feature entries for display (async to process tags)
-	 * @param {Array|String} entries - Array of entries or string
-	 * @returns {Promise<string>} Formatted HTML string
-	 * @private
-	 */
 	async _formatFeatureEntries(entries) {
 		// If entries is a string, process it and return
 		if (typeof entries === 'string') {
@@ -1821,27 +1564,10 @@ class ClassDetailsView {
 // Class Card View - Main class dropdown and quick description
 //=============================================================================
 
-/**
- * View for the class card's main display (dropdown + quick description).
- * @internal
- */
 class ClassCardView {
-	/**
-	 * Creates a new ClassCardView instance
-	 */
 	constructor() {
-		/**
-		 * The main class selection dropdown element
-		 * @type {HTMLSelectElement}
-		 * @private
-		 */
 		this._classSelect = document.getElementById('classSelect');
 
-		/**
-		 * The quick description element for displaying class summary
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._classQuickDesc = document.getElementById('classQuickDesc');
 
 		// Set up event listeners
@@ -1852,10 +1578,6 @@ class ClassCardView {
 	// Event Setup
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Sets up event listeners for class selection changes
-	 * @private
-	 */
 	_setupEventListeners() {
 		if (this._classSelect) {
 			this._classSelect.addEventListener('change', (event) => {
@@ -1876,34 +1598,18 @@ class ClassCardView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Get the class select element
-	 * @returns {HTMLSelectElement}
-	 */
 	getClassSelect() {
 		return this._classSelect;
 	}
 
-	/**
-	 * Get the currently selected class value
-	 * @returns {string} Format: "ClassName_Source" or empty string
-	 */
 	getSelectedClassValue() {
 		return this._classSelect.value;
 	}
 
-	/**
-	 * Set the selected class value
-	 * @param {string} value - Format: "ClassName_Source"
-	 */
 	setSelectedClassValue(value) {
 		this._classSelect.value = value;
 	}
 
-	/**
-	 * Populate the class selection dropdown
-	 * @param {Array<Object>} classes - Array of class objects
-	 */
 	populateClassSelect(classes) {
 		this._classSelect.innerHTML = '<option value="">Select a Class</option>';
 
@@ -1926,12 +1632,6 @@ class ClassCardView {
 		}
 	}
 
-	/**
-	 * Update the quick description for the selected class
-	 * @param {Object} classData - The class data
-	 * @param {Object|null} fluffData - The class fluff data
-	 * @returns {Promise<void>}
-	 */
 	async updateQuickDescription(classData, fluffData = null) {
 		if (!classData || !this._classQuickDesc) {
 			return;
@@ -1982,9 +1682,6 @@ class ClassCardView {
 		await textProcessor.processElement(this._classQuickDesc);
 	}
 
-	/**
-	 * Reset quick description to placeholder state
-	 */
 	resetQuickDescription() {
 		this._classQuickDesc.innerHTML = `
             <div class="placeholder-content">
@@ -1994,20 +1691,12 @@ class ClassCardView {
         `;
 	}
 
-	/**
-	 * Check if a class option exists in the dropdown
-	 * @param {string} classValue - Format: "ClassName_Source"
-	 * @returns {boolean}
-	 */
 	hasClassOption(classValue) {
 		return Array.from(this._classSelect.options).some(
 			(option) => option.value === classValue,
 		);
 	}
 
-	/**
-	 * Trigger a change event on the class select
-	 */
 	triggerClassSelectChange() {
 		this._classSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
@@ -2017,20 +1706,8 @@ class ClassCardView {
 // Subclass Picker View - Subclass dropdown
 //=============================================================================
 
-/**
- * View for the subclass selection dropdown.
- * @internal
- */
 class SubclassPickerView {
-	/**
-	 * Creates a new SubclassPickerView instance
-	 */
 	constructor() {
-		/**
-		 * The subclass selection dropdown element
-		 * @type {HTMLSelectElement}
-		 * @private
-		 */
 		this._subclassSelect = document.getElementById('subclassSelect');
 
 		// Set up event listeners
@@ -2041,10 +1718,6 @@ class SubclassPickerView {
 	// Event Setup
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Sets up event listeners for subclass selection changes
-	 * @private
-	 */
 	_setupEventListeners() {
 		if (this._subclassSelect) {
 			this._subclassSelect.addEventListener('change', (event) => {
@@ -2063,34 +1736,18 @@ class SubclassPickerView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Get the subclass select element
-	 * @returns {HTMLSelectElement}
-	 */
 	getSubclassSelect() {
 		return this._subclassSelect;
 	}
 
-	/**
-	 * Get the currently selected subclass value
-	 * @returns {string} Subclass name or empty string
-	 */
 	getSelectedSubclassValue() {
 		return this._subclassSelect.value;
 	}
 
-	/**
-	 * Set the selected subclass value
-	 * @param {string} value - Subclass name
-	 */
 	setSelectedSubclassValue(value) {
 		this._subclassSelect.value = value;
 	}
 
-	/**
-	 * Populate the subclass selection dropdown
-	 * @param {Array<Object>} subclasses - Array of subclass objects
-	 */
 	populateSubclassSelect(subclasses) {
 		this._subclassSelect.innerHTML =
 			'<option value="">Select a Subclass</option>';
@@ -2121,29 +1778,18 @@ class SubclassPickerView {
 		this._subclassSelect.disabled = false;
 	}
 
-	/**
-	 * Clear and disable the subclass select
-	 */
 	reset() {
 		this._subclassSelect.innerHTML =
 			'<option value="">Select a Subclass</option>';
 		this._subclassSelect.disabled = true;
 	}
 
-	/**
-	 * Check if a subclass option exists in the dropdown
-	 * @param {string} subclassName - Subclass name
-	 * @returns {boolean}
-	 */
 	hasSubclassOption(subclassName) {
 		return Array.from(this._subclassSelect.options).some(
 			(option) => option.value === subclassName,
 		);
 	}
 
-	/**
-	 * Trigger a change event on the subclass select
-	 */
 	triggerSubclassSelectChange() {
 		this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}

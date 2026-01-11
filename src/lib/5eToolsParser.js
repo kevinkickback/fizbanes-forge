@@ -1,17 +1,5 @@
-/**
- * 5eToolsParser.js
- *
- * Selected utility functions extracted from 5etools Parser
- * Source: https://github.com/5etools-mirror-3/5etools-src
- *
- * This module contains only the specific parsing utilities we need,
- * without the full renderer stack. Functions are adapted for our
- * Electron/Node environment.
- */
+/** Selected utility functions extracted from 5etools for parsing D&D data. */
 
-/**
- * Size abbreviation to full name mapping
- */
 const SIZE_ABV_TO_FULL = {
 	F: 'Fine',
 	D: 'Diminutive',
@@ -25,9 +13,6 @@ const SIZE_ABV_TO_FULL = {
 	V: 'Varies',
 };
 
-/**
- * Ability abbreviation to full name mapping
- */
 const ATB_ABV_TO_FULL = {
 	str: 'Strength',
 	dex: 'Dexterity',
@@ -37,14 +22,8 @@ const ATB_ABV_TO_FULL = {
 	cha: 'Charisma',
 };
 
-/**
- * Speed modes in order of display
- */
 const SPEED_MODES = ['walk', 'burrow', 'climb', 'fly', 'swim'];
 
-/**
- * Skill to ability mapping (D&D 5e core rules)
- */
 const SKILL_TO_ABILITY = {
 	acrobatics: 'dex',
 	'animal handling': 'wis',
@@ -66,9 +45,6 @@ const SKILL_TO_ABILITY = {
 	survival: 'wis',
 };
 
-/**
- * Standard languages in D&D 5e
- */
 const LANGUAGES_STANDARD = [
 	'Common',
 	'Dwarvish',
@@ -80,9 +56,6 @@ const LANGUAGES_STANDARD = [
 	'Orc',
 ];
 
-/**
- * Exotic languages in D&D 5e
- */
 const LANGUAGES_EXOTIC = [
 	'Abyssal',
 	'Celestial',
@@ -94,32 +67,16 @@ const LANGUAGES_EXOTIC = [
 	'Undercommon',
 ];
 
-/**
- * Secret languages
- */
 const LANGUAGES_SECRET = ['Druidic', "Thieves' Cant"];
 
-/**
- * Default character size (Medium)
- * D&D 5e uses size arrays in the 5etools format
- */
-const DEFAULT_CHARACTER_SIZE = ['M'];
+/** Default character size (Medium). */
+export const DEFAULT_CHARACTER_SIZE = ['M'];
 
-/**
- * Default character speed (30 ft. walking)
- * Standard speed for most Medium humanoids in D&D 5e
- */
-const DEFAULT_CHARACTER_SPEED = { walk: 30 };
+/** Default character speed (30 ft. walking). */
+export const DEFAULT_CHARACTER_SPEED = { walk: 30 };
 
-/**
- * Default source book abbreviation
- * Used when source is not specified in tag content or data
- */
 const DEFAULT_SOURCE = 'PHB';
 
-/**
- * Source book abbreviations
- */
 const SOURCES = {
 	PHB: 'PHB',
 	XPHB: 'XPHB',
@@ -134,9 +91,6 @@ const SOURCES = {
 	MPMM: 'MPMM',
 };
 
-/**
- * Source full names
- */
 const SOURCE_TO_FULL = {
 	PHB: "Player's Handbook (2014)",
 	XPHB: "Player's Handbook (2024)",
@@ -151,9 +105,6 @@ const SOURCE_TO_FULL = {
 	MPMM: 'Mordenkainen Presents: Monsters of the Multiverse',
 };
 
-/**
- * Source abbreviations for display
- */
 const SOURCE_TO_ABV = {
 	PHB: 'PHB',
 	XPHB: "PHB'24",
@@ -168,41 +119,21 @@ const SOURCE_TO_ABV = {
 	MPMM: 'MPMM',
 };
 
-/**
- * Convert size abbreviation to full name
- * @param {string} abv - Size abbreviation (T, S, M, L, H, G, etc.)
- * @returns {string} Full size name
- */
 export function sizeAbvToFull(abv) {
 	if (!abv) return '';
 	return SIZE_ABV_TO_FULL[abv] || abv;
 }
 
-/**
- * Convert ability score to modifier number
- * @param {number} abilityScore - The ability score (e.g., 10, 16, 20)
- * @returns {number} The modifier (e.g., 0, +3, +5)
- */
 export function getAbilityModNumber(abilityScore) {
 	return Math.floor((abilityScore - 10) / 2);
 }
 
-/**
- * Convert ability score to modifier string
- * @param {number} abilityScore - The ability score
- * @returns {string} Formatted modifier (e.g., "+0", "+3", "-1")
- */
 export function getAbilityModifier(abilityScore) {
 	let modifier = getAbilityModNumber(abilityScore);
 	if (modifier >= 0) modifier = `+${modifier}`;
 	return `${modifier}`;
 }
 
-/**
- * Format an already-computed modifier number as a string
- * @param {number} modifier - The modifier value (e.g., 3, -1, 0)
- * @returns {string} Formatted modifier string (e.g., "+3", "-1", "+0")
- */
 export function formatModifierNumber(modifier) {
 	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
 		return '+0';
@@ -213,11 +144,6 @@ export function formatModifierNumber(modifier) {
 	return `${modifier}`;
 }
 
-/**
- * Convert ability abbreviation to full name
- * @param {string} abv - Ability abbreviation (str, dex, con, int, wis, cha)
- * @returns {string} Full ability name
- */
 export function attAbvToFull(abv) {
 	if (!abv) return '';
 	return ATB_ABV_TO_FULL[abv.toLowerCase()] || abv;
@@ -321,17 +247,6 @@ export function getSpeedString(ent) {
 	return '—';
 }
 
-/**
- * Convert monster/creature type object to full text
- * @param {string|object} type - Type string or type object
- * @returns {object} Object with type information
- *
- * Returns object with:
- *   types: Array of type names
- *   tags: Array of tags (e.g., "swarm")
- *   asText: Full text description
- *   asTextShort: Short description
- */
 export function monTypeToFullObj(type) {
 	const out = {
 		types: [],
@@ -384,20 +299,11 @@ export function monTypeToFullObj(type) {
 	return out;
 }
 
-/**
- * Helper: Capitalize first letter
- * @private
- */
 function capitalize(str) {
 	if (!str) return '';
 	return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-/**
- * Converts a string to title case (capitalizes each word)
- * @param {string} str - The string to format
- * @returns {string} Title-cased string
- */
 export function toTitleCase(str) {
 	if (typeof str !== 'string' || str.length === 0) {
 		return '';
@@ -409,11 +315,6 @@ export function toTitleCase(str) {
 		.join(' ');
 }
 
-/**
- * Converts a string to sentence case (first letter uppercase, rest as-is)
- * @param {string} str - The string to format
- * @returns {string} Sentence-cased string
- */
 export function toSentenceCase(str) {
 	if (typeof str !== 'string' || str.length === 0) {
 		return '';
@@ -421,10 +322,6 @@ export function toSentenceCase(str) {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-/**
- * Helper: Simple pluralization for creature types
- * @private
- */
 function pluralize(str) {
 	if (!str) return '';
 	// Simple rules for common D&D types
@@ -433,11 +330,6 @@ function pluralize(str) {
 	return `${str}s`;
 }
 
-/**
- * Parse alignment abbreviation to full text
- * @param {string|object} alignment - Alignment abbreviation or object
- * @returns {string|null} Full alignment text
- */
 export function alignmentAbvToFull(alignment) {
 	if (!alignment) return null;
 
@@ -469,11 +361,6 @@ export function alignmentAbvToFull(alignment) {
 	return ALIGNMENT_MAP[alignment.toUpperCase()] || alignment;
 }
 
-/**
- * Get ordinal form of a number
- * @param {number} i - Number to convert
- * @returns {string} Ordinal string (e.g., "1st", "2nd", "3rd", "4th")
- */
 export function getOrdinalForm(i) {
 	i = Number(i);
 	if (Number.isNaN(i)) return '';
@@ -485,17 +372,6 @@ export function getOrdinalForm(i) {
 	return `${i}th`;
 }
 
-/**
- * Convert full ability name to 3-letter abbreviation
- * @param {string} ability - Full ability name (e.g., "strength", "charisma")
- * @returns {string} 3-letter abbreviation in lowercase (e.g., "str", "cha")
- *
- * Examples:
- * - "strength" → "str"
- * - "Dexterity" → "dex"
- * - "CHARISMA" → "cha"
- * - "unknown" → "unk"
- */
 export function fullAbilityToAbbr(ability) {
 	if (!ability) return '';
 	const abilityLower = ability.toLowerCase();
@@ -510,29 +386,14 @@ export function fullAbilityToAbbr(ability) {
 	return FULL_TO_ABV[abilityLower] || abilityLower.substring(0, 3);
 }
 
-/**
- * Get proficiency bonus for a given character level
- * @param {number} level - Character level (1-20)
- * @returns {number} Proficiency bonus (2-6)
- */
 export function levelToProficiencyBonus(level) {
 	return Math.ceil(level / 4) + 1;
 }
 
-/**
- * Get the ability that governs a skill
- * @param {string} skill - Skill name (lowercase)
- * @returns {string|null} Ability abbreviation or null
- */
 export function skillToAbility(skill) {
 	return SKILL_TO_ABILITY[skill.toLowerCase()] || null;
 }
 
-/**
- * Get all skills for a given ability
- * @param {string} ability - Ability abbreviation (str, dex, etc.)
- * @returns {string[]} Array of skill names
- */
 export function abilityToSkills(ability) {
 	const abilityLower = ability.toLowerCase();
 	return Object.entries(SKILL_TO_ABILITY)
@@ -540,66 +401,35 @@ export function abilityToSkills(ability) {
 		.map(([skill]) => skill);
 }
 
-/**
- * Pack entity into UID format: "name|source"
- * @param {object} entity - Entity with name and source properties
- * @returns {string} UID string
- */
 export function packUid(entity) {
 	if (!entity?.name || !entity?.source) return '';
 	return `${entity.name.toLowerCase().trim()}|${entity.source.toLowerCase().trim()}`;
 }
 
-/**
- * Unpack UID into name and source
- * @param {string} uid - UID string in "name|source" format
- * @returns {object} Object with name and source properties
- */
 export function unpackUid(uid) {
 	if (!uid || typeof uid !== 'string') return { name: '', source: '' };
 	const [name, source] = uid.split('|');
 	return { name: name?.trim() || '', source: source?.trim() || '' };
 }
 
-/**
- * Convert source abbreviation to full name
- * @param {string} source - Source abbreviation
- * @returns {string} Full source name
- */
 export function sourceToFull(source) {
 	if (!source) return '';
 	const sourceUpper = source.toUpperCase();
 	return SOURCE_TO_FULL[sourceUpper] || source;
 }
 
-/**
- * Convert source to display abbreviation
- * @param {string} source - Source abbreviation
- * @returns {string} Display abbreviation
- */
 export function sourceToAbv(source) {
 	if (!source) return '';
 	const sourceUpper = source.toUpperCase();
 	return SOURCE_TO_ABV[sourceUpper] || source;
 }
 
-/**
- * Check if source is a One D&D (2024) source
- * @param {string} source - Source abbreviation
- * @returns {boolean} True if One D&D source
- */
 export function isOneDnD(source) {
 	if (!source) return false;
 	const sourceUpper = source.toUpperCase();
 	return sourceUpper.startsWith('X'); // XPHB, XDMG, XMM
 }
 
-/**
- * Convert number to words
- * @param {number} num - Number to convert
- * @param {object} opts - Options {isOrdinal: boolean}
- * @returns {string} Number as words
- */
 export function numberToWords(num, opts = {}) {
 	if (Number.isNaN(num)) return '';
 
@@ -676,11 +506,6 @@ export function numberToWords(num, opts = {}) {
 	return String(num);
 }
 
-/**
- * Convert decimal to vulgar fraction
- * @param {number} num - Number to convert (e.g., 0.5, 0.25)
- * @returns {string} Vulgar fraction or original number
- */
 export function numberToVulgarFraction(num) {
 	const fractions = {
 		0.125: '⅛',
@@ -694,11 +519,6 @@ export function numberToVulgarFraction(num) {
 	return fractions[rounded] || String(num);
 }
 
-/**
- * Parse ability improvement array from 5etools format
- * @param {Array} improvementArray - Array of ability objects
- * @returns {object} Parsed abilities {fixed: {}, choices: []}
- */
 export function parseAbilityImprovements(improvementArray) {
 	if (!Array.isArray(improvementArray)) {
 		return { fixed: {}, choices: [] };
@@ -728,11 +548,6 @@ export function parseAbilityImprovements(improvementArray) {
 	return { fixed, choices };
 }
 
-/**
- * Format ability improvements for display
- * @param {object} parsed - Parsed abilities from parseAbilityImprovements
- * @returns {string} Human-readable string
- */
 export function formatAbilityImprovements(parsed) {
 	const parts = [];
 
@@ -755,49 +570,25 @@ export function formatAbilityImprovements(parsed) {
 	return parts.join(', ');
 }
 
-/**
- * Ascending sort (case-sensitive)
- * @param {any} a - First value
- * @param {any} b - Second value
- * @returns {number} Sort order
- */
 export function ascSort(a, b) {
 	if (a === b) return 0;
 	return a < b ? -1 : 1;
 }
 
-/**
- * Ascending sort (case-insensitive)
- * @param {string} a - First string
- * @param {string} b - Second string
- * @returns {number} Sort order
- */
 export function ascSortLower(a, b) {
 	return ascSort(String(a).toLowerCase(), String(b).toLowerCase());
 }
 
-/**
- * Sort by object property
- * @param {string} prop - Property name to sort by
- * @returns {function} Sort comparator function
- */
 export function ascSortByProp(prop) {
 	return (a, b) => ascSort(a[prop], b[prop]);
 }
 
-/**
- * Sort by object property (case-insensitive)
- * @param {string} prop - Property name to sort by
- * @returns {function} Sort comparator function
- */
 export function ascSortByPropLower(prop) {
 	return (a, b) => ascSortLower(a[prop], b[prop]);
 }
 
-// Export constants for external use
+// Export additional constants for external use
 export {
-	DEFAULT_CHARACTER_SIZE,
-	DEFAULT_CHARACTER_SPEED,
 	DEFAULT_SOURCE,
 	LANGUAGES_EXOTIC,
 	LANGUAGES_SECRET,

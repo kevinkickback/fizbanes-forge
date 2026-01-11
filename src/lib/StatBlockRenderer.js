@@ -8,11 +8,6 @@ import {
 } from './5eToolsParser.js';
 import { Renderer5etools } from './5eToolsRenderer.js';
 
-/**
- * Render a spell stat block
- * @param {Object} spell Spell data
- * @returns {string} HTML
- */
 export function renderSpell(spell) {
 	if (!spell || spell.error) {
 		return `<strong>${spell?.name || 'Unknown'}</strong><br><small>${spell?.error || 'No data'}</small>`;
@@ -74,11 +69,6 @@ export function renderSpell(spell) {
 	return html;
 }
 
-/**
- * Render an item stat block
- * @param {Object} item Item data
- * @returns {string} HTML
- */
 export function renderItem(item) {
 	if (!item || item.error) {
 		return `<strong>${item?.name || 'Unknown'}</strong><br><small>${item?.error || 'No data'}</small>`;
@@ -174,11 +164,6 @@ export function renderItem(item) {
 	return html;
 }
 
-/**
- * Render a race stat block
- * @param {Object} race Race data
- * @returns {string} HTML
- */
 export function renderRace(race) {
 	if (!race || race.error) {
 		return `<strong>${race?.name || 'Unknown'}</strong><br><small>${race?.error || 'No data'}</small>`;
@@ -226,11 +211,6 @@ export function renderRace(race) {
 	return html;
 }
 
-/**
- * Render a class stat block
- * @param {Object} cls Class data
- * @returns {string} HTML
- */
 export function renderClass(cls) {
 	if (!cls || cls.error) {
 		return `<strong>${cls?.name || 'Unknown'}</strong><br><small>${cls?.error || 'No data'}</small>`;
@@ -307,11 +287,6 @@ export function renderClass(cls) {
 	return html;
 }
 
-/**
- * Render a feat stat block
- * @param {Object} feat Feat data
- * @returns {string} HTML
- */
 export function renderFeat(feat) {
 	if (!feat || feat.error) {
 		return `<strong>${feat?.name || 'Unknown'}</strong><br><small>${feat?.error || 'No data'}</small>`;
@@ -341,11 +316,6 @@ export function renderFeat(feat) {
 	return html;
 }
 
-/**
- * Render a background stat block
- * @param {Object} background Background data
- * @returns {string} HTML
- */
 export function renderBackground(background) {
 	if (!background || background.error) {
 		return `<strong>${background?.name || 'Unknown'}</strong><br><small>${background?.error || 'No data'}</small>`;
@@ -384,11 +354,6 @@ export function renderBackground(background) {
 	return html;
 }
 
-/**
- * Render a condition stat block
- * @param {Object} condition Condition data
- * @returns {string} HTML
- */
 export function renderCondition(condition) {
 	if (!condition || condition.error) {
 		return `<strong>${condition?.name || 'Unknown'}</strong><br><small>${condition?.error || 'No data'}</small>`;
@@ -411,11 +376,6 @@ export function renderCondition(condition) {
 	return html;
 }
 
-/**
- * Render a skill stat block
- * @param {Object} skill Skill data
- * @returns {string} HTML
- */
 export function renderSkill(skill) {
 	if (!skill || skill.error) {
 		return `<strong>${skill?.name || 'Unknown'}</strong><br><small>${skill?.error || 'No data'}</small>`;
@@ -443,11 +403,6 @@ export function renderSkill(skill) {
 	return html;
 }
 
-/**
- * Render an action stat block
- * @param {Object} action Action data
- * @returns {string} HTML
- */
 export function renderAction(action) {
 	if (!action || action.error) {
 		return `<strong>${action?.name || 'Unknown'}</strong><br><small>${action?.error || 'No data'}</small>`;
@@ -480,11 +435,6 @@ export function renderAction(action) {
 	return html;
 }
 
-/**
- * Render an optional feature stat block
- * @param {Object} feature Optional feature data
- * @returns {string} HTML
- */
 export function renderOptionalFeature(feature) {
 	if (!feature || feature.error) {
 		return `<strong>${feature?.name || 'Unknown'}</strong><br><small>${feature?.error || 'No data'}</small>`;
@@ -521,11 +471,6 @@ export function renderOptionalFeature(feature) {
 	return html;
 }
 
-/**
- * Render a reward stat block
- * @param {Object} reward Reward data
- * @returns {string} HTML
- */
 export function renderReward(reward) {
 	if (!reward || reward.error) {
 		return `<strong>${reward?.name || 'Unknown'}</strong><br><small>${reward?.error || 'No data'}</small>`;
@@ -553,11 +498,6 @@ export function renderReward(reward) {
 	return html;
 }
 
-/**
- * Render a trap/hazard stat block
- * @param {Object} trap Trap data
- * @returns {string} HTML
- */
 export function renderTrap(trap) {
 	if (!trap || trap.error) {
 		return `<strong>${trap?.name || 'Unknown'}</strong><br><small>${trap?.error || 'No data'}</small>`;
@@ -606,11 +546,6 @@ export function renderTrap(trap) {
 	return html;
 }
 
-/**
- * Render a vehicle stat block
- * @param {Object} vehicle Vehicle data
- * @returns {string} HTML
- */
 export function renderVehicle(vehicle) {
 	if (!vehicle || vehicle.error) {
 		return `<strong>${vehicle?.name || 'Unknown'}</strong><br><small>${vehicle?.error || 'No data'}</small>`;
@@ -646,11 +581,6 @@ export function renderVehicle(vehicle) {
 	return html;
 }
 
-/**
- * Render a monster stat block (lightweight summary)
- * @param {Object} monster Monster data
- * @returns {string} HTML
- */
 export function renderMonster(monster) {
 	if (!monster || monster.error) {
 		return `<strong>${monster?.name || 'Unknown'}</strong><br><small>${monster?.error || 'No data'}</small>`;
@@ -718,11 +648,7 @@ export function renderMonster(monster) {
 	return html;
 }
 
-/**
- * Render a table tooltip
- * @param {Object} table Table data
- * @returns {string} HTML
- */
+
 export function renderTable(table) {
 	if (!table || table.error) {
 		return `<strong>${table?.name || 'Unknown'}</strong><br><small>${table?.error || 'No data'}</small>`;
@@ -775,11 +701,6 @@ export function renderTable(table) {
 	return html;
 }
 
-/**
- * Render an object stat block
- * @param {Object} obj Object data
- * @returns {string} HTML
- */
 export function renderObject(obj) {
 	if (!obj || obj.error) {
 		return `<strong>${obj?.name || 'Unknown'}</strong><br><small>${obj?.error || 'No data'}</small>`;
@@ -815,11 +736,6 @@ export function renderObject(obj) {
 	return html;
 }
 
-/**
- * Render a variant rule stat block
- * @param {Object} rule Variant rule data
- * @returns {string} HTML
- */
 export function renderVariantRule(rule) {
 	if (!rule || rule.error) {
 		return `<strong>${rule?.name || 'Unknown'}</strong><br><small>${rule?.error || 'No data'}</small>`;
@@ -866,13 +782,6 @@ export function renderVariantRule(rule) {
 
 // ===== HELPER METHODS =====
 
-/**
- * Render entries array
- * @param {Array} entries Entries to render
- * @param {number} maxEntries Max entries to show
- * @returns {string} HTML
- * @private
- */
 function _renderEntries(entries, maxEntries = 5) {
 	if (!entries || !Array.isArray(entries)) return '';
 
@@ -923,24 +832,12 @@ function _renderEntries(entries, maxEntries = 5) {
 	return html;
 }
 
-/**
- * Render source information
- * @param {Object} data Entity data
- * @returns {string} HTML
- * @private
- */
 function _renderSource(data) {
 	if (!data.source) return '';
 	const page = data.page ? ` p. ${data.page}` : '';
 	return `<div class="tooltip-source">${data.source}${page}</div>`;
 }
 
-/**
- * Get spell school name
- * @param {string} code School code
- * @returns {string} Full name
- * @private
- */
 function _getSchoolName(code) {
 	const schools = {
 		A: 'Abjuration',
@@ -955,12 +852,6 @@ function _getSchoolName(code) {
 	return schools[code] || code;
 }
 
-/**
- * Get range text
- * @param {Object} range Range data
- * @returns {string} Range text
- * @private
- */
 function _getRangeText(range) {
 	if (!range.distance) return 'Special';
 	if (range.distance.type === 'touch') return 'Touch';
@@ -974,12 +865,6 @@ function _getRangeText(range) {
 	return `${range.distance.amount || ''} ${range.distance.type || ''}`.trim();
 }
 
-/**
- * Get components text
- * @param {Object} components Components data
- * @returns {string} Components text
- * @private
- */
 function _getComponentsText(components) {
 	const parts = [];
 	if (components.v) parts.push('V');
@@ -996,12 +881,6 @@ function _getComponentsText(components) {
 	return parts.join(', ');
 }
 
-/**
- * Get duration text
- * @param {Object} duration Duration data
- * @returns {string} Duration text
- * @private
- */
 function _getDurationText(duration) {
 	if (duration.type === 'instant') return 'Instantaneous';
 	if (duration.type === 'permanent') return 'Until dispelled';
@@ -1014,12 +893,6 @@ function _getDurationText(duration) {
 	return duration.type || 'Unknown';
 }
 
-/**
- * Get ability score increase text
- * @param {Array} abilities Ability array
- * @returns {string} Text
- * @private
- */
 function _getAbilityScoreText(abilities) {
 	if (!abilities || !Array.isArray(abilities) || abilities.length === 0) {
 		return '';
@@ -1033,12 +906,6 @@ function _getAbilityScoreText(abilities) {
 	return data.asTextShort || data.asText || '';
 }
 
-/**
- * Format prerequisite text
- * @param {Object} prerequisite Prerequisite data
- * @returns {string} Text
- * @private
- */
 function _formatPrerequisite(prerequisite) {
 	if (typeof prerequisite === 'string') return prerequisite;
 

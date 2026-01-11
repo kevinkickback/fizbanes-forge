@@ -1,22 +1,16 @@
-/** @file Manages character class selection and data access. */
-
+/** Manages character class selection and data access. */
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 
 /** Manages character class selection and provides access to class data. */
 class ClassService extends BaseDataService {
-	/** Creates a new ClassManager instance. */
 	constructor() {
 		super({ cacheKey: 'classes', loggerScope: 'ClassService' });
 		this._selectedClass = null;
 		this._selectedSubclass = null;
 	}
 
-	/**
-	 * Initialize class data by loading from DataLoader
-	 * @returns {Promise<void>} Resolves when data is loaded
-	 */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {

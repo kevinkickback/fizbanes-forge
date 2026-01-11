@@ -1,4 +1,5 @@
-/** Pure proficiency bonus and modifier calculations. */
+// Pure proficiency bonus and modifier calculations
+
 import {
 	SKILL_TO_ABILITY,
 	ascSortLower,
@@ -7,9 +8,6 @@ import {
 } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 
-/**
- * Saving throw to ability mapping
- */
 export const SAVING_THROW_ABILITIES = {
 	strength: 'strength',
 	dexterity: 'dexterity',
@@ -19,11 +17,6 @@ export const SAVING_THROW_ABILITIES = {
 	charisma: 'charisma',
 };
 
-/**
- * Gets the ability associated with a skill
- * @param {string} skillName - The skill name
- * @returns {string|null} The ability name or null if not found
- */
 export function getSkillAbility(skillName) {
 	if (!skillName) return null;
 	const normalized = DataNormalizer.normalizeForLookup(skillName);
@@ -37,14 +30,6 @@ export function getSkillAbility(skillName) {
 	return attAbvToFull(abilityAbv).toLowerCase();
 }
 
-/**
- * Calculates skill modifier with proficiency and expertise
- * @param {number} abilityModifier - The ability modifier for the skill
- * @param {number} proficiencyBonus - Character's proficiency bonus
- * @param {boolean} isProficient - Whether proficient in the skill
- * @param {boolean} hasExpertise - Whether has expertise in the skill
- * @returns {number} The total skill modifier
- */
 export function calculateSkillModifier(
 	abilityModifier,
 	proficiencyBonus,
@@ -62,13 +47,6 @@ export function calculateSkillModifier(
 	return modifier;
 }
 
-/**
- * Calculates saving throw modifier
- * @param {number} abilityModifier - The ability modifier for the save
- * @param {number} proficiencyBonus - Character's proficiency bonus
- * @param {boolean} isProficient - Whether proficient in the saving throw
- * @returns {number} The total saving throw modifier
- */
 export function calculateSavingThrowModifier(
 	abilityModifier,
 	proficiencyBonus,
@@ -83,22 +61,11 @@ export function calculateSavingThrowModifier(
 	return modifier;
 }
 
-/**
- * Formats a modifier value with proper sign
- * @param {number} modifier - The modifier value
- * @returns {string} Formatted string (e.g., "+3", "-1", "+0")
- * @deprecated Use formatModifierNumber from 5eToolsParser for consistency
- */
 export function formatModifier(modifier) {
 	// Use 5eToolsParser helper for consistent formatting
 	return formatModifierNumber(modifier);
 }
 
-/**
- * Merges multiple proficiency lists, removing duplicates
- * @param {...Array<string>} proficiencyLists - Multiple arrays of proficiencies
- * @returns {Array<string>} Merged list without duplicates
- */
 export function mergeProficiencies(...proficiencyLists) {
 	const merged = new Map();
 
@@ -117,12 +84,6 @@ export function mergeProficiencies(...proficiencyLists) {
 	return Array.from(merged.values()).sort(ascSortLower);
 }
 
-/**
- * Checks if a proficiency list contains a specific proficiency
- * @param {Array<string>} proficiencies - List of proficiencies
- * @param {string} proficiency - Proficiency to check for
- * @returns {boolean} True if proficiency exists in list
- */
 export function hasProficiency(proficiencies, proficiency) {
 	if (!Array.isArray(proficiencies) || !proficiency) {
 		return false;
@@ -137,14 +98,6 @@ export function hasProficiency(proficiencies, proficiency) {
 	);
 }
 
-/**
- * Calculates passive perception score
- * @param {number} wisdomModifier - Wisdom ability modifier
- * @param {number} proficiencyBonus - Character's proficiency bonus
- * @param {boolean} isProficient - Whether proficient in Perception
- * @param {boolean} hasExpertise - Whether has expertise in Perception
- * @returns {number} Passive perception score
- */
 export function calculatePassivePerception(
 	wisdomModifier,
 	proficiencyBonus,
@@ -160,14 +113,6 @@ export function calculatePassivePerception(
 	return 10 + perceptionModifier;
 }
 
-/**
- * Calculates passive investigation score
- * @param {number} intelligenceModifier - Intelligence ability modifier
- * @param {number} proficiencyBonus - Character's proficiency bonus
- * @param {boolean} isProficient - Whether proficient in Investigation
- * @param {boolean} hasExpertise - Whether has expertise in Investigation
- * @returns {number} Passive investigation score
- */
 export function calculatePassiveInvestigation(
 	intelligenceModifier,
 	proficiencyBonus,
@@ -183,14 +128,6 @@ export function calculatePassiveInvestigation(
 	return 10 + investigationModifier;
 }
 
-/**
- * Calculates passive insight score
- * @param {number} wisdomModifier - Wisdom ability modifier
- * @param {number} proficiencyBonus - Character's proficiency bonus
- * @param {boolean} isProficient - Whether proficient in Insight
- * @param {boolean} hasExpertise - Whether has expertise in Insight
- * @returns {number} Passive insight score
- */
 export function calculatePassiveInsight(
 	wisdomModifier,
 	proficiencyBonus,

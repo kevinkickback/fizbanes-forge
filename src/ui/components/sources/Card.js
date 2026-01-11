@@ -1,14 +1,10 @@
-/** Controller for source book selection during character creation. */
+// Controller for source book selection during character creation
 
 import { showNotification } from '../../../lib/Notifications.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { SourcePickerView } from './Picker.js';
 
-/** Manages the source book selection UI component. */
 export class SourceCard {
-	/**
-	 * Creates a new SourceCard instance
-	 */
 	constructor() {
 		this._container = null;
 		this._headerContainer = null;
@@ -20,10 +16,6 @@ export class SourceCard {
 		this._view = new SourcePickerView();
 	}
 
-	/**
-	 * Initialize the source book selection UI
-	 * @returns {Promise<void>}
-	 */
 	async initializeSourceSelection() {
 		try {
 			if (!this._container) {
@@ -72,10 +64,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Pre-select default sources like the Player's Handbook
-	 * @private
-	 */
 	_preselectDefaultSources() {
 		const phbToggle = this._container.querySelector('[data-source="PHB"]');
 		if (phbToggle) {
@@ -83,11 +71,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Handle clicking a source toggle
-	 * @param {HTMLElement} toggle - The clicked toggle button
-	 * @private
-	 */
 	_handleSourceClick(toggle) {
 		try {
 			toggle.preventDefault?.();
@@ -111,9 +94,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Select all available source books
-	 */
 	selectAllSources() {
 		try {
 			const toggles = this._view.selectAllToggles(this._container);
@@ -125,9 +105,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Deselect all source books
-	 */
 	deselectAllSources() {
 		try {
 			const toggles = this._view.deselectAllToggles(this._container);
@@ -139,11 +116,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Validate the source selection
-	 * @param {Set<string>} selectedSources - The set of selected source books
-	 * @returns {boolean} Whether the selection is valid
-	 */
 	validateSourceSelection(selectedSources) {
 		if (!selectedSources.has('PHB') && !selectedSources.has('XPHB')) {
 			showNotification(
@@ -155,10 +127,6 @@ export class SourceCard {
 		return true;
 	}
 
-	/**
-	 * Validate the current source selection
-	 * @private
-	 */
 	_validateSourceSelection() {
 		if (
 			!this._selectedSources.has('PHB') &&
@@ -171,10 +139,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Load available source books
-	 * @returns {Promise<Array>} Array of available sources
-	 */
 	async loadSources() {
 		try {
 			return await this._sourceManager.loadSources();
@@ -185,10 +149,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Add a source to the selection
-	 * @param {string} sourceId - The source book identifier
-	 */
 	addSource(sourceId) {
 		try {
 			this._selectedSources.add(sourceId);
@@ -198,11 +158,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Remove a source from the selection
-	 * @param {string} sourceId - The source book identifier
-	 * @returns {boolean} Whether the source was removed
-	 */
 	removeSource(sourceId) {
 		try {
 			if (this._selectedSources.has(sourceId)) {
@@ -217,9 +172,6 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Clear all selected sources
-	 */
 	clearSources() {
 		try {
 			this._selectedSources.clear();
@@ -229,34 +181,18 @@ export class SourceCard {
 		}
 	}
 
-	/**
-	 * Get the currently selected sources
-	 * @returns {Array<string>} Array of selected source IDs
-	 */
 	get selectedSources() {
 		return Array.from(this._selectedSources);
 	}
 
-	/**
-	 * Set the selected sources
-	 * @param {Array<string>} sources - Array of source IDs to select
-	 */
 	set selectedSources(sources) {
 		this._selectedSources = new Set(sources);
 	}
 
-	/**
-	 * Set the container element for source toggles
-	 * @param {HTMLElement} container - The container element
-	 */
 	set container(container) {
 		this._container = container;
 	}
 
-	/**
-	 * Get the container element for source toggles
-	 * @returns {HTMLElement|null} The container element
-	 */
 	get container() {
 		return this._container;
 	}

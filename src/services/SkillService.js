@@ -1,20 +1,13 @@
-/** @file Skill service for managing skill data. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 
 /** Manages skill data and provides access to skills. */
 class SkillService {
-	/** Initialize a new SkillService instance. */
 	constructor() {
 		this._skillData = null;
 		this._skillMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
-	/**
-	 * Initialize skill data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		// Skip if already initialized
 		if (this._skillData) {

@@ -1,23 +1,4 @@
-/**
- * AppInitializer module
- *
- * Orchestrates renderer startup, data loading, and core component initialization for Fizbane's Forge.
- * Handles asset validation, data folder checks, and service bootstrapping.
- *
- * @typedef {Object} InitializationOptions
- * @property {boolean} [loadAllData=true] - Whether to load all data sources
- * @property {boolean} [skipCharacterLoad=false] - Whether to skip loading characters
- * @property {boolean} [forceRefresh=false] - Whether to force refresh cached data
- *
- * @typedef {Object} InitializationResult
- * @property {boolean} success - Whether initialization was successful
- * @property {Array<string>} loadedComponents - List of successfully loaded components
- * @property {Array<Error>} errors - List of errors encountered during initialization
- *
- * @typedef {Object} DataLoadResult
- * @property {any} data - The loaded data or null if loading failed
- * @property {Error|null} error - The error that occurred during loading, if any
- */
+/** Orchestrates renderer startup, data loading, and core component initialization. */
 
 // Core imports - NEW ARCHITECTURE
 import { eventBus, EVENTS } from '../lib/EventBus.js';
@@ -55,28 +36,15 @@ function _sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Wrapper for data loader calls that handles errors consistently
- * @param {Promise<any>} promise - The data loader promise to execute
- * @param {string} component - The name of the component being loaded (for error reporting)
- * @returns {Promise<any|null>} The loaded data or null if loading failed
- * @private
- */
 async function _loadDataWithErrorHandling(promise, component) {
 	try {
-		const result = await promise;
-		return result;
+		return await promise;
 	} catch (error) {
 		console.warn('AppInitializer', `Failed to load ${component} data:`, error);
 		return null;
 	}
 }
 
-/**
- * Check if data folder is available, prompt user if not
- * @returns {Promise<boolean>} True if data is ready to load
- * @private
- */
 async function _checkDataFolder() {
 	try {
 		// Prefer previously configured data source
@@ -132,13 +100,6 @@ async function _validateDataSource() {
 	}
 }
 
-/**
- * Prompt user to fix data source issues via the configuration modal.
- * Stops further initialization; modal will reload the page on successful reconfigure.
- * @param {string} errorMessage
- * @returns {Promise<void>}
- * @private
- */
 async function _promptDataSourceFix(errorMessage) {
 	showNotification(
 		`Data source error: ${errorMessage || 'Unknown issue'}. Please reconfigure your data source.`,
@@ -158,11 +119,6 @@ async function _promptDataSourceFix(errorMessage) {
 	}
 }
 
-/**
- * Loads all required game data in parallel
- * @returns {Promise<{success: boolean, errors: Array<Error>}>} Result of data loading operations
- * @private
- */
 async function _loadAllGameData() {
 	const errors = [];
 	try {
@@ -240,13 +196,6 @@ async function _loadAllGameDataWithRetry() {
 	return { success: false, errors: lastError ? [lastError] : [] };
 }
 
-/**
- * Initializes a single core component with error handling
- * @param {string} name - The name of the component
- * @param {Function} initFunction - The initialization function to call
- * @returns {Promise<{success: boolean, error: Error|null}>} Result of the initialization
- * @private
- */
 async function _initializeComponent(name, initFunction) {
 	try {
 		await initFunction();
@@ -257,11 +206,6 @@ async function _initializeComponent(name, initFunction) {
 	}
 }
 
-/**
- * Initializes all core application components in the correct sequence
- * @returns {Promise<{success: boolean, loadedComponents: Array<string>, errors: Array<Error>}>} Result of component initialization
- * @private
- */
 async function _initializeCoreComponents() {
 	const result = {
 		success: true,
@@ -328,11 +272,6 @@ async function _initializeCoreComponents() {
 	}
 }
 
-/**
- * Set up UI event handlers (buttons, etc.)
- * @returns {void}
- * @private
- */
 function _setupUiEventHandlers() {
 	try {
 		console.info('AppInitializer', 'Setting up UI event handlers');
@@ -726,7 +665,3 @@ document.addEventListener('DOMContentLoaded', () => {
 		console.error('AppInitializer', 'Error during initialization:', error);
 	});
 });
-
-export class AppInitializer {
-	// ...
-}

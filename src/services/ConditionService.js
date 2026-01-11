@@ -1,20 +1,13 @@
-/** @file Condition service for managing conditions data. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 
 /** Manages condition data and provides access to conditions. */
 class ConditionService {
-	/** Initialize a new ConditionService instance. */
 	constructor() {
 		this._conditionData = null;
 		this._conditionMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
-	/**
-	 * Initialize condition data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		// Skip if already initialized
 		if (this._conditionData) {

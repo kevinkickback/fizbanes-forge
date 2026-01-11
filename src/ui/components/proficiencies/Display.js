@@ -1,10 +1,7 @@
-/** Renders proficiency containers and items for each type. */
+// Renders proficiency containers and items for each type
 
 import { toTitleCase } from '../../../lib/5eToolsParser.js';
 
-/**
- * View component for rendering proficiency lists and items
- */
 export class ProficiencyDisplayView {
 	constructor() {
 		this._proficiencyTypes = [
@@ -17,17 +14,6 @@ export class ProficiencyDisplayView {
 		];
 	}
 
-	/**
-	 * Render all proficiency containers with available options
-	 * @param {Object} containers - DOM element references for proficiency containers
-	 * @param {Character} character - The character object
-	 * @param {Array} availableOptionsMap - Map of type to available options
-	 * @param {Object} defaultProficiencies - Default proficiencies for all characters
-	 * @param {Function} isGrantedBySource - Function to check if proficiency is granted
-	 * @param {Function} isProficiencyAvailable - Function to check if proficiency is available
-	 * @param {Function} getIconForType - Function to get icon for proficiency type
-	 * @param {ProficiencyService} proficiencyManager - Proficiency service instance
-	 */
 	renderContainers(
 		containers,
 		character,
@@ -96,14 +82,6 @@ export class ProficiencyDisplayView {
 		}
 	}
 
-	/**
-	 * Update selection counter in section header
-	 * @param {HTMLElement} container - The proficiency container
-	 * @param {string} type - Proficiency type
-	 * @param {number} selectedCount - Number of selected proficiencies
-	 * @param {number} optionalAllowed - Number of proficiencies allowed
-	 * @private
-	 */
 	_updateSelectionCounter(container, type, selectedCount, optionalAllowed) {
 		const header = container
 			.closest('.proficiency-section')
@@ -123,10 +101,6 @@ export class ProficiencyDisplayView {
 		}
 	}
 
-	/**
-	 * Build HTML for a proficiency container
-	 * @private
-	 */
 	_buildContainerHtml(
 		type,
 		availableOptions,
@@ -185,10 +159,6 @@ export class ProficiencyDisplayView {
 		return containerHtml;
 	}
 
-	/**
-	 * Add source-specific CSS classes (race-only, class-only, background-only)
-	 * @private
-	 */
 	_addSourceSpecificClasses(cssClasses, type, item, character) {
 		const raceOptions =
 			character.optionalProficiencies?.[type]?.race?.options || [];
@@ -212,10 +182,6 @@ export class ProficiencyDisplayView {
 		}
 	}
 
-	/**
-	 * Build HTML for a single proficiency item
-	 * @private
-	 */
 	_buildItemHtml(
 		cssClasses,
 		item,
@@ -247,11 +213,6 @@ export class ProficiencyDisplayView {
 		);
 	}
 
-	/**
-	 * Update all selection counters
-	 * @param {Object} containers - DOM element references for proficiency containers
-	 * @param {Character} character - The character object
-	 */
 	updateSelectionCounters(containers, character) {
 		for (const type of this._proficiencyTypes) {
 			const container = containers[type];
@@ -270,11 +231,6 @@ export class ProficiencyDisplayView {
 		}
 	}
 
-	/**
-	 * Get the appropriate icon class for a proficiency type
-	 * @param {string} type - Proficiency type
-	 * @returns {string} Font Awesome icon class
-	 */
 	getIconForType(type) {
 		switch (type) {
 			case 'skills':
@@ -294,11 +250,6 @@ export class ProficiencyDisplayView {
 		}
 	}
 
-	/**
-	 * Get the label for a proficiency type
-	 * @param {string} type - Proficiency type
-	 * @returns {string} User-friendly label
-	 */
 	getTypeLabel(type) {
 		switch (type) {
 			case 'skills':

@@ -1,16 +1,7 @@
-/** View for rendering method-specific controls (standard array, point buy, custom). */
-
+// View for rendering method-specific controls (standard array, point buy, custom).
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
-/** View for rendering ability score input controls based on the selected method. */
 class MethodControlsView {
-	/**
-	 * Renders standard array controls for an ability score
-	 * @param {HTMLElement} container - The container element
-	 * @param {string} ability - The ability name
-	 * @param {number} _baseScore - The base score
-	 * @param {Function} onStandardArrayChange - Callback for standard array changes
-	 */
 	renderStandardArrayControls(
 		container,
 		ability,
@@ -35,12 +26,6 @@ class MethodControlsView {
 		container.appendChild(select);
 	}
 
-	/**
-	 * Renders point buy controls for an ability score
-	 * @param {HTMLElement} container - The container element
-	 * @param {string} ability - The ability name
-	 * @param {number} baseScore - The base score
-	 */
 	renderPointBuyControls(container, ability, baseScore) {
 		// Create button group for +/- controls
 		const buttonGroup = document.createElement('div');
@@ -87,12 +72,6 @@ class MethodControlsView {
 		container.appendChild(costIndicator);
 	}
 
-	/**
-	 * Renders custom controls for an ability score
-	 * @param {HTMLElement} container - The container element
-	 * @param {string} ability - The ability name
-	 * @param {number} baseScore - The base score
-	 */
 	renderCustomControls(container, ability, baseScore) {
 		// Create number input for direct value entry
 		const input = document.createElement('input');
@@ -107,11 +86,6 @@ class MethodControlsView {
 		container.appendChild(input);
 	}
 
-	/**
-	 * Updates options in a standard array select dropdown
-	 * @param {HTMLSelectElement} select - The select element to update
-	 * @param {string} ability - The ability name
-	 */
 	updateStandardArrayOptions(select, ability) {
 		const currentValue = abilityScoreService.getBaseScore(ability);
 
@@ -142,9 +116,6 @@ class MethodControlsView {
 
 let _instance = null;
 
-/**
- * Singleton accessor for MethodControlsView
- */
 MethodControlsView.getInstance = () => {
 	if (!_instance) {
 		_instance = new MethodControlsView();

@@ -1,20 +1,13 @@
-/** @file Variant Rule service for managing variant rule data. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 
 /** Manages variant rule data and provides access to variant rules. */
 class VariantRuleService {
-	/** Initialize a new VariantRuleService instance. */
 	constructor() {
 		this._variantRuleData = null;
 		this._variantRuleMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
-	/**
-	 * Initialize variant rule data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		// Skip if already initialized
 		if (this._variantRuleData) {

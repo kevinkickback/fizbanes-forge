@@ -1,6 +1,5 @@
-/** View for detailed race information (ability scores, size, speed, languages, traits). */
+// View for detailed race information (ability scores, size, speed, languages, traits).
 
-import { getAbilityData } from '../../../services/AbilityScoreService.js';
 import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
@@ -8,21 +7,13 @@ import {
 	toTitleCase,
 } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { getAbilityData } from '../../../services/AbilityScoreService.js';
 
 // Default D&D 5e speed for most races
 const DEFAULT_SPEED = 30; // 30 ft. walking speed
 
-/** View for displaying race details. */
 export class RaceDetailsView {
-	/**
-	 * Creates a new RaceDetailsView instance
-	 */
 	constructor() {
-		/**
-		 * The container element for race details
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._raceDetails = document.getElementById('raceDetails');
 	}
 
@@ -30,12 +21,6 @@ export class RaceDetailsView {
 	// Public API
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update all race details sections
-	 * @param {Object} race - The race data
-	 * @param {Object|null} subrace - Optional subrace data
-	 * @returns {Promise<void>}
-	 */
 	async updateAllDetails(race, subrace = null) {
 		if (!race) {
 			this.resetAllDetails();
@@ -51,9 +36,6 @@ export class RaceDetailsView {
 		await textProcessor.processElement(this._raceDetails);
 	}
 
-	/**
-	 * Reset all details sections to placeholder state
-	 */
 	resetAllDetails() {
 		const sections = this._raceDetails.querySelectorAll('.detail-section ul');
 		for (const section of sections) {
@@ -76,12 +58,6 @@ export class RaceDetailsView {
 	// Ability Scores Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update ability scores section
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @returns {Promise<void>}
-	 */
 	async updateAbilityScores(race, subrace) {
 		const abilitySection = this._raceDetails.querySelector(
 			'.detail-section:nth-child(1) ul',
@@ -97,13 +73,6 @@ export class RaceDetailsView {
 			.join('');
 	}
 
-	/**
-	 * Format ability score improvements from race and subrace data
-	 * @param {Object} race - Race JSON object
-	 * @param {Object} subrace - Subrace JSON object (optional)
-	 * @returns {string} Formatted ability improvements text
-	 * @private
-	 */
 	_formatAbilityImprovements(race, subrace) {
 		// Combine race and subrace ability arrays
 		const abilityArray = [
@@ -126,11 +95,6 @@ export class RaceDetailsView {
 	// Size and Speed Sections
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update size and speed sections
-	 * @param {Object} race - Selected race
-	 * @returns {Promise<void>}
-	 */
 	async updateSizeAndSpeed(race) {
 		try {
 			const sizeSection = this._raceDetails.querySelector(
@@ -163,12 +127,6 @@ export class RaceDetailsView {
 		}
 	}
 
-	/**
-	 * Format size from race data
-	 * @param {Object} race - Race JSON object
-	 * @returns {string} Formatted size text
-	 * @private
-	 */
 	_formatSize(race) {
 		// Default to Medium size if not specified
 		if (!race?.size) return SIZE_ABV_TO_FULL.M;
@@ -181,12 +139,6 @@ export class RaceDetailsView {
 		return sizeAbvToFull(race.size);
 	}
 
-	/**
-	 * Format movement speeds from race data
-	 * @param {Object} race - Race JSON object
-	 * @returns {string} Formatted movement speeds text
-	 * @private
-	 */
 	_formatMovementSpeeds(race) {
 		// Default to standard 30 ft. walking speed if not specified
 		if (!race?.speed) return `Walk: ${getSpeedString(DEFAULT_SPEED)}`;
@@ -227,11 +179,6 @@ export class RaceDetailsView {
 	// Languages Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update languages section
-	 * @param {Object} race - Selected race
-	 * @returns {Promise<void>}
-	 */
 	async updateLanguages(race) {
 		const languageSection = this._raceDetails.querySelector(
 			'.detail-section:nth-child(4) ul',
@@ -250,12 +197,6 @@ export class RaceDetailsView {
 			.join('');
 	}
 
-	/**
-	 * Format languages from race data
-	 * @param {Object} race - Race JSON object
-	 * @returns {string} Formatted languages text
-	 * @private
-	 */
 	_formatLanguages(race) {
 		if (!race?.languageProficiencies) return 'None';
 
@@ -302,12 +243,6 @@ export class RaceDetailsView {
 	// Traits Section
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Update traits section
-	 * @param {Object} race - Selected race
-	 * @param {Object} subrace - Selected subrace
-	 * @returns {Promise<void>}
-	 */
 	async updateTraits(race, subrace) {
 		const traitsSection = this._raceDetails.querySelector('.traits-section');
 		if (!traitsSection) return;
@@ -372,13 +307,6 @@ export class RaceDetailsView {
 		}
 	}
 
-	/**
-	 * Get combined traits from race and subrace
-	 * @param {Object} race - Race JSON object
-	 * @param {Object} subrace - Subrace JSON object (optional)
-	 * @returns {Array} Array of trait objects
-	 * @private
-	 */
 	_getCombinedTraits(race, subrace) {
 		const traits = [];
 		// Entries to exclude - they have dedicated sections

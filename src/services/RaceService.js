@@ -1,19 +1,4 @@
-/**
- * Manages race data and operations for the character builder.
- *
- * This service handles:
- * - Loading and caching race and subrace data
- * - Building an optimized lookup index for O(1) race access
- * - Managing race/subrace selection state
- * - Deriving variant subraces (e.g., Dragonborn colors)
- *
- * The race data structure follows 5etools format with support for:
- * - Base races (e.g., "Elf", "Dwarf")
- * - Named subraces (e.g., "High Elf", "Wood Elf")
- * - Base/unnamed subraces (generic race data without subrace name)
- * - Version variants using abstract/implementation patterns
- */
-
+/** Manages race data and operations for the character builder. */
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {

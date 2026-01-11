@@ -1,5 +1,3 @@
-/** @file Feat service for managing feat data. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { classService } from './ClassService.js';
@@ -7,16 +5,11 @@ import { raceService } from './RaceService.js';
 
 /** Manages feat data and provides access to feats. */
 class FeatService {
-	/** Initialize a new FeatService instance. */
 	constructor() {
 		this._featData = null;
 		this._featMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
-	/**
-	 * Initialize feat data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		// Skip if already initialized
 		if (this._featData) {

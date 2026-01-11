@@ -28,9 +28,6 @@ class PageHandlerImpl {
 		this._onCharacterSelectedForFeats = null;
 	}
 
-	/**
-	 * Initialize the page handler to listen for page load events
-	 */
 	initialize() {
 		if (this.isInitialized) {
 			console.warn('PageHandler', 'Already initialized');
@@ -46,10 +43,6 @@ class PageHandlerImpl {
 		console.info('PageHandler', 'Initialized successfully');
 	}
 
-	/**
-	 * Handle a page being loaded
-	 * @param {string} pageName - Name of the page that was loaded
-	 */
 	async handlePageLoaded(pageName) {
 		console.info('PageHandler', 'Handling page loaded', { pageName });
 
@@ -98,9 +91,6 @@ class PageHandlerImpl {
 		}
 	}
 
-	/**
-	 * Initialize the home page
-	 */
 	async initializeHomePage() {
 		console.info('PageHandler', 'Initializing home page');
 
@@ -592,7 +582,7 @@ class PageHandlerImpl {
 				newAddFeatBtn.addEventListener('click', async () => {
 					// Dynamically import the FeatSelectionModal to avoid circular deps
 					const { FeatCard } = await import(
-						'../ui/components/feats/FeatCard.js'
+						'../ui/components/feats/Modal.js'
 					);
 					const modal = new FeatCard();
 					await modal.show();

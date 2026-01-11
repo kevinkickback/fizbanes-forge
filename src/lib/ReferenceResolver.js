@@ -12,10 +12,6 @@ import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
 
-/**
- * Map of reference types to their respective services and getter methods
- * @private
- */
 const typeServiceMap = {
 	action: { service: actionService, method: 'getAction' },
 	background: { service: backgroundService, method: 'getBackground' },
@@ -32,13 +28,6 @@ const typeServiceMap = {
 	variantrule: { service: variantRuleService, method: 'getVariantRule' },
 };
 
-/**
- * Generic reference resolver - dispatches to appropriate service based on type
- * @param {string} type - Reference type (spell, item, class, etc.)
- * @param {string} name - Entity name to resolve
- * @param {string} [source='PHB'] - Source abbreviation
- * @returns {Promise<Object>} Resolved entity data or error object
- */
 export async function resolve(type, name, source = 'PHB') {
 	const config = typeServiceMap[type];
 
@@ -77,17 +66,10 @@ export async function resolve(type, name, source = 'PHB') {
 	}
 }
 
-/**
- * Specialized resolver for types without source parameter
- * @private
- */
 async function resolveWithoutSource(type, name) {
 	return resolve(type, name, null);
 }
 
-/**
- * Export object matching existing API for backward compatibility
- */
 export const referenceResolver = {
 	resolve,
 	resolveSpell: (name, source) => resolve('spell', name, source),
@@ -108,10 +90,6 @@ export const referenceResolver = {
 	resolveVariantRule: (name) => resolveWithoutSource('variantrule', name),
 };
 
-/**
- * Backwards-compatible accessor
- * @returns {Object} The reference resolver instance
- */
 export function getReferenceResolver() {
 	return referenceResolver;
 }

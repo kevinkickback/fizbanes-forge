@@ -1,26 +1,13 @@
-/** @file Manages spell selection, known/prepared spells, and spell slots for characters. */
-
+/** Manages spell selection, known/prepared spells, and spell slots for characters. */
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
 import { spellService } from './SpellService.js';
 
-/**
- * Manages character spellcasting, including known/prepared spells and spell slots.
- * Handles multiclass spell slot calculations and class-specific spell restrictions.
- */
 class SpellSelectionService {
     constructor() {
         this.loggerScope = 'SpellSelectionService';
     }
 
-    /**
-     * Initialize spellcasting for a character by class.
-     * Called when character is created or class is selected.
-     * @param {Object} character - Character object
-     * @param {string} className - Name of the class
-     * @param {number} classLevel - Level in that class
-     * @returns {Object} Initialized spellcasting data for the class
-     */
     initializeSpellcastingForClass(character, className, classLevel) {
         if (!character.spellcasting) {
             character.spellcasting = {

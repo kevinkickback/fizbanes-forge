@@ -1,5 +1,3 @@
-/** IPC handlers for spell operations. */
-
 import { ipcMain } from 'electron';
 import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';

@@ -1,11 +1,4 @@
-/**
- * CharacterManager module
- *
- * Orchestrates character CRUD operations, state management, and event emission for the character builder.
- * Provides methods to create, load, save, and delete characters, and to synchronize with AppState and eventBus.
- *
- * @module CharacterManager
- */
+/** Orchestrates character CRUD operations and state management. */
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
@@ -13,16 +6,7 @@ import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
 import { CharacterSchema } from './CharacterSchema.js';
 
-/**
- * Character lifecycle orchestrator for CRUD, state, and events.
- * @class
- */
 class CharacterManagerImpl {
-	/**
-	 * Create a new character.
-	 * @param {string} name - Character name
-	 * @returns {Promise<Character>} Newly created character
-	 */
 	async createCharacter(name) {
 		console.info('CharacterManager', 'Creating character', { name });
 
@@ -70,11 +54,6 @@ class CharacterManagerImpl {
 		}
 	}
 
-	/**
-	 * Load a character by ID.
-	 * @param {string} id - Character ID
-	 * @returns {Promise<Character>} Loaded character
-	 */
 	async loadCharacter(id) {
 		console.info(
 			'CharacterManager',
@@ -141,10 +120,6 @@ class CharacterManagerImpl {
 		}
 	}
 
-	/**
-	 * Save current character.
-	 * @returns {Promise<boolean>} true when saved
-	 */
 	async saveCharacter() {
 		const character = AppState.getCurrentCharacter();
 
@@ -195,11 +170,6 @@ class CharacterManagerImpl {
 		}
 	}
 
-	/**
-	 * Delete a character by ID.
-	 * @param {string} id - Character ID
-	 * @returns {Promise<boolean>} true when deleted
-	 */
 	async deleteCharacter(id) {
 		console.info('CharacterManager', 'Deleting character', { id });
 
@@ -232,10 +202,6 @@ class CharacterManagerImpl {
 		}
 	}
 
-	/**
-	 * Load list of all characters.
-	 * @returns {Promise<Array>} Characters array
-	 */
 	async loadCharacterList() {
 		console.info('CharacterManager', 'Loading character list');
 
@@ -261,10 +227,6 @@ class CharacterManagerImpl {
 		}
 	}
 
-	/**
-	 * Update current character data.
-	 * @param {object} updates - Partial character updates
-	 */
 	updateCharacter(updates) {
 		const character = AppState.getCurrentCharacter();
 
@@ -293,18 +255,10 @@ class CharacterManagerImpl {
 		});
 	}
 
-	/**
-	 * Get current character.
-	 * @returns {object|null} Current character or null
-	 */
 	getCurrentCharacter() {
 		return AppState.getCurrentCharacter();
 	}
 
-	/**
-	 * Check if there are unsaved changes.
-	 * @returns {boolean} True if there are unsaved changes
-	 */
 	hasUnsavedChanges() {
 		return AppState.get('hasUnsavedChanges');
 	}

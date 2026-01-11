@@ -1,5 +1,4 @@
 /** Manages item data and operations for the character builder. */
-
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { EVENTS } from '../lib/EventBus.js';
@@ -7,17 +6,12 @@ import { BaseDataService } from './BaseDataService.js';
 
 /** Manages item data and provides access to items. */
 class ItemService extends BaseDataService {
-	/** Initialize a new ItemManager. */
 	constructor() {
 		super({ loadEvent: EVENTS.ITEMS_LOADED, loggerScope: 'ItemService' });
 		this._itemLookupMap = null; // Map for O(1) item lookups
 		this._baseItemLookupMap = null; // Map for O(1) base item lookups
 	}
 
-	/**
-	 * Initialize item data by loading from DataLoader
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {

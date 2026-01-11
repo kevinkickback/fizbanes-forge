@@ -1,15 +1,6 @@
-/** View for rendering and handling source book toggle buttons. */
+// View for rendering and handling source book toggle buttons
 
-/** View component for source book selection UI. */
 export class SourcePickerView {
-	/**
-	 * Render source book toggles
-	 * @param {HTMLElement} container - Container element for toggles
-	 * @param {Array<string>} availableSources - Array of available source identifiers
-	 * @param {Function} formatSourceName - Function to format source names
-	 * @param {Function} onToggleClick - Callback for toggle click
-	 * @returns {Array<HTMLElement>} Array of created toggle elements
-	 */
 	renderSourceToggles(
 		container,
 		availableSources,
@@ -32,13 +23,6 @@ export class SourcePickerView {
 		return toggles;
 	}
 
-	/**
-	 * Create a toggle button for a source book
-	 * @param {string} source - The source book identifier
-	 * @param {Function} formatSourceName - Function to format source names
-	 * @param {Function} onToggleClick - Callback for toggle click
-	 * @returns {HTMLElement} The created toggle button
-	 */
 	createSourceToggle(source, formatSourceName, onToggleClick) {
 		const toggle = document.createElement('button');
 		toggle.className = 'source-toggle';
@@ -60,12 +44,6 @@ export class SourcePickerView {
 		return toggle;
 	}
 
-	/**
-	 * Set up event listeners for a source toggle
-	 * @param {HTMLElement} toggle - The toggle button element
-	 * @param {Function} onToggleClick - Callback for toggle click
-	 * @private
-	 */
 	_setupToggleEventListeners(toggle, onToggleClick) {
 		toggle.addEventListener('click', (e) => {
 			e.preventDefault();
@@ -79,12 +57,6 @@ export class SourcePickerView {
 		});
 	}
 
-	/**
-	 * Create the source selection header with links
-	 * @param {Function} onSelectAll - Callback for "Select All" link
-	 * @param {Function} onSelectNone - Callback for "None" link
-	 * @returns {HTMLElement} The header container with links
-	 */
 	createSourceHeader(onSelectAll, onSelectNone) {
 		const headerContainer = document.createElement('div');
 		headerContainer.className = 'mb-1';
@@ -109,13 +81,6 @@ export class SourcePickerView {
 		return headerContainer;
 	}
 
-	/**
-	 * Create a header link with the given text and click handler
-	 * @param {string} text - Link text
-	 * @param {Function} onClick - Click handler
-	 * @returns {HTMLElement} The created link element
-	 * @private
-	 */
 	_createHeaderLink(text, onClick) {
 		const link = document.createElement('a');
 		link.href = '#';
@@ -128,21 +93,11 @@ export class SourcePickerView {
 		return link;
 	}
 
-	/**
-	 * Update toggle selection state
-	 * @param {HTMLElement} toggle - The toggle button
-	 * @param {boolean} isSelected - Whether the toggle should be selected
-	 */
 	updateToggleState(toggle, isSelected) {
 		toggle.classList.toggle('selected', isSelected);
 		toggle.setAttribute('aria-checked', String(isSelected));
 	}
 
-	/**
-	 * Select all toggles in container
-	 * @param {HTMLElement} container - Container element
-	 * @returns {Array<HTMLElement>} Array of selected toggles
-	 */
 	selectAllToggles(container) {
 		const toggles = container.querySelectorAll('.source-toggle');
 		const changedToggles = [];
@@ -156,11 +111,6 @@ export class SourcePickerView {
 		return changedToggles;
 	}
 
-	/**
-	 * Deselect all toggles in container
-	 * @param {HTMLElement} container - Container element
-	 * @returns {Array<HTMLElement>} Array of deselected toggles
-	 */
 	deselectAllToggles(container) {
 		const toggles = container.querySelectorAll('.source-toggle');
 		const changedToggles = [];

@@ -1,4 +1,4 @@
-/** @file Component for managing the Spells page */
+// Component for managing the Spells page
 
 import { AppState } from '../../../app/AppState.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
@@ -7,10 +7,6 @@ import { levelUpService } from '../../../services/LevelUpService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { SpellSelectionModal } from './Modal.js';
 
-/**
- * Component for the Spells character page.
- * Handles display of known/prepared spells, spell slots, and spellcasting abilities.
- */
 export class SpellsManager {
     constructor() {
         this.loggerScope = 'SpellsManager';
@@ -18,10 +14,6 @@ export class SpellsManager {
         this.setupEventListeners();
     }
 
-    /**
-     * Setup UI event listeners for the spells page.
-     * @private
-     */
     setupEventListeners() {
         // Event delegation for buttons
         document.addEventListener('click', (e) => {
@@ -53,10 +45,6 @@ export class SpellsManager {
         console.debug(`[${this.loggerScope}]`, 'Event listeners setup');
     }
 
-    /**
-     * Render the spells page with current character data.
-     * @returns {void}
-     */
     render() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -75,11 +63,6 @@ export class SpellsManager {
         this.renderMulticlassSpellcasting(character);
     }
 
-    /**
-     * Render known spells organized by spell level.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderKnownSpells(character) {
         const container = document.getElementById('knownSpellsList');
         if (!container) return;
@@ -179,11 +162,6 @@ export class SpellsManager {
         container.innerHTML = html;
     }
 
-    /**
-     * Render prepared spells (for classes that prepare spells).
-     * @param {Object} character - Character object
-     * @private
-     */
     renderPreparedSpells(character) {
         const container = document.getElementById('preparedSpellsList');
         const section = document.getElementById('preparedSpellsSection');
@@ -245,11 +223,6 @@ export class SpellsManager {
             totalPrepared > 0 || totalLimit > 0 ? 'block' : 'none';
     }
 
-    /**
-     * Render spellcasting ability and spell save DC.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderSpellcastingInfo(character) {
         const container = document.getElementById('spellcastingInfo');
         if (!container) return;
@@ -354,11 +327,6 @@ export class SpellsManager {
             '<p style="color: var(--text-color)">No spellcasting ability.</p>';
     }
 
-    /**
-     * Render multiclass spellcasting information if applicable.
-     * @param {Object} character - Character object
-     * @private
-     */
     renderMulticlassSpellcasting(character) {
         const container = document.getElementById('multiclassSpellsList');
         const section = document.getElementById('multiclassSpellsSection');
@@ -394,10 +362,6 @@ export class SpellsManager {
         section.style.display = 'block';
     }
 
-    /**
-     * Handle adding a spell.
-     * @private
-     */
     async handleAddSpell() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -423,12 +387,6 @@ export class SpellsManager {
         }
     }
 
-    /**
-     * Handle removing a spell.
-     * @param {string} spellName - Name of spell to remove
-     * @param {string} className - Class name (optional, will search all if not provided)
-     * @private
-     */
     handleRemoveSpell(spellName, className = null) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -465,12 +423,6 @@ export class SpellsManager {
         showNotification(`Removed ${spellName}`, 'success');
     }
 
-    /**
-     * Handle toggling spell preparation.
-     * @param {string} spellName - Name of spell
-     * @param {string} className - Class name (optional, will search all if not provided)
-     * @private
-     */
     handleTogglePrepareSpell(spellName, className = null) {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -515,12 +467,6 @@ export class SpellsManager {
         eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
     }
 
-    /**
-     * Get spellcasting ability for a class.
-     * @param {string} className - Class name
-     * @returns {string} Ability name (e.g., 'wisdom')
-     * @private
-     */
     _getSpellcastingAbility(className) {
         const abilityMap = {
             Bard: 'charisma',
@@ -536,22 +482,10 @@ export class SpellsManager {
         return abilityMap[className] || 'wisdom';
     }
 
-    /**
-     * Format ability name for display.
-     * @param {string} ability - Ability name
-     * @returns {string} Formatted ability name
-     * @private
-     */
     _formatAbilityName(ability) {
         return ability.charAt(0).toUpperCase() + ability.slice(1);
     }
 
-    /**
-     * Get spell level label.
-     * @param {number} level - Spell level (0-9)
-     * @returns {string} Level label
-     * @private
-     */
     _getLevelLabel(level) {
         if (level === 0) return 'Cantrips';
         const suffixes = ['', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];

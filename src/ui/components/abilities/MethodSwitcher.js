@@ -1,23 +1,13 @@
-/** View for ability score method selection and info display. */
-
+// View for ability score method selection and info display.
 import { CharacterManager } from '../../../app/CharacterManager.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
-/** View for ability score method selection and information display. */
 class MethodSwitcherView {
-	/**
-	 * Creates a new MethodSwitcherView
-	 * @param {HTMLElement} container - The main ability score container
-	 */
 	constructor(container) {
 		this._container = container;
 	}
 
-	/**
-	 * Renders the method selection dropdown and info based on current method
-	 * @param {Function} onMethodChange - Callback for method change events
-	 */
 	render(onMethodChange) {
 		try {
 			// Remove existing info container if it exists
@@ -122,9 +112,6 @@ class MethodSwitcherView {
 		}
 	}
 
-	/**
-	 * Updates only the point buy counter display
-	 */
 	updatePointBuyCounter() {
 		const counter = this._container.querySelector('.point-buy-badge');
 		if (!counter) {
@@ -164,10 +151,6 @@ class MethodSwitcherView {
 		}
 	}
 
-	/**
-	 * Updates the container reference for the view
-	 * @param {HTMLElement} container - The new container element
-	 */
 	setContainer(container) {
 		this._container = container;
 	}
@@ -175,9 +158,6 @@ class MethodSwitcherView {
 
 let _instance = null;
 
-/**
- * Singleton accessor for MethodSwitcherView
- */
 MethodSwitcherView.getInstance = (container) => {
 	if (!_instance) {
 		_instance = new MethodSwitcherView(container);
