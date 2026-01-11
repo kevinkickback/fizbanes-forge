@@ -665,6 +665,7 @@ body.debug-mode .nav-item.debug-only {
 	justify-content: center;
 	max-width: 1400px;
 	margin: 0 auto;
+	padding: 0;
 }
 
 .character-card {
@@ -673,10 +674,9 @@ body.debug-mode .nav-item.debug-only {
 	transition: var(--transition);
 	border: 1px solid var(--border-color);
 	background: var(--card-background);
-	height: 100%;
+	min-height: 300px;
 	cursor: pointer;
-	max-width: 400px;
-	margin: 0 auto;
+	width: 100%;
 }
 
 /* Header mirrors settings cards */

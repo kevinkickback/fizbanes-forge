@@ -297,7 +297,6 @@ class PageHandlerImpl {
 					: 'Unknown';
 
 				return `
-                <div class="col-md-6 col-lg-4 mb-4">
 					<div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
 						<div class="card-header py-2">
 							<h5 class="mb-0">
@@ -349,7 +348,6 @@ class PageHandlerImpl {
 							</div>
 						</div>
 					</div>
-                </div>
             `;
 			})
 			.join('');
