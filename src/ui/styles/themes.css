@@ -1,0 +1,133 @@
+/* ===================================
+   THEME SYSTEM
+   Dark and Light theme definitions
+   =================================== */
+
+/* Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
+	/* Primary Colors */
+	--primary-color: #1b1b1b;
+	--secondary-color: #242424;
+	--background-color: #121212;
+	--card-background: #1e1e1e;
+	--titlebar-background: #181818;
+
+	/* Accent & Action Colors */
+	--accent-color: #e40712;
+	--accent-hover: #ff1a1a;
+	--accent-10: rgba(228, 7, 18, 0.1);
+	--accent-15: rgba(228, 7, 18, 0.15);
+	--accent-secondary: #e6cc80;
+	--accent-secondary-hover: #fff2cc;
+
+	/* Status Colors */
+	--success-color: #00b894;
+	--danger-color: #d63031;
+	--danger-dark: #c0392b;
+	--warning-color: #fdcb6e;
+	--info-color: #0984e3;
+
+	/* Text Colors */
+	--text-color: #ffffff;
+	--text-muted: #b8b8b8;
+	--text-light: #e0e0e0;
+	--text-lighter: #cccccc;
+	--text-very-light: #a0a0a0;
+
+	/* Border & Divider Colors */
+	--border-color: #333333;
+	--border-light: #444444;
+	--border-very-light: #555555;
+
+	/* Overlay & Background Opacity Colors */
+	--overlay-dark: rgba(0, 0, 0, 0.5);
+	--overlay-darker: rgba(0, 0, 0, 0.7);
+	--overlay-light: rgba(0, 0, 0, 0.1);
+	--overlay-lighter: rgba(0, 0, 0, 0.05);
+	--overlay-white-10: rgba(255, 255, 255, 0.1);
+	--overlay-white-12: rgba(255, 255, 255, 0.12);
+	--overlay-white-20: rgba(255, 255, 255, 0.2);
+	--overlay-secondary-50: rgba(36, 36, 36, 0.5);
+	--overlay-secondary-70: rgba(36, 36, 36, 0.7);
+	--overlay-success-15: rgba(0, 184, 148, 0.15);
+	--overlay-accent-25: rgba(228, 7, 18, 0.25);
+
+	/* Shadow Depths */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.3);
+	--shadow-xl: 0 6px 12px rgba(0, 0, 0, 0.4);
+	--shadow-2xl: 0 8px 16px rgba(0, 0, 0, 0.5);
+	--shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.5);
+	--shadow-deep: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+	/* Primary Colors */
+	--primary-color: #ffffff;
+	--secondary-color: #f5f5f5;
+	--background-color: #fafafa;
+	--card-background: #ffffff;
+	--titlebar-background: #f0f0f0;
+
+	/* Accent & Action Colors */
+	--accent-color: #d32f2f;
+	--accent-hover: #c62828;
+	--accent-10: rgba(211, 47, 47, 0.1);
+	--accent-15: rgba(211, 47, 47, 0.15);
+	--accent-secondary: #d4a574;
+	--accent-secondary-hover: #c09060;
+
+	/* Status Colors */
+	--success-color: #2e7d32;
+	--danger-color: #c62828;
+	--danger-dark: #b71c1c;
+	--warning-color: #f57c00;
+	--info-color: #1976d2;
+
+	/* Text Colors */
+	--text-color: #212121;
+	--text-muted: #757575;
+	--text-light: #424242;
+	--text-lighter: #616161;
+	--text-very-light: #9e9e9e;
+
+	/* Border & Divider Colors */
+	--border-color: #e0e0e0;
+	--border-light: #eeeeee;
+	--border-very-light: #f5f5f5;
+
+	/* Overlay & Background Opacity Colors */
+	--overlay-dark: rgba(0, 0, 0, 0.1);
+	--overlay-darker: rgba(0, 0, 0, 0.2);
+	--overlay-light: rgba(0, 0, 0, 0.05);
+	--overlay-lighter: rgba(0, 0, 0, 0.02);
+	--overlay-white-10: rgba(0, 0, 0, 0.05);
+	--overlay-white-12: rgba(0, 0, 0, 0.08);
+	--overlay-white-20: rgba(0, 0, 0, 0.1);
+	--overlay-secondary-50: rgba(245, 245, 245, 0.5);
+	--overlay-secondary-70: rgba(245, 245, 245, 0.7);
+	--overlay-success-15: rgba(46, 125, 50, 0.15);
+	--overlay-accent-25: rgba(211, 47, 47, 0.25);
+
+	/* Shadow Depths */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+	--shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
+	--shadow-xl: 0 6px 12px rgba(0, 0, 0, 0.12);
+	--shadow-2xl: 0 8px 16px rgba(0, 0, 0, 0.15);
+	--shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.15);
+	--shadow-deep: 0 12px 48px rgba(0, 0, 0, 0.18);
+}
+
+/* Smooth theme transitions */
+* {
+	transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Disable transitions on page load */
+body.loading * {
+	transition: none !important;
+}

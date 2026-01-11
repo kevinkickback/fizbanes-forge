@@ -8,6 +8,8 @@ import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
+import { themeManager } from './ThemeManager.js';
+import { titlebarController } from './TitlebarController.js';
 
 // Modal for data configuration
 import { DataConfigurationModal } from '../ui/components/setup/DataConfiguration.js';
@@ -222,6 +224,7 @@ async function _initializeCoreComponents() {
 		// Define components and their initialization sequence
 		const components = [
 			{ name: 'text processor', init: () => textProcessor.initialize() },
+			{ name: 'titlebar controller', init: () => titlebarController.init() },
 			{ name: 'page handler', init: () => PageHandler.initialize() },
 			{
 				name: 'navigation controller',
@@ -553,6 +556,15 @@ export async function initializeAll(_options = {}) {
 		}
 	} catch (error) {
 		console.warn('AppInitializer', 'Unable to set debug body class', error);
+	}
+
+	// Initialize theme manager early
+	try {
+		themeManager.init();
+		result.loadedComponents.push('ThemeManager');
+	} catch (error) {
+		console.warn('AppInitializer', 'Failed to initialize theme manager', error);
+		result.errors.push(error);
 	}
 
 	const loadingModal = new LoadingModal();

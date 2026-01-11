@@ -15,10 +15,37 @@
         object-src 'none';
         base-uri 'self'
     " />
+    <link rel="stylesheet" href="styles/themes.css" />
+    <link rel="stylesheet" href="styles/titlebar.css" />
     <link rel="stylesheet" href="styles/main.css" />
 </head>
 
-<body>
+<body class="has-titlebar">
+    <!-- Application Titlebar -->
+    <div class="app-titlebar">
+        <div class="titlebar-left">
+            <div class="titlebar-logo">
+                <i class="fas fa-dragon"></i>
+                <span>Fizbane's Forge</span>
+            </div>
+        </div>
+        <div class="titlebar-center">
+            <span class="titlebar-character-name" id="titlebarCharacterName">No Character Loaded</span>
+            <span class="titlebar-unsaved-indicator" id="titlebarUnsavedIndicator">
+                <i class="fas fa-circle"></i>
+                <span>Unsaved</span>
+            </span>
+        </div>
+        <div class="titlebar-right">
+            <button class="titlebar-button theme-toggle" id="themeToggle" title="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="titlebar-button" id="settingsButton" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Notification Container -->
         <div id="notificationContainer" class="notification-container"></div>

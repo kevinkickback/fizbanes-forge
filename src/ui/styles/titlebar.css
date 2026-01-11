@@ -1,0 +1,122 @@
+/* ===================================
+   APPLICATION TITLEBAR
+   Native-looking titlebar for desktop app feel
+   =================================== */
+
+.app-titlebar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 48px;
+	background: var(--titlebar-background);
+	border-bottom: 1px solid var(--border-color);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 1rem;
+	z-index: 2000;
+	-webkit-app-region: drag;
+	user-select: none;
+}
+
+.titlebar-left {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.titlebar-logo {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.titlebar-logo i {
+	font-size: 1.2rem;
+	color: var(--accent-color);
+}
+
+.titlebar-center {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	color: var(--text-muted);
+	font-size: 0.85rem;
+}
+
+.titlebar-character-name {
+	font-weight: 500;
+	color: var(--text-color);
+	max-width: 300px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.titlebar-unsaved-indicator {
+	color: var(--warning-color);
+	display: none;
+}
+
+.titlebar-unsaved-indicator.visible {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.titlebar-right {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	-webkit-app-region: no-drag;
+}
+
+.titlebar-button {
+	width: 32px;
+	height: 32px;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	border-radius: var(--border-radius);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.15s ease;
+	-webkit-app-region: no-drag;
+}
+
+.titlebar-button:hover {
+	background: var(--overlay-white-10);
+	color: var(--text-color);
+}
+
+.titlebar-button:active {
+	background: var(--overlay-white-20);
+}
+
+.titlebar-button i {
+	font-size: 0.95rem;
+}
+
+/* Theme toggle button special styling */
+.titlebar-button.theme-toggle i {
+	font-size: 1rem;
+}
+
+/* Adjust main layout to account for titlebar */
+body.has-titlebar .app-container {
+	margin-top: 48px;
+	min-height: calc(100vh - 48px);
+}
+
+body.has-titlebar .sidebar {
+	top: 48px;
+	height: calc(100vh - 48px);
+}

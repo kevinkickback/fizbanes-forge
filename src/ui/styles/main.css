@@ -1,6 +1,8 @@
 /* Import External CSS */
 @import url("../assets/bootstrap/dist/css/bootstrap.min.css");
 @import url("../assets/fontawesome/css/all.min.css");
+@import url("./themes.css");
+@import url("./titlebar.css");
 @import url("./modal.css");
 @import url("./notification.css");
 @import url("./loading-modal.css");
@@ -12,63 +14,8 @@
 @import url("./proficiency-card.css");
 @import url("./tooltip.css");
 
-/* CSS Variables */
+/* Shared CSS Variables (theme-independent) */
 :root {
-	/* Primary Colors */
-	--primary-color: #1b1b1b;
-	--secondary-color: #242424;
-	--background-color: #121212;
-	--card-background: #1e1e1e;
-
-	/* Accent & Action Colors */
-	--accent-color: #e40712;
-	--accent-hover: #ff1a1a;
-	--accent-10: rgba(228, 7, 18, 0.1);
-	--accent-15: rgba(228, 7, 18, 0.15);
-	--accent-secondary: #e6cc80;
-	--accent-secondary-hover: #fff2cc;
-
-	/* Status Colors */
-	--success-color: #00b894;
-	--danger-color: #d63031;
-	--danger-dark: #c0392b;
-	--warning-color: #fdcb6e;
-	--info-color: #0984e3;
-
-	/* Text Colors */
-	--text-color: #ffffff;
-	--text-muted: #b8b8b8;
-	--text-light: #e0e0e0;
-	--text-lighter: #cccccc;
-	--text-very-light: #a0a0a0;
-
-	/* Border & Divider Colors */
-	--border-color: #333333;
-	--border-light: #444444;
-	--border-very-light: #555555;
-
-	/* Overlay & Background Opacity Colors */
-	--overlay-dark: rgba(0, 0, 0, 0.5);
-	--overlay-darker: rgba(0, 0, 0, 0.7);
-	--overlay-light: rgba(0, 0, 0, 0.1);
-	--overlay-lighter: rgba(0, 0, 0, 0.05);
-	--overlay-white-10: var(--overlay-white-10);
-	--overlay-white-12: var(--overlay-white-12);
-	--overlay-white-20: var(--overlay-white-20);
-	--overlay-secondary-50: var(--overlay-secondary-50);
-	--overlay-secondary-70: var(--overlay-secondary-70);
-	--overlay-success-15: var(--overlay-success-15);
-	--overlay-accent-25: var(--overlay-accent-25);
-
-	/* Shadow Depths */
-	--shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2);
-	--shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
-	--shadow-xl: 0 4px 8px rgba(0, 0, 0, 0.2);
-	--shadow-2xl: 0 4px 12px rgba(0, 0, 0, 0.4);
-	--shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.3);
-	--shadow-deep: 0 10px 40px rgba(0, 0, 0, 0.2);
-
 	/* Proficiency & Skill Colors */
 	--proficiency-race: #a67cff;
 	--proficiency-class: #4a9aff;
@@ -79,7 +26,7 @@
 	--proficiency-disabled-border: #c8c8c8;
 	--highlight-color: #fdcb6e;
 
-	/* Tooltip & Reference Colors */
+	/* Tooltip & Reference Colors (these remain consistent across themes) */
 	--tooltip-bg: rgba(25, 25, 25, 0.98);
 	--tooltip-title: #e8e8e8;
 	--tooltip-title-spell: #7bb5ff;
@@ -201,6 +148,13 @@ body {
 	line-height: 1.6;
 	margin: 0;
 	padding: 0;
+	overflow: hidden; /* Native app shouldn't scroll the entire body */
+}
+
+/* Smooth scrolling for content areas */
+.main-content,
+.sidebar {
+	scroll-behavior: smooth;
 }
 
 /* Layout Components */
@@ -209,6 +163,7 @@ body {
 	display: flex;
 	min-height: 100vh;
 	position: relative;
+	background-color: var(--background-color);
 }
 
 /* Sidebar */
@@ -216,19 +171,17 @@ body {
 	width: var(--sidebar-width);
 	background: var(--primary-color);
 	color: white;
-	padding: 0.5rem;
+	padding: 0.75rem;
 	position: fixed;
 	height: 100vh;
 	left: 0;
 	top: 0;
 	overflow-y: auto;
-	transition:
-		background-color 0.2s ease,
-		color 0.2s ease,
-		border-color 0.2s ease;
+	transition: all 0.2s ease;
 	border-right: 1px solid var(--border-color);
 	z-index: 1000;
 	box-sizing: border-box;
+	box-shadow: var(--shadow-lg);
 }
 
 /* Debug-only nav items hidden by default */
@@ -417,44 +370,48 @@ body.debug-mode .nav-item.debug-only {
 	flex: 1;
 	width: calc(100% - var(--sidebar-width));
 	margin-left: var(--sidebar-width);
-	padding: 1.5rem 0.75rem;
+	padding: 2rem 1.5rem;
 	min-height: 100vh;
 	position: relative;
-	padding-bottom: 3rem;
+	padding-bottom: 4rem;
 	box-sizing: border-box;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 /* Cards */
 .card {
 	background: var(--card-background);
-	border-radius: var(--border-radius);
-	box-shadow: var(--box-shadow);
+	border-radius: var(--border-radius-lg);
+	box-shadow: var(--shadow-md);
 	border: 1px solid var(--border-color);
 	margin-bottom: 1.5rem;
-	transition: var(--transition);
+	transition: all 0.2s ease;
+	overflow: hidden;
 }
 
 .card:hover {
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-lg);
+	transform: translateY(-1px);
 }
 
 /* Card Headers */
 .card-header {
 	background: var(--secondary-color);
 	border-bottom: 1px solid var(--border-color);
-	padding: 0.25rem 1rem;
+	padding: 0.75rem 1.25rem;
 	color: var(--text-color);
-	line-height: 1;
+	line-height: 1.2;
 	display: flex;
 	align-items: center;
-	min-height: 32px;
+	min-height: 48px;
 }
 
 .card-header h5 {
-	font-size: 0.95rem;
+	font-size: 1rem;
 	font-weight: 600;
 	margin: 0;
-	line-height: 1;
+	line-height: 1.2;
 }
 
 .card-body {
