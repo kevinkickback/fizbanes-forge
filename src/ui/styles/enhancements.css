@@ -1,0 +1,268 @@
+/* ===================================
+   VISUAL ENHANCEMENTS - Gradients & Polish
+   Additional visual flourishes for premium feel
+   =================================== */
+
+/* Gradient utilities */
+.gradient-accent {
+	background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color) 80%, black));
+}
+
+.gradient-subtle {
+	background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+}
+
+.gradient-card {
+	background: linear-gradient(180deg, var(--card-background) 0%, var(--secondary-color) 100%);
+}
+
+/* Glass morphism effect */
+.glass {
+	background: var(--overlay-white-10);
+	backdrop-filter: blur(10px);
+	border: 1px solid var(--overlay-white-20);
+}
+
+/* Shine effect on hover */
+.shine-effect {
+	position: relative;
+	overflow: hidden;
+}
+
+.shine-effect::after {
+	content: '';
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 200%;
+	height: 200%;
+	background: linear-gradient(
+		45deg,
+		transparent 30%,
+		rgba(255, 255, 255, 0.1) 50%,
+		transparent 70%
+	);
+	transform: translateX(-100%);
+	transition: transform 0.6s ease;
+}
+
+.shine-effect:hover::after {
+	transform: translateX(100%);
+}
+
+/* Accent glow effect */
+.glow-accent {
+	box-shadow: 0 0 20px var(--accent-10), 0 0 40px var(--accent-10);
+}
+
+.glow-accent-strong {
+	box-shadow: 0 0 30px var(--accent-15), 0 0 60px var(--accent-15);
+}
+
+/* Depth layers */
+.depth-1 {
+	box-shadow: var(--shadow-sm);
+}
+
+.depth-2 {
+	box-shadow: var(--shadow-md);
+}
+
+.depth-3 {
+	box-shadow: var(--shadow-lg);
+}
+
+.depth-4 {
+	box-shadow: var(--shadow-xl);
+}
+
+.depth-5 {
+	box-shadow: var(--shadow-elevated);
+}
+
+/* Hover lift effect */
+.lift-on-hover {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lift-on-hover:hover {
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-xl);
+}
+
+/* Status indicators */
+.status-indicator {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+	position: relative;
+	animation: pulse 2s ease-in-out infinite;
+}
+
+.status-indicator.online {
+	background: var(--success-color);
+	box-shadow: 0 0 10px var(--success-color);
+}
+
+.status-indicator.offline {
+	background: var(--text-muted);
+}
+
+.status-indicator.warning {
+	background: var(--warning-color);
+	box-shadow: 0 0 10px var(--warning-color);
+}
+
+/* Badge enhancements */
+.badge {
+	padding: 0.35rem 0.75rem;
+	border-radius: 20px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+}
+
+.badge-gradient {
+	background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color) 80%, black));
+	color: white;
+	border: 1px solid var(--overlay-white-10);
+	box-shadow: var(--shadow-sm);
+}
+
+.badge-outline {
+	background: transparent;
+	border: 1.5px solid var(--accent-color);
+	color: var(--accent-color);
+}
+
+/* Loading states */
+.loading-shimmer {
+	background: linear-gradient(
+		90deg,
+		var(--secondary-color) 0%,
+		var(--border-light) 50%,
+		var(--secondary-color) 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Divider with accent */
+.divider-accent {
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+	margin: 2rem 0;
+	border: none;
+}
+
+/* Icon containers */
+.icon-circle {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent-10);
+	color: var(--accent-color);
+	font-size: 1.5rem;
+	transition: all 0.2s ease;
+}
+
+.icon-circle:hover {
+	background: var(--accent-15);
+	transform: scale(1.1);
+}
+
+.icon-circle-lg {
+	width: 64px;
+	height: 64px;
+	font-size: 2rem;
+}
+
+.icon-square {
+	width: 48px;
+	height: 48px;
+	border-radius: var(--border-radius-lg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	color: var(--accent-color);
+	font-size: 1.5rem;
+	transition: all 0.2s ease;
+}
+
+.icon-square:hover {
+	background: var(--accent-10);
+	border-color: var(--accent-color);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+/* Decorative elements */
+.corner-accent {
+	position: relative;
+}
+
+.corner-accent::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 30px;
+	height: 30px;
+	border-top: 3px solid var(--accent-color);
+	border-left: 3px solid var(--accent-color);
+	border-top-left-radius: var(--border-radius);
+}
+
+.corner-accent::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 30px;
+	height: 30px;
+	border-bottom: 3px solid var(--accent-color);
+	border-right: 3px solid var(--accent-color);
+	border-bottom-right-radius: var(--border-radius);
+}
+
+/* Floating panel */
+.floating-panel {
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	padding: 1.5rem;
+	box-shadow: var(--shadow-elevated);
+	backdrop-filter: blur(10px);
+}
+
+/* Info panels */
+.info-panel {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--info-color) 15%, transparent), transparent);
+	border-left: 4px solid var(--info-color);
+	padding: 1.25rem;
+	border-radius: 0 var(--border-radius) var(--border-radius) 0;
+	margin: 1.5rem 0;
+}
+
+.warning-panel {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--warning-color) 15%, transparent), transparent);
+	border-left: 4px solid var(--warning-color);
+	padding: 1.25rem;
+	border-radius: 0 var(--border-radius) var(--border-radius) 0;
+	margin: 1.5rem 0;
+}
+
+.success-panel {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--success-color) 15%, transparent), transparent);
+	border-left: 4px solid var(--success-color);
+	padding: 1.25rem;
+	border-radius: 0 var(--border-radius) var(--border-radius) 0;
+	margin: 1.5rem 0;
+}
+

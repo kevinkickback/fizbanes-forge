@@ -3,11 +3,16 @@
 @import url("../assets/fontawesome/css/all.min.css");
 @import url("./themes.css");
 @import url("./titlebar.css");
+@import url("./sidebar-redesign.css");
+@import url("./typography.css");
 @import url("./buttons.css");
 @import url("./forms.css");
 @import url("./modals-enhanced.css");
 @import url("./scrollbars.css");
 @import url("./animations.css");
+@import url("./enhancements.css");
+@import url("./home-redesign.css");
+@import url("./notifications-redesign.css");
 @import url("./modal.css");
 @import url("./notification.css");
 @import url("./loading-modal.css");
