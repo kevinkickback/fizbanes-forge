@@ -44,8 +44,8 @@ export class SettingsService {
 	 */
 	async initializeSettingsPage() {
 		try {
-			// Update save path display
-			await this.updateSavePathDisplay();
+			// Update app data path display
+			await this.updateAppDataPathDisplay();
 
 			// Update data source display
 			await this.updateDataSourceDisplay();
@@ -73,28 +73,42 @@ export class SettingsService {
 	}
 
 	/**
-	 * Updates the save path display in the UI
+	 * Updates the app data path display and derived subpaths in the UI
 	 * @returns {Promise<void>}
 	 * @private
 	 */
-	async updateSavePathDisplay() {
+	async updateAppDataPathDisplay() {
 		try {
-			const saveLocationElement = document.getElementById(
-				'currentSaveLocation',
-			);
-			if (saveLocationElement) {
-				// Get the current save path from the main process
-				const currentPath = await window.characterStorage.getDefaultSavePath();
-				saveLocationElement.textContent =
-					currentPath || 'Using default save location';
+			const charactersPreviewElement = document.getElementById('charactersPathPreview');
+			const portraitsPreviewElement = document.getElementById('portraitsPathPreview');
+
+			// Get the base app data path from character storage
+			const characterPath = await window.characterStorage.getDefaultSavePath();
+
+			if (characterPath && typeof characterPath === 'string') {
+				// Derive base path from characters path (remove trailing /characters)
+				const sep = characterPath.includes('\\') ? '\\' : '/';
+				const idx = characterPath.lastIndexOf(sep);
+				const basePath = idx > 0 ? characterPath.slice(0, idx) : characterPath;
+
+				// Update derived paths preview
+				if (charactersPreviewElement) {
+					charactersPreviewElement.textContent = `${basePath}${sep}characters`;
+				}
+				if (portraitsPreviewElement) {
+					portraitsPreviewElement.textContent = `${basePath}${sep}portraits`;
+				}
+			} else {
+				if (charactersPreviewElement) charactersPreviewElement.textContent = 'Using default location';
+				if (portraitsPreviewElement) portraitsPreviewElement.textContent = 'Using default location';
 			}
 		} catch (error) {
 			console.error(
 				'SettingsService',
-				'Error updating save path display',
+				'Error updating app data path display',
 				error,
 			);
-			showNotification('Error updating save path display', 'error');
+			showNotification('Error updating app data path display', 'error');
 		}
 	}
 
@@ -160,9 +174,9 @@ export class SettingsService {
 	 */
 	initializeEventListeners() {
 		try {
-			// Set up settings buttons
-			const browseButton = document.getElementById('chooseFolderBtn');
-			const resetButton = document.getElementById('resetFolderBtn');
+			// App data path controls
+			const chooseAppDataButton = document.getElementById('chooseAppDataFolderBtn');
+			const resetAppDataButton = document.getElementById('resetAppDataFolderBtn');
 			const reconfigureButton = document.getElementById(
 				'reconfigureDataSourceBtn',
 			);
@@ -180,45 +194,43 @@ export class SettingsService {
 				});
 			}
 
-			if (browseButton) {
-				browseButton.addEventListener('click', async () => {
+			// App data path browse
+			if (chooseAppDataButton) {
+				chooseAppDataButton.addEventListener('click', async () => {
 					try {
-						// These operations need to interact with the file system via IPC
 						const result = await window.characterStorage.selectFolder();
 						if (result.success) {
-							const saveResult = await window.characterStorage.setSavePath(
-								result.path,
-							);
+							// Set the base path; character storage will append /characters
+							const sep = result.path.includes('\\') ? '\\' : '/';
+							const charactersPath = `${result.path}${sep}characters`;
+
+							const saveResult = await window.characterStorage.setSavePath(charactersPath);
 							if (saveResult.success) {
-								showNotification('Save path updated successfully', 'success');
-								await this.updateSavePathDisplay();
-								eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_CHANGED, result.path);
+								showNotification('App data path updated successfully', 'success');
+								await this.updateAppDataPathDisplay();
+								eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_CHANGED, charactersPath);
 							}
 						}
 					} catch (error) {
-						console.error('SettingsService', 'Error selecting folder', error);
-						showNotification('Error selecting folder', 'error');
+						console.error('SettingsService', 'Error selecting app data folder', error);
+						showNotification('Error selecting app data folder', 'error');
 					}
 				});
 			}
 
-			if (resetButton) {
-				resetButton.addEventListener('click', async () => {
+			// App data path reset
+			if (resetAppDataButton) {
+				resetAppDataButton.addEventListener('click', async () => {
 					try {
-						// This needs to interact with the file system via IPC
 						const saveResult = await window.characterStorage.setSavePath(null);
 						if (saveResult.success) {
-							showNotification('Save path reset successfully', 'success');
-							await this.updateSavePathDisplay();
+							showNotification('App data path reset successfully', 'success');
+							await this.updateAppDataPathDisplay();
 							eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_RESET);
 						}
 					} catch (error) {
-						console.error(
-							'SettingsService',
-							'Error resetting save path',
-							error,
-						);
-						showNotification('Error resetting save path', 'error');
+						console.error('SettingsService', 'Error resetting app data path', error);
+						showNotification('Error resetting app data path', 'error');
 					}
 				});
 			}
@@ -332,8 +344,5 @@ export class SettingsService {
 	}
 }
 
-/**
- * Export the singleton instance
- * @type {SettingsService}
- */
+
 export const settingsService = new SettingsService();

@@ -64,6 +64,7 @@ export const CharacterSchema = {
 			id: null,
 			name: '',
 			level: 1,
+			portrait: '',
 
 			// Ability scores
 			abilityScores: {

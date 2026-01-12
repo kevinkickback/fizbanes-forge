@@ -21,6 +21,11 @@ export const IPC_CHANNELS = {
 	SETTINGS_SET_PATH: 'settings:setPath',
 	SETTINGS_GET_ALL: 'settings:getAll',
 
+	// Portrait operations
+	PORTRAITS_GET_DIRECTORY: 'portraits:getDirectory',
+	PORTRAITS_SET_DIRECTORY: 'portraits:setDirectory',
+	PORTRAITS_LIST: 'portraits:list',
+
 	// Data operations (D&D data files)
 	DATA_LOAD_JSON: 'data:loadJson',
 	DATA_GET_SOURCE: 'data:getSource',

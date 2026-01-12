@@ -28,8 +28,8 @@ export function createMainWindow({
 		height: bounds.height,
 		x: bounds.x,
 		y: bounds.y,
-		minWidth: 1000,
-		minHeight: 550,
+		minWidth: 1240,
+		minHeight: 860,
 		autoHideMenuBar: true, // Hide default Electron menu bar
 		webPreferences: {
 			preload: preloadPath,

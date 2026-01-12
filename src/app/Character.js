@@ -81,6 +81,9 @@ export class Character {
 			),
 		};
 
+		// Portrait (stored as data URL, file URL, or relative asset path)
+		this.portrait = data.portrait || '';
+
 		// Initialize feats and their sources
 		this.feats = [];
 		this.featSources = new Map();
@@ -528,6 +531,7 @@ export class Character {
 		const serializedData = {
 			id: this.id,
 			name: this.name,
+			portrait: this.portrait || '',
 			allowedSources: Array.from(this.allowedSources || []),
 			playerName: this.playerName,
 			level: this.level,

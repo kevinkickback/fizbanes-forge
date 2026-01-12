@@ -136,9 +136,349 @@ export class Modal {
 				'sourceBookSelection',
 			);
 			await this._sourceCard.initializeSourceSelection();
+
+			// Initialize wizard controls
+			this._initWizard();
+
+			// Initialize portrait selector
+			this._initPortraitSelector();
 		} catch (error) {
 			console.error('Modal', 'Error showing new character modal:', error);
 			showNotification('Could not open new character form', 'error');
+		}
+	}
+
+	_initWizard() {
+		try {
+			const sections = Array.from(
+				document.querySelectorAll('#newCharacterForm .form-section'),
+			);
+			const stepperItems = Array.from(
+				document.querySelectorAll('#newCharacterStepper .list-group-item'),
+			);
+			const backBtn = document.getElementById('wizardBackBtn');
+			const nextBtn = document.getElementById('wizardNextBtn');
+
+			this._wizard = {
+				sections,
+				stepperItems,
+				backBtn,
+				nextBtn,
+				current: 0,
+				last: sections.length - 1,
+			};
+
+			// Reset hidden state and show first step
+			for (const s of sections) {
+				s.hidden = s.getAttribute('data-step') !== '0';
+			}
+			this._updateStepper();
+			this._updateWizardButtons();
+			// Progress bar removed
+
+			// Remove existing listeners by cloning (consistent with project pattern)
+			if (backBtn?.parentNode) {
+				const newBack = backBtn.cloneNode(true);
+				backBtn.parentNode.replaceChild(newBack, backBtn);
+				newBack.addEventListener('click', () => this._goStep(-1));
+				this._wizard.backBtn = newBack;
+			}
+
+			if (nextBtn?.parentNode) {
+				const newNext = nextBtn.cloneNode(true);
+				nextBtn.parentNode.replaceChild(newNext, nextBtn);
+				newNext.addEventListener('click', () => this._goStep(1));
+				this._wizard.nextBtn = newNext;
+			}
+
+			// Keyboard shortcuts (Left/Right)
+			this._wizardKeyHandler = (ev) => {
+				const modalEl = document.getElementById('newCharacterModal');
+				if (!modalEl || !modalEl.classList.contains('show')) return;
+				if (ev.key === 'ArrowLeft') {
+					this._goStep(-1);
+				} else if (ev.key === 'ArrowRight') {
+					this._goStep(1);
+				}
+			};
+			document.addEventListener('keydown', this._wizardKeyHandler);
+
+			// Clean up on hide
+			const modalEl = document.getElementById('newCharacterModal');
+			if (modalEl) {
+				modalEl.addEventListener('hidden.bs.modal', () => {
+					document.removeEventListener('keydown', this._wizardKeyHandler);
+				});
+			}
+
+			// Sync gender segmented control to hidden input
+
+		} catch (error) {
+			console.error('Modal', 'Error initializing wizard', error);
+		}
+	}
+
+	_goStep(delta) {
+		try {
+			if (!this._wizard) return;
+			const next = this._wizard.current + delta;
+			if (next < 0 || next > this._wizard.last) return;
+
+			// Validate when moving forward
+			if (delta > 0 && !this._validateCurrentStep()) {
+				return;
+			}
+
+			this._wizard.current = next;
+			for (const s of this._wizard.sections) {
+				const isCurrent = Number(s.getAttribute('data-step')) === next;
+				s.hidden = !isCurrent;
+			}
+			this._updateStepper();
+			this._updateWizardButtons();
+			// Progress bar removed
+
+			// Populate review step
+			if (this._wizard.current === this._wizard.last) {
+				this._populateReview();
+			}
+		} catch (error) {
+			console.error('Modal', 'Error changing wizard step', error);
+		}
+	}
+
+	_updateStepper() {
+		try {
+			if (!this._wizard) return;
+			for (const item of this._wizard.stepperItems) {
+				const step = Number(item.getAttribute('data-step'));
+				item.classList.toggle('active', step === this._wizard.current);
+			}
+		} catch (error) {
+			console.error('Modal', 'Error updating stepper', error);
+		}
+	}
+
+	_updateWizardButtons() {
+		try {
+			if (!this._wizard) return;
+			const { backBtn, nextBtn, current, last } = this._wizard;
+			if (backBtn) backBtn.disabled = current === 0;
+			if (nextBtn) {
+				// Rebind handler by cloning to avoid duplicate listeners
+				const newNext = nextBtn.cloneNode(true);
+				nextBtn.parentNode.replaceChild(newNext, nextBtn);
+				this._wizard.nextBtn = newNext;
+				if (current === last) {
+					newNext.textContent = 'Create';
+					newNext.classList.remove('btn-primary');
+					newNext.classList.add('btn-success');
+					newNext.addEventListener('click', () => this._createCharacterFromModal());
+				} else {
+					newNext.textContent = 'Next';
+					newNext.classList.remove('btn-success');
+					newNext.classList.add('btn-primary');
+					newNext.addEventListener('click', () => this._goStep(1));
+				}
+			}
+		} catch (error) {
+			console.error('Modal', 'Error updating wizard buttons', error);
+		}
+	}
+
+	// Progress bar removed
+
+	_validateCurrentStep() {
+		try {
+			if (!this._wizard) return false;
+			const step = this._wizard.current;
+			const form = document.getElementById('newCharacterForm');
+			if (!form) return false;
+
+			if (step === 0) {
+				// Basic validation: standard HTML5 validity covers required fields
+				if (!form.checkValidity()) {
+					form.reportValidity();
+					return false;
+				}
+				return true;
+			}
+
+			if (step === 2) {
+				// Validate source selection via SourceCard
+				const selectedSources = this._getSelectedSources();
+				return this._sourceCard.validateSourceSelection(selectedSources);
+			}
+
+			return true;
+		} catch (error) {
+			console.error('Modal', 'Error validating current step', error);
+			return false;
+		}
+	}
+
+	_populateReview() {
+		try {
+			const list = document.getElementById('newCharacterReviewList');
+			if (!list) return;
+			const data = this._getFormData();
+			const sources = Array.from(this._getSelectedSources());
+			const sourceBadges = sources
+				.map((s) => `<span class="badge source-badge">${s}</span>`)
+				.join(' ');
+
+			// Get portrait for preview
+			const portraitSrc = this._selectedPortrait?.value || 'assets/images/characters/placeholder_char_card.webp';
+
+			list.innerHTML = `
+				<div class="review-portrait-preview">
+					<img src="${portraitSrc}" alt="Character portrait" />
+					<span class="portrait-label">Selected Portrait</span>
+				</div>
+				<li><strong>Name:</strong> ${data?.name || ''}</li>
+				<li><strong>Level:</strong> ${data?.level || ''}</li>
+				<li><strong>Gender:</strong> ${data?.gender || ''}</li>
+				<li><strong>Ability Scores:</strong> ${data?.abilityScoreMethod || ''}</li>
+				<li><strong>Feats:</strong> ${data?.feats ? 'Enabled' : 'Disabled'}</li>
+				<li><strong>Multiclassing:</strong> ${data?.multiclassing ? 'Enabled' : 'Disabled'}</li>
+				<li><strong>Sources:</strong> ${sourceBadges || '<span class="text-muted">None</span>'}</li>
+			`;
+			const hint = document.getElementById('reviewValidationHint');
+			if (hint) {
+				const isValid = this._sourceCard.validateSourceSelection(new Set(sources));
+				hint.textContent = isValid
+					? 'Sources valid'
+					: 'Select at least one Player\'s Handbook (2014 or 2024).';
+				hint.className = isValid ? 'text-success' : 'text-danger';
+			}
+		} catch (error) {
+			console.error('Modal', 'Error populating review', error);
+		}
+	}
+
+	// Portrait image selection setup (default images + upload)
+	_initPortraitSelector() {
+		try {
+			const grid = document.getElementById('portraitImageGrid');
+			const previewImg = document.getElementById('portraitPreviewImg');
+			const uploadInput = document.getElementById('portraitUploadInput');
+			if (!grid || !previewImg) return;
+
+			// Default images available under assets/images/characters
+			const defaults = [
+				'assets/images/characters/placeholder_char_card1.webp',
+				'assets/images/characters/placeholder_char_card2.webp',
+				'assets/images/characters/placeholder_char_card3.webp',
+				'assets/images/characters/placeholder_char_card4.webp',
+				'assets/images/characters/placeholder_char_card5.webp',
+				'assets/images/characters/placeholder_char_card6.webp',
+				'assets/images/characters/placeholder_char_card7.webp',
+				'assets/images/characters/placeholder_char_card8.webp',
+				'assets/images/characters/placeholder_char_card9.webp',
+				'assets/images/characters/placeholder_char_card10.webp',
+				'assets/images/characters/placeholder_char_card11.webp',
+			];
+
+			// Clear and populate grid buttons
+			grid.innerHTML = '';
+			let firstBtn = null;
+			for (const src of defaults) {
+				const btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'portrait-icon-btn';
+				btn.innerHTML = `<img src="${src}" alt="Portrait option" />`;
+				btn.setAttribute('data-src', src);
+				btn.addEventListener('click', () => {
+					this._selectedPortrait = { type: 'asset', value: src };
+					previewImg.src = src;
+					const all = grid.querySelectorAll('.portrait-icon-btn');
+					for (const el of all) el.classList.remove('selected');
+					btn.classList.add('selected');
+				});
+				grid.appendChild(btn);
+				if (!firstBtn) firstBtn = btn;
+			}
+
+			// Auto-select first portrait by default
+			if (firstBtn) {
+				firstBtn.click();
+			}
+
+			// Load additional portraits from app data path (portraits subfolder)
+			(async () => {
+				try {
+					// Get the base app data path from character storage
+					const characterPath = await window.characterStorage?.getDefaultSavePath();
+					if (characterPath && typeof characterPath === 'string') {
+						// Derive portraits path: sibling to characters folder
+						const sep = characterPath.includes('\\') ? '\\' : '/';
+						const idx = characterPath.lastIndexOf(sep);
+						const basePath = idx > 0 ? characterPath.slice(0, idx) : characterPath;
+						const portraitsPath = `${basePath}${sep}portraits`;
+
+						const result = await window.app?.listPortraits?.(portraitsPath);
+						if (result?.success && Array.isArray(result.files)) {
+							for (const filePath of result.files) {
+								const fileSrc = filePath.startsWith('file://')
+									? filePath
+									: `file://${filePath.replace(/\\/g, '/')}`;
+								const btn = document.createElement('button');
+								btn.type = 'button';
+								btn.className = 'portrait-icon-btn';
+								btn.innerHTML = `<img src="${fileSrc}" alt="Portrait option" />`;
+								btn.setAttribute('data-src', fileSrc);
+								btn.addEventListener('click', () => {
+									this._selectedPortrait = { type: 'file', value: fileSrc };
+									previewImg.src = fileSrc;
+									const all = grid.querySelectorAll('.portrait-icon-btn');
+									for (const el of all) el.classList.remove('selected');
+									btn.classList.add('selected');
+								});
+
+								grid.appendChild(btn);
+							}
+						}
+					}
+				} catch (e) {
+					console.warn('Modal', 'Failed loading user portraits', e);
+				}
+			})();
+
+			// Append upload icon tile at the end of the grid
+			const uploadTile = document.createElement('button');
+			uploadTile.type = 'button';
+			uploadTile.className = 'portrait-icon-btn upload';
+			uploadTile.setAttribute('aria-label', 'Upload portrait');
+			uploadTile.innerHTML = '<i class="fas fa-upload" aria-hidden="true"></i>';
+			uploadTile.addEventListener('click', () => {
+				if (uploadInput) {
+					uploadInput.click();
+				}
+			});
+			grid.appendChild(uploadTile);
+
+			// Handle uploads as data URLs for CSP compatibility
+			if (uploadInput) {
+				uploadInput.addEventListener('change', (ev) => {
+					const file = ev.target.files?.[0];
+					if (!file) return;
+					const reader = new FileReader();
+					reader.onload = () => {
+						const dataUrl = reader.result;
+						if (typeof dataUrl === 'string') {
+							this._selectedPortrait = { type: 'data', value: dataUrl };
+							previewImg.src = dataUrl;
+							// Clear selection highlight
+							const all = grid.querySelectorAll('.portrait-icon-btn');
+							for (const el of all) el.classList.remove('selected');
+							// No selection class for upload tile; it acts as trigger
+						}
+					};
+					reader.readAsDataURL(file);
+				});
+			}
+		} catch (error) {
+			console.error('Modal', 'Error initializing portrait selector', error);
 		}
 	}
 
@@ -157,6 +497,9 @@ export class Modal {
 					newCharacterBtn.focus();
 				}
 				bootstrapModal.hide();
+
+				// Emit closed event for listeners
+				eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_CLOSED);
 			}
 
 			// Clear form
@@ -209,6 +552,7 @@ export class Modal {
 				name: nameInput.value.trim(),
 				level: Number.parseInt(levelInput.value, 10),
 				gender: genderInput.value,
+				portrait: this._selectedPortrait?.value || 'assets/images/characters/placeholder_char_card.webp',
 				feats: featVariant.checked,
 				multiclassing: multiclassVariant.checked,
 				abilityScoreMethod: abilityScoreMethod.value,
@@ -272,6 +616,7 @@ export class Modal {
 				multiclassing: formData.multiclassing,
 				abilityScoreMethod: formData.abilityScoreMethod,
 			};
+			character.portrait = formData.portrait;
 
 			// Update SourceService with the selected sources so dropdowns populate correctly
 			const { sourceService } = await import('../services/SourceService.js');

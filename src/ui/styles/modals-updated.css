@@ -41,6 +41,7 @@
 .modal.show {
 	display: block;
 }
+
 #newCharacterModal .modal-content {
 	height: 700px;
 }
@@ -57,13 +58,13 @@
 	pointer-events: none;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	min-height: calc(100% - 3.5rem);
+	max-height: calc(100% - 3.5rem);
 	position: relative;
 	width: var(--modal-width);
 	max-width: var(--modal-max-width);
 	margin: 1.75rem auto;
-	min-height: calc(100% - 3.5rem);
-	max-height: calc(100% - 3.5rem);
+	box-shadow: var(--shadow-elevated);
 }
 
 /* Fixed size for wizard modal (removed old 600px rules) */
@@ -87,7 +88,7 @@
 	border: 1px solid var(--modal-border);
 	border-radius: var(--border-radius-lg);
 	box-shadow: var(--shadow-elevated);
-	max-height: 90vh;
+	max-height: calc(100vh - 3.5rem);
 }
 
 /* Modal header */
@@ -297,7 +298,7 @@
 
 /* Increase top gap before Character Name in Basics section */
 .modal-body .form-section[data-step="0"] {
-	/* unified in base rule */
+	padding-top: 0.75rem;
 }
 .icon-grid {
 	display: grid;
@@ -552,16 +553,12 @@
 
 /* ===== Modal Form Section Styles ===== */
 .modal-body .form-section {
-	padding: 0.75rem 1.25rem 1.25rem;
+	padding: 1.25rem;
 	border-bottom: 1px solid var(--border-color);
 }
 
-/* Remove inter-section margin that pushes steps downward */
-.modal-body .form-section + .form-section {
-	margin-top: 0;
-}
-
 .modal-body .form-section:first-child {
+	padding-top: 0;
 	display: flex;
 	flex-direction: column;
 }

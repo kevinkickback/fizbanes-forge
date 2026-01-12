@@ -285,7 +285,6 @@ function _setupUiEventHandlers() {
 
 		// Set up save button handler
 		const saveButton = document.getElementById('saveCharacter');
-		const unsavedIndicator = document.getElementById('unsavedChangesIndicator');
 
 		// Centralized unsaved indicator logic
 		const PagesShowUnsaved = new Set(['build', 'details']);
@@ -298,16 +297,13 @@ function _setupUiEventHandlers() {
 					hasUnsaved && PagesShowUnsaved.has(currentPage),
 				);
 
-				if (!unsavedIndicator) return;
-
-				unsavedIndicator.style.display = shouldShow ? 'inline-block' : 'none';
+				// Update titlebar unsaved indicator (already managed by CHARACTER_UPDATED event)
 				console.debug(
 					'AppInitializer',
 					`Unsaved indicator updated: show=${shouldShow}`,
 					{
 						hasUnsaved,
 						currentPage,
-						display: unsavedIndicator.style.display,
 					},
 				);
 			} catch (e) {

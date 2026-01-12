@@ -1,5 +1,6 @@
 import { dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
@@ -68,6 +69,27 @@ export function registerFileHandlers(windowManager) {
 			return { success: true };
 		} catch (error) {
 			MainLogger.error('FileHandlers', 'Open file failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
+
+	// List portrait image files from a directory
+	ipcMain.handle(IPC_CHANNELS.PORTRAITS_LIST, async (_event, dirPath) => {
+		try {
+			if (!dirPath || typeof dirPath !== 'string') {
+				return { success: false, error: 'Invalid directory path' };
+			}
+
+			const entries = await fs.readdir(dirPath, { withFileTypes: true });
+			const allowed = new Set(['.webp', '.png', '.jpg', '.jpeg']);
+			const files = entries
+				.filter((d) => d.isFile())
+				.map((d) => path.join(dirPath, d.name))
+				.filter((p) => allowed.has(path.extname(p).toLowerCase()));
+
+			return { success: true, files };
+		} catch (error) {
+			MainLogger.error('FileHandlers', 'Portraits list failed:', error);
 			return { success: false, error: error.message };
 		}
 	});

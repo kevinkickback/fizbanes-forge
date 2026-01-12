@@ -247,6 +247,7 @@ class PageHandlerImpl {
 		}
 
 		if (characters.length === 0) {
+			characterList.classList.add('empty-state-mode');
 			this.showEmptyState(characterList);
 			// Hide the top row with New Character button when there are no characters
 			const topButtonRow = document.querySelector('.row.mb-4');
@@ -261,6 +262,7 @@ class PageHandlerImpl {
 		if (topButtonRow) {
 			topButtonRow.style.display = '';
 		}
+		characterList.classList.remove('empty-state-mode');
 
 		// Get the sort option and apply sorting
 		const sortSelect = document.getElementById('sortSelect');
@@ -291,16 +293,29 @@ class PageHandlerImpl {
 					? `${subclassName} - ${characterClass}`
 					: characterClass;
 
-				// Randomize placeholder image for testing
+				// Default placeholder portraits
 				const placeholderImages = [
-					'assets/images/placeholder_char_card.webp',
-					'assets/images/placeholder_char_card2.webp',
-					'assets/images/placeholder_char_card3.webp'
+					'assets/images/characters/placeholder_char_card.webp',
+					'assets/images/characters/placeholder_char_card2.webp',
+					'assets/images/characters/placeholder_char_card3.webp'
 				];
-				const randomPlaceholder = placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
+				const defaultPlaceholder = placeholderImages[0];
 
-				const portraitUrl =
-					character.portrait || character.image || character.avatar || randomPlaceholder;
+				const rawPortrait =
+					character.portrait || character.image || character.avatar || defaultPlaceholder;
+				const portraitUrl = (() => {
+					if (!rawPortrait) return defaultPlaceholder;
+					// Already a data URL or file URL
+					if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
+						return rawPortrait;
+					}
+					// Windows absolute path -> file URL
+					if (/^[A-Za-z]:\\/.test(rawPortrait)) {
+						return `file://${rawPortrait.replace(/\\/g, '/')}`;
+					}
+					// Normalize backslashes to forward slashes for CSS url()
+					return rawPortrait.replace(/\\/g, '/');
+				})();
 				const lastModified = character.lastModified
 					? new Date(character.lastModified).toLocaleDateString()
 					: 'Unknown';
