@@ -25,6 +25,15 @@ export class EquipmentSelectionModal {
             rarity: new Set(), // common, uncommon, rare, very rare, legendary, artifact
             property: new Set(), // magic, cursed, consumable, etc.
         };
+
+        // Performance optimization
+        this.descriptionCache = new Map(); // Cache processed descriptions
+        this.filterDebounceTimer = null; // Debounce filter operations
+        this.scrollTimeout = null; // Debounce scroll events
+
+        // Virtual scrolling parameters
+        this.itemsPerPage = 50; // Render 50 items at a time
+        this.currentPage = 0;
     }
 
     async show() {
@@ -164,12 +173,12 @@ export class EquipmentSelectionModal {
     }
 
     _setupEventListeners() {
-        // Search input
+        // Search input with debounce
         const searchInput = this.modal.querySelector('#equipmentSearch');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.searchTerm = e.target.value.toLowerCase().trim();
-                this._filterItems();
+                this._debouncedFilterItems();
             });
         }
 
@@ -221,7 +230,7 @@ export class EquipmentSelectionModal {
                 } else {
                     this.filters.type.delete(checkbox.value);
                 }
-                this._filterItems();
+                this._debouncedFilterItems();
             });
         });
 
@@ -236,7 +245,7 @@ export class EquipmentSelectionModal {
                 } else {
                     this.filters.rarity.delete(checkbox.value);
                 }
-                this._filterItems();
+                this._debouncedFilterItems();
             });
         });
 
@@ -251,7 +260,7 @@ export class EquipmentSelectionModal {
                 } else {
                     this.filters.property.delete(checkbox.value);
                 }
-                this._filterItems();
+                this._debouncedFilterItems();
             });
         });
 
@@ -286,7 +295,17 @@ export class EquipmentSelectionModal {
         });
     }
 
+    _debouncedFilterItems() {
+        if (this.filterDebounceTimer) {
+            clearTimeout(this.filterDebounceTimer);
+        }
+        this.filterDebounceTimer = setTimeout(() => {
+            this._filterItems();
+        }, 150); // 150ms debounce for responsive feel
+    }
+
     _filterItems() {
+        this.currentPage = 0; // Reset to first page when filtering
         this.filteredItems = this.allItems.filter((item) =>
             this._itemMatchesFilters(item),
         );
@@ -361,21 +380,26 @@ export class EquipmentSelectionModal {
         return true;
     }
 
-    async _renderItemList() {
+    _renderItemList() {
         const listContainer = this.modal.querySelector('.equipment-list-container');
         if (!listContainer) return;
 
         console.log(
             '[EquipmentSelectionModal]',
-            `Rendering ${this.filteredItems.length} items`,
+            `Rendering page ${this.currentPage} of ${this.filteredItems.length} items`,
         );
+
+        // Calculate pagination
+        const startIdx = this.currentPage * this.itemsPerPage;
+        const endIdx = startIdx + this.itemsPerPage;
+        const itemsToRender = this.filteredItems.slice(startIdx, endIdx);
 
         let html = '';
 
         if (this.filteredItems.length === 0) {
             html = '<div class="alert alert-info">No items match your filters.</div>';
         } else {
-            for (const item of this.filteredItems) {
+            for (const item of itemsToRender) {
                 const requiresAttunement = this._requiresAttunement(item);
                 const typeCodes = this._getItemTypeCodes(item);
                 const type = this._getItemTypeName(typeCodes[0]);
@@ -387,23 +411,10 @@ export class EquipmentSelectionModal {
                         ? `${item.cost / 100} gp`
                         : 'N/A';
 
-                // Get description with textProcessor for custom tooltips/tags
-                let description = 'No description';
-                if (item.entries && item.entries.length > 0) {
-                    const descParts = [];
-                    for (const entry of item.entries) {
-                        if (typeof entry === 'string') {
-                            descParts.push(await textProcessor.processString(entry));
-                        } else if (entry?.entries && Array.isArray(entry.entries)) {
-                            for (const subEntry of entry.entries) {
-                                if (typeof subEntry === 'string') {
-                                    descParts.push(await textProcessor.processString(subEntry));
-                                }
-                            }
-                        }
-                    }
-                    description = descParts.join(' ');
-                }
+                // Use cached description or placeholder
+                const description = this.descriptionCache.has(item.id)
+                    ? this.descriptionCache.get(item.id)
+                    : '<span class="text-muted small">Loading...</span>';
 
                 const isSelected = this.selectedItems.includes(item.id);
                 const selectedClass = isSelected ? 'selected' : '';
@@ -436,10 +447,87 @@ export class EquipmentSelectionModal {
                     </div>
                 `;
             }
+
+            // Add "load more" button if there are more items
+            if (endIdx < this.filteredItems.length) {
+                html += `
+                    <div class="text-center mt-3">
+                        <button class="btn btn-sm btn-outline-secondary" id="loadMoreItems">
+                            Load More (${this.filteredItems.length - endIdx} remaining)
+                        </button>
+                    </div>
+                `;
+            }
         }
 
         listContainer.innerHTML = html;
+
+        // Attach load more handler
+        const loadMoreBtn = listContainer.querySelector('#loadMoreItems');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                this.currentPage++;
+                this._renderItemList();
+            });
+        }
+
         this._renderSelectedItemsList();
+
+        // Process descriptions asynchronously in background without blocking render
+        this._processDescriptionsInBackground();
+    }
+
+    _processDescriptionsInBackground() {
+        // Process items that don't have cached descriptions yet
+        const itemsNeedingDesc = this.filteredItems.filter(
+            (item) => !this.descriptionCache.has(item.id)
+        );
+
+        if (itemsNeedingDesc.length === 0) return;
+
+        // Process one at a time without blocking
+        let index = 0;
+        const processNext = async () => {
+            if (index >= itemsNeedingDesc.length) return;
+
+            const item = itemsNeedingDesc[index];
+            index++;
+
+            try {
+                if (!this.descriptionCache.has(item.id)) {
+                    let description = 'No description';
+                    if (item.entries && item.entries.length > 0) {
+                        const descParts = [];
+                        for (const entry of item.entries) {
+                            if (typeof entry === 'string') {
+                                descParts.push(await textProcessor.processString(entry));
+                            } else if (entry?.entries && Array.isArray(entry.entries)) {
+                                for (const subEntry of entry.entries) {
+                                    if (typeof subEntry === 'string') {
+                                        descParts.push(await textProcessor.processString(subEntry));
+                                    }
+                                }
+                            }
+                        }
+                        description = descParts.join(' ');
+                    }
+                    this.descriptionCache.set(item.id, description);
+
+                    // Update the DOM for this item if it's still visible
+                    const card = this.modal?.querySelector(`[data-item-id="${item.id}"] .item-description`);
+                    if (card) {
+                        card.innerHTML = description;
+                    }
+                }
+            } catch (error) {
+                console.error('[EquipmentSelectionModal]', 'Error processing description:', error);
+            }
+
+            // Process next item after a tiny delay to avoid blocking
+            setTimeout(processNext, 0);
+        };
+
+        processNext();
     }
 
     _renderSelectedItemsList() {
@@ -582,7 +670,7 @@ export class EquipmentSelectionModal {
             cb.checked = false;
         });
 
-        this._filterItems();
+        this._debouncedFilterItems();
     }
 
     async _handleAddSelected() {
@@ -638,11 +726,15 @@ export class EquipmentSelectionModal {
     }
 
     _cleanup() {
+        if (this.filterDebounceTimer) {
+            clearTimeout(this.filterDebounceTimer);
+        }
         this.selectedItems = [];
         this.searchTerm = '';
         this.selectedSources.clear();
         this.filters.type.clear();
         this.filters.rarity.clear();
         this.filters.property.clear();
+        this.descriptionCache.clear();
     }
 }

@@ -29,6 +29,15 @@ export class SpellSelectionModal {
             ritual: null, // null=any, true=ritual only, false=non-ritual only
             concentration: null, // null=any, true=concentration, false=no concentration
         };
+
+        // Performance optimization
+        this.descriptionCache = new Map(); // Cache processed descriptions
+        this.filterDebounceTimer = null; // Debounce filter operations
+        this.scrollTimeout = null; // Debounce scroll events
+
+        // Virtual scrolling parameters
+        this.spellsPerPage = 50; // Render 50 spells at a time
+        this.currentPage = 0;
     }
 
     async show() {
@@ -145,13 +154,18 @@ export class SpellSelectionModal {
             this._spellMatchesFilters(spell),
         );
 
-        // Build HTML
+        // Calculate pagination
+        const startIdx = this.currentPage * this.spellsPerPage;
+        const endIdx = startIdx + this.spellsPerPage;
+        const spellsToRender = this.filteredSpells.slice(startIdx, endIdx);
+
+        // Build HTML without awaiting descriptions
         let html = '';
 
         if (this.filteredSpells.length === 0) {
             html = '<div class="alert alert-info">No spells match your filters.</div>';
         } else {
-            for (const spell of this.filteredSpells) {
+            for (const spell of spellsToRender) {
                 const level = spell.level !== undefined ? spell.level : 0;
                 const levelText = level === 0 ? 'Cantrip' : `${level}${this._getOrdinalSuffix(level)}-level`;
                 const school = spell.school || 'Unknown';
@@ -176,23 +190,10 @@ export class SpellSelectionModal {
                 const ritual = spell.meta?.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : '';
                 const concentration = spell.duration?.[0]?.concentration ? '<span class="badge bg-warning ms-2">Concentration</span>' : '';
 
-                // Get description with textProcessor for custom tooltips and tags
-                let description = 'No description';
-                if (spell.entries && spell.entries.length > 0) {
-                    const descParts = [];
-                    for (const entry of spell.entries) {
-                        if (typeof entry === 'string') {
-                            descParts.push(await textProcessor.processString(entry));
-                        } else if (entry?.entries && Array.isArray(entry.entries)) {
-                            for (const subEntry of entry.entries) {
-                                if (typeof subEntry === 'string') {
-                                    descParts.push(await textProcessor.processString(subEntry));
-                                }
-                            }
-                        }
-                    }
-                    description = descParts.join(' ');
-                }
+                // Use cached description or placeholder
+                const description = this.descriptionCache.has(spell.id)
+                    ? this.descriptionCache.get(spell.id)
+                    : '<span class="text-muted small">Loading...</span>';
 
                 const isSelected = this.selectedSpells.some(s => s.id === spell.id);
                 const selectedClass = isSelected ? 'selected' : '';
@@ -232,9 +233,29 @@ export class SpellSelectionModal {
                     </div>
                 `;
             }
+
+            // Add "load more" button if there are more spells
+            if (endIdx < this.filteredSpells.length) {
+                html += `
+                    <div class="text-center mt-3">
+                        <button class="btn btn-sm btn-outline-secondary" id="loadMoreSpells">
+                            Load More (${this.filteredSpells.length - endIdx} remaining)
+                        </button>
+                    </div>
+                `;
+            }
         }
 
         listContainer.innerHTML = html;
+
+        // Attach load more handler
+        const loadMoreBtn = listContainer.querySelector('#loadMoreSpells');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                this.currentPage++;
+                this._renderSpellList();
+            });
+        }
 
         // Render selected spells list
         this._renderSelectedSpellsList();
@@ -248,6 +269,62 @@ export class SpellSelectionModal {
                 this._toggleSpellSelection(spellId);
             });
         });
+
+        // Process descriptions asynchronously in background without blocking render
+        this._processDescriptionsInBackground();
+    }
+
+    _processDescriptionsInBackground() {
+        // Process spells that don't have cached descriptions yet
+        const spellsNeedingDesc = this.filteredSpells.filter(
+            (spell) => !this.descriptionCache.has(spell.id)
+        );
+
+        if (spellsNeedingDesc.length === 0) return;
+
+        // Process one at a time without blocking
+        let index = 0;
+        const processNext = async () => {
+            if (index >= spellsNeedingDesc.length) return;
+
+            const spell = spellsNeedingDesc[index];
+            index++;
+
+            try {
+                if (!this.descriptionCache.has(spell.id)) {
+                    let description = 'No description';
+                    if (spell.entries && spell.entries.length > 0) {
+                        const descParts = [];
+                        for (const entry of spell.entries) {
+                            if (typeof entry === 'string') {
+                                descParts.push(await textProcessor.processString(entry));
+                            } else if (entry?.entries && Array.isArray(entry.entries)) {
+                                for (const subEntry of entry.entries) {
+                                    if (typeof subEntry === 'string') {
+                                        descParts.push(await textProcessor.processString(subEntry));
+                                    }
+                                }
+                            }
+                        }
+                        description = descParts.join(' ');
+                    }
+                    this.descriptionCache.set(spell.id, description);
+
+                    // Update the DOM for this spell if it's still visible
+                    const card = this.modal?.querySelector(`[data-spell-id="${spell.id}"] .spell-description`);
+                    if (card) {
+                        card.innerHTML = description;
+                    }
+                }
+            } catch (error) {
+                console.error('[SpellSelectionModal]', 'Error processing description:', error);
+            }
+
+            // Process next spell after a tiny delay to avoid blocking
+            setTimeout(processNext, 0);
+        };
+
+        processNext();
     }
 
     _getOrdinalSuffix(num) {
@@ -272,8 +349,14 @@ export class SpellSelectionModal {
             this.selectedSpells.push(spell);
         }
 
-        // Re-render to update visual state
-        this._renderSpellList();
+        // Update only the visual state of the card without full re-render
+        const card = this.modal?.querySelector(`[data-spell-id="${spellId}"]`);
+        if (card) {
+            card.classList.toggle('selected');
+        }
+
+        // Update selected spells list
+        this._renderSelectedSpellsList();
         this._updateAddButtonState();
     }
 
@@ -517,7 +600,9 @@ export class SpellSelectionModal {
                     const source = item.dataset.source;
 
                     // Remove active class from all items
-                    items.forEach(i => i.classList.remove('active'));
+                    items.forEach(i => {
+                        i.classList.remove('active');
+                    });
                     item.classList.add('active');
 
                     // Update selected source
@@ -533,8 +618,8 @@ export class SpellSelectionModal {
                     menu.classList.remove('show');
                     toggle.setAttribute('aria-expanded', 'false');
 
-                    // Re-render spell list
-                    this._renderSpellList();
+                    // Re-render spell list with debounce
+                    this._debouncedRenderSpellList();
                 });
             });
 
@@ -552,12 +637,12 @@ export class SpellSelectionModal {
     }
 
     _attachEventListeners() {
-        // Search input
+        // Search input with debounce
         const searchInput = this.modal.querySelector('.spell-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.searchTerm = e.target.value;
-                this._renderSpellList();
+                this._debouncedRenderSpellList();
             });
         }
 
@@ -589,7 +674,7 @@ export class SpellSelectionModal {
                 const character = AppState.getCurrentCharacter();
                 await this._loadValidSpells(character);
                 this.filteredSpells = this.validSpells;
-                await this._renderSpellList();
+                this._renderSpellList();
             };
 
             ignoreRestrictionsCheckbox.addEventListener('change', this._restrictionsToggleHandler);
@@ -607,7 +692,7 @@ export class SpellSelectionModal {
                 } else {
                     this.filters.level.delete(checkbox.value);
                 }
-                this._renderSpellList();
+                this._debouncedRenderSpellList();
             });
         });
 
@@ -620,7 +705,7 @@ export class SpellSelectionModal {
                 } else {
                     this.filters.school.delete(checkbox.value);
                 }
-                this._renderSpellList();
+                this._debouncedRenderSpellList();
             });
         });
 
@@ -633,7 +718,7 @@ export class SpellSelectionModal {
                 } else {
                     this.filters.ritual = null;
                 }
-                this._renderSpellList();
+                this._debouncedRenderSpellList();
             });
         }
 
@@ -646,7 +731,7 @@ export class SpellSelectionModal {
                 } else {
                     this.filters.concentration = null;
                 }
-                this._renderSpellList();
+                this._debouncedRenderSpellList();
             });
         }
 
@@ -670,6 +755,16 @@ export class SpellSelectionModal {
                 }
             });
         }
+    }
+
+    _debouncedRenderSpellList() {
+        if (this.filterDebounceTimer) {
+            clearTimeout(this.filterDebounceTimer);
+        }
+        this.currentPage = 0; // Reset to first page when filtering
+        this.filterDebounceTimer = setTimeout(() => {
+            this._renderSpellList();
+        }, 150); // 150ms debounce for responsive feel
     }
 
     _handleAddSpell() {
@@ -753,6 +848,10 @@ export class SpellSelectionModal {
     }
 
     _handleCancel() {
+        if (this.filterDebounceTimer) {
+            clearTimeout(this.filterDebounceTimer);
+        }
+        this.descriptionCache.clear();
         this.bootstrapModal.hide();
         if (this._resolvePromise) {
             this._resolvePromise(null);
