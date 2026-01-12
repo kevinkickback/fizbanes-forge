@@ -279,19 +279,22 @@ class PageHandlerImpl {
 		characterList.innerHTML = sortedCharacters
 			.map((character) => {
 				const isActive = character.id === activeCharacterId;
-				const characterClass = character.class?.name || 'No Class';
 				const characterRace = character.race?.name || 'No Race';
-				const characterLevel = character.level || character.class?.level || 1;
-				const subclassNameRaw = character.class?.subclass;
-				const subclassName =
-					typeof subclassNameRaw === 'string'
-						? subclassNameRaw
-						: subclassNameRaw?.name ||
-						subclassNameRaw?.title ||
-						subclassNameRaw?.id;
-				const classDisplay = subclassName
-					? `${subclassName} - ${characterClass}`
-					: characterClass;
+				const progressionClasses = Array.isArray(character.progression?.classes)
+					? character.progression.classes
+					: [];
+				const characterLevel = progressionClasses.length
+					? progressionClasses.reduce((sum, cls) => sum + (cls.level || 0), 0) || 1
+					: character.level || character.class?.level || 1;
+				const classDisplay = progressionClasses.length
+					? progressionClasses
+						.map((cls) => {
+							return cls.name || 'Unknown Class';
+						})
+						.join('<br>')
+					: (() => {
+						return character.class?.name || 'No Class';
+					})();
 
 				// Default placeholder portraits
 				const placeholderImages = [
@@ -346,24 +349,26 @@ class PageHandlerImpl {
 											<span>${classDisplay}</span>
 										</div>
 									</div>
+								</div>
+
+								<div class="card-actions-wrap mt-3">
+									<div class="card-actions">
+										<button class="btn btn-lg btn-outline-secondary export-character" 
+											data-character-id="${character.id}" 
+											title="Export Character">
+											<i class="fas fa-file-export"></i>
+										</button>
+										<button class="btn btn-lg btn-outline-danger delete-character" 
+											data-character-id="${character.id}" 
+											title="Delete Character">
+											<i class="fas fa-trash"></i>
+										</button>
+									</div>
 									<div class="last-modified">
 										<i class="fas fa-clock me-2"></i>
 										<span>Last modified: ${lastModified}</span>
 									</div>
 								</div>
-
-							<div class="card-actions mt-3">
-								<button class="btn btn-lg btn-outline-secondary export-character" 
-									data-character-id="${character.id}" 
-									title="Export Character">
-									<i class="fas fa-file-export"></i>
-								</button>
-								<button class="btn btn-lg btn-outline-danger delete-character" 
-									data-character-id="${character.id}" 
-									title="Delete Character">
-									<i class="fas fa-trash"></i>
-								</button>
-							</div>
 						</div>
 					</div>
             `;

@@ -378,12 +378,10 @@ body.debug-mode .nav-item.debug-only {
 	width: calc(100% - var(--sidebar-width));
 	margin-left: var(--sidebar-width);
 	padding: 2rem 1.5rem;
-	min-height: 100vh;
-	position: relative;
-	padding-bottom: 4rem;
-	box-sizing: border-box;
+	height: 100vh;
 	overflow-y: auto;
 	overflow-x: hidden;
+	box-sizing: border-box;
 }
 
 /* Cards */
@@ -692,6 +690,7 @@ body.debug-mode .nav-item.debug-only {
 	justify-content: space-between;
 	gap: 0.5rem;
 	padding: 0.6rem 1rem;
+	border-bottom: 0;
 }
 
 .character-card .card-header h5 {
@@ -745,6 +744,8 @@ body.debug-mode .nav-item.debug-only {
 	padding-left: 50%;
 	position: relative;
 	z-index: 1;
+	align-items: flex-end;
+	text-align: right;
 }
 
 .character-card .character-main {
@@ -756,7 +757,7 @@ body.debug-mode .nav-item.debug-only {
 .character-card .card-actions {
 	position: relative;
 	z-index: 1;
-	padding: 0 1.5rem 1.5rem;
+	padding: 0;
 	margin-top: 0;
 }
 
@@ -765,24 +766,32 @@ body.debug-mode .nav-item.debug-only {
 	position: absolute;
 	top: 0;
 	left: -20%;
-	width: 75%;
+	width: 90%;
 	bottom: 0;
 	z-index: 0;
 	background-size: cover;
-	background-position: center center;
+	background-position: center 30%;
 	background-repeat: no-repeat;
 	-webkit-mask-image: linear-gradient(
 		to right,
 		rgba(0, 0, 0, 1) 0%,
-		rgba(0, 0, 0, 0.8) 40%,
-		rgba(0, 0, 0, 0.3) 70%,
+		rgba(0, 0, 0, 0.9) 15%,
+		rgba(0, 0, 0, 0.8) 30%,
+		rgba(0, 0, 0, 0.65) 45%,
+		rgba(0, 0, 0, 0.45) 60%,
+		rgba(0, 0, 0, 0.2) 75%,
+		rgba(0, 0, 0, 0) 89%,
 		rgba(0, 0, 0, 0) 100%
 	);
 	mask-image: linear-gradient(
 		to right,
 		rgba(0, 0, 0, 1) 0%,
-		rgba(0, 0, 0, 0.8) 40%,
-		rgba(0, 0, 0, 0.3) 70%,
+		rgba(0, 0, 0, 0.9) 15%,
+		rgba(0, 0, 0, 0.8) 30%,
+		rgba(0, 0, 0, 0.65) 45%,
+		rgba(0, 0, 0, 0.45) 60%,
+		rgba(0, 0, 0, 0.2) 75%,
+		rgba(0, 0, 0, 0) 89%,
 		rgba(0, 0, 0, 0) 100%
 	);
 }
@@ -830,6 +839,7 @@ body.debug-mode .nav-item.debug-only {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+	align-items: flex-end;
 }
 
 .character-card .detail-item {
@@ -838,6 +848,9 @@ body.debug-mode .nav-item.debug-only {
 	gap: 0.5rem;
 	color: var(--text-light);
 	font-size: 0.9rem;
+	justify-content: flex-end;
+	text-align: right;
+	flex-direction: row-reverse;
 }
 
 .character-card .detail-item i {
@@ -846,14 +859,17 @@ body.debug-mode .nav-item.debug-only {
 	font-size: 1rem;
 }
 
+.character-card .detail-item i.fa-hat-wizard {
+	align-self: flex-start;
+}
+
 .character-card .last-modified {
 	font-size: 0.8rem;
 	color: var(--text-very-light);
-	margin-top: auto;
-	align-self: flex-start;
 	display: flex;
 	align-items: center;
 	gap: 0.25rem;
+	justify-content: flex-end;
 }
 
 .character-card .last-modified i {
@@ -869,7 +885,18 @@ body.debug-mode .nav-item.debug-only {
 	display: flex;
 	gap: 0.75rem;
 	justify-content: flex-end;
-	margin-top: 1rem;
+	margin-top: 0;
+}
+
+.character-card .card-actions-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.35rem;
+	padding: 0 1.5rem 1.25rem;
+	margin-top: auto;
+	position: relative;
+	z-index: 1;
 }
 
 .character-card .card-actions button {

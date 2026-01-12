@@ -333,27 +333,32 @@ export class Modal {
 			list.innerHTML = `
 				<div class="review-portrait-preview">
 					<img src="${portraitSrc}" alt="Character portrait" />
-					<span class="portrait-label">Selected Portrait</span>
 				</div>
-				<li><strong>Name:</strong> ${data?.name || ''}</li>
-				<li><strong>Level:</strong> ${data?.level || ''}</li>
-				<li><strong>Gender:</strong> ${data?.gender || ''}</li>
-				<li><strong>Ability Scores:</strong> ${data?.abilityScoreMethod || ''}</li>
-				<li><strong>Feats:</strong> ${data?.feats ? 'Enabled' : 'Disabled'}</li>
-				<li><strong>Multiclassing:</strong> ${data?.multiclassing ? 'Enabled' : 'Disabled'}</li>
-				<li><strong>Sources:</strong> ${sourceBadges || '<span class="text-muted">None</span>'}</li>
+				<li class="review-name"><i class="fas fa-user review-icon"></i><strong>Name:</strong> <span class="review-value">${data?.name || ''}</span></li>
+				<li><i class="fas fa-chart-line review-icon"></i><strong>Level:</strong> <span class="review-value">${data?.level || ''}</span></li>
+			<li><i class="fas fa-venus-mars review-icon"></i><strong>Gender:</strong> <span class="review-value">${data?.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : ''}</span></li>
+			<li><i class="fas fa-star review-icon"></i><strong>Ability Scores:</strong> <span class="review-value">${this._formatAbilityScoreMethod(data?.abilityScoreMethod || '')}</span></li>
+				<li><i class="fas fa-scroll review-icon"></i><strong>Feats:</strong> <span class="review-value">${data?.feats ? 'Enabled' : 'Disabled'}</span></li>
+				<li><i class="fas fa-code-branch review-icon"></i><strong>Multiclassing:</strong> <span class="review-value">${data?.multiclassing ? 'Enabled' : 'Disabled'}</span></li>
+				<li class="review-sources"><i class="fas fa-book review-icon"></i><strong>Sources:</strong> ${sourceBadges || '<span class="text-muted">None</span>'}</li>
 			`;
 			const hint = document.getElementById('reviewValidationHint');
 			if (hint) {
 				const isValid = this._sourceCard.validateSourceSelection(new Set(sources));
 				hint.textContent = isValid
-					? 'Sources valid'
+					? ''
 					: 'Select at least one Player\'s Handbook (2014 or 2024).';
-				hint.className = isValid ? 'text-success' : 'text-danger';
+				hint.className = isValid ? 'text-muted' : 'text-danger';
 			}
 		} catch (error) {
 			console.error('Modal', 'Error populating review', error);
 		}
+	}
+
+	_formatAbilityScoreMethod(method) {
+		if (!method) return '';
+		// Convert camelCase to Title Case: pointBuy -> Point Buy, standardArray -> Standard Array
+		return method.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()).trim();
 	}
 
 	// Portrait image selection setup (default images + upload)
