@@ -173,6 +173,19 @@ export class EquipmentSelectionModal {
             });
         }
 
+        // Filter toggle button
+        const filterToggleBtn = this.modal.querySelector('#equipmentFilterToggleBtn');
+        if (filterToggleBtn) {
+            filterToggleBtn.addEventListener('click', () => {
+                const filtersPanel = this.modal.querySelector('#equipmentFiltersPanel');
+                if (filtersPanel) {
+                    const isVisible = filterToggleBtn.getAttribute('data-filters-visible') === 'true';
+                    filtersPanel.classList.toggle('collapsed');
+                    filterToggleBtn.setAttribute('data-filters-visible', !isVisible);
+                }
+            });
+        }
+
         // Source dropdown toggle
         const sourceMenu = this.modal.querySelector('.equipment-source-menu');
         const sourceToggle = this.modal.querySelector('.equipment-source-toggle');
@@ -437,25 +450,23 @@ export class EquipmentSelectionModal {
 
         if (this.selectedItems.length === 0) {
             selectedContainer.innerHTML =
-                '<p class="text-muted">No items selected</p>';
+                '<p class="text-muted small mb-0">No items selected</p>';
             return;
         }
 
-        let html = '<ul class="list-group">';
+        let html = '<div class="d-flex flex-wrap gap-2">';
         for (const itemId of this.selectedItems) {
             const item = this.allItems.find((i) => i.id === itemId);
             if (item) {
                 html += `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>${item.name}</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation()" data-remove-item="${itemId}">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </li>
+                    <span class="badge bg-secondary">
+                        ${item.name}
+                        <button class="btn-close btn-close-white ms-2" data-remove-item="${itemId}" style="font-size: 0.7rem;"></button>
+                    </span>
                 `;
             }
         }
-        html += '</ul>';
+        html += '</div>';
 
         selectedContainer.innerHTML = html;
 

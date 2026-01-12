@@ -64,13 +64,10 @@ export class SpellSelectionModal {
             await this._renderSpellList();
             this._attachEventListeners();
 
-            // Set initial state of restrictions toggle button
-            const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
-            if (ignoreRestrictionsBtn) {
-                ignoreRestrictionsBtn.setAttribute(
-                    'data-restrictions',
-                    !this.ignoreClassRestrictions,
-                );
+            // Set initial state of restrictions checkbox
+            const ignoreRestrictionsCheckbox = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
+            if (ignoreRestrictionsCheckbox) {
+                ignoreRestrictionsCheckbox.checked = this.ignoreClassRestrictions;
             }
 
             // Create or reuse Bootstrap modal instance
@@ -486,16 +483,15 @@ export class SpellSelectionModal {
             const sortedSources = Array.from(sources).sort();
 
             // Build dropdown menu
-            let html = '<div class="dropdown-item" data-source="all">All sources</div>';
-            html += '<div class="dropdown-divider"></div>';
+            let html = '<a class="dropdown-item" data-source="">All sources</a>';
 
             sortedSources.forEach(source => {
                 try {
                     const sourceName = sourceService.getSourceName(source) || source;
-                    html += `<div class="dropdown-item" data-source="${source}">${sourceName}</div>`;
+                    html += `<a class="dropdown-item" data-source="${source}">${sourceName}</a>`;
                 } catch (err) {
                     console.warn('[SpellSelectionModal]', 'Error getting source name for', source, err);
-                    html += `<div class="dropdown-item" data-source="${source}">${source}</div>`;
+                    html += `<a class="dropdown-item" data-source="${source}">${source}</a>`;
                 }
             });
 
@@ -511,30 +507,33 @@ export class SpellSelectionModal {
                 menu.classList.toggle('show');
             });
 
-            // Handle item selection
+            // Handle source selection
             const items = menu.querySelectorAll('.dropdown-item');
             items.forEach(item => {
                 item.addEventListener('click', (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+
                     const source = item.dataset.source;
 
-                    if (source === 'all') {
-                        this.selectedSources.clear();
-                        toggle.textContent = 'All sources';
+                    // Remove active class from all items
+                    items.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Update selected source
+                    if (source) {
+                        this.selectedSources = new Set([source]);
+                        toggle.textContent = item.textContent;
                     } else {
-                        this.selectedSources.clear();
-                        this.selectedSources.add(source);
-                        try {
-                            const sourceName = sourceService.getSourceName(source) || source;
-                            toggle.textContent = sourceName;
-                        } catch (err) {
-                            console.warn('[SpellSelectionModal]', 'Error getting source name', err);
-                            toggle.textContent = source;
-                        }
+                        this.selectedSources = new Set();
+                        toggle.textContent = 'All sources';
                     }
 
+                    // Close dropdown
                     menu.classList.remove('show');
                     toggle.setAttribute('aria-expanded', 'false');
+
+                    // Re-render spell list
                     this._renderSpellList();
                 });
             });
@@ -562,21 +561,30 @@ export class SpellSelectionModal {
             });
         }
 
-        // Restrictions toggle
-        const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
-        if (ignoreRestrictionsBtn) {
+        // Filter toggle button
+        const filterToggleBtn = this.modal.querySelector('#spellFilterToggleBtn');
+        if (filterToggleBtn) {
+            filterToggleBtn.addEventListener('click', () => {
+                const filtersPanel = this.modal.querySelector('#spellFiltersPanel');
+                if (filtersPanel) {
+                    const isVisible = filterToggleBtn.getAttribute('data-filters-visible') === 'true';
+                    filtersPanel.classList.toggle('collapsed');
+                    filterToggleBtn.setAttribute('data-filters-visible', !isVisible);
+                }
+            });
+        }
+
+        // Restrictions checkbox
+        const ignoreRestrictionsCheckbox = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
+        if (ignoreRestrictionsCheckbox) {
             // Remove old listener if it exists
             if (this._restrictionsToggleHandler) {
-                ignoreRestrictionsBtn.removeEventListener('click', this._restrictionsToggleHandler);
+                ignoreRestrictionsCheckbox.removeEventListener('change', this._restrictionsToggleHandler);
             }
 
             // Create and store the handler
             this._restrictionsToggleHandler = async () => {
-                this.ignoreClassRestrictions = !this.ignoreClassRestrictions;
-                ignoreRestrictionsBtn.setAttribute(
-                    'data-restrictions',
-                    !this.ignoreClassRestrictions,
-                );
+                this.ignoreClassRestrictions = ignoreRestrictionsCheckbox.checked;
                 // Reload valid spells with new restriction setting
                 const character = AppState.getCurrentCharacter();
                 await this._loadValidSpells(character);
@@ -584,7 +592,7 @@ export class SpellSelectionModal {
                 await this._renderSpellList();
             };
 
-            ignoreRestrictionsBtn.addEventListener('click', this._restrictionsToggleHandler);
+            ignoreRestrictionsCheckbox.addEventListener('change', this._restrictionsToggleHandler);
         }
 
         // Source filter dropdown

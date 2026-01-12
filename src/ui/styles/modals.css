@@ -159,6 +159,14 @@
 	scrollbar-gutter: stable both-edges;
 }
 
+/* Spell selection modal - no body scroll */
+#spellSelectionModal .modal-body {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+}
+
 /* Custom scrollbar for modal body */
 .modal-body::-webkit-scrollbar {
 	width: 8px;
@@ -1048,6 +1056,320 @@
 		grid-template-columns: 1fr;
 		gap: 0.25rem;
 	}
+}
+
+/* ===== Spell Selection Modal - Responsive Size ===== */
+#spellSelectionModal .modal-dialog {
+	width: 90vw;
+	max-width: 1200px;
+	height: 85vh;
+	max-height: 800px;
+}
+
+#spellSelectionModal .modal-content {
+	height: 100%;
+}
+
+/* ===== Spell Selection Modal - Filter Collapse ===== */
+.spell-filter-row-wrapper {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.spell-filter-toggle-btn {
+	transition: all 0.3s ease-in-out;
+	height: 38px;
+	padding: 1.5rem 1.5rem !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 38px;
+	flex-shrink: 0;
+}
+
+.spell-filter-toggle-btn[data-filters-visible="true"] {
+	background-color: var(--accent-color);
+	border-color: var(--accent-color);
+	color: #fff;
+}
+
+.spell-filter-toggle-btn[data-filters-visible="true"]:hover {
+	background-color: var(--accent-hover);
+	border-color: var(--accent-hover);
+	color: #fff;
+}
+
+.spell-filter-toggle-btn[data-filters-visible="false"] {
+	background-color: transparent;
+	border-color: var(--border-color);
+	color: var(--text-muted);
+}
+
+.spell-filter-row {
+	display: flex;
+	flex-wrap: nowrap;
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0;
+}
+
+.spell-filters-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out,
+		padding 0.3s ease-in-out,
+		margin 0.3s ease-in-out,
+		opacity 0.3s ease-in-out;
+	overflow-y: auto;
+	position: relative;
+	flex: 0 0 calc(33.333% - 1rem);
+	margin-right: 1rem;
+}
+
+.spell-filters-column.collapsed {
+	max-width: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	flex: 0 !important;
+	opacity: 0;
+	overflow: hidden;
+}
+
+/* Spell results column */
+.spell-results-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0.5rem;
+}
+
+.spell-filter-row .spell-filters-column.collapsed ~ .spell-results-column {
+	max-width: 100% !important;
+	flex: 1 !important;
+}
+
+/* Responsive spell list container */
+.spell-list-scroll-container {
+	flex: 1;
+	overflow-y: scroll !important;
+	overflow-x: hidden;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 200px;
+	max-height: 100%;
+}
+
+/* Custom scrollbar for spell list */
+.spell-list-scroll-container::-webkit-scrollbar {
+	width: 8px;
+}
+
+.spell-list-scroll-container::-webkit-scrollbar-track {
+	background: var(--primary-color);
+	border-radius: 4px;
+}
+
+.spell-list-scroll-container::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 4px;
+}
+
+.spell-list-scroll-container::-webkit-scrollbar-thumb:hover {
+	background: var(--accent-hover);
+}
+
+/* Selected spells section */
+.selected-spells-section {
+	flex-shrink: 0;
+	padding: 0.75rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 80px;
+	max-height: 120px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.selected-spells-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* ===== Equipment Selection Modal - Responsive Size ===== */
+#equipmentSelectionModal .modal-dialog {
+	width: 90vw;
+	max-width: 1200px;
+	height: 85vh;
+	max-height: 800px;
+}
+
+#equipmentSelectionModal .modal-content {
+	height: 100%;
+}
+
+/* Equipment selection modal - no body scroll */
+#equipmentSelectionModal .modal-body {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+}
+
+/* ===== Equipment Selection Modal - Filter Collapse ===== */
+.equipment-filter-row-wrapper {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.equipment-filter-toggle-btn {
+	transition: all 0.3s ease-in-out;
+	height: 38px;
+	padding: 1.5rem 1.5rem !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 38px;
+	flex-shrink: 0;
+}
+
+.equipment-filter-toggle-btn[data-filters-visible="true"] {
+	background-color: var(--accent-color);
+	border-color: var(--accent-color);
+	color: #fff;
+}
+
+.equipment-filter-toggle-btn[data-filters-visible="true"]:hover {
+	background-color: var(--accent-hover);
+	border-color: var(--accent-hover);
+	color: #fff;
+}
+
+.equipment-filter-toggle-btn[data-filters-visible="false"] {
+	background-color: transparent;
+	border-color: var(--border-color);
+	color: var(--text-muted);
+}
+
+.equipment-filter-row {
+	display: flex;
+	flex-wrap: nowrap;
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0;
+}
+
+.equipment-filters-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out,
+		padding 0.3s ease-in-out,
+		margin 0.3s ease-in-out,
+		opacity 0.3s ease-in-out;
+	overflow-y: auto;
+	position: relative;
+	flex: 0 0 calc(33.333% - 1rem);
+	margin-right: 1rem;
+}
+
+.equipment-filters-column.collapsed {
+	max-width: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	flex: 0 !important;
+	opacity: 0;
+	overflow: hidden;
+}
+
+/* Equipment results column */
+.equipment-results-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0.5rem;
+}
+
+.equipment-filter-row
+	.equipment-filters-column.collapsed
+	~ .equipment-results-column {
+	max-width: 100% !important;
+	flex: 1 !important;
+}
+
+/* Responsive equipment list container */
+.equipment-list-scroll-container {
+	flex: 1;
+	overflow-y: scroll !important;
+	overflow-x: hidden;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 200px;
+	max-height: 100%;
+}
+
+/* Custom scrollbar for equipment list */
+.equipment-list-scroll-container::-webkit-scrollbar {
+	width: 8px;
+}
+
+.equipment-list-scroll-container::-webkit-scrollbar-track {
+	background: var(--primary-color);
+	border-radius: 4px;
+}
+
+.equipment-list-scroll-container::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 4px;
+}
+
+.equipment-list-scroll-container::-webkit-scrollbar-thumb:hover {
+	background: var(--accent-hover);
+}
+
+/* Selected equipment section */
+.selected-equipment-section {
+	flex-shrink: 0;
+	padding: 0.75rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 80px;
+	max-height: 120px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.selected-equipment-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 /* Handle very small devices */

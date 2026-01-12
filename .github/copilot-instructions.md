@@ -86,6 +86,17 @@
   - Never hardcode colors (hex, rgb, rgba) in CSS rules.
   - If a variable does not exist, add it to `:root` in the appropriate section.
 
+- **JSDoc Comments**
+  - Add JSDoc comments **only when appropriate**:
+    - Complex functions with multiple parameters or return types
+    - Public API functions or service methods
+    - Non-obvious logic that requires explanation
+  - Avoid JSDoc for:
+    - Simple utility functions with self-explanatory names and signatures
+    - Event handlers and UI callbacks with obvious purposes
+    - Small helper functions used in a single location
+  - Keep comments concise and focused on *what* and *why*, not *how*.
+
 - **Parsing Helpers**
   - Shared D&D parsing helpers live in:
     - `src/lib/5eToolsParser.js`
