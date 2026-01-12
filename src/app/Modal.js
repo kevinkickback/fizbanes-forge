@@ -381,7 +381,22 @@ export class Modal {
 
 			// Clear and populate grid buttons
 			grid.innerHTML = '';
-			let firstBtn = null;
+
+			// Add upload icon tile at the beginning of the grid
+			const uploadTile = document.createElement('button');
+			uploadTile.type = 'button';
+			uploadTile.className = 'portrait-icon-btn upload';
+			uploadTile.setAttribute('aria-label', 'Upload portrait');
+			uploadTile.innerHTML = '<i class="fas fa-upload" aria-hidden="true"></i>';
+			uploadTile.addEventListener('click', () => {
+				if (uploadInput) {
+					uploadInput.click();
+				}
+			});
+			grid.appendChild(uploadTile);
+
+			// Track buttons for default selection (second item after upload)
+			let secondBtn = null;
 			for (const src of defaults) {
 				const btn = document.createElement('button');
 				btn.type = 'button';
@@ -396,12 +411,12 @@ export class Modal {
 					btn.classList.add('selected');
 				});
 				grid.appendChild(btn);
-				if (!firstBtn) firstBtn = btn;
+				if (!secondBtn) secondBtn = btn;
 			}
 
-			// Auto-select first portrait by default
-			if (firstBtn) {
-				firstBtn.click();
+			// Auto-select second item (first portrait after upload button) by default
+			if (secondBtn) {
+				secondBtn.click();
 			}
 
 			// Load additional portraits from app data path (portraits subfolder)
@@ -416,7 +431,7 @@ export class Modal {
 						const basePath = idx > 0 ? characterPath.slice(0, idx) : characterPath;
 						const portraitsPath = `${basePath}${sep}portraits`;
 
-						const result = await window.app?.listPortraits?.(portraitsPath);
+						const result = await window.characterStorage?.listPortraits?.(portraitsPath);
 						if (result?.success && Array.isArray(result.files)) {
 							for (const filePath of result.files) {
 								const fileSrc = filePath.startsWith('file://')
@@ -444,37 +459,87 @@ export class Modal {
 				}
 			})();
 
-			// Append upload icon tile at the end of the grid
-			const uploadTile = document.createElement('button');
-			uploadTile.type = 'button';
-			uploadTile.className = 'portrait-icon-btn upload';
-			uploadTile.setAttribute('aria-label', 'Upload portrait');
-			uploadTile.innerHTML = '<i class="fas fa-upload" aria-hidden="true"></i>';
-			uploadTile.addEventListener('click', () => {
-				if (uploadInput) {
-					uploadInput.click();
-				}
-			});
-			grid.appendChild(uploadTile);
-
-			// Handle uploads as data URLs for CSP compatibility
+			// Handle uploads - save to portraits folder and use file path
 			if (uploadInput) {
-				uploadInput.addEventListener('change', (ev) => {
+				uploadInput.addEventListener('change', async (ev) => {
 					const file = ev.target.files?.[0];
 					if (!file) return;
-					const reader = new FileReader();
-					reader.onload = () => {
-						const dataUrl = reader.result;
-						if (typeof dataUrl === 'string') {
-							this._selectedPortrait = { type: 'data', value: dataUrl };
-							previewImg.src = dataUrl;
-							// Clear selection highlight
-							const all = grid.querySelectorAll('.portrait-icon-btn');
-							for (const el of all) el.classList.remove('selected');
-							// No selection class for upload tile; it acts as trigger
+
+					try {
+						// Get portraits directory
+						const characterPath =
+							await window.characterStorage?.getDefaultSavePath();
+						if (!characterPath || typeof characterPath !== 'string') {
+							console.warn(
+								'Modal',
+								'Could not determine portraits directory',
+							);
+							return;
 						}
-					};
-					reader.readAsDataURL(file);
+
+						const sep = characterPath.includes('\\') ? '\\' : '/';
+						const idx = characterPath.lastIndexOf(sep);
+						const basePath =
+							idx > 0 ? characterPath.slice(0, idx) : characterPath;
+						const portraitsPath = `${basePath}${sep}portraits`;
+
+						// Read file as data URL
+						const reader = new FileReader();
+						reader.onload = async () => {
+							const dataUrl = reader.result;
+							if (typeof dataUrl !== 'string') return;
+
+							try {
+								// Save the portrait to the portraits folder
+								const saveResult =
+									await window.characterStorage?.savePortrait(
+										portraitsPath,
+										dataUrl,
+										file.name,
+									);
+
+								if (saveResult?.success && saveResult.filePath) {
+									// Convert to file:// URL for display
+									const fileUrl = saveResult.filePath.startsWith(
+										'file://',
+									)
+										? saveResult.filePath
+										: `file://${saveResult.filePath.replace(/\\/g, '/')}`;
+
+									this._selectedPortrait = {
+										type: 'file',
+										value: fileUrl,
+									};
+									previewImg.src = fileUrl;
+
+									// Clear selection highlight
+									const all =
+										grid.querySelectorAll('.portrait-icon-btn');
+									for (const el of all)
+										el.classList.remove('selected');
+								} else {
+									console.warn(
+										'Modal',
+										'Failed to save portrait',
+										saveResult?.error,
+									);
+								}
+							} catch (error) {
+								console.error(
+									'Modal',
+									'Error saving portrait:',
+									error,
+								);
+							}
+						};
+						reader.readAsDataURL(file);
+					} catch (error) {
+						console.error(
+							'Modal',
+							'Error handling portrait upload:',
+							error,
+						);
+					}
 				});
 			}
 		} catch (error) {

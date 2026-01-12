@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('app', {
 	 * @returns {() => void} unsubscribe function
 	 */
 	onDataDownloadProgress: (handler) => {
-		if (typeof handler !== 'function') return () => {};
+		if (typeof handler !== 'function') return () => { };
 		const wrapped = (_event, payload) => handler(payload);
 		ipcRenderer.on('data:downloadProgress', wrapped);
 		return () => ipcRenderer.removeListener('data:downloadProgress', wrapped);
@@ -73,4 +73,15 @@ contextBridge.exposeInMainWorld('characterStorage', {
 		ipcRenderer.invoke('settings:getPath', 'characterSavePath'),
 	/** Generate a UUID for new characters. */
 	generateUUID: () => ipcRenderer.invoke('character:generateUUID'),
+	/**
+	 * Save a portrait image to the portraits directory.
+	 * @param {string} portraitsDir path to portraits directory
+	 * @param {string} imageData base64 data URL or base64 string
+	 * @param {string} fileName original filename with extension
+	 * @returns {Promise<{success: boolean, filePath?: string, fileName?: string, error?: string}>}
+	 */
+	savePortrait: (portraitsDir, imageData, fileName) =>
+		ipcRenderer.invoke('portraits:save', portraitsDir, imageData, fileName),
+	/** List portrait files in a directory. @param {string} dirPath */
+	listPortraits: (dirPath) => ipcRenderer.invoke('portraits:list', dirPath),
 });

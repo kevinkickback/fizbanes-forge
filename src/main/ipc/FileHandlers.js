@@ -94,5 +94,71 @@ export function registerFileHandlers(windowManager) {
 		}
 	});
 
+	// Save portrait image from data URL or buffer to portraits directory
+	ipcMain.handle(
+		IPC_CHANNELS.PORTRAITS_SAVE,
+		async (_event, portraitsDir, imageData, fileName) => {
+			try {
+				if (!portraitsDir || !imageData || !fileName) {
+					return {
+						success: false,
+						error: 'Missing required parameters',
+					};
+				}
+
+				// Ensure the portraits directory exists
+				await fs.mkdir(portraitsDir, { recursive: true });
+
+				// Determine file extension from fileName or default to .png
+				let extension = path.extname(fileName).toLowerCase();
+				if (!extension) {
+					extension = '.png';
+				}
+
+				// Sanitize filename - remove path separators and keep only alphanumeric, dash, underscore
+				const baseName = path
+					.basename(fileName, extension)
+					.replace(/[^a-z0-9_-]/gi, '_');
+				const finalFileName = `${baseName}${extension}`;
+				const filePath = path.join(portraitsDir, finalFileName);
+
+				// Handle data URL format (from FileReader.readAsDataURL)
+				let buffer;
+				if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+					const base64Data = imageData.split(',')[1];
+					if (!base64Data) {
+						return {
+							success: false,
+							error: 'Invalid image data URL',
+						};
+					}
+					buffer = Buffer.from(base64Data, 'base64');
+				} else if (typeof imageData === 'string') {
+					// Assume it's base64
+					buffer = Buffer.from(imageData, 'base64');
+				} else if (Buffer.isBuffer(imageData)) {
+					buffer = imageData;
+				} else {
+					return {
+						success: false,
+						error: 'Invalid image data format',
+					};
+				}
+
+				await fs.writeFile(filePath, buffer);
+				MainLogger.info('FileHandlers', 'Portrait saved:', filePath);
+
+				return {
+					success: true,
+					filePath,
+					fileName: finalFileName,
+				};
+			} catch (error) {
+				MainLogger.error('FileHandlers', 'Save portrait failed:', error);
+				return { success: false, error: error.message };
+			}
+		},
+	);
+
 	MainLogger.info('FileHandlers', 'All file handlers registered');
 }

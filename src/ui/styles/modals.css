@@ -69,7 +69,7 @@
 /* Fixed size for wizard modal (removed old 600px rules) */
 
 #newCharacterModal .modal-body {
-	overflow-y: auto;
+	overflow: hidden;
 	flex: 1 1 auto;
 }
 
@@ -217,14 +217,12 @@
 	border-radius: 0 !important;
 }
 .btn-group .btn:first-child {
-	border-top-left-radius: var(--border-radius) !important;
-	border-bottom-left-radius: var(--border-radius) !important;
+	border-radius: var(--border-radius) !important;
 	border-top-right-radius: 0 !important;
 	border-bottom-right-radius: 0 !important;
 }
 .btn-group .btn:last-child {
-	border-top-right-radius: var(--border-radius) !important;
-	border-bottom-right-radius: var(--border-radius) !important;
+	border-radius: var(--border-radius) !important;
 	border-top-left-radius: 0 !important;
 	border-bottom-left-radius: 0 !important;
 }
@@ -272,7 +270,7 @@
 }
 .portrait-preview-horizontal {
 	width: 140px;
-	height: 180px;
+	height: 220px;
 	border-radius: var(--border-radius);
 	border: 2px solid var(--border-color);
 	display: flex;
@@ -293,6 +291,8 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+	overflow-y: auto;
+	max-height: 220px;
 }
 
 /* Increase top gap before Character Name in Basics section */
@@ -307,7 +307,7 @@
 .icon-grid-horizontal {
 	display: grid;
 	grid-template-columns: repeat(6, 1fr);
-	gap: 0.5rem;
+	gap: 0.75rem;
 }
 .portrait-icon-btn {
 	border: 1px solid var(--border-color);
@@ -325,7 +325,7 @@
 	justify-content: center;
 }
 .portrait-icon-btn.upload i {
-	font-size: 1.25rem;
+	font-size: 2.5rem;
 	color: var(--text-color);
 }
 .portrait-icon-btn.selected {
@@ -420,6 +420,8 @@
 	margin: 0;
 	padding: 0 0.4rem;
 	width: 100%;
+	overflow-y: auto;
+	max-height: 350px;
 }
 
 #sourceBookSelection + small {
