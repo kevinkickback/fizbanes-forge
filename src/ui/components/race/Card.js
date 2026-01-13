@@ -2,6 +2,7 @@
 
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import {
@@ -25,6 +26,9 @@ export class RaceCard {
 		this._subraceView = new SubracePickerView();
 
 		this._detailsView = new RaceDetailsView();
+
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 
 		// Initialize the component
 		this.initialize();
@@ -58,23 +62,44 @@ export class RaceCard {
 	}
 
 	_setupEventListeners() {
-		// Listen to view events via EventBus instead of callbacks
-		eventBus.on(EVENTS.RACE_SELECTED, (raceData) => {
+		// Store handler references for cleanup
+		this._raceSelectedHandler = (raceData) => {
 			this._handleRaceChange({ target: { value: raceData.value } });
-		});
-		eventBus.on(EVENTS.SUBRACE_SELECTED, (subraceData) => {
+		};
+		this._subraceSelectedHandler = (subraceData) => {
 			this._handleSubraceChange({ target: { value: subraceData.value } });
-		});
-
-		// Listen for character selection changes (when new character is loaded)
-		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+		};
+		this._characterSelectedHandler = () => {
 			this._handleCharacterChanged();
-		});
-
-		// Listen for source changes and repopulate race/subrace dropdowns
-		eventBus.on('sources:allowed-changed', () => {
+		};
+		this._sourcesChangedHandler = () => {
 			this._loadSavedRaceSelection();
-		});
+		};
+
+		// Listen to view events via EventBus
+		eventBus.on(EVENTS.RACE_SELECTED, this._raceSelectedHandler);
+		eventBus.on(EVENTS.SUBRACE_SELECTED, this._subraceSelectedHandler);
+		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+	}
+
+	_cleanupEventListeners() {
+		// Manually remove all eventBus listeners
+		if (this._raceSelectedHandler) {
+			eventBus.off(EVENTS.RACE_SELECTED, this._raceSelectedHandler);
+		}
+		if (this._subraceSelectedHandler) {
+			eventBus.off(EVENTS.SUBRACE_SELECTED, this._subraceSelectedHandler);
+		}
+		if (this._characterSelectedHandler) {
+			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		}
+		if (this._sourcesChangedHandler) {
+			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
+		}
+
+		// Clean up all tracked DOM listeners
+		this._cleanup.cleanup();
 	}
 
 	//-------------------------------------------------------------------------

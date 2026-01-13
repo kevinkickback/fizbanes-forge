@@ -2,6 +2,7 @@
 // Modal for selecting feats valid for the current character
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -23,9 +24,8 @@ export class FeatCard {
 		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Class ASI at level 4")
 		this.ignoreRaceRestrictions = false; // Start with restrictions enforced
 
-		// Bound handlers to prevent duplicate global listeners across shows
-		this._documentClickHandler = null;
-		this._restrictionsToggleHandler = null;
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 	}
 
 	async show() {
@@ -66,6 +66,24 @@ export class FeatCard {
 		}
 
 		await this._renderFeatList();
+
+		// Dispose old Bootstrap instance if it exists
+		if (this.bootstrapModal) {
+			this.bootstrapModal.dispose();
+			this.bootstrapModal = null;
+		}
+
+		// Create new Bootstrap modal instance
+		this.bootstrapModal = new bootstrap.Modal(this.modal, {
+			backdrop: true,
+			keyboard: true,
+		});
+
+		// Register cleanup handler for when modal is hidden
+		this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+		this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onModalHidden());
+
+		// Attach tracked event listeners
 		this._attachEventListeners();
 
 		// Set initial state of restrictions toggle button
@@ -77,13 +95,6 @@ export class FeatCard {
 			);
 		}
 
-		// Create or reuse Bootstrap modal instance
-		if (!this.bootstrapModal) {
-			this.bootstrapModal = new bootstrap.Modal(this.modal, {
-				backdrop: true,
-				keyboard: true,
-			});
-		}
 		this.bootstrapModal.show();
 	}
 
@@ -389,13 +400,13 @@ export class FeatCard {
 		// Cancel button closes modal (using Bootstrap dismiss)
 		const cancelButton = this.modal.querySelector('.btn-secondary');
 		if (cancelButton) {
-			cancelButton.addEventListener('click', () => this.close());
+			this._cleanup.on(cancelButton, 'click', () => this.close());
 		}
 
 		// OK button emits selected feats (should all be within allowance now)
 		const okButton = this.modal.querySelector('.btn-ok');
 		if (okButton) {
-			okButton.addEventListener('click', () => {
+			this._cleanup.on(okButton, 'click', () => {
 				const selectedFeats = this.validFeats.filter((f) =>
 					this.selectedFeatIds.has(f.id),
 				);
@@ -429,20 +440,14 @@ export class FeatCard {
 		);
 
 		if (searchInput) {
-			searchInput.addEventListener('input', async () => {
+			this._cleanup.on(searchInput, 'input', async () => {
 				this.searchTerm = searchInput.value.trim().toLowerCase();
 				await this._renderFeatList();
 			});
 		}
 
 		if (ignoreRestrictionsBtn) {
-			// Remove old listener if it exists
-			if (this._restrictionsToggleHandler) {
-				ignoreRestrictionsBtn.removeEventListener('click', this._restrictionsToggleHandler);
-			}
-
-			// Create and store the handler
-			this._restrictionsToggleHandler = async () => {
+			this._cleanup.on(ignoreRestrictionsBtn, 'click', async () => {
 				this.ignoreRaceRestrictions = !this.ignoreRaceRestrictions;
 				ignoreRestrictionsBtn.setAttribute(
 					'data-restrictions',
@@ -452,14 +457,12 @@ export class FeatCard {
 				await this._loadValidFeats();
 				this.filteredFeats = this.validFeats;
 				await this._renderFeatList();
-			};
-
-			ignoreRestrictionsBtn.addEventListener('click', this._restrictionsToggleHandler);
+			});
 		}
 
 		if (sourceMenu && sourceToggle) {
 			this._populateSourceFilter(sourceMenu, sourceToggle);
-			sourceToggle.addEventListener('click', (e) => {
+			this._cleanup.on(sourceToggle, 'click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 				sourceMenu.classList.toggle('show');
@@ -468,11 +471,9 @@ export class FeatCard {
 					sourceMenu.classList.contains('show'),
 				);
 			});
-			// Ensure only one document click handler is active
-			if (this._documentClickHandler) {
-				document.removeEventListener('click', this._documentClickHandler);
-			}
-			this._documentClickHandler = (e) => {
+
+			// Track document-level click handler for cleanup
+			this._cleanup.on(document, 'click', (e) => {
 				if (!this.modal.contains(e.target)) return;
 				if (
 					!sourceMenu.contains(e.target) &&
@@ -481,8 +482,7 @@ export class FeatCard {
 					sourceMenu.classList.remove('show');
 					sourceToggle.setAttribute('aria-expanded', 'false');
 				}
-			};
-			document.addEventListener('click', this._documentClickHandler);
+			});
 		}
 	}
 
@@ -614,21 +614,18 @@ export class FeatCard {
 		if (this.bootstrapModal) {
 			this.bootstrapModal.hide();
 		}
+	}
 
-		// Clean up global document listener
-		if (this._documentClickHandler) {
-			document.removeEventListener('click', this._documentClickHandler);
-			this._documentClickHandler = null;
-		}
+	_onModalHidden() {
+		// Clean up all tracked listeners, timers, and Bootstrap instance
+		this._cleanup.cleanup();
 
 		// Clean up any lingering backdrops in case Bootstrap missed them
-		setTimeout(() => {
-			const backdrop = document.querySelector('.modal-backdrop');
-			if (backdrop) {
-				backdrop.remove();
-			}
-			document.body.classList.remove('modal-open');
-		}, 100);
+		const backdrop = document.querySelector('.modal-backdrop');
+		if (backdrop) {
+			backdrop.remove();
+		}
+		document.body.classList.remove('modal-open');
 	}
 }
 

@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEBUG_MODE = process.env.FF_DEBUG === 'true';
 const DEV_DATA_PATH = DEBUG_MODE
-	? path.resolve(__dirname, '..', '..', '..', 'data')
+	? path.resolve(__dirname, '..', '..', '..', 'src', 'data')
 	: null;
 /** Register all data-related IPC handlers. */
 export function registerDataHandlers(preferencesManager) {

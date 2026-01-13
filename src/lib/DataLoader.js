@@ -329,8 +329,8 @@ const dataLoader = {
 const DataLoader = dataLoader;
 
 export {
-	clearCache,
-	clearCacheForUrl, DataLoader, dataLoader,
+	DataLoader, clearCache,
+	clearCacheForUrl, dataLoader,
 	getCacheStats,
 	loadActions,
 	loadBackgrounds,

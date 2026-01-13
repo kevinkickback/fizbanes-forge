@@ -1,6 +1,7 @@
 // Modal for selecting and adding spells to character spellcasting
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -34,6 +35,10 @@ export class SpellSelectionModal {
         this.descriptionCache = new Map(); // Cache processed descriptions
         this.filterDebounceTimer = null; // Debounce filter operations
         this.scrollTimeout = null; // Debounce scroll events
+
+        // DOM cleanup manager
+        this._cleanup = DOMCleanup.create();
+        this._descriptionProcessingTimer = null; // Background description processing
 
         // Virtual scrolling parameters
         this.spellsPerPage = 50; // Render 50 spells at a time
@@ -79,13 +84,26 @@ export class SpellSelectionModal {
                 ignoreRestrictionsCheckbox.checked = this.ignoreClassRestrictions;
             }
 
-            // Create or reuse Bootstrap modal instance
-            if (!this.bootstrapModal) {
-                this.bootstrapModal = new bootstrap.Modal(this.modal, {
-                    backdrop: true,
-                    keyboard: true,
-                });
+            // Dispose old Bootstrap modal instance if exists
+            if (this.bootstrapModal) {
+                try {
+                    this.bootstrapModal.dispose();
+                } catch (e) {
+                    console.warn('[SpellSelectionModal]', 'Error disposing old modal', e);
+                }
             }
+
+            // Create new Bootstrap modal instance
+            this.bootstrapModal = new bootstrap.Modal(this.modal, {
+                backdrop: true,
+                keyboard: this.allowClose,
+            });
+
+            // Register with cleanup manager
+            this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+
+            // Setup cleanup on modal hide
+            this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onModalHidden());
 
             this.bootstrapModal.show();
 
@@ -583,7 +601,7 @@ export class SpellSelectionModal {
             // Setup dropdown behavior
             const dropdown = this.modal.querySelector('.spell-source-dropdown');
 
-            toggle.addEventListener('click', (e) => {
+            this._cleanup.on(toggle, 'click', (e) => {
                 e.stopPropagation();
                 const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
                 toggle.setAttribute('aria-expanded', !isExpanded);
@@ -593,7 +611,7 @@ export class SpellSelectionModal {
             // Handle source selection
             const items = menu.querySelectorAll('.dropdown-item');
             items.forEach(item => {
-                item.addEventListener('click', (e) => {
+                this._cleanup.on(item, 'click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
 
@@ -630,7 +648,7 @@ export class SpellSelectionModal {
                     toggle.setAttribute('aria-expanded', 'false');
                 }
             };
-            document.addEventListener('click', closeHandler);
+            this._cleanup.on(document, 'click', closeHandler);
         } catch (error) {
             console.error('[SpellSelectionModal]', 'Error setting up source dropdown', error);
         }
@@ -640,7 +658,7 @@ export class SpellSelectionModal {
         // Search input with debounce
         const searchInput = this.modal.querySelector('.spell-search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            this._cleanup.on(searchInput, 'input', (e) => {
                 this.searchTerm = e.target.value;
                 this._debouncedRenderSpellList();
             });
@@ -649,7 +667,7 @@ export class SpellSelectionModal {
         // Filter toggle button
         const filterToggleBtn = this.modal.querySelector('#spellFilterToggleBtn');
         if (filterToggleBtn) {
-            filterToggleBtn.addEventListener('click', () => {
+            this._cleanup.on(filterToggleBtn, 'click', () => {
                 const filtersPanel = this.modal.querySelector('#spellFiltersPanel');
                 if (filtersPanel) {
                     const isVisible = filterToggleBtn.getAttribute('data-filters-visible') === 'true';
@@ -662,11 +680,6 @@ export class SpellSelectionModal {
         // Restrictions checkbox
         const ignoreRestrictionsCheckbox = this.modal.querySelector('#ignoreSpellRestrictionsToggle');
         if (ignoreRestrictionsCheckbox) {
-            // Remove old listener if it exists
-            if (this._restrictionsToggleHandler) {
-                ignoreRestrictionsCheckbox.removeEventListener('change', this._restrictionsToggleHandler);
-            }
-
             // Create and store the handler
             this._restrictionsToggleHandler = async () => {
                 this.ignoreClassRestrictions = ignoreRestrictionsCheckbox.checked;
@@ -677,7 +690,7 @@ export class SpellSelectionModal {
                 this._renderSpellList();
             };
 
-            ignoreRestrictionsCheckbox.addEventListener('change', this._restrictionsToggleHandler);
+            this._cleanup.on(ignoreRestrictionsCheckbox, 'change', this._restrictionsToggleHandler);
         }
 
         // Source filter dropdown
@@ -686,7 +699,7 @@ export class SpellSelectionModal {
         // Spell level filter checkboxes
         const levelCheckboxes = this.modal.querySelectorAll('[data-filter-type="level"]');
         levelCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.level.add(checkbox.value);
                 } else {
@@ -699,7 +712,7 @@ export class SpellSelectionModal {
         // School filter checkboxes
         const schoolCheckboxes = this.modal.querySelectorAll('[data-filter-type="school"]');
         schoolCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.school.add(checkbox.value);
                 } else {
@@ -712,7 +725,7 @@ export class SpellSelectionModal {
         // Ritual filter
         const ritualCheckbox = this.modal.querySelector('[data-filter-type="ritual"]');
         if (ritualCheckbox) {
-            ritualCheckbox.addEventListener('change', () => {
+            this._cleanup.on(ritualCheckbox, 'change', () => {
                 if (ritualCheckbox.checked) {
                     this.filters.ritual = true;
                 } else {
@@ -725,7 +738,7 @@ export class SpellSelectionModal {
         // Concentration filter
         const concentrationCheckbox = this.modal.querySelector('[data-filter-type="concentration"]');
         if (concentrationCheckbox) {
-            concentrationCheckbox.addEventListener('change', () => {
+            this._cleanup.on(concentrationCheckbox, 'change', () => {
                 if (concentrationCheckbox.checked) {
                     this.filters.concentration = true;
                 } else {
@@ -738,18 +751,18 @@ export class SpellSelectionModal {
         // Add button
         const addButton = this.modal.querySelector('.btn-add-spell');
         if (addButton) {
-            addButton.addEventListener('click', () => this._handleAddSpell());
+            this._cleanup.on(addButton, 'click', () => this._handleAddSpell());
         }
 
         // Cancel button
         const cancelButton = this.modal.querySelector('.btn-cancel-spell');
         if (cancelButton) {
-            cancelButton.addEventListener('click', () => this._handleCancel());
+            this._cleanup.on(cancelButton, 'click', () => this._handleCancel());
         }
 
         // Close modal on Escape
         if (this.allowClose) {
-            this.modal.addEventListener('keydown', (e) => {
+            this._cleanup.on(this.modal, 'keydown', (e) => {
                 if (e.key === 'Escape') {
                     this._handleCancel();
                 }
@@ -759,10 +772,10 @@ export class SpellSelectionModal {
 
     _debouncedRenderSpellList() {
         if (this.filterDebounceTimer) {
-            clearTimeout(this.filterDebounceTimer);
+            this._cleanup.clearTimer(this.filterDebounceTimer);
         }
         this.currentPage = 0; // Reset to first page when filtering
-        this.filterDebounceTimer = setTimeout(() => {
+        this.filterDebounceTimer = this._cleanup.setTimeout(() => {
             this._renderSpellList();
         }, 150); // 150ms debounce for responsive feel
     }
@@ -848,13 +861,42 @@ export class SpellSelectionModal {
     }
 
     _handleCancel() {
-        if (this.filterDebounceTimer) {
-            clearTimeout(this.filterDebounceTimer);
-        }
-        this.descriptionCache.clear();
         this.bootstrapModal.hide();
         if (this._resolvePromise) {
             this._resolvePromise(null);
         }
+    }
+
+    _onModalHidden() {
+        console.debug('[SpellSelectionModal]', 'Modal hidden, cleaning up resources');
+
+        // Clear all timers
+        if (this.filterDebounceTimer) {
+            this._cleanup.clearTimer(this.filterDebounceTimer);
+            this.filterDebounceTimer = null;
+        }
+
+        if (this._descriptionProcessingTimer) {
+            this._cleanup.clearTimer(this._descriptionProcessingTimer);
+            this._descriptionProcessingTimer = null;
+        }
+
+        // Clear all event listeners
+        this._cleanup.cleanup();
+
+        // Clear caches
+        this.descriptionCache.clear();
+        this.validSpells = [];
+        this.filteredSpells = [];
+        this.selectedSpells = [];
+        this.filters = {
+            level: new Set(),
+            school: new Set(),
+            castingClass: new Set(),
+            ritual: null,
+            concentration: null,
+        };
+
+        console.debug('[SpellSelectionModal]', 'Cleanup complete');
     }
 }

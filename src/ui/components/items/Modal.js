@@ -1,6 +1,7 @@
 // Modal for selecting and adding items to character inventory
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
@@ -27,6 +28,9 @@ export class ItemSelectionModal {
             maxCost: 10000,
             category: new Set(), // For weapons/armor
         };
+
+        // DOM cleanup manager
+        this._cleanup = DOMCleanup.create();
     }
 
     async show() {
@@ -51,15 +55,25 @@ export class ItemSelectionModal {
             }
 
             await this._renderItemList();
-            this._attachEventListeners();
 
-            // Create or reuse Bootstrap modal instance
-            if (!this.bootstrapModal) {
-                this.bootstrapModal = new bootstrap.Modal(this.modal, {
-                    backdrop: true,
-                    keyboard: true,
-                });
+            // Dispose old Bootstrap instance if it exists
+            if (this.bootstrapModal) {
+                this.bootstrapModal.dispose();
+                this.bootstrapModal = null;
             }
+
+            // Create new Bootstrap modal instance
+            this.bootstrapModal = new bootstrap.Modal(this.modal, {
+                backdrop: true,
+                keyboard: true,
+            });
+
+            // Register cleanup handler for when modal is hidden
+            this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+            this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onModalHidden());
+
+            // Attach tracked event listeners
+            this._attachEventListeners();
 
             this.bootstrapModal.show();
 
@@ -238,7 +252,7 @@ export class ItemSelectionModal {
         // Search input
         const searchInput = this.modal.querySelector('.item-search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            this._cleanup.on(searchInput, 'input', (e) => {
                 this.searchTerm = e.target.value;
                 this._renderItemList();
             });
@@ -247,7 +261,7 @@ export class ItemSelectionModal {
         // Rarity filter checkboxes
         const rarityCheckboxes = this.modal.querySelectorAll('[data-filter-type="rarity"]');
         rarityCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.rarity.add(checkbox.value);
                 } else {
@@ -260,7 +274,7 @@ export class ItemSelectionModal {
         // Type filter checkboxes
         const typeCheckboxes = this.modal.querySelectorAll('[data-filter-type="type"]');
         typeCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.type.add(checkbox.value);
                 } else {
@@ -273,7 +287,7 @@ export class ItemSelectionModal {
         // Cost slider
         const costSlider = this.modal.querySelector('.cost-slider');
         if (costSlider) {
-            costSlider.addEventListener('input', () => {
+            this._cleanup.on(costSlider, 'input', () => {
                 this.filters.maxCost = parseInt(costSlider.value, 10);
                 this._renderItemList();
             });
@@ -282,7 +296,7 @@ export class ItemSelectionModal {
         // Quantity input
         const quantityInput = this.modal.querySelector('.item-quantity-input');
         if (quantityInput) {
-            quantityInput.addEventListener('change', (e) => {
+            this._cleanup.on(quantityInput, 'change', (e) => {
                 this.quantity = Math.max(1, parseInt(e.target.value, 10) || 1);
             });
         }
@@ -290,18 +304,18 @@ export class ItemSelectionModal {
         // Add button
         const addButton = this.modal.querySelector('.btn-add-item');
         if (addButton) {
-            addButton.addEventListener('click', () => this._handleAddItem());
+            this._cleanup.on(addButton, 'click', () => this._handleAddItem());
         }
 
         // Cancel button
         const cancelButton = this.modal.querySelector('.btn-cancel-item');
         if (cancelButton) {
-            cancelButton.addEventListener('click', () => this._handleCancel());
+            this._cleanup.on(cancelButton, 'click', () => this._handleCancel());
         }
 
         // Close modal on Escape
         if (this.allowClose) {
-            this.modal.addEventListener('keydown', (e) => {
+            this._cleanup.on(this.modal, 'keydown', (e) => {
                 if (e.key === 'Escape') {
                     this._handleCancel();
                 }
@@ -330,7 +344,6 @@ export class ItemSelectionModal {
             );
 
             if (addedItem) {
-                showNotification(`Added ${this.quantity}x ${addedItem.name}`, 'success');
                 eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
 
                 this.bootstrapModal.hide();
@@ -351,5 +364,17 @@ export class ItemSelectionModal {
         if (this._resolvePromise) {
             this._resolvePromise(null);
         }
+    }
+
+    _onModalHidden() {
+        // Clean up all tracked listeners, timers, and Bootstrap instance
+        this._cleanup.cleanup();
+
+        // Clean up any lingering backdrops
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        document.body.classList.remove('modal-open');
     }
 }

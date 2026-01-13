@@ -3,6 +3,7 @@
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import { toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
@@ -26,6 +27,9 @@ export class BackgroundCard extends BaseCard {
 		this.placeholderTitle = 'Select a Background';
 		this.placeholderDesc =
 			'Choose a background to see details about their traits, proficiencies, and other characteristics.';
+
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 
 		// Initialize the component
 		this.initialize();
@@ -134,17 +138,30 @@ export class BackgroundCard extends BaseCard {
 	}
 
 	_attachSelectionListeners() {
+		// Store handler reference for cleanup
+		this._sourcesChangedHandler = () => {
+			this._renderBackgroundSelection();
+			// Reload saved selection if one was made
+			this._loadSavedBackgroundSelection();
+		};
+
 		this._cardView.attachListeners(
 			() => this._handleBackgroundChange(),
 			() => this._handleVariantChange(),
 		);
 
 		// Listen for source changes and repopulate background dropdown
-		eventBus.on('sources:allowed-changed', () => {
-			this._renderBackgroundSelection();
-			// Reload saved selection if one was made
-			this._loadSavedBackgroundSelection();
-		});
+		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+	}
+
+	_cleanupEventListeners() {
+		// Manually remove eventBus listener
+		if (this._sourcesChangedHandler) {
+			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
+		}
+
+		// Clean up all tracked DOM listeners
+		this._cleanup.cleanup();
 	}
 
 	_handleBackgroundChange(skipEventDuringInit = false) {

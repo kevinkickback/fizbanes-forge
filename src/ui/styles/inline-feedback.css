@@ -1,0 +1,212 @@
+/* Inline Feedback Styles - Prefer these over toasts for routine CRUD */
+
+/* Brief highlight animation for new/updated items */
+@keyframes highlight-new {
+	0% {
+		background-color: var(--bs-success-bg-subtle);
+		transform: scale(1.02);
+	}
+	100% {
+		background-color: transparent;
+		transform: scale(1);
+	}
+}
+
+.highlight-new {
+	animation: highlight-new 1s ease-out;
+}
+
+/* Inline "Saved" badge in header/status area */
+.save-indicator {
+	position: fixed;
+	top: 60px;
+	right: 20px;
+	padding: 0.25rem 0.75rem;
+	background-color: var(--bs-success);
+	color: white;
+	border-radius: 0.25rem;
+	font-size: 0.875rem;
+	opacity: 0;
+	transform: translateY(-10px);
+	transition: all 0.3s ease;
+	pointer-events: none;
+	z-index: 1050;
+}
+
+.save-indicator.show {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+/* Counter badge animation for list changes */
+@keyframes counter-pulse {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.2);
+	}
+}
+
+.badge-pulse {
+	animation: counter-pulse 0.4s ease;
+}
+
+/* Inline "Undo" bar for delete actions */
+.undo-bar {
+	position: fixed;
+	bottom: 20px;
+	left: 50%;
+	transform: translateX(-50%) translateY(100px);
+	background-color: var(--bs-dark);
+	color: white;
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	transition: transform 0.3s ease;
+	z-index: 1050;
+}
+
+.undo-bar.show {
+	transform: translateX(-50%) translateY(0);
+}
+
+.undo-bar .undo-message {
+	flex: 1;
+}
+
+.undo-bar .undo-btn {
+	background: none;
+	border: 1px solid var(--bs-light);
+	color: var(--bs-light);
+	padding: 0.25rem 0.75rem;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.undo-bar .undo-btn:hover {
+	background-color: var(--bs-light);
+	color: var(--bs-dark);
+}
+
+/* Brief row removal animation */
+@keyframes fade-out-slide {
+	0% {
+		opacity: 1;
+		transform: translateX(0);
+		max-height: 100px;
+	}
+	50% {
+		opacity: 0;
+		transform: translateX(-20px);
+	}
+	100% {
+		opacity: 0;
+		transform: translateX(-20px);
+		max-height: 0;
+		padding: 0;
+		margin: 0;
+	}
+}
+
+.fade-out-slide {
+	animation: fade-out-slide 0.4s ease forwards;
+	overflow: hidden;
+}
+
+/* New card appearance animation */
+@keyframes slide-in-fade {
+	0% {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.slide-in-fade {
+	animation: slide-in-fade 0.5s ease;
+}
+
+/* Selection state indicator */
+.selection-indicator {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	width: 24px;
+	height: 24px;
+	background-color: var(--bs-success);
+	color: white;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.75rem;
+	opacity: 0;
+	transform: scale(0);
+	transition: all 0.3s ease;
+}
+
+.selected .selection-indicator {
+	opacity: 1;
+	transform: scale(1);
+}
+
+/* Progress bar for inline loading */
+.inline-progress {
+	height: 2px;
+	background-color: var(--bs-light);
+	border-radius: 1px;
+	overflow: hidden;
+	margin: 0.5rem 0;
+}
+
+.inline-progress-bar {
+	height: 100%;
+	background-color: var(--bs-primary);
+	transition: width 0.3s ease;
+}
+
+/* Inline validation feedback */
+.inline-feedback {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem;
+	border-radius: 0.25rem;
+	font-size: 0.875rem;
+	margin-top: 0.5rem;
+	opacity: 0;
+	transform: translateY(-10px);
+	transition: all 0.3s ease;
+}
+
+.inline-feedback.show {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.inline-feedback.success {
+	background-color: var(--bs-success-bg-subtle);
+	color: var(--bs-success-text-emphasis);
+	border-left: 3px solid var(--bs-success);
+}
+
+.inline-feedback.error {
+	background-color: var(--bs-danger-bg-subtle);
+	color: var(--bs-danger-text-emphasis);
+	border-left: 3px solid var(--bs-danger);
+}
+
+.inline-feedback.warning {
+	background-color: var(--bs-warning-bg-subtle);
+	color: var(--bs-warning-text-emphasis);
+	border-left: 3px solid var(--bs-warning);
+}

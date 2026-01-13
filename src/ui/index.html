@@ -50,15 +50,7 @@
                 </button>
             </div>
 
-            <!-- Theme & Settings -->
-            <div class="titlebar-system-actions">
-                <button class="titlebar-button theme-toggle" id="themeToggle" title="Toggle theme">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <button class="titlebar-button" id="settingsButton" title="Settings">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
+
         </div>
     </div>
 
@@ -137,6 +129,19 @@
                     <button class="nav-link" data-page="settings">
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
+                    </button>
+                </li>
+                <li class="nav-item nav-item--spacer"></li>
+                <li class="nav-item nav-item--footer">
+                    <button class="nav-link nav-link--icon-compact" id="notificationCenterBtn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="nav-footer--separator"></div>
+                    <button class="nav-link nav-link--icon-compact" id="themeToggle" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
+                        <span id="themeToggleLabel">Light Mode</span>
                     </button>
                 </li>
             </ul>
@@ -1228,6 +1233,36 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Center Modal -->
+    <div class="modal fade" id="notificationCenterModal" tabindex="-1" aria-labelledby="notificationCenterLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notificationCenterLabel">
+                        <i class="fas fa-bell"></i>
+                        Notification Center
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="notificationCenterList" class="notification-center-list">
+                        <!-- Notifications will be displayed here -->
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No notifications yet</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" id="clearNotificationsBtn">
+                        Clear All
+                    </button>
                 </div>
             </div>
         </div>

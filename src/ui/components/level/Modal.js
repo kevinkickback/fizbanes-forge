@@ -1,6 +1,7 @@
 // Modal wizard for character level progression and multiclass management.
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -13,7 +14,9 @@ export class LevelUpModal {
         this.character = null;
         this.selectedClassName = null; // Track which class is being leveled
         this.ignoreMulticlassReqs = false; // Toggle for multiclass requirements
-        this._listeners = [];
+
+        // DOM cleanup manager
+        this._cleanup = DOMCleanup.create();
     }
 
     async show() {
@@ -31,6 +34,9 @@ export class LevelUpModal {
                 return;
             }
 
+            // Create fresh cleanup instance for this modal session
+            this._cleanup = DOMCleanup.create();
+
             // Initialize Bootstrap modal once, using global fallback
             const bs = window.bootstrap || globalThis.bootstrap;
             if (!bs) {
@@ -38,15 +44,26 @@ export class LevelUpModal {
                 showNotification('UI components failed to load. Please reload.', 'error');
                 return;
             }
-            if (!this.bootstrapModal) {
-                this.bootstrapModal = new bs.Modal(this.modalEl, {
-                    backdrop: true,
-                    keyboard: true,
-                });
+
+            // Dispose old Bootstrap instance if it exists
+            if (this.bootstrapModal) {
+                try {
+                    this.bootstrapModal.dispose();
+                } catch (e) {
+                    console.warn('LevelUpModal', 'Error disposing old modal instance', e);
+                }
+                this.bootstrapModal = null;
             }
 
-            // Show the modal first so failures in rendering don't block UI
-            this.bootstrapModal.show();
+            // Create new Bootstrap modal instance
+            this.bootstrapModal = new bs.Modal(this.modalEl, {
+                backdrop: true,
+                keyboard: true,
+            });
+
+            // Register cleanup handler for when modal is hidden
+            this._cleanup.registerBootstrapModal(this.modalEl, this.bootstrapModal);
+            this._cleanup.once(this.modalEl, 'hidden.bs.modal', () => this._onModalHidden());
 
             // Ensure progression exists
             levelUpService.initializeProgression(this.character);
@@ -56,12 +73,15 @@ export class LevelUpModal {
                 this.selectedClassName = this.character.progression.classes[0].name;
             }
 
-            // Attach event listeners (dedupe existing)
+            // Attach tracked event listeners
             this._attachEventListeners();
 
             // Load features for all existing classes and render content
             await this._loadAllClassFeatures();
             await this._renderAll();
+
+            // Show the modal after rendering
+            this.bootstrapModal.show();
         } catch (err) {
             console.error('LevelUpModal', 'show() failed', err);
             showNotification('Failed to prepare Level Up modal', 'error');
@@ -73,34 +93,72 @@ export class LevelUpModal {
     }
 
     _attachEventListeners() {
-        const bind = (selector, event, handler) => {
-            const el = this.modalEl.querySelector(selector);
-            if (!el) return;
-            const bound = handler.bind(this);
-            el.addEventListener(event, bound);
-            this._listeners.push({ el, event, bound });
-        };
-
-        // Clear previous listeners
-        for (const l of this._listeners) {
-            l.el.removeEventListener(l.event, l.bound);
+        // Increase/decrease level buttons
+        const increaseBtn = this.modalEl.querySelector('#levelUpIncreaseBtn');
+        if (increaseBtn) {
+            this._cleanup.on(increaseBtn, 'click', () => this._handleIncreaseLevel());
         }
-        this._listeners = [];
 
-        bind('#levelUpIncreaseBtn', 'click', this._handleIncreaseLevel);
-        bind('#levelUpDecreaseBtn', 'click', this._handleDecreaseLevel);
-        bind('#levelUpAddClassBtn', 'click', this._handleAddClass);
-        bind('#levelUpRecalcHPBtn', 'click', this._handleRecalcHP);
-        bind('#levelUpSelectFeatBtn', 'click', this._handleSelectFeat);
-        bind('#ignoreMulticlassReqsToggle', 'click', this._handleToggleRequirements);
+        const decreaseBtn = this.modalEl.querySelector('#levelUpDecreaseBtn');
+        if (decreaseBtn) {
+            this._cleanup.on(decreaseBtn, 'click', () => this._handleDecreaseLevel());
+        }
 
-        // Re-render on character changes
+        // Add class button
+        const addClassBtn = this.modalEl.querySelector('#levelUpAddClassBtn');
+        if (addClassBtn) {
+            this._cleanup.on(addClassBtn, 'click', () => this._handleAddClass());
+        }
+
+        // Recalc HP button
+        const recalcHPBtn = this.modalEl.querySelector('#levelUpRecalcHPBtn');
+        if (recalcHPBtn) {
+            this._cleanup.on(recalcHPBtn, 'click', () => this._handleRecalcHP());
+        }
+
+        // Select feat button
+        const selectFeatBtn = this.modalEl.querySelector('#levelUpSelectFeatBtn');
+        if (selectFeatBtn) {
+            this._cleanup.on(selectFeatBtn, 'click', () => this._handleSelectFeat());
+        }
+
+        // Toggle multiclass requirements
+        const toggleReqsBtn = this.modalEl.querySelector('#ignoreMulticlassReqsToggle');
+        if (toggleReqsBtn) {
+            this._cleanup.on(toggleReqsBtn, 'click', () => this._handleToggleRequirements());
+        }
+
+        // Re-render on character changes (track eventBus listener for cleanup)
         const rerender = async () => {
             this.character = AppState.getCurrentCharacter();
+            await this._loadAllClassFeatures();
             await this._renderAll();
         };
-        eventBus.off?.(EVENTS.CHARACTER_UPDATED, rerender); // guard if off exists
+
+        // Store handler reference and manually track for cleanup
+        this._rerenderHandler = rerender;
         eventBus.on(EVENTS.CHARACTER_UPDATED, rerender);
+
+        // Manually track this listener for cleanup (not a DOM listener so DOMCleanup can't track it directly)
+        // We'll call eventBus.off in _onModalHidden
+    }
+
+    _onModalHidden() {
+        // Clean up all tracked DOM listeners and timers
+        this._cleanup.cleanup();
+
+        // Manually remove eventBus listener (not tracked by DOMCleanup)
+        if (this._rerenderHandler) {
+            eventBus.off(EVENTS.CHARACTER_UPDATED, this._rerenderHandler);
+            this._rerenderHandler = null;
+        }
+
+        // Clean up any lingering backdrops
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        document.body.classList.remove('modal-open');
     }
 
     async _handleIncreaseLevel() {
@@ -126,7 +184,6 @@ export class LevelUpModal {
         await this._loadFeaturesForClass(classEntry);
 
         levelUpService.updateSpellSlots(this.character);
-        showNotification(`Leveled up ${this.selectedClassName} to level ${classEntry.level}!`, 'success');
         eventBus.emit(EVENTS.CHARACTER_UPDATED, this.character);
         await this._renderAll();
     }
@@ -193,7 +250,6 @@ export class LevelUpModal {
             }
 
             levelUpService.updateSpellSlots(this.character);
-            showNotification(`Added ${value} level 1`, 'success');
             eventBus.emit(EVENTS.CHARACTER_UPDATED, this.character);
 
             // Reset selection and set new class as selected
@@ -214,7 +270,6 @@ export class LevelUpModal {
             max: maxHP,
             current: Math.min(this.character.hitPoints?.current || maxHP, maxHP),
         };
-        showNotification(`Hit points recalculated: ${maxHP}`, 'success');
         eventBus.emit(EVENTS.CHARACTER_UPDATED, this.character);
     }
 
@@ -525,7 +580,7 @@ export class LevelUpModal {
     async _loadAllClassFeatures() {
         try {
             // Load features for all existing classes up to their current level
-            const { classService } = await import('../../services/ClassService.js');
+            const { classService } = await import('../../../services/ClassService.js');
 
             for (const classEntry of this.character.progression.classes || []) {
                 await this._loadFeaturesForClass(classEntry, classService);
@@ -539,7 +594,7 @@ export class LevelUpModal {
     async _loadFeaturesForClass(classEntry, classServiceInstance = null) {
         try {
             // Lazy import if not provided
-            const classService = classServiceInstance || (await import('../../services/ClassService.js')).classService;
+            const classService = classServiceInstance || (await import('../../../services/ClassService.js')).classService;
 
             // Initialize features array if needed
             if (!classEntry.features) {

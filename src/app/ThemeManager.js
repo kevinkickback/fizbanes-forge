@@ -11,10 +11,19 @@ export class ThemeManager {
 
     /**
      * Initialize the theme manager
+     * @param {Object} eventBus - Optional EventBus instance to listen for page changes
      */
-    init() {
+    init(eventBus) {
         this.applyTheme(this.currentTheme);
         this.setupToggleButton();
+
+        // Listen for page changes to re-setup buttons
+        if (eventBus) {
+            eventBus.on('PAGE_CHANGED', () => {
+                this.setupToggleButton();
+            });
+        }
+
         console.log('[ThemeManager] Initialized with theme:', this.currentTheme);
     }
 
@@ -63,6 +72,8 @@ export class ThemeManager {
         if (this.themeToggleBtn) {
             this.themeToggleBtn.addEventListener('click', () => {
                 this.toggleTheme();
+                // Blur button after click to ensure it reverts to icon-only mode
+                setTimeout(() => this.themeToggleBtn.blur(), 0);
             });
             this.updateToggleIcon();
         }
@@ -75,15 +86,18 @@ export class ThemeManager {
         if (!this.themeToggleBtn) return;
 
         const icon = this.themeToggleBtn.querySelector('i');
+        const label = this.themeToggleBtn.querySelector('span#themeToggleLabel');
         if (icon) {
             // Show sun icon in dark mode (to switch to light)
             // Show moon icon in light mode (to switch to dark)
             if (this.currentTheme === 'dark') {
                 icon.className = 'fas fa-sun';
                 this.themeToggleBtn.title = 'Switch to light theme';
+                if (label) label.textContent = 'Light Mode';
             } else {
                 icon.className = 'fas fa-moon';
                 this.themeToggleBtn.title = 'Switch to dark theme';
+                if (label) label.textContent = 'Dark Mode';
             }
         }
     }

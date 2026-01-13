@@ -82,9 +82,13 @@ test.describe('Character Creation', () => {
 			console.log('5. Filling in character name...');
 			await page.locator('#newCharacterName').fill(testCharacterName);
 
-			// Click create button
-			console.log('6. Clicking Create button...');
-			await page.locator('#createCharacterBtn').click();
+			// Navigate wizard steps
+			console.log('6. Advancing wizard steps...');
+			const nextBtn = page.locator('#wizardNextBtn');
+			await nextBtn.click(); // Step 0 -> 1
+			await nextBtn.click(); // Step 1 -> 2
+			await nextBtn.click(); // Step 2 -> 3
+			await nextBtn.click(); // Step 3 -> Create character
 
 			// Wait for modal to close
 			console.log('7. Waiting for modal to close...');
@@ -103,16 +107,12 @@ test.describe('Character Creation', () => {
 				.first();
 			await expect(characterCard).toBeVisible({ timeout: 15000 });
 
-			console.log(
-				`\n✓ Character "${testCharacterName}" created successfully!\n`,
-			);
-
 			// Check for errors
 			const criticalErrors = errors.filter(
 				(error) =>
 					!error.includes('DevTools') &&
 					!error.includes('warning') &&
-					!error.includes('deprecated'),
+					!error.includes('deprecated')
 			);
 
 			if (criticalErrors.length > 0) {
@@ -156,7 +156,7 @@ test.describe('Character Creation', () => {
 							.first();
 						await confirmButton
 							.waitFor({ state: 'visible', timeout: 5000 })
-							.catch(() => {});
+							.catch(() => { });
 						if (
 							await confirmButton
 								.isVisible({ timeout: 5000 })

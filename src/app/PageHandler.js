@@ -413,18 +413,7 @@ class PageHandlerImpl {
 						},
 					);
 
-					// Check floating bar state AFTER load
-					const floatingBar = document.querySelector('.floating-actions');
-					const floatingBarVisible = floatingBar
-						? window.getComputedStyle(floatingBar).display !== 'none'
-						: false;
-					console.debug(
-						'PageHandler',
-						`After character load - floating bar visible: ${floatingBarVisible}`,
-						{
-							dataCurrentPage: document.body.getAttribute('data-current-page'),
-						},
-					);
+					// Character loaded successfully
 				} catch (error) {
 					console.error('PageHandler', 'Failed to load character', {
 						id: characterId,

@@ -41,10 +41,13 @@ async function createCharacter(page, characterName) {
 	await expect(nameInput).toBeVisible({ timeout: 10000 });
 	await nameInput.fill(characterName);
 
-	// Submit form
-	const createButton = page.locator('#createCharacterBtn');
-	await expect(createButton).toBeVisible({ timeout: 10000 });
-	await createButton.click();
+	// Navigate through wizard steps (0->1->2->3->Create)
+	const nextBtn = page.locator('#wizardNextBtn');
+	await expect(nextBtn).toBeVisible({ timeout: 10000 });
+	await nextBtn.click(); // Step 0 -> 1
+	await nextBtn.click(); // Step 1 -> 2
+	await nextBtn.click(); // Step 2 -> 3
+	await nextBtn.click(); // Step 3 -> Create character
 
 	// Wait for modal to close
 	await page.waitForSelector('#newCharacterModal.show', {
@@ -219,7 +222,7 @@ async function saveCharacter(page) {
 
 	// Wait for unsaved indicator to disappear if present
 	const unsaved = page.locator('#unsavedChangesIndicator');
-	await unsaved.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+	await unsaved.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => { });
 
 	// Small buffer to allow disk write
 	await page.waitForTimeout(500);
@@ -307,7 +310,7 @@ test.describe('Proficiency Choice Persistence', () => {
 				.first();
 			await confirmButton
 				.waitFor({ state: 'visible', timeout: 5000 })
-				.catch(() => {});
+				.catch(() => { });
 			if (await confirmButton.isVisible()) {
 				await confirmButton.click();
 			}
@@ -385,7 +388,7 @@ test.describe('Proficiency Choice Persistence', () => {
 				.first();
 			await confirmButton
 				.waitFor({ state: 'visible', timeout: 5000 })
-				.catch(() => {});
+				.catch(() => { });
 			if (await confirmButton.isVisible()) {
 				await confirmButton.click();
 			}
@@ -463,7 +466,7 @@ test.describe('Proficiency Choice Persistence', () => {
 				.first();
 			await confirmButton
 				.waitFor({ state: 'visible', timeout: 5000 })
-				.catch(() => {});
+				.catch(() => { });
 			if (await confirmButton.isVisible()) {
 				await confirmButton.click();
 			}

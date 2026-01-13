@@ -34,7 +34,7 @@ test.describe('Feat Selection', () => {
 						.first();
 					await confirmButton
 						.waitFor({ state: 'visible', timeout: 5000 })
-						.catch(() => {});
+						.catch(() => { });
 					if (
 						await confirmButton.isVisible({ timeout: 5000 }).catch(() => false)
 					) {
@@ -75,26 +75,21 @@ test.describe('Feat Selection', () => {
 		await expect(nameInput).toBeVisible({ timeout: 10000 });
 		await nameInput.fill(characterName);
 
-		// Submit form
-		const createButton = page.locator('#createCharacterBtn');
-		await expect(createButton).toBeVisible({ timeout: 10000 });
-		await createButton.click();
+		// Navigate wizard steps
+		const nextBtn = page.locator('#wizardNextBtn');
+		await expect(nextBtn).toBeVisible({ timeout: 10000 });
+		await nextBtn.click(); // Step 0 -> 1
+		await nextBtn.click(); // Step 1 -> 2
+		await nextBtn.click(); // Step 2 -> 3
+		await nextBtn.click(); // Step 3 -> Create character
+		console.log('✓ Character created');
 
-		// Wait for modal to close
-		await page.waitForSelector('#newCharacterModal.show', {
-			state: 'hidden',
-			timeout: 15000,
-		});
-
-		// Wait for character card to appear
+		// Wait for character card to appear and open it
 		await page.waitForTimeout(1000);
 		const characterCard = page
 			.locator('.character-card', { hasText: characterName })
 			.first();
 		await expect(characterCard).toBeVisible({ timeout: 15000 });
-		console.log('✓ Character created');
-
-		// Open the character
 		await characterCard.click();
 
 		// Navigate to build page
@@ -333,7 +328,7 @@ test.describe('Feat Selection', () => {
 			const timestamp = Date.now();
 			const characterName = `test-feat-preselection-${timestamp}`;
 
-			// Create character
+			// Create character via wizard
 			const newCharacterBtn = page.locator('#newCharacterBtn');
 			await expect(newCharacterBtn).toBeVisible({ timeout: 15000 });
 			await newCharacterBtn.click();
@@ -344,9 +339,12 @@ test.describe('Feat Selection', () => {
 			await expect(nameInput).toBeVisible({ timeout: 10000 });
 			await nameInput.fill(characterName);
 
-			const createButton = page.locator('#createCharacterBtn');
-			await expect(createButton).toBeVisible({ timeout: 10000 });
-			await createButton.click();
+			const nextBtn2 = page.locator('#wizardNextBtn');
+			await expect(nextBtn2).toBeVisible({ timeout: 10000 });
+			await nextBtn2.click(); // Step 0 -> 1
+			await nextBtn2.click(); // Step 1 -> 2
+			await nextBtn2.click(); // Step 2 -> 3
+			await nextBtn2.click(); // Step 3 -> Create character
 
 			await page.waitForSelector('#newCharacterModal.show', {
 				state: 'hidden',

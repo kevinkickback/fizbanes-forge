@@ -291,7 +291,6 @@ export class EquipmentManager {
         const success = equipmentService.removeItem(character, itemId, 1);
         if (success) {
             eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-            showNotification(`Removed ${item.name}`, 'success');
         } else {
             showNotification('Failed to remove item', 'error');
         }
@@ -321,7 +320,6 @@ export class EquipmentManager {
         const success = equipmentService.unequipItem(character, itemId);
         if (success) {
             eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-            showNotification('Item unequipped', 'success');
         } else {
             showNotification('Failed to unequip item', 'error');
         }
@@ -337,7 +335,6 @@ export class EquipmentManager {
         const success = equipmentService.attuneItem(character, itemId);
         if (success) {
             eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-            showNotification('Item attuned', 'success');
         } else {
             showNotification(
                 'Failed to attune item (check attunement limit)',
@@ -356,7 +353,6 @@ export class EquipmentManager {
         const success = equipmentService.unattueItem(character, itemId);
         if (success) {
             eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-            showNotification('Item unattuned', 'success');
         } else {
             showNotification('Failed to unattune item', 'error');
         }

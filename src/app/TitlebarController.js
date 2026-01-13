@@ -9,7 +9,6 @@ import { AppState } from './AppState.js';
 export class TitlebarController {
     constructor() {
         this.characterNameEl = document.getElementById('titlebarCharacterName');
-        this.unsavedIndicatorEl = document.getElementById('titlebarUnsavedIndicator');
         this.settingsBtn = document.getElementById('settingsButton');
         this.levelUpBtn = document.getElementById('openLevelUpModalBtn');
         this.saveBtn = document.getElementById('saveCharacter');
@@ -38,11 +37,14 @@ export class TitlebarController {
         });
 
         eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+            // Force re-check of character state (including classes) 
+            this.updateCharacterName();
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
 
         eventBus.on(EVENTS.CHARACTER_SAVED, () => {
+            this.updateCharacterName();
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
@@ -79,13 +81,15 @@ export class TitlebarController {
      * Update unsaved changes indicator
      */
     updateUnsavedIndicator() {
-        if (!this.unsavedIndicatorEl) return;
-
         const hasUnsaved = AppState.get?.('hasUnsavedChanges');
-        if (hasUnsaved) {
-            this.unsavedIndicatorEl.classList.add('visible');
-        } else {
-            this.unsavedIndicatorEl.classList.remove('visible');
+
+        // Visual indicator now lives on the Save button
+        if (this.saveBtn) {
+            if (hasUnsaved) {
+                this.saveBtn.classList.add('unsaved');
+            } else {
+                this.saveBtn.classList.remove('unsaved');
+            }
         }
     }
 
@@ -96,8 +100,34 @@ export class TitlebarController {
         const character = AppState.getCurrentCharacter?.() || AppState.get?.('currentCharacter');
         const hasUnsaved = AppState.get?.('hasUnsavedChanges');
 
+        // Debug logging
+        console.log('[TitlebarController] updateActionButtons called');
+        console.log('[TitlebarController] Character:', {
+            exists: !!character,
+            name: character?.name,
+            hasProgression: !!character?.progression,
+            progressionClasses: character?.progression?.classes,
+            classesLength: character?.progression?.classes?.length
+        });
+
         if (this.levelUpBtn) {
-            this.levelUpBtn.disabled = !character;
+            const hasClasses = character?.progression?.classes && character.progression.classes.length > 0;
+            this.levelUpBtn.disabled = !character || !hasClasses;
+
+            console.log('[TitlebarController] Level Up Button:', {
+                hasClasses,
+                disabled: this.levelUpBtn.disabled,
+                characterExists: !!character
+            });
+
+            // Update tooltip based on state
+            if (!character) {
+                this.levelUpBtn.title = 'No character loaded';
+            } else if (!hasClasses) {
+                this.levelUpBtn.title = 'Add a class before leveling up';
+            } else {
+                this.levelUpBtn.title = 'Level Up';
+            }
         }
 
         if (this.saveBtn) {

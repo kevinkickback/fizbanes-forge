@@ -36,9 +36,12 @@ async function createCharacter(page, characterName) {
     await expect(nameInput).toBeVisible({ timeout: 10000 });
     await nameInput.fill(characterName);
 
-    const createButton = page.locator('#createCharacterBtn');
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
+    const nextBtn = page.locator('#wizardNextBtn');
+    await expect(nextBtn).toBeVisible({ timeout: 10000 });
+    await nextBtn.click(); // Step 0 -> 1
+    await nextBtn.click(); // Step 1 -> 2
+    await nextBtn.click(); // Step 2 -> 3
+    await nextBtn.click(); // Step 3 -> Create character
 
     await page.waitForSelector('#newCharacterModal.show', {
         state: 'hidden',

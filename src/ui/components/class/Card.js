@@ -1,6 +1,7 @@
 // Controller for class selection UI, coordinating views and subclass logic.
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import {
@@ -13,6 +14,7 @@ import { ARTISAN_TOOLS } from '../../../lib/ProficiencyConstants.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { classService } from '../../../services/ClassService.js';
+import { levelUpService } from '../../../services/LevelUpService.js';
 import { sourceService } from '../../../services/SourceService.js';
 
 export class ClassCard {
@@ -28,6 +30,9 @@ export class ClassCard {
 		this._activeClassTab = null;
 		this._classTabsWrapper = document.getElementById('classTabs');
 		this._classTabsList = document.getElementById('classTabsList');
+
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 
 		// Initialize the component
 		this.initialize();
@@ -53,28 +58,51 @@ export class ClassCard {
 	}
 
 	_setupEventListeners() {
-		// Listen to view events via EventBus instead of callbacks
-		eventBus.on(EVENTS.CLASS_SELECTED, (classData) => {
+		// Store handler references for cleanup
+		this._classSelectedHandler = (classData) => {
 			this._handleClassChange({ target: { value: classData.value } });
-		});
-		eventBus.on(EVENTS.SUBCLASS_SELECTED, (subclassData) => {
+		};
+		this._subclassSelectedHandler = (subclassData) => {
 			this._handleSubclassChange({ target: { value: subclassData.value } });
-		});
-
-		// Sync build page when character is updated elsewhere (e.g., Level Up modal)
-		eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+		};
+		this._characterUpdatedHandler = () => {
 			this._syncWithCharacterProgression();
-		});
-
-		// Listen for character selection changes (when new character is loaded)
-		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+		};
+		this._characterSelectedHandler = () => {
 			this._handleCharacterChanged();
-		});
-
-		// Listen for source changes and repopulate class/subclass dropdowns
-		eventBus.on('sources:allowed-changed', () => {
+		};
+		this._sourcesChangedHandler = () => {
 			this._loadSavedClassSelection();
-		});
+		};
+
+		// Listen to view events via EventBus
+		eventBus.on(EVENTS.CLASS_SELECTED, this._classSelectedHandler);
+		eventBus.on(EVENTS.SUBCLASS_SELECTED, this._subclassSelectedHandler);
+		eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
+		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+	}
+
+	_cleanupEventListeners() {
+		// Manually remove all eventBus listeners
+		if (this._classSelectedHandler) {
+			eventBus.off(EVENTS.CLASS_SELECTED, this._classSelectedHandler);
+		}
+		if (this._subclassSelectedHandler) {
+			eventBus.off(EVENTS.SUBCLASS_SELECTED, this._subclassSelectedHandler);
+		}
+		if (this._characterUpdatedHandler) {
+			eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
+		}
+		if (this._characterSelectedHandler) {
+			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		}
+		if (this._sourcesChangedHandler) {
+			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
+		}
+
+		// Clean up all tracked DOM listeners
+		this._cleanup.cleanup();
 	}
 
 	//-------------------------------------------------------------------------
@@ -481,6 +509,9 @@ export class ClassCard {
 					level: 1,
 					subclass: subclassName || character.class.subclass || '',
 				};
+
+				// Initialize progression to track classes (needed for multiclass)
+				levelUpService.initializeProgression(character);
 
 				// Add proficiencies
 				this._updateProficiencies(classData);

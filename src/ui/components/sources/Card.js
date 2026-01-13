@@ -1,5 +1,6 @@
 // Controller for source book selection during character creation
 
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { SourcePickerView } from './Picker.js';
@@ -14,6 +15,9 @@ export class SourceCard {
 
 		// Initialize view
 		this._view = new SourcePickerView();
+
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 	}
 
 	async initializeSourceSelection() {
@@ -195,5 +199,10 @@ export class SourceCard {
 
 	get container() {
 		return this._container;
+	}
+
+	_cleanupEventListeners() {
+		// Clean up all tracked DOM listeners
+		this._cleanup.cleanup();
 	}
 }

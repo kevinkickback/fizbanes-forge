@@ -8,7 +8,7 @@
 	top: 0;
 	left: 0;
 	right: 0;
-	height: 48px;
+	height: var(--titlebar-height);
 	background: var(--titlebar-background);
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
@@ -60,14 +60,7 @@
 }
 
 .titlebar-unsaved-indicator {
-	color: var(--warning-color);
-	display: none;
-}
-
-.titlebar-unsaved-indicator.visible {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.25rem;
+	display: none !important;
 }
 
 .titlebar-right {
@@ -87,28 +80,14 @@
 	margin-right: 0.5rem;
 	-webkit-app-region: no-drag;
 }
-.titlebar-action-button:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-	filter: grayscale(0.2);
-}
 
-.titlebar-action-button.btn-primary:disabled {
-	background: var(--accent-color);
-	opacity: 0.6;
-}
-
-/* System Actions Group */
-.titlebar-system-actions {
-	display: flex;
-	align-items: center;
+.titlebar-action-button {
+	width: auto;
+	padding: 0 0.75rem;
 	gap: 0.5rem;
-	-webkit-app-region: no-drag; /* Ensure clicks register across the group */
-}
-
-.titlebar-button {
-	width: 32px;
-	height: 32px;
+	font-size: 0.85rem;
+	font-weight: 500;
+	height: 36px;
 	border: none;
 	background: transparent;
 	color: var(--text-muted);
@@ -119,18 +98,9 @@
 	justify-content: center;
 	transition: all 0.15s ease;
 	-webkit-app-region: no-drag;
-	pointer-events: auto; /* Ensure button receives clicks */
-	line-height: 1; /* Ensure icon centering */
-}
-
-/* Action buttons with text labels */
-.titlebar-action-button {
-	width: auto;
-	padding: 0 0.75rem;
-	gap: 0.5rem;
-	font-size: 0.85rem;
-	font-weight: 500;
-	height: 32px;
+	pointer-events: auto;
+	line-height: 1;
+	position: relative;
 }
 
 .titlebar-action-button span {
@@ -151,40 +121,46 @@
 	background: var(--accent-active, var(--accent-hover));
 }
 
-.titlebar-button:hover {
+.titlebar-action-button:hover {
 	background: var(--overlay-white-10);
 	color: var(--text-color);
 }
 
-.titlebar-button:active {
+.titlebar-action-button:active {
 	background: var(--overlay-white-20);
 }
 
-.titlebar-button i {
-	font-size: 0.95rem;
-	display: inline-block;
-	vertical-align: middle;
+.titlebar-action-button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	filter: grayscale(0.2);
 }
 
-/* Theme toggle button special styling */
-.titlebar-button.theme-toggle i {
-	font-size: 1rem;
+.titlebar-action-button.btn-primary:disabled {
+	background: var(--accent-color);
+	opacity: 0.6;
 }
 
-/* Ensure system icons are perfectly centered */
-.titlebar-system-actions .titlebar-button {
-	width: 32px;
-	height: 32px;
-	padding: 0; /* no extra shift */
+/* Unsaved changes indicator on Save button */
+.titlebar-action-button.unsaved::after {
+	content: "";
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--warning-color);
+	border: 1px solid var(--border-color);
 }
 
 /* Adjust main layout to account for titlebar */
 body.has-titlebar .app-container {
-	margin-top: 48px;
-	min-height: calc(100vh - 48px);
+	margin-top: var(--titlebar-height);
+	min-height: calc(100vh - var(--titlebar-height));
 }
 
 body.has-titlebar .sidebar {
-	top: 48px;
-	height: calc(100vh - 48px);
+	top: var(--titlebar-height);
+	height: calc(100vh - var(--titlebar-height));
 }

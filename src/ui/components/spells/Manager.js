@@ -420,7 +420,6 @@ export class SpellsManager {
         }
 
         eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-        showNotification(`Removed ${spellName}`, 'success');
     }
 
     handleTogglePrepareSpell(spellName, className = null) {

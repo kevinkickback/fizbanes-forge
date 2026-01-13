@@ -3,6 +3,7 @@
 // Core imports - NEW ARCHITECTURE
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
+import { getNotificationCenter } from '../lib/NotificationCenter.js';
 import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
@@ -235,6 +236,10 @@ async function _initializeCoreComponents() {
 				init: () => NavigationController.initialize(),
 			},
 			{ name: 'settings service', init: () => settingsService.initialize() },
+			{
+				name: 'notification center',
+				init: () => getNotificationCenter().initialize(),
+			},
 		];
 
 		// Initialize each component in sequence
@@ -415,9 +420,6 @@ function _setupUiEventHandlers() {
 
 					console.info('AppInitializer', 'Character saved successfully');
 					showNotification('Character saved successfully', 'success');
-					if (unsavedIndicator) {
-						unsavedIndicator.style.display = 'none';
-					}
 					// Emit save event
 					console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
 					eventBus.emit(EVENTS.CHARACTER_SAVED);
@@ -554,7 +556,7 @@ export async function initializeAll(_options = {}) {
 
 	// Initialize theme manager early
 	try {
-		themeManager.init();
+		themeManager.init(eventBus);
 		result.loadedComponents.push('ThemeManager');
 	} catch (error) {
 		console.warn('AppInitializer', 'Failed to initialize theme manager', error);

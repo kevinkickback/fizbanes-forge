@@ -190,7 +190,6 @@ export class SettingsService {
 					const checked = !!e.target.checked;
 					this.autoUpdateData = checked;
 					await window.app.settings.set('autoUpdateData', checked);
-					showNotification('Auto update data setting saved', 'success');
 				});
 			}
 

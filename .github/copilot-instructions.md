@@ -1,140 +1,219 @@
 # Copilot Instructions for Fizbane's Forge
 
-## Project Overview
-- **Fizbane's Forge** is an Electron-based D&D character creator.
-- The project uses a modular architecture with a strict separation between:
-  - **Electron main process** (`src/main/`)
-  - **Renderer (frontend)** (`src/ui/`, `src/app/`, `src/services/`)
-- All D&D data (items, spells, classes, races, backgrounds, etc.) is sourced from **5etools-style JSON files** located in `src/data/`.
-- Data source configuration is required on first launch.
-- The renderer is a single-page application with dynamic page loading and a custom event bus for inter-component communication.
-
-## Data Source & 5etools Integration (IMPORTANT)
-- The codebase is built around **5etools web app JSON schemas and conventions**.
-- **Before implementing any new parsing, normalization, or rendering logic for 5e data**:
-  1. Search the existing codebase for equivalent functionality.
-  2. If not found locally, reference the official 5etools source code:
-     - Repository: https://github.com/5etools-mirror-3/5etools-src
-- Prefer **copying and adapting existing 5etools logic** over writing custom implementations.
-- Primary helper locations already included in this project:
-  - `src/lib/5eToolsParser.js`
-  - `src/lib/5eToolsRenderer.js`
-- If functionality exists in those files, **reuse it directly** or extend it minimally.
-- New helper logic should only be added when:
-  - No equivalent logic exists locally or upstream in 5etools.
-  - The behavior is specific to Fizbane’s Forge and cannot reasonably be shared.
-
-## Key Architectural Patterns
-- **Main Process**
-  - Entry point: `src/main/Main.js`
-  - Responsible for window lifecycle, preferences, file system access, and IPC registration.
-  - IPC handlers live in `src/main/ipc/handlers/`.
-
-- **Renderer & Application Logic**
-  - Bootstrapped by `src/app/AppInitializer.js`.
-  - Loads all data and services in parallel before initializing UI and event handlers.
-  - All data access must go through a **service layer** (e.g., `RaceService`, `ClassService`, `ActionService`).
-
-- **Event Bus**
-  - Located at `src/lib/EventBus.js`.
-  - Provides pub/sub messaging for decoupled communication.
-  - Examples: `CHARACTER_UPDATED`, `CHARACTER_SAVED`, `PAGE_CHANGED`.
-
-- **State Management**
-  - Global UI and character state is managed via `AppState`.
-  - Cross-component updates must use `AppState` and/or EventBus events.
-  - UI code must never mutate shared state directly.
-
-## Developer Workflows
-- **Start app**: `npm start`
-- **Debug mode**: `npm run debug`
-  - Enables debug UI
-  - Loads default data
-- **Build distributable**: `npm run dist` (electron-builder)
-- **Format / lint**: `npm run format`, `npm run lint` (Biome)
-- **Tests**: Playwright E2E tests in `tests/`
-- **Assets setup**: `npm run setup`
-
-## Project-Specific Conventions
-- **Module system**
-  - Use ES modules everywhere.
-  - CommonJS is allowed only where Electron requires it (see `biome.json` overrides).
-
-- **Data loading**
-  - UI code must never read JSON files directly.
-  - All game data access must go through the service layer.
-  - Services are responsible for parsing, indexing, filtering, and caching.
-
-- **UI state & events**
-  - Use `AppState` for persistent/shared state.
-  - Use the EventBus for all cross-component communication.
-  - Unsaved changes are tracked via `CHARACTER_UPDATED` / `CHARACTER_SAVED`.
-
-- **Bootstrap Components**
-  - Use **Bootstrap 5** components exclusively for UI primitives (modals, tabs, tooltips, progress bars).
-  - Modals:
-    - Must be defined in `src/ui/index.html`.
-    - Must be controlled via Bootstrap’s JS API (`new bootstrap.Modal()`).
-    - Always reuse modal instances; do not recreate them per show/hide.
-
-- **Debug UI**
-  - Elements with `.debug-only` are visible only when `FF_DEBUG=true`.
-
-- **CSS & Theming**
-  - All themeable values (colors, spacing, shadows, overlays, etc.) must use CSS variables.
-  - Variables are defined in `src/ui/styles/` under `:root`.
-  - Never hardcode colors (hex, rgb, rgba) in CSS rules.
-  - If a variable does not exist, add it to `:root` in the appropriate section.
-
-- **JSDoc Comments**
-  - Add JSDoc comments **only when appropriate**:
-    - Complex functions with multiple parameters or return types
-    - Public API functions or service methods
-    - Non-obvious logic that requires explanation
-  - Avoid JSDoc for:
-    - Simple utility functions with self-explanatory names and signatures
-    - Event handlers and UI callbacks with obvious purposes
-    - Small helper functions used in a single location
-  - Keep comments concise and focused on *what* and *why*, not *how*.
-
-- **Parsing Helpers**
-  - Shared D&D parsing helpers live in:
-    - `src/lib/5eToolsParser.js`
-    - `src/lib/5eToolsRenderer.js`
-  - Always check these files before creating new parsing or formatting helpers.
-
-## Integration Points
-- **IPC**
-  - All main ↔ renderer communication must go through IPC handlers.
-  - Handlers are registered in `src/main/ipc/handlers/`.
-
-- **External dependencies**
-  - Uses `5etools-utils`, `bootstrap`, `fontawesome`, and Playwright.
-
-## Common Extension Patterns
-- **Adding a new D&D entity type**
-  1. Add JSON data to `src/data/`
-  2. Implement or extend a service in `src/services/`
-  3. Reuse existing 5etools parsing helpers where possible
-  4. Register the service in `AppInitializer.js`
-
-- **Adding a new UI page**
-  1. Add page files to `src/ui/pages/`
-  2. Update navigation and routing
-  3. Register the page with the router/event system
-
-## Key Files & Directories
-- `src/main/Main.js` – Electron entry point
-- `src/app/AppInitializer.js` – Application bootstrap
-- `src/lib/EventBus.js` – Event system
-- `src/lib/5eToolsParser.js` – Shared 5e parsing helpers
-- `src/lib/5eToolsRenderer.js` – 5etools rendering utilities
-- `src/services/` – All service layer implementations
-- `src/data/` – All D&D JSON data
-- `src/ui/` – UI layer (HTML, CSS, pages, components)
-- `tests/` – Playwright E2E tests
+This file defines **hard, non-negotiable rules and patterns** that AI assistance must follow.
+When generating or modifying code, **these rules take precedence over convenience or creativity**.
 
 ---
 
-**General Rule for AI Agents:**  
-When in doubt, follow existing patterns, reuse 5etools logic where available, prefer services over UI logic, and avoid introducing parallel implementations for the same D&D rules or data structures.
+## 🚫 Non-Negotiables (Read First)
+
+1. **Do not bypass the service layer**
+   - UI code must never load, parse, or read JSON directly.
+   - All D&D data access goes through services in `src/services/`.
+
+2. **Do not reimplement 5etools logic**
+   - Always search the local codebase first.
+   - If not found, reference the official 5etools source.
+   - Prefer copying/adapting proven 5etools logic over inventing new logic.
+
+3. **Do not create dynamic Bootstrap modals**
+   - All modals must be defined in `src/ui/index.html`.
+   - Modal instances must be reused and properly disposed.
+
+4. **Do not attach unmanaged listeners**
+   - DOM listeners must use `DOMCleanup`.
+   - EventBus listeners must be manually tracked and removed.
+   - Failure to clean up listeners is a bug.
+
+5. **Do not mutate shared state directly**
+   - Shared state updates must go through `AppState` and/or EventBus events.
+
+6. **Do not introduce parallel implementations**
+   - If functionality already exists (locally or in 5etools), reuse or minimally extend it.
+
+---
+
+## Project Overview (Context)
+
+- **Fizbane's Forge** is an Electron-based D&D character creator.
+- Architecture is strictly separated:
+  - **Electron main process**: `src/main/`
+  - **Renderer / UI**: `src/ui/`, `src/app/`, `src/services/`
+- All D&D content is sourced from **5etools-style JSON** in `src/data/`.
+- Renderer is a single-page application with dynamic page loading and a custom EventBus.
+
+---
+
+## 5etools Integration (Critical)
+
+- The codebase follows **5etools JSON schemas and conventions**.
+- Before implementing any new parsing or rendering logic:
+  1. Search the local codebase.
+  2. If not found, reference the official 5etools source:
+     - Repository: https://github.com/5etools-mirror-3/5etools-src
+- Prefer **reuse and adaptation**, not custom logic.
+
+### Primary helper files
+- `src/lib/5eToolsParser.js`
+- `src/lib/5eToolsRenderer.js`
+
+Add new helpers **only if**:
+- No equivalent logic exists locally or upstream.
+- The behavior is specific to Fizbane’s Forge.
+
+---
+
+## Architecture Rules
+
+### Main Process
+- Entry point: `src/main/Main.js`
+- Responsibilities:
+  - Window lifecycle
+  - Preferences
+  - File system access
+  - IPC registration
+- IPC handlers live in `src/main/ipc/handlers/`
+
+### Renderer & App Initialization
+- Bootstrapped by `src/app/AppInitializer.js`
+- Data and services load **before** UI initialization.
+- UI must never directly access data sources.
+
+---
+
+## State & Events
+
+### EventBus
+- Location: `src/lib/EventBus.js`
+- Used for all cross-component communication.
+- Example events:
+  - `CHARACTER_UPDATED`
+  - `CHARACTER_SAVED`
+  - `PAGE_CHANGED`
+
+### State Management
+- Shared state lives in `AppState`.
+- UI code must never mutate shared state directly.
+- Use EventBus and/or AppState APIs for updates.
+
+---
+
+## UI & Bootstrap Rules
+
+- Use **Bootstrap 5 only** for UI primitives.
+- Modals:
+  - Must be defined in `src/ui/index.html`
+  - Controlled via Bootstrap JS API
+  - Must be reused, not recreated
+  - Must be disposed before re-instantiation
+
+---
+
+## CSS & Theming Rules
+
+- All themeable values must use CSS variables.
+- Variables are defined under `:root` in `src/ui/styles/`.
+- Never hardcode colors (hex, rgb, rgba).
+- Add new variables to `:root` if needed.
+
+---
+
+## Memory Management & Cleanup (Critical)
+
+### DOMCleanup
+- Utility: `src/lib/DOMCleanup.js`
+- Required for all modal and card components.
+
+#### Modal components
+1. Create cleanup instance in constructor: `this._cleanup = DOMCleanup.create()`
+2. Dispose old Bootstrap instance before creating a new one
+3. Attach all DOM listeners using `this._cleanup.on()`
+4. On modal close, call `this._cleanup.cleanup()`
+
+#### Card components
+1. Create cleanup instance in constructor
+2. Store EventBus handler references
+3. Manually remove EventBus listeners with `eventBus.off()`
+4. Call `this._cleanup.cleanup()` on teardown
+
+- EventBus listeners are **not auto-tracked**
+- Bootstrap modals must always be disposed to prevent leaks
+
+Reference:
+- `CLEANUP_EXTENSION_SUMMARY.md`
+- `CLEANUP_QUICK_REFERENCE.md`
+
+---
+
+## IPC Rules
+
+- All main ↔ renderer communication must use IPC.
+- Handlers are registered in `src/main/ipc/handlers/`.
+
+---
+
+## Playwright Testing
+
+- Framework: **Playwright** with **Electron** support
+- Test directory: `tests/`
+- Config: `playwright.config.js`
+- Run: `npx playwright test [--headed]`
+
+### Test Structure
+```javascript
+import { _electron as electron, expect, test } from '@playwright/test';
+
+test('should do something', async () => {
+    test.setTimeout(120000); // Electron tests need more time
+    
+    const electronApp = await electron.launch({
+        args: ['.'],
+        env: {
+            ...process.env,
+            FF_DEBUG: 'true',
+            FF_ALLOW_DEFAULT_DATA: 'true',
+        },
+    });
+    
+    try {
+        // Get main window (exclude devtools)
+        let page = electronApp.windows()
+            .find((win) => !win.url().startsWith('devtools://'));
+        if (!page) {
+            page = await electronApp.waitForEvent('window',
+                (win) => !win.url().startsWith('devtools://'));
+        }
+        
+        // Capture errors for debugging
+        page.on('console', (msg) => console.log(`[${msg.type()}] ${msg.text()}`));
+        
+        // Wait for app load
+        await page.waitForSelector('#pageContent', { timeout: 60000 });
+        
+        // Test interactions
+        await page.locator('#buttonId').click();
+        await expect(page.locator('#element')).toBeVisible();
+        
+    } finally {
+        await electronApp.close();
+    }
+});
+```
+
+### Key Patterns
+- Use `test.setTimeout(120000)` for Electron
+- Prefer `waitForSelector()` over `waitForTimeout()`
+- Capture console output for debugging
+- Always `close()` app in finally block
+- Use `[data-*]` selectors when possible
+- See `tests/` for examples
+
+---
+
+## AI Agent Rule of Thumb
+
+When uncertain:
+- Follow existing patterns
+- Reuse 5etools logic
+- Prefer services over UI logic
+- Avoid parallel implementations

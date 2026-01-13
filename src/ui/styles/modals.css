@@ -1205,7 +1205,7 @@
 	margin: 0 0 0.5rem 0;
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: var(--text-muted);
+	color: var(--text-light);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 }
@@ -1367,7 +1367,7 @@
 	margin: 0 0 0.5rem 0;
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: var(--text-muted);
+	color: var(--text-light);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 }

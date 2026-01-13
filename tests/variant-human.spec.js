@@ -58,10 +58,13 @@ test.describe('Variant Human Loading', () => {
 			await expect(nameInput).toBeVisible({ timeout: 10000 });
 			await nameInput.fill(testCharacterName);
 
-			// Submit form
-			const createButton = page.locator('#createCharacterBtn');
-			await expect(createButton).toBeVisible({ timeout: 10000 });
-			await createButton.click();
+			// Navigate through wizard steps (0->1->2->3->Create)
+			const nextBtn = page.locator('#wizardNextBtn');
+			await expect(nextBtn).toBeVisible({ timeout: 10000 });
+			await nextBtn.click(); // Step 0 -> 1
+			await nextBtn.click(); // Step 1 -> 2
+			await nextBtn.click(); // Step 2 -> 3
+			await nextBtn.click(); // Step 3 -> Create character
 
 			// Wait for modal to close and character to be created
 			await page.waitForSelector('#newCharacterModal.show', {
@@ -250,7 +253,7 @@ test.describe('Variant Human Loading', () => {
 				.first();
 			await confirmButton
 				.waitFor({ state: 'visible', timeout: 5000 })
-				.catch(() => {});
+				.catch(() => { });
 			if (await confirmButton.isVisible()) {
 				await confirmButton.click();
 			}

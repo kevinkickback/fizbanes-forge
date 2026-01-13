@@ -1,33 +1,8 @@
-/**
- * Modal utility for user interactions and character creation flows.
- *
- * @typedef {Object} ModalEventHandlers
- * @property {Function} onShowModal - Handler for when the modal is shown
- * @property {Function} onCreateCharacter - Handler for when a character is created
- *
- * @typedef {Object} CharacterFormData
- * @property {string} name - The character's name
- * @property {number} level - The character's level
- * @property {string} gender - The character's gender
- * @property {boolean} feats - Whether feats are enabled
- * @property {boolean} multiclassing - Whether multiclassing is enabled
- * @property {string} abilityScoreMethod - The method for generating ability scores
- * @property {Set<string>} allowedSources - Set of allowed source books
- * @property {Object} variantRules - Character variant rules
- * @property {boolean} variantRules.feats - Whether feats are enabled
- * @property {boolean} variantRules.multiclassing - Whether multiclassing is enabled
- * @property {string} variantRules.abilityScoreMethod - The method for generating ability scores
- *
- * @typedef {Object} ConfirmationOptions
- * @property {string} title - The title of the confirmation dialog
- * @property {string} message - The message to display
- * @property {string} [confirmButtonText='Confirm'] - Text for the confirm button
- * @property {string} [cancelButtonText='Cancel'] - Text for the cancel button
- * @property {string} [confirmButtonClass='btn-primary'] - CSS class for the confirm button
- */
+/** Modal utility for user interactions and character creation flows. */
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
+import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { showNotification } from '../lib/Notifications.js';
 import { SourceCard } from '../ui/components/sources/Card.js';
 
@@ -45,6 +20,9 @@ export class Modal {
 			onCreateCharacter: null,
 		};
 		this._buttonListenersSetup = false;
+
+		// DOM cleanup manager for this modal instance
+		this._cleanup = DOMCleanup.create();
 
 		_instance = this;
 	}
@@ -128,7 +106,23 @@ export class Modal {
 				return;
 			}
 
+			// Dispose old Bootstrap modal instance if exists (via DOMCleanup)
+			const existingModal = this._cleanup.getBootstrapModal(modal);
+			if (existingModal) {
+				try {
+					existingModal.dispose();
+				} catch (e) {
+					console.warn('Modal', 'Error disposing old new character modal', e);
+				}
+			}
+
+			// Create new Bootstrap modal instance
 			const bootstrapModal = new bootstrap.Modal(modal);
+			this._cleanup.registerBootstrapModal(modal, bootstrapModal);
+
+			// Setup cleanup on hide
+			this._cleanup.once(modal, 'hidden.bs.modal', () => this._onNewCharacterModalHidden());
+
 			bootstrapModal.show();
 
 			// Initialize source UI
@@ -174,20 +168,19 @@ export class Modal {
 			}
 			this._updateStepper();
 			this._updateWizardButtons();
-			// Progress bar removed
 
 			// Remove existing listeners by cloning (consistent with project pattern)
 			if (backBtn?.parentNode) {
 				const newBack = backBtn.cloneNode(true);
 				backBtn.parentNode.replaceChild(newBack, backBtn);
-				newBack.addEventListener('click', () => this._goStep(-1));
+				this._cleanup.on(newBack, 'click', () => this._goStep(-1));
 				this._wizard.backBtn = newBack;
 			}
 
 			if (nextBtn?.parentNode) {
 				const newNext = nextBtn.cloneNode(true);
 				nextBtn.parentNode.replaceChild(newNext, nextBtn);
-				newNext.addEventListener('click', () => this._goStep(1));
+				this._cleanup.on(newNext, 'click', () => this._goStep(1));
 				this._wizard.nextBtn = newNext;
 			}
 
@@ -201,17 +194,7 @@ export class Modal {
 					this._goStep(1);
 				}
 			};
-			document.addEventListener('keydown', this._wizardKeyHandler);
-
-			// Clean up on hide
-			const modalEl = document.getElementById('newCharacterModal');
-			if (modalEl) {
-				modalEl.addEventListener('hidden.bs.modal', () => {
-					document.removeEventListener('keydown', this._wizardKeyHandler);
-				});
-			}
-
-			// Sync gender segmented control to hidden input
+			this._cleanup.on(document, 'keydown', this._wizardKeyHandler);
 
 		} catch (error) {
 			console.error('Modal', 'Error initializing wizard', error);
@@ -371,17 +354,17 @@ export class Modal {
 
 			// Default images available under assets/images/characters
 			const defaults = [
-				'assets/images/characters/placeholder_char_card1.webp',
+				'assets/images/characters/placeholder_char_card.webp',
 				'assets/images/characters/placeholder_char_card2.webp',
 				'assets/images/characters/placeholder_char_card3.webp',
-				'assets/images/characters/placeholder_char_card4.webp',
-				'assets/images/characters/placeholder_char_card5.webp',
-				'assets/images/characters/placeholder_char_card6.webp',
-				'assets/images/characters/placeholder_char_card7.webp',
-				'assets/images/characters/placeholder_char_card8.webp',
-				'assets/images/characters/placeholder_char_card9.webp',
-				'assets/images/characters/placeholder_char_card10.webp',
-				'assets/images/characters/placeholder_char_card11.webp',
+				'assets/images/characters/placeholder_char_card4.jpg',
+				'assets/images/characters/placeholder_char_card5.jpg',
+				'assets/images/characters/placeholder_char_card6.jpg',
+				'assets/images/characters/placeholder_char_card7.jpg',
+				'assets/images/characters/placeholder_char_card8.jpg',
+				'assets/images/characters/placeholder_char_card9.jpg',
+				'assets/images/characters/placeholder_char_card10.jpg',
+				'assets/images/characters/placeholder_char_card11.jpg',
 			];
 
 			// Clear and populate grid buttons
@@ -960,6 +943,23 @@ export class Modal {
 			console.error('Modal', 'Error showing duplicate ID modal:', error);
 			return 'cancel';
 		}
+	}
+
+	_onNewCharacterModalHidden() {
+		console.debug('Modal', 'New Character modal hidden, cleaning up resources');
+
+		// Cleanup all tracked event listeners
+		this._cleanup.cleanup();
+
+		// Clear wizard state
+		if (this._wizard) {
+			this._wizard = null;
+		}
+
+		// Clear portrait selector state
+		this._selectedPortrait = null;
+
+		console.debug('Modal', 'New Character modal cleanup complete');
 	}
 
 	static getInstance() {

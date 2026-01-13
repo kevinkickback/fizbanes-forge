@@ -111,6 +111,7 @@
 	/* Layout Dimensions */
 	--sidebar-width: 250px;
 	--header-height: 60px;
+	--titlebar-height: 56px;
 
 	/* Border Radius Scale */
 	--border-radius: 4px;
@@ -137,6 +138,19 @@
 	--class-image-width: 30%;
 	--background-content-width: 62%;
 	--background-image-width: 30%;
+}
+
+/* Responsive titlebar sizing */
+@media (min-width: 1280px) {
+	:root {
+		--titlebar-height: 60px;
+	}
+}
+
+@media (max-width: 768px) {
+	:root {
+		--titlebar-height: 52px;
+	}
 }
 
 /* Prevent dragging HTML elements & text selection */
@@ -210,6 +224,9 @@ body.debug-mode .nav-item.debug-only {
 	list-style: none;
 	padding: 0;
 	margin: 0;
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
 }
 
 .nav-item {
@@ -1149,6 +1166,44 @@ body.debug-mode .nav-item.debug-only {
 	min-width: 2rem; /* Ensure minimum width */
 	padding: 0.25rem 0.5rem;
 	flex: 0 0 auto; /* Prevent flex shrinking/growing */
+}
+
+/* ===== Text Color Contrast Overrides ===== */
+/* Override Bootstrap's text-muted to be lighter for dark mode */
+.text-muted {
+	color: var(--text-light) !important;
+}
+
+/* Ensure small elements have proper contrast */
+small {
+	color: var(--text-light);
+}
+
+small.text-muted {
+	color: var(--text-light) !important;
+}
+
+/* Ensure descriptions and body text are visible */
+.text-content {
+	color: var(--text-color);
+}
+
+/* Card body text contrast */
+.card-body {
+	color: var(--text-color);
+}
+
+.card-body p {
+	color: var(--text-color);
+}
+
+/* List items in detail sections */
+.detail-section li {
+	color: var(--text-color);
+}
+
+.detail-section li.text-content {
+	color: var(--text-light);
 }
 
 /* Equipment List */
@@ -2844,7 +2899,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .spell-description {
-	color: var(--text-color);
+	color: var(--text-light);
 	font-size: 0.9rem;
 	line-height: 1.5;
 }
@@ -2930,7 +2985,7 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .item-description {
-	color: var(--text-color);
+	color: var(--text-light);
 	font-size: 0.9rem;
 	line-height: 1.5;
 }

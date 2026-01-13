@@ -1,6 +1,7 @@
 // Modal for selecting and adding equipment/items to character inventory
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -31,6 +32,10 @@ export class EquipmentSelectionModal {
         this.filterDebounceTimer = null; // Debounce filter operations
         this.scrollTimeout = null; // Debounce scroll events
 
+        // DOM cleanup manager
+        this._cleanup = DOMCleanup.create();
+        this._descriptionProcessingTimer = null; // Background description processing
+
         // Virtual scrolling parameters
         this.itemsPerPage = 50; // Render 50 items at a time
         this.currentPage = 0;
@@ -50,6 +55,9 @@ export class EquipmentSelectionModal {
             this._setupEventListeners();
             this._renderItemList();
 
+            // Register cleanup on modal hide
+            this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onModalHidden());
+
             return new Promise((resolve) => {
                 this.resolvePromise = resolve;
                 this.bootstrapModal.show();
@@ -68,11 +76,23 @@ export class EquipmentSelectionModal {
             throw new Error('Equipment selection modal element not found');
         }
 
+        // Dispose old Bootstrap modal instance if exists
+        if (this.bootstrapModal) {
+            try {
+                this.bootstrapModal.dispose();
+            } catch (e) {
+                console.warn('[EquipmentSelectionModal]', 'Error disposing old modal', e);
+            }
+        }
+
         // Initialize Bootstrap modal
         this.bootstrapModal = new bootstrap.Modal(this.modal, {
             keyboard: this.allowClose,
             backdrop: this.allowClose ? true : 'static',
         });
+
+        // Register with cleanup manager
+        this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
     }
 
     async _setupSourceDropdown() {
@@ -109,7 +129,7 @@ export class EquipmentSelectionModal {
                     <label class="form-check-label" for="${id}">${src.toUpperCase()}</label>
                 `;
                 const cb = item.querySelector('input');
-                cb.addEventListener('change', () => {
+                this._cleanup.on(cb, 'change', () => {
                     if (cb.checked) {
                         this.selectedSources.add(src);
                     } else {
@@ -176,7 +196,7 @@ export class EquipmentSelectionModal {
         // Search input with debounce
         const searchInput = this.modal.querySelector('#equipmentSearch');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            this._cleanup.on(searchInput, 'input', (e) => {
                 this.searchTerm = e.target.value.toLowerCase().trim();
                 this._debouncedFilterItems();
             });
@@ -185,7 +205,7 @@ export class EquipmentSelectionModal {
         // Filter toggle button
         const filterToggleBtn = this.modal.querySelector('#equipmentFilterToggleBtn');
         if (filterToggleBtn) {
-            filterToggleBtn.addEventListener('click', () => {
+            this._cleanup.on(filterToggleBtn, 'click', () => {
                 const filtersPanel = this.modal.querySelector('#equipmentFiltersPanel');
                 if (filtersPanel) {
                     const isVisible = filterToggleBtn.getAttribute('data-filters-visible') === 'true';
@@ -199,7 +219,7 @@ export class EquipmentSelectionModal {
         const sourceMenu = this.modal.querySelector('.equipment-source-menu');
         const sourceToggle = this.modal.querySelector('.equipment-source-toggle');
         if (sourceMenu && sourceToggle) {
-            sourceToggle.addEventListener('click', (e) => {
+            this._cleanup.on(sourceToggle, 'click', (e) => {
                 e.preventDefault();
                 sourceMenu.classList.toggle('show');
                 sourceToggle.setAttribute(
@@ -207,7 +227,7 @@ export class EquipmentSelectionModal {
                     sourceMenu.classList.contains('show'),
                 );
             });
-            document.addEventListener('click', (e) => {
+            this._cleanup.on(document, 'click', (e) => {
                 if (!this.modal.contains(e.target)) return;
                 if (
                     !sourceMenu.contains(e.target) &&
@@ -224,7 +244,7 @@ export class EquipmentSelectionModal {
             '[data-filter-type="item-type"]',
         );
         typeCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.type.add(checkbox.value);
                 } else {
@@ -239,7 +259,7 @@ export class EquipmentSelectionModal {
             '[data-filter-type="rarity"]',
         );
         rarityCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.rarity.add(checkbox.value);
                 } else {
@@ -254,7 +274,7 @@ export class EquipmentSelectionModal {
             '[data-filter-type="property"]',
         );
         propertyCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
+            this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.property.add(checkbox.value);
                 } else {
@@ -267,7 +287,7 @@ export class EquipmentSelectionModal {
         // Add selected button
         const addBtn = this.modal.querySelector('#addSelectedEquipmentBtn');
         if (addBtn) {
-            addBtn.addEventListener('click', () => {
+            this._cleanup.on(addBtn, 'click', () => {
                 this._handleAddSelected();
             });
         }
@@ -275,31 +295,26 @@ export class EquipmentSelectionModal {
         // Cancel button
         const cancelBtn = this.modal.querySelector('#cancelEquipmentSelection');
         if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => {
+            this._cleanup.on(cancelBtn, 'click', () => {
                 this._handleCancel();
             });
         }
 
         // Item card clicks (for selection/details)
-        this.modal.addEventListener('click', (e) => {
+        this._cleanup.on(this.modal, 'click', (e) => {
             const itemCard = e.target.closest('[data-item-id]');
             if (itemCard) {
                 const itemId = itemCard.getAttribute('data-item-id');
                 this._toggleItemSelection(itemId);
             }
         });
-
-        // Modal hidden event
-        this.modal.addEventListener('hidden.bs.modal', () => {
-            this._cleanup();
-        });
     }
 
     _debouncedFilterItems() {
         if (this.filterDebounceTimer) {
-            clearTimeout(this.filterDebounceTimer);
+            this._cleanup.clearTimer(this.filterDebounceTimer);
         }
-        this.filterDebounceTimer = setTimeout(() => {
+        this.filterDebounceTimer = this._cleanup.setTimeout(() => {
             this._filterItems();
         }, 150); // 150ms debounce for responsive feel
     }
@@ -723,6 +738,37 @@ export class EquipmentSelectionModal {
     _handleCancel() {
         this.bootstrapModal.hide();
         this.resolvePromise(null);
+    }
+
+    _onModalHidden() {
+        console.debug('[EquipmentSelectionModal]', 'Modal hidden, cleaning up resources');
+
+        // Clear all timers
+        if (this.filterDebounceTimer) {
+            this._cleanup.clearTimer(this.filterDebounceTimer);
+            this.filterDebounceTimer = null;
+        }
+
+        if (this._descriptionProcessingTimer) {
+            this._cleanup.clearTimer(this._descriptionProcessingTimer);
+            this._descriptionProcessingTimer = null;
+        }
+
+        // Clear all event listeners
+        this._cleanup.cleanup();
+
+        // Clear caches
+        this.descriptionCache.clear();
+        this.allItems = [];
+        this.filteredItems = [];
+        this.selectedItems = [];
+        this.filters = {
+            type: new Set(),
+            rarity: new Set(),
+            property: new Set(),
+        };
+
+        console.debug('[EquipmentSelectionModal]', 'Cleanup complete');
     }
 
     _cleanup() {

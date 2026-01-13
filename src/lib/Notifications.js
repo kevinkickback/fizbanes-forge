@@ -1,12 +1,90 @@
 /** Notifications.js - Temporary user notifications with debouncing and auto-close. */
 
+/**
+ * Notification suppression policy - reduces noisy success/info toasts for changes
+ * that are already visually evident in the UI.
+ * 
+ * BEST PRACTICE: Prefer inline feedback (highlights, animations, badges) over toasts
+ * when the user can already see the result of their action on-screen.
+ * 
+ * When to SUPPRESS notifications (return true):
+ * - Character create/delete/duplicate/rename (card appears/disappears is sufficient)
+ * - Single item/spell add/remove (list update is self-evident)
+ * - Equipment equip/unequip (visual state change is clear)
+ * - Proficiency/feature selections (selection UI shows the change)
+ * - Auto-save (use inline badge instead)
+ * 
+ * When to ALLOW notifications (return false):
+ * - Errors and warnings (always notify)
+ * - Background/long-running operations that finish off-screen
+ * - Cross-context results (action taken on different page/section)
+ * - Bulk operations with counts (e.g., "Added 15 items") if target not fully visible
+ * - Explicit user commands: Manual Save, Export, Import
+ * 
+ * @param {string} message - The notification message
+ * @param {string} type - success, info, warning, error, danger
+ * @returns {boolean} true if notification should be suppressed
+ */
+function shouldSuppressNotification(message, type) {
+	if (!message || !type) return false;
+
+	const t = String(type).toLowerCase();
+	// Never suppress errors or warnings - user must see these
+	if (t === 'error' || t === 'danger' || t === 'warning') return false;
+
+	// Only suppress success and info toasts for routine, inline-visible changes
+	if (t !== 'success' && t !== 'info') return false;
+
+	const m = String(message).trim();
+
+	// Suppress routine CRUD operations that are visually obvious
+	const suppressPatterns = [
+		// Character operations - card create/delete/rename is visible
+		/^new character created/i,
+		/^character created/i,
+		/^character deleted successfully/i,
+		/^character deleted/i,
+		/^character renamed/i,
+		/^character duplicated/i,
+
+		// Item/spell/equipment operations - list updates are self-evident
+		/^added .+ to .+$/i,              // "Added Fireball to Wizard"
+		/^added \d+ (item|spell)/i,       // "Added 3 items to inventory"
+		/^removed .+ from .+$/i,          // "Removed Longsword from inventory"
+		/^item (added|removed)/i,
+		/^spell (added|removed)/i,
+
+		// Equipment state changes - visual indicators are clear
+		/^(equipped|unequipped|attuned|unattuned)/i,
+
+		// Auto-save - should use inline badge instead
+		/^auto.?saved/i,
+		/^character saved$/i,
+
+		// Selection confirmations - UI already shows selection
+		/^(selected|deselected|applied)/i,
+	];
+
+	// If message matches any suppress pattern, block the toast
+	if (suppressPatterns.some((re) => re.test(m))) return true;
+
+	// Allow explicit user-initiated save/export commands (has "successfully")
+	if (/saved successfully|exported successfully|imported successfully/i.test(m)) {
+		return false;
+	}
+
+	return false; // Default: allow notification
+}
+
 const NOTIFICATION_CONFIG = Object.freeze({
 	DEBOUNCE_DELAY: 3000,
-	CLOSE_ANIMATION_DURATION: 150,
+	CLOSE_ANIMATION_DURATION: 200,
 	AUTO_CLOSE_DELAY: 5000,
 });
 
 let lastNotification = { message: '', type: '', timestamp: 0 };
+let notificationHistory = []; // Store all notifications for notification center
+const MAX_HISTORY = 50; // Keep last 50 notifications
 
 function getOrCreateNotificationContainer() {
 	let container = document.getElementById('notificationContainer');
@@ -19,14 +97,64 @@ function getOrCreateNotificationContainer() {
 	return container;
 }
 
+function updateNotificationBadge() {
+	const badge = document.getElementById('notificationBadge');
+	if (!badge) return;
+
+	const unreadCount = notificationHistory.filter(n => !n.read).length;
+	if (unreadCount > 0) {
+		badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+		badge.style.display = 'block';
+	} else {
+		badge.style.display = 'none';
+	}
+}
+
+function addToNotificationHistory(message, type) {
+	const notification = {
+		id: Date.now() + Math.random(),
+		message,
+		type: type || 'info',
+		timestamp: new Date(),
+		read: false,
+	};
+
+	notificationHistory.unshift(notification); // Add to front
+
+	// Keep history size manageable
+	if (notificationHistory.length > MAX_HISTORY) {
+		notificationHistory = notificationHistory.slice(0, MAX_HISTORY);
+	}
+
+	updateNotificationBadge();
+	return notification;
+}
+
 function createNotificationElement(message, type) {
 	const notification = document.createElement('div');
 	notification.className = `notification ${type}`;
+
+	// Map notification types to icons
+	const iconMap = {
+		success: 'fa-check-circle',
+		danger: 'fa-exclamation-circle',
+		error: 'fa-exclamation-circle',
+		warning: 'fa-exclamation-triangle',
+		info: 'fa-info-circle',
+	};
+
+	const iconClass = iconMap[type] || iconMap.info;
+
 	notification.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas ${iconClass}"></i>
+        </div>
         <div class="notification-content">
             <div class="notification-message">${message}</div>
-            <button type="button" class="btn-close notification-close" aria-label="Close"></button>
         </div>
+        <button type="button" class="notification-close" aria-label="Close notification">
+            <i class="fas fa-times"></i>
+        </button>
 		<div class="notification-progress" aria-hidden="true">
 			<div class="notification-progress-bar"></div>
 		</div>
@@ -35,6 +163,14 @@ function createNotificationElement(message, type) {
 }
 
 export function showNotification(message, type = 'info') {
+	// Policy gate: avoid noisy success/info toasts for inline-visible updates
+	try {
+		if (shouldSuppressNotification(message, type)) {
+			return;
+		}
+	} catch (_) {
+		// Fail open if policy throws for any reason
+	}
 	// Check if this is a duplicate notification within the debounce window
 	const now = Date.now();
 	if (
@@ -47,6 +183,9 @@ export function showNotification(message, type = 'info') {
 
 	// Update last notification
 	lastNotification = { message, type, timestamp: now };
+
+	// Add to notification history for notification center and keep a handle
+	const historyEntry = addToNotificationHistory(message, type);
 
 	// Get or create notification container
 	const notificationContainer = getOrCreateNotificationContainer();
@@ -77,6 +216,10 @@ export function showNotification(message, type = 'info') {
 			// Reset last notification if manually closed
 			if (isManualClose) {
 				lastNotification = { message: '', type: '', timestamp: 0 };
+				// Mark the corresponding history entry as read to decrement badge
+				if (historyEntry?.id) {
+					markNotificationAsRead(historyEntry.id);
+				}
 			}
 		}, NOTIFICATION_CONFIG.CLOSE_ANIMATION_DURATION);
 	};
@@ -117,4 +260,29 @@ export function showNotification(message, type = 'info') {
 	progressBar.style.width = '100%';
 	lastTick = performance.now();
 	rafId = requestAnimationFrame(tick);
+}
+
+// Export notification center functions
+export function getNotificationHistory() {
+	return [...notificationHistory];
+}
+
+export function clearNotificationHistory() {
+	notificationHistory = [];
+	updateNotificationBadge();
+}
+
+export function markNotificationAsRead(notificationId) {
+	const notification = notificationHistory.find(n => n.id === notificationId);
+	if (notification) {
+		notification.read = true;
+		updateNotificationBadge();
+	}
+}
+
+export function markAllAsRead() {
+	notificationHistory.forEach(n => {
+		n.read = true;
+	});
+	updateNotificationBadge();
 }

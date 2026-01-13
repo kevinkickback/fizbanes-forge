@@ -3,6 +3,7 @@
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { ProficiencyCore } from '../../../app/Proficiency.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../../../lib/ProficiencyConstants.js';
@@ -106,6 +107,9 @@ export class ProficiencyCard {
 		this._selectionView = new ProficiencySelectionView();
 		this._notesView = new ProficiencyNotesView();
 		this._instrumentChoicesView = new InstrumentChoicesView();
+
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 	}
 
 	async initialize() {
@@ -265,38 +269,26 @@ export class ProficiencyCard {
 			// Set up click listeners for each proficiency container
 			this._setupContainerClickListeners();
 
-			// Listen for character changes
-			document.addEventListener(
-				'characterChanged',
-				this._handleCharacterChanged.bind(this),
-			);
+			// Store handler references for cleanup
+			this._characterChangedDocHandler = this._handleCharacterChanged.bind(this);
+			this._characterSelectedHandler = this._handleCharacterChanged.bind(this);
+			this._proficiencyAddedHandler = this._handleProficiencyAdded.bind(this);
+			this._proficiencyRemovedHandler = this._handleProficiencyRemoved.bind(this);
+			this._proficiencyRefundedHandler = this._handleProficiencyRefunded.bind(this);
+			this._proficiencyChangedHandler = this._handleProficiencyChanged.bind(this);
+			this._proficiencyChangedDocHandler = this._handleProficiencyChanged.bind(this);
 
-			// Listen for character being loaded/selected from file
-			eventBus.on(EVENTS.CHARACTER_SELECTED, this._handleCharacterChanged.bind(this));
+			// Track document listeners
+			this._cleanup.on(document, 'characterChanged', this._characterChangedDocHandler);
+			this._cleanup.on(document, 'proficiencyChanged', this._proficiencyChangedDocHandler);
 
-			// Listen for proficiency changes via EventBus
-			eventBus.on('proficiency:added', this._handleProficiencyAdded.bind(this));
-			eventBus.on(
-				'proficiency:removedBySource',
-				this._handleProficiencyRemoved.bind(this),
-			);
-			eventBus.on(
-				'proficiency:refunded',
-				this._handleProficiencyRefunded.bind(this),
-			);
-			eventBus.on(
-				'proficiency:optionalSelected',
-				this._handleProficiencyChanged.bind(this),
-			);
-			eventBus.on(
-				'proficiency:optionalDeselected',
-				this._handleProficiencyChanged.bind(this),
-			);
-
-			document.addEventListener(
-				'proficiencyChanged',
-				this._handleProficiencyChanged.bind(this),
-			);
+			// Track eventBus listeners (manually since they're not DOM events)
+			eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+			eventBus.on('proficiency:added', this._proficiencyAddedHandler);
+			eventBus.on('proficiency:removedBySource', this._proficiencyRemovedHandler);
+			eventBus.on('proficiency:refunded', this._proficiencyRefundedHandler);
+			eventBus.on('proficiency:optionalSelected', this._proficiencyChangedHandler);
+			eventBus.on('proficiency:optionalDeselected', this._proficiencyChangedHandler);
 		} catch (error) {
 			console.error(
 				'ProficiencyCard',
@@ -306,12 +298,35 @@ export class ProficiencyCard {
 		}
 	}
 
+	_cleanupEventListeners() {
+		// Manually remove eventBus listeners
+		if (this._characterSelectedHandler) {
+			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		}
+		if (this._proficiencyAddedHandler) {
+			eventBus.off('proficiency:added', this._proficiencyAddedHandler);
+		}
+		if (this._proficiencyRemovedHandler) {
+			eventBus.off('proficiency:removedBySource', this._proficiencyRemovedHandler);
+		}
+		if (this._proficiencyRefundedHandler) {
+			eventBus.off('proficiency:refunded', this._proficiencyRefundedHandler);
+		}
+		if (this._proficiencyChangedHandler) {
+			eventBus.off('proficiency:optionalSelected', this._proficiencyChangedHandler);
+			eventBus.off('proficiency:optionalDeselected', this._proficiencyChangedHandler);
+		}
+
+		// Clean up all tracked DOM listeners
+		this._cleanup.cleanup();
+	}
+
 	_setupContainerClickListeners() {
 		for (const type of this._proficiencyTypes) {
 			const container = this._proficiencyContainers[type];
 			if (!container) continue;
 
-			container.addEventListener('click', (e) => {
+			this._cleanup.on(container, 'click', (e) => {
 				const item = e.target.closest('.proficiency-item');
 				if (!item) return;
 

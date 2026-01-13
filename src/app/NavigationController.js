@@ -414,16 +414,6 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		// Log floating bar state BEFORE setting attribute and rendering
-		const floatingBar = document.querySelector('.floating-actions');
-		const floatingBarVisibleBefore = floatingBar
-			? window.getComputedStyle(floatingBar).display !== 'none'
-			: false;
-		console.debug(
-			'NavigationController',
-			`[BEFORE RENDER] Page: ${page}, Floating bar visible: ${floatingBarVisibleBefore}`,
-		);
-
 		// Set data-current-page attribute immediately for CSS selectors
 		document.body.setAttribute('data-current-page', page);
 		console.debug(
@@ -433,15 +423,6 @@ class NavigationControllerImpl {
 				page,
 				attributeValue: document.body.getAttribute('data-current-page'),
 			},
-		);
-
-		// Log floating bar state AFTER setting attribute (CSS might update)
-		const floatingBarAfterAttr = floatingBar
-			? window.getComputedStyle(floatingBar).display !== 'none'
-			: false;
-		console.debug(
-			'NavigationController',
-			`[AFTER SETTING ATTR] Page: ${page}, Floating bar visible: ${floatingBarAfterAttr}`,
 		);
 
 		// Load and render the page
@@ -642,73 +623,7 @@ class NavigationControllerImpl {
 
 		// Ensure data-current-page attribute is set (again, for safety)
 		document.body.setAttribute('data-current-page', pageName);
-		const finalAttribute = document.body.getAttribute('data-current-page');
-
-		// Check floating bar visibility - AFTER page render
-		const floatingBar = document.querySelector('.floating-actions');
-		const isVisible = floatingBar
-			? window.getComputedStyle(floatingBar).display !== 'none'
-			: false;
-
-		// Determine if floating bar SHOULD be visible for this page
-		const shouldShowByCss = ['build', 'equipment', 'spells', 'details'].includes(
-			pageName,
-		);
-
-		// Detailed floating bar analysis
-		console.debug(
-			'NavigationController',
-			`[AFTER RENDER] Page: "${pageName}"`,
-			{
-				floatingBarVisible: isVisible,
-				shouldShowByCSS: shouldShowByCss,
-				dataCurrentPage: finalAttribute,
-				computedDisplay: floatingBar
-					? window.getComputedStyle(floatingBar).display
-					: 'N/A',
-				inlineDisplay: floatingBar ? floatingBar.style.display : 'N/A',
-			},
-		);
-
-		// WARNING if floating bar visibility doesn't match CSS selector
-		if (pageName === 'home' && isVisible) {
-			console.warn(
-				'NavigationController',
-				`⚠️ FLOATING BAR ISSUE: On home page but floating bar is VISIBLE!`,
-				{
-					page: pageName,
-					shouldShowByCSS: shouldShowByCss,
-					actuallyVisible: isVisible,
-					dataCurrentPage: finalAttribute,
-				},
-			);
-		} else if (
-			(pageName === 'build' ||
-				pageName === 'equipment' ||
-				pageName === 'spells' ||
-				pageName === 'details') &&
-			!isVisible
-		) {
-			console.warn(
-				'NavigationController',
-				`⚠️ FLOATING BAR ISSUE: On ${pageName} page but floating bar is NOT VISIBLE!`,
-				{
-					page: pageName,
-					shouldShowByCSS: shouldShowByCss,
-					actuallyVisible: isVisible,
-					dataCurrentPage: finalAttribute,
-				},
-			);
-		} else {
-			console.debug(
-				'NavigationController',
-				`✓ Floating bar visibility correct for page: ${pageName}`,
-				{
-					shouldShow: shouldShowByCss,
-					isShowing: isVisible,
-				},
-			);
-		}
+		console.debug('NavigationController', `Page render complete: ${pageName}`);
 
 		// Emit PAGE_LOADED event so page-specific handlers can initialize
 		console.debug(
