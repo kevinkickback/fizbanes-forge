@@ -3,8 +3,7 @@
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
-(function () {
-  'use strict';
+((() => {
 
   function _defineProperty(e, r, t) {
     return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
@@ -30,27 +29,23 @@
     var t = Object.keys(e);
     if (Object.getOwnPropertySymbols) {
       var o = Object.getOwnPropertySymbols(e);
-      r && (o = o.filter(function (r) {
-        return Object.getOwnPropertyDescriptor(e, r).enumerable;
-      })), t.push.apply(t, o);
+      r && (o = o.filter((r) => Object.getOwnPropertyDescriptor(e, r).enumerable)), t.push.apply(t, o);
     }
     return t;
   }
   function _objectSpread2(e) {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
-      r % 2 ? ownKeys(Object(t), !0).forEach(function (r) {
+      r % 2 ? ownKeys(Object(t), !0).forEach((r) => {
         _defineProperty(e, r, t[r]);
-      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach((r) => {
         Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
       });
     }
     return e;
   }
   function _setPrototypeOf(t, e) {
-    return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) {
-      return t.__proto__ = e, t;
-    }, _setPrototypeOf(t, e);
+    return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : ((t, e) => (t.__proto__ = e, t)), _setPrototypeOf(t, e);
   }
   function _toPrimitive(t, r) {
     if ("object" != typeof t || !t) return t;
@@ -67,9 +62,7 @@
     return "symbol" == typeof i ? i : i + "";
   }
   function _wrapRegExp() {
-    _wrapRegExp = function (e, r) {
-      return new BabelRegExp(e, void 0, r);
-    };
+    _wrapRegExp = (e, r) => new BabelRegExp(e, void 0, r);
     var e = RegExp.prototype,
       r = new WeakMap();
     function BabelRegExp(e, t, p) {
@@ -78,7 +71,7 @@
     }
     function buildGroups(e, t) {
       var p = r.get(t);
-      return Object.keys(p).reduce(function (r, t) {
+      return Object.keys(p).reduce((r, t) => {
         var o = p[t];
         if ("number" == typeof o) r[t] = e[o];else {
           for (var i = 0; void 0 === e[o[i]] && i + 1 < o.length;) i++;
@@ -98,7 +91,7 @@
     }, BabelRegExp.prototype[Symbol.replace] = function (t, p) {
       if ("string" == typeof p) {
         var o = r.get(this);
-        return e[Symbol.replace].call(this, t, p.replace(/\$<([^>]+)>/g, function (e, r) {
+        return e[Symbol.replace].call(this, t, p.replace(/\$<([^>]+)>/g, (e, r) => {
           var t = o[r];
           return "$" + (Array.isArray(t) ? t.join("$") : t);
         }));
@@ -139,7 +132,7 @@
   const IS_DOM = !!DOCUMENT.documentElement && !!DOCUMENT.head && typeof DOCUMENT.addEventListener === 'function' && typeof DOCUMENT.createElement === 'function';
   const IS_IE = ~userAgent.indexOf('MSIE') || ~userAgent.indexOf('Trident/');
 
-  var p = /fa(s|r|l|t|d|dr|dl|dt|b|k|kd|ss|sr|sl|st|sds|sdr|sdl|sdt)?[\-\ ]/,
+  var p = /fa(s|r|l|t|d|dr|dl|dt|b|k|kd|ss|sr|sl|st|sds|sdr|sdl|sdt)?[- ]/,
     g = /Font ?Awesome ?([56 ]*)(Solid|Regular|Light|Thin|Duotone|Brands|Free|Pro|Sharp Duotone|Sharp|Kit)?.*/i;
   var S = {
       classic: {
@@ -539,7 +532,7 @@
   if (DOCUMENT && typeof DOCUMENT.querySelector === 'function') {
     const attrs = [['data-family-prefix', 'familyPrefix'], ['data-css-prefix', 'cssPrefix'], ['data-family-default', 'familyDefault'], ['data-style-default', 'styleDefault'], ['data-replacement-class', 'replacementClass'], ['data-auto-replace-svg', 'autoReplaceSvg'], ['data-auto-add-css', 'autoAddCss'], ['data-auto-a11y', 'autoA11y'], ['data-search-pseudo-elements', 'searchPseudoElements'], ['data-observe-mutations', 'observeMutations'], ['data-mutate-approach', 'mutateApproach'], ['data-keep-original-source', 'keepOriginalSource'], ['data-measure-performance', 'measurePerformance'], ['data-show-missing-icons', 'showMissingIcons']];
     attrs.forEach(_ref => {
-      let [attr, key] = _ref;
+      const [attr, key] = _ref;
       const val = coerce(getAttrConfig(attr));
       if (val !== undefined && val !== null) {
         initial[key] = val;
@@ -572,11 +565,11 @@
   Object.keys(_default).forEach(key => {
     Object.defineProperty(config, key, {
       enumerable: true,
-      set: function (val) {
+      set(val) {
         _config[key] = val;
         _onChangeCb.forEach(cb => cb(config));
       },
-      get: function () {
+      get() {
         return _config[key];
       }
     });
@@ -585,11 +578,11 @@
   // familyPrefix is deprecated as of 6.2.0 and should be removed in 7.0.0
   Object.defineProperty(config, 'familyPrefix', {
     enumerable: true,
-    set: function (val) {
+    set(val) {
       _config.cssPrefix = val;
       _onChangeCb.forEach(cb => cb(config));
     },
-    get: function () {
+    get() {
       return _config.cssPrefix;
     }
   });
@@ -682,7 +675,7 @@
     return transform.size !== meaninglessTransform.size || transform.x !== meaninglessTransform.x || transform.y !== meaninglessTransform.y || transform.rotate !== meaninglessTransform.rotate || transform.flipX || transform.flipY;
   }
   function transformForSvg(_ref) {
-    let {
+    const {
       transform,
       containerWidth,
       iconWidth
@@ -706,7 +699,7 @@
     };
   }
   function transformForCss(_ref2) {
-    let {
+    const {
       transform,
       width = UNITS_IN_GRID,
       height = UNITS_IN_GRID,
@@ -777,7 +770,7 @@
   var namespace = w[NAMESPACE_IDENTIFIER];
 
   const functions = [];
-  const listener = function () {
+  const listener = () => {
     DOCUMENT.removeEventListener('DOMContentLoaded', listener);
     loaded = 1;
     functions.map(fn => fn());
@@ -820,9 +813,7 @@
    * to a given context.
    */
   var bindInternal4 = function bindInternal4(func, thisContext) {
-    return function (a, b, c, d) {
-      return func.call(thisContext, a, b, c, d);
-    };
+    return (a, b, c, d) => func.call(thisContext, a, b, c, d);
   };
 
   /**
@@ -909,7 +900,7 @@
   }
   function codePointAt(string, index) {
     const size = string.length;
-    let first = string.charCodeAt(index);
+    const first = string.charCodeAt(index);
     let second;
     if (first >= 0xD800 && first <= 0xDBFF && size > index + 1) {
       second = string.charCodeAt(index + 1);
@@ -933,7 +924,7 @@
     }, {});
   }
   function defineIcons(prefix, icons) {
-    let params = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    const params = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     const {
       skipHooks = false
     } = params;
@@ -1127,7 +1118,7 @@
     return family;
   }
   function getCanonicalPrefix(styleOrPrefix) {
-    let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     const {
       family = s
     } = params;
@@ -1143,7 +1134,7 @@
     return result;
   }
   function moveNonFaClassesToRest(classNames) {
-    let rest = [];
+    const rest = [];
     let iconName = null;
     classNames.forEach(cls => {
       const result = getIconName(config.cssPrefix, cls);
@@ -1164,7 +1155,7 @@
     });
   }
   function getCanonicalIcon(values) {
-    let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     const {
       skipLookups = false
     } = params;
@@ -1220,7 +1211,7 @@
   const newCanonicalFamilies = L.filter(familyId => {
     return familyId !== s || familyId !== t;
   });
-  const newCanonicalStyles = Object.keys(ga).filter(key => key !== s).map(key => Object.keys(ga[key])).flat();
+  const newCanonicalStyles = Object.keys(ga).filter(key => key !== s).flatMap(key => Object.keys(ga[key]));
   function getDefaultCanonicalPrefix(prefixOptions) {
     const {
       values,
@@ -1308,7 +1299,7 @@
   const providers = {};
   const defaultProviderKeys = Object.keys(providers);
   function registerPlugins(nextPlugins, _ref) {
-    let {
+    const {
       mixoutsTo: obj
     } = _ref;
     _plugins = nextPlugins;
@@ -1393,8 +1384,8 @@
     callHooks('noAuto');
   };
   const dom = {
-    i2svg: function () {
-      let params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    i2svg() {
+      const params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
       if (IS_DOM) {
         callHooks('beforeI2svg', params);
         callProvided('pseudoElements2svg', params);
@@ -1403,8 +1394,8 @@
         return Promise.reject(new Error('Operation requires a DOM of some kind.'));
       }
     },
-    watch: function () {
-      let params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    watch() {
+      const params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
       const {
         autoReplaceSvgRoot
       } = params;
@@ -1466,8 +1457,8 @@
     findIconDefinition,
     toHtml
   };
-  const autoReplace = function () {
-    let params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  const autoReplace = () => {
+    const params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     const {
       autoReplaceSvgRoot = DOCUMENT
     } = params;
@@ -1493,7 +1484,7 @@
       },
       addPacks: packs => {
         packs.forEach(_ref => {
-          let [prefix, icons] = _ref;
+          const [prefix, icons] = _ref;
           namespace.styles[prefix] = _objectSpread2(_objectSpread2({}, namespace.styles[prefix] || {}), icons);
         });
         build();
@@ -1512,12 +1503,12 @@
       get: abstractCreator
     });
     Object.defineProperty(val, 'html', {
-      get: function () {
+      get() {
         return val.abstract.map(a => toHtml(a));
       }
     });
     Object.defineProperty(val, 'node', {
-      get: function () {
+      get() {
         if (!IS_DOM) return;
         const container = DOCUMENT.createElement('div');
         container.innerHTML = val.html;
@@ -1528,7 +1519,7 @@
   }
 
   function asIcon (_ref) {
-    let {
+    const {
       children,
       main,
       mask,
@@ -1557,7 +1548,7 @@
   }
 
   function asSymbol (_ref) {
-    let {
+    const {
       prefix,
       iconName,
       children,
@@ -1602,7 +1593,7 @@
     } = mask.found ? mask : main;
     const isUploadedIcon = Lt.includes(prefix);
     const attrClass = [config.replacementClass, iconName ? "".concat(config.cssPrefix, "-").concat(iconName) : ''].filter(c$$1 => extra.classes.indexOf(c$$1) === -1).filter(c$$1 => c$$1 !== '' || !!c$$1).concat(extra.classes).join(' ');
-    let content = {
+    const content = {
       children: [],
       attributes: _objectSpread2(_objectSpread2({}, extra.attributes), {}, {
         'data-prefix': prefix,
@@ -1796,7 +1787,7 @@
     }
   }
   function findIcon(iconName, prefix) {
-    let givenPrefix = prefix;
+    const givenPrefix = prefix;
     if (prefix === 'fa' && config.styleDefault !== null) {
       prefix = getDefaultUsablePrefix();
     }
@@ -1863,7 +1854,7 @@
     return DOCUMENT.createElement(tag);
   }
   function convertSVG(abstractObj) {
-    let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     const {
       ceFn = abstractObj.tag === 'svg' ? createElementNS : createElement
     } = params;
@@ -1871,11 +1862,11 @@
       return DOCUMENT.createTextNode(abstractObj);
     }
     const tag = ceFn(abstractObj.tag);
-    Object.keys(abstractObj.attributes || []).forEach(function (key) {
+    Object.keys(abstractObj.attributes || []).forEach((key) => {
       tag.setAttribute(key, abstractObj.attributes[key]);
     });
     const children = abstractObj.children || [];
-    children.forEach(function (child) {
+    children.forEach((child) => {
       tag.appendChild(convertSVG(child, {
         ceFn
       }));
@@ -1890,21 +1881,21 @@
     return comment;
   }
   const mutators = {
-    replace: function (mutation) {
+    replace(mutation) {
       const node = mutation[0];
       if (node.parentNode) {
         mutation[1].forEach(abstract => {
           node.parentNode.insertBefore(convertSVG(abstract), node);
         });
         if (node.getAttribute(DATA_FA_I2SVG) === null && config.keepOriginalSource) {
-          let comment = DOCUMENT.createComment(nodeAsComment(node));
+          const comment = DOCUMENT.createComment(nodeAsComment(node));
           node.parentNode.replaceChild(comment, node);
         } else {
           node.remove();
         }
       }
     },
-    nest: function (mutation) {
+    nest(mutation) {
       const node = mutation[0];
       const abstract = mutation[1];
 
@@ -2042,7 +2033,7 @@
     const existingPrefix = node.getAttribute('data-prefix');
     const existingIconName = node.getAttribute('data-icon');
     const innerText = node.innerText !== undefined ? node.innerText.trim() : '';
-    let val = getCanonicalIcon(classArray(node));
+    const val = getCanonicalIcon(classArray(node));
     if (!val.prefix) {
       val.prefix = getDefaultUsablePrefix();
     }
@@ -2104,7 +2095,7 @@
     };
   }
   function parseMeta(node) {
-    let parser = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
+    const parser = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
       styleParser: true
     };
     const {
@@ -2114,7 +2105,7 @@
     } = classParser(node);
     const extraAttributes = attributesParser(node);
     const pluginMeta = chainHooks('parseNodeAttributes', {}, node);
-    let extraStyles = parser.styleParser ? styleParser(node) : [];
+    const extraStyles = parser.styleParser ? styleParser(node) : [];
     return _objectSpread2({
       iconName,
       title: node.getAttribute('title'),
@@ -2153,7 +2144,7 @@
     return [...Ft, ...Ia];
   }
   function onTree(root) {
-    let callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    const callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
     if (!IS_DOM) return Promise.resolve();
     const htmlClassList = DOCUMENT.documentElement.classList;
     const hclAdd = suffix => htmlClassList.add("".concat(HTML_CLASS_I2SVG_BASE_CLASS, "-").concat(suffix));
@@ -2211,7 +2202,7 @@
     });
   }
   function onNode(node) {
-    let callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    const callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
     generateMutation(node).then(mutation => {
       if (mutation) {
         perform([mutation], callback);
@@ -2219,8 +2210,8 @@
     });
   }
   function resolveIcons(next) {
-    return function (maybeIconDefinition) {
-      let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    return (maybeIconDefinition) => {
+      const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       const iconDefinition = (maybeIconDefinition || {}).icon ? maybeIconDefinition : findIconDefinition(maybeIconDefinition || {});
       let {
         mask
@@ -2233,8 +2224,8 @@
       }));
     };
   }
-  const render = function (iconDefinition) {
-    let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  const render = (iconDefinition) => {
+    const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     const {
       transform = meaninglessTransform,
       symbol = false,
@@ -2308,14 +2299,14 @@
       };
     },
     provides(providers$$1) {
-      providers$$1.i2svg = function (params) {
+      providers$$1.i2svg = (params) => {
         const {
           node = DOCUMENT,
           callback = () => {}
         } = params;
         return onTree(node, callback);
       };
-      providers$$1.generateSvgReplacementMutation = function (node, nodeMeta) {
+      providers$$1.generateSvgReplacementMutation = (node, nodeMeta) => {
         const {
           iconName,
           title,
@@ -2334,7 +2325,7 @@
             height: 512,
             icon: {}
           })]).then(_ref => {
-            let [main, mask] = _ref;
+            const [main, mask] = _ref;
             resolve([node, makeInlineSvgAbstract({
               icons: {
                 main,
@@ -2353,8 +2344,8 @@
           }).catch(reject);
         });
       };
-      providers$$1.generateAbstractIcon = function (_ref2) {
-        let {
+      providers$$1.generateAbstractIcon = (_ref2) => {
+        const {
           children,
           attributes,
           main,
@@ -2387,7 +2378,7 @@
     mixout() {
       return {
         layer(assembler) {
-          let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+          const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
           const {
             classes = []
           } = params;
@@ -2421,7 +2412,7 @@
     mixout() {
       return {
         counter(content) {
-          let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+          const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
           const {
             title = null,
             classes = [],
@@ -2455,7 +2446,7 @@
     mixout() {
       return {
         text(content) {
-          let params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+          const params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
           const {
             transform = meaninglessTransform,
             title = null,
@@ -2486,7 +2477,7 @@
       };
     },
     provides(providers$$1) {
-      providers$$1.generateLayersText = function (node, nodeMeta) {
+      providers$$1.generateLayersText = (node, nodeMeta) => {
         const {
           title,
           transform,
@@ -2516,7 +2507,7 @@
     }
   };
 
-  const CLEAN_CONTENT_PATTERN = new RegExp('\u{22}', 'ug');
+  const CLEAN_CONTENT_PATTERN = /\u{22}/ug;
   const SECONDARY_UNICODE_RANGE = [1105920, 1112319];
   const _FONT_FAMILY_WEIGHT_TO_PREFIX = _objectSpread2(_objectSpread2(_objectSpread2(_objectSpread2({}, {
     FontAwesome: {
@@ -2578,7 +2569,7 @@
         } = hexValueFromContent(content);
         const isV4 = fontFamilyMatch[0].startsWith('FontAwesome');
         let iconName = byUnicode(prefix, hexValue);
-        let iconIdentifier = iconName;
+        const iconIdentifier = iconName;
         if (isV4) {
           const iconName4 = byOldUnicode(hexValue);
           if (iconName4.iconName && iconName4.prefix) {
@@ -2662,7 +2653,7 @@
       };
     },
     provides(providers) {
-      providers.pseudoElements2svg = function (params) {
+      providers.pseudoElements2svg = (params) => {
         const {
           node = DOCUMENT
         } = params;
@@ -2710,7 +2701,7 @@
   };
 
   const parseTransformString = transformString => {
-    let transform = {
+    const transform = {
       size: 16,
       x: 0,
       y: 0,
@@ -2782,8 +2773,8 @@
       };
     },
     provides(providers) {
-      providers.generateAbstractTransformGrouping = function (_ref) {
-        let {
+      providers.generateAbstractTransformGrouping = (_ref) => {
+        const {
           main,
           transform,
           containerWidth,
@@ -2830,7 +2821,7 @@
     height: '100%'
   };
   function fillBlack(abstract) {
-    let force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+    const force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
     if (abstract.attributes && (abstract.attributes.fill || force)) {
       abstract.attributes.fill = 'black';
     }
@@ -2859,8 +2850,8 @@
       };
     },
     provides(providers) {
-      providers.generateAbstractMask = function (_ref) {
-        let {
+      providers.generateAbstractMask = (_ref) => {
+        const {
           children,
           attributes,
           main,
@@ -2946,7 +2937,7 @@
       if (WINDOW.matchMedia) {
         reduceMotion = WINDOW.matchMedia('(prefers-reduced-motion: reduce)').matches;
       }
-      providers.missingIconAbstract = function () {
+      providers.missingIconAbstract = () => {
         const gChildren = [];
         const FILL = {
           fill: 'currentColor'
@@ -3051,4 +3042,4 @@
   });
   bunker(bootstrap);
 
-}());
+})());

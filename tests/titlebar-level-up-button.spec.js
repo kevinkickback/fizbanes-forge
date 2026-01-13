@@ -158,7 +158,7 @@ test.describe('Titlebar Level Up Button', () => {
                     return count > 1; // More than just placeholder
                 }, { timeout: 30000 });
                 console.log('   Class options loaded successfully');
-            } catch (e) {
+            } catch (_e) {
                 // If timeout, show what we have
                 const optionInfo = await page.evaluate(() => {
                     const select = document.querySelector('#classSelect');

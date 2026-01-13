@@ -3,11 +3,11 @@
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
-(function (global, factory) {
+(((global, factory) => {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global['fontawesome-free-shims'] = factory());
-}(this, (function () { 'use strict';
+})(this, (() => { 
 
   let _WINDOW = {};
   let _DOCUMENT = {};
@@ -36,18 +36,16 @@
     var t = Object.keys(e);
     if (Object.getOwnPropertySymbols) {
       var o = Object.getOwnPropertySymbols(e);
-      r && (o = o.filter(function (r) {
-        return Object.getOwnPropertyDescriptor(e, r).enumerable;
-      })), t.push.apply(t, o);
+      r && (o = o.filter((r) => Object.getOwnPropertyDescriptor(e, r).enumerable)), t.push.apply(t, o);
     }
     return t;
   }
   function _objectSpread2(e) {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
-      r % 2 ? ownKeys(Object(t), !0).forEach(function (r) {
+      r % 2 ? ownKeys(Object(t), !0).forEach((r) => {
         _defineProperty(e, r, t[r]);
-      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach((r) => {
         Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
       });
     }

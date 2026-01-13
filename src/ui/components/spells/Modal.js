@@ -10,15 +10,17 @@ import { spellSelectionService } from '../../../services/SpellSelectionService.j
 import { spellService } from '../../../services/SpellService.js';
 
 export class SpellSelectionModal {
-    constructor({ className = null, allowClose = true } = {}) {
+    constructor({ className = null, allowClose = true, newAllowances = null, selectedSpells = null } = {}) {
         this.className = className;
         this.allowClose = allowClose;
+        this.newAllowances = newAllowances; // Spell allowances from level-up
         this.modal = null;
         this.bootstrapModal = null;
         this.validSpells = [];
         this.filteredSpells = [];
         this.searchTerm = '';
-        this.selectedSpells = []; // Changed to array for multi-select
+        this.selectedSpells = selectedSpells || []; // Preserve selections from previous session
+        this._preserveSelections = !!(selectedSpells && selectedSpells.length > 0);
         this.selectedSources = new Set();
         this.ignoreClassRestrictions = false; // Toggle for showing spells from all classes
 
@@ -45,6 +47,54 @@ export class SpellSelectionModal {
         this.currentPage = 0;
     }
 
+    /**
+     * Convert a spell level number to an ordinal string (1 -> "1st", 2 -> "2nd", etc.)
+     */
+    _getOrdinalLevel(level) {
+        if (level === 0) return 'cantrip';
+
+        const j = level % 10;
+        const k = level % 100;
+
+        if (j === 1 && k !== 11) return `${level}st`;
+        if (j === 2 && k !== 12) return `${level}nd`;
+        if (j === 3 && k !== 13) return `${level}rd`;
+        return `${level}th`;
+    }
+
+    /**
+     * Render spell selection limit indicator showing allowed selections
+     * Only displays when spell modal opened from level-up with newAllowances
+     */
+    _renderSpellSelectionIndicator() {
+        const indicator = document.getElementById('spellSelectionLimitIndicator');
+        if (!indicator || !this.newAllowances || this.newAllowances.length === 0) {
+            if (indicator) indicator.style.display = 'none';
+            return;
+        }
+
+        // Calculate total allowances
+        const totalAllowed = this.newAllowances.reduce((sum, a) => sum + a.newAllowance, 0);
+        this._spellSelectionLimit = totalAllowed; // Store limit for selection checks
+
+        // Build indicator HTML - thin centered row of circles
+        let html = '<div class="d-flex align-items-center gap-2" style="padding: 0.25rem 0;">';
+        html += `<small class="text-muted">Allowed:</small>`;
+
+        for (let i = 0; i < totalAllowed; i++) {
+            const isFilled = i < this.selectedSpells.length;
+            const bgColor = isFilled ? 'var(--bs-secondary)' : '#f0f0f0';
+            const borderColor = isFilled ? 'var(--bs-secondary)' : '#dee2e6';
+            html += `<span class="rounded-circle d-inline-block" style="width: 1.25rem; height: 1.25rem; background-color: ${bgColor}; border: 1px solid ${borderColor};" data-spell-slot="${i}" title="Spell slot ${i + 1}"></span>`;
+        }
+
+        html += `<small class="text-muted">${this.selectedSpells.length}/${totalAllowed}</small>`;
+        html += '</div>';
+
+        indicator.innerHTML = html;
+        indicator.style.display = 'block';
+    }
+
     async show() {
         const character = AppState.getCurrentCharacter();
         if (!character) {
@@ -65,7 +115,37 @@ export class SpellSelectionModal {
         try {
             await this._loadValidSpells(character);
             this.filteredSpells = this.validSpells;
-            this.selectedSpells = []; // Reset selections
+
+            // Pre-filter spell levels if from level-up
+            if (this.newAllowances && this.newAllowances.length > 0) {
+                // Collect all available spell levels from allowances
+                const availableLevels = new Set();
+                for (const allowance of this.newAllowances) {
+                    if (allowance.availableSpellLevels) {
+                        for (const level of allowance.availableSpellLevels) {
+                            // Store as strings to match checkbox values in HTML
+                            availableLevels.add(String(level));
+                        }
+                    }
+                }
+                // Pre-check the available spell levels in the filter
+                this.filters.level = availableLevels;
+            }
+
+            // Track whether we are in a level-up session to decide if selections should persist
+            const isLevelUpSession = this.newAllowances && this.newAllowances.length > 0;
+            if (isLevelUpSession) {
+                this._preserveSelections = true;
+            }
+
+            // Only reset selections when not in a level-up session AND we don't have preserved selections
+            if (!this._preserveSelections && (!this.newAllowances || this.newAllowances.length === 0)) {
+                this.selectedSpells = [];
+            }
+
+            // Snapshot the current selection state so we can restore it on Cancel
+            this._selectedSpellsSnapshot = [...this.selectedSpells];
+            console.debug('[SpellSelectionModal]', 'Snapshotted selections', { count: this._selectedSpellsSnapshot.length });
 
             // Get the modal element from DOM
             this.modal = document.getElementById('spellSelectionModal');
@@ -75,7 +155,11 @@ export class SpellSelectionModal {
                 return null;
             }
 
+            // Render spell selection limit indicator if from level-up
+            this._renderSpellSelectionIndicator();
+
             await this._renderSpellList();
+            this._renderSelectedSpellsList(); // Render previously selected spells on reopen
             this._attachEventListeners();
 
             // Set initial state of restrictions checkbox
@@ -109,7 +193,10 @@ export class SpellSelectionModal {
 
             // Return promise that resolves when spell is added or modal closes
             return new Promise((resolve) => {
-                this._resolvePromise = resolve;
+                this._resolvePromise = (value) => {
+                    console.debug('[SpellSelectionModal]', 'Promise resolved with:', value);
+                    resolve(value);
+                };
             });
         } catch (error) {
             console.error('[SpellSelectionModal]', 'Error showing modal', error);
@@ -149,9 +236,9 @@ export class SpellSelectionModal {
 
                 return true;
             })
-            .map((spell, index) => ({
+            .map((spell) => ({
                 ...spell,
-                id: spell.id || `spell-${index}`,
+                id: spell.id || `${spell.name}|${spell.source}`.toLowerCase().replace(/\s+/g, '-'),
             }));
 
         console.info('[SpellSelectionModal]', 'Loaded spells for class', {
@@ -213,7 +300,10 @@ export class SpellSelectionModal {
                     ? this.descriptionCache.get(spell.id)
                     : '<span class="text-muted small">Loading...</span>';
 
-                const isSelected = this.selectedSpells.some(s => s.id === spell.id);
+                // Highlight previously selected spells on reopen using a stable identity (name + source)
+                const isSelected = this.selectedSpells.some(s => (
+                    s.name === spell.name && s.source === spell.source
+                ));
                 const selectedClass = isSelected ? 'selected' : '';
 
                 html += `
@@ -355,27 +445,63 @@ export class SpellSelectionModal {
     }
 
     _toggleSpellSelection(spellId) {
+        // First check if this spell is already selected (for deselection)
+        // This handles the case where spell is not in validSpells because it was already added to character
+        const selectedIndex = this.selectedSpells.findIndex(s => s.id === spellId);
+        if (selectedIndex >= 0) {
+            // Deselect - remove from selectedSpells
+            const deselectedSpell = this.selectedSpells.splice(selectedIndex, 1)[0];
+            
+            console.log('[SpellSelectionModal]', 'Deselecting spell:', { name: deselectedSpell.name, id: deselectedSpell.id });
+            
+            // Ensure spell is in validSpells for rendering
+            const existsInValid = this.validSpells.some(s => s.id === deselectedSpell.id);
+            if (!existsInValid) {
+                console.log('[SpellSelectionModal]', 'Adding deselected spell back to validSpells');
+                this.validSpells.push(deselectedSpell);
+            }
+            
+            // ALWAYS re-sort to ensure alphabetical order
+            this.validSpells.sort((a, b) => a.name.localeCompare(b.name));
+            console.log('[SpellSelectionModal]', 'Spells sorted, count:', this.validSpells.length);
+            
+            // Reset to first page to ensure deselected spell is visible
+            this.currentPage = 0;
+            
+            console.log('[SpellSelectionModal]', 'Calling _renderSpellList to refresh');
+            // Re-render spell list to show the deselected spell in correct position
+            this._renderSpellList();
+            
+            // Update UI
+            this._renderSelectedSpellsList();
+            this._updateAddButtonState();
+            this._renderSpellSelectionIndicator();
+            return;
+        }
+
+        // Not selected yet, so try to select it
         const spell = this.validSpells.find(s => s.id === spellId);
         if (!spell) return;
 
-        const index = this.selectedSpells.findIndex(s => s.id === spellId);
-        if (index >= 0) {
-            // Deselect
-            this.selectedSpells.splice(index, 1);
-        } else {
-            // Select
-            this.selectedSpells.push(spell);
+        // Check if we have selection limit (from level-up) and if limit reached
+        if (this._spellSelectionLimit && this.selectedSpells.length >= this._spellSelectionLimit) {
+            showNotification(`You can only select ${this._spellSelectionLimit} spell${this._spellSelectionLimit !== 1 ? 's' : ''}`, 'warning');
+            return;
         }
+        
+        // Select
+        this.selectedSpells.push(spell);
 
-        // Update only the visual state of the card without full re-render
+        // Update visual state
         const card = this.modal?.querySelector(`[data-spell-id="${spellId}"]`);
         if (card) {
-            card.classList.toggle('selected');
+            card.classList.add('selected');
         }
 
-        // Update selected spells list
+        // Update UI
         this._renderSelectedSpellsList();
         this._updateAddButtonState();
+        this._renderSpellSelectionIndicator();
     }
 
     _renderSelectedSpellsList() {
@@ -587,13 +713,7 @@ export class SpellSelectionModal {
             let html = '<a class="dropdown-item" data-source="">All sources</a>';
 
             sortedSources.forEach(source => {
-                try {
-                    const sourceName = sourceService.getSourceName(source) || source;
-                    html += `<a class="dropdown-item" data-source="${source}">${sourceName}</a>`;
-                } catch (err) {
-                    console.warn('[SpellSelectionModal]', 'Error getting source name for', source, err);
-                    html += `<a class="dropdown-item" data-source="${source}">${source}</a>`;
-                }
+                html += `<a class="dropdown-item" data-source="${source}">${source}</a>`;
             });
 
             menu.innerHTML = html;
@@ -699,6 +819,11 @@ export class SpellSelectionModal {
         // Spell level filter checkboxes
         const levelCheckboxes = this.modal.querySelectorAll('[data-filter-type="level"]');
         levelCheckboxes.forEach((checkbox) => {
+            // Set checked state if level is in filters
+            if (this.filters.level.has(checkbox.value)) {
+                checkbox.checked = true;
+            }
+
             this._cleanup.on(checkbox, 'change', () => {
                 if (checkbox.checked) {
                     this.filters.level.add(checkbox.value);
@@ -845,14 +970,15 @@ export class SpellSelectionModal {
             }
 
             if (successCount > 0) {
-                this.bootstrapModal.hide();
                 if (this._resolvePromise) {
                     this._resolvePromise({
                         spells: this.selectedSpells,
                         className: this.className,
                         successCount,
                     });
+                    this._resolvePromise = null;
                 }
+                this.bootstrapModal.hide();
             }
         } catch (error) {
             console.error('[SpellSelectionModal]', 'Error adding spells', error);
@@ -861,14 +987,38 @@ export class SpellSelectionModal {
     }
 
     _handleCancel() {
-        this.bootstrapModal.hide();
+        console.debug('[SpellSelectionModal]', '_handleCancel called');
+        
+        // Restore the original selection state from snapshot
+        if (this._selectedSpellsSnapshot) {
+            this.selectedSpells = [...this._selectedSpellsSnapshot];
+            console.debug('[SpellSelectionModal]', 'Restored selections from snapshot', { count: this.selectedSpells.length });
+        }
+        
         if (this._resolvePromise) {
+            console.debug('[SpellSelectionModal]', 'Resolving promise with null');
             this._resolvePromise(null);
+            this._resolvePromise = null;
+        } else {
+            console.warn('[SpellSelectionModal]', '_resolvePromise is null, cannot resolve');
+        }
+        if (this.bootstrapModal) {
+            console.debug('[SpellSelectionModal]', 'Calling bootstrapModal.hide()');
+            this.bootstrapModal.hide();
+        } else {
+            console.warn('[SpellSelectionModal]', 'bootstrapModal is null, cannot hide');
         }
     }
 
     _onModalHidden() {
         console.debug('[SpellSelectionModal]', 'Modal hidden, cleaning up resources');
+
+        // Resolve promise if not already resolved (e.g., via btn-close button)
+        if (this._resolvePromise) {
+            console.debug('[SpellSelectionModal]', 'Resolving promise on modal hide');
+            this._resolvePromise(null);
+            this._resolvePromise = null;
+        }
 
         // Clear all timers
         if (this.filterDebounceTimer) {
@@ -888,7 +1038,12 @@ export class SpellSelectionModal {
         this.descriptionCache.clear();
         this.validSpells = [];
         this.filteredSpells = [];
-        this.selectedSpells = [];
+
+        // Preserve selections within the same level-up session
+        if (!this._preserveSelections) {
+            this.selectedSpells = [];
+        }
+
         this.filters = {
             level: new Set(),
             school: new Set(),
@@ -899,4 +1054,8 @@ export class SpellSelectionModal {
 
         console.debug('[SpellSelectionModal]', 'Cleanup complete');
     }
+
+    /**
+     * Render new spell allowances card if available
+     */
 }

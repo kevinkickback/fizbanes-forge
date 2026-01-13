@@ -6,6 +6,7 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
+import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 
 export class LevelUpModal {
     constructor() {
@@ -14,6 +15,14 @@ export class LevelUpModal {
         this.character = null;
         this.selectedClassName = null; // Track which class is being leveled
         this.ignoreMulticlassReqs = false; // Toggle for multiclass requirements
+        this.currentStep = 0; // Track current wizard step
+        this.pendingFeatSelection = false; // Track if feat selection is pending
+        this.pendingSpellSelection = false; // Track if spell selection is pending
+        this.sessionStartFeatures = []; // Features at session start for comparison
+        this.sessionStartLevel = 1; // Level at session start
+        this.sessionStartSpells = {}; // Spells known at session start by class
+        this._isTemporarilyHidden = false; // Track if hidden for modal coordination
+        this.spellSelectionModal = null; // Reuse spell selection modal instance for preserving selections
 
         // DOM cleanup manager
         this._cleanup = DOMCleanup.create();
@@ -73,8 +82,40 @@ export class LevelUpModal {
                 this.selectedClassName = this.character.progression.classes[0].name;
             }
 
+            // Reset pending flags when opening modal (fresh session)
+            this.pendingFeatSelection = false;
+            this.pendingSpellSelection = false;
+
+            // Capture session start state for comparison
+            this.sessionStartLevel = this.character.level;
+            this.sessionStartFeatures = [];
+            this.sessionStartSpells = {}; // Capture spells at session start
+
+            for (const classEntry of this.character.progression?.classes || []) {
+                for (const feature of classEntry.features || []) {
+                    this.sessionStartFeatures.push({
+                        name: feature.name,
+                        level: feature.level,
+                        className: classEntry.name
+                    });
+                }
+            }
+
+            // Capture spells known at session start
+            const spellcasting = this.character.spellcasting?.classes || {};
+            for (const [className, classData] of Object.entries(spellcasting)) {
+                this.sessionStartSpells[className] = {
+                    known: Array.from(classData.spellsKnown || []),
+                    prepared: Array.from(classData.spellsPrepared || []),
+                    cantrips: Array.from(classData.cantrips || [])
+                };
+            }
+
             // Attach tracked event listeners
             this._attachEventListeners();
+
+            // Initialize wizard
+            this._initWizard();
 
             // Load features for all existing classes and render content
             await this._loadAllClassFeatures();
@@ -122,6 +163,12 @@ export class LevelUpModal {
             this._cleanup.on(selectFeatBtn, 'click', () => this._handleSelectFeat());
         }
 
+        // Select spell button
+        const selectSpellBtn = this.modalEl.querySelector('#levelUpSelectSpellBtn');
+        if (selectSpellBtn) {
+            this._cleanup.on(selectSpellBtn, 'click', () => this._handleSelectSpell());
+        }
+
         // Toggle multiclass requirements
         const toggleReqsBtn = this.modalEl.querySelector('#ignoreMulticlassReqsToggle');
         if (toggleReqsBtn) {
@@ -143,7 +190,276 @@ export class LevelUpModal {
         // We'll call eventBus.off in _onModalHidden
     }
 
+    _initWizard() {
+        // Reset to first step
+        this.currentStep = 0;
+
+        // Update step availability messaging
+        this._updateStepAvailability();
+
+        // Setup wizard navigation buttons
+        const backBtn = this.modalEl.querySelector('#levelUpWizardBackBtn');
+        const nextBtn = this.modalEl.querySelector('#levelUpWizardNextBtn');
+
+        if (backBtn) {
+            this._cleanup.on(backBtn, 'click', () => this._goStep(-1));
+        }
+
+        if (nextBtn) {
+            this._cleanup.on(nextBtn, 'click', () => this._goStep(1));
+        }
+
+        // Setup stepper click navigation
+        const stepperItems = this.modalEl.querySelectorAll('#levelUpStepper [data-step]');
+        stepperItems.forEach(item => {
+            this._cleanup.on(item, 'click', () => {
+                const targetStep = Number.parseInt(item.getAttribute('data-step'), 10);
+                if (!Number.isNaN(targetStep)) {
+                    this.currentStep = targetStep;
+                    this._updateStepper();
+                    this._updateWizardButtons();
+                }
+            });
+        });
+
+        // Show first step
+        this._updateStepper();
+        this._updateWizardButtons();
+    }
+
+    _updateStepAvailability() {
+        const featMsg = this.modalEl.querySelector('#levelUpFeatMessage');
+        const featBtn = this.modalEl.querySelector('#levelUpSelectFeatBtn');
+        const hasASI = levelUpService.hasASIAvailable(this.character);
+
+        this.pendingFeatSelection = hasASI;
+
+        if (featMsg) {
+            featMsg.textContent = hasASI
+                ? 'You have an Ability Score Improvement available. Choose ability increases or a feat.'
+                : 'No feat or Ability Score Improvement choices at this level.';
+        }
+
+        if (featBtn) {
+            featBtn.disabled = !hasASI;
+            featBtn.classList.toggle('disabled', !hasASI);
+        }
+
+        const spellMsg = this.modalEl.querySelector('#levelUpSpellMessage');
+        const spellBtn = this.modalEl.querySelector('#levelUpSelectSpellBtn');
+        const pendingSpellSelections = this._getPendingSpellSelections();
+        const newSpellAllowances = this._getNewSpellAllowances();
+        const hasSpellcasting = Object.keys(this.character.spellcasting?.classes || {}).length > 0;
+
+        this.pendingSpellSelection = pendingSpellSelections.length > 0;
+
+        if (spellMsg) {
+            if (!hasSpellcasting) {
+                spellMsg.textContent = 'No spellcasting classes. Level up as a spellcaster to gain new spells.';
+            } else if (newSpellAllowances.length > 0) {
+                // Show new spell allowances in card format with icon next to each class
+                const messageParts = [];
+                let maxLevel = 0;
+
+                for (const a of newSpellAllowances) {
+                    const typeLabel = a.type === 'prepared' ? 'Prepare' : 'Learn';
+                    const maxInClass = a.availableSpellLevels?.length > 0
+                        ? Math.max(...a.availableSpellLevels)
+                        : 0;
+                    maxLevel = Math.max(maxLevel, maxInClass);
+                    const levelLabel = this._getOrdinalLevel(maxInClass);
+
+                    messageParts.push(`<div class="fw-bold"><i class="fas fa-scroll text-success me-2"></i>+${a.newAllowance} ${a.className} spells</div><div class="small text-muted ms-4">${typeLabel} up to ${levelLabel} level spells</div>`);
+                }
+
+                const totalNewSpells = newSpellAllowances.reduce((sum, a) => sum + a.newAllowance, 0);
+                const maxLevelLabel = this._getOrdinalLevel(maxLevel);
+
+                spellMsg.innerHTML = `${messageParts.join('<div class="mt-2"></div>')}<div class="border-top pt-2 mt-2"><div class="small"><strong>Total:</strong> ${totalNewSpells} new spell${totalNewSpells !== 1 ? 's' : ''}</div><div class="small"><strong>Max level:</strong> ${maxLevelLabel} level spells</div></div>`;
+            } else if (this.pendingSpellSelection) {
+                const summary = pendingSpellSelections
+                    .map(sel => `${sel.className} (${sel.type === 'prepared' ? 'prepare' : 'learn'} ${sel.remaining})`)
+                    .join(', ');
+                spellMsg.textContent = `Complete your spell selection: ${summary}.`;
+            } else {
+                spellMsg.textContent = 'No new spells from this level-up. Use Spells page for general management.';
+            }
+        }
+
+        if (spellBtn) {
+            // Only enable if there are new allowances or pending selections from leveling
+            const hasNewSpells = newSpellAllowances.length > 0 || pendingSpellSelections.length > 0;
+            spellBtn.disabled = !hasNewSpells;
+            spellBtn.classList.toggle('disabled', !hasNewSpells);
+        }
+    }
+
+    _getPendingSpellSelections() {
+        // Only count NEW spell allowances from leveling, not pre-existing unfilled slots
+        // This prevents the button from being enabled when a character at level 1 has empty spell slots
+        const newAllowances = this._getNewSpellAllowances();
+
+        // Convert newAllowances to pending format
+        return newAllowances.map(a => ({
+            className: a.className,
+            remaining: a.totalAvailable,
+            type: a.type
+        }));
+    }
+
+    /**
+     * Get information about new spells available from level-up only
+     * Returns details about new spell slots/cantrips that were NOT available at session start
+     */
+    _getNewSpellAllowances() {
+        const allowances = [];
+        const spellcastingClasses = this.character.spellcasting?.classes || {};
+
+        console.debug('LevelUpModal', '_getNewSpellAllowances called', {
+            sessionStartLevel: this.sessionStartLevel,
+            currentLevel: this.character.level,
+            spellcastingClasses: Object.keys(spellcastingClasses)
+        });
+
+        for (const [className, classData] of Object.entries(spellcastingClasses)) {
+            const progressionEntry = this.character.progression?.classes?.find(c => c.name === className);
+            const classLevel = progressionEntry?.level || classData.level || 0;
+            const sessionStartLevel = this.sessionStartLevel;
+
+            console.debug('LevelUpModal', `_getNewSpellAllowances checking ${className}`, {
+                classLevel,
+                sessionStartLevel,
+                shouldSkip: classLevel <= sessionStartLevel
+            });
+
+            // Only show allowances if this level has new spell gains
+            if (classLevel <= sessionStartLevel) continue;
+
+            const info = spellSelectionService.getSpellLimitInfo(this.character, className, classLevel);
+            if (!info.type) continue;
+
+            // Get starting allowance at session start level
+            const startInfo = spellSelectionService.getSpellLimitInfo(this.character, className, sessionStartLevel);
+            const newAllowance = Math.max(0, info.limit - startInfo.limit);
+
+            console.debug('LevelUpModal', `_getNewSpellAllowances ${className} allowance`, {
+                newAllowance,
+                currentLimit: info.limit,
+                startLimit: startInfo.limit
+            });
+
+            if (newAllowance > 0) {
+                // Get available spell levels from spell slots
+                const spellSlots = classData.spellSlots || {};
+                const availableLevels = Object.keys(spellSlots)
+                    .map(lvl => parseInt(lvl, 10))
+                    .filter(lvl => !Number.isNaN(lvl))
+                    .sort((a, b) => a - b);
+
+                allowances.push({
+                    className,
+                    type: info.type,
+                    newAllowance,
+                    levels: classLevel,
+                    availableSpellLevels: availableLevels,
+                    totalAvailable: Math.max(0, info.limit - info.current)
+                });
+            }
+        }
+
+        console.debug('LevelUpModal', '_getNewSpellAllowances result', { allowanceCount: allowances.length, allowances });
+        return allowances;
+    }
+
+    /**
+     * Check if character has the Spellcasting feature in any of their classes
+     */
+    _hasSpellcastingFeature() {
+        // Check if character has any spellcasting classes initialized
+        const spellcastingClasses = this.character.spellcasting?.classes || {};
+        if (Object.keys(spellcastingClasses).length === 0) {
+            return false;
+        }
+
+        // Check if any progression class has the "Spellcasting" feature
+        const progressionClasses = this.character.progression?.classes || [];
+        for (const classEntry of progressionClasses) {
+            const features = classEntry.features || [];
+            const hasSpellcastingFeature = features.some(f =>
+                f.name === 'Spellcasting' ||
+                f.name === 'Pact Magic' ||
+                f.name?.toLowerCase().includes('spellcasting')
+            );
+
+            if (hasSpellcastingFeature) {
+                return true;
+            }
+        }
+
+        // Fallback: if spellcasting classes exist, assume they have the feature
+        // This handles cases where features might not be populated yet
+        return Object.keys(spellcastingClasses).length > 0;
+    }
+
+    _goStep(delta) {
+        const totalSteps = this._getTotalSteps();
+        this.currentStep = Math.max(0, Math.min(totalSteps - 1, this.currentStep + delta));
+        this._updateStepper();
+        this._updateWizardButtons();
+    }
+
+    _getTotalSteps() {
+        const stepperItems = this.modalEl.querySelectorAll('#levelUpStepper [data-step]');
+        return stepperItems.length || 5;
+    }
+
+    _updateStepper() {
+        // Update stepper active state
+        const stepperItems = this.modalEl.querySelectorAll('#levelUpStepper [data-step]');
+        stepperItems.forEach(item => {
+            const step = Number.parseInt(item.getAttribute('data-step'), 10);
+            if (step === this.currentStep) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+
+        // Show/hide form sections
+        const sections = this.modalEl.querySelectorAll('.form-section[data-step]');
+        sections.forEach(section => {
+            const step = Number.parseInt(section.getAttribute('data-step'), 10);
+            if (step === this.currentStep) {
+                section.removeAttribute('hidden');
+            } else {
+                section.setAttribute('hidden', '');
+            }
+        });
+    }
+
+    _updateWizardButtons() {
+        const backBtn = this.modalEl.querySelector('#levelUpWizardBackBtn');
+        const nextBtn = this.modalEl.querySelector('#levelUpWizardNextBtn');
+        const totalSteps = this._getTotalSteps();
+
+        // Hide back button on first step
+        if (backBtn) {
+            backBtn.style.display = this.currentStep === 0 ? 'none' : 'inline-block';
+        }
+
+        // Hide next button on last step
+        if (nextBtn) {
+            nextBtn.style.display = this.currentStep === totalSteps - 1 ? 'none' : 'inline-block';
+        }
+    }
+
     _onModalHidden() {
+        // Skip cleanup if this is a temporary hide (e.g., for spell/feat selection)
+        if (this._isTemporarilyHidden) {
+            console.debug('LevelUpModal', '_onModalHidden called but modal is temporarily hidden');
+            return;
+        }
+
         // Clean up all tracked DOM listeners and timers
         this._cleanup.cleanup();
 
@@ -274,10 +590,148 @@ export class LevelUpModal {
     }
 
     async _handleSelectFeat() {
-        // Lazy import to avoid circular deps
-        const { FeatCard } = await import('../Feat.js');
-        const modal = new FeatCard();
-        await modal.show();
+        try {
+            // Mark that we're temporarily hiding for modal coordination
+            this._isTemporarilyHidden = true;
+
+            // Hide level up modal
+            if (this.bootstrapModal) {
+                this.bootstrapModal.hide();
+            }
+
+            // Lazy import to avoid circular deps
+            const { FeatCard } = await import('../feats/Modal.js');
+            const modal = new FeatCard();
+
+            // Get the feat modal element
+            const featModalEl = document.getElementById('featSelectionModal');
+            if (!featModalEl) {
+                showNotification('Feat selection modal not found', 'error');
+                this._isTemporarilyHidden = false;
+                return;
+            }
+
+            // Show modal and wait for it to close
+            await modal.show();
+
+            // Wait for modal to be hidden
+            await new Promise((resolve) => {
+                const handler = () => {
+                    featModalEl.removeEventListener('hidden.bs.modal', handler);
+                    resolve();
+                };
+                featModalEl.addEventListener('hidden.bs.modal', handler);
+            });
+
+            // Mark that we're no longer temporarily hidden
+            this._isTemporarilyHidden = false;
+
+            // When feat modal closes, show level up modal again
+            if (this.bootstrapModal) {
+                this.bootstrapModal.show();
+            }
+            // Refresh messaging and selections display
+            this._updateStepAvailability();
+            await this._renderAll();
+        } catch (err) {
+            console.error('LevelUpModal', '_handleSelectFeat failed', err);
+            showNotification('Failed to open feat selection modal', 'error');
+
+            // Mark that we're no longer temporarily hidden
+            this._isTemporarilyHidden = false;
+
+            // Re-show level up modal on error
+            if (this.bootstrapModal) {
+                this.bootstrapModal.show();
+            }
+        }
+    }
+
+    async _handleSelectSpell() {
+        try {
+            console.debug('LevelUpModal', '_handleSelectSpell starting');
+
+            // Check if there are new spell allowances from level-up
+            const newAllowances = this._getNewSpellAllowances();
+            const pendingSelections = this._getPendingSpellSelections();
+
+            if (newAllowances.length === 0 && pendingSelections.length === 0) {
+                showNotification('No new spells available from this level-up', 'info');
+                return;
+            }
+
+            // Mark that we're temporarily hiding for modal coordination
+            this._isTemporarilyHidden = true;
+
+            // Hide level up modal
+            if (this.bootstrapModal) {
+                console.debug('LevelUpModal', 'Hiding level up modal...');
+                this.bootstrapModal.hide();
+            }
+
+            // Lazy import to avoid circular deps
+            const { SpellSelectionModal } = await import('../spells/Modal.js');
+
+            // Reuse spell selection modal if already created, otherwise create new
+            if (!this.spellSelectionModal) {
+                this.spellSelectionModal = new SpellSelectionModal({
+                    newAllowances: newAllowances.length > 0 ? newAllowances : null,
+                    selectedSpells: [] // Start with empty selections on first open
+                });
+            } else {
+                // Reopen existing modal - preserve the selectedSpells from previous session
+                this.spellSelectionModal.newAllowances = newAllowances.length > 0 ? newAllowances : null;
+                // selectedSpells are already preserved in the instance
+            }
+
+            const modal = this.spellSelectionModal;
+
+            // Show modal and wait for it to close
+            const result = await modal.show();
+            console.debug('LevelUpModal', 'Spell modal closed with result:', result);
+
+            // Give time for backdrop to be removed and modal state to settle
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Mark that we're no longer temporarily hidden
+            this._isTemporarilyHidden = false;
+
+            // Ensure bootstrap modal instance still exists and is not disposed
+            if (!this.bootstrapModal) {
+                console.warn('LevelUpModal', 'Bootstrap modal was disposed, re-creating...');
+                const bs = window.bootstrap || globalThis.bootstrap;
+                if (bs) {
+                    this.bootstrapModal = new bs.Modal(this.modalEl, {
+                        backdrop: true,
+                        keyboard: true,
+                    });
+                }
+            }
+
+            // When spell modal closes, show level up modal again
+            console.debug('LevelUpModal', 'About to show level up modal, bootstrapModal:', !!this.bootstrapModal);
+            if (this.bootstrapModal) {
+                console.debug('LevelUpModal', 'Calling bootstrapModal.show()');
+                this.bootstrapModal.show();
+                console.debug('LevelUpModal', 'bootstrapModal.show() called');
+            } else {
+                console.error('LevelUpModal', 'bootstrapModal is null, cannot show!');
+            }
+            // Refresh messaging and selections display
+            this._updateStepAvailability();
+            await this._renderAll();
+        } catch (err) {
+            console.error('LevelUpModal', '_handleSelectSpell failed', err);
+            showNotification('Failed to open spell selection modal', 'error');
+
+            // Mark that we're no longer temporarily hidden
+            this._isTemporarilyHidden = false;
+
+            // Re-show level up modal on error
+            if (this.bootstrapModal) {
+                this.bootstrapModal.show();
+            }
+        }
     }
 
     _handleToggleRequirements() {
@@ -299,10 +753,90 @@ export class LevelUpModal {
     async _renderAll() {
         this._renderOverview();
         await this._renderClassSelect();
-        await this._renderFeatures();
+        await this._renderNewFeatures();
         this._renderHP();
-        this._renderSpellSlots();
-        this._renderASI();
+        this._renderCurrentClass();
+        this._renderSelectedFeats();
+        this._renderSelectedSpells();
+        this._updateStepAvailability();
+        this._updateWizardButtons();
+    }
+
+    _renderSelectedFeats() {
+        const container = this.modalEl.querySelector('#levelUpFeatMessage')?.parentElement;
+        if (!container) return;
+
+        const feats = this.character?.feats || [];
+        if (feats.length === 0) {
+            // Message is set by _updateStepAvailability
+            return;
+        }
+
+        // Show selected feats below the message
+        const button = this.modalEl.querySelector('#levelUpSelectFeatBtn');
+        if (!button) return;
+
+        let html = '';
+        if (feats.length > 0) {
+            html += '<div class="mt-3">';
+            html += '<p class="small text-muted mb-2"><i class="fas fa-check"></i> Selected Feats:</p>';
+            html += '<div class="d-flex flex-wrap gap-2">';
+            for (const feat of feats) {
+                html += `<span class="badge bg-success">${feat.name || 'Unknown'}</span>`;
+            }
+            html += '</div></div>';
+        }
+
+        if (button.nextElementSibling?.classList.contains('mt-3')) {
+            button.nextElementSibling.remove();
+        }
+
+        if (html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            button.parentElement.appendChild(div.firstElementChild);
+        }
+    }
+
+    _renderSelectedSpells() {
+        const container = this.modalEl.querySelector('#levelUpSpellMessage')?.parentElement;
+        if (!container) return;
+
+        const button = this.modalEl.querySelector('#levelUpSelectSpellBtn');
+        if (!button) return;
+
+        // Collect all known spells for spellcasting classes
+        const allKnownSpells = [];
+        const spellcastingClasses = this.character.spellcasting?.classes || {};
+
+        for (const classData of Object.values(spellcastingClasses)) {
+            const spells = classData.spellsKnown || [];
+            allKnownSpells.push(...spells);
+        }
+
+        let html = '';
+        if (allKnownSpells.length > 0) {
+            html += '<div class="mt-3">';
+            html += '<p class="small text-muted mb-2"><i class="fas fa-check"></i> Selected Spells:</p>';
+            html += '<div class="d-flex flex-wrap gap-2">';
+            for (const spell of allKnownSpells.slice(0, 10)) {  // Show first 10
+                html += `<span class="badge bg-info">${spell.name || 'Unknown'}</span>`;
+            }
+            if (allKnownSpells.length > 10) {
+                html += `<span class="badge bg-secondary">+${allKnownSpells.length - 10} more</span>`;
+            }
+            html += '</div></div>';
+        }
+
+        if (button.nextElementSibling?.classList.contains('mt-3')) {
+            button.nextElementSibling.remove();
+        }
+
+        if (html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            button.parentElement.appendChild(div.firstElementChild);
+        }
     }
 
     _renderOverview() {
@@ -314,19 +848,22 @@ export class LevelUpModal {
             let html = '<div class="d-flex flex-column gap-2">';
             for (const c of this.character.progression.classes) {
                 const isSelected = c.name === this.selectedClassName;
-                const selectedClass = isSelected ? 'border-primary bg-light' : '';
-                const cursor = 'cursor-pointer';
+                const cardClass = isSelected ? 'border-primary shadow-sm' : 'border-secondary';
+                const bgClass = isSelected ? 'bg-primary bg-opacity-10' : '';
                 html += `
-                    <div class="d-flex justify-content-between align-items-center p-2 border rounded ${selectedClass} ${cursor}" 
+                    <div class="class-selection-card d-flex justify-content-between align-items-center p-3 border-2 rounded ${cardClass} ${bgClass}" 
                          data-class-name="${c.name}" 
-                         style="cursor: pointer;">
-                        <div>
-                            ${isSelected ? '<i class="fas fa-check-circle text-primary me-2"></i>' : ''}
-                            <strong>${c.name}</strong> ${c.subclass ? `<span class="text-muted">(${c.subclass.name})</span>` : ''}
+                         style="cursor: pointer; transition: all 0.2s ease;">
+                        <div class="d-flex align-items-center gap-2">
+                            ${isSelected ? '<i class="fas fa-check-circle text-primary fs-5"></i>' : '<i class="fas fa-circle text-muted opacity-25"></i>'}
+                            <div>
+                                <div class="fw-bold">${c.name}</div>
+                                ${c.subclass ? `<div class="text-muted small">${c.subclass.name}</div>` : ''}
+                            </div>
                         </div>
-                        <div>
-                            <span class="badge bg-primary">Level ${c.level}</span>
-                            <span class="badge bg-secondary">${c.hitDice || ''}</span>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-primary fs-6">Level ${c.level}</span>
+                            <span class="badge bg-secondary fs-6">${c.hitDice || ''}</span>
                         </div>
                     </div>`;
             }
@@ -339,7 +876,7 @@ export class LevelUpModal {
                 card.addEventListener('click', () => {
                     this.selectedClassName = card.getAttribute('data-class-name');
                     this._renderOverview();
-                    this._renderFeatures();
+                    this._renderCurrentClass();
                 });
             });
         } else {
@@ -371,15 +908,15 @@ export class LevelUpModal {
         }
     }
 
-    async _renderFeatures() {
-        const list = this.modalEl.querySelector('#levelUpFeaturesList');
+    async _renderNewFeatures() {
+        const list = this.modalEl.querySelector('#levelUpNewFeaturesList');
         if (!list) return;
 
-        // Collect features from all classes
-        const allFeatures = [];
+        // Collect all current features
+        const currentFeatures = [];
         for (const classEntry of this.character.progression.classes || []) {
             for (const f of classEntry.features || []) {
-                allFeatures.push({
+                currentFeatures.push({
                     name: f.name,
                     level: f.level || 1,
                     source: f.source,
@@ -389,14 +926,23 @@ export class LevelUpModal {
             }
         }
 
-        if (!allFeatures.length) {
-            list.innerHTML = '<p class="text-muted">No features yet.</p>';
+        // Filter to only NEW features (not in sessionStartFeatures)
+        const newFeatures = currentFeatures.filter(current => {
+            return !this.sessionStartFeatures.some(start =>
+                start.name === current.name &&
+                start.level === current.level &&
+                start.className === current.className
+            );
+        });
+
+        if (!newFeatures.length) {
+            list.innerHTML = '<p class="text-muted"><i class="fas fa-info-circle"></i> No new features gained in this session.</p>';
             return;
         }
 
         // Group features by level
         const byLevel = new Map();
-        for (const feat of allFeatures) {
+        for (const feat of newFeatures) {
             const lvl = feat.level || 1;
             if (!byLevel.has(lvl)) byLevel.set(lvl, []);
             byLevel.get(lvl).push(feat);
@@ -409,6 +955,7 @@ export class LevelUpModal {
             const feats = byLevel.get(lvl);
             html += `<div class="mb-3">
                         <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-success me-2">New</span>
                             <h6 class="mb-0">Level ${lvl}</h6>
                         </div>
                         <div class="row g-2">`;
@@ -542,39 +1089,54 @@ export class LevelUpModal {
         }
     }
 
-    _renderSpellSlots() {
-        const card = this.modalEl.querySelector('#levelUpSpellSlotsContainer');
-        if (!card) {
-            console.warn('LevelUpModal', '_renderSpellSlots: container not found');
-            return;
-        }
+    /**
+     * Get spells that were added since session start
+     * Compares current spell lists against sessionStartSpells captured at modal open
+     */
+    _getRecentlySelectedSpells() {
+        const recentSpells = [];
         try {
-            let html = '';
             const classes = this.character.spellcasting?.classes || {};
-            for (const [className, data] of Object.entries(classes)) {
-                if (data.spellSlots && Object.keys(data.spellSlots).length) {
-                    html += `<div class="mb-2"><strong>${className}</strong></div>`;
-                    html += '<div class="d-flex gap-2 flex-wrap">';
-                    for (const [lvl, slots] of Object.entries(data.spellSlots)) {
-                        html += `<div class="badge bg-primary">Lv ${lvl}: ${slots.current}/${slots.max}</div>`;
+
+            for (const [className, classData] of Object.entries(classes)) {
+                // Get current spells
+                const currentKnown = new Set(classData.spellsKnown || classData.known || []);
+                const currentPrepared = new Set(classData.spellsPrepared || classData.prepared || []);
+                const currentCantrips = new Set(classData.cantrips || []);
+
+                // Get session start spells
+                const sessionSpells = this.sessionStartSpells[className] || {};
+                const startKnown = new Set(sessionSpells.known || []);
+                const startPrepared = new Set(sessionSpells.prepared || []);
+                const startCantrips = new Set(sessionSpells.cantrips || []);
+
+                // Find newly added spells
+                const addNewSpells = (currentSet, startSet) => {
+                    for (const spellName of currentSet) {
+                        if (!startSet.has(spellName)) {
+                            recentSpells.push({ name: spellName, className });
+                        }
                     }
-                    html += '</div>';
-                }
+                };
+
+                addNewSpells(currentKnown, startKnown);
+                addNewSpells(currentPrepared, startPrepared);
+                addNewSpells(currentCantrips, startCantrips);
             }
-            card.innerHTML = html || '<p class="text-muted">No spell slots.</p>';
-            console.debug('LevelUpModal', `Rendered spell slots for ${Object.keys(classes).length} classes`);
+
+            console.debug('LevelUpModal', `_getRecentlySelectedSpells: found ${recentSpells.length} new spells since session start`);
         } catch (err) {
-            console.error('LevelUpModal', '_renderSpellSlots failed', err);
-            card.innerHTML = '<p class="text-muted">No spell slots.</p>';
+            console.warn('LevelUpModal', '_getRecentlySelectedSpells failed', err);
         }
+
+        return recentSpells;
     }
 
-    _renderASI() {
-        const badge = this.modalEl.querySelector('#levelUpASIIndicator');
-        const btn = this.modalEl.querySelector('#levelUpSelectFeatBtn');
-        const hasASI = levelUpService.hasASIAvailable(this.character);
-        if (badge) badge.style.display = hasASI ? 'block' : 'none';
-        if (btn) btn.style.display = hasASI ? 'block' : 'none';
+    _renderCurrentClass() {
+        const currentClassEl = this.modalEl.querySelector('#levelUpCurrentClass');
+        if (currentClassEl) {
+            currentClassEl.textContent = this.selectedClassName || 'None';
+        }
     }
 
     async _loadAllClassFeatures() {
@@ -645,5 +1207,20 @@ export class LevelUpModal {
         } catch (err) {
             console.error('LevelUpModal', `_loadFeaturesForClass failed for ${classEntry?.name}`, err);
         }
+    }
+
+    /**
+     * Convert a spell level number to an ordinal string (1 -> "1st", 2 -> "2nd", etc.)
+     */
+    _getOrdinalLevel(level) {
+        if (level === 0) return 'cantrip';
+
+        const j = level % 10;
+        const k = level % 100;
+
+        if (j === 1 && k !== 11) return `${level}st`;
+        if (j === 2 && k !== 12) return `${level}nd`;
+        if (j === 3 && k !== 13) return `${level}rd`;
+        return `${level}th`;
     }
 }

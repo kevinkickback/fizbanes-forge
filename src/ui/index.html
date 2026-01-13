@@ -112,7 +112,7 @@
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" data-page="spells">
-                        <i class="fas fa-wand-magic-sparkles"></i>
+                        <i class="fas fa-wand-magic"></i>
                         <span>Spells</span>
                     </button>
                 </li>
@@ -595,7 +595,10 @@
                                 </div>
                                 <!-- Selected Spells Display -->
                                 <div class="selected-spells-section">
-                                    <h6 class="mb-2">Selected Spells</h6>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Selected Spells</h6>
+                                        <div id="spellSelectionLimitIndicator" style="display: none;"></div>
+                                    </div>
                                     <div class="selected-spells-container">
                                         <!-- Selected spells will be displayed here -->
                                     </div>
@@ -984,128 +987,226 @@
 
     <!-- Level Up Modal -->
     <div class="modal fade" id="levelUpModal" tabindex="-1" aria-labelledby="levelUpModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 class="modal-title" id="levelUpModalLabel">Level Up</h2>
+                    <h5 class="modal-title" id="levelUpModalLabel">Level Up Character</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Overview -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Overview</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-4 text-center">
-                                    <div class="display-6 fw-bold text-primary" id="levelUpTotalLevel">1</div>
-                                    <div class="text-muted">Total Level</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div id="levelUpClassBreakdown"></div>
-                                </div>
-                            </div>
-                            <div class="mt-2" id="levelUpASIIndicator" style="display: none;">
-                                <span class="badge bg-warning text-dark"><i class="fas fa-star"></i> Ability Score
-                                    Improvement available</span>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="row g-3">
+                        <!-- Sidebar Stepper -->
+                        <aside class="col-md-3">
+                            <ol class="list-group list-group-numbered" id="levelUpStepper" aria-label="Level up steps">
+                                <li class="list-group-item d-flex justify-content-between align-items-center active"
+                                    data-step="0">
+                                    Level & Multiclass
+                                    <i class="fas fa-level-up-alt"></i>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center"
+                                    data-step="1">
+                                    Class Features
+                                    <i class="fas fa-tasks"></i>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center"
+                                    data-step="2">
+                                    Feat/ASI Selection
+                                    <i class="fas fa-trophy"></i>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center"
+                                    data-step="3">
+                                    Spell Selection
+                                    <i class="fas fa-magic"></i>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center"
+                                    data-step="4">
+                                    Summary
+                                    <i class="fas fa-clipboard-check"></i>
+                                </li>
+                            </ol>
+                        </aside>
 
-                    <!-- Actions -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Actions</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-primary w-100" id="levelUpIncreaseBtn"><i
-                                            class="fas fa-arrow-up"></i> Level Up</button>
+                        <!-- Wizard Content -->
+                        <section class="col-md-9">
+                            <!-- Step 0: Level & Multiclass -->
+                            <div class="form-section" data-step="0">
+                                <h5 class="mb-3"><i class="fas fa-level-up-alt"></i> Level & Multiclass</h5>
+
+                                <!-- Character Overview -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-users"></i> Your Classes</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <p class="text-muted small mb-0"><i class="fas fa-hand-pointer"></i> Click a
+                                                class below to select it for level actions</p>
+                                            <span class="badge fs-6"
+                                                style="background-color: var(--accent-color); color: white;">Total
+                                                Level: <span id="levelUpTotalLevel">1</span></span>
+                                        </div>
+                                        <div id="levelUpClassBreakdown"></div>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-outline-secondary w-100"
-                                        id="levelUpDecreaseBtn"><i class="fas fa-arrow-down"></i> Level Down</button>
+
+                                <!-- Multiclass -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-user-plus"></i> Add Multiclass (Optional)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <div class="multiclass-restrictions-button-wrapper">
+                                                <button class="btn multiclass-restrictions-toggle" type="button"
+                                                    id="ignoreMulticlassReqsToggle"
+                                                    title="Toggle ability score requirements" data-restrictions="false">
+                                                    <i class="fas fa-shield-alt"></i>
+                                                </button>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <select class="form-select" id="levelUpClassSelect">
+                                                    <option value="">Select a class...</option>
+                                                </select>
+                                                <small class="text-muted d-block mt-1">Classes with unmet requirements
+                                                    are disabled.
+                                                    Toggle the shield to override.</small>
+                                            </div>
+                                            <div>
+                                                <button type="button" class="btn btn-outline-primary"
+                                                    id="levelUpAddClassBtn">
+                                                    <i class="fas fa-plus"></i> Add Class
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-warning w-100" id="levelUpSelectFeatBtn"
-                                        style="display: none;"><i class="fas fa-trophy"></i> Select Feat/ASI</button>
+
+                                <!-- Level Actions -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-arrow-up"></i> Level Actions</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <strong>Selected Class:</strong> <span class="text-primary"
+                                                id="levelUpCurrentClass">None</span>
+                                        </div>
+                                        <p class="card-text text-muted small">Increase or decrease levels for the
+                                            selected class.</p>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-primary" id="levelUpIncreaseBtn">
+                                                <i class="fas fa-arrow-up"></i> Level Up
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                id="levelUpDecreaseBtn">
+                                                <i class="fas fa-arrow-down"></i> Level Down
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Multiclass -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Multiclass</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-auto">
-                                    <div class="multiclass-restrictions-button-wrapper">
-                                        <button class="btn multiclass-restrictions-toggle" type="button"
-                                            id="ignoreMulticlassReqsToggle" title="Toggle ability score requirements"
-                                            data-restrictions="false">
-                                            <i class="fas fa-shield-alt"></i>
+                            <!-- Step 1: Class Features -->
+                            <div class="form-section" data-step="1" hidden>
+                                <h5 class="mb-3"><i class="fas fa-tasks"></i> Class Features</h5>
+                                <p class="text-muted">Make selections for any class features that require choices.</p>
+                                <div id="levelUpClassChoices">
+                                    <!-- Class feature choices will be rendered here -->
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> No feature choices available at this time.
+                                        <p class="mb-0 small mt-2">Some class features (like Battle Master maneuvers,
+                                            Warlock invocations, or spell selections) require you to make choices. They
+                                            will appear here when available.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Feat/ASI Selection -->
+                            <div class="form-section" data-step="2" hidden>
+                                <h5 class="mb-3"><i class="fas fa-trophy"></i> Feat/ASI Selection</h5>
+                                <div class="card border-warning">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="fas fa-star text-warning"></i> Ability Score
+                                            Improvement</h6>
+                                        <p class="card-text text-muted" id="levelUpFeatMessage">Checking for available
+                                            feats and ASIs...</p>
+                                        <button type="button" class="btn btn-warning btn-lg" id="levelUpSelectFeatBtn">
+                                            <i class="fas fa-star"></i> Open Feat/ASI Selection
                                         </button>
+                                        <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> This
+                                            opens the feat selection modal. Your progress will be saved when you return.
+                                        </p>
                                     </div>
                                 </div>
-                                <div class="col">
-                                    <select class="form-select" id="levelUpClassSelect">
-                                        <option value="">Select a class...</option>
-                                    </select>
-                                </div>
-                                <div class="col-auto">
-                                    <button type="button" class="btn btn-outline-primary" id="levelUpAddClassBtn"><i
-                                            class="fas fa-plus"></i> Add Class</button>
-                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Features -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Features</h6>
-                        </div>
-                        <div class="card-body">
-                            <div id="levelUpFeaturesList" class="list-group"></div>
-                        </div>
-                    </div>
-
-                    <!-- Hit Points & Spell Slots -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card mb-3">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Hit Points</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div><strong>Max HP:</strong> <span class="text-primary" id="levelUpMaxHP">0</span>
+                            <!-- Step 3: Spell Selection -->
+                            <div class="form-section" data-step="3" hidden>
+                                <h5 class="mb-3"><i class="fas fa-magic"></i> Spell Selection</h5>
+                                <div class="card border-info mb-3">
+                                    <div class="card-body">
+                                        <p class="card-text text-muted" id="levelUpSpellMessage">Checking for spell
+                                            options...</p>
+                                        <button type="button" class="btn btn-info btn-lg" id="levelUpSelectSpellBtn">
+                                            <i class="fas fa-magic"></i> Select New Spells
+                                        </button>
+                                        <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> Select
+                                            spells you've gained from leveling up. For general spell management, use the
+                                            Spells page.</p>
                                     </div>
-                                    <div class="text-muted small" id="levelUpHPBreakdown"></div>
-                                    <button type="button" class="btn btn-outline-primary mt-2 w-100"
-                                        id="levelUpRecalcHPBtn"><i class="fas fa-calculator"></i> Recalculate
-                                        HP</button>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card mb-3">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Spell Slots</h6>
+
+                            <!-- Step 4: Summary -->
+                            <div class="form-section" data-step="4" hidden>
+                                <h5 class="mb-3"><i class="fas fa-clipboard-check"></i> Summary</h5>
+                                <p class="text-muted">Summary of changes from this level up session.</p>
+
+                                <!-- New Features -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-star"></i> Newly Gained Features</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="levelUpNewFeaturesList"></div>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div id="levelUpSpellSlotsContainer" class="d-flex gap-2 flex-wrap"></div>
+
+                                <!-- HP & Spell Slots -->
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0"><i class="fas fa-heart"></i> Hit Points</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-2">
+                                                    <strong>Max HP:</strong>
+                                                    <span class="text-primary fs-4" id="levelUpMaxHP">0</span>
+                                                </div>
+                                                <div class="text-muted small mb-3" id="levelUpHPBreakdown"></div>
+                                                <button type="button" class="btn btn-outline-primary w-100"
+                                                    id="levelUpRecalcHPBtn">
+                                                    <i class="fas fa-calculator"></i> Recalculate HP
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
-                <div class="modal-footer d-flex justify-content-end gap-2">
+                <div class="modal-footer d-flex justify-content-between">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="levelUpWizardBackBtn">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary" id="levelUpWizardNextBtn">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

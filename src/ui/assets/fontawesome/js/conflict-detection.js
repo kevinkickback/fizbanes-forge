@@ -3,11 +3,11 @@
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
-(function (global, factory) {
+(((global, factory) => {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (factory());
-}(this, (function () { 'use strict';
+})(this, (() => { 
 
   function _defineProperty(e, r, t) {
     return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
@@ -21,18 +21,16 @@
     var t = Object.keys(e);
     if (Object.getOwnPropertySymbols) {
       var o = Object.getOwnPropertySymbols(e);
-      r && (o = o.filter(function (r) {
-        return Object.getOwnPropertyDescriptor(e, r).enumerable;
-      })), t.push.apply(t, o);
+      r && (o = o.filter((r) => Object.getOwnPropertyDescriptor(e, r).enumerable)), t.push.apply(t, o);
     }
     return t;
   }
   function _objectSpread2(e) {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
-      r % 2 ? ownKeys(Object(t), !0).forEach(function (r) {
+      r % 2 ? ownKeys(Object(t), !0).forEach((r) => {
         _defineProperty(e, r, t[r]);
-      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach((r) => {
         Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
       });
     }
@@ -69,7 +67,7 @@
   const IS_IE = ~userAgent.indexOf('MSIE') || ~userAgent.indexOf('Trident/');
 
   const functions = [];
-  const listener = function () {
+  const listener = () => {
     DOCUMENT.removeEventListener('DOMContentLoaded', listener);
     loaded = 1;
     functions.map(fn => fn());
@@ -85,12 +83,12 @@
   }
 
   function report (_ref) {
-    let {
+    const {
       nodesTested,
       nodesFound
     } = _ref;
     const timedOutTests = {};
-    for (let key in nodesFound) {
+    for (const key in nodesFound) {
       if (!(nodesTested.conflict[key] || nodesTested.noConflict[key])) {
         timedOutTests[key] = nodesFound[key];
       }
@@ -99,7 +97,7 @@
     if (conflictsCount > 0) {
       console.info("%cConflict".concat(conflictsCount > 1 ? 's' : '', " found:"), 'color: darkred; font-size: large');
       const data = {};
-      for (let key in nodesTested.conflict) {
+      for (const key in nodesTested.conflict) {
         const item = nodesTested.conflict[key];
         data[key] = {
           'tagName': item.tagName,
@@ -113,7 +111,7 @@
     if (noConflictsCount > 0) {
       console.info("%cNo conflict".concat(noConflictsCount > 1 ? 's' : '', " found with ").concat(noConflictsCount === 1 ? 'this' : 'these', ":"), 'color: green; font-size: large');
       const data = {};
-      for (let key in nodesTested.noConflict) {
+      for (const key in nodesTested.noConflict) {
         const item = nodesTested.noConflict[key];
         data[key] = {
           'tagName': item.tagName,
@@ -127,7 +125,7 @@
     if (timeOutCount > 0) {
       console.info("%cLeftovers--we timed out before collecting test results for ".concat(timeOutCount === 1 ? 'this' : 'these', ":"), 'color: blue; font-size: large');
       const data = {};
-      for (let key in timedOutTests) {
+      for (const key in timedOutTests) {
         const item = timedOutTests[key];
         data[key] = {
           'tagName': item.tagName,
@@ -145,8 +143,8 @@
   	return module = { exports: {} }, fn(module, module.exports), module.exports;
   }
 
-  var md5 = createCommonjsModule(function (module) {
-    (function ($) {
+  var md5 = createCommonjsModule((module) => {
+    (($) => {
 
       /**
        * Add integers, wrapping at 2^32.
@@ -539,22 +537,22 @@
     e.stopPropagation();
   };
   function pollUntil(_ref) {
-    let {
+    const {
       fn = () => true,
       initialDuration = 1,
       maxDuration = WINDOW.FontAwesomeDetection.timeout,
       showProgress = false,
       progressIndicator
     } = _ref;
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
       // eslint-disable-line compat/compat
       function poll(duration, cumulativeDuration) {
-        setTimeout(function () {
+        setTimeout(() => {
           const result = fn();
           if (showProgress) {
             console.info(progressIndicator);
           }
-          if (!!result) {
+          if (result) {
             // eslint-disable-line no-extra-boolean-cast
             resolve(result);
           } else {
@@ -627,7 +625,7 @@
             tagName: node.tagName,
             md5
           }, parentOrigin);
-        }).catch(function (e) {
+        }).catch((e) => {
           const node = document.getElementById(nodeUnderTestId);
           if (e === 'timeout') {
             parent.postMessage({
@@ -645,7 +643,7 @@
       };
       const parentOrigin = WINDOW.location.origin === 'file://' ? '*' : WINDOW.location.origin;
       diagScript.innerText = "(".concat(diagScriptFun.toString(), ")('").concat(nodeUnderTestId, "', '").concat(testIconId || 'foo', "', '").concat(md5, "', '").concat(parentOrigin, "');");
-      diagFrame.onload = function () {
+      diagFrame.onload = () => {
         diagFrame.contentWindow.addEventListener('error', silenceErrors, true);
         diagFrame.contentDocument.head.appendChild(diagScript);
         diagFrame.contentDocument.head.appendChild(scriptOrLinkTag);
@@ -701,7 +699,7 @@
           fn: () => {
             return !!window.FontAwesomeConfig || !!window.FontAwesomeKitConfig;
           }
-        }).then(function () {
+        }).then(() => {
           const scriptNode = document.getElementById(nodeUnderTestId);
           parent.postMessage({
             type: 'fontawesome-conflict',
@@ -711,7 +709,7 @@
             tagName: scriptNode.tagName,
             md5
           }, parentOrigin);
-        }).catch(function (e) {
+        }).catch((e) => {
           var scriptNode = document.getElementById(nodeUnderTestId);
           if (e === 'timeout') {
             parent.postMessage({
@@ -727,7 +725,7 @@
         });
       };
       diagScript.innerText = "(".concat(diagScriptFun.toString(), ")('").concat(nodeUnderTestId, "', '").concat(md5ForScript, "', '").concat(parentOrigin, "');");
-      diagFrame.onload = function () {
+      diagFrame.onload = () => {
         diagFrame.contentWindow.addEventListener('error', silenceErrors, true);
         diagFrame.contentDocument.head.appendChild(diagScript);
         diagFrame.contentDocument.head.appendChild(scriptUnderTest);
@@ -737,7 +735,7 @@
     return scriptsByMD5;
   }
   function setDoneResults(_ref2) {
-    let {
+    const {
       nodesTested,
       nodesFound
     } = _ref2;
@@ -747,12 +745,12 @@
     WINDOW.FontAwesomeDetection.detectionDone = true;
   }
   function conflictDetection() {
-    let report$$1 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : () => {};
+    const report$$1 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : () => {};
     const nodesTested = {
       conflict: {},
       noConflict: {}
     };
-    WINDOW.onmessage = function (e) {
+    WINDOW.onmessage = (e) => {
       if (WINDOW.location.origin === 'file://' || e.origin === WINDOW.location.origin) {
         if (e && e.data) {
           if (e.data.type === 'fontawesome-conflict') {
