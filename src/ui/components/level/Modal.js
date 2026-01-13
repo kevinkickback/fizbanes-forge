@@ -86,9 +86,9 @@ export class LevelUpModal {
         if (!this.session) return;
 
         const summary = this.session.getChangeSummary();
-        const hasChanges = summary.totalLevelChange !== 0 || 
-                          summary.leveledClasses.length > 0 ||
-                          Object.keys(summary.changedAbilities).length > 0;
+        const hasChanges = summary.totalLevelChange !== 0 ||
+            summary.leveledClasses.length > 0 ||
+            Object.keys(summary.changedAbilities).length > 0;
 
         if (hasChanges) {
             const confirmed = await this._showConfirmation(

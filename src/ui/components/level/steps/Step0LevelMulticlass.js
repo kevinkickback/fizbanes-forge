@@ -5,8 +5,8 @@
  * Supports multiclass leveling in a single session.
  */
 
-import { classService } from '../../../../services/ClassService.js';
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { classService } from '../../../../services/ClassService.js';
 
 export class Step0LevelMulticlass {
     constructor(session, modal) {
@@ -180,7 +180,7 @@ export class Step0LevelMulticlass {
 
         // Update staged changes
         classInfo.levels = newLevel;
-        
+
         // Update total level
         const totalLevel = classes.reduce((sum, c) => sum + (c.levels || 1), 0);
         this.session.stagedChanges.level = totalLevel;
