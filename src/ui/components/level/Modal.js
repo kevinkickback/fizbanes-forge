@@ -42,7 +42,7 @@ export class LevelUpModal {
                 return;
             }
 
-            if (!character.classes || character.classes.length === 0) {
+            if (!character.progression?.classes || character.progression.classes.length === 0) {
                 showNotification('Character must have at least one class', 'error');
                 return;
             }
@@ -202,7 +202,7 @@ export class LevelUpModal {
      */
     _initializeBootstrapModal() {
         // Dispose old instance if exists
-        if (this.bootstrapModal) {
+        if (this.bootstrapModal && this.bootstrapModal.dispose) {
             try {
                 this.bootstrapModal.dispose();
             } catch (e) {

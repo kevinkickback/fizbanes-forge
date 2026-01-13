@@ -21,7 +21,6 @@ export class LevelUpSession {
         this.stagedChanges = {
             level: character.level || 1,
             progression: JSON.parse(JSON.stringify(character.progression || { classes: [], experiencePoints: 0, levelUps: [] })),
-            classes: JSON.parse(JSON.stringify(character.classes || [])), // Multiclass tracking
             spellcasting: JSON.parse(JSON.stringify(character.spellcasting || { classes: {}, multiclass: {}, other: {} })),
             feats: JSON.parse(JSON.stringify(character.feats || [])),
             abilities: JSON.parse(JSON.stringify(character.abilities || {})),
@@ -34,7 +33,7 @@ export class LevelUpSession {
         console.info('[LevelUpSession]', 'Initialized for character', {
             characterName: character.name,
             currentLevel: character.level,
-            classes: character.classes?.map(c => `${c.name} ${c.levels}`).join(', '),
+            classes: character.progression?.classes?.map(c => `${c.name} ${c.levels}`).join(', '),
         });
     }
 
@@ -84,9 +83,9 @@ export class LevelUpSession {
         };
 
         // Compare class levels for summary
-        if (this.stagedChanges.classes && Array.isArray(this.stagedChanges.classes)) {
-            this.stagedChanges.classes.forEach(stagedClass => {
-                const originalClass = this.originalCharacter.classes?.find(c => c.name === stagedClass.name);
+        if (this.stagedChanges.progression?.classes && Array.isArray(this.stagedChanges.progression.classes)) {
+            this.stagedChanges.progression.classes.forEach(stagedClass => {
+                const originalClass = this.originalCharacter.progression?.classes?.find(c => c.name === stagedClass.name);
                 const originalLevel = originalClass?.levels || 0;
                 const stagedLevel = stagedClass.levels || 0;
 
@@ -318,7 +317,7 @@ export class LevelUpSession {
         if (this.stagedChanges.level < 1 || this.stagedChanges.level > 20) {
             throw new Error(`Character level must be 1-20, got ${this.stagedChanges.level}`);
         }
-        if (!this.stagedChanges.classes || this.stagedChanges.classes.length === 0) {
+        if (!this.stagedChanges.progression?.classes || this.stagedChanges.progression.classes.length === 0) {
             throw new Error('Character must have at least one class');
         }
     }

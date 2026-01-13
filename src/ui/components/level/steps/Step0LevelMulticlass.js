@@ -21,7 +21,7 @@ export class Step0LevelMulticlass {
      * Returns HTML string (not inserted into DOM yet).
      */
     async render() {
-        const classes = this.session.stagedChanges.classes || [];
+        const classes = this.session.stagedChanges.progression?.classes || [];
         const totalLevel = this.session.stagedChanges.level || 1;
 
         // Get available classes for multiclass
@@ -167,7 +167,7 @@ export class Step0LevelMulticlass {
      * @private
      */
     _handleLevelUp(classIndex) {
-        const classes = this.session.stagedChanges.classes;
+        const classes = this.session.stagedChanges.progression?.classes || [];
         if (!classes || !classes[classIndex]) return;
 
         const classInfo = classes[classIndex];
@@ -208,7 +208,7 @@ export class Step0LevelMulticlass {
         }
 
         // Check if already has this class
-        const classes = this.session.stagedChanges.classes;
+        const classes = this.session.stagedChanges.progression?.classes || [];
         if (classes.some(c => c.name === className)) {
             alert(`Already has ${className}`);
             return;
@@ -241,7 +241,7 @@ export class Step0LevelMulticlass {
      */
     _getAvailableClasses() {
         const allClasses = classService.getAllClasses();
-        const currentClassNames = this.session.stagedChanges.classes.map(c => c.name);
+        const currentClassNames = (this.session.stagedChanges.progression?.classes || []).map(c => c.name);
         return allClasses.filter(c => !currentClassNames.includes(c.name)).map(c => c.name);
     }
 }
