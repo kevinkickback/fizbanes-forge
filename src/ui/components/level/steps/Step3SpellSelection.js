@@ -1,4 +1,5 @@
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { LevelUpSpellSelector } from '../LevelUpSpellSelector.js';
 
 /**
  * Step 3: Spell Selection
@@ -69,9 +70,14 @@ export class Step3SpellSelection {
                 const className = btn.dataset.className;
                 const level = parseInt(btn.dataset.level, 10);
                 
-                // Retrieve or instantiate spell selector
-                // This would open the LevelUpSpellSelector modal
-                await this._openSpellSelector(className, level);
+                // Open LevelUpSpellSelector modal
+                const selector = new LevelUpSpellSelector(this.session, this, className, level);
+                try {
+                    await selector.show();
+                } catch (error) {
+                    console.error('[Step3SpellSelection]', 'Error opening spell selector:', error);
+                    alert(`Failed to open spell selector: ${error.message}`);
+                }
             });
         });
 
@@ -190,23 +196,15 @@ export class Step3SpellSelection {
     }
 
     /**
-     * Open spell selector modal for a class
-     */
-    async _openSpellSelector(className, level) {
-        // This would initialize LevelUpSpellSelector modal
-        // For now, just log the action
-        console.log(`Opening spell selector for ${className} at level ${level}`);
-        
-        // Placeholder for actual modal opening
-        // TODO: Integrate with LevelUpSpellSelector when available
-    }
-
-    /**
      * Update spell selections from modal
      */
     updateSpellSelection(className, level, selectedSpells) {
         const key = `${className}_${level}`;
         this.session.stepData.selectedSpells[key] = selectedSpells;
+        
+        // Trigger re-render to display updated selections
+        // In a full implementation, could emit event or call parent's re-render
+        console.info('[Step3SpellSelection]', `Updated spell selection for ${key}:`, selectedSpells);
     }
 
     /**
