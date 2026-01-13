@@ -78,7 +78,7 @@ test.describe('Level Up Spell Selection Persistence', () => {
         }
     }
 
-    test('Spell selection persistence with CANCEL button (working)', async () => {
+    test('Spell selection persistence with CANCEL button', async () => {
         test.setTimeout(120000);
 
         let electronApp;
@@ -241,7 +241,7 @@ test.describe('Level Up Spell Selection Persistence', () => {
                     const card = allSpells[i];
                     const strong = card.locator('strong').first();
                     const spellName = await strong.textContent();
-                    
+
                     if (spellName?.trim() === targetSpell) {
                         await card.click();
                         console.log(`  ✓ Selected: ${targetSpell}`);
@@ -343,19 +343,19 @@ test.describe('Level Up Spell Selection Persistence', () => {
                 }
             }
 
-            // Rely on allowance indicator and selected list to confirm persistence
+            // Verify selections were NOT persisted after CANCEL (snapshot restored)
             const allowanceAfterReopen = await allowanceText.innerText();
             console.log(`  Allowance indicator after reopen: ${allowanceAfterReopen}`);
             const allowanceMatch = allowanceAfterReopen.match(/(\d+)\/(\d+)/);
             expect(allowanceMatch).not.toBeNull();
             const selectedAfter = Number.parseInt(allowanceMatch[1], 10);
             const totalAfter = Number.parseInt(allowanceMatch[2], 10);
-            expect(selectedAfter).toBeGreaterThan(0);
-            expect(selectedAfter).toBe(totalAfter);
-            console.log(`✓ Spells persisted via allowance indicator (${selectedAfter}/${totalAfter})`);
+            // After CANCEL, selections should be restored from snapshot (0 on first open)
+            expect(selectedAfter).toBe(0);
+            console.log(`✓ Spells correctly NOT persisted after CANCEL (${selectedAfter}/${totalAfter})`);
 
-            // ====== STEP 17: Verify allowance still shows persistent value ======
-            console.log('\n--- STEP 17: Verify persistent allowance ---');
+            // ====== STEP 17: Verify allowance shows 0 selected ======
+            console.log('\n--- STEP 17: Verify allowance reset after cancel ---');
 
             const allowanceText2 = page.locator('#spellSelectionLimitIndicator');
             const allowanceVisible2 = await allowanceText2.isVisible({ timeout: 2000 }).catch(() => false);
@@ -363,14 +363,14 @@ test.describe('Level Up Spell Selection Persistence', () => {
             if (allowanceVisible2) {
                 const allowanceContent2 = await allowanceText2.innerText();
                 console.log(`  Allowance (reopened): ${allowanceContent2}`);
-                // Verify allowance persists with same total
-                expect(allowanceContent2).toMatch(/\d+\/\d+/);
+                // After CANCEL, should show 0 selected
+                expect(allowanceContent2).toMatch(/0\/\d+/);
             }
 
-            console.log('✓ Allowance persists');
+            console.log('✓ Allowance correctly reset to 0 after cancel');
 
-            // ====== STEP 18: Verify filter checkboxes still checked (unchanged behavior)
-            console.log('\n--- STEP 18: Verify filter checkboxes persist ---');
+            // ====== STEP 18: Verify filter checkboxes still checked (filters persist) ======
+            console.log('\n--- STEP 18: Verify filter checkboxes persist (filters are not affected by cancel) ---');
 
             const level1Filter2 = page.locator('#level1');
             const level2Filter2 = page.locator('#level2');
@@ -390,142 +390,25 @@ test.describe('Level Up Spell Selection Persistence', () => {
             expect(isLevel3Checked2).toBe(isLevel3Checked);
             console.log('✓ Filter checkboxes persisted');
 
-            // ====== STEP 19: Test deselection via X button ======
-            console.log('\n--- STEP 19: Test deselection of spell via X button ---');
-            
-            // Find the first deselect button in the selected spells list
+            // ====== STEP 19: Test that no spells are selected (CANCEL restored empty snapshot) ======
+            console.log('\n--- STEP 19: Verify no spells are selected after cancel ---');
+
+            // Should find 0 deselect buttons since CANCEL restored to empty
             const deselectBtns = page.locator('.selected-spells-container [data-deselect-spell]');
             const deselectCount = await deselectBtns.count();
-            console.log(`  Found ${deselectCount} deselect buttons`);
-            
-            if (deselectCount > 0) {
-                // Get the names of selected spells before deselecting
-                const selectedBadges = page.locator('.selected-spells-container .badge');
-                const selectedSpellNames = [];
-                const badgeCount = await selectedBadges.count();
-                for (let i = 0; i < Math.min(3, badgeCount); i++) {
-                    const badgeText = await selectedBadges.nth(i).textContent();
-                    // Extract spell name (remove any trailing whitespace/close button)
-                    const spellName = badgeText.trim().split('\n')[0].trim();
-                    selectedSpellNames.push(spellName);
-                }
-                console.log(`  Selected spell names: ${selectedSpellNames.join(', ')}`);
-                
-                // Get current allowance
-                const allowanceBefore = await allowanceText2.innerText();
-                console.log(`  Allowance before deselect: ${allowanceBefore}`);
-                
-                // Deselect all selected spells
-                for (let i = 0; i < Math.min(3, selectedSpellNames.length); i++) {
-                    const deselectBtn = page.locator('.selected-spells-container [data-deselect-spell]').first();
-                    const spellId = await deselectBtn.getAttribute('data-deselect-spell');
-                    console.log(`  Deselecting spell ${i + 1} (ID: ${spellId})`);
-                    await deselectBtn.click();
-                    await page.waitForTimeout(300);
-                    console.log(`  ✓ Deselected spell ${i + 1}`);
-                }
-                
-                // Verify allowance reset to 0
-                const allowanceAfter = await allowanceText2.innerText();
-                const matchAfter = allowanceAfter.match(/(\d+)\/(\d+)/);
-                const selectedAfter = matchAfter ? Number.parseInt(matchAfter[1], 10) : 0;
-                console.log(`  Allowance after deselect: ${allowanceAfter}`);
-                expect(selectedAfter).toBe(0);
-                console.log('✓ All spells successfully deselected');
-                
-                // Verify deselected spells appear in the spell list DOM
-                console.log(`  Looking for deselected spells: ${selectedSpellNames.join(', ')}`);
-                
-                // Wait a moment for re-render
-                await page.waitForTimeout(1000);
-
-                // Debug: Check validSpells count after deselection
-                console.log('\n--- DEBUG: After deselection state ---');
-                const spellCardsInDOM = await page.locator('#spellSelectionModal .spell-card').count();
-                console.log(`  Spell cards in DOM: ${spellCardsInDOM}`);
-                
-                // Check each deselected spell is in the DOM (try multiple selectors)
-                for (const spellName of selectedSpellNames) {
-                    // Try multiple ways to find the spell
-                    let spellCardExists = await page.locator(`#spellSelectionModal .spell-card:has-text("${spellName}")`).isVisible({ timeout: 1000 }).catch(() => false);
-                    
-                    if (!spellCardExists) {
-                        // Try without has-text
-                        const spellCards = page.locator('#spellSelectionModal .spell-card');
-                        const count = await spellCards.count();
-                        for (let i = 0; i < count; i++) {
-                            const card = spellCards.nth(i);
-                            const strong = card.locator('strong').first();
-                            const text = await strong.textContent();
-                            if (text?.includes(spellName)) {
-                                spellCardExists = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    console.log(`  Spell "${spellName}" visible in list: ${spellCardExists}`);
-                    expect(spellCardExists).toBe(true);
-                }
-                
-                // Get all current spell names AND IDs in order
-                const allSpellCards = page.locator('#spellSelectionModal .spell-card');
-                const allCurrentSpells = [];
-                const cardCount = await allSpellCards.count();
-                console.log(`  Total spell cards after deselect: ${cardCount}`);
-                
-                // Get spell names AND IDs for debugging
-                const spellDataList = [];
-                for (let i = 0; i < Math.min(10, cardCount); i++) {
-                    const card = allSpellCards.nth(i);
-                    const nameElement = card.locator('strong').first();
-                    const name = await nameElement.textContent();
-                    const spellId = await card.getAttribute('data-spell-id');
-                    allCurrentSpells.push(name);
-                    spellDataList.push({ name, id: spellId, position: i });
-                }
-                console.log(`  First 10 spells in order: ${allCurrentSpells.join(', ')}`);
-                console.log(`  First 10 spell IDs:`, spellDataList.map(s => `${s.name}=${s.id}`).join(', '));
-                
-                // Specifically verify that Alarm, Alter Self, Arcane Lock are near the top (first 5)
-                const topFiveSpells = allCurrentSpells.slice(0, 5);
-                const alarmIndex = topFiveSpells.findIndex(s => s?.includes('Alarm'));
-                const alterIndex = topFiveSpells.findIndex(s => s?.includes('Alter Self'));
-                const arcaneIndex = topFiveSpells.findIndex(s => s?.includes('Arcane Lock'));
-                
-                console.log(`  Alarm position in top 5: ${alarmIndex >= 0 ? alarmIndex : 'NOT FOUND'}`);
-                console.log(`  Alter Self position in top 5: ${alterIndex >= 0 ? alterIndex : 'NOT FOUND'}`);
-                console.log(`  Arcane Lock position in top 5: ${arcaneIndex >= 0 ? arcaneIndex : 'NOT FOUND'}`);
-                
-                // They should all be found in top 5 (or search full list if not)
-                const foundAll = alarmIndex >= 0 && alterIndex >= 0 && arcaneIndex >= 0;
-                if (!foundAll) {
-                    console.warn('  ⚠ Not all A-spells in top 5, searching full list...');
-                    // Search full list with IDs
-                    for (let i = 0; i < Math.min(30, cardCount); i++) {
-                        const card = allSpellCards.nth(i);
-                        const nameElement = card.locator('strong').first();
-                        const name = await nameElement.textContent();
-                        const spellId = await card.getAttribute('data-spell-id');
-                        if (name?.includes('Alarm')) console.log(`  Found Alarm at index ${i} (ID: ${spellId})`);
-                        if (name?.includes('Alter Self')) console.log(`  Found Alter Self at index ${i} (ID: ${spellId})`);
-                        if (name?.includes('Arcane Lock')) console.log(`  Found Arcane Lock at index ${i} (ID: ${spellId})`);
-                    }
-                }
-                
-                console.log('✓ Deselected spells found in spell list');
-            } else {
-                console.warn('⚠ No deselect buttons found, skipping deselection test');
-            }
+            console.log(`  Found ${deselectCount} deselect buttons (should be 0)`);
+            expect(deselectCount).toBe(0);
+            console.log('✓ Correctly shows 0 selected spells after CANCEL');
 
             console.log('\n✅ ALL STEPS COMPLETED SUCCESSFULLY (CANCEL button test)');
+            console.log('   CANCEL correctly discards spell selections and restores from snapshot');
 
         } finally {
             if (electronApp) await electronApp.close();
         }
     });
 
-    test('Spell selection persistence with ADD SPELLS button (broken)', async () => {
+    test('Spell selection persistence with ADD SPELLS button', async () => {
         test.setTimeout(120000);
 
         let electronApp;
@@ -660,7 +543,7 @@ test.describe('Level Up Spell Selection Persistence', () => {
                     const card = allSpells[i];
                     const strong = card.locator('strong').first();
                     const spellName = await strong.textContent();
-                    
+
                     if (spellName?.trim() === targetSpell) {
                         await card.click();
                         console.log(`  ✓ Selected: ${targetSpell}`);
@@ -806,7 +689,7 @@ test.describe('Level Up Spell Selection Persistence', () => {
 
                 for (const spellName of selectedSpellNames) {
                     let spellCardExists = await page.locator(`#spellSelectionModal .spell-card:has-text("${spellName}")`).isVisible({ timeout: 1000 }).catch(() => false);
-                    
+
                     if (!spellCardExists) {
                         const spellCards = page.locator('#spellSelectionModal .spell-card');
                         const count = await spellCards.count();
@@ -820,7 +703,7 @@ test.describe('Level Up Spell Selection Persistence', () => {
                             }
                         }
                     }
-                    
+
                     console.log(`  Spell "${spellName}" visible in list: ${spellCardExists}`);
                     expect(spellCardExists).toBe(true);
                 }

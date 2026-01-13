@@ -143,9 +143,10 @@ export class SpellSelectionModal {
                 this.selectedSpells = [];
             }
 
-            // Snapshot the current selection state so we can restore it on Cancel
+            // Snapshot current selections - if user cancels, we restore from this snapshot
+            // This handles the case where user modifies selections then cancels
             this._selectedSpellsSnapshot = [...this.selectedSpells];
-            console.debug('[SpellSelectionModal]', 'Snapshotted selections', { count: this._selectedSpellsSnapshot.length });
+            console.debug('[SpellSelectionModal]', 'Opening with selections', { count: this.selectedSpells.length, snapshotCount: this._selectedSpellsSnapshot.length, preserveSelections: this._preserveSelections });
 
             // Get the modal element from DOM
             this.modal = document.getElementById('spellSelectionModal');
@@ -451,27 +452,27 @@ export class SpellSelectionModal {
         if (selectedIndex >= 0) {
             // Deselect - remove from selectedSpells
             const deselectedSpell = this.selectedSpells.splice(selectedIndex, 1)[0];
-            
+
             console.log('[SpellSelectionModal]', 'Deselecting spell:', { name: deselectedSpell.name, id: deselectedSpell.id });
-            
+
             // Ensure spell is in validSpells for rendering
             const existsInValid = this.validSpells.some(s => s.id === deselectedSpell.id);
             if (!existsInValid) {
                 console.log('[SpellSelectionModal]', 'Adding deselected spell back to validSpells');
                 this.validSpells.push(deselectedSpell);
             }
-            
+
             // ALWAYS re-sort to ensure alphabetical order
             this.validSpells.sort((a, b) => a.name.localeCompare(b.name));
             console.log('[SpellSelectionModal]', 'Spells sorted, count:', this.validSpells.length);
-            
+
             // Reset to first page to ensure deselected spell is visible
             this.currentPage = 0;
-            
+
             console.log('[SpellSelectionModal]', 'Calling _renderSpellList to refresh');
             // Re-render spell list to show the deselected spell in correct position
             this._renderSpellList();
-            
+
             // Update UI
             this._renderSelectedSpellsList();
             this._updateAddButtonState();
@@ -488,7 +489,7 @@ export class SpellSelectionModal {
             showNotification(`You can only select ${this._spellSelectionLimit} spell${this._spellSelectionLimit !== 1 ? 's' : ''}`, 'warning');
             return;
         }
-        
+
         // Select
         this.selectedSpells.push(spell);
 
@@ -988,13 +989,15 @@ export class SpellSelectionModal {
 
     _handleCancel() {
         console.debug('[SpellSelectionModal]', '_handleCancel called');
-        
-        // Restore the original selection state from snapshot
+
+        // Restore selections from snapshot taken when modal opened
+        // This discards any changes made during this modal session
+        // Critical for handling deselect→cancel→reopen scenarios
         if (this._selectedSpellsSnapshot) {
             this.selectedSpells = [...this._selectedSpellsSnapshot];
             console.debug('[SpellSelectionModal]', 'Restored selections from snapshot', { count: this.selectedSpells.length });
         }
-        
+
         if (this._resolvePromise) {
             console.debug('[SpellSelectionModal]', 'Resolving promise with null');
             this._resolvePromise(null);
@@ -1040,8 +1043,11 @@ export class SpellSelectionModal {
         this.filteredSpells = [];
 
         // Preserve selections within the same level-up session
+        // (selections persist across modal open/close when opened from level-up)
         if (!this._preserveSelections) {
             this.selectedSpells = [];
+        } else {
+            console.debug('[SpellSelectionModal]', 'Preserving selections for level-up session', { count: this.selectedSpells.length });
         }
 
         this.filters = {
