@@ -297,16 +297,47 @@ export class Step1ClassFeatures {
 
     /**
      * Get known choice features for specific class/level combinations
-     * Used when class table doesn't explicitly mark them as choices
+     * Uses optionalfeatureProgression from class JSON data
      */
     _getKnownChoiceFeatures(className, level) {
         const features = [];
+        const classData = classService.getClass(className);
+        if (!classData?.optionalfeatureProgression) return features;
 
-        // Warlock Eldritch Invocations
-        if (className === 'Warlock') {
-            const invocationLevels = [2, 5, 7, 9, 12, 15, 18, 20];
-            if (invocationLevels.includes(level)) {
-                const options = optionalFeatureService.getEldritchInvocations()
+        // Check each optional feature progression
+        for (const progression of classData.optionalfeatureProgression) {
+            const featureTypes = progression.featureType || [];
+            const featureName = progression.name;
+            
+            // Determine if this level gains new features
+            const prevLevel = level - 1;
+            let countAtPrev = 0;
+            let countAtCurrent = 0;
+
+            // Handle array-based progression (indexed by level-1)
+            if (Array.isArray(progression.progression)) {
+                countAtPrev = progression.progression[prevLevel - 1] || 0;
+                countAtCurrent = progression.progression[level - 1] || 0;
+            }
+            // Handle object-based progression (level as key)
+            else if (typeof progression.progression === 'object') {
+                countAtPrev = progression.progression[prevLevel.toString()] || 0;
+                countAtCurrent = progression.progression[level.toString()] || 0;
+            }
+
+            // Only show feature if count increased (new feature gained)
+            if (countAtCurrent > countAtPrev) {
+                const newCount = countAtCurrent - countAtPrev;
+                
+                // Determine feature type for UI
+                let featureType = 'other';
+                if (featureTypes.includes('EI')) featureType = 'invocation';
+                else if (featureTypes.includes('MM')) featureType = 'metamagic';
+                else if (featureTypes.includes('MV:B')) featureType = 'maneuver';
+                else if (featureTypes.includes('PB')) featureType = 'patron';
+
+                // Get options from OptionalFeatureService
+                const options = optionalFeatureService.getFeaturesByType(featureTypes)
                     .filter(opt => sourceService.isSourceAllowed(opt.source))
                     .map(opt => ({
                         id: `${opt.name}_${opt.source}`,
@@ -318,70 +349,13 @@ export class Step1ClassFeatures {
                     }));
 
                 features.push({
-                    id: `warlock_invocation_${level}`,
-                    name: 'Eldritch Invocation',
-                    type: 'invocation',
+                    id: `${className.toLowerCase()}_${featureType}_${level}`,
+                    name: featureName,
+                    type: featureType,
                     options,
                     required: true,
-                    description: 'Choose an Eldritch Invocation'
-                });
-            }
-        }
-
-        // Sorcerer Metamagic
-        if (className === 'Sorcerer') {
-            const metamagicOptions = optionalFeatureService.getMetamagicOptions()
-                .filter(opt => sourceService.isSourceAllowed(opt.source))
-                .map(opt => ({
-                    id: `${opt.name}_${opt.source}`,
-                    name: opt.name,
-                    source: opt.source,
-                    description: this._getFeatureDescription(opt),
-                    entries: opt.entries
-                }));
-
-            if (level === 3) {
-                features.push({
-                    id: `sorcerer_metamagic_${level}`,
-                    name: 'Metamagic',
-                    type: 'metamagic',
-                    options: metamagicOptions,
-                    required: true,
-                    description: 'Choose 2 Metamagic options'
-                });
-            } else if ([10, 17].includes(level)) {
-                features.push({
-                    id: `sorcerer_metamagic_${level}`,
-                    name: 'Metamagic',
-                    type: 'metamagic',
-                    options: metamagicOptions,
-                    required: true,
-                    description: 'Choose 1 additional Metamagic option'
-                });
-            }
-        }
-
-        // Fighter Battle Master Maneuvers
-        if (className === 'Fighter') {
-            // This would need subclass checking, but for now handle at level 3
-            if (level === 3) {
-                const maneuverOptions = optionalFeatureService.getManeuvers()
-                    .filter(opt => sourceService.isSourceAllowed(opt.source))
-                    .map(opt => ({
-                        id: `${opt.name}_${opt.source}`,
-                        name: opt.name,
-                        source: opt.source,
-                        description: this._getFeatureDescription(opt),
-                        entries: opt.entries
-                    }));
-
-                features.push({
-                    id: `fighter_maneuver_${level}`,
-                    name: 'Maneuvers',
-                    type: 'maneuver',
-                    options: maneuverOptions,
-                    required: false, // Optional because not all fighters are battle masters
-                    description: 'Choose maneuvers (Battle Master subclass)'
+                    description: `Choose ${newCount} ${featureName}`,
+                    count: newCount // How many to select
                 });
             }
         }

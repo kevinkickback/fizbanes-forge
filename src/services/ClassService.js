@@ -305,6 +305,63 @@ class ClassService extends BaseDataService {
 	getSelectedSubclass() {
 		return this._selectedSubclass;
 	}
+
+	/**
+	 * Get optional feature progression for a class
+	 * @param {string} className - Name of the class
+	 * @param {string} source - Source book
+	 * @returns {Array<Object>|null} Optional feature progression array or null
+	 */
+	getOptionalFeatureProgression(className, source = 'PHB') {
+		const classData = this.getClass(className, source);
+		return classData?.optionalfeatureProgression || null;
+	}
+
+	/**
+	 * Get count of optional features available at a specific level
+	 * @param {string} className - Name of the class
+	 * @param {number} level - Character level (1-20)
+	 * @param {Array<string>} featureTypes - Feature type codes to check (e.g., ['EI'], ['MM'])
+	 * @param {string} source - Source book
+	 * @returns {number} Number of features available at this level (0 if none or new ones)
+	 */
+	getOptionalFeatureCountAtLevel(className, level, featureTypes, source = 'PHB') {
+		const progression = this.getOptionalFeatureProgression(className, source);
+		if (!progression) return 0;
+
+		// Find matching progression entry
+		const entry = progression.find(p => 
+			p.featureType?.some(ft => featureTypes.includes(ft))
+		);
+		if (!entry) return 0;
+
+		// Handle array-based progression (indexed by level-1)
+		if (Array.isArray(entry.progression)) {
+			return entry.progression[level - 1] || 0;
+		}
+
+		// Handle object-based progression (level as key)
+		if (typeof entry.progression === 'object') {
+			return entry.progression[level.toString()] || 0;
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Check if a new optional feature is gained at a specific level
+	 * @param {string} className - Name of the class
+	 * @param {number} currentLevel - Previous level
+	 * @param {number} newLevel - New level
+	 * @param {Array<string>} featureTypes - Feature type codes
+	 * @param {string} source - Source book
+	 * @returns {boolean} True if new feature(s) gained
+	 */
+	gainsOptionalFeatureAtLevel(className, currentLevel, newLevel, featureTypes, source = 'PHB') {
+		const countAtCurrent = this.getOptionalFeatureCountAtLevel(className, currentLevel, featureTypes, source);
+		const countAtNew = this.getOptionalFeatureCountAtLevel(className, newLevel, featureTypes, source);
+		return countAtNew > countAtCurrent;
+	}
 }
 
 // Create and export singleton instance
