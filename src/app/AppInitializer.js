@@ -26,6 +26,7 @@ import { conditionService } from '../services/ConditionService.js';
 import { featService } from '../services/FeatService.js';
 import { itemService } from '../services/ItemService.js';
 import { monsterService } from '../services/MonsterService.js';
+import { optionalFeatureService } from '../services/OptionalFeatureService.js';
 import { raceService } from '../services/RaceService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { skillService } from '../services/SkillService.js';
@@ -144,6 +145,10 @@ async function _loadAllGameData() {
 			_loadDataWithErrorHandling(
 				variantRuleService.initialize(),
 				'variantrules',
+			),
+			_loadDataWithErrorHandling(
+				optionalFeatureService.initialize(),
+				'optionalfeatures',
 			),
 		];
 

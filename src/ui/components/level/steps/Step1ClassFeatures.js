@@ -1,6 +1,7 @@
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
 import { classService } from '../../../../services/ClassService.js';
 import { levelUpService } from '../../../../services/LevelUpService.js';
+import { optionalFeatureService } from '../../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../../services/SourceService.js';
 
 /**
@@ -362,17 +363,85 @@ export class Step1ClassFeatures {
      * Get available options for a feature choice
      */
     async _getFeatureOptions(feature) {
-        // This would typically load from feature data files
-        // For now, return a simple mock structure
-        // In production, this would query 5etools data
-        // eslint-disable-next-line no-unused-vars
-        void feature; // Silence unused parameter warning for now
+        const type = this._getFeatureType(feature);
+        const allowedSources = sourceService.getAllowedSources();
 
-        return [
-            { id: 'opt1', name: 'Option 1', description: 'First choice' },
-            { id: 'opt2', name: 'Option 2', description: 'Second choice' },
-            { id: 'opt3', name: 'Option 3', description: 'Third choice' }
-        ];
+        let options = [];
+
+        // Map feature types to service methods
+        switch (type) {
+            case 'metamagic':
+                options = optionalFeatureService.getMetamagicOptions();
+                break;
+            case 'maneuver':
+                options = optionalFeatureService.getManeuvers();
+                break;
+            case 'invocation':
+                options = optionalFeatureService.getEldritchInvocations();
+                break;
+            case 'fighting-style': {
+                // Determine class from feature context
+                const className = feature.className || this._inferClassFromFeature(feature);
+                options = optionalFeatureService.getFightingStyles(className);
+                break;
+            }
+            case 'patron':
+                options = optionalFeatureService.getPactBoons();
+                break;
+            default:
+                // For other types, try to load by featureType if available
+                if (feature.featureType) {
+                    options = optionalFeatureService.getFeaturesByType(feature.featureType);
+                }
+                break;
+        }
+
+        // Filter by allowed sources
+        options = options.filter(opt => 
+            sourceService.isSourceAllowed(opt.source, allowedSources)
+        );
+
+        // Map to simplified structure for UI
+        return options.map(opt => ({
+            id: `${opt.name}_${opt.source}`,
+            name: opt.name,
+            source: opt.source,
+            description: this._getFeatureDescription(opt),
+            prerequisite: opt.prerequisite,
+            entries: opt.entries
+        }));
+    }
+
+    /**
+     * Infer class name from feature context
+     */
+    _inferClassFromFeature(feature) {
+        // eslint-disable-next-line no-unused-vars
+        void feature; // May use feature.className in future
+        
+        // Try to get from session's leveled classes
+        const summary = this.session.getChangeSummary();
+        if (summary.leveledClasses?.length > 0) {
+            // Return first class that could have this feature
+            return summary.leveledClasses[0].name;
+        }
+        return 'Fighter'; // Default fallback
+    }
+
+    /**
+     * Extract description from feature entries
+     */
+    _getFeatureDescription(feature) {
+        if (!feature.entries) return '';
+        
+        // Get first text entry
+        const firstEntry = feature.entries.find(e => typeof e === 'string');
+        if (firstEntry) {
+            // Strip 5etools tags and truncate
+            return firstEntry.replace(/\{@[^}]+\}/g, '').substring(0, 150) + '...';
+        }
+        
+        return '';
     }
 
     /**
