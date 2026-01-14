@@ -7,7 +7,14 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["**", "!.github", "!data", "!renderer/assets", "!test-results"]
+		"includes": [
+			"**",
+			"!.github",
+			"!data",
+			"!renderer/assets",
+			"!test-results",
+			"!src/ui/assets"
+		]
 	},
 	"formatter": {
 		"enabled": true,

@@ -1,4 +1,5 @@
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { levelUpService } from '../../../../services/LevelUpService.js';
 
 /**
  * Step 2: ASI/Feat Selection
@@ -12,7 +13,7 @@ export class Step2ASIFeat {
         this.session = session;
         this.modal = modal;
         this._cleanup = DOMCleanup.create();
-        
+
         // Initialize step data if not present
         if (!this.session.stepData.asiChoices) {
             this.session.stepData.asiChoices = {};
@@ -20,12 +21,17 @@ export class Step2ASIFeat {
     }
 
     async render() {
-        const leveledClasses = this.session.get('leveledClasses');
-        const character = this.session.character;
-        
+        // Get leveled classes from change summary
+        const summary = this.session.getChangeSummary();
+        const leveledClasses = summary.leveledClasses.map(lc => ({
+            name: lc.name,
+            newLevel: lc.to,
+            oldLevel: lc.from
+        }));
+
         // Calculate total ASI slots available
-        const asiSlots = await this._calculateASISlots(leveledClasses, character);
-        
+        const asiSlots = await this._calculateASISlots(leveledClasses);
+
         if (asiSlots.length === 0) {
             return `
                 <div class="step-2-asi-feat">
@@ -68,12 +74,12 @@ export class Step2ASIFeat {
             this._cleanup.on(toggle, 'change', (e) => {
                 const slotIndex = e.target.dataset.asiSlotIndex;
                 const mode = e.target.value;
-                
+
                 // Update UI visibility
                 const slotCard = contentArea.querySelector(`[data-asi-slot="${slotIndex}"]`);
                 const improvementOptions = slotCard.querySelector('[data-improvement-options]');
                 const featOptions = slotCard.querySelector('[data-feat-options]');
-                
+
                 if (mode === 'improvement') {
                     improvementOptions?.classList.remove('d-none');
                     featOptions?.classList.add('d-none');
@@ -81,7 +87,7 @@ export class Step2ASIFeat {
                     improvementOptions?.classList.add('d-none');
                     featOptions?.classList.remove('d-none');
                 }
-                
+
                 // Store selection
                 this.session.stepData.asiChoices[slotIndex] = { mode, value: null };
             });
@@ -94,13 +100,13 @@ export class Step2ASIFeat {
                 const slotIndex = btn.dataset.asiSlotIndex;
                 const ability = btn.dataset.ability;
                 const slotCard = contentArea.querySelector(`[data-asi-slot="${slotIndex}"]`);
-                
+
                 // Visual feedback
                 slotCard.querySelectorAll('[data-ability-improve]').forEach((b) => {
                     b.classList.remove('active');
                 });
                 btn.classList.add('active');
-                
+
                 // Store selection
                 if (!this.session.stepData.asiChoices[slotIndex]) {
                     this.session.stepData.asiChoices[slotIndex] = { mode: 'improvement' };
@@ -115,7 +121,7 @@ export class Step2ASIFeat {
             this._cleanup.on(radio, 'change', (e) => {
                 const slotIndex = e.target.dataset.asiSlotIndex;
                 const featId = e.target.value;
-                
+
                 // Store selection
                 if (!this.session.stepData.asiChoices[slotIndex]) {
                     this.session.stepData.asiChoices[slotIndex] = { mode: 'feat' };
@@ -134,7 +140,7 @@ export class Step2ASIFeat {
             );
             if (modeRadio) {
                 modeRadio.click();
-                
+
                 if (choice.mode === 'improvement' && choice.value) {
                     const btn = slotCard.querySelector(
                         `[data-ability-improve="${choice.value}"]`
@@ -153,13 +159,13 @@ export class Step2ASIFeat {
     /**
      * Calculate ASI slots available at this level
      */
-    async _calculateASISlots(leveledClasses, character) {
+    async _calculateASISlots(leveledClasses) {
         const slots = [];
 
         for (const classInfo of leveledClasses) {
-            // Standard ASI progression: levels 4, 8, 12, 16, 19
-            const asiLevels = [4, 8, 12, 16, 19];
-            const currentLevel = character.classes?.[classInfo.name] || 0;
+            // Get ASI levels from levelUpService (handles special cases like Fighter)
+            const asiLevels = levelUpService._getASILevelsForClass(classInfo.name);
+            const currentLevel = classInfo.oldLevel || 0;
 
             for (let level = currentLevel + 1; level <= classInfo.newLevel; level++) {
                 if (asiLevels.includes(level)) {
@@ -230,10 +236,10 @@ export class Step2ASIFeat {
                     <div data-improvement-options class="${selectedMode === 'feat' ? 'd-none' : ''}">
                         <div class="row g-2">
                             ${['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma']
-                                .map(ability => {
-                                    const abbr = ability.substring(0, 3).toUpperCase();
-                                    const isSelected = choice?.mode === 'improvement' && choice?.value === ability;
-                                    return `
+                .map(ability => {
+                    const abbr = ability.substring(0, 3).toUpperCase();
+                    const isSelected = choice?.mode === 'improvement' && choice?.value === ability;
+                    return `
                                         <div class="col-6 col-md-4">
                                             <button 
                                                 type="button"
@@ -247,7 +253,7 @@ export class Step2ASIFeat {
                                             </button>
                                         </div>
                                     `;
-                                }).join('')}
+                }).join('')}
                         </div>
                     </div>
 

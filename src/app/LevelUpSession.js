@@ -7,6 +7,8 @@
  * This ensures atomic updates and prevents partial state corruption if the user exits.
  */
 
+import { levelUpService } from '../services/LevelUpService.js';
+
 export class LevelUpSession {
     constructor(character) {
         if (!character) {
@@ -128,20 +130,48 @@ export class LevelUpSession {
         try {
             console.info('[LevelUpSession]', 'Applying staged changes to character');
 
+            const fromLevel = this._initialState.level;
+            const toLevel = this.stagedChanges.level;
+
             // Deep merge staged changes into original character
             Object.assign(this.originalCharacter, this.stagedChanges);
+
+            // Apply selected subclasses from step data
+            if (this.stepData.selectedSubclasses && Object.keys(this.stepData.selectedSubclasses).length > 0) {
+                if (!this.originalCharacter.progression) {
+                    this.originalCharacter.progression = { classes: [] };
+                }
+
+                Object.entries(this.stepData.selectedSubclasses).forEach(([className, subclassName]) => {
+                    if (subclassName) {
+                        const classEntry = this.originalCharacter.progression.classes.find(c => c.name === className);
+                        if (classEntry) {
+                            classEntry.subclass = subclassName;
+                        }
+                    }
+                });
+            }
 
             // Recalculate derived stats
             this._recalculateProficiencyBonus();
             this._recalculateHP();
             this._recalculateSpellSlots();
 
+            // Update spell slots using LevelUpService
+            levelUpService.updateSpellSlots(this.originalCharacter);
+
+            // Record level-up in character history
+            const changes = this.getChangeSummary();
+            levelUpService.recordLevelUp(this.originalCharacter, fromLevel, toLevel, changes);
+
             // Validate character integrity
             this._validateCharacter();
 
             console.info('[LevelUpSession]', 'Changes applied successfully', {
                 newLevel: this.originalCharacter.level,
-                newClasses: this.originalCharacter.classes?.map(c => `${c.name} ${c.levels}`).join(', '),
+                fromLevel,
+                toLevel,
+                newClasses: this.originalCharacter.progression?.classes?.map(c => `${c.name} ${c.levels}`).join(', '),
             });
 
             return this.originalCharacter;
@@ -224,7 +254,7 @@ export class LevelUpSession {
             const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
             if (arrayMatch) {
                 const [, key, index] = arrayMatch;
-                current = current[key]?.[parseInt(index)];
+                current = current[key]?.[parseInt(index, 10)];
             } else {
                 current = current[part];
             }
@@ -270,7 +300,7 @@ export class LevelUpSession {
             if (!Array.isArray(current[key])) {
                 current[key] = [];
             }
-            current[key][parseInt(index)] = value;
+            current[key][parseInt(index, 10)] = value;
         } else {
             current[lastPart] = value;
         }
@@ -302,8 +332,17 @@ export class LevelUpSession {
      * @private
      */
     _recalculateSpellSlots() {
-        // Spell slots are handled in spell selection step
-        console.debug('[LevelUpSession]', 'Spell slot recalculation handled in spell selection');
+        // Update staged changes spell slots based on class progression
+        if (this.stagedChanges.progression?.classes?.length > 0) {
+            // Apply spell slot updates to staged changes temporarily
+            const tempChar = { ...this.stagedChanges, progression: this.stagedChanges.progression };
+            levelUpService.updateSpellSlots(tempChar);
+            // Copy updated spell slots back to stagedChanges
+            if (tempChar.spellcasting) {
+                this.stagedChanges.spellcasting = tempChar.spellcasting;
+            }
+        }
+        console.debug('[LevelUpSession]', 'Spell slots recalculated for staged changes');
     }
 
     /**

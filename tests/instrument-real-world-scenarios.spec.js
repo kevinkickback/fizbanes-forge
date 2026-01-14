@@ -245,7 +245,7 @@ test.describe('Musical Instrument Real-World Scenarios', () => {
             // Allow 0 or potentially 1 if auto-showing optional
 
             // Now explicitly select "Musical Instrument" from tools list
-            const toolsList = page.locator('#toolsContainer, .tools-list');
+            const _toolsList = page.locator('#toolsContainer, .tools-list');
             const musicalInstrItem = page.locator(
                 'text="Musical Instrument"',
             ).first();

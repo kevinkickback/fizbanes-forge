@@ -14,7 +14,7 @@ export class Step3SpellSelection {
         this.modal = modal;
         this._cleanup = DOMCleanup.create();
         this._spellSelector = null; // Will be instantiated when needed
-        
+
         // Initialize step data if not present
         if (!this.session.stepData.selectedSpells) {
             this.session.stepData.selectedSpells = {};
@@ -22,11 +22,17 @@ export class Step3SpellSelection {
     }
 
     async render() {
-        const leveledClasses = this.session.get('leveledClasses');
-        
+        // Get leveled classes from change summary
+        const summary = this.session.getChangeSummary();
+        const leveledClasses = summary.leveledClasses.map(lc => ({
+            name: lc.name,
+            newLevel: lc.to,
+            oldLevel: lc.from
+        }));
+
         // Determine which classes gain new spells
         const spellcastingClasses = this._getSpellcastingClasses(leveledClasses);
-        
+
         if (spellcastingClasses.length === 0) {
             return `
                 <div class="step-3-spell-selection">
@@ -51,7 +57,7 @@ export class Step3SpellSelection {
 
         // Render each spellcasting class section
         for (const classInfo of spellcastingClasses) {
-            html += this._renderSpellcastingClass(classInfo, character);
+            html += this._renderSpellcastingClass(classInfo);
         }
 
         html += `
@@ -69,7 +75,7 @@ export class Step3SpellSelection {
             this._cleanup.on(btn, 'click', async () => {
                 const className = btn.dataset.className;
                 const level = parseInt(btn.dataset.level, 10);
-                
+
                 // Open LevelUpSpellSelector modal
                 const selector = new LevelUpSpellSelector(this.session, this, className, level);
                 try {
@@ -108,7 +114,7 @@ export class Step3SpellSelection {
             'Bard', 'Cleric', 'Druid', 'Sorcerer', 'Warlock', 'Wizard', 'Paladin', 'Ranger'
         ];
 
-        return leveledClasses.filter(classInfo => 
+        return leveledClasses.filter(classInfo =>
             spellcastingClasses.includes(classInfo.name)
         );
     }
@@ -116,8 +122,8 @@ export class Step3SpellSelection {
     /**
      * Render spell selection section for a single spellcasting class
      */
-    _renderSpellcastingClass(classInfo, character) {
-        const currentLevel = character.classes?.[classInfo.name] || 0;
+    _renderSpellcastingClass(classInfo) {
+        const currentLevel = classInfo.oldLevel || 0;
         const spellSlots = this._calculateNewSpellSlots(classInfo.name, currentLevel, classInfo.newLevel);
         const key = `${classInfo.name}_${classInfo.newLevel}`;
         const selectedSpells = this.session.stepData.selectedSpells[key] || [];
@@ -151,10 +157,10 @@ export class Step3SpellSelection {
                     <div class="mb-2">
                         <strong>Selected Spells (${selectedSpells.length}):</strong>
                         <div data-selected-spells class="mt-2">
-                            ${selectedSpells.length === 0 
-                                ? '<span class="text-muted small">No spells selected yet</span>'
-                                : selectedSpells.map(spell => `<span class="badge bg-primary">${spell}</span>`).join(' ')
-                            }
+                            ${selectedSpells.length === 0
+                ? '<span class="text-muted small">No spells selected yet</span>'
+                : selectedSpells.map(spell => `<span class="badge bg-primary">${spell}</span>`).join(' ')
+            }
                         </div>
                     </div>
                     <button 
@@ -201,7 +207,7 @@ export class Step3SpellSelection {
     updateSpellSelection(className, level, selectedSpells) {
         const key = `${className}_${level}`;
         this.session.stepData.selectedSpells[key] = selectedSpells;
-        
+
         // Trigger re-render to display updated selections
         // In a full implementation, could emit event or call parent's re-render
         console.info('[Step3SpellSelection]', `Updated spell selection for ${key}:`, selectedSpells);

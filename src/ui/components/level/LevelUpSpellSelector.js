@@ -1,7 +1,7 @@
-import { SpellService } from '../../../../services/SpellService.js';
-import { SpellSelectionService } from '../../../../services/SpellSelectionService.js';
-import { ClassService } from '../../../../services/ClassService.js';
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { classService } from '../../../services/ClassService.js';
+import { spellSelectionService } from '../../../services/SpellSelectionService.js';
+import { spellService } from '../../../services/SpellService.js';
 
 /**
  * LevelUpSpellSelector
@@ -23,29 +23,29 @@ export class LevelUpSpellSelector {
         this.parentStep = parentStep;
         this.className = className;
         this.currentLevel = currentLevel;
-        
+
         // Modal DOM element
         this._modal = null;
         this._modalBS = null; // Bootstrap modal instance
         this._cleanup = DOMCleanup.create();
-        
+
         // Service references
-        this.spellService = SpellService;
-        this.spellSelectionService = SpellSelectionService;
-        this.classService = ClassService;
-        
+        this.spellService = spellService;
+        this.spellSelectionService = spellSelectionService;
+        this.classService = classService;
+
         // Selection state
         this.selectedSpells = [];
         this.availableSpells = [];
         this.filteredSpells = [];
         this.currentSpellLevel = 0; // Current tab: 0 = cantrips, 1 = 1st level, etc.
-        
+
         // Filtering state
         this.searchQuery = '';
         this.schoolFilter = '';
         this.showRitualsOnly = false;
         this.showConcentrationOnly = false;
-        
+
         // Slot limits
         this.maxSpells = 0;
         this.slotsByLevel = {}; // { 1: 2, 2: 2, 3: 1 }
@@ -58,16 +58,16 @@ export class LevelUpSpellSelector {
         try {
             // Load spell data
             await this._loadSpellData();
-            
+
             // Render modal or get existing
             this._getOrCreateModal();
-            
+
             // Populate initial view
             this._renderSpellList();
-            
+
             // Attach event listeners
             this._attachListeners();
-            
+
             // Show modal
             if (this._modalBS) {
                 this._modalBS.show();
@@ -92,7 +92,7 @@ export class LevelUpSpellSelector {
 
         // Load all available spells for this class
         this.availableSpells = await this._getAvailableSpellsForClass();
-        
+
         console.info('[LevelUpSpellSelector]', `Loaded ${this.availableSpells.length} available spells for ${this.className}`);
     }
 
@@ -172,7 +172,7 @@ export class LevelUpSpellSelector {
     _getOrCreateModal() {
         // Try to find existing modal or create new one
         let modal = document.getElementById('levelUpSpellSelectorModal');
-        
+
         if (!modal) {
             // Create new modal
             modal = document.createElement('div');
@@ -184,7 +184,7 @@ export class LevelUpSpellSelector {
         }
 
         this._modal = modal;
-        
+
         // Initialize or refresh Bootstrap modal
         if (this._modalBS) {
             this._modalBS.dispose();
@@ -395,13 +395,13 @@ export class LevelUpSpellSelector {
             this._cleanup.on(tab, 'click', (e) => {
                 e.preventDefault();
                 const level = parseInt(tab.dataset.spellLevel, 10);
-                
+
                 // Update active tab
                 levelTabs.forEach((t) => {
                     t.classList.remove('active');
                 });
                 tab.classList.add('active');
-                
+
                 // Switch level
                 this.currentSpellLevel = level;
                 this._renderSpellList();
@@ -511,7 +511,7 @@ export class LevelUpSpellSelector {
      */
     dispose() {
         this._cleanup.cleanup();
-        
+
         if (this._modalBS) {
             this._modalBS.dispose();
             this._modalBS = null;

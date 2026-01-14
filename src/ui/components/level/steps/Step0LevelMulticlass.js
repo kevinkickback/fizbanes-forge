@@ -6,7 +6,7 @@
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { classService } from '../../../../services/ClassService.js';
+import { levelUpService } from '../../../../services/LevelUpService.js';
 
 export class Step0LevelMulticlass {
     constructor(session, modal) {
@@ -14,6 +14,7 @@ export class Step0LevelMulticlass {
         this.modal = modal;
         this._cleanup = DOMCleanup.create();
         this.selectedClassName = null;
+        this.ignoreMulticlassReqs = false; // Default: enforce requirements
     }
 
     /**
@@ -87,8 +88,14 @@ export class Step0LevelMulticlass {
 
                 <!-- Add Multiclass -->
                 <div class="card mb-3">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="fas fa-user-plus"></i> Add Multiclass (Optional)</h6>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="ignoreMulticlassReqs" ${this.ignoreMulticlassReqs ? 'checked' : ''}>
+                            <label class="form-check-label small" for="ignoreMulticlassReqs" title="Toggle to ignore ability score requirements for multiclassing">
+                                Ignore Requirements
+                            </label>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="input-group">
@@ -96,9 +103,11 @@ export class Step0LevelMulticlass {
                                 <option value="">Select a class...</option>
         `;
 
-        // Render available classes dropdown
-        availableClasses.forEach(className => {
-            html += `<option value="${className}">${className}</option>`;
+        // Render available classes dropdown with requirements
+        availableClasses.forEach(option => {
+            const disabled = !option.meetsRequirements && !this.ignoreMulticlassReqs ? 'disabled' : '';
+            const reqText = !option.meetsRequirements && !this.ignoreMulticlassReqs ? ` (${option.requirementText})` : '';
+            html += `<option value="${option.name}" ${disabled}>${option.name}${reqText}</option>`;
         });
 
         html += `
@@ -107,17 +116,11 @@ export class Step0LevelMulticlass {
                                 <i class="fas fa-plus"></i> Add Class
                             </button>
                         </div>
-                        <small class="text-muted d-block mt-2">
-                            Add a new class at level 1 for multiclassing.
-                        </small>
+                        ${!this.ignoreMulticlassReqs && availableClasses.some(o => !o.meetsRequirements) ?
+                '<small class="text-muted d-block mt-2"><i class="fas fa-info-circle"></i> Some classes require minimum ability scores</small>' :
+                '<small class="text-muted d-block mt-2">Add a new class at level 1 for multiclassing.</small>'
+            }
                     </div>
-                </div>
-
-                <!-- Summary -->
-                <div class="alert alert-info mb-0">
-                    <i class="fas fa-info-circle"></i>
-                    You can level multiple classes in a single session. Select a class and click 
-                    <strong>+</strong> to level it up.
                 </div>
             </div>
         `;
@@ -138,7 +141,10 @@ export class Step0LevelMulticlass {
             this._cleanup.on(card, 'click', (e) => {
                 if (e.target.closest('.level-up-btn')) return; // Don't select if clicking level-up button
 
-                classCards.forEach(c => c.classList.remove('border-primary', 'bg-light'));
+                // Remove selection from all cards
+                for (const c of classCards) {
+                    c.classList.remove('border-primary', 'bg-light');
+                }
                 card.classList.add('border-primary', 'bg-light');
                 this.selectedClassName = card.dataset.className;
                 console.debug('[Step0]', 'Selected class:', this.selectedClassName);
@@ -150,7 +156,7 @@ export class Step0LevelMulticlass {
         levelUpBtns.forEach(btn => {
             this._cleanup.on(btn, 'click', (e) => {
                 e.stopPropagation();
-                const index = parseInt(btn.dataset.classIndex);
+                const index = parseInt(btn.dataset.classIndex, 10);
                 this._handleLevelUp(index);
             });
         });
@@ -160,6 +166,64 @@ export class Step0LevelMulticlass {
         if (addMulticlassBtn) {
             this._cleanup.on(addMulticlassBtn, 'click', () => this._handleAddMulticlass(contentArea));
         }
+
+        // Restriction toggle
+        const toggleReqs = contentArea.querySelector('#ignoreMulticlassReqs');
+        if (toggleReqs) {
+            this._cleanup.on(toggleReqs, 'change', () => {
+                this.ignoreMulticlassReqs = toggleReqs.checked;
+                // Update dropdown options without re-rendering entire step
+                this._updateMulticlassDropdown(contentArea);
+            });
+        }
+    }
+
+    /**
+     * Update the multiclass dropdown options based on current restriction setting.
+     * @private
+     */
+    _updateMulticlassDropdown(contentArea) {
+        const select = contentArea.querySelector('#multiclassSelect');
+        if (!select) return;
+
+        // Save current selection
+        const currentValue = select.value;
+
+        // Get updated options
+        const availableClasses = this._getAvailableClasses();
+
+        // Rebuild options (keep first empty option)
+        select.innerHTML = '<option value="">Select a class...</option>';
+
+        availableClasses.forEach(option => {
+            const disabled = !option.meetsRequirements && !this.ignoreMulticlassReqs ? 'disabled' : '';
+            const reqText = !option.meetsRequirements && !this.ignoreMulticlassReqs ? ` (${option.requirementText})` : '';
+            const optionElement = document.createElement('option');
+            optionElement.value = option.name;
+            optionElement.textContent = `${option.name}${reqText}`;
+            if (disabled) optionElement.disabled = true;
+            select.appendChild(optionElement);
+        });
+
+        // Restore selection if still valid
+        if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue && !opt.disabled)) {
+            select.value = currentValue;
+        }
+
+        // Update helper text
+        const helperText = contentArea.querySelector('.text-muted.d-block.mt-2');
+        if (helperText) {
+            if (!this.ignoreMulticlassReqs && availableClasses.some(o => !o.meetsRequirements)) {
+                helperText.innerHTML = '<i class="fas fa-info-circle"></i> Some classes require minimum ability scores';
+            } else {
+                helperText.textContent = 'Add a new class at level 1 for multiclassing.';
+            }
+        }
+
+        console.debug('[Step0]', 'Multiclass dropdown updated', {
+            ignoreReqs: this.ignoreMulticlassReqs,
+            availableCount: availableClasses.length
+        });
     }
 
     /**
@@ -189,9 +253,38 @@ export class Step0LevelMulticlass {
             totalLevel,
         });
 
-        // Re-render to show changes
-        this.modal.nextStep();
-        this.modal.previousStep();
+        // Update DOM without full re-render
+        this._updateClassLevelDisplay(classIndex, newLevel, totalLevel);
+    }
+
+    /**
+     * Update the DOM to reflect level changes without full re-render.
+     * @private
+     */
+    _updateClassLevelDisplay(classIndex, newLevel, totalLevel) {
+        // Update the class card level text
+        const classCard = document.querySelector(`.class-card[data-class-index="${classIndex}"]`);
+        if (classCard) {
+            const levelLabel = newLevel === 1 ? 'level' : 'levels';
+            const levelText = classCard.querySelector('.text-muted');
+            if (levelText) {
+                levelText.textContent = `${newLevel} ${levelLabel}`;
+            }
+        }
+
+        // Update total level badge
+        const totalLevelBadge = document.querySelector('.badge.bg-primary strong');
+        if (totalLevelBadge) {
+            totalLevelBadge.textContent = totalLevel;
+        }
+    }
+
+    /**
+     * Refresh Step 0 by re-rendering it (used for major changes like adding multiclass).
+     * @private
+     */
+    _refreshStep() {
+        this.modal._renderStep(0);
     }
 
     /**
@@ -214,6 +307,15 @@ export class Step0LevelMulticlass {
             return;
         }
 
+        // Check requirements if not ignoring
+        if (!this.ignoreMulticlassReqs) {
+            const meetsReqs = levelUpService.checkMulticlassRequirements(this.session.originalCharacter, className);
+            if (!meetsReqs) {
+                alert(`Ability scores do not meet the multiclass requirements for ${className}. Toggle "Ignore Requirements" to override.`);
+                return;
+            }
+        }
+
         // Add new class at level 1
         classes.push({
             name: className,
@@ -230,9 +332,8 @@ export class Step0LevelMulticlass {
         // Reset dropdown
         select.value = '';
 
-        // Re-render
-        this.modal.nextStep();
-        this.modal.previousStep();
+        // Re-render Step 0 to show changes
+        this._refreshStep();
     }
 
     /**
@@ -240,8 +341,10 @@ export class Step0LevelMulticlass {
      * @private
      */
     _getAvailableClasses() {
-        const allClasses = classService.getAllClasses();
-        const currentClassNames = (this.session.stagedChanges.progression?.classes || []).map(c => c.name);
-        return allClasses.filter(c => !currentClassNames.includes(c.name)).map(c => c.name);
+        // Use original character for requirement checking
+        return levelUpService.getMulticlassOptions(
+            this.session.originalCharacter,
+            this.ignoreMulticlassReqs
+        );
     }
 }

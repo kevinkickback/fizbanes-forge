@@ -202,12 +202,10 @@ export class LevelUpModal {
      */
     _initializeBootstrapModal() {
         // Dispose old instance if exists
-        if (this.bootstrapModal && this.bootstrapModal.dispose) {
-            try {
-                this.bootstrapModal.dispose();
-            } catch (e) {
-                console.warn('[LevelUpModal]', 'Error disposing old modal', e);
-            }
+        try {
+            this.bootstrapModal?.dispose?.();
+        } catch (e) {
+            console.warn('[LevelUpModal]', 'Error disposing old modal', e);
         }
 
         // Create new instance
@@ -226,6 +224,33 @@ export class LevelUpModal {
 
         // Setup hide listener
         this._cleanup.once(this.modalEl, 'hidden.bs.modal', () => this._onModalHidden());
+
+        // Attach button listeners
+        this._attachButtonListeners();
+    }
+
+    /**
+     * Attach event listeners to modal buttons.
+     * @private
+     */
+    _attachButtonListeners() {
+        const backBtn = this.modalEl.querySelector('[data-action="back"]');
+        const nextBtn = this.modalEl.querySelector('[data-action="next"]');
+        const confirmBtn = this.modalEl.querySelector('[data-action="confirm"]');
+
+        if (backBtn) {
+            this._cleanup.on(backBtn, 'click', () => this.previousStep());
+        }
+
+        if (nextBtn) {
+            this._cleanup.on(nextBtn, 'click', () => this.nextStep());
+        }
+
+        if (confirmBtn) {
+            this._cleanup.on(confirmBtn, 'click', () => this.confirm());
+        }
+
+        console.debug('[LevelUpModal]', 'Button listeners attached');
     }
 
     /**
@@ -381,7 +406,8 @@ export class LevelUpModal {
     async _showConfirmation(title, message) {
         return new Promise((resolve) => {
             // TODO: Replace with actual modal or dialog
-            const confirmed = confirm(message);
+            const label = title ? `${title}: ${message}` : message;
+            const confirmed = confirm(label);
             resolve(confirmed);
         });
     }

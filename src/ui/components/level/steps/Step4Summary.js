@@ -6,6 +6,8 @@
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { textProcessor } from '../../../../lib/TextProcessor.js';
+import { levelUpService } from '../../../../services/LevelUpService.js';
 
 export class Step4Summary {
     constructor(session, modal) {
@@ -19,6 +21,9 @@ export class Step4Summary {
      */
     async render() {
         const summary = this.session.getChangeSummary();
+
+        // Get all new features from the staged changes
+        const allNewFeatures = await this._gatherAllClassFeatures();
 
         let html = `
             <div class="step-4-summary">
@@ -85,24 +90,50 @@ export class Step4Summary {
             `;
         }
 
-        // Features Summary
-        if (Object.keys(summary.newFeatures).length > 0) {
+        // Class Features Section
+        if (allNewFeatures.length > 0) {
+            // Group features by class
+            const featuresByClass = new Map();
+            allNewFeatures.forEach(feature => {
+                if (!featuresByClass.has(feature.class)) {
+                    featuresByClass.set(feature.class, []);
+                }
+                featuresByClass.get(feature.class).push(feature);
+            });
+
             html += `
                 <div class="card mb-3">
                     <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-tasks"></i> New Features</h6>
+                        <h6 class="mb-0"><i class="fas fa-star"></i> New Class Features</h6>
                     </div>
-                    <div class="card-body small">
+                    <div class="card-body">
             `;
 
-            Object.entries(summary.newFeatures).forEach(([className, features]) => {
-                if (Array.isArray(features) && features.length > 0) {
-                    html += `<strong>${className}:</strong><ul>`;
-                    features.forEach(f => {
-                        html += `<li>${f}</li>`;
-                    });
-                    html += '</ul>';
-                }
+            // Render each class group
+            featuresByClass.forEach((features, className) => {
+                html += `
+                    <div class="mb-4">
+                        <h6 class="mb-3 pb-2 border-bottom" style="font-weight: 600; color: var(--accent-color); border-color: var(--accent-color);">
+                            <i class="fas fa-crown me-2" style="color: var(--accent-color);"></i>${this._escapeHtml(className)}
+                        </h6>
+                        <div class="feature-list traits-grid ms-2" id="featuresList_${this._escapeHtml(className)}">
+                `;
+
+                features.forEach((feature) => {
+                    const escapedName = this._escapeHtml(feature.name);
+                    html += `
+                        <a class="trait-tag rd__hover-link" 
+                            data-hover-type="feature" 
+                            data-hover-name="${escapedName}">
+                            ${escapedName}
+                        </a>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
             });
 
             html += `
@@ -166,13 +197,7 @@ export class Step4Summary {
         }
 
         html += `
-                <!-- Info Message -->
-                <div class="alert alert-info mb-0">
-                    <i class="fas fa-info-circle"></i>
-                    Review your changes above. Click 
-                    <strong>Back</strong> to edit any step, or 
-                    <strong>Confirm</strong> to apply changes.
-                </div>
+                <!-- Info Message -->   
             </div>
         `;
 
@@ -182,8 +207,114 @@ export class Step4Summary {
     /**
      * Attach event listeners.
      */
-    attachListeners(contentArea) {
+    async attachListeners(contentArea) {
         console.debug('[Step4]', 'Attaching listeners');
-        // Summary page is mostly read-only, listeners handled by modal
+
+        // Process all feature lists with textProcessor for hover links
+        const featureLists = contentArea.querySelectorAll('[id^="featuresList_"]');
+        for (const list of featureLists) {
+            await textProcessor.processElement(list);
+        }
+    }
+
+    /**
+     * Gather all new class features for the leveled classes.
+     * Only includes features gained at the newly acquired levels.
+     * Also includes subclass features if a subclass was selected.
+     * @private
+     */
+    _gatherAllClassFeatures() {
+        const features = [];
+        const summary = this.session.getChangeSummary();
+        const seenFeatures = new Set(); // Track by class+name to avoid duplicates
+
+        // For each class that was leveled up
+        if (!summary.leveledClasses || summary.leveledClasses.length === 0) {
+            return [];
+        }
+
+        summary.leveledClasses.forEach(classChange => {
+            const { name: className, from: fromLevel, to: toLevel } = classChange;
+            const startLevel = fromLevel || 0;
+
+            // Get class features for each newly gained level only
+            for (let level = startLevel + 1; level <= toLevel; level++) {
+                const allLevelFeatures = levelUpService.getClassFeaturesForLevel(className, level);
+
+                if (Array.isArray(allLevelFeatures)) {
+                    // Filter to only features that are exactly at this level (not from lower levels)
+                    const newLevelFeatures = allLevelFeatures.filter(f => f?.level === level);
+
+                    newLevelFeatures.forEach(feature => {
+                        if (feature?.name) {
+                            const key = `${className}_${feature.name}`;
+
+                            // Deduplicate by class+name
+                            if (!seenFeatures.has(key)) {
+                                seenFeatures.add(key);
+                                features.push({
+                                    name: feature.name,
+                                    class: className,
+                                    level,
+                                    description: feature.description || '',
+                                    type: 'class'
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Get subclass features if applicable
+            const selectedSubclass = this.session.stepData?.selectedSubclasses?.[className];
+            if (selectedSubclass) {
+                for (let level = startLevel + 1; level <= toLevel; level++) {
+                    // Get subclass features using LevelUpService
+                    const subclassFeatures = levelUpService.getSubclassFeaturesForLevel?.(className, selectedSubclass, level);
+
+                    if (Array.isArray(subclassFeatures)) {
+                        // Filter to only features at this exact level
+                        const newLevelFeatures = subclassFeatures.filter(f => f?.level === level);
+
+                        newLevelFeatures.forEach(feature => {
+                            if (feature?.name) {
+                                const key = `${className}_${selectedSubclass}_${feature.name}`;
+
+                                // Deduplicate
+                                if (!seenFeatures.has(key)) {
+                                    seenFeatures.add(key);
+                                    features.push({
+                                        name: feature.name,
+                                        class: `${className} (${selectedSubclass})`,
+                                        level,
+                                        description: feature.description || '',
+                                        type: 'subclass'
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        return features;
+    }
+
+    /**
+     * Escape HTML special characters for safe display in tooltips.
+     * @private
+     */
+    _escapeHtml(text) {
+        if (!text) return '';
+        const str = String(text); // Convert to string if not already
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return str.replace(/[&<>"']/g, m => map[m]);
     }
 }

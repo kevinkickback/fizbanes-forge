@@ -5,11 +5,11 @@ const path = require('node:path');
 const sources = [
 	{
 		from: 'node_modules/bootstrap/dist',
-		to: 'app/assets/bootstrap/dist',
+		to: 'src/ui/assets/bootstrap/dist',
 	},
 	{
 		from: 'node_modules/@fortawesome/fontawesome-free',
-		to: 'app/assets/fontawesome',
+		to: 'src/ui/assets/fontawesome',
 	},
 ];
 

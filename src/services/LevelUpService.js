@@ -208,24 +208,17 @@ class LevelUpService {
      * @param {number} level - Class level
      * @returns {Array} Array of feature objects
      */
-    async getClassFeaturesForLevel(className, level) {
+    getClassFeaturesForLevel(className, level) {
         try {
-            const classData = await classService.getClass(className);
-            if (!classData || !classData.classFeature) return [];
+            // Use ClassService's built-in getClassFeatures which properly handles filtering
+            const features = classService.getClassFeatures(className, level);
 
-            return classData.classFeature
-                .filter((feature) => {
-                    // Match by class name and level
-                    if (!feature.classSource || feature.classSource !== className) return false;
-                    if (feature.level !== undefined && feature.level !== level) return false;
-                    return true;
-                })
-                .map((feature) => ({
-                    name: feature.name,
-                    source: feature.source,
-                    level: feature.level,
-                    description: feature.entries,
-                }));
+            return features.map((feature) => ({
+                name: feature.name,
+                source: feature.source,
+                level: feature.level,
+                description: feature.entries,
+            }));
         } catch (error) {
             console.error(`[${this.loggerScope}]`, 'Failed to load features', error);
             return [];

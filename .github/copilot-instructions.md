@@ -2,6 +2,7 @@
 
 This file defines **hard, non-negotiable rules and patterns** that AI assistance must follow.
 When generating or modifying code, **these rules take precedence over convenience or creativity**.
+Consult the architecture map in [docs/CODEBASE_ARCHITECTURE.md](../docs/CODEBASE_ARCHITECTURE.md) before editing any file to understand cross-file dependencies and required collaborators (e.g., LevelUp modal work must consider LevelUpService/LevelUpSession even if not imported).
 
 ---
 
