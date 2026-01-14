@@ -36,7 +36,7 @@ export class LevelUpFeatureSelector {
     /**
      * Initialize and display the feature selector modal
      */
-    async show(availableFeatures, currentSelections = [], multiSelect = false) {
+    async show(availableFeatures, currentSelections = [], multiSelect = false, maxSelections = null) {
         try {
             // Filter to only allowed sources
             const filtered = availableFeatures.filter(feature => 
@@ -44,7 +44,11 @@ export class LevelUpFeatureSelector {
             );
 
             // Determine max selections
-            this.maxSelections = multiSelect ? filtered.length : 1;
+            if (maxSelections !== null) {
+                this.maxSelections = maxSelections;
+            } else {
+                this.maxSelections = multiSelect ? filtered.length : 1;
+            }
 
             // Create generic selector with feature-specific config
             this._selector = new LevelUpSelector({
