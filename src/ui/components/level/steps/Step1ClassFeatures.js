@@ -261,6 +261,9 @@ export class Step1ClassFeatures {
                     level
                 );
 
+                // Add known choice features for specific classes/levels
+                levelFeatures.push(...this._getKnownChoiceFeatures(classInfo.name, level));
+
                 // Optionally fetch additional service features (informational only)
                 try {
                     const serviceFeatures = levelUpService.getClassFeaturesForLevel(classInfo.name, level);
@@ -286,6 +289,100 @@ export class Step1ClassFeatures {
                 });
 
                 features.push(...levelFeatures);
+            }
+        }
+
+        return features;
+    }
+
+    /**
+     * Get known choice features for specific class/level combinations
+     * Used when class table doesn't explicitly mark them as choices
+     */
+    _getKnownChoiceFeatures(className, level) {
+        const features = [];
+
+        // Warlock Eldritch Invocations
+        if (className === 'Warlock') {
+            const invocationLevels = [2, 5, 7, 9, 12, 15, 18, 20];
+            if (invocationLevels.includes(level)) {
+                const options = optionalFeatureService.getEldritchInvocations()
+                    .filter(opt => sourceService.isSourceAllowed(opt.source))
+                    .map(opt => ({
+                        id: `${opt.name}_${opt.source}`,
+                        name: opt.name,
+                        source: opt.source,
+                        description: this._getFeatureDescription(opt),
+                        prerequisite: opt.prerequisite,
+                        entries: opt.entries
+                    }));
+
+                features.push({
+                    id: `warlock_invocation_${level}`,
+                    name: 'Eldritch Invocation',
+                    type: 'invocation',
+                    options,
+                    required: true,
+                    description: 'Choose an Eldritch Invocation'
+                });
+            }
+        }
+
+        // Sorcerer Metamagic
+        if (className === 'Sorcerer') {
+            const metamagicOptions = optionalFeatureService.getMetamagicOptions()
+                .filter(opt => sourceService.isSourceAllowed(opt.source))
+                .map(opt => ({
+                    id: `${opt.name}_${opt.source}`,
+                    name: opt.name,
+                    source: opt.source,
+                    description: this._getFeatureDescription(opt),
+                    entries: opt.entries
+                }));
+
+            if (level === 3) {
+                features.push({
+                    id: `sorcerer_metamagic_${level}`,
+                    name: 'Metamagic',
+                    type: 'metamagic',
+                    options: metamagicOptions,
+                    required: true,
+                    description: 'Choose 2 Metamagic options'
+                });
+            } else if ([10, 17].includes(level)) {
+                features.push({
+                    id: `sorcerer_metamagic_${level}`,
+                    name: 'Metamagic',
+                    type: 'metamagic',
+                    options: metamagicOptions,
+                    required: true,
+                    description: 'Choose 1 additional Metamagic option'
+                });
+            }
+        }
+
+        // Fighter Battle Master Maneuvers
+        if (className === 'Fighter') {
+            // This would need subclass checking, but for now handle at level 3
+            if (level === 3) {
+                const maneuverOptions = optionalFeatureService.getManeuvers()
+                    .filter(opt => sourceService.isSourceAllowed(opt.source))
+                    .map(opt => ({
+                        id: `${opt.name}_${opt.source}`,
+                        name: opt.name,
+                        source: opt.source,
+                        description: this._getFeatureDescription(opt),
+                        entries: opt.entries
+                    }));
+
+                features.push({
+                    id: `fighter_maneuver_${level}`,
+                    name: 'Maneuvers',
+                    type: 'maneuver',
+                    options: maneuverOptions,
+                    required: false, // Optional because not all fighters are battle masters
+                    description: 'Choose maneuvers (Battle Master subclass)'
+                });
             }
         }
 
@@ -397,7 +494,7 @@ export class Step1ClassFeatures {
         }
 
         // Filter by allowed sources
-        options = options.filter(opt => 
+        options = options.filter(opt =>
             sourceService.isSourceAllowed(opt.source, allowedSources)
         );
 
@@ -418,7 +515,7 @@ export class Step1ClassFeatures {
     _inferClassFromFeature(feature) {
         // eslint-disable-next-line no-unused-vars
         void feature; // May use feature.className in future
-        
+
         // Try to get from session's leveled classes
         const summary = this.session.getChangeSummary();
         if (summary.leveledClasses?.length > 0) {
@@ -433,14 +530,14 @@ export class Step1ClassFeatures {
      */
     _getFeatureDescription(feature) {
         if (!feature.entries) return '';
-        
+
         // Get first text entry
         const firstEntry = feature.entries.find(e => typeof e === 'string');
         if (firstEntry) {
             // Strip 5etools tags and truncate
-            return firstEntry.replace(/\{@[^}]+\}/g, '').substring(0, 150) + '...';
+            return `${firstEntry.replace(/\{@[^}]+\}/g, '').substring(0, 150)}...`;
         }
-        
+
         return '';
     }
 

@@ -186,15 +186,29 @@ export class Step3SpellSelection {
         // In production, would check actual class spell slot progressions
         const slots = [];
 
-        // Example: Wizards get new slots at certain levels
-        if (className === 'Wizard') {
-            // Wizards can prepare new spells at each level up
+        // Warlock uses pact magic - different progression
+        if (className === 'Warlock') {
+            // Warlocks can learn new spells at each level (spells known)
+            // Their slot level increases at certain breakpoints
             if (newLevel > currentLevel) {
-                slots.push(`${newLevel}th`);
+                // Pact magic: show that they can learn new spells
+                slots.push('Pact Magic');
             }
-        } else if (className === 'Bard' || className === 'Cleric' || className === 'Sorcerer') {
+            return slots;
+        }
+
+        // Full casters (Bard, Cleric, Druid, Sorcerer, Wizard)
+        if (['Wizard', 'Bard', 'Cleric', 'Druid', 'Sorcerer'].includes(className)) {
             if (newLevel > currentLevel) {
-                slots.push(`${newLevel}th`);
+                slots.push(`Level ${newLevel}`);
+            }
+        }
+
+        // Half casters (Paladin, Ranger)
+        if (['Paladin', 'Ranger'].includes(className)) {
+            if (newLevel > currentLevel && newLevel >= 2) {
+                // Half casters start spellcasting at level 2
+                slots.push(`Level ${newLevel}`);
             }
         }
 
