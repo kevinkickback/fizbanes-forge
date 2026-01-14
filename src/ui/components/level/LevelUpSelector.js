@@ -44,12 +44,12 @@ export class LevelUpSelector {
 
         // Filter state
         this.searchQuery = '';
-        this.activeFilters = {}; // { school: 'abjuration', type: 'spell' }
-        this.currentTab = this.tabLevels.length > 0 ? this.tabLevels[0].value : null;
+        this.activeFilters = {}; // { school: Set(['abjuration']), type: Set(['spell']) }
+        this.currentTab = this.tabLevels.length > 0 ? new Set() : null; // Set of selected tab values
 
-        // Initialize filter defaults
+        // Initialize filter defaults as Sets
         Object.keys(this.filterSets).forEach(filterKey => {
-            this.activeFilters[filterKey] = '';
+            this.activeFilters[filterKey] = new Set();
         });
     }
 
@@ -102,70 +102,71 @@ export class LevelUpSelector {
     }
 
     /**
-     * Generate modal HTML structure
+     * Generate modal HTML structure (matches equipment/spell modal design)
      */
     _getModalHTML() {
-        const hasFilters = Object.keys(this.filterSets).length > 0;
-        const hasTabs = this.tabLevels.length > 0;
+        const hasFilters = Object.keys(this.filterSets).length > 0 || this.tabLevels.length > 0;
 
         return `
-            <div class="modal-dialog modal-lg">
+            <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header border-bottom">
+                    <div class="modal-header">
                         <h5 class="modal-title">
                             <i class="fas fa-check-circle"></i>
                             ${this.modalTitle}
                         </h5>
-                        <button type="button" class="btn-close" data-selector-cancel></button>
+                        <button type="button" class="btn-close" data-selector-cancel aria-label="Close"></button>
                     </div>
                     
                     <div class="modal-body">
-                        <!-- Search and Filter Bar -->
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-${hasFilters ? '6' : '8'}">
-                                <input 
-                                    type="text" 
-                                    class="form-control form-control-sm"
-                                    placeholder="Search..."
-                                    data-selector-search
-                                >
-                            </div>
-                            ${hasFilters ? this._getFilterHTML() : ''}
-                            <div class="col-md-${hasFilters ? '2' : '4'}">
-                                <button class="btn btn-sm btn-outline-secondary w-100" data-selector-clear>
-                                    <i class="fas fa-times"></i> Clear
+                        <!-- Search Bar (Full Width) -->
+                        <div class="d-flex gap-2 mb-2">
+                            ${hasFilters ? `
+                                <button class="btn btn-outline-secondary" type="button"
+                                    data-selector-filter-toggle title="Toggle filters panel" data-filters-visible="true">
+                                    <i class="fas fa-filter"></i>
                                 </button>
+                            ` : ''}
+                            <input type="text" class="form-control flex-grow-1"
+                                placeholder="Search..."
+                                data-selector-search>
+                            <button class="btn btn-outline-secondary" data-selector-clear>
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+
+                        <!-- Filters and Results Row -->
+                        <div class="row">
+                            ${hasFilters ? `
+                                <!-- Filters Panel -->
+                                <div class="col-md-4" data-selector-filters-panel>
+                                    ${this._getFiltersHTML()}
+                                </div>
+                            ` : ''}
+                            
+                            <!-- Results List -->
+                            <div class="${hasFilters ? 'col-md-8' : 'col-12'}">
+                                <div class="selector-list-scroll" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 0.5rem;">
+                                    <div class="selector-list" data-selector-list>
+                                        <!-- Items rendered here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Selected Items Display -->
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Selected Items</h6>
+                                        <span class="badge bg-info" data-selector-count>0 / ${this.maxSelections === Infinity ? '∞' : this.maxSelections}</span>
+                                    </div>
+                                    <div class="alert alert-secondary mb-0" data-selector-selected-display style="min-height: 60px; max-height: 150px; overflow-y: auto;">
+                                        <em class="text-muted">No items selected</em>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- Item Level/Group Tabs (if applicable) -->
-                        ${hasTabs ? `
-                            <ul class="nav nav-tabs mb-3" role="tablist" data-selector-tabs>
-                                ${this.tabLevels.map(tab => `
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link ${tab.value === this.currentTab ? 'active' : ''}" 
-                                                type="button" 
-                                                data-selector-tab="${tab.value}" 
-                                                role="tab">
-                                            ${tab.label}
-                                        </button>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        ` : ''}
-
-                        <!-- Item List -->
-                        <div class="selector-list" data-selector-list style="max-height: 400px; overflow-y: auto;">
-                            <!-- Items rendered here -->
-                        </div>
-
-                        <!-- Selection Info -->
-                        <div class="alert alert-info mt-3 mb-0" data-selector-info>
-                            <span data-selector-count>Selected: 0</span> / <span data-selector-max>${this.maxSelections === Infinity ? '∞' : this.maxSelections}</span>
                         </div>
                     </div>
                     
-                    <div class="modal-footer border-top">
+                    <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-selector-cancel>
                             Cancel
                         </button>
@@ -176,6 +177,88 @@ export class LevelUpSelector {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Generate filter HTML for active filter sets (collapsible cards like spell/equipment modal)
+     */
+    _getFiltersHTML() {
+        let html = '';
+
+        // Spell level tabs as collapsible filter card
+        if (this.tabLevels.length > 0) {
+            html += `
+                <div class="card mb-3">
+                    <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                        data-bs-target="#collapseLevels" aria-expanded="true">
+                        <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                            <span>Level</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </h6>
+                    </div>
+                    <div class="collapse show" id="collapseLevels">
+                        <div class="card-body">
+            `;
+
+            this.tabLevels.forEach(tab => {
+                const tabId = `level_${tab.value}`;
+                html += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                            value="${tab.value}" 
+                            data-selector-tab="${tab.value}"
+                            id="${tabId}">
+                        <label class="form-check-label" for="${tabId}">${tab.label}</label>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Other filter sets as collapsible cards
+        Object.entries(this.filterSets).forEach(([filterKey, filterOptions]) => {
+            const capitalizedKey = filterKey.charAt(0).toUpperCase() + filterKey.slice(1);
+            const collapseId = `collapse${capitalizedKey}`;
+
+            html += `
+                <div class="card mb-3">
+                    <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                        data-bs-target="#${collapseId}" aria-expanded="true">
+                        <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                            <span>${capitalizedKey}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </h6>
+                    </div>
+                    <div class="collapse show" id="${collapseId}">
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+            `;
+
+            filterOptions.forEach(opt => {
+                const filterId = `${filterKey}_${opt}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+                html += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                            value="${opt}" 
+                            data-selector-filter="${filterKey}"
+                            id="${filterId}">
+                        <label class="form-check-label" for="${filterId}">${opt}</label>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
     }
 
     /**
@@ -258,9 +341,12 @@ export class LevelUpSelector {
      * Check if item matches all active filters
      */
     _matchesAllFilters(item) {
-        // Tab filter (if using tabs)
-        if (this.currentTab !== null && item.level !== undefined && item.level !== this.currentTab) {
-            return false;
+        // Tab filter (if using tabs) - check if any tab is selected
+        if (this.currentTab !== null && this.tabLevels.length > 0) {
+            // If tabs exist, currentTab holds selected tab values as a Set
+            if (this.currentTab.size > 0 && !this.currentTab.has(item.level)) {
+                return false;
+            }
         }
 
         // Search filter
@@ -275,7 +361,7 @@ export class LevelUpSelector {
 
         // Custom filters
         for (const [filterKey, filterValue] of Object.entries(this.activeFilters)) {
-            if (filterValue && item[filterKey] !== filterValue) {
+            if (filterValue && filterValue.size > 0 && !filterValue.has(item[filterKey])) {
                 return false;
             }
         }
@@ -296,15 +382,46 @@ export class LevelUpSelector {
             });
         }
 
-        // Filter selects
-        Object.keys(this.filterSets).forEach(filterKey => {
-            const filterSelect = this._modal.querySelector(`[data-selector-filter="${filterKey}"]`);
-            if (filterSelect) {
-                this._cleanup.on(filterSelect, 'change', (e) => {
-                    this.activeFilters[filterKey] = e.target.value;
+        // Filter toggle button
+        const filterToggle = this._modal.querySelector('[data-selector-filter-toggle]');
+        const filtersPanel = this._modal.querySelector('[data-selector-filters-panel]');
+        if (filterToggle && filtersPanel) {
+            this._cleanup.on(filterToggle, 'click', () => {
+                const isVisible = filterToggle.dataset.filtersVisible === 'true';
+                filtersPanel.style.display = isVisible ? 'none' : 'block';
+                filterToggle.dataset.filtersVisible = !isVisible;
+            });
+        }
+
+        // Tab checkboxes
+        const tabCheckboxes = this._modal.querySelectorAll('[data-selector-tab]');
+        if (tabCheckboxes.length > 0) {
+            tabCheckboxes.forEach((checkbox) => {
+                this._cleanup.on(checkbox, 'change', () => {
+                    const tabValue = parseInt(checkbox.value, 10);
+                    if (checkbox.checked) {
+                        this.currentTab.add(tabValue);
+                    } else {
+                        this.currentTab.delete(tabValue);
+                    }
                     this._renderItems();
                 });
-            }
+            });
+        }
+
+        // Filter checkboxes
+        Object.keys(this.filterSets).forEach(filterKey => {
+            const filterCheckboxes = this._modal.querySelectorAll(`[data-selector-filter="${filterKey}"]`);
+            filterCheckboxes.forEach(checkbox => {
+                this._cleanup.on(checkbox, 'change', () => {
+                    if (checkbox.checked) {
+                        this.activeFilters[filterKey].add(checkbox.value);
+                    } else {
+                        this.activeFilters[filterKey].delete(checkbox.value);
+                    }
+                    this._renderItems();
+                });
+            });
         });
 
         // Clear button
@@ -313,29 +430,25 @@ export class LevelUpSelector {
             this._cleanup.on(clearBtn, 'click', () => {
                 if (searchInput) searchInput.value = '';
                 this.searchQuery = '';
+                
+                // Clear all filters
                 Object.keys(this.activeFilters).forEach(key => {
-                    this.activeFilters[key] = '';
-                    const select = this._modal.querySelector(`[data-selector-filter="${key}"]`);
-                    if (select) select.value = '';
+                    this.activeFilters[key].clear();
+                    const checkboxes = this._modal.querySelectorAll(`[data-selector-filter="${key}"]`);
+                    checkboxes.forEach(cb => {
+                        cb.checked = false;
+                    });
                 });
+                
+                // Clear tabs
+                if (this.currentTab instanceof Set) {
+                    this.currentTab.clear();
+                    tabCheckboxes.forEach(cb => {
+                        cb.checked = false;
+                    });
+                }
+                
                 this._renderItems();
-            });
-        }
-
-        // Tab buttons
-        const tabButtons = this._modal.querySelectorAll('[data-selector-tab]');
-        if (tabButtons.length > 0) {
-            tabButtons.forEach((btn) => {
-                this._cleanup.on(btn, 'click', (e) => {
-                    e.preventDefault();
-                    this.currentTab = parseInt(btn.dataset.selectorTab, 10);
-
-                    // Update active tab
-                    tabButtons.forEach((b) => b.classList.remove('active'));
-                    btn.classList.add('active');
-
-                    this._renderItems();
-                });
             });
         }
 
@@ -377,12 +490,48 @@ export class LevelUpSelector {
     }
 
     /**
-     * Update selection counter display
+     * Update selection counter and display
      */
     _updateSelectionInfo() {
         const countDisplay = this._modal.querySelector('[data-selector-count]');
         if (countDisplay) {
-            countDisplay.textContent = `Selected: ${this.selectedItems.length}`;
+            countDisplay.textContent = `${this.selectedItems.length} / ${this.maxSelections === Infinity ? '∞' : this.maxSelections}`;
+        }
+
+        // Update selected items display
+        const selectedDisplay = this._modal.querySelector('[data-selector-selected-display]');
+        if (selectedDisplay) {
+            if (this.selectedItems.length === 0) {
+                selectedDisplay.innerHTML = '<em class="text-muted">No items selected</em>';
+            } else {
+                const itemsHtml = this.selectedItems.map(item => {
+                    return `
+                        <div class="badge bg-secondary me-2 mb-2">
+                            ${item.name || item.id}
+                            <button type="button" class="btn-close btn-close-white ms-1" 
+                                style="font-size: 0.65rem; vertical-align: middle;"
+                                data-deselect-item="${this._itemKey(item)}"
+                                aria-label="Remove"></button>
+                        </div>
+                    `;
+                }).join('');
+                selectedDisplay.innerHTML = itemsHtml;
+
+                // Attach deselect listeners
+                this.selectedItems.forEach(item => {
+                    const btn = selectedDisplay.querySelector(`[data-deselect-item="${this._itemKey(item)}"]`);
+                    if (btn) {
+                        this._cleanup.on(btn, 'click', () => {
+                            // Find and uncheck the item
+                            const checkbox = this._modal.querySelector(`[data-selector-item][value="${this._itemKey(item)}"]`);
+                            if (checkbox) {
+                                checkbox.checked = false;
+                                this._updateSelectedItems();
+                            }
+                        });
+                    }
+                });
+            }
         }
     }
 
