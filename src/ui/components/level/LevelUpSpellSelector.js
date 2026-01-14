@@ -1,6 +1,5 @@
-import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { LevelUpSelector } from './LevelUpSelector.js';
 import { SPELL_SCHOOL_NAMES } from '../../../lib/DnDConstants.js';
-import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
@@ -8,15 +7,14 @@ import { spellService } from '../../../services/SpellService.js';
 /**
  * LevelUpSpellSelector
  * 
- * Focused spell selection modal for level-up wizard.
- * Allows users to select new spells for a spellcasting class.
+ * Spell-specific adapter for generic LevelUpSelector.
+ * Wraps spell-specific configuration and data loading for the level-up wizard.
  * 
  * Features:
- * - Search and filter spells by name, school, type
+ * - Search and filter spells by name, school
  * - Enforce spell slot/known spell limits
- * - Display spell details with casting time, components
- * - Support for prepared vs known spells
- * - Ritual casting indicators
+ * - Display spell details with ritual/concentration badges
+ * - Uses generic LevelUpSelector for consistent UX with other selectors
  */
 
 export class LevelUpSpellSelector {
@@ -26,31 +24,16 @@ export class LevelUpSpellSelector {
         this.className = className;
         this.currentLevel = currentLevel;
 
-        // Modal DOM element
-        this._modal = null;
-        this._modalBS = null; // Bootstrap modal instance
-        this._cleanup = DOMCleanup.create();
-
         // Service references
         this.spellService = spellService;
         this.spellSelectionService = spellSelectionService;
-        this.classService = classService;
 
-        // Selection state
-        this.selectedSpells = [];
-        this.availableSpells = [];
-        this.filteredSpells = [];
-        this.currentSpellLevel = 0; // Current tab: 0 = cantrips, 1 = 1st level, etc.
-
-        // Filtering state
-        this.searchQuery = '';
-        this.schoolFilter = '';
-        this.showRitualsOnly = false;
-        this.showConcentrationOnly = false;
-
-        // Slot limits
+        // Spell limits
         this.maxSpells = 0;
         this.slotsByLevel = {}; // { 1: 2, 2: 2, 3: 1 }
+
+        // Generic selector instance
+        this._selector = null;
     }
 
     /**
@@ -59,21 +42,41 @@ export class LevelUpSpellSelector {
     async show() {
         try {
             // Load spell data
-            await this._loadSpellData();
+            const spellData = await this._loadSpellData();
 
-            // Render modal or get existing
-            this._getOrCreateModal();
+            // Calculate limits
+            this._calculateSpellLimits();
 
-            // Populate initial view
-            this._renderSpellList();
+            // Create tab levels (0=cantrips, 1=1st level, 2=2nd level, etc.)
+            const tabLevels = [];
+            for (let i = 0; i < 10; i++) {
+                if (i === 0) {
+                    tabLevels.push({ label: 'Cantrips', value: 0 });
+                } else {
+                    const ordinals = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+                    tabLevels.push({ label: `${ordinals[i]} Level`, value: i });
+                }
+            }
 
-            // Attach event listeners
-            this._attachListeners();
+            // Create generic selector with spell-specific config
+            this._selector = new LevelUpSelector({
+                items: spellData,
+                searchFields: ['name'],
+                filterSets: { school: SPELL_SCHOOL_NAMES },
+                multiSelect: true,
+                maxSelections: this.maxSpells,
+                tabLevels,
+                itemRenderer: this._renderSpellItem.bind(this),
+                onConfirm: this._onSpellsConfirmed.bind(this),
+                modalTitle: `Select Spells - ${this.className} (Level ${this.currentLevel})`,
+                context: {
+                    className: this.className,
+                    currentLevel: this.currentLevel
+                }
+            });
 
             // Show modal
-            if (this._modalBS) {
-                this._modalBS.show();
-            }
+            await this._selector.show();
         } catch (error) {
             console.error('[LevelUpSpellSelector]', 'Error showing spell selector:', error);
         }
@@ -89,13 +92,34 @@ export class LevelUpSpellSelector {
             throw new Error(`${this.className} is not a spellcaster`);
         }
 
-        // Calculate max spells at this level
-        this._calculateSpellLimits();
+        // Get all spells from SpellService
+        const allSpells = this.spellService.getAllSpells();
 
-        // Load all available spells for this class
-        this.availableSpells = await this._getAvailableSpellsForClass();
+        // Filter by class eligibility and allowed sources
+        const availableSpells = allSpells.filter(spell => {
+            // Check if spell is available for this class
+            if (!this.spellService.isSpellAvailableForClass(spell, this.className)) {
+                return false;
+            }
 
-        console.info('[LevelUpSpellSelector]', `Loaded ${this.availableSpells.length} available spells for ${this.className}`);
+            // Check if source is allowed
+            if (!sourceService.isSourceAllowed(spell.source)) {
+                return false;
+            }
+
+            return true;
+        });
+
+        // Sort by level, then name
+        availableSpells.sort((a, b) => {
+            if (a.level !== b.level) {
+                return a.level - b.level;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        console.info('[LevelUpSpellSelector]', `Loaded ${availableSpells.length} available spells for ${this.className}`);
+        return availableSpells;
     }
 
     /**
@@ -127,209 +151,21 @@ export class LevelUpSpellSelector {
     }
 
     /**
-     * Get all available spells for this class
+     * Render a single spell item for the generic selector
      */
-    async _getAvailableSpellsForClass() {
-        // Get all spells from SpellService
-        const allSpells = this.spellService.getAllSpells();
-
-        // Filter by class eligibility and allowed sources
-        const availableSpells = allSpells.filter(spell => {
-            // Check if spell is available for this class
-            if (!this.spellService.isSpellAvailableForClass(spell, this.className)) {
-                return false;
-            }
-
-            // Check if source is allowed
-            if (!sourceService.isSourceAllowed(spell.source)) {
-                return false;
-            }
-
-            return true;
-        });
-
-        // Sort by level, then name
-        availableSpells.sort((a, b) => {
-            if (a.level !== b.level) {
-                return a.level - b.level;
-            }
-            return a.name.localeCompare(b.name);
-        });
-
-        return availableSpells;
-    }
-
-    /**
-     * Get or create the modal element
-     */
-    _getOrCreateModal() {
-        // Try to find existing modal or create new one
-        let modal = document.getElementById('levelUpSpellSelectorModal');
-
-        if (!modal) {
-            // Create new modal
-            modal = document.createElement('div');
-            modal.id = 'levelUpSpellSelectorModal';
-            modal.className = 'modal fade';
-            modal.setAttribute('tabindex', '-1');
-            modal.innerHTML = this._getModalHTML();
-            document.body.appendChild(modal);
-        }
-
-        this._modal = modal;
-
-        // Initialize or refresh Bootstrap modal
-        if (this._modalBS) {
-            this._modalBS.dispose();
-        }
-        this._modalBS = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: false });
-    }
-
-    /**
-     * Generate modal HTML structure
-     */
-    _getModalHTML() {
-        return `
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header border-bottom">
-                        <h5 class="modal-title">
-                            <i class="fas fa-book"></i>
-                            Select Spells - ${this.className} (Level ${this.currentLevel})
-                        </h5>
-                        <button type="button" class="btn-close" data-level-spell-cancel></button>
-                    </div>
-                    
-                    <div class="modal-body">
-                        <!-- Search and Filter Bar -->
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-6">
-                                <input 
-                                    type="text" 
-                                    class="form-control form-control-sm"
-                                    placeholder="Search spells..."
-                                    data-spell-search
-                                >
-                            </div>
-                            <div class="col-md-3">
-                                <select class="form-select form-select-sm" data-spell-school-filter>
-                                    <option value="">All Schools</option>
-                                    ${SPELL_SCHOOL_NAMES.map(school => `<option value="${school}">${school}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-sm btn-outline-secondary w-100" data-spell-clear>
-                                    <i class="fas fa-times"></i> Clear
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Spell Level Tabs -->
-                        <ul class="nav nav-tabs mb-3" role="tablist" data-spell-level-tabs>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" type="button" data-spell-level="0" role="tab">
-                                    Cantrips
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" type="button" data-spell-level="1" role="tab">
-                                    1st Level
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" type="button" data-spell-level="2" role="tab">
-                                    2nd Level
-                                </button>
-                            </li>
-                        </ul>
-
-                        <!-- Spell List -->
-                        <div class="spell-list" data-spell-list style="max-height: 400px; overflow-y: auto;">
-                            <!-- Spells rendered here -->
-                        </div>
-
-                        <!-- Selection Info -->
-                        <div class="alert alert-info mt-3 mb-0" data-spell-info>
-                            <span data-spell-count>Selected: 0</span> / <span data-spell-max>0</span> spells
-                        </div>
-                    </div>
-                    
-                    <div class="modal-footer border-top">
-                        <button type="button" class="btn btn-secondary" data-level-spell-cancel>
-                            Cancel
-                        </button>
-                        <button type="button" class="btn btn-primary" data-level-spell-confirm>
-                            Confirm Selection
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Render the spell list for current level/filters
-     */
-    _renderSpellList() {
-        const spellList = this._modal.querySelector('[data-spell-list]');
-        if (!spellList) return;
-
-        // Filter spells based on current level and search
-        this.filteredSpells = this.availableSpells.filter((spell) => {
-            // Level filter
-            if (spell.level !== this.currentSpellLevel) {
-                return false;
-            }
-
-            // Search filter
-            if (this.searchQuery && !spell.name.toLowerCase().includes(this.searchQuery.toLowerCase())) {
-                return false;
-            }
-
-            // School filter
-            if (this.schoolFilter && spell.school !== this.schoolFilter) {
-                return false;
-            }
-
-            // Ritual filter
-            if (this.showRitualsOnly && !spell.ritual) {
-                return false;
-            }
-
-            // Concentration filter
-            if (this.showConcentrationOnly && !spell.concentration) {
-                return false;
-            }
-
-            return true;
-        });
-
-        // Render filtered spells
-        spellList.innerHTML = this.filteredSpells
-            .map(spell => this._renderSpellCheckbox(spell))
-            .join('');
-
-        // Update info
-        this._updateSelectionInfo();
-    }
-
-    /**
-     * Render a single spell checkbox
-     */
-    _renderSpellCheckbox(spell) {
-        const isSelected = this.selectedSpells.some(s => s.id === spell.id);
+    _renderSpellItem(spell) {
         const ritualBadge = spell.ritual ? '<span class="badge bg-secondary ms-1">Ritual</span>' : '';
         const concentrationBadge = spell.concentration ? '<span class="badge bg-warning ms-1">Conc.</span>' : '';
 
         return `
-            <div class="form-check spell-option-check mb-2">
+            <div class="form-check selector-item-check mb-2">
                 <input 
                     class="form-check-input" 
                     type="checkbox" 
                     id="spell_${spell.id}"
                     value="${spell.id}"
-                    data-spell-checkbox
-                    ${isSelected ? 'checked' : ''}
+                    data-selector-item
+                    name="selector_item"
                 >
                 <label class="form-check-label w-100" for="spell_${spell.id}">
                     <strong>${spell.name}</strong>
@@ -342,170 +178,24 @@ export class LevelUpSpellSelector {
     }
 
     /**
-     * Attach event listeners to modal
+     * Handle spell selection confirmation
      */
-    _attachListeners() {
-        // Search input
-        const searchInput = this._modal.querySelector('[data-spell-search]');
-        if (searchInput) {
-            this._cleanup.on(searchInput, 'input', (e) => {
-                this.searchQuery = e.target.value;
-                this._renderSpellList();
-            });
-        }
-
-        // School filter
-        const schoolSelect = this._modal.querySelector('[data-spell-school-filter]');
-        if (schoolSelect) {
-            this._cleanup.on(schoolSelect, 'change', (e) => {
-                this.schoolFilter = e.target.value;
-                this._renderSpellList();
-            });
-        }
-
-        // Clear button
-        const clearBtn = this._modal.querySelector('[data-spell-clear]');
-        if (clearBtn) {
-            this._cleanup.on(clearBtn, 'click', () => {
-                searchInput.value = '';
-                schoolSelect.value = '';
-                this.searchQuery = '';
-                this.schoolFilter = '';
-                this._renderSpellList();
-            });
-        }
-
-        // Spell level tabs
-        const levelTabs = this._modal.querySelectorAll('[data-spell-level]');
-        levelTabs.forEach((tab) => {
-            this._cleanup.on(tab, 'click', (e) => {
-                e.preventDefault();
-                const level = parseInt(tab.dataset.spellLevel, 10);
-
-                // Update active tab
-                levelTabs.forEach((t) => {
-                    t.classList.remove('active');
-                });
-                tab.classList.add('active');
-
-                // Switch level
-                this.currentSpellLevel = level;
-                this._renderSpellList();
-            });
-        });
-
-        // Spell checkboxes
-        const checkboxes = this._modal.querySelectorAll('[data-spell-checkbox]');
-        checkboxes.forEach((checkbox) => {
-            this._cleanup.on(checkbox, 'change', () => {
-                this._updateSelectedSpells();
-            });
-        });
-
-        // Cancel button
-        const cancelBtn = this._modal.querySelector('[data-level-spell-cancel]');
-        if (cancelBtn) {
-            this._cleanup.on(cancelBtn, 'click', () => {
-                this.cancel();
-            });
-        }
-
-        // Confirm button
-        const confirmBtn = this._modal.querySelector('[data-level-spell-confirm]');
-        if (confirmBtn) {
-            this._cleanup.on(confirmBtn, 'click', async () => {
-                await this.confirm();
-            });
-        }
-    }
-
-    /**
-     * Update selectedSpells array from checkbox states
-     */
-    _updateSelectedSpells() {
-        const checkboxes = this._modal.querySelectorAll('[data-spell-checkbox]:checked');
-        this.selectedSpells = Array.from(checkboxes).map(checkbox => {
-            const spellId = checkbox.value;
-            const spell = this.availableSpells.find(s => s.id === spellId);
-            return spell;
-        });
-
-        this._updateSelectionInfo();
-    }
-
-    /**
-     * Update selection counter display
-     */
-    _updateSelectionInfo() {
-        const countDisplay = this._modal.querySelector('[data-spell-count]');
-        const maxDisplay = this._modal.querySelector('[data-spell-max]');
-
-        if (countDisplay) {
-            countDisplay.textContent = `Selected: ${this.selectedSpells.length}`;
-        }
-        if (maxDisplay) {
-            maxDisplay.textContent = this.maxSpells;
-        }
-    }
-
-    /**
-     * Validate selections before confirming
-     */
-    _validateSelections() {
-        // Check that user hasn't exceeded limits
-        if (this.selectedSpells.length > this.maxSpells) {
-            console.warn('[LevelUpSpellSelector]', 'Too many spells selected');
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Confirm selections and return to parent
-     */
-    async confirm() {
-        // Validate
-        if (!this._validateSelections()) {
-            alert('You have selected too many spells. Please reduce your selection.');
-            return;
-        }
-
+    async _onSpellsConfirmed(selectedSpells) {
         // Update parent step
         this.parentStep?.updateSpellSelection?.(
             this.className,
             this.currentLevel,
-            this.selectedSpells.map(s => s.name)
+            selectedSpells.map(s => s.name)
         );
-
-        // Close modal
-        this.cancel();
     }
 
     /**
-     * Cancel selection and close modal
+     * Cancel selection and cleanup
      */
     cancel() {
-        if (this._modalBS) {
-            this._modalBS.hide();
-        }
-        this.dispose();
-    }
-
-    /**
-     * Cleanup and dispose resources
-     */
-    dispose() {
-        this._cleanup.cleanup();
-
-        if (this._modalBS) {
-            this._modalBS.dispose();
-            this._modalBS = null;
-        }
-
-        if (this._modal) {
-            this._modal.remove();
-            this._modal = null;
+        if (this._selector) {
+            this._selector.cancel();
         }
     }
 }
+
