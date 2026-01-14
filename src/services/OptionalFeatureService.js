@@ -10,8 +10,28 @@ class OptionalFeatureService extends BaseDataService {
     }
 
     async initialize() {
-        const loader = new DataLoader();
-        await this.initWithLoader(loader, 'optionalfeatures.json');
+        await this.initWithLoader(
+            async () => {
+                console.info('[OptionalFeatureService]', 'Initializing optional feature data');
+
+                // Load main optionalfeatures data
+                const optionalfeaturesData = await DataLoader.loadJSON('optionalfeatures.json');
+
+                // Load fluff data
+                const fluffData = await DataLoader.loadJSON('fluff-optionalfeatures.json');
+
+                // Merge data
+                const aggregated = {
+                    optionalfeature: optionalfeaturesData.optionalfeature || [],
+                    optionalfeatureFluff: fluffData.optionalfeatureFluff || []
+                };
+
+                return aggregated;
+            },
+            {
+                emitPayload: (data) => data?.optionalfeature || [],
+            }
+        );
     }
 
     /**

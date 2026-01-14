@@ -1,5 +1,7 @@
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { SPELL_SCHOOL_NAMES } from '../../../lib/DnDConstants.js';
 import { classService } from '../../../services/ClassService.js';
+import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
 
@@ -128,42 +130,33 @@ export class LevelUpSpellSelector {
      * Get all available spells for this class
      */
     async _getAvailableSpellsForClass() {
-        // This would query SpellService for class-eligible spells
-        // For now, return placeholder structure
-        const spells = [];
+        // Get all spells from SpellService
+        const allSpells = this.spellService.getAllSpells();
 
-        // Load spells by level (0 = cantrips, 1-9 = spell levels)
-        for (let level = 0; level <= 9; level++) {
-            // Mock data - in production, query actual spell service
-            const levelSpells = this._getMockSpellsForLevel(level);
-            spells.push(...levelSpells);
-        }
+        // Filter by class eligibility and allowed sources
+        const availableSpells = allSpells.filter(spell => {
+            // Check if spell is available for this class
+            if (!this.spellService.isSpellAvailableForClass(spell, this.className)) {
+                return false;
+            }
 
-        return spells;
-    }
+            // Check if source is allowed
+            if (!sourceService.isSourceAllowed(spell.source)) {
+                return false;
+            }
 
-    /**
-     * Get mock spells for a level (placeholder for actual data)
-     */
-    _getMockSpellsForLevel(level) {
-        if (level === 0) {
-            return [
-                { id: 'acid_splash', name: 'Acid Splash', school: 'Evocation', level: 0, ritual: false, concentration: false },
-                { id: 'blade_ward', name: 'Blade Ward', school: 'Abjuration', level: 0, ritual: false, concentration: false },
-                { id: 'fire_bolt', name: 'Fire Bolt', school: 'Evocation', level: 0, ritual: false, concentration: false },
-                { id: 'mage_hand', name: 'Mage Hand', school: 'Transmutation', level: 0, ritual: false, concentration: false },
-                { id: 'light', name: 'Light', school: 'Evocation', level: 0, ritual: false, concentration: false },
-            ];
-        } else if (level === 1) {
-            return [
-                { id: 'detect_magic', name: 'Detect Magic', school: 'Divination', level: 1, ritual: true, concentration: true },
-                { id: 'mage_armor', name: 'Mage Armor', school: 'Abjuration', level: 1, ritual: false, concentration: false },
-                { id: 'magic_missile', name: 'Magic Missile', school: 'Evocation', level: 1, ritual: false, concentration: false },
-                { id: 'shield', name: 'Shield', school: 'Abjuration', level: 1, ritual: false, concentration: false },
-                { id: 'sleep', name: 'Sleep', school: 'Enchantment', level: 1, ritual: false, concentration: false },
-            ];
-        }
-        return [];
+            return true;
+        });
+
+        // Sort by level, then name
+        availableSpells.sort((a, b) => {
+            if (a.level !== b.level) {
+                return a.level - b.level;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        return availableSpells;
     }
 
     /**
@@ -221,14 +214,7 @@ export class LevelUpSpellSelector {
                             <div class="col-md-3">
                                 <select class="form-select form-select-sm" data-spell-school-filter>
                                     <option value="">All Schools</option>
-                                    <option value="Abjuration">Abjuration</option>
-                                    <option value="Conjuration">Conjuration</option>
-                                    <option value="Divination">Divination</option>
-                                    <option value="Enchantment">Enchantment</option>
-                                    <option value="Evocation">Evocation</option>
-                                    <option value="Illusion">Illusion</option>
-                                    <option value="Necromancy">Necromancy</option>
-                                    <option value="Transmutation">Transmutation</option>
+                                    ${SPELL_SCHOOL_NAMES.map(school => `<option value="${school}">${school}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-md-3">

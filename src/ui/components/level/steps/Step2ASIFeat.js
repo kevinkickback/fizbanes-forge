@@ -1,5 +1,8 @@
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { ABILITY_NAMES } from '../../../../lib/DnDConstants.js';
+import { featService } from '../../../../services/FeatService.js';
 import { levelUpService } from '../../../../services/LevelUpService.js';
+import { sourceService } from '../../../../services/SourceService.js';
 
 /**
  * Step 2: ASI/Feat Selection
@@ -235,7 +238,7 @@ export class Step2ASIFeat {
                     <!-- Ability Score Improvements -->
                     <div data-improvement-options class="${selectedMode === 'feat' ? 'd-none' : ''}">
                         <div class="row g-2">
-                            ${['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma']
+                            ${ABILITY_NAMES
                 .map(ability => {
                     const abbr = ability.substring(0, 3).toUpperCase();
                     const isSelected = choice?.mode === 'improvement' && choice?.value === ability;
@@ -261,7 +264,7 @@ export class Step2ASIFeat {
                     <div data-feat-options class="${selectedMode === 'feat' ? '' : 'd-none'}">
                         <div class="feat-list">
                             <p class="text-muted small mb-2">Select a feat (placeholder options shown):</p>
-                            ${this._renderFeatOptions(index, choice?.value).join('')}
+                            ${this._renderFeatOptions(index, choice?.value)}
                         </div>
                     </div>
                 </div>
@@ -273,35 +276,52 @@ export class Step2ASIFeat {
      * Render available feats for selection
      */
     _renderFeatOptions(slotIndex, selectedFeat) {
-        // This would normally load from feat data
-        // For now, show placeholder options
-        const sampleFeats = [
-            { id: 'alert', name: 'Alert', desc: '+5 initiative, can\'t be surprised' },
-            { id: 'charger', name: 'Charger', desc: '+5 damage when using action to Dash' },
-            { id: 'crossbow_expert', name: 'Crossbow Expert', desc: 'Ignore loading property of crossbows' },
-            { id: 'great_weapon_master', name: 'Great Weapon Master', desc: '-5 to hit for +10 damage' },
-            { id: 'lucky', name: 'Lucky', desc: 'Reroll 3d4 times per long rest' },
-            { id: 'magic_initiate', name: 'Magic Initiate', desc: 'Learn spells and cantrips' }
-        ];
+        // Load all feats from FeatService and filter by allowed sources
+        const allFeats = featService.getAllFeats();
+        const availableFeats = allFeats.filter(feat =>
+            sourceService.isSourceAllowed(feat.source)
+        );
 
-        return sampleFeats.map(feat => `
+        // Sort alphabetically by name
+        availableFeats.sort((a, b) => a.name.localeCompare(b.name));
+
+        return availableFeats.map(feat => {
+            // Create safe ID from feat name
+            const featId = feat.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+            // Get first entry as short description (if available)
+            const description = Array.isArray(feat.entries) && feat.entries.length > 0
+                ? (typeof feat.entries[0] === 'string' ? feat.entries[0] : 'See feat details')
+                : 'See feat details';
+
+            return `
             <div class="form-check feat-option mb-2">
                 <input 
                     class="form-check-input" 
                     type="radio" 
                     name="feat_${slotIndex}"
-                    id="feat_${slotIndex}_${feat.id}"
-                    value="${feat.id}"
+                    id="feat_${slotIndex}_${featId}"
+                    value="${this._escapeHtml(feat.name)}"
                     data-feat-select
                     data-asi-slot-index="${slotIndex}"
-                    ${selectedFeat === feat.id ? 'checked' : ''}
+                    ${selectedFeat === feat.name ? 'checked' : ''}
                 >
-                <label class="form-check-label" for="feat_${slotIndex}_${feat.id}">
-                    <strong>${feat.name}</strong>
-                    <div class="small text-muted">${feat.desc}</div>
+                <label class="form-check-label" for="feat_${slotIndex}_${featId}">
+                    <strong>${this._escapeHtml(feat.name)}</strong>
+                    <div class="small text-muted">${this._escapeHtml(description.substring(0, 100))}${description.length > 100 ? '...' : ''}</div>
                 </label>
             </div>
-        `);
+        `;
+        }).join('');
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**

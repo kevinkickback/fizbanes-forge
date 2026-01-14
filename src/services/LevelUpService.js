@@ -1,6 +1,7 @@
 /** Manages character level progression, multiclass tracking, and feature application. */
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
+import { sourceService } from './SourceService.js';
 import { spellSelectionService } from './SpellSelectionService.js';
 
 class LevelUpService {
@@ -481,7 +482,7 @@ class LevelUpService {
      */
     _getAllClasses() {
         const classes = classService.getAllClasses();
-        // Get unique class names and filter to PHB edition only to avoid duplicates
+        // Filter by allowed sources and avoid duplicates
         // Also exclude sidekick classes
         const uniqueNames = new Set();
         const result = [];
@@ -492,8 +493,13 @@ class LevelUpService {
                 continue;
             }
 
-            // Prefer PHB edition, or 'classic' edition
-            if (!uniqueNames.has(cls.name) && (cls.source === 'PHB' || cls.edition === 'classic')) {
+            // Check if source is allowed
+            if (!sourceService.isSourceAllowed(cls.source)) {
+                continue;
+            }
+
+            // Keep one version per class name (prefer non-reprinted versions)
+            if (!uniqueNames.has(cls.name)) {
                 uniqueNames.add(cls.name);
                 result.push(cls.name);
             }

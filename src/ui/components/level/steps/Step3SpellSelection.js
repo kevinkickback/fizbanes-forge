@@ -1,4 +1,5 @@
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { classService } from '../../../../services/ClassService.js';
 import { LevelUpSpellSelector } from '../LevelUpSpellSelector.js';
 
 /**
@@ -110,13 +111,12 @@ export class Step3SpellSelection {
      * Get spellcasting classes that gain new spell slots at this level
      */
     _getSpellcastingClasses(leveledClasses) {
-        const spellcastingClasses = [
-            'Bard', 'Cleric', 'Druid', 'Sorcerer', 'Warlock', 'Wizard', 'Paladin', 'Ranger'
-        ];
-
-        return leveledClasses.filter(classInfo =>
-            spellcastingClasses.includes(classInfo.name)
-        );
+        // Check if class has casterProgression field in JSON data
+        // Values: 'full', 'pact', '1/2', '1/3', or undefined for non-casters
+        return leveledClasses.filter(classInfo => {
+            const classData = classService.getClass(classInfo.name);
+            return classData?.casterProgression !== undefined;
+        });
     }
 
     /**

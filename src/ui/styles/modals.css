@@ -1414,4 +1414,65 @@
 	.class-selection-card:active {
 		transform: translateY(0);
 	}
-}
+
+	/* ===== Level Up Modal - Feature Selection ===== */
+	.feature-choice-card {
+		background-color: var(--card-background);
+		border-color: var(--border-color);
+	}
+
+	.feature-choice-card .card-header {
+		background-color: var(--secondary-color) !important;
+	}
+
+	.feature-options-scroll {
+		border-top: 1px solid var(--border-color);
+		scrollbar-width: thin;
+	}
+
+	.feature-options-scroll::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.feature-options-scroll::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.feature-options-scroll::-webkit-scrollbar-thumb {
+		background: var(--accent-color);
+		border-radius: 3px;
+	}
+
+	.feature-option-card {
+		border-color: var(--border-color);
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+
+	.feature-option-card:first-child {
+		border-top: none;
+	}
+
+	.feature-option-card:hover {
+		background-color: var(--highlight-bg, rgba(88, 166, 255, 0.08)) !important;
+	}
+
+	.feature-option-card.selected {
+		background-color: var(--highlight-bg, rgba(88, 166, 255, 0.15)) !important;
+		border-color: var(--accent-color) !important;
+	}
+
+	.feature-option-card .form-check-input {
+		margin-top: 0.25rem;
+	}
+
+	.feature-option-card strong {
+		color: var(--accent-color);
+		font-weight: 600;
+	}
+
+		.feature-option-card .text-muted {
+			max-width: 100%;
+			word-break: break-word;
+		}
+	}

@@ -199,37 +199,82 @@ export class Step1ClassFeatures {
             });
         });
 
-        // Clear and recreate listeners for radio buttons and option buttons
-        const radioButtons = contentArea.querySelectorAll('input[type="radio"][data-feature-choice]');
+        // Attach listeners for both radio and checkbox inputs
+        const featureInputs = contentArea.querySelectorAll('input[data-feature-choice]');
 
-        radioButtons.forEach(radio => {
-            this._cleanup.on(radio, 'change', (e) => {
-                const featureId = radio.dataset.featureId;
-                const selectedValue = radio.value;
-
-                // Store selection in session
-                this.session.stepData.selectedFeatures[featureId] = selectedValue;
-
-                // Visual feedback - highlight chosen option
+        featureInputs.forEach(input => {
+            this._cleanup.on(input, 'change', (e) => {
+                const featureId = input.dataset.featureId;
+                const selectedValue = input.value;
+                const isMulti = input.dataset.isMulti === 'true';
                 const choiceGroup = contentArea.querySelector(`[data-feature-group="${featureId}"]`);
+
+                if (isMulti) {
+                    // Multiple selection (checkbox)
+                    const checkedInputs = choiceGroup.querySelectorAll('input[type="checkbox"]:checked');
+                    this.session.stepData.selectedFeatures[featureId] = Array.from(checkedInputs).map(cb => cb.value);
+                } else {
+                    // Single selection (radio)
+                    this.session.stepData.selectedFeatures[featureId] = selectedValue;
+                }
+
+                // Update visual feedback
                 if (choiceGroup) {
                     const cards = choiceGroup.querySelectorAll('.feature-option-card');
                     cards.forEach((card) => {
-                        card.classList.remove('selected');
+                        const checkbox = card.querySelector('input[type="checkbox"][data-feature-choice]');
+                        const radio = card.querySelector('input[type="radio"][data-feature-choice]');
+                        const isChecked = (checkbox?.checked) || (radio?.checked);
+
+                        if (isChecked) {
+                            card.classList.add('selected');
+                        } else {
+                            card.classList.remove('selected');
+                        }
                     });
-                    e.target.closest('.feature-option-card')?.classList.add('selected');
+                }
+
+                // Update selection counter for multi-select
+                if (isMulti) {
+                    const counter = contentArea.querySelector(`[data-selection-count="${featureId}"]`);
+                    if (counter) {
+                        const count = Array.from(choiceGroup.querySelectorAll('input[type="checkbox"]:checked')).length;
+                        const header = e.target.closest('.feature-choice-card').querySelector('.text-info');
+                        const maxStr = header?.textContent.match(/Select (\d+)/)?.[1];
+                        const max = maxStr || 'N';
+                        counter.innerHTML = `<strong>${count}</strong>/${max}`;
+                    }
                 }
             });
         });
 
         // Restore previous selections
-        Object.entries(this.session.stepData.selectedFeatures).forEach(([featureId, value]) => {
-            const radio = contentArea.querySelector(
-                `input[type="radio"][data-feature-id="${featureId}"][value="${value}"]`
-            );
-            if (radio) {
-                radio.checked = true;
-                radio.closest('.feature-option-card')?.classList.add('selected');
+        Object.entries(this.session.stepData.selectedFeatures).forEach(([featureId, values]) => {
+            const choiceGroup = contentArea.querySelector(`[data-feature-group="${featureId}"]`);
+            if (!choiceGroup) return;
+
+            const isMulti = Array.isArray(values);
+            const valuesToSelect = isMulti ? values : [values];
+
+            valuesToSelect.forEach(value => {
+                const input = choiceGroup.querySelector(
+                    `input[data-feature-id="${featureId}"][value="${value}"]`
+                );
+                if (input) {
+                    input.checked = true;
+                    input.closest('.feature-option-card')?.classList.add('selected');
+                }
+            });
+
+            // Update counter for multi-select
+            if (isMulti) {
+                const counter = contentArea.querySelector(`[data-selection-count="${featureId}"]`);
+                if (counter) {
+                    const header = choiceGroup.closest('.feature-choice-card').querySelector('.text-info');
+                    const maxStr = header?.textContent.match(/Select (\d+)/)?.[1];
+                    const max = maxStr || values.length;
+                    counter.innerHTML = `<strong>${values.length}</strong>/${max}`;
+                }
             }
         });
     }
@@ -308,7 +353,7 @@ export class Step1ClassFeatures {
         for (const progression of classData.optionalfeatureProgression) {
             const featureTypes = progression.featureType || [];
             const featureName = progression.name;
-            
+
             // Determine if this level gains new features
             const prevLevel = level - 1;
             let countAtPrev = 0;
@@ -328,7 +373,7 @@ export class Step1ClassFeatures {
             // Only show feature if count increased (new feature gained)
             if (countAtCurrent > countAtPrev) {
                 const newCount = countAtCurrent - countAtPrev;
-                
+
                 // Determine feature type for UI
                 let featureType = 'other';
                 if (featureTypes.includes('EI')) featureType = 'invocation';
@@ -435,7 +480,6 @@ export class Step1ClassFeatures {
      */
     async _getFeatureOptions(feature) {
         const type = this._getFeatureType(feature);
-        const allowedSources = sourceService.getAllowedSources();
 
         let options = [];
 
@@ -469,7 +513,7 @@ export class Step1ClassFeatures {
 
         // Filter by allowed sources
         options = options.filter(opt =>
-            sourceService.isSourceAllowed(opt.source, allowedSources)
+            sourceService.isSourceAllowed(opt.source)
         );
 
         // Map to simplified structure for UI
@@ -520,9 +564,18 @@ export class Step1ClassFeatures {
      */
     _renderFeatureChoice(feature) {
         const featureId = feature.id;
+        const isMultiSelect = (feature.count || 1) > 1;
+        const inputType = isMultiSelect ? 'checkbox' : 'radio';
         const requiredBadge = feature.required
             ? '<span class="badge bg-danger ms-2">Required</span>'
             : '<span class="badge bg-secondary ms-2">Optional</span>';
+
+        // Get current selections for this feature
+        const currentSelections = this.session.stepData.selectedFeatures[featureId]
+            ? (Array.isArray(this.session.stepData.selectedFeatures[featureId])
+                ? this.session.stepData.selectedFeatures[featureId]
+                : [this.session.stepData.selectedFeatures[featureId]])
+            : [];
 
         let html = `
             <div class="card mb-3 feature-choice-card">
@@ -535,33 +588,51 @@ export class Step1ClassFeatures {
                     <small class="text-muted">
                         ${feature.class} • Level ${feature.gainLevel}
                     </small>
+                    ${isMultiSelect ? `
+                    <div class="mt-2">
+                        <small class="text-info">
+                            <i class="fas fa-info-circle"></i>
+                            Select ${feature.count}: <span data-selection-count="${featureId}"><strong>${currentSelections.length}</strong>/${feature.count}</span>
+                        </small>
+                    </div>
+                    ` : ''}
                 </div>
-                <div class="card-body">
-                    <div class="feature-options" data-feature-group="${featureId}">
+                <div class="card-body p-0">
+                    <div class="feature-options feature-options-scroll" data-feature-group="${featureId}" style="max-height: 400px; overflow-y: auto;">
         `;
 
         // Render each option (safely handle if options is undefined)
         const options = feature.options || [];
         options.forEach((option) => {
-            const isSelected = this.session.stepData.selectedFeatures[featureId] === option.id;
+            const isSelected = currentSelections.includes(option.id);
             const selectedClass = isSelected ? 'selected' : '';
+            const safeId = `${featureId}_${option.id}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            // Truncate description to ~120 chars with proper truncation
+            let displayDesc = '';
+            if (option.description) {
+                displayDesc = option.description.length > 120
+                    ? `${option.description.substring(0, 120).replace(/\s+\S*$/, '')}...`
+                    : option.description;
+            }
 
             html += `
-                <div class="feature-option-card p-3 mb-2 border rounded cursor-pointer ${selectedClass}">
-                    <div class="form-check">
+                <div class="feature-option-card p-3 border-top rounded-0 cursor-pointer d-flex align-items-start gap-3 ${selectedClass}" style="background-color: ${isSelected ? 'var(--highlight-bg, #f0f0f0)' : 'transparent'};">
+                    <div class="form-check flex-grow-1 mt-1">
                         <input 
                             class="form-check-input" 
-                            type="radio" 
+                            type="${inputType}" 
                             name="feature_${featureId}"
-                            id="feat_${featureId}_${option.id}"
+                            id="feat_${safeId}"
                             value="${option.id}"
                             data-feature-id="${featureId}"
                             data-feature-choice="true"
+                            data-is-multi="${isMultiSelect ? 'true' : 'false'}"
                             ${isSelected ? 'checked' : ''}
                         >
-                        <label class="form-check-label w-100" for="feat_${featureId}_${option.id}">
+                        <label class="form-check-label w-100" for="feat_${safeId}">
                             <strong>${option.name}</strong>
-                            ${option.description ? `<div class="small text-muted mt-1">${option.description}</div>` : ''}
+                            ${displayDesc ? `<div class="small text-muted mt-1" title="${this._escapeHtml(option.description || '')}">${displayDesc}</div>` : ''}
                         </label>
                     </div>
                 </div>
@@ -575,6 +646,15 @@ export class Step1ClassFeatures {
         `;
 
         return html;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**

@@ -330,7 +330,7 @@ class ClassService extends BaseDataService {
 		if (!progression) return 0;
 
 		// Find matching progression entry
-		const entry = progression.find(p => 
+		const entry = progression.find(p =>
 			p.featureType?.some(ft => featureTypes.includes(ft))
 		);
 		if (!entry) return 0;
