@@ -1,4 +1,5 @@
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
 
 /**
  * LevelUpSelector
@@ -29,7 +30,7 @@ export class LevelUpSelector {
         this.maxSelections = config.maxSelections ?? Infinity;
         this.tabLevels = config.tabLevels || [];
         this.itemRenderer = config.itemRenderer || this._defaultItemRenderer.bind(this);
-        this.onConfirm = config.onConfirm || (() => {});
+        this.onConfirm = config.onConfirm || (() => { });
         this.modalTitle = config.modalTitle || 'Select Items';
         this.context = config.context || {};
 
@@ -46,6 +47,10 @@ export class LevelUpSelector {
         this.searchQuery = '';
         this.activeFilters = {}; // { school: Set(['abjuration']), type: Set(['spell']) }
         this.currentTab = this.tabLevels.length > 0 ? new Set() : null; // Set of selected tab values
+
+        // Description cache for async processing
+        this.descriptionCache = new Map();
+        this._descriptionProcessingTimer = null;
 
         // Initialize filter defaults as Sets
         Object.keys(this.filterSets).forEach(filterKey => {
@@ -272,9 +277,9 @@ export class LevelUpSelector {
                     <div class="col-md-3">
                         <select class="form-select form-select-sm" data-selector-filter="${filterKey}">
                             <option value="">All ${capitalizedKey}</option>
-                            ${filterOptions.map(opt => 
-                                `<option value="${opt}">${opt}</option>`
-                            ).join('')}
+                            ${filterOptions.map(opt =>
+                    `<option value="${opt}">${opt}</option>`
+                ).join('')}
                         </select>
                     </div>
                 `;
@@ -285,28 +290,44 @@ export class LevelUpSelector {
     }
 
     /**
-     * Default item renderer (override via config)
+     * Default item renderer with card-based layout (override via config)
      */
     _defaultItemRenderer(item) {
-        const checkboxType = this.multiSelect ? 'checkbox' : 'radio';
-        const inputName = this.multiSelect ? `selector_item` : 'selector_item_single';
         const isSelected = this.selectedItems.some(s => this._itemKey(s) === this._itemKey(item));
+        const selectedClass = isSelected ? 'selected' : '';
+        const itemKey = this._itemKey(item);
+
+        // Use cached description or placeholder
+        const description = this.descriptionCache.has(itemKey)
+            ? this.descriptionCache.get(itemKey)
+            : '<span class="text-muted small">Loading description...</span>';
+
+        // Build metadata sections if available
+        let metadataHtml = '';
+        if (item.source) {
+            metadataHtml += `<span class="badge bg-secondary me-2">${item.source}</span>`;
+        }
+        if (item.prerequisite) {
+            metadataHtml += `<span class="badge bg-info me-2">Requires: ${item.prerequisite}</span>`;
+        }
+        if (item.level !== undefined) {
+            const levelText = item.level === 0 ? 'Cantrip' : `Level ${item.level}`;
+            metadataHtml += `<span class="badge bg-primary me-2">${levelText}</span>`;
+        }
 
         return `
-            <div class="form-check selector-item-check mb-2">
-                <input 
-                    class="form-check-input" 
-                    type="${checkboxType}" 
-                    id="item_${this._itemKey(item)}"
-                    value="${this._itemKey(item)}"
-                    data-selector-item
-                    name="${inputName}"
-                    ${isSelected ? 'checked' : ''}
-                >
-                <label class="form-check-label w-100" for="item_${this._itemKey(item)}">
-                    <strong>${item.name || item.id}</strong>
-                    <div class="small text-muted">${item.source || ''}</div>
-                </label>
+            <div class="spell-card selector-card ${selectedClass}" data-item-id="${itemKey}" data-selector-item-card>
+                <div class="spell-card-header">
+                    <div>
+                        <strong>${item.name || item.id}</strong>
+                    </div>
+                    <div>${metadataHtml}</div>
+                </div>
+                <div class="spell-card-body">
+                    <div class="spell-description selector-description">
+                        ${description}
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -329,11 +350,131 @@ export class LevelUpSelector {
         this.filteredItems = this.items.filter(item => this._matchesAllFilters(item));
 
         // Render filtered items
-        itemList.innerHTML = this.filteredItems
-            .map(item => this.itemRenderer(item))
-            .join('');
+        if (this.filteredItems.length === 0) {
+            itemList.innerHTML = '<div class="alert alert-info">No items match your filters.</div>';
+        } else {
+            itemList.innerHTML = this.filteredItems
+                .map(item => this.itemRenderer(item))
+                .join('');
+
+            // Attach card click listeners
+            const cards = itemList.querySelectorAll('[data-selector-item-card]');
+            cards.forEach(card => {
+                this._cleanup.on(card, 'click', () => {
+                    const itemId = card.dataset.itemId;
+                    this._toggleItemSelection(itemId);
+                });
+            });
+        }
+
+        // Process descriptions in background
+        this._processDescriptionsInBackground();
 
         // Update info
+        this._updateSelectionInfo();
+    }
+
+    /**
+     * Process item descriptions asynchronously in background
+     */
+    _processDescriptionsInBackground() {
+        // Clear any existing timer
+        if (this._descriptionProcessingTimer) {
+            clearTimeout(this._descriptionProcessingTimer);
+        }
+
+        // Process items that don't have cached descriptions yet
+        const itemsNeedingDesc = this.filteredItems.filter(
+            (item) => !this.descriptionCache.has(this._itemKey(item))
+        );
+
+        if (itemsNeedingDesc.length === 0) return;
+
+        // Process one at a time without blocking
+        let index = 0;
+        const processNext = async () => {
+            if (index >= itemsNeedingDesc.length) return;
+
+            const item = itemsNeedingDesc[index];
+            index++;
+
+            try {
+                const itemKey = this._itemKey(item);
+                if (!this.descriptionCache.has(itemKey)) {
+                    let description = 'No description available';
+                    
+                    // Check for entries array (like spells/features)
+                    if (item.entries && Array.isArray(item.entries)) {
+                        const descParts = [];
+                        for (const entry of item.entries) {
+                            if (typeof entry === 'string') {
+                                descParts.push(await textProcessor.processString(entry));
+                            } else if (entry?.entries && Array.isArray(entry.entries)) {
+                                for (const subEntry of entry.entries) {
+                                    if (typeof subEntry === 'string') {
+                                        descParts.push(await textProcessor.processString(subEntry));
+                                    }
+                                }
+                            }
+                        }
+                        description = descParts.join(' ');
+                    }
+                    // Check for simple description field
+                    else if (item.description && typeof item.description === 'string') {
+                        description = await textProcessor.processString(item.description);
+                    }
+
+                    this.descriptionCache.set(itemKey, description);
+
+                    // Update the DOM for this item if it's still visible
+                    const card = this._modal?.querySelector(`[data-item-id="${itemKey}"] .selector-description`);
+                    if (card) {
+                        card.innerHTML = description;
+                    }
+                }
+            } catch (error) {
+                console.error('[LevelUpSelector]', 'Error processing description:', error);
+            }
+
+            // Process next item after a tiny delay to avoid blocking
+            this._descriptionProcessingTimer = setTimeout(processNext, 0);
+        };
+
+        processNext();
+    }
+
+    /**
+     * Toggle item selection
+     */
+    _toggleItemSelection(itemId) {
+        // Check if already selected
+        const selectedIndex = this.selectedItems.findIndex(s => this._itemKey(s) === itemId);
+        if (selectedIndex >= 0) {
+            // Deselect
+            this.selectedItems.splice(selectedIndex, 1);
+            const card = this._modal?.querySelector(`[data-item-id="${itemId}"]`);
+            if (card) {
+                card.classList.remove('selected');
+            }
+        } else {
+            // Select
+            const item = this.filteredItems.find(i => this._itemKey(i) === itemId);
+            if (!item) return;
+
+            // Check selection limit
+            if (this.selectedItems.length >= this.maxSelections) {
+                const maxText = this.maxSelections === Infinity ? 'unlimited' : this.maxSelections;
+                alert(`Maximum selections reached: ${maxText}`);
+                return;
+            }
+
+            this.selectedItems.push(item);
+            const card = this._modal?.querySelector(`[data-item-id="${itemId}"]`);
+            if (card) {
+                card.classList.add('selected');
+            }
+        }
+
         this._updateSelectionInfo();
     }
 
@@ -430,7 +571,7 @@ export class LevelUpSelector {
             this._cleanup.on(clearBtn, 'click', () => {
                 if (searchInput) searchInput.value = '';
                 this.searchQuery = '';
-                
+
                 // Clear all filters
                 Object.keys(this.activeFilters).forEach(key => {
                     this.activeFilters[key].clear();
@@ -439,7 +580,7 @@ export class LevelUpSelector {
                         cb.checked = false;
                     });
                 });
-                
+
                 // Clear tabs
                 if (this.currentTab instanceof Set) {
                     this.currentTab.clear();
@@ -447,18 +588,10 @@ export class LevelUpSelector {
                         cb.checked = false;
                     });
                 }
-                
+
                 this._renderItems();
             });
         }
-
-        // Item inputs (checkboxes/radios)
-        const inputs = this._modal.querySelectorAll('[data-selector-item]');
-        inputs.forEach((input) => {
-            this._cleanup.on(input, 'change', () => {
-                this._updateSelectedItems();
-            });
-        });
 
         // Cancel button
         const cancelBtn = this._modal.querySelector('[data-selector-cancel]');
@@ -478,14 +611,11 @@ export class LevelUpSelector {
     }
 
     /**
-     * Update selectedItems from checked inputs
+     * Update selectedItems (now handled by _toggleItemSelection)
      */
     _updateSelectedItems() {
-        const inputs = this._modal.querySelectorAll('[data-selector-item]:checked');
-        const selectedKeys = Array.from(inputs).map(input => input.value);
-
-        this.selectedItems = this.items.filter(item => selectedKeys.includes(this._itemKey(item)));
-
+        // This method is now largely replaced by _toggleItemSelection
+        // but kept for compatibility
         this._updateSelectionInfo();
     }
 
@@ -581,6 +711,12 @@ export class LevelUpSelector {
      * Cleanup and dispose resources
      */
     dispose() {
+        // Clear description processing timer
+        if (this._descriptionProcessingTimer) {
+            clearTimeout(this._descriptionProcessingTimer);
+            this._descriptionProcessingTimer = null;
+        }
+
         this._cleanup.cleanup();
 
         if (this._modalBS) {

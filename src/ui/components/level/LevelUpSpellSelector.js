@@ -1,8 +1,8 @@
-import { LevelUpSelector } from './LevelUpSelector.js';
 import { SPELL_SCHOOL_NAMES } from '../../../lib/DnDConstants.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
+import { LevelUpSelector } from './LevelUpSelector.js';
 
 /**
  * LevelUpSpellSelector
@@ -198,4 +198,3 @@ export class LevelUpSpellSelector {
         }
     }
 }
-

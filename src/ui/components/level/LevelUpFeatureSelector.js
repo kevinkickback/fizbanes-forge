@@ -1,6 +1,6 @@
-import { LevelUpSelector } from './LevelUpSelector.js';
-import { sourceService } from '../../../services/SourceService.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
+import { sourceService } from '../../../services/SourceService.js';
+import { LevelUpSelector } from './LevelUpSelector.js';
 
 /**
  * LevelUpFeatureSelector
@@ -39,7 +39,7 @@ export class LevelUpFeatureSelector {
     async show(availableFeatures, currentSelections = [], multiSelect = false, maxSelections = null) {
         try {
             // Filter to only allowed sources
-            const filtered = availableFeatures.filter(feature => 
+            const filtered = availableFeatures.filter(feature =>
                 sourceService.isSourceAllowed(feature.source)
             );
 

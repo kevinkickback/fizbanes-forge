@@ -1,6 +1,6 @@
-import { LevelUpSelector } from './LevelUpSelector.js';
-import { sourceService } from '../../../services/SourceService.js';
 import { featService } from '../../../services/FeatService.js';
+import { sourceService } from '../../../services/SourceService.js';
+import { LevelUpSelector } from './LevelUpSelector.js';
 
 /**
  * LevelUpFeatSelector
