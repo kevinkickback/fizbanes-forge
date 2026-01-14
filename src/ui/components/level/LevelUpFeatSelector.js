@@ -48,7 +48,6 @@ export class LevelUpFeatSelector {
                 multiSelect: false,
                 maxSelections: 1,
                 tabLevels: [],
-                itemRenderer: this._renderFeatItem.bind(this),
                 onConfirm: this._onFeatConfirmed.bind(this),
                 modalTitle: 'Select a Feat',
                 context: {
@@ -71,28 +70,6 @@ export class LevelUpFeatSelector {
         } catch (error) {
             console.error('[LevelUpFeatSelector]', 'Error showing feat selector:', error);
         }
-    }
-
-    /**
-     * Render a single feat item for the generic selector
-     */
-    _renderFeatItem(feat) {
-        return `
-            <div class="form-check selector-item-check mb-2">
-                <input 
-                    class="form-check-input" 
-                    type="radio" 
-                    id="feat_${feat.id}"
-                    value="${feat.id}"
-                    data-selector-item
-                    name="selector_item_single"
-                >
-                <label class="form-check-label w-100" for="feat_${feat.id}">
-                    <strong>${feat.name}</strong>
-                    <div class="small text-muted">${feat.source || ''}</div>
-                </label>
-            </div>
-        `;
     }
 
     /**

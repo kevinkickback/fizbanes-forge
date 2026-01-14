@@ -167,6 +167,22 @@
 	max-height: 100%;
 }
 
+/* Level-up selector modal - no body scroll, flex layout */
+#levelUpSelectorModal .modal-body {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+	gap: 0.75rem;
+}
+
+/* Ensure spell-filter-row grows properly in level-up selector */
+#levelUpSelectorModal .spell-filter-row {
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+}
+
 /* Custom scrollbar for modal body */
 .modal-body::-webkit-scrollbar {
 	width: 8px;
@@ -1151,6 +1167,7 @@
 	min-height: 0;
 	max-height: 100%;
 	gap: 0.5rem;
+	overflow: hidden;
 }
 
 .spell-filter-row .spell-filters-column.collapsed ~ .spell-results-column {
@@ -1186,6 +1203,12 @@
 
 .spell-list-scroll-container::-webkit-scrollbar-thumb:hover {
 	background: var(--accent-hover);
+}
+
+/* Level-up selector at-max-selections visual feedback */
+.spell-list-container.at-max-selections {
+	opacity: 0.65;
+	position: relative;
 }
 
 /* Selected spells section */
@@ -1471,8 +1494,8 @@
 		font-weight: 600;
 	}
 
-		.feature-option-card .text-muted {
-			max-width: 100%;
-			word-break: break-word;
-		}
+	.feature-option-card .text-muted {
+		max-width: 100%;
+		word-break: break-word;
 	}
+}

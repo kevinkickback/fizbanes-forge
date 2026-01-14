@@ -1,4 +1,5 @@
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 
 /**
@@ -127,7 +128,7 @@ export class LevelUpSelector {
                         <!-- Search Bar (Full Width) -->
                         <div class="d-flex gap-2 mb-2">
                             ${hasFilters ? `
-                                <button class="btn btn-outline-secondary" type="button"
+                                <button class="btn spell-filter-toggle-btn" type="button"
                                     data-selector-filter-toggle title="Toggle filters panel" data-filters-visible="true">
                                     <i class="fas fa-filter"></i>
                                 </button>
@@ -140,19 +141,19 @@ export class LevelUpSelector {
                             </button>
                         </div>
 
-                        <!-- Filters and Results Row -->
-                        <div class="row">
+                        <!-- Filters and Results Row (with animation) -->
+                        <div class="spell-filter-row">
                             ${hasFilters ? `
-                                <!-- Filters Panel -->
-                                <div class="col-md-4" data-selector-filters-panel>
+                                <!-- Filters Panel (animated) -->
+                                <div class="spell-filters-column" data-selector-filters-panel>
                                     ${this._getFiltersHTML()}
                                 </div>
                             ` : ''}
                             
-                            <!-- Results List -->
-                            <div class="${hasFilters ? 'col-md-8' : 'col-12'}">
-                                <div class="selector-list-scroll" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 0.5rem;">
-                                    <div class="selector-list" data-selector-list>
+                            <!-- Results List (expands when filters hidden) -->
+                            <div class="spell-results-column">
+                                <div class="spell-list-scroll-container">
+                                    <div class="spell-list-container" data-selector-list>
                                         <!-- Items rendered here -->
                                     </div>
                                 </div>
@@ -402,7 +403,7 @@ export class LevelUpSelector {
                 const itemKey = this._itemKey(item);
                 if (!this.descriptionCache.has(itemKey)) {
                     let description = 'No description available';
-                    
+
                     // Check for entries array (like spells/features)
                     if (item.entries && Array.isArray(item.entries)) {
                         const descParts = [];
@@ -444,18 +445,50 @@ export class LevelUpSelector {
     }
 
     /**
+     * Update visual state indicator when at maximum selections
+     */
+    _updateMaxSelectionsVisualState() {
+        const resultsList = this._modal?.querySelector('.spell-list-container');
+        const countDisplay = this._modal?.querySelector('[data-selector-count]');
+
+        if (this.selectedItems.length >= this.maxSelections && this.maxSelections !== Infinity) {
+            // At max - show visual warning
+            if (resultsList) {
+                resultsList.classList.add('at-max-selections');
+            }
+            if (countDisplay) {
+                countDisplay.classList.add('badge-warning');
+                countDisplay.classList.remove('bg-info');
+                countDisplay.classList.add('bg-warning');
+            }
+        } else {
+            // Not at max - remove visual warning
+            if (resultsList) {
+                resultsList.classList.remove('at-max-selections');
+            }
+            if (countDisplay) {
+                countDisplay.classList.remove('badge-warning');
+                countDisplay.classList.remove('bg-warning');
+                countDisplay.classList.add('bg-info');
+            }
+        }
+    }
+
+    /**
      * Toggle item selection
      */
     _toggleItemSelection(itemId) {
         // Check if already selected
         const selectedIndex = this.selectedItems.findIndex(s => this._itemKey(s) === itemId);
         if (selectedIndex >= 0) {
-            // Deselect
+            // Deselect - always allowed
             this.selectedItems.splice(selectedIndex, 1);
             const card = this._modal?.querySelector(`[data-item-id="${itemId}"]`);
             if (card) {
                 card.classList.remove('selected');
             }
+            // Update visual state on deselect (might clear warning if now below max)
+            this._updateMaxSelectionsVisualState();
         } else {
             // Select
             const item = this.filteredItems.find(i => this._itemKey(i) === itemId);
@@ -464,7 +497,9 @@ export class LevelUpSelector {
             // Check selection limit
             if (this.selectedItems.length >= this.maxSelections) {
                 const maxText = this.maxSelections === Infinity ? 'unlimited' : this.maxSelections;
-                alert(`Maximum selections reached: ${maxText}`);
+                showNotification(`Maximum selections reached: ${maxText}`, 'warning');
+                // Show visual warning even though we didn't select
+                this._updateMaxSelectionsVisualState();
                 return;
             }
 
@@ -473,6 +508,8 @@ export class LevelUpSelector {
             if (card) {
                 card.classList.add('selected');
             }
+            // Update visual state on selection
+            this._updateMaxSelectionsVisualState();
         }
 
         this._updateSelectionInfo();
@@ -529,8 +566,15 @@ export class LevelUpSelector {
         if (filterToggle && filtersPanel) {
             this._cleanup.on(filterToggle, 'click', () => {
                 const isVisible = filterToggle.dataset.filtersVisible === 'true';
-                filtersPanel.style.display = isVisible ? 'none' : 'block';
-                filterToggle.dataset.filtersVisible = !isVisible;
+                if (isVisible) {
+                    // Hide filters with animation
+                    filtersPanel.classList.add('collapsed');
+                    filterToggle.dataset.filtersVisible = 'false';
+                } else {
+                    // Show filters with animation
+                    filtersPanel.classList.remove('collapsed');
+                    filterToggle.dataset.filtersVisible = 'true';
+                }
             });
         }
 
@@ -663,6 +707,9 @@ export class LevelUpSelector {
                 });
             }
         }
+
+        // Update visual state based on max selections
+        this._updateMaxSelectionsVisualState();
     }
 
     /**

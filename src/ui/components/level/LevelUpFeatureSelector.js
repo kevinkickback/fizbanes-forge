@@ -58,7 +58,6 @@ export class LevelUpFeatureSelector {
                 multiSelect,
                 maxSelections: this.maxSelections,
                 tabLevels: [],
-                itemRenderer: this._renderFeatureItem.bind(this),
                 onConfirm: this._onFeaturesConfirmed.bind(this),
                 modalTitle: `Select ${this._getFeatureTypeName()} - ${this.className}`,
                 context: {
@@ -103,34 +102,6 @@ export class LevelUpFeatureSelector {
      */
     _featureKey(feature) {
         return feature.id || feature.name;
-    }
-
-    /**
-     * Render a single feature item for the generic selector
-     */
-    _renderFeatureItem(feature) {
-        const inputName = this._selector.multiSelect ? 'selector_item' : 'selector_item_single';
-        const inputType = this._selector.multiSelect ? 'checkbox' : 'radio';
-
-        return `
-            <div class="form-check selector-item-check mb-2">
-                <input 
-                    class="form-check-input" 
-                    type="${inputType}" 
-                    id="feature_${this._featureKey(feature)}"
-                    value="${this._featureKey(feature)}"
-                    data-selector-item
-                    name="${inputName}"
-                >
-                <label class="form-check-label w-100" for="feature_${this._featureKey(feature)}">
-                    <strong>${feature.name}</strong>
-                    <div class="small text-muted">
-                        ${feature.source || ''}
-                        ${feature.prerequisite ? ` • Requires: ${feature.prerequisite}` : ''}
-                    </div>
-                </label>
-            </div>
-        `;
     }
 
     /**

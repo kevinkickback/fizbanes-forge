@@ -154,25 +154,47 @@ export class LevelUpSpellSelector {
      * Render a single spell item for the generic selector
      */
     _renderSpellItem(spell) {
-        const ritualBadge = spell.ritual ? '<span class="badge bg-secondary ms-1">Ritual</span>' : '';
-        const concentrationBadge = spell.concentration ? '<span class="badge bg-warning ms-1">Conc.</span>' : '';
+        const isSelected = this._selector.selectedItems.some(s => this._selector._itemKey(s) === this._selector._itemKey(spell));
+        const selectedClass = isSelected ? 'selected' : '';
+        const itemKey = this._selector._itemKey(spell);
+
+        // Use cached description or placeholder
+        const description = this._selector.descriptionCache.has(itemKey)
+            ? this._selector.descriptionCache.get(itemKey)
+            : '<span class="text-muted small">Loading description...</span>';
+
+        // Build spell-specific metadata
+        let metadataHtml = '';
+        if (spell.source) {
+            metadataHtml += `<span class="badge bg-secondary me-2">${spell.source}</span>`;
+        }
+        if (spell.level !== undefined) {
+            const levelText = spell.level === 0 ? 'Cantrip' : `Level ${spell.level}`;
+            metadataHtml += `<span class="badge bg-primary me-2">${levelText}</span>`;
+        }
+        if (spell.school) {
+            metadataHtml += `<span class="badge bg-info me-2">${spell.school}</span>`;
+        }
+        if (spell.ritual) {
+            metadataHtml += '<span class="badge bg-secondary me-2">Ritual</span>';
+        }
+        if (spell.concentration) {
+            metadataHtml += '<span class="badge bg-warning me-2">Conc.</span>';
+        }
 
         return `
-            <div class="form-check selector-item-check mb-2">
-                <input 
-                    class="form-check-input" 
-                    type="checkbox" 
-                    id="spell_${spell.id}"
-                    value="${spell.id}"
-                    data-selector-item
-                    name="selector_item"
-                >
-                <label class="form-check-label w-100" for="spell_${spell.id}">
-                    <strong>${spell.name}</strong>
-                    ${ritualBadge}
-                    ${concentrationBadge}
-                    <div class="small text-muted">${spell.school}</div>
-                </label>
+            <div class="spell-card selector-card ${selectedClass}" data-item-id="${itemKey}" data-selector-item-card>
+                <div class="spell-card-header">
+                    <div>
+                        <strong>${spell.name}</strong>
+                    </div>
+                    <div>${metadataHtml}</div>
+                </div>
+                <div class="spell-card-body">
+                    <div class="spell-description selector-description">
+                        ${description}
+                    </div>
+                </div>
             </div>
         `;
     }
