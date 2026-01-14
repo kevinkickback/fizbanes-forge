@@ -93,12 +93,6 @@ export class Step1ClassFeatures {
         }
 
         if (features.length > 0) {
-            html += `
-                <div class="alert alert-info small mb-3">
-                    <i class="fas fa-info-circle"></i>
-                    Review and make any required feature selections for your new level(s).
-                </div>
-            `;
 
             // Render each feature choice
             for (const feature of features) {
@@ -603,9 +597,6 @@ export class Step1ClassFeatures {
     _renderFeatureChoice(feature) {
         const featureId = feature.id;
         const isMultiSelect = (feature.count || 1) > 1;
-        const requiredBadge = feature.required
-            ? '<span class="badge bg-danger ms-2">Required</span>'
-            : '<span class="badge bg-secondary ms-2">Optional</span>';
 
         // Get current selections for this feature
         const currentSelections = this.session.stepData.selectedFeatures[featureId]
@@ -631,11 +622,10 @@ export class Step1ClassFeatures {
 
         const html = `
             <div class="card mb-3 feature-choice-card" data-feature-card="${featureId}">
-                <div class="card-header bg-light border-bottom">
+                <div class="card-header">
                     <h6 class="mb-0">
                         ${this._getFeatureIcon(feature.type)}
                         ${feature.name}
-                        ${requiredBadge}
                     </h6>
                     <small class="text-muted">
                         ${feature.class} • Level ${feature.gainLevel}

@@ -22,6 +22,40 @@ const ATB_ABV_TO_FULL = {
 	cha: 'Charisma',
 };
 
+/**
+ * Ordered list of full ability names
+ */
+export const ABILITY_NAMES = ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'];
+
+/**
+ * Magic school abbreviations to full names
+ * Follows 5etools conventions
+ */
+const SPELL_SCHOOLS = {
+	A: 'Abjuration',
+	C: 'Conjuration',
+	D: 'Divination',
+	E: 'Enchantment',
+	I: 'Illusion',
+	N: 'Necromancy',
+	T: 'Transmutation',
+	V: 'Evocation',
+};
+
+/**
+ * Ordered list of spell school names
+ */
+export const SPELL_SCHOOL_NAMES = [
+	'Abjuration',
+	'Conjuration',
+	'Divination',
+	'Enchantment',
+	'Evocation',
+	'Illusion',
+	'Necromancy',
+	'Transmutation',
+];
+
 const SPEED_MODES = ['walk', 'burrow', 'climb', 'fly', 'swim'];
 
 const SKILL_TO_ABILITY = {
@@ -147,6 +181,15 @@ export function formatModifierNumber(modifier) {
 export function attAbvToFull(abv) {
 	if (!abv) return '';
 	return ATB_ABV_TO_FULL[abv.toLowerCase()] || abv;
+}
+
+/**
+ * Get full school name from abbreviation
+ * @param {string} code - School abbreviation (A, C, D, E, I, N, T, V)
+ * @returns {string} Full school name
+ */
+export function getSchoolName(code) {
+	return SPELL_SCHOOLS[code] || code;
 }
 
 /**

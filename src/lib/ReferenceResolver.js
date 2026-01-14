@@ -7,6 +7,7 @@ import { conditionService } from '../services/ConditionService.js';
 import { featService } from '../services/FeatService.js';
 import { itemService } from '../services/ItemService.js';
 import { monsterService } from '../services/MonsterService.js';
+import { optionalFeatureService } from '../services/OptionalFeatureService.js';
 import { raceService } from '../services/RaceService.js';
 import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
@@ -18,7 +19,7 @@ const typeServiceMap = {
 	class: { service: classService, method: 'getClass' },
 	condition: { service: conditionService, method: 'getCondition' },
 	feat: { service: featService, method: 'getFeat' },
-	feature: { service: featService, method: 'getFeat' },
+	feature: { service: optionalFeatureService, method: 'getFeatureByName' },
 	item: { service: itemService, method: 'getItem' },
 	creature: { service: monsterService, method: 'getMonster' },
 	monster: { service: monsterService, method: 'getMonster' },

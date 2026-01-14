@@ -131,7 +131,7 @@ export class Step3SpellSelection {
         if (spellSlots.length === 0) {
             return `
                 <div class="card mb-3 spell-class-card">
-                    <div class="card-header bg-light border-bottom">
+                    <div class="card-header">
                         <h6 class="mb-0">
                             <i class="fas fa-book"></i>
                             ${classInfo.name}
@@ -144,7 +144,7 @@ export class Step3SpellSelection {
 
         return `
             <div class="card mb-3 spell-class-card" data-spell-class="${classInfo.name}" data-spell-level="${classInfo.newLevel}">
-                <div class="card-header bg-light border-bottom">
+                <div class="card-header">
                     <h6 class="mb-0">
                         <i class="fas fa-book"></i>
                         ${classInfo.name}

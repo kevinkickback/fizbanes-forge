@@ -121,10 +121,29 @@ export class Step4Summary {
 
                 features.forEach((feature) => {
                     const escapedName = this._escapeHtml(feature.name);
+                    // Build description from feature data
+                    let description = '';
+                    if (feature.entries && Array.isArray(feature.entries)) {
+                        description = feature.entries
+                            .filter(e => typeof e === 'string')
+                            .map(e => `<p>${this._escapeHtml(e)}</p>`)
+                            .join('');
+                    } else if (feature.entry) {
+                        description = `<p>${this._escapeHtml(feature.entry)}</p>`;
+                    } else if (feature.description) {
+                        description = `<p>${this._escapeHtml(feature.description)}</p>`;
+                    }
+
+                    // Add source info if available
+                    if (feature.source) {
+                        description += `<div class="tooltip-source">${this._escapeHtml(feature.source)}</div>`;
+                    }
+
                     html += `
                         <a class="trait-tag rd__hover-link" 
                             data-hover-type="feature" 
-                            data-hover-name="${escapedName}">
+                            data-hover-name="${escapedName}"
+                            data-hover-content="${description.replace(/"/g, '&quot;')}">
                             ${escapedName}
                         </a>
                     `;
@@ -256,7 +275,10 @@ export class Step4Summary {
                                     name: feature.name,
                                     class: className,
                                     level,
-                                    description: feature.description || '',
+                                    entries: feature.entries || feature.description,
+                                    description: feature.description,
+                                    source: feature.source,
+                                    entry: feature.entry,
                                     type: 'class'
                                 });
                             }
@@ -287,7 +309,10 @@ export class Step4Summary {
                                         name: feature.name,
                                         class: `${className} (${selectedSubclass})`,
                                         level,
-                                        description: feature.description || '',
+                                        entries: feature.entries || feature.description,
+                                        description: feature.description,
+                                        source: feature.source,
+                                        entry: feature.entry,
                                         type: 'subclass'
                                     });
                                 }

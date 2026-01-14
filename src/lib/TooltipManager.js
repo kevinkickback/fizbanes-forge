@@ -383,6 +383,7 @@ function _getRenderer(type) {
 		race: renderRace,
 		class: renderClass,
 		feat: renderFeat,
+		feature: renderOptionalFeature,
 		background: renderBackground,
 		skill: renderSkill,
 		action: renderAction,

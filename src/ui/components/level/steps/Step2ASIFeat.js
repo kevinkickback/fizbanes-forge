@@ -1,5 +1,5 @@
+import { ABILITY_NAMES } from '../../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { ABILITY_NAMES } from '../../../../lib/DnDConstants.js';
 import { featService } from '../../../../services/FeatService.js';
 import { levelUpService } from '../../../../services/LevelUpService.js';
 import { sourceService } from '../../../../services/SourceService.js';
@@ -194,7 +194,7 @@ export class Step2ASIFeat {
 
         return `
             <div class="card mb-3 asi-slot-card" data-asi-slot="${index}">
-                <div class="card-header bg-light border-bottom">
+                <div class="card-header">
                     <h6 class="mb-0">
                         <i class="fas fa-star"></i>
                         Ability Score Improvement / Feat

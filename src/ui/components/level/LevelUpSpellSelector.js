@@ -1,4 +1,4 @@
-import { SPELL_SCHOOL_NAMES } from '../../../lib/DnDConstants.js';
+import { SPELL_SCHOOL_NAMES } from '../../../lib/5eToolsParser.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
