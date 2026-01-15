@@ -149,6 +149,9 @@ export const CharacterSchema = {
 				levelUps: [],
 			},
 
+			// Progression history (user choices at each level: spells, feats, invocations, etc.)
+			progressionHistory: {},
+
 			// Notes
 			notes: '',
 

@@ -19,6 +19,9 @@ export class LevelUpSession {
         this.currentStep = 0; // 0-4, tracks wizard progress
         this.stepData = {}; // Per-step metadata (feature choices, ASI selections, etc.)
 
+        // Progression history tracking - records user choices for each class/level
+        this.choicesByClassLevel = {}; // { className: { level: { features: [], spells: [], ... }, ... }, ... }
+
         // Deep clone character data into staged changes
         this.stagedChanges = {
             level: character.level || 1,
@@ -388,5 +391,75 @@ export class LevelUpSession {
             default:
                 return false;
         }
+    }
+
+    /**
+     * Record user choices for a specific class/level combination.
+     * Used during level-up to track what the user selected.
+     * 
+     * @param {string} className - Class name (e.g., 'Fighter')
+     * @param {number} level - The level being progressed to
+     * @param {Object} choices - Choices object { features: [], spells: [], asi: null, ... }
+     * @returns {void}
+     */
+    recordChoices(className, level, choices) {
+        if (!this.choicesByClassLevel[className]) {
+            this.choicesByClassLevel[className] = {};
+        }
+
+        const levelKey = String(level);
+        this.choicesByClassLevel[className][levelKey] = { ...choices };
+
+        console.debug('[LevelUpSession]', `Recorded choices for ${className} level ${level}`, choices);
+    }
+
+    /**
+     * Get recorded choices for a specific class/level.
+     * 
+     * @param {string} className
+     * @param {number} level
+     * @returns {Object|null} Choices object or null if not recorded
+     */
+    getChoices(className, level) {
+        if (!this.choicesByClassLevel[className]) return null;
+
+        const levelKey = String(level);
+        return this.choicesByClassLevel[className][levelKey] || null;
+    }
+
+    /**
+     * Get all recorded choices for a class.
+     * 
+     * @param {string} className
+     * @returns {Object} { level: choices, level: choices, ... }
+     */
+    getClassChoices(className) {
+        return this.choicesByClassLevel[className] || {};
+    }
+
+    /**
+     * Get all recorded choices across all classes in this session.
+     * Used when applying changes to persist to character's progressionHistory.
+     * 
+     * @returns {Object} { className: { level: choices, ... }, ... }
+     */
+    getAllChoices() {
+        return { ...this.choicesByClassLevel };
+    }
+
+    /**
+     * Clear recorded choices for a class/level (if user goes back and changes selections).
+     * 
+     * @param {string} className
+     * @param {number} level
+     * @returns {void}
+     */
+    clearChoices(className, level) {
+        if (!this.choicesByClassLevel[className]) return;
+
+        const levelKey = String(level);
+        delete this.choicesByClassLevel[className][levelKey];
+
+        console.debug('[LevelUpSession]', `Cleared choices for ${className} level ${level}`);
     }
 }

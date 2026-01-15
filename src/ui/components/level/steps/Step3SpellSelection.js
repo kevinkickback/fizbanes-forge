@@ -31,13 +31,33 @@ export class Step3SpellSelection {
             oldLevel: lc.from
         }));
 
-        // Determine which classes gain new spells
-        const spellcastingClasses = this._getSpellcastingClasses(leveledClasses);
+        // Expand into individual levels and group by class
+        const levelsByClass = {};
+        for (const classInfo of leveledClasses) {
+            const classData = classService.getClass(classInfo.name);
+            // Only expand for spellcasting classes
+            if (classData?.casterProgression) {
+                if (!levelsByClass[classInfo.name]) {
+                    levelsByClass[classInfo.name] = {
+                        className: classInfo.name,
+                        minLevel: classInfo.oldLevel + 1,
+                        maxLevel: classInfo.newLevel,
+                        levels: []
+                    };
+                }
 
-        if (spellcastingClasses.length === 0) {
+                for (let level = classInfo.oldLevel + 1; level <= classInfo.newLevel; level++) {
+                    levelsByClass[classInfo.name].levels.push({
+                        level,
+                        oldLevel: level - 1
+                    });
+                }
+            }
+        }
+
+        if (Object.keys(levelsByClass).length === 0) {
             return `
                 <div class="step-3-spell-selection">
-                    <h5 class="mb-3"><i class="fas fa-magic"></i> Spell Selection</h5>
                     <div class="alert alert-info mb-0">
                         <i class="fas fa-info-circle"></i>
                         No new spells available at this level for your selected classes.
@@ -48,17 +68,22 @@ export class Step3SpellSelection {
 
         let html = `
             <div class="step-3-spell-selection">
-                <h5 class="mb-3"><i class="fas fa-magic"></i> Spell Selection</h5>
-                <div class="alert alert-info small mb-3">
-                    <i class="fas fa-info-circle"></i>
-                    Select new spells for each spellcasting class. Click "Select Spells" to open the spell browser.
-                </div>
                 <div class="spell-selection-container">
         `;
 
-        // Render each spellcasting class section
-        for (const classInfo of spellcastingClasses) {
-            html += this._renderSpellcastingClass(classInfo);
+        const classGroups = Object.values(levelsByClass);
+
+        // If only one class, render spell levels individually without grouping
+        if (classGroups.length === 1) {
+            const singleClass = classGroups[0];
+            for (const levelInfo of singleClass.levels) {
+                html += this._renderIndividualSpellLevel(singleClass.className, levelInfo, singleClass.maxLevel);
+            }
+        } else {
+            // Multiple classes: render one card per class
+            for (const classGroup of classGroups) {
+                html += this._renderSpellcastingClass(classGroup);
+            }
         }
 
         html += `
@@ -87,24 +112,6 @@ export class Step3SpellSelection {
                 }
             });
         });
-
-        // Restore previously selected spells display
-        const classSpellSections = contentArea.querySelectorAll('[data-spell-class]');
-        classSpellSections.forEach((section) => {
-            const className = section.dataset.spellClass;
-            const level = section.dataset.spellLevel;
-            const key = `${className}_${level}`;
-            const selectedSpells = this.session.stepData.selectedSpells[key];
-
-            if (selectedSpells && selectedSpells.length > 0) {
-                const spellList = section.querySelector('[data-selected-spells]');
-                if (spellList) {
-                    spellList.innerHTML = selectedSpells
-                        .map(spell => `<span class="badge bg-primary">${spell}</span>`)
-                        .join(' ');
-                }
-            }
-        });
     }
 
     /**
@@ -120,95 +127,211 @@ export class Step3SpellSelection {
     }
 
     /**
-     * Render spell selection section for a single spellcasting class
+     * Render an individual spell level card (for single-class scenarios)
      */
-    _renderSpellcastingClass(classInfo) {
-        const currentLevel = classInfo.oldLevel || 0;
-        const spellSlots = this._calculateNewSpellSlots(classInfo.name, currentLevel, classInfo.newLevel);
-        const key = `${classInfo.name}_${classInfo.newLevel}`;
+    _renderIndividualSpellLevel(className, levelInfo, maxLevel) {
+        const key = `${className}_${levelInfo.level}`;
+        const spellSlots = this._calculateNewSpellSlots(className, levelInfo.oldLevel, levelInfo.level, maxLevel);
         const selectedSpells = this.session.stepData.selectedSpells[key] || [];
 
-        if (spellSlots.length === 0) {
-            return `
-                <div class="card mb-3 spell-class-card">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-book"></i>
-                            ${classInfo.name}
-                        </h6>
-                        <small class="text-muted">No new spell slots available</small>
-                    </div>
-                </div>
-            `;
-        }
+        if (spellSlots.length === 0) return '';
 
         return `
-            <div class="card mb-3 spell-class-card" data-spell-class="${classInfo.name}" data-spell-level="${classInfo.newLevel}">
-                <div class="card-header">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
                         <i class="fas fa-book"></i>
-                        ${classInfo.name}
+                        ${className} Level ${levelInfo.level}
                     </h6>
                     <small class="text-muted">
-                        Level ${classInfo.newLevel} • New slots: ${spellSlots.join(', ')}
+                        ${spellSlots.join(', ')}
                     </small>
                 </div>
                 <div class="card-body">
-                    <div class="mb-2">
-                        <strong>Selected Spells (${selectedSpells.length}):</strong>
-                        <div data-selected-spells class="mt-2">
-                            ${selectedSpells.length === 0
-                ? '<span class="text-muted small">No spells selected yet</span>'
-                : selectedSpells.map(spell => `<span class="badge bg-primary">${spell}</span>`).join(' ')
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            ${selectedSpells.length > 0
+                ? `<strong>Selected Spells:</strong>
+                                   <div class="mt-2">
+                                       ${selectedSpells.map(spell => {
+                    const spellName = typeof spell === 'string' ? spell : spell.name;
+                    return `<span class="badge bg-primary me-1">${spellName}</span>`;
+                }).join('')}
+                                   </div>`
+                : '<span class="text-muted">No spells selected yet</span>'
             }
                         </div>
+                        <button 
+                            type="button" 
+                            class="btn btn-sm btn-primary"
+                            data-open-spell-selector
+                            data-class-name="${className}"
+                            data-level="${levelInfo.level}">
+                            <i class="fas fa-search"></i>
+                            Learn Spells
+                        </button>
                     </div>
-                    <button 
-                        type="button" 
-                        class="btn btn-sm btn-primary mt-3"
-                        data-open-spell-selector
-                        data-class-name="${classInfo.name}"
-                        data-level="${classInfo.newLevel}"
-                    >
-                        <i class="fas fa-search"></i>
-                        ${selectedSpells.length === 0 ? 'Select Spells' : 'Edit Spells'}
-                    </button>
                 </div>
             </div>
         `;
     }
 
     /**
-     * Calculate which spell levels have new slots available
+     * Render spell selection section for a single spellcasting class (with multiple levels)
      */
-    _calculateNewSpellSlots(className, currentLevel, newLevel) {
+    _renderSpellcastingClass(classGroup) {
+        const { className, minLevel, maxLevel, levels } = classGroup;
+
+        // Collect all selected spells across all levels for this class
+        const allSelectedSpells = [];
+        for (const levelInfo of levels) {
+            const key = `${className}_${levelInfo.level}`;
+            const selectedSpells = this.session.stepData.selectedSpells[key] || [];
+            allSelectedSpells.push(...selectedSpells);
+        }
+
+        // Build level range display
+        const levelRange = minLevel === maxLevel ? `Level ${minLevel}` : `Level ${minLevel}-${maxLevel}`;
+
+        return `
+            <div class="card mb-3 spell-class-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-book"></i>
+                        ${className}
+                    </h6>
+                    <small class="text-muted">
+                        ${levelRange}
+                    </small>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Selected Spells:</strong>
+                        <div data-class-selected-spells="${className}" class="mt-2">
+                            ${allSelectedSpells.length === 0
+                ? '<span class="text-muted small">No spells selected yet</span>'
+                : allSelectedSpells.map(spell => {
+                    const spellName = typeof spell === 'string' ? spell : spell.name;
+                    return `<span class="badge bg-primary me-1">${spellName}</span>`;
+                }).join('')
+            }
+                        </div>
+                    </div>
+                    
+                    ${levels.map(levelInfo => {
+                const key = `${className}_${levelInfo.level}`;
+                // Pass maxLevel for Warlock pact slot calculation
+                const spellSlots = this._calculateNewSpellSlots(className, levelInfo.oldLevel, levelInfo.level, maxLevel);
+                const selectedSpells = this.session.stepData.selectedSpells[key] || [];
+
+                if (spellSlots.length === 0) return '';
+
+                return `
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded" 
+                                 style="border-color: color-mix(in srgb, var(--accent-color) 18%, var(--secondary-color)) !important;"
+                                 data-spell-class="${className}" 
+                                 data-spell-level="${levelInfo.level}">
+                                <div>
+                                    <strong>${className} Level ${levelInfo.level}</strong>
+                                    <span class="text-muted small ms-2">— ${spellSlots.join(', ')}</span>
+                                    ${selectedSpells.length > 0 ? `<span class="badge ms-2" style="background-color: var(--accent-color);">${selectedSpells.length} selected</span>` : ''}
+                                </div>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-sm btn-primary"
+                                    data-open-spell-selector
+                                    data-class-name="${className}"
+                                    data-level="${levelInfo.level}">
+                                    <i class="fas fa-search"></i>
+                                    Learn Spells
+                                </button>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Calculate which spell levels have new slots available and how many spells to learn
+     * @param {string} className - The class name
+     * @param {number} _currentLevel - Previous level (unused but kept for consistency)
+     * @param {number} newLevel - The level being gained
+     * @param {number} maxLevel - The maximum level being reached in this session (for Warlock pact magic)
+     */
+    _calculateNewSpellSlots(className, currentLevel, newLevel, maxLevel = newLevel) {
         // This is a simplified implementation
-        // In production, would check actual class spell slot progressions
         const slots = [];
+        const ordinals = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '6th', '9th'];
+
+        // Get class data to check for cantrip progression
+        const classData = classService.getClass(className);
+        const previousLevel = currentLevel || 0;
+
+        // Calculate NEW cantrips gained at this level
+        let newCantrips = 0;
+        if (classData?.cantripProgression) {
+            const prevIndex = Math.max(0, Math.min(previousLevel - 1, classData.cantripProgression.length - 1));
+            const currIndex = Math.max(0, Math.min(newLevel - 1, classData.cantripProgression.length - 1));
+            const prevCantrips = previousLevel > 0 ? (classData.cantripProgression[prevIndex] || 0) : 0;
+            const currCantrips = classData.cantripProgression[currIndex] || 0;
+            newCantrips = currCantrips - prevCantrips;
+        }
 
         // Warlock uses pact magic - different progression
         if (className === 'Warlock') {
-            // Warlocks can learn new spells at each level (spells known)
-            // Their slot level increases at certain breakpoints
-            if (newLevel > currentLevel) {
-                // Pact magic: show that they can learn new spells
-                slots.push('Pact Magic');
+            // Warlocks learn 1 spell per level (except level 1 which gives 2)
+            const spellCount = newLevel === 1 ? 2 : 1;
+            // Use maxLevel for pact slot calculation since all pact slots are cast at the same level
+            const slotLevel = Math.min(Math.ceil(maxLevel / 2), 5);
+
+            const parts = [];
+            if (newCantrips > 0) {
+                parts.push(`${newCantrips} cantrip${newCantrips !== 1 ? 's' : ''}`);
             }
+            parts.push(`${spellCount} spell${spellCount > 1 ? 's' : ''} (${ordinals[slotLevel].toLowerCase()}-level)`);
+            slots.push(`Learn ${parts.join(', ')}`);
             return slots;
         }
 
         // Full casters (Bard, Cleric, Druid, Sorcerer, Wizard)
-        if (['Wizard', 'Bard', 'Cleric', 'Druid', 'Sorcerer'].includes(className)) {
-            if (newLevel > currentLevel) {
-                slots.push(`Level ${newLevel}`);
+        if (['Wizard', 'Bard', 'Sorcerer'].includes(className)) {
+            // These classes learn 2 spells per level (Wizard/Sorcerer)
+            // Bard also learns spells
+            const spellLevel = Math.ceil(newLevel / 2);
+            if (spellLevel <= 9) {
+                const spellCount = 2;
+                const parts = [];
+                if (newCantrips > 0) {
+                    parts.push(`${newCantrips} cantrip${newCantrips !== 1 ? 's' : ''}`);
+                }
+                parts.push(`${spellCount} spell${spellCount > 1 ? 's' : ''} (${ordinals[spellLevel].toLowerCase()}-level)`);
+                slots.push(`Learn ${parts.join(', ')}`);
+            }
+        } else if (['Cleric', 'Druid'].includes(className)) {
+            // Clerics and Druids prepare spells, not learn them
+            const spellLevel = Math.ceil(newLevel / 2);
+            if (spellLevel <= 9) {
+                const parts = [];
+                if (newCantrips > 0) {
+                    parts.push(`${newCantrips} cantrip${newCantrips !== 1 ? 's' : ''}`);
+                }
+                if (parts.length > 0) {
+                    slots.push(`Learn ${parts.join(', ')}, prepare spells (${ordinals[spellLevel].toLowerCase()}-level)`);
+                } else {
+                    slots.push(`Prepare Spells (${ordinals[spellLevel].toLowerCase()}-level)`);
+                }
             }
         }
 
         // Half casters (Paladin, Ranger)
         if (['Paladin', 'Ranger'].includes(className)) {
-            if (newLevel > currentLevel && newLevel >= 2) {
-                // Half casters start spellcasting at level 2
-                slots.push(`Level ${newLevel}`);
+            if (newLevel >= 2) {
+                const spellLevel = Math.ceil((newLevel - 1) / 4);
+                if (spellLevel <= 5) {
+                    slots.push(`Prepare Spells (${ordinals[spellLevel].toLowerCase()}-level)`);
+                }
             }
         }
 
@@ -218,13 +341,42 @@ export class Step3SpellSelection {
     /**
      * Update spell selections from modal
      */
-    updateSpellSelection(className, level, selectedSpells) {
+    async updateSpellSelection(className, level, selectedSpells) {
         const key = `${className}_${level}`;
         this.session.stepData.selectedSpells[key] = selectedSpells;
 
-        // Trigger re-render to display updated selections
-        // In a full implementation, could emit event or call parent's re-render
         console.info('[Step3SpellSelection]', `Updated spell selection for ${key}:`, selectedSpells);
+
+        // Record spell selection in progression history
+        this.session.recordChoices(className, level, {
+            spells: {
+                selected: selectedSpells.map(spell => {
+                    if (typeof spell === 'string') {
+                        return { name: spell };
+                    }
+                    return {
+                        id: spell.id,
+                        name: spell.name
+                    };
+                })
+            }
+        });
+
+        // Re-render the step to update display (handles both single and multiple class layouts)
+        console.log('[Step3SpellSelection] Attempting to re-render step...');
+        const contentArea = document.querySelector('[data-step-content]');
+        if (!contentArea) {
+            console.error('[Step3SpellSelection] Content area not found!');
+            return;
+        }
+
+        console.log('[Step3SpellSelection] Content area found, calling render()...');
+        const html = await this.render();
+        console.log('[Step3SpellSelection] Render complete, updating innerHTML...');
+        contentArea.innerHTML = html;
+        console.log('[Step3SpellSelection] Re-attaching listeners...');
+        this.attachListeners(contentArea);
+        console.log('[Step3SpellSelection] Re-render complete!');
     }
 
     /**

@@ -113,29 +113,86 @@ class OptionalFeatureService extends BaseDataService {
      * Check if an optional feature meets prerequisites
      * @param {Object} feature - The optional feature object
      * @param {Object} character - Character object with level, class, spells, etc.
+     * @param {string} className - Optional class name for class-specific level checks
      * @returns {boolean} True if prerequisites are met
      */
-    meetsPrerequisites(feature, character) {
+    meetsPrerequisites(feature, character, className = null) {
         if (!feature.prerequisite) return true;
 
-        // Basic implementation - can be expanded for more complex prerequisites
+        // Check each prerequisite (all must be met)
         for (const prereq of feature.prerequisite) {
             // Check level requirement
             if (prereq.level) {
-                const charLevel = character.level || 1;
-                const requiredLevel = prereq.level.level || 1;
+                // For class-specific features, check the class level, not total level
+                let charLevel = character.level || 1;
+                if (className) {
+                    // Check in progression.classes first (used during level-up)
+                    if (character.progression?.classes) {
+                        const classEntry = character.progression.classes.find(c => c.name === className);
+                        if (classEntry) {
+                            charLevel = classEntry.levels || 1;
+                        }
+                    }
+                    // Fallback to direct classes array (if used elsewhere)
+                    else if (character.classes) {
+                        const classEntry = character.classes.find(c => c.name === className);
+                        if (classEntry) {
+                            charLevel = classEntry.level || classEntry.levels || 1;
+                        }
+                    }
+                }
+                const requiredLevel = typeof prereq.level === 'object' ? (prereq.level.level || 1) : prereq.level;
                 if (charLevel < requiredLevel) return false;
             }
 
-            // Check spell requirement
+            // Check spell requirement (character must know the spell)
             if (prereq.spell) {
-                // Would need to check character's known spells
-                // Simplified for now
-                continue;
+                const requiredSpells = Array.isArray(prereq.spell) ? prereq.spell : [prereq.spell];
+                const hasAllSpells = requiredSpells.every(spellRef => {
+                    // Clean spell reference (remove #c suffix and any source markers)
+                    const spellName = spellRef.split('#')[0].split('|')[0].toLowerCase();
+
+                    // Check in character's spellcasting data
+                    if (character.spellcasting?.classes) {
+                        for (const classSpellcasting of Object.values(character.spellcasting.classes)) {
+                            // Check spells known
+                            if (classSpellcasting.spellsKnown?.some(s =>
+                                s.name.toLowerCase() === spellName
+                            )) {
+                                return true;
+                            }
+                            // Check cantrips
+                            if (classSpellcasting.cantrips?.some(s =>
+                                s.name.toLowerCase() === spellName
+                            )) {
+                                return true;
+                            }
+                            // Check prepared spells
+                            if (classSpellcasting.preparedSpells?.some(s =>
+                                s.name.toLowerCase() === spellName
+                            )) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                });
+
+                if (!hasAllSpells) return false;
             }
 
             // Check pact requirement (for invocations)
             if (prereq.pact) {
+                // Check if character has the required pact boon
+                const hasPact = character.features?.some(f =>
+                    f.name?.toLowerCase().includes(prereq.pact.toLowerCase())
+                );
+                if (!hasPact) return false;
+            }
+
+            // Check patron requirement
+            if (prereq.patron) {
+                if (!hasPatron) return false;
             }
         }
 

@@ -27,8 +27,6 @@ export class Step4Summary {
 
         let html = `
             <div class="step-4-summary">
-                <h5 class="mb-3"><i class="fas fa-clipboard-check"></i> Review Changes</h5>
-
                 <!-- Level Changes -->
                 <div class="card mb-3">
                     <div class="card-header">
@@ -101,6 +99,8 @@ export class Step4Summary {
                 featuresByClass.get(feature.class).push(feature);
             });
 
+            const isMulticlass = featuresByClass.size > 1;
+
             html += `
                 <div class="card mb-3">
                     <div class="card-header">
@@ -111,13 +111,17 @@ export class Step4Summary {
 
             // Render each class group
             featuresByClass.forEach((features, className) => {
-                html += `
-                    <div class="mb-4">
-                        <h6 class="mb-3 pb-2 border-bottom" style="font-weight: 600; color: var(--accent-color); border-color: var(--accent-color);">
-                            <i class="fas fa-crown me-2" style="color: var(--accent-color);"></i>${this._escapeHtml(className)}
-                        </h6>
-                        <div class="feature-list traits-grid ms-2" id="featuresList_${this._escapeHtml(className)}">
-                `;
+                if (isMulticlass) {
+                    html += `
+                        <div class="mb-4">
+                            <h6 class="mb-3 pb-2 border-bottom" style="font-weight: 600; color: var(--accent-color); border-color: var(--accent-color);">
+                                <i class="fas fa-crown me-2" style="color: var(--accent-color);"></i>${this._escapeHtml(className)}
+                            </h6>
+                            <div class="feature-list traits-grid ms-2" id="featuresList_${this._escapeHtml(className)}">
+                    `;
+                } else {
+                    html += `<div class="feature-list traits-grid" id="featuresList_${this._escapeHtml(className)}">`;
+                }
 
                 features.forEach((feature) => {
                     const escapedName = this._escapeHtml(feature.name);
@@ -149,10 +153,10 @@ export class Step4Summary {
                     `;
                 });
 
-                html += `
-                        </div>
-                    </div>
-                `;
+                html += `</div>`;
+                if (isMulticlass) {
+                    html += `</div>`;
+                }
             });
 
             html += `
@@ -190,22 +194,59 @@ export class Step4Summary {
 
         // Spells Summary
         if (Object.keys(summary.newSpells).length > 0) {
+            // Group spells by class (strip level from key)
+            const spellsByClass = new Map();
+            Object.entries(summary.newSpells).forEach(([classKey, spells]) => {
+                // Extract class name (e.g., "Wizard_1" -> "Wizard")
+                const className = classKey.split('_')[0];
+                if (!spellsByClass.has(className)) {
+                    spellsByClass.set(className, []);
+                }
+                spellsByClass.get(className).push(...spells);
+            });
+
+            const isMulticlass = spellsByClass.size > 1;
+
             html += `
                 <div class="card mb-3">
                     <div class="card-header">
                         <h6 class="mb-0"><i class="fas fa-magic"></i> New Spells</h6>
                     </div>
-                    <div class="card-body small">
+                    <div class="card-body">
             `;
 
-            Object.entries(summary.newSpells).forEach(([className, spells]) => {
-                if (Array.isArray(spells) && spells.length > 0) {
-                    html += `<strong>${className}:</strong><ul>`;
+            spellsByClass.forEach((spells, className) => {
+                if (spells.length > 0) {
+                    const safeClassName = this._escapeHtml(className);
+
+                    if (isMulticlass) {
+                        html += `
+                            <div class="mb-4">
+                                <h6 class="mb-3 pb-2 border-bottom" style="font-weight: 600; color: var(--accent-color); border-color: var(--accent-color);">
+                                    <i class="fas fa-magic me-2" style="color: var(--accent-color);"></i>${safeClassName}
+                                </h6>
+                                <div class="feature-list traits-grid ms-2" id="spellsList_${safeClassName}">
+                        `;
+                    } else {
+                        html += `<div class="feature-list traits-grid" id="spellsList_${safeClassName}">`;
+                    }
+
                     spells.forEach(spell => {
                         const spellName = typeof spell === 'string' ? spell : spell.name;
-                        html += `<li>${spellName}</li>`;
+                        const escapedName = this._escapeHtml(spellName);
+                        html += `
+                            <a class="trait-tag rd__hover-link" 
+                                data-hover-type="spell" 
+                                data-hover-name="${escapedName}">
+                                ${escapedName}
+                            </a>
+                        `;
                     });
-                    html += '</ul>';
+
+                    html += `</div>`;
+                    if (isMulticlass) {
+                        html += `</div>`;
+                    }
                 }
             });
 
@@ -232,6 +273,12 @@ export class Step4Summary {
         // Process all feature lists with textProcessor for hover links
         const featureLists = contentArea.querySelectorAll('[id^="featuresList_"]');
         for (const list of featureLists) {
+            await textProcessor.processElement(list);
+        }
+
+        // Process all spell lists with textProcessor for hover links
+        const spellLists = contentArea.querySelectorAll('[id^="spellsList_"]');
+        for (const list of spellLists) {
             await textProcessor.processElement(list);
         }
     }

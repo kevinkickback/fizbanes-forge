@@ -102,6 +102,11 @@ class SpellSelectionService {
             return 0;
         }
 
+        // Level 0 means no levels yet, so no cantrips
+        if (level <= 0) {
+            return 0;
+        }
+
         // cantripProgression is 0-indexed in 5etools (starts at level 1)
         const index = Math.max(0, Math.min(level - 1, classData.cantripProgression.length - 1));
         return classData.cantripProgression[index] || 0;

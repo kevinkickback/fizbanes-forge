@@ -16,6 +16,7 @@ import { LevelUpSession } from '../../../app/LevelUpSession.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
+import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
 
 export class LevelUpModal {
     constructor() {
@@ -161,6 +162,19 @@ export class LevelUpModal {
 
             // Apply staged changes to character
             const updatedCharacter = await this.session.applyChanges();
+
+            // Record progression history from session choices
+            const allChoices = this.session.getAllChoices();
+            for (const [className, levelChoices] of Object.entries(allChoices)) {
+                for (const [level, choices] of Object.entries(levelChoices)) {
+                    progressionHistoryService.recordChoices(
+                        updatedCharacter,
+                        className,
+                        parseInt(level, 10),
+                        choices
+                    );
+                }
+            }
 
             // Emit event for other UI components to update
             eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: updatedCharacter });

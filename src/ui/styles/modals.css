@@ -33,7 +33,7 @@
 	left: 0;
 	width: 100%;
 	height: 100%;
-	z-index: 1050;
+	z-index: 2050 !important;
 	overflow: hidden;
 	outline: 0;
 }
@@ -47,9 +47,12 @@
 
 /* Modal backdrop */
 .modal-backdrop {
-	background-color: var(--overlay-darker);
-	backdrop-filter: blur(4px);
-	z-index: 1040;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 2040;
 }
 
 /* Modal dialog */
@@ -144,6 +147,24 @@
 .modal .btn-close {
 	color: var(--text-color);
 	opacity: 0.8;
+}
+
+/* ===== Alert Styles ===== */
+.modal .alert-info {
+	text-align: center;
+	background-color: color-mix(
+		in srgb,
+		var(--accent-color) 50%,
+		var(--secondary-color)
+	);
+}
+
+.modal .card-header i {
+	margin-right: 0.75rem;
+}
+
+.alert i {
+	margin-right: 0.5rem;
 }
 
 /* Modal body */
@@ -1436,6 +1457,16 @@
 
 	.class-selection-card:active {
 		transform: translateY(0);
+	}
+
+	/* Class card selected state */
+	.class-card-selected {
+		border-color: var(--accent-color) !important;
+		background-color: color-mix(
+			in srgb,
+			var(--accent-color) 12%,
+			var(--card-background)
+		) !important;
 	}
 
 	/* ===== Level Up Modal - Feature Selection ===== */

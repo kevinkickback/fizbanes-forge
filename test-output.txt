@@ -1,0 +1,276 @@
+
+Running 1 test using 1 worker
+
+(node:23712) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[CONSOLE INFO] AppState State initialized {isLoading: false, currentPage: home, currentCharacter: null, characters: Array(0), hasUnsavedChanges: false}
+[CONSOLE INFO] [Router] Router initialized
+[CONSOLE INFO] PageLoader PageLoader initialized
+[CONSOLE INFO] [Router] Registering route {path: home, config: Object}
+[CONSOLE INFO] [Router] Registering route {path: build, config: Object}
+[CONSOLE INFO] [Router] Registering route {path: equipment, config: Object}
+[CONSOLE INFO] [Router] Registering route {path: spells, config: Object}
+[CONSOLE INFO] [Router] Registering route {path: details, config: Object}
+[CONSOLE INFO] [Router] Registering route {path: settings, config: Object}
+[CONSOLE INFO] [Router] Registering route {path: preview, config: Object}
+[CONSOLE INFO] [Router] All routes registered {routes: Array(7)}
+[CONSOLE INFO] NavigationController Controller created
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:selected, totalListeners: 1}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:loaded, totalListeners: 1}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:created, totalListeners: 1}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:selected, totalListeners: 2}
+[CONSOLE LOG] [ThemeManager] Applied theme: dark
+[CONSOLE DEBUG] [EventBus] Listener registered {event: PAGE_CHANGED, totalListeners: 1}
+[CONSOLE LOG] [ThemeManager] Initialized with theme: dark
+[CONSOLE INFO] AppInitializer Using configured data source: local
+[CONSOLE INFO] AppInitializer Auto update disabled; skipping data sync
+[CONSOLE INFO] [ClassService] Initializing class data
+[CONSOLE INFO] [RaceService] Initializing race data
+[CONSOLE INFO] [BackgroundService] Initializing background data
+[CONSOLE INFO] [ConditionService] Initializing condition data
+[CONSOLE INFO] [MonsterService] Initializing monster data
+[CONSOLE INFO] [FeatService] Initializing feat data
+[CONSOLE INFO] [SkillService] Initializing skill data
+[CONSOLE INFO] [VariantRuleService] Initializing variant rule data
+[CONSOLE INFO] [OptionalFeatureService] Initializing optional feature data
+[CONSOLE INFO] [ConditionService] Conditions loaded successfully {count: 30}
+[CONSOLE INFO] [FeatService] Feats loaded successfully {count: 272}
+[CONSOLE INFO] [SkillService] Skills loaded successfully {count: 36}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: items:loaded, argsCount: 2542}
+[CONSOLE INFO] [BackgroundService] Backgrounds loaded and normalized {count: 182}
+[CONSOLE INFO] AppState Setting loaded data: backgrounds
+[CONSOLE DEBUG] AppState setState called {loadedData: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:loadedData:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:loadedData:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: data:loaded, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: data:loaded, argsCount: 2}
+[CONSOLE INFO] AppState Setting loaded data: actions
+[CONSOLE DEBUG] AppState setState called {loadedData: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:loadedData:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:loadedData:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: data:loaded, argsCount: 2}
+[CONSOLE INFO] [VariantRuleService] Variant rules loaded successfully {count: 239}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: spells:loaded, argsCount: 938}
+[CONSOLE INFO] [MonsterService] Monsters loaded successfully {count: 4493}
+[CONSOLE INFO] AppState Setting loaded data: classes
+[CONSOLE DEBUG] AppState setState called {loadedData: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:loadedData:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:loadedData:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: data:loaded, argsCount: 2}
+[CONSOLE INFO] [ClassService] Class data loaded {classes: 30, classFeatures: 677, subclasses: 329, subclassFeatures: 1480, fromCache: false}
+[CONSOLE INFO] AppState Setting loaded data: races
+[CONSOLE DEBUG] AppState setState called {loadedData: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:loadedData:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:loadedData:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: data:loaded, argsCount: 2}
+[CONSOLE DEBUG] [RaceService] Building race index
+[CONSOLE INFO] [RaceService] Human (PHB) subraces: {explicit: Array(8), all: Array(7), baseSubrace: undefined}
+[CONSOLE INFO] [RaceService] Human (XPHB) subraces: {explicit: Array(0), all: Array(0), baseSubrace: undefined}
+[CONSOLE DEBUG] [RaceService] Indexed 158 races
+[CONSOLE INFO] [RaceService] Races loaded successfully {count: 158, fromCache: false}
+[CONSOLE INFO] AppInitializer Initializing core components with NEW architecture
+[CONSOLE INFO] TooltipSystem Initializing event listeners
+[CONSOLE INFO] AppInitializer Ô£ô text processor initialized
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:selected, totalListeners: 3}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:updated, totalListeners: 1}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:saved, totalListeners: 1}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: page:changed, totalListeners: 1}
+[CONSOLE DEBUG] AppState Get: currentCharacter null
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE DEBUG] AppState Get: currentCharacter null
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE LOG] [TitlebarController] updateActionButtons called
+[CONSOLE LOG] [TitlebarController] Character: {exists: false, name: undefined, hasProgression: false, progressionClasses: undefined, classesLength: undefined}
+[CONSOLE LOG] [TitlebarController] Level Up Button: {hasClasses: undefined, disabled: true, characterExists: false}
+[CONSOLE LOG] [TitlebarController] Initialized
+[CONSOLE INFO] AppInitializer Ô£ô titlebar controller initialized
+[CONSOLE DEBUG] [EventBus] Listener registered {event: page:loaded, totalListeners: 1}
+[CONSOLE INFO] PageHandler Initialized successfully
+[CONSOLE INFO] AppInitializer Ô£ô page handler initialized
+[CONSOLE INFO] NavigationController Initializing
+[CONSOLE INFO] PageLoader Initialized with content area {contentAreaId: pageContent}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: page:changed, totalListeners: 2}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: page:loaded, totalListeners: 2}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:selected, totalListeners: 4}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:created, totalListeners: 2}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:deleted, totalListeners: 1}
+[CONSOLE DEBUG] NavigationController Event listeners setup
+[CONSOLE DEBUG] NavigationController Cached navigation buttons {count: 6}
+[CONSOLE DEBUG] NavigationController Cached build section buttons {count: 7}
+[CONSOLE DEBUG] NavigationController Navigation buttons setup
+[CONSOLE DEBUG] NavigationController Navigation state updated {hasCharacter: false}
+[CONSOLE INFO] NavigationController [2026-01-14T21:18:58.732Z] Navigate to page: "home"
+[CONSOLE INFO] [Router] Navigating to {path: home}
+[CONSOLE INFO] AppState Setting current page: home
+[CONSOLE DEBUG] AppState setState called {currentPage: home}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: page:changed, argsCount: 1}
+[CONSOLE DEBUG] AppState Get: currentCharacter null
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE LOG] [TitlebarController] updateActionButtons called
+[CONSOLE LOG] [TitlebarController] Character: {exists: false, name: undefined, hasProgression: false, progressionClasses: undefined, classesLength: undefined}
+[CONSOLE LOG] [TitlebarController] Level Up Button: {hasClasses: undefined, disabled: true, characterExists: false}
+[CONSOLE DEBUG] NavigationController Handling page change {page: home}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: page:changed, argsCount: 1}
+[CONSOLE DEBUG] AppState Get: currentCharacter null
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE LOG] [TitlebarController] updateActionButtons called
+[CONSOLE LOG] [TitlebarController] Character: {exists: false, name: undefined, hasProgression: false, progressionClasses: undefined, classesLength: undefined}
+[CONSOLE LOG] [TitlebarController] Level Up Button: {hasClasses: undefined, disabled: true, characterExists: false}
+[CONSOLE DEBUG] NavigationController Handling page change {page: home}
+[CONSOLE INFO] [Router] Navigation successful {path: home}
+[CONSOLE INFO] NavigationController Initialized successfully
+[CONSOLE DEBUG] NavigationController Set data-current-page attribute to "home" {page: home, attributeValue: home}
+[CONSOLE DEBUG] NavigationController [2026-01-14T21:18:58.734Z] Starting loadAndRenderPage: home
+[CONSOLE INFO] PageLoader Load and render {templateName: home.html}
+[CONSOLE DEBUG] PageLoader Loading page {templateName: home.html}
+[CONSOLE INFO] AppInitializer Ô£ô navigation controller initialized
+[CONSOLE INFO] SettingsService Initializing settings manager
+[CONSOLE DEBUG] [EventBus] Event emitted {event: service:initialized, argsCount: 2}
+[CONSOLE INFO] SettingsService Settings manager initialized successfully
+[CONSOLE INFO] AppInitializer Ô£ô settings service initialized
+[CONSOLE INFO] AppInitializer Ô£ô notification center initialized
+[CONSOLE INFO] AppInitializer Core components initialized {success: true, loaded: 6, errors: 0}
+[CONSOLE INFO] AppInitializer Setting up UI event handlers
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:updated, totalListeners: 2}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:saved, totalListeners: 2}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:selected, totalListeners: 5}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: page:changed, totalListeners: 3}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: state:hasUnsavedChanges:changed, totalListeners: 1}
+[CONSOLE INFO] AppInitializer UI event handlers set up successfully
+[CONSOLE INFO] AppInitializer Initialization complete
+[CONSOLE INFO] PageLoader Page loaded and cached {templateName: home.html}
+[CONSOLE DEBUG] PageLoader Page rendered successfully
+[CONSOLE INFO] NavigationController [2026-01-14T21:18:58.813Z] Page rendered successfully: home {template: home.html, pageName: home}
+[CONSOLE DEBUG] NavigationController Page render complete: home
+[CONSOLE DEBUG] NavigationController Emitting PAGE_LOADED event for page: "home"
+[CONSOLE DEBUG] [EventBus] Event emitted {event: page:loaded, argsCount: 1}
+[CONSOLE INFO] PageHandler Handling page loaded {pageName: home}
+[CONSOLE INFO] PageHandler Initializing home page
+[CONSOLE INFO] CharacterManager Loading character list
+[CONSOLE DEBUG] NavigationController Nav buttons updated {activePage: home}
+[CONSOLE DEBUG] NavigationController Emitting PAGE_CHANGED event for page: "home"
+[CONSOLE DEBUG] [EventBus] Event emitted {event: page:changed, argsCount: 1}
+[CONSOLE DEBUG] AppState Get: currentCharacter null
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE LOG] [TitlebarController] updateActionButtons called
+[CONSOLE LOG] [TitlebarController] Character: {exists: false, name: undefined, hasProgression: false, progressionClasses: undefined, classesLength: undefined}
+[CONSOLE LOG] [TitlebarController] Level Up Button: {hasClasses: undefined, disabled: true, characterExists: false}
+[CONSOLE DEBUG] NavigationController Handling page change {page: home}
+[CONSOLE DEBUG] AppInitializer [2026-01-14T21:18:58.815Z] EVENT: PAGE_CHANGED to "home"
+[CONSOLE DEBUG] AppInitializer Temporary suppression enabled until 2026-01-14T21:18:58.965Z
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE DEBUG] AppInitializer Unsaved indicator updated: show=false {hasUnsaved: false, currentPage: home}
+[CONSOLE INFO] AppState Setting characters list {count: 1}
+[CONSOLE DEBUG] AppState setState called {characters: Array(1)}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:characters:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:characters:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE INFO] CharacterManager Character list loaded {count: 1}
+[CONSOLE INFO] PageHandler Character list rendered {count: 1}
+[CONSOLE DEBUG] [EventBus] Listener registered {event: character:selected, totalListeners: 6}
+Ô£ô App loaded
+Ô£ô Character cards loaded
+[CONSOLE DEBUG] PageHandler [2026-01-14T21:18:59.161Z] Character card clicked: a8043c61-afc4-4d88-b62b-afcc784c2d44
+[CONSOLE INFO] CharacterManager [2026-01-14T21:18:59.161Z] Loading character with ID: a8043c61-afc4-4d88-b62b-afcc784c2d44
+[CONSOLE DEBUG] CharacterSchema Validation passed {characterId: a8043c61-afc4-4d88-b62b-afcc784c2d44}
+[CONSOLE LOG] [CharacterManager] Loading character - optionalProficiencies.tools.class: {"allowed":0,"options":[],"selected":[]}
+[CONSOLE DEBUG] CharacterManager Setting current character to: asdfasdfasdf (a8043c61-afc4-4d88-b62b-afcc784c2d44)
+[CONSOLE INFO] AppState Setting current character {id: a8043c61-afc4-4d88-b62b-afcc784c2d44}
+[CONSOLE DEBUG] AppState setState called {currentCharacter: Character}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:currentCharacter:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:currentCharacter:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: character:selected, argsCount: 1}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: sources:allowed-changed, argsCount: 1}
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE LOG] [TitlebarController] updateActionButtons called
+[CONSOLE LOG] [TitlebarController] Character: {exists: true, name: asdfasdfasdf, hasProgression: true, progressionClasses: Array(1), classesLength: 1}
+[CONSOLE LOG] [TitlebarController] Level Up Button: {hasClasses: true, disabled: false, characterExists: true}
+[CONSOLE DEBUG] NavigationController Navigation state updated {hasCharacter: true}
+[CONSOLE DEBUG] AppInitializer [2026-01-14T21:18:59.168Z] EVENT: CHARACTER_SELECTED received
+[CONSOLE DEBUG] AppInitializer Temporary suppression enabled until 2026-01-14T21:18:59.318Z
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE DEBUG] AppInitializer Unsaved indicator updated: show=false {hasUnsaved: false, currentPage: home}
+[CONSOLE INFO] CharacterManager Loading character list
+[CONSOLE DEBUG] CharacterManager Emitting CHARACTER_SELECTED event for character: asdfasdfasdf
+[CONSOLE DEBUG] [EventBus] Event emitted {event: character:selected, argsCount: 1}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: sources:allowed-changed, argsCount: 1}
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE LOG] [TitlebarController] updateActionButtons called
+[CONSOLE LOG] [TitlebarController] Character: {exists: true, name: asdfasdfasdf, hasProgression: true, progressionClasses: Array(1), classesLength: 1}
+[CONSOLE LOG] [TitlebarController] Level Up Button: {hasClasses: true, disabled: false, characterExists: true}
+[CONSOLE DEBUG] NavigationController Navigation state updated {hasCharacter: true}
+[CONSOLE DEBUG] AppInitializer [2026-01-14T21:18:59.170Z] EVENT: CHARACTER_SELECTED received
+[CONSOLE DEBUG] AppInitializer Temporary suppression enabled until 2026-01-14T21:18:59.320Z
+[CONSOLE DEBUG] AppState Get: hasUnsavedChanges false
+[CONSOLE DEBUG] AppInitializer Unsaved indicator updated: show=false {hasUnsaved: false, currentPage: home}
+[CONSOLE INFO] CharacterManager Loading character list
+[CONSOLE INFO] CharacterManager Ô£ô Character loaded successfully: asdfasdfasdf {id: a8043c61-afc4-4d88-b62b-afcc784c2d44}
+[CONSOLE INFO] PageHandler Ô£ô Character loaded from card: a8043c61-afc4-4d88-b62b-afcc784c2d44 {character: asdfasdfasdf}
+Ô£ô Clicked first character card
+[CONSOLE INFO] AppState Setting characters list {count: 1}
+[CONSOLE DEBUG] AppState setState called {characters: Array(1)}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:characters:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:characters:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE INFO] CharacterManager Character list loaded {count: 1}
+[CONSOLE INFO] PageHandler Character list rendered {count: 1}
+[CONSOLE INFO] AppState Setting characters list {count: 1}
+[CONSOLE DEBUG] AppState setState called {characters: Array(1)}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:changed, argsCount: 2}
+[CONSOLE DEBUG] [EventBus] Event emitted {event: state:characters:changed, argsCount: 2}
+[CONSOLE DEBUG] AppState Emitted: state:characters:changed
+[CONSOLE INFO] AppState State updated {updates: Object}
+[CONSOLE INFO] CharacterManager Character list loaded {count: 1}
+[CONSOLE INFO] PageHandler Character list rendered {count: 1}
+Ô£ô Character selected
+[CONSOLE INFO] AppInitializer [LevelUp] Button clicked
+[CONSOLE DEBUG] AppInitializer [LevelUp] Importing LevelUpModal
+Ô£ô Clicked level-up button
+[CONSOLE DEBUG] [LevelUpModal] Constructor initialized
+[CONSOLE DEBUG] AppInitializer [LevelUp] Showing modal via controller
+[CONSOLE INFO] [LevelUpModal] Opening for character asdfasdfasdf
+[CONSOLE INFO] [LevelUpSession] Initialized for character {characterName: asdfasdfasdf, currentLevel: 1, classes: Warlock undefined}
+[CONSOLE DEBUG] [LevelUpModal] Button listeners attached
+[CONSOLE DEBUG] [LevelUpModal] Rendering step 0
+[CONSOLE DEBUG] [Step0] Attaching listeners
+Ô£ô Modal opened
+Modal Backdrop HTML: 
+Modal Backdrop Computed Styles: {
+  "display": "block",
+  "position": "fixed",
+  "zIndex": "2040",
+  "backgroundColor": "rgba(0, 0, 0, 0.7)",
+  "backdropFilter": "blur(12px) saturate(1.8)",
+  "width": "2544px",
+  "height": "1353px",
+  "top": "0px",
+  "left": "0px",
+  "willChange": "backdrop-filter",
+  "transform": "none"
+}
+Modal Computed Styles: {
+  "display": "block",
+  "zIndex": "2050",
+  "position": "fixed"
+}
+Backdrop Filter Active: [33mtrue[39m
+Ô£ô Backdrop filter investigation complete - check console output above
+  Ô£ô  1 tests\backdrop-filter-investigation.spec.js:7:1 ÔÇ║ Select character and open level-up modal to investigate backdrop-filter (2.8s)
+
+  1 passed (3.4s)

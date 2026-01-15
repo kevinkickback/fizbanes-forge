@@ -30,23 +30,16 @@ export class Step0LevelMulticlass {
 
         let html = `
             <div class="step-0-level-multiclass">
-                <h5 class="mb-3"><i class="fas fa-level-up-alt"></i> Level & Multiclass</h5>
 
                 <!-- Class Breakdown -->
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-users"></i> Your Classes</h6>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-users"></i> Current Classes</h6>
+                        <span class="badge source-badge fs-6">
+                            Total Level: <strong>${totalLevel}</strong>
+                        </span>
                     </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <p class="text-muted small mb-0">
-                                <i class="fas fa-hand-pointer"></i> Click a class to select it for leveling
-                            </p>
-                            <span class="badge bg-primary fs-6">
-                                Total Level: <strong>${totalLevel}</strong>
-                            </span>
-                        </div>
-
                         <div class="row" id="classBreakdown">
         `;
 
@@ -54,7 +47,7 @@ export class Step0LevelMulticlass {
         classes.forEach((classInfo, index) => {
             const levelLabel = classInfo.levels === 1 ? 'level' : 'levels';
             const isSelected = this.selectedClassName === classInfo.name;
-            const selectedClass = isSelected ? 'border-primary bg-light' : '';
+            const selectedClass = isSelected ? 'class-card-selected' : '';
 
             html += `
                 <div class="col-md-6 mb-2">
@@ -73,6 +66,12 @@ export class Step0LevelMulticlass {
                                             title="Level up ${classInfo.name}">
                                         <i class="fas fa-plus"></i>
                                     </button>
+                                    <button class="btn btn-sm btn-outline-danger level-down-btn ms-1" 
+                                            data-class-index="${index}"
+                                            title="${classInfo.levels <= 1 ? 'Remove class' : `Remove a level from ${classInfo.name}`}"
+                                            ${(classInfo.levels <= 1 && classes.length <= 1) ? 'disabled' : ''}>
+                                        <i class="fas fa-minus"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -89,7 +88,7 @@ export class Step0LevelMulticlass {
                 <!-- Add Multiclass -->
                 <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0"><i class="fas fa-user-plus"></i> Add Multiclass (Optional)</h6>
+                        <h6 class="mb-0"><i class="fas fa-user-plus"></i> Multiclass</h6>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="ignoreMulticlassReqs" ${this.ignoreMulticlassReqs ? 'checked' : ''}>
                             <label class="form-check-label small" for="ignoreMulticlassReqs" title="Toggle to ignore ability score requirements for multiclassing">
@@ -116,10 +115,7 @@ export class Step0LevelMulticlass {
                                 <i class="fas fa-plus"></i> Add Class
                             </button>
                         </div>
-                        ${!this.ignoreMulticlassReqs && availableClasses.some(o => !o.meetsRequirements) ?
-                '<small class="text-muted d-block mt-2"><i class="fas fa-info-circle"></i> Some classes require minimum ability scores</small>' :
-                '<small class="text-muted d-block mt-2">Add a new class at level 1 for multiclassing.</small>'
-            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,12 +136,14 @@ export class Step0LevelMulticlass {
         classCards.forEach(card => {
             this._cleanup.on(card, 'click', (e) => {
                 if (e.target.closest('.level-up-btn')) return; // Don't select if clicking level-up button
+                if (e.target.closest('.level-down-btn')) return; // Don't select if clicking level-down button
+                if (e.target.closest('.level-down-btn')) return; // Don't select if clicking level-down button
 
                 // Remove selection from all cards
                 for (const c of classCards) {
-                    c.classList.remove('border-primary', 'bg-light');
+                    c.classList.remove('class-card-selected');
                 }
-                card.classList.add('border-primary', 'bg-light');
+                card.classList.add('class-card-selected');
                 this.selectedClassName = card.dataset.className;
                 console.debug('[Step0]', 'Selected class:', this.selectedClassName);
             });
@@ -158,6 +156,16 @@ export class Step0LevelMulticlass {
                 e.stopPropagation();
                 const index = parseInt(btn.dataset.classIndex, 10);
                 this._handleLevelUp(index);
+            });
+        });
+
+        // Level Down button (remove level)
+        const levelDownBtns = contentArea.querySelectorAll('.level-down-btn');
+        levelDownBtns.forEach(btn => {
+            this._cleanup.on(btn, 'click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.classIndex, 10);
+                this._handleLevelDown(index);
             });
         });
 
@@ -213,11 +221,7 @@ export class Step0LevelMulticlass {
         // Update helper text
         const helperText = contentArea.querySelector('.text-muted.d-block.mt-2');
         if (helperText) {
-            if (!this.ignoreMulticlassReqs && availableClasses.some(o => !o.meetsRequirements)) {
-                helperText.innerHTML = '<i class="fas fa-info-circle"></i> Some classes require minimum ability scores';
-            } else {
-                helperText.textContent = 'Add a new class at level 1 for multiclassing.';
-            }
+            helperText.remove();
         }
 
         console.debug('[Step0]', 'Multiclass dropdown updated', {
@@ -255,8 +259,82 @@ export class Step0LevelMulticlass {
 
         // Update DOM without full re-render
         this._updateClassLevelDisplay(classIndex, newLevel, totalLevel);
+
+        // Update button state
+        this._updateLevelDownButtonState(classIndex, newLevel);
     }
 
+    /**
+     * Handle level down (remove a level) for a class.
+     * @private
+     */
+    _handleLevelDown(classIndex) {
+        const classes = this.session.stagedChanges.progression?.classes || [];
+        if (!classes || !classes[classIndex]) return;
+
+        const classInfo = classes[classIndex];
+        const currentLevel = classInfo.levels || 1;
+        const className = classInfo.name;
+
+        // If this is a level 1 class and there are multiple classes, offer to remove the entire class
+        if (currentLevel <= 1 && classes.length > 1) {
+            const confirmed = confirm(`Remove ${className} completely from your character?`);
+            if (!confirmed) return;
+
+            // Clear all recorded choices for this class (all levels)
+            const classChoices = this.session.getClassChoices(className);
+            if (classChoices) {
+                Object.keys(classChoices).forEach(level => {
+                    this.session.clearChoices(className, parseInt(level, 10));
+                });
+            }
+
+            console.debug('[Step0]', `Removing entire class: ${className}`);
+
+            // Remove the class from progression
+            classes.splice(classIndex, 1);
+
+            // Update total level
+            const totalLevel = classes.reduce((sum, c) => sum + (c.levels || 1), 0);
+            this.session.stagedChanges.level = totalLevel;
+
+            console.debug('[Step0]', `Class ${className} removed, new total level: ${totalLevel}`);
+
+            // Re-render step to show changes
+            this._refreshStep();
+            return;
+        }
+
+        // If it's the only class at level 1, don't allow removal
+        if (currentLevel <= 1) {
+            alert(`Cannot remove the last level of your only class`);
+            return;
+        }
+
+        const newLevel = currentLevel - 1;
+
+        // Clear any recorded choices for this level from the session
+        this.session.clearChoices(className, currentLevel);
+
+        console.debug('[Step0]', `Clearing choices for ${className} level ${currentLevel}`);
+
+        // Update staged changes
+        classInfo.levels = newLevel;
+
+        // Update total level
+        const totalLevel = classes.reduce((sum, c) => sum + (c.levels || 1), 0);
+        this.session.stagedChanges.level = totalLevel;
+
+        console.debug('[Step0]', `Removed level from ${classInfo.name} down to ${newLevel}`, {
+            totalLevel,
+        });
+
+        // Update DOM without full re-render
+        this._updateClassLevelDisplay(classIndex, newLevel, totalLevel);
+
+        // Update button state
+        this._updateLevelDownButtonState(classIndex, newLevel);
+    }
     /**
      * Update the DOM to reflect level changes without full re-render.
      * @private
@@ -276,6 +354,31 @@ export class Step0LevelMulticlass {
         const totalLevelBadge = document.querySelector('.badge.bg-primary strong');
         if (totalLevelBadge) {
             totalLevelBadge.textContent = totalLevel;
+        }
+    }
+
+    /**
+     * Update the level-down button state based on current level
+     * @private
+     */
+    _updateLevelDownButtonState(classIndex, currentLevel) {
+        const classes = this.session.stagedChanges.progression?.classes || [];
+        const classCard = document.querySelector(`.class-card[data-class-index="${classIndex}"]`);
+        if (classCard) {
+            const levelDownBtn = classCard.querySelector('.level-down-btn');
+            if (levelDownBtn) {
+                // Enable if: class has more than 1 level OR there are multiple classes
+                const shouldEnable = currentLevel > 1 || classes.length > 1;
+                levelDownBtn.disabled = !shouldEnable;
+
+                // Update tooltip
+                if (currentLevel <= 1 && classes.length > 1) {
+                    levelDownBtn.title = 'Remove class';
+                } else {
+                    const className = classCard.dataset.className;
+                    levelDownBtn.title = `Remove a level from ${className}`;
+                }
+            }
         }
     }
 
@@ -341,10 +444,16 @@ export class Step0LevelMulticlass {
      * @private
      */
     _getAvailableClasses() {
-        // Use original character for requirement checking
-        return levelUpService.getMulticlassOptions(
+        // Get all multiclass options
+        const allClasses = levelUpService.getMulticlassOptions(
             this.session.originalCharacter,
             this.ignoreMulticlassReqs
         );
+
+        // Filter out classes that are already in staged progression
+        const currentClasses = this.session.stagedChanges.progression?.classes || [];
+        const currentClassNames = currentClasses.map(c => c.name);
+
+        return allClasses.filter(option => !currentClassNames.includes(option.name));
     }
 }

@@ -22,6 +22,11 @@
 	box-shadow: var(--shadow-sm);
 }
 
+.btn:focus {
+	outline: none !important;
+	box-shadow: var(--shadow-md) !important;
+}
+
 /* Primary button */
 .btn-primary {
 	background: var(--accent-color);
@@ -53,22 +58,29 @@
 	border-color: var(--accent-color);
 	color: var(--accent-color);
 	background: transparent;
+	--bs-btn-hover-border-color: var(--accent-color);
+	--bs-btn-hover-bg: var(--accent-color);
+	--bs-btn-hover-color: white;
 }
 
 .btn-outline-primary:hover {
 	background: var(--accent-color);
 	color: white;
+	border-color: var(--accent-color);
 }
 
 .btn-outline-secondary {
 	border-color: var(--border-color);
 	color: var(--text-color);
 	background: transparent;
+	--bs-btn-hover-border-color: var(--accent-color);
+	--bs-btn-hover-bg: var(--secondary-color);
+	--bs-btn-hover-color: var(--text-color);
 }
 
 .btn-outline-secondary:hover {
 	background: var(--secondary-color);
-	border-color: var(--border-light);
+	border-color: var(--accent-color);
 }
 
 /* Success/Danger buttons */

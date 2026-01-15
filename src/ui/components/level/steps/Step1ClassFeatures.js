@@ -52,29 +52,10 @@ export class Step1ClassFeatures {
         // Check if any class needs subclass selection at new levels
         const subclassPrompts = await this._gatherSubclassPrompts(leveledClasses);
 
-        // Render subclass selection UI if needed
-        let html = `
-            <div class="step-1-class-features">
-                <h5 class="mb-3"><i class="fas fa-tasks"></i> Class Features</h5>
-        `;
-
-        if (subclassPrompts.length > 0) {
-            html += `
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-wand-magic"></i> Subclass Selection</h6>
-                    </div>
-                    <div class="card-body">
-            `;
-
-            for (const prompt of subclassPrompts) {
-                html += this._renderSubclassSelection(prompt);
-            }
-
-            html += `
-                    </div>
-                </div>
-            `;
+        // Create a map for easy subclass lookup by class name
+        const subclassPromptMap = {};
+        for (const prompt of subclassPrompts) {
+            subclassPromptMap[prompt.className] = prompt;
         }
 
         // Collect all features for newly gained levels
@@ -83,7 +64,42 @@ export class Step1ClassFeatures {
         // Filter to only choice features (those with options)
         const features = allFeatures.filter(f => f.options && Array.isArray(f.options));
 
-        if (features.length === 0 && subclassPrompts.length === 0) {
+        // Render subclass selection UI if needed
+        let html = `
+            <div class="step-1-class-features">
+        `;
+
+        // Group features by class
+        const featuresByClass = {};
+        for (const feature of features) {
+            if (!featuresByClass[feature.class]) {
+                featuresByClass[feature.class] = {
+                    className: feature.class,
+                    minLevel: feature.gainLevel,
+                    maxLevel: feature.gainLevel,
+                    features: [],
+                    subclassPrompt: subclassPromptMap[feature.class] || null
+                };
+            }
+            featuresByClass[feature.class].features.push(feature);
+            featuresByClass[feature.class].minLevel = Math.min(featuresByClass[feature.class].minLevel, feature.gainLevel);
+            featuresByClass[feature.class].maxLevel = Math.max(featuresByClass[feature.class].maxLevel, feature.gainLevel);
+        }
+
+        // Also include classes that only have subclass selection but no features
+        for (const prompt of subclassPrompts) {
+            if (!featuresByClass[prompt.className]) {
+                featuresByClass[prompt.className] = {
+                    className: prompt.className,
+                    minLevel: prompt.level,
+                    maxLevel: prompt.level,
+                    features: [],
+                    subclassPrompt: prompt
+                };
+            }
+        }
+
+        if (Object.keys(featuresByClass).length === 0) {
             return `${html}
                 <div class="alert alert-info mb-0">
                     <i class="fas fa-info-circle"></i>
@@ -92,11 +108,53 @@ export class Step1ClassFeatures {
             </div>`;
         }
 
-        if (features.length > 0) {
+        const classGroups = Object.values(featuresByClass);
 
-            // Render each feature choice
-            for (const feature of features) {
+        // If only one class, render features individually without grouping
+        if (classGroups.length === 1) {
+            const singleClassGroup = classGroups[0];
+
+            // Render subclass selection if needed
+            if (singleClassGroup.subclassPrompt) {
+                const prompt = singleClassGroup.subclassPrompt;
+                const selectId = `subclass_${prompt.className}_${prompt.level}`;
+                const selected = prompt.selected || '';
+
+                html += `
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-wand-magic"></i> Subclass Selection</h6>
+                            <small class="text-muted">${prompt.className} • Level ${prompt.level}</small>
+                        </div>
+                        <div class="card-body">
+                            <select class="form-select" id="${selectId}" data-class-name="${prompt.className}">
+                                <option value="">-- Select a ${prompt.className} Subclass --</option>
+                `;
+
+                prompt.availableSubclasses.forEach(subclass => {
+                    const isSelected = selected === (subclass.shortName || subclass.name) ? 'selected' : '';
+                    html += `
+                                <option value="${subclass.shortName || subclass.name}" ${isSelected}>
+                                    ${subclass.name}
+                                </option>
+                    `;
+                });
+
+                html += `
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Render each feature as its own card
+            for (const feature of singleClassGroup.features) {
                 html += this._renderFeatureChoice(feature);
+            }
+        } else {
+            // Multiple classes: render one card per class
+            for (const classGroup of classGroups) {
+                html += this._renderClassFeatureGroup(classGroup);
             }
         }
 
@@ -151,19 +209,22 @@ export class Step1ClassFeatures {
     }
 
     /**
-     * Render subclass selection dropdown
+     * Render subclass selection dropdown inline within class card (matching feature style)
      */
-    _renderSubclassSelection(prompt) {
+    _renderSubclassSelectionInline(prompt) {
         const selectId = `subclass_${prompt.className}_${prompt.level}`;
         const selected = prompt.selected || '';
 
         let html = `
-            <div class="mb-3">
-                <label for="${selectId}" class="form-label">
-                    <strong>${prompt.className}</strong> Subclass Selection (Level ${prompt.level})
-                </label>
-                <select class="form-select" id="${selectId}" data-class-name="${prompt.className}">
-                    <option value="">-- Select a ${prompt.className} Subclass --</option>
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded" 
+                 style="border-color: color-mix(in srgb, var(--accent-color) 18%, var(--secondary-color)) !important;"
+                 data-subclass-card="${prompt.className}">
+                <div>
+                    <strong><i class="fas fa-wand-magic"></i> Choose Subclass</strong>
+                    <span class="text-muted small ms-2">— Level ${prompt.level}</span>
+                </div>
+                <select class="form-select form-select-sm ms-2" style="width: auto; min-width: 200px;" id="${selectId}" data-class-name="${prompt.className}">
+                    <option value="">-- Select --</option>
         `;
 
         prompt.availableSubclasses.forEach(subclass => {
@@ -237,7 +298,8 @@ export class Step1ClassFeatures {
                     this,
                     className,
                     featureType,
-                    level
+                    level,
+                    featureId  // Pass the current feature ID
                 );
 
                 await selector.show(
@@ -288,6 +350,14 @@ export class Step1ClassFeatures {
                 this.session.stepData.selectedFeatures[featureId] = selectedIds;
             } else {
                 this.session.stepData.selectedFeatures[featureId] = selectedIds[0] || '';
+
+                // Record feature selection in progression history
+                const featureChoice = {};
+                featureChoice[featureType] = {
+                    selected: selectedIds.length > 0 ? selectedIds : [],
+                    count: feature.count || 1
+                };
+                this.session.recordChoices(className, level, featureChoice);
             }
 
             // Update UI
@@ -560,6 +630,77 @@ export class Step1ClassFeatures {
     }
 
     /**
+     * Render grouped features for a single class
+     */
+    _renderClassFeatureGroup(classGroup) {
+        const { className, minLevel, maxLevel, features, subclassPrompt } = classGroup;
+
+        // Build level range display
+        const levelRange = minLevel === maxLevel ? `Level ${minLevel}` : `Level ${minLevel}-${maxLevel}`;
+
+        return `
+            <div class="card mb-3 class-features-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-star"></i>
+                        ${className}
+                    </h6>
+                    <small class="text-muted">
+                        ${levelRange}
+                    </small>
+                </div>
+                <div class="card-body">
+                    ${subclassPrompt ? this._renderSubclassSelectionInline(subclassPrompt) : ''}
+                    ${features.length > 0 ? features.map(feature => {
+            const featureId = feature.id;
+            const isMultiSelect = feature.count > 1;
+            const currentSelections = this.session.stepData.selectedFeatures[featureId] || [];
+            const options = feature.options || [];
+
+            let selectedDisplay = '<span class="text-muted">None</span>';
+            if (currentSelections.length > 0) {
+                const selectedNames = currentSelections.map(selId => {
+                    const opt = options.find(o => o.id === selId);
+                    return opt ? opt.name : selId;
+                });
+                selectedDisplay = selectedNames.join(', ');
+            }
+
+
+            return `
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded" 
+                                 style="border-color: color-mix(in srgb, var(--accent-color) 18%, var(--secondary-color)) !important;"
+                                 data-feature-card="${featureId}">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${this._getFeatureIcon(feature.type)} ${feature.name}</strong>
+                                            <span class="text-muted small ms-2">— Level ${feature.gainLevel}</span>
+                                        </div>
+                                        ${isMultiSelect ? `<span class="badge" style="background-color: var(--accent-color);" data-selection-count="${featureId}">${currentSelections.length}/${feature.count}</span>` : ''}
+                                    </div>
+                                    <div class="text-muted small mt-1" data-selected-display="${featureId}">
+                                        <strong>Selected:</strong> ${selectedDisplay}
+                                    </div>
+                                </div>
+                                <button 
+                                    class="btn btn-primary btn-sm ms-2" 
+                                    data-feature-select-btn="${featureId}"
+                                    data-feature-type="${feature.type}"
+                                    data-feature-class="${feature.class}"
+                                    data-feature-level="${feature.gainLevel}"
+                                    data-is-multi="${isMultiSelect}">
+                                    <i class="fas fa-list"></i> Choose
+                                </button>
+                            </div>
+                        `;
+        }).join('') : (subclassPrompt ? '' : '<p class="text-muted mb-0"><i class="fas fa-info-circle"></i> No feature choices at these levels</p>')}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
      * Infer class name from feature context
      */
     _inferClassFromFeature(feature) {
@@ -622,7 +763,7 @@ export class Step1ClassFeatures {
 
         const html = `
             <div class="card mb-3 feature-choice-card" data-feature-card="${featureId}">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
                         ${this._getFeatureIcon(feature.type)}
                         ${feature.name}
@@ -635,7 +776,7 @@ export class Step1ClassFeatures {
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div>
                             <strong>${selectionText}</strong>
-                            ${isMultiSelect ? `<span class="ms-2 badge bg-info" data-selection-count="${featureId}">${currentSelections.length}/${feature.count}</span>` : ''}
+                            ${isMultiSelect ? `<span class="ms-2 badge" style="background-color: var(--accent-color);" data-selection-count="${featureId}">${currentSelections.length}/${feature.count}</span>` : ''}
                         </div>
                         <button 
                             class="btn btn-primary btn-sm" 

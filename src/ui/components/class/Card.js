@@ -352,6 +352,12 @@ export class ClassCard {
 			this._classTabsWrapper.style.display = 'none';
 			this._classTabsList.innerHTML = '';
 			this._activeClassTab = classes[0]?.name || null;
+
+			// Hide progression history note for single class
+			const progressionNote = document.getElementById('progressionHistoryNote');
+			if (progressionNote) {
+				progressionNote.style.display = 'none';
+			}
 			return;
 		}
 
@@ -373,6 +379,12 @@ export class ClassCard {
 
 		this._classTabsList.innerHTML = buttonsHtml;
 		this._classTabsWrapper.style.display = 'block';
+
+		// Show progression history note for multiclass
+		const progressionNote = document.getElementById('progressionHistoryNote');
+		if (progressionNote) {
+			progressionNote.style.display = 'block';
+		}
 
 		// Bind click handlers
 		this._classTabsList.querySelectorAll('[data-class-name]').forEach((btn) => {
