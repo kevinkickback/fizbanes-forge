@@ -33,9 +33,9 @@
 	left: 0;
 	width: 100%;
 	height: 100%;
-	z-index: 2050 !important;
 	overflow: hidden;
 	outline: 0;
+	/* Let Bootstrap handle z-index automatically for proper modal stacking */
 }
 
 .modal.show {
@@ -45,14 +45,24 @@
 	height: 700px;
 }
 
-/* Modal backdrop */
+/* Modal backdrop - Let Bootstrap handle z-index */
 .modal-backdrop {
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100vw;
 	height: 100vh;
-	z-index: 2040;
+	/* Bootstrap handles z-index dynamically for proper stacking */
+}
+
+/* Special exception: Force confirmation dialog above all other modals */
+#confirmationModal.modal.show {
+	z-index: 1070 !important;
+}
+
+/* Ensure confirmation modal's backdrop appears above level-up modal but below confirmation content */
+body > .modal-backdrop.show:nth-last-child(2) {
+	z-index: 1060 !important;
 }
 
 /* Modal dialog */

@@ -13,6 +13,7 @@
 
 import { AppState } from '../../../app/AppState.js';
 import { LevelUpSession } from '../../../app/LevelUpSession.js';
+import { Modal } from '../../../app/Modal.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
@@ -81,28 +82,13 @@ export class LevelUpModal {
 
     /**
      * Hide the modal without applying changes.
-     * Shows confirmation if user has made changes.
+     * Confirmation is now handled automatically by the hide.bs.modal event.
      */
     async hide() {
-        if (!this.session) return;
+        if (!this.bootstrapModal) return;
 
-        const summary = this.session.getChangeSummary();
-        const hasChanges = summary.totalLevelChange !== 0 ||
-            summary.leveledClasses.length > 0 ||
-            Object.keys(summary.changedAbilities).length > 0;
-
-        if (hasChanges) {
-            const confirmed = await this._showConfirmation(
-                'Unsaved Changes',
-                'You have unsaved changes. Are you sure you want to exit?'
-            );
-            if (!confirmed) return;
-        }
-
-        this.session.discard();
-        if (this.bootstrapModal) {
-            this.bootstrapModal.hide();
-        }
+        // Simply trigger the hide - confirmation will be handled by the event listener
+        this.bootstrapModal.hide();
     }
 
     /**
@@ -216,10 +202,15 @@ export class LevelUpModal {
      */
     _initializeBootstrapModal() {
         // Dispose old instance if exists
-        try {
-            this.bootstrapModal?.dispose?.();
-        } catch (e) {
-            console.warn('[LevelUpModal]', 'Error disposing old modal', e);
+        if (this.bootstrapModal) {
+            try {
+                if (typeof this.bootstrapModal.dispose === 'function') {
+                    this.bootstrapModal.dispose();
+                }
+            } catch (e) {
+                console.warn('[LevelUpModal]', 'Error disposing old modal', e);
+            }
+            this.bootstrapModal = null;
         }
 
         // Create new instance
@@ -228,15 +219,43 @@ export class LevelUpModal {
             throw new Error('Bootstrap not found on window');
         }
 
-        this.bootstrapModal = new bs.Modal(this.modalEl, {
-            backdrop: 'static', // Don't close on background click
-            keyboard: false,    // Don't close on Escape
-        });
+        // Don't pass options since they're already set in HTML via data-bs-* attributes
+        this.bootstrapModal = new bs.Modal(this.modalEl);
 
         // Register cleanup
         this._cleanup.registerBootstrapModal(this.modalEl, this.bootstrapModal);
 
-        // Setup hide listener
+        // Intercept modal close to check for unsaved changes
+        this._cleanup.on(this.modalEl, 'hide.bs.modal', async (e) => {
+            // Check if we have unsaved changes
+            if (this.session) {
+                const summary = this.session.getChangeSummary();
+                const hasChanges = summary.totalLevelChange !== 0 ||
+                    summary.leveledClasses.length > 0 ||
+                    Object.keys(summary.changedAbilities).length > 0;
+
+                if (hasChanges) {
+                    // Prevent the modal from closing
+                    e.preventDefault();
+
+                    // Show confirmation
+                    const confirmed = await this._showConfirmation(
+                        'Unsaved Changes',
+                        'You have unsaved changes. Are you sure you want to exit?'
+                    );
+
+                    if (confirmed) {
+                        // User confirmed, discard changes and close
+                        this.session.discard();
+                        this.session = null;
+                        this.bootstrapModal.hide();
+                    }
+                    // If not confirmed, do nothing (modal stays open)
+                }
+            }
+        });
+
+        // Setup hide listener for cleanup
         this._cleanup.once(this.modalEl, 'hidden.bs.modal', () => this._onModalHidden());
 
         // Attach button listeners
@@ -418,11 +437,13 @@ export class LevelUpModal {
      * @private
      */
     async _showConfirmation(title, message) {
-        return new Promise((resolve) => {
-            // TODO: Replace with actual modal or dialog
-            const label = title ? `${title}: ${message}` : message;
-            const confirmed = confirm(label);
-            resolve(confirmed);
+        const modal = Modal.getInstance();
+        return await modal.showConfirmationModal({
+            title,
+            message,
+            confirmButtonText: 'Exit',
+            cancelButtonText: 'Stay',
+            confirmButtonClass: 'btn-danger',
         });
     }
 }

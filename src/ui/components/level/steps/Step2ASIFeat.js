@@ -78,9 +78,15 @@ export class Step2ASIFeat {
                 const improvementOptions = slotCard?.querySelector('[data-improvement-options]');
                 const featOptions = slotCard?.querySelector('[data-feat-options]');
 
+                // Update tab active states
+                const improvementTab = slotCard?.querySelector(`label[for="asi_improvement_${slotIndex}"]`);
+                const featTab = slotCard?.querySelector(`label[for="asi_feat_${slotIndex}"]`);
+
                 if (mode === 'improvement') {
                     improvementOptions?.classList.remove('d-none');
                     featOptions?.classList.add('d-none');
+                    improvementTab?.classList.add('active');
+                    featTab?.classList.remove('active');
 
                     // Clear feat selection: re-render feat options to show "Select a Feat" button
                     if (featOptions) {
@@ -89,6 +95,8 @@ export class Step2ASIFeat {
                 } else {
                     improvementOptions?.classList.add('d-none');
                     featOptions?.classList.remove('d-none');
+                    improvementTab?.classList.remove('active');
+                    featTab?.classList.add('active');
 
                     // Clear ASI selections: remove active states
                     slotCard?.querySelectorAll('[data-ability-plus2]').forEach(btn => {
@@ -377,47 +385,54 @@ export class Step2ASIFeat {
 
         return `
             <div class="card mb-3 asi-slot-card" data-asi-slot="${index}" data-class-name="${slot.class}" data-level="${slot.level}">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-star"></i>
-                        Ability Score Improvement / Feat
-                    </h6>
-                    <small class="text-muted">
+                <div class="card-header d-flex justify-content-between align-items-end pb-0">
+                    <ul class="nav nav-tabs mb-0">
+                        <li class="nav-item">
+                            <input 
+                                type="radio" 
+                                class="btn-check d-none" 
+                                name="asi_mode_${index}"
+                                id="asi_improvement_${index}"
+                                value="improvement"
+                                data-asi-mode-toggle
+                                data-asi-slot-index="${index}"
+                                ${selectedMode === 'improvement' ? 'checked' : ''}
+                            >
+                            <label 
+                                class="nav-link ${selectedMode === 'improvement' ? 'active' : ''}" 
+                                for="asi_improvement_${index}"
+                                ${selectedMode === 'improvement' ? 'aria-current="page"' : ''}
+                                style="cursor: pointer; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: -1px;"
+                            >
+                                <i class="fas fa-plus me-1"></i>Ability Improvement
+                            </label>
+                        </li>
+                        <li class="nav-item">
+                            <input 
+                                type="radio" 
+                                class="btn-check d-none" 
+                                name="asi_mode_${index}"
+                                id="asi_feat_${index}"
+                                value="feat"
+                                data-asi-mode-toggle
+                                data-asi-slot-index="${index}"
+                                ${selectedMode === 'feat' ? 'checked' : ''}
+                            >
+                            <label 
+                                class="nav-link ${selectedMode === 'feat' ? 'active' : ''}" 
+                                for="asi_feat_${index}"
+                                ${selectedMode === 'feat' ? 'aria-current="page"' : ''}
+                                style="cursor: pointer; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: -1px;"
+                            >
+                                <i class="fas fa-scroll me-1"></i>Select Feat
+                            </label>
+                        </li>
+                    </ul>
+                    <small class="text-muted align-self-center">
                         ${slot.class} • Level ${slot.level}
                     </small>
                 </div>
                 <div class="card-body">
-                    <!-- Mode Selection -->
-                    <div class="btn-group d-flex w-100 mb-3" role="group">
-                        <input 
-                            type="radio" 
-                            class="btn-check" 
-                            name="asi_mode_${index}"
-                            id="asi_improvement_${index}"
-                            value="improvement"
-                            data-asi-mode-toggle
-                            data-asi-slot-index="${index}"
-                            ${selectedMode === 'improvement' ? 'checked' : ''}
-                        >
-                        <label class="btn btn-outline-secondary w-50" for="asi_improvement_${index}">
-                            <i class="fas fa-plus"></i> Ability Improvement
-                        </label>
-
-                        <input 
-                            type="radio" 
-                            class="btn-check" 
-                            name="asi_mode_${index}"
-                            id="asi_feat_${index}"
-                            value="feat"
-                            data-asi-mode-toggle
-                            data-asi-slot-index="${index}"
-                            ${selectedMode === 'feat' ? 'checked' : ''}
-                        >
-                        <label class="btn btn-outline-secondary w-50" for="asi_feat_${index}">
-                            <i class="fas fa-scroll"></i> Select Feat
-                        </label>
-                    </div>
-
                     <!-- Ability Score Improvements -->
                     <div data-improvement-options class="${selectedMode === 'feat' ? 'd-none' : ''}">
                         ${this._renderASIOptions(index, choice)}
@@ -442,42 +457,42 @@ export class Step2ASIFeat {
 
         return `
             <!-- ASI Mode Selection -->
-            <div class="btn-group d-flex w-100 mb-3" role="group">
-                <input 
-                    type="radio" 
-                    class="btn-check" 
-                    name="asi_points_${slotIndex}"
-                    id="asi_plus2_${slotIndex}"
-                    value="plus2"
-                    data-asi-points-toggle
-                    data-asi-slot-index="${slotIndex}"
-                    ${asiMode === 'plus2' ? 'checked' : ''}
-                >
-                <label class="btn btn-outline-secondary btn-sm w-50" for="asi_plus2_${slotIndex}">
-                    +2 to one ability
-                </label>
+            <div class="d-flex justify-content-center mb-3">
+                <div class="btn-group" role="group">
+                    <input 
+                        type="radio" 
+                        class="btn-check" 
+                        name="asi_points_${slotIndex}"
+                        id="asi_plus2_${slotIndex}"
+                        value="plus2"
+                        data-asi-points-toggle
+                        data-asi-slot-index="${slotIndex}"
+                        ${asiMode === 'plus2' ? 'checked' : ''}
+                    >
+                    <label class="btn btn-outline-secondary btn-sm" for="asi_plus2_${slotIndex}">
+                        +2 to one ability
+                    </label>
 
-                <input 
-                    type="radio" 
-                    class="btn-check" 
-                    name="asi_points_${slotIndex}"
-                    id="asi_plus1plus1_${slotIndex}"
-                    value="plus1plus1"
-                    data-asi-points-toggle
-                    data-asi-slot-index="${slotIndex}"
-                    ${asiMode === 'plus1plus1' ? 'checked' : ''}
-                >
-                <label class="btn btn-outline-secondary btn-sm w-50" for="asi_plus1plus1_${slotIndex}">
-                    +1 to two abilities
-                </label>
+                    <input 
+                        type="radio" 
+                        class="btn-check" 
+                        name="asi_points_${slotIndex}"
+                        id="asi_plus1plus1_${slotIndex}"
+                        value="plus1plus1"
+                        data-asi-points-toggle
+                        data-asi-slot-index="${slotIndex}"
+                        ${asiMode === 'plus1plus1' ? 'checked' : ''}
+                    >
+                    <label class="btn btn-outline-secondary btn-sm" for="asi_plus1plus1_${slotIndex}">
+                        +1 to two abilities
+                    </label>
+                </div>
             </div>
 
             <!-- +2 to One Ability -->
             <div data-plus2-options class="${asiMode === 'plus1plus1' ? 'd-none' : ''}">
-                <label class="form-label small text-muted">Choose one ability to increase by +2:</label>
                 <div class="row g-2">
                     ${ABILITY_NAMES.map(ability => {
-            const abbr = ability.substring(0, 3).toUpperCase();
             const isSelected = asiMode === 'plus2' && ability1 === ability;
             return `
                             <div class="col-6 col-md-4">
@@ -487,9 +502,8 @@ export class Step2ASIFeat {
                                     data-ability-plus2="${ability}"
                                     data-asi-slot-index="${slotIndex}"
                                 >
-                                    <strong>${abbr}</strong>
-                                    <div class="small">${ability}</div>
-                                    <div class="small text-primary">+2</div>
+                                    <strong>${ability}</strong>
+                                    <div class="small text-primary"><strong>+2</strong></div>
                                 </button>
                             </div>
                         `;
@@ -499,10 +513,8 @@ export class Step2ASIFeat {
 
             <!-- +1 to Two Abilities -->
             <div data-plus1plus1-options class="${asiMode === 'plus2' ? 'd-none' : ''}">
-                <label class="form-label small text-muted">Choose two different abilities to increase by +1 each:</label>
                 <div class="row g-2 mb-2">
                     ${ABILITY_NAMES.map(ability => {
-            const abbr = ability.substring(0, 3).toUpperCase();
             const isFirst = asiMode === 'plus1plus1' && ability1 === ability;
             const isSecond = asiMode === 'plus1plus1' && ability2 === ability;
             const isSelected = isFirst || isSecond;
@@ -514,9 +526,8 @@ export class Step2ASIFeat {
                                     data-ability-plus1="${ability}"
                                     data-asi-slot-index="${slotIndex}"
                                 >
-                                    <strong>${abbr}</strong>
-                                    <div class="small">${ability}</div>
-                                    <div class="small text-success">+1</div>
+                                    <strong>${ability}</strong>
+                                    <div class="small text-success"><strong>+1</strong></div>
                                 </button>
                             </div>
                         `;
@@ -617,9 +628,8 @@ export class Step2ASIFeat {
                         data-select-feat
                         data-asi-slot-index="${slotIndex}"
                     >
-                        <i class="fas fa-scroll"></i> Select a Feat
+                        <i class="fas fa-scroll"></i> Choose Feat
                     </button>
-                    <p class="text-muted small mt-2 mb-0">Browse and choose from available feats</p>
                 </div>
             `;
         }

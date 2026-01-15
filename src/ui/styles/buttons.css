@@ -134,3 +134,30 @@
 .btn-group .btn:not(:first-child):not(:last-child) {
 	border-radius: 0;
 }
+
+/* Active state takes precedence over hover */
+.btn.active,
+.btn.active:hover,
+.btn.active:focus {
+	background-color: color-mix(
+		in srgb,
+		var(--accent-color) 12%,
+		var(--secondary-color)
+	) !important;
+	border-color: var(--accent-color) !important;
+	color: var(--text-color) !important;
+	transform: translateY(0);
+}
+
+.btn-outline-secondary.active,
+.btn-outline-secondary.active:hover,
+.btn-outline-secondary.active:focus {
+	background-color: color-mix(
+		in srgb,
+		var(--accent-color) 12%,
+		var(--secondary-color)
+	) !important;
+	border-color: var(--accent-color) !important;
+	color: var(--text-color) !important;
+	transform: translateY(0);
+}

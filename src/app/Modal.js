@@ -321,8 +321,8 @@ export class Modal {
 				<li><i class="fas fa-chart-line review-icon"></i><strong>Level:</strong> <span class="review-value">${data?.level || ''}</span></li>
 			<li><i class="fas fa-venus-mars review-icon"></i><strong>Gender:</strong> <span class="review-value">${data?.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : ''}</span></li>
 			<li><i class="fas fa-star review-icon"></i><strong>Ability Scores:</strong> <span class="review-value">${this._formatAbilityScoreMethod(data?.abilityScoreMethod || '')}</span></li>
-				<li><i class="fas fa-scroll review-icon"></i><strong>Feats:</strong> <span class="review-value">${data?.feats ? 'Enabled' : 'Disabled'}</span></li>
-				<li><i class="fas fa-code-branch review-icon"></i><strong>Multiclassing:</strong> <span class="review-value">${data?.multiclassing ? 'Enabled' : 'Disabled'}</span></li>
+				<li><i class="fas fa-scroll review-icon"></i><strong>Optional Class Features:</strong> <span class="review-value">${data?.feats ? 'Enabled' : 'Disabled'}</span></li>
+				<li><i class="fas fa-heart review-icon"></i><strong>Average Hit Points:</strong> <span class="review-value">${data?.averageHitPoints ? 'Enabled' : 'Disabled'}</span></li>
 				<li class="review-sources"><i class="fas fa-book review-icon"></i><strong>Sources:</strong> ${sourceBadges || '<span class="text-muted">None</span>'}</li>
 			`;
 			const hint = document.getElementById('reviewValidationHint');
@@ -582,8 +582,9 @@ export class Modal {
 			const nameInput = document.getElementById('newCharacterName');
 			const levelInput = document.getElementById('newCharacterLevel');
 			const genderInput = document.getElementById('newCharacterGender');
+			// TODO: Remove featVariant logic - optional class features should be handled per-class
 			const featVariant = document.getElementById('featVariant');
-			const multiclassVariant = document.getElementById('multiclassVariant');
+			const averageHitPoints = document.getElementById('averageHitPoints');
 			const abilityScoreMethod = form.querySelector(
 				'input[name="abilityScoreMethod"]:checked',
 			);
@@ -593,7 +594,7 @@ export class Modal {
 				!levelInput ||
 				!genderInput ||
 				!featVariant ||
-				!multiclassVariant ||
+				!averageHitPoints ||
 				!abilityScoreMethod
 			) {
 				console.error('Modal', 'One or more form fields not found');
@@ -606,8 +607,11 @@ export class Modal {
 				level: Number.parseInt(levelInput.value, 10),
 				gender: genderInput.value,
 				portrait: this._selectedPortrait?.value || 'assets/images/characters/placeholder_char_card.webp',
+				// TODO: Remove - optional class features should be handled per-class
 				feats: featVariant.checked,
-				multiclassing: multiclassVariant.checked,
+				// TODO: Remove - multiclassing removed from UI
+				multiclassing: true,
+				averageHitPoints: averageHitPoints.checked,
 				abilityScoreMethod: abilityScoreMethod.value,
 			};
 		} catch (error) {
@@ -664,9 +668,11 @@ export class Modal {
 			character.level = formData.level;
 			character.gender = formData.gender;
 			character.allowedSources = Array.from(selectedSources);
+			// TODO: Remove feats/multiclassing - optional class features should be handled per-class
 			character.variantRules = {
 				feats: formData.feats,
 				multiclassing: formData.multiclassing,
+				averageHitPoints: formData.averageHitPoints,
 				abilityScoreMethod: formData.abilityScoreMethod,
 			};
 			character.portrait = formData.portrait;

@@ -2378,33 +2378,7 @@ small.text-muted {
 	}
 }
 
-/* Ensure modal is centered vertically */
-.modal {
-	display: none;
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	z-index: 1050;
-	overflow-x: hidden;
-	overflow-y: auto;
-	outline: 0;
-}
-
-.modal-dialog {
-	position: relative;
-	pointer-events: none;
-}
-
-.modal-content {
-	position: relative;
-	pointer-events: auto;
-	display: flex;
-	flex-direction: column;
-	width: 100%;
-}
-
+/* Modal z-index and positioning are handled in modals.css */
 /* Add some nice animation for the source toggles */
 .source-toggle {
 	transform-origin: center;
