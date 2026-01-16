@@ -1,16 +1,18 @@
 /**
  * Step 1: Rules
  * 
- * User selects ability score method and variant rules.
+ * User selects ability score method, variant rules, and allowed source books.
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { SourceCard } from '../../sources/Card.js';
 
 export class Step1Rules {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;
         this._cleanup = DOMCleanup.create();
+        this._sourceCard = new SourceCard();
     }
 
     /**
@@ -24,8 +26,8 @@ export class Step1Rules {
         return `
             <div class="step-1-rules">
                 <div class="row g-3">
-                    <div class="col-md-8">
-                        <div class="card">
+                    <div class="col-md-7">
+                        <div class="card h-100">
                             <div class="card-header">
                                 <i class="fas fa-dice-d20"></i> Ability Score Generation
                             </div>
@@ -59,8 +61,8 @@ export class Step1Rules {
                         </div>
                     </div>
                     
-                    <div class="col-md-4">
-                        <div class="card">
+                    <div class="col-md-5">
+                        <div class="card h-100">
                             <div class="card-header">
                                 <i class="fas fa-cogs"></i> Variant Rules
                             </div>
@@ -87,6 +89,33 @@ export class Step1Rules {
                         </div>
                     </div>
                 </div>
+
+                <!-- Source Selection Section -->
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold">Select Allowed Sources</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="#" class="text-decoration-none text-accent" id="selectAllSources">Select All</a>
+                                    <span class="text-muted">|</span>
+                                    <a href="#" class="text-decoration-none text-accent" id="deselectAllSources">None</a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="sourceBookHeader" style="display: none;"></div>
+                                <div id="sourceBookSelection">
+                                    <!-- Source book toggles will be added here -->
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    * At least one Player's Handbook (2014 or 2024) must be selected
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -94,9 +123,78 @@ export class Step1Rules {
     /**
      * Attach event listeners to rendered content.
      */
-    attachListeners(_contentArea) {
+    async attachListeners(contentArea) {
         console.debug('[Step1Rules]', 'Attaching listeners');
-        // Form inputs are saved on next/back
+
+        // Initialize source card
+        const container = contentArea.querySelector('#sourceBookSelection');
+        if (container) {
+            this._sourceCard.container = container;
+            await this._sourceCard.initializeSourceSelection();
+
+            // Restore previously selected sources
+            const allowedSources = this.session.get('allowedSources');
+            if (allowedSources && allowedSources.size > 0) {
+                this._restoreSourceSelection(allowedSources);
+            }
+        }
+
+        // Select All button
+        const selectAllBtn = contentArea.querySelector('#selectAllSources');
+        if (selectAllBtn) {
+            this._cleanup.on(selectAllBtn, 'click', (e) => {
+                e.preventDefault();
+                this._selectAllSources();
+            });
+        }
+
+        // Deselect All button
+        const deselectAllBtn = contentArea.querySelector('#deselectAllSources');
+        if (deselectAllBtn) {
+            this._cleanup.on(deselectAllBtn, 'click', (e) => {
+                e.preventDefault();
+                this._deselectAllSources();
+            });
+        }
+    }
+
+    /**
+     * Restore previously selected sources.
+     */
+    _restoreSourceSelection(sources) {
+        if (!this._sourceCard.container) return;
+
+        const toggles = this._sourceCard.container.querySelectorAll('.source-toggle');
+        for (const toggle of toggles) {
+            const source = toggle.getAttribute('data-source')?.toUpperCase();
+            if (source && sources.has(source)) {
+                toggle.classList.add('selected');
+            }
+        }
+    }
+
+    /**
+     * Select all sources.
+     */
+    _selectAllSources() {
+        if (!this._sourceCard.container) return;
+
+        const toggles = this._sourceCard.container.querySelectorAll('.source-toggle');
+        for (const toggle of toggles) {
+            toggle.classList.add('selected');
+        }
+    }
+
+    /**
+     * Deselect all sources.
+     */
+    _deselectAllSources() {
+        if (!this._sourceCard.container) return;
+
+        const toggles = this._sourceCard.container.querySelectorAll('.source-toggle');
+        for (const toggle of toggles) {
+            toggle.classList.remove('selected');
+        }
     }
 
     /**
@@ -108,6 +206,16 @@ export class Step1Rules {
             console.error('[Step1Rules]', 'No ability score method selected');
             return false;
         }
+
+        // Validate source selection
+        const selectedSources = this._getSelectedSources();
+        const isValid = this._sourceCard.validateSourceSelection(selectedSources);
+
+        if (!isValid) {
+            console.warn('[Step1Rules]', 'Source validation failed');
+            return false;
+        }
+
         return true;
     }
 
@@ -134,9 +242,35 @@ export class Step1Rules {
         // Always set multiclassing to true (removed from UI)
         this.session.set('variantRules.multiclassing', true);
 
+        // Save source selection
+        const selectedSources = this._getSelectedSources();
+        this.session.set('allowedSources', selectedSources);
+
         console.debug('[Step1Rules]', 'Saved data:', {
             abilityScoreMethod: this.session.get('abilityScoreMethod'),
             variantRules: this.session.get('variantRules'),
+            allowedSources: Array.from(selectedSources),
         });
+    }
+
+    /**
+     * Get selected sources from UI.
+     */
+    _getSelectedSources() {
+        const selectedSources = new Set();
+
+        if (!this._sourceCard.container) {
+            return selectedSources;
+        }
+
+        const selectedToggles = this._sourceCard.container.querySelectorAll('.source-toggle.selected');
+        for (const toggle of selectedToggles) {
+            const source = toggle.getAttribute('data-source')?.toUpperCase();
+            if (source) {
+                selectedSources.add(source);
+            }
+        }
+
+        return selectedSources;
     }
 }

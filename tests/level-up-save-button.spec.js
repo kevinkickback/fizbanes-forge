@@ -65,14 +65,14 @@ test.describe('Level Up Save Button', () => {
             // Click first available character card and get initial level
             console.log('3. Clicking first character card...');
             const firstCard = page.locator('.character-card').first();
-            
+
             // Get initial character level from card (it's in the detail-item with fa-crown icon)
             const levelDetailItem = firstCard.locator('.detail-item').filter({ hasText: 'Level' });
             const initialLevelText = await levelDetailItem.locator('span').textContent();
             const initialLevel = parseInt(initialLevelText.replace(/\D/g, ''), 10) || 1;
             console.log(`   Initial character level: ${initialLevel}`);
             initialCharacterLevel = initialLevel;
-            
+
             await firstCard.click();
             await page.waitForTimeout(2000);
 
@@ -100,12 +100,12 @@ test.describe('Level Up Save Button', () => {
 
             // Get character's current level from the modal
             console.log(`7. Adding ${LEVELS_TO_ADD} levels...`);
-            
+
             // Find the class to level up and click increase buttons
             const increaseButtons = page.locator('.level-up-class-card button[data-action="increase"]');
             const count = await increaseButtons.count();
             console.log(`   Found ${count} class(es) to level up`);
-            
+
             if (count > 0) {
                 // Add 5 levels to the first class
                 const firstClassIncreaseBtn = increaseButtons.first();
@@ -119,7 +119,7 @@ test.describe('Level Up Save Button', () => {
             // Navigate through wizard steps
             console.log('8. Navigating through wizard steps...');
             const nextBtn = page.locator('button[data-action="next"]');
-            
+
             // Step 1: Class Features
             await nextBtn.click();
             await page.waitForTimeout(1000);
@@ -202,7 +202,7 @@ test.describe('Level Up Save Button', () => {
             console.log(`Has unsaved changes: ${appStateData.hasUnsavedChanges}`);
             console.log(`Character level: ${appStateData.characterLevel}`);
             console.log(`Total errors: ${errors.length}`);
-            
+
             if (errors.length > 0) {
                 console.log('\nErrors encountered:');
                 for (let i = 0; i < errors.length; i++) {
@@ -243,7 +243,7 @@ test.describe('Level Up Save Button', () => {
 
         try {
             console.log('\n=== SECOND LAUNCH: Verifying Persistence ===');
-            
+
             // Get main window
             let page = electronApp.windows().find((win) => !win.url().startsWith('devtools://'));
             if (!page) {
@@ -261,7 +261,7 @@ test.describe('Level Up Save Button', () => {
             console.log('2. Checking character level on home page...');
             const firstCard = page.locator('.character-card').first();
             await firstCard.waitFor({ state: 'visible', timeout: 10000 });
-            
+
             const levelDetailItem = firstCard.locator('.detail-item').filter({ hasText: 'Level' });
             const levelText = await levelDetailItem.locator('span').textContent();
             const currentLevel = parseInt(levelText.replace(/\D/g, ''), 10) || 1;

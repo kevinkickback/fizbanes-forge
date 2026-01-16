@@ -74,7 +74,7 @@ function _createTooltip() {
 
 	tooltip.appendChild(actions);
 	container.appendChild(tooltip);
-	
+
 	// Append to modal if one is open, otherwise to body
 	// This prevents Bootstrap from adding a backdrop for tooltips
 	const openModal = document.querySelector('.modal.show');

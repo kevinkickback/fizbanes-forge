@@ -107,7 +107,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 .modal-header {
 	background-color: var(--primary-color);
 	border-bottom: 1px solid var(--modal-border);
-	padding: 1.25rem 1.5rem;
+	padding: 1rem 1.5rem;
 	flex-shrink: 0;
 	min-height: 0;
 	border-top-left-radius: var(--border-radius-lg);
@@ -237,13 +237,18 @@ body > .modal-backdrop.show:nth-last-child(2) {
 .modal-footer {
 	background-color: var(--primary-color);
 	border-top: 1px solid var(--modal-border);
-	padding: 1rem 1.5rem;
+	padding: 0.5rem 1.25rem !important;
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
 	border-bottom-left-radius: var(--border-radius-lg);
 	border-bottom-right-radius: var(--border-radius-lg);
+}
+
+/* Remove default card margins in modal step content */
+.modal [data-step-content] .card {
+	margin-bottom: 0;
 }
 
 /* Wizard progress removed */
@@ -254,7 +259,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	background-color: var(--secondary-color);
 	color: var(--text-color);
 	border: 1px solid var(--border-color);
-	cursor: pointer;
+	cursor: default;
 }
 #newCharacterStepper .list-group-item.active,
 #levelUpStepper .list-group-item.active {
@@ -333,7 +338,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 }
 .portrait-preview-horizontal {
 	width: 140px;
-	height: 220px;
+	height: 260px;
 	border-radius: var(--border-radius);
 	border: 2px solid var(--border-color);
 	display: flex;
@@ -356,7 +361,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	flex-direction: column;
 	gap: 0.5rem;
 	overflow-y: auto;
-	max-height: 220px;
+	max-height: 260px;
 }
 
 /* Increase top gap before Character Name in Basics section */
@@ -518,7 +523,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	padding: 0 0.4rem;
 	width: 100%;
 	overflow-y: auto;
-	max-height: 350px;
+	max-height: 210px;
 }
 
 #sourceBookSelection + small {
@@ -1102,7 +1107,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	}
 
 	.modal-header {
-		padding: 1.25rem 1.5rem;
+		padding: 0.5rem 1.25rem !important;
 	}
 
 	.modal-body {
@@ -1536,6 +1541,314 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	.feature-option-card strong {
 		color: var(--accent-color);
 		font-weight: 600;
+	}
+
+	/* ===================================
+   MODAL RESPONSIVE STYLES
+   =================================== */
+
+	@media (max-width: 992px) {
+		.modal-dialog {
+			max-width: 90%;
+			margin: 1rem auto;
+		}
+
+		#sourceBookSelection {
+			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+		}
+	}
+
+	@media (max-width: 576px) {
+		.modal-dialog {
+			max-width: 95%;
+			margin: 0.5rem auto;
+		}
+
+		#sourceBookSelection {
+			grid-template-columns: 1fr;
+		}
+
+		.source-toggle {
+			padding: 0.25rem 0.5rem;
+			min-height: 1.75rem;
+		}
+	}
+
+	/* ===================================
+   MODAL FORM SECTIONS
+   =================================== */
+
+	/* Create Modal Section Styling */
+	.modal-body .form-section {
+		padding: 1.5rem;
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.modal-body .form-section:last-child {
+		border-bottom: none;
+	}
+
+	/* Adjust spacing for the first section */
+	.modal-body .form-section:first-child {
+		padding-top: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.modal-body .form-section:first-child .row {
+		flex: 1;
+		min-height: 100px;
+	}
+
+	.modal-body .form-section:first-child .col-md-8 {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+	}
+
+	.modal-body .form-section:first-child .col-md-8 .row {
+		margin-bottom: 1rem;
+	}
+
+	.modal-body .form-section:first-child .col-md-8 .row:last-child {
+		margin-bottom: 0;
+	}
+
+	.modal-body .form-section:first-child .col-md-4 {
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* Adjust spacing for the last section */
+	.modal-body .form-section:last-child {
+		padding-bottom: 0;
+	}
+
+	/* Ensure proper spacing between form groups */
+	.modal-body .form-group {
+		margin-bottom: 1rem;
+	}
+
+	.modal-body .form-group:last-child {
+		margin-bottom: 0;
+	}
+
+	/* ===================================
+   FEAT SELECTION MODAL
+   =================================== */
+
+	.feat-item {
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.feat-item:hover {
+		background: var(--secondary-color);
+	}
+
+	.feat-item.selected {
+		background: var(--overlay-success-15);
+		border-color: var(--accent-color);
+	}
+
+	.feat-item.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: var(--secondary-color);
+	}
+
+	/* ===================================
+   SPELL LIST MODAL
+   =================================== */
+
+	.spell-list-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 0.5rem;
+	}
+
+	.spell-card {
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius);
+		background: var(--card-background);
+		overflow: hidden;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.spell-card:hover {
+		border-color: var(--accent-color);
+		background: var(--accent-10);
+	}
+
+	.spell-card.selected {
+		border-color: var(--accent-color);
+		background: var(--accent-15);
+		box-shadow: 0 0 0 2px var(--accent-color);
+	}
+
+	.spell-card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.75rem 1rem;
+		background: var(--secondary-color);
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.spell-card.selected .spell-card-header {
+		background: var(--accent-15);
+	}
+
+	.spell-card-header strong {
+		color: var(--text-color);
+		font-size: 1rem;
+	}
+
+	.spell-card-body {
+		padding: 1rem;
+	}
+
+	.spell-stats {
+		margin-bottom: 0.75rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.spell-stat-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.spell-stat-row:last-child {
+		margin-bottom: 0;
+	}
+
+	.spell-stat {
+		color: var(--text-color);
+		font-size: 0.9rem;
+	}
+
+	.spell-stat strong {
+		color: var(--text-light);
+	}
+
+	.spell-description {
+		color: var(--text-light);
+		font-size: 0.9rem;
+		line-height: 1.5;
+	}
+
+	.selected-spells-container {
+		min-height: 2rem;
+	}
+
+	.selected-spells-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+
+	.selected-spells-list .badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5rem 0.75rem;
+	}
+
+	.selected-spells-list .btn-close {
+		padding: 0;
+		margin: 0;
+		opacity: 0.7;
+	}
+
+	.selected-spells-list .btn-close:hover {
+		opacity: 1;
+	}
+
+	/* ===================================
+   EQUIPMENT SELECTION MODAL
+   =================================== */
+
+	.item-card {
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius);
+		background: var(--card-background);
+		overflow: hidden;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		margin-bottom: 0.75rem;
+	}
+
+	.item-card:hover {
+		border-color: var(--accent-color);
+		background: var(--accent-10);
+	}
+
+	.item-card.selected {
+		border-color: var(--accent-color);
+		background: var(--accent-15);
+		box-shadow: 0 0 0 2px var(--accent-color);
+	}
+
+	.item-card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.75rem 1rem;
+		background: var(--secondary-color);
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.item-card.selected .item-card-header {
+		background: var(--accent-15);
+	}
+
+	.item-card-header strong {
+		color: var(--text-color);
+		font-size: 1rem;
+	}
+
+	.item-card-body {
+		padding: 1rem;
+	}
+
+	.item-stats {
+		margin-bottom: 0.75rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.item-stat-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.item-stat-row:last-child {
+		margin-bottom: 0;
+	}
+
+	.item-stat {
+		color: var(--text-color);
+		font-size: 0.9rem;
+	}
+
+	.item-stat strong {
+		color: var(--text-light);
+	}
+
+	.item-description {
+		color: var(--text-light);
+		font-size: 0.9rem;
+		line-height: 1.5;
+	}
+
+	.selected-equipment-list {
+		min-height: 2rem;
 	}
 
 	.feature-option-card .text-muted {

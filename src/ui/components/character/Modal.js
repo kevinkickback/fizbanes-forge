@@ -3,8 +3,8 @@
  * 
  * Orchestrates a 4-step wizard:
  * 0. Basics - Name, gender, level, portrait
- * 1. Rules - Ability score method, variant rules
- * 2. Sources - Select allowed source books
+ * 1. Rules - Ability score method, variant rules, source selection
+ * 2. Race - Select character race
  * 3. Review - Review all settings and create character
  * 
  * All data is staged in a CharacterCreationSession and only applied on confirmation.
@@ -243,8 +243,8 @@ export class CharacterCreationModal {
                     break;
                 }
                 case 2: {
-                    const { Step2Sources } = await import('./steps/Step2Sources.js');
-                    StepClass = Step2Sources;
+                    const { Step2Race } = await import('./steps/Step2Race.js');
+                    StepClass = Step2Race;
                     break;
                 }
                 case 3: {
