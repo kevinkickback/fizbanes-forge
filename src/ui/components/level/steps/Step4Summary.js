@@ -289,7 +289,7 @@ export class Step4Summary {
      * Also includes subclass features if a subclass was selected.
      * @private
      */
-    _gatherAllClassFeatures() {
+    async _gatherAllClassFeatures() {
         const features = [];
         const summary = this.session.getChangeSummary();
         const seenFeatures = new Set(); // Track by class+name to avoid duplicates
@@ -299,7 +299,7 @@ export class Step4Summary {
             return [];
         }
 
-        summary.leveledClasses.forEach(classChange => {
+        for (const classChange of summary.leveledClasses) {
             const { name: className, from: fromLevel, to: toLevel } = classChange;
             const startLevel = fromLevel || 0;
 
@@ -335,11 +335,18 @@ export class Step4Summary {
             }
 
             // Get subclass features if applicable
-            const selectedSubclass = this.session.stepData?.selectedSubclasses?.[className];
+            let selectedSubclass = this.session.stepData?.selectedSubclasses?.[className];
+
+            // If no newly selected subclass, check if character already has one for this class
+            if (!selectedSubclass) {
+                const classProgression = this.session.stagedChanges?.progression?.classes?.find(c => c.name === className);
+                selectedSubclass = classProgression?.subclass;
+            }
+
             if (selectedSubclass) {
                 for (let level = startLevel + 1; level <= toLevel; level++) {
                     // Get subclass features using LevelUpService
-                    const subclassFeatures = levelUpService.getSubclassFeaturesForLevel?.(className, selectedSubclass, level);
+                    const subclassFeatures = await levelUpService.getSubclassFeaturesForLevel?.(className, selectedSubclass, level);
 
                     if (Array.isArray(subclassFeatures)) {
                         // Filter to only features at this exact level
@@ -354,7 +361,7 @@ export class Step4Summary {
                                     seenFeatures.add(key);
                                     features.push({
                                         name: feature.name,
-                                        class: `${className} (${selectedSubclass})`,
+                                        class: className,
                                         level,
                                         entries: feature.entries || feature.description,
                                         description: feature.description,
@@ -368,7 +375,7 @@ export class Step4Summary {
                     }
                 }
             }
-        });
+        }
 
         return features;
     }

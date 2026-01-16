@@ -170,7 +170,33 @@ export class Step1ClassFeatures {
      */
     async _gatherSubclassPrompts(leveledClasses) {
         const prompts = [];
+        const validationReport = this.session.getFilteredValidationReport();
 
+        // First, check for MISSING subclass selections from ALL character classes
+        if (validationReport?.missing?.subclasses) {
+            for (const missing of validationReport.missing.subclasses) {
+                const classData = classService.getClass(missing.class);
+                if (!classData) continue;
+
+                const allSubclasses = classService.getSubclasses(missing.class);
+                const availableSubclasses = allSubclasses.filter((sc) => {
+                    const subclassSource = sc.subclassSource || sc.source || sc.classSource;
+                    return sourceService.isSourceAllowed(subclassSource);
+                });
+
+                if (availableSubclasses.length > 0) {
+                    prompts.push({
+                        className: missing.class,
+                        level: missing.requiredAt || missing.level,
+                        availableSubclasses,
+                        selected: this.session.stepData.selectedSubclasses[missing.class] || null,
+                        isMissing: true // Flag to indicate this is a historical gap
+                    });
+                }
+            }
+        }
+
+        // Then, check for NEW subclass unlocks in newly gained levels
         for (const classInfo of leveledClasses) {
             const classData = classService.getClass(classInfo.name);
             if (!classData) continue;
@@ -183,23 +209,30 @@ export class Step1ClassFeatures {
                 const unlockLevel = parseInt(subclassLevel, 10) || 3;
 
                 if (level === unlockLevel && !classInfo.subclass) {
-                    // This is when the character should select a subclass
-                    const allSubclasses = classService.getSubclasses(classInfo.name);
+                    // Check if we already added this as a missing prompt
+                    const alreadyAdded = prompts.some(p =>
+                        p.className === classInfo.name && p.level === level
+                    );
 
-                    // Filter subclasses by allowed sources
-                    const availableSubclasses = allSubclasses.filter((sc) => {
-                        // Prefer explicit subclass source, then generic source, and only then classSource
-                        const subclassSource = sc.subclassSource || sc.source || sc.classSource;
-                        return sourceService.isSourceAllowed(subclassSource);
-                    });
+                    if (!alreadyAdded) {
+                        // This is when the character should select a subclass
+                        const allSubclasses = classService.getSubclasses(classInfo.name);
 
-                    if (availableSubclasses.length > 0) {
-                        prompts.push({
-                            className: classInfo.name,
-                            level,
-                            availableSubclasses,
-                            selected: this.session.stepData.selectedSubclasses[classInfo.name] || null
+                        // Filter subclasses by allowed sources
+                        const availableSubclasses = allSubclasses.filter((sc) => {
+                            // Prefer explicit subclass source, then generic source, and only then classSource
+                            const subclassSource = sc.subclassSource || sc.source || sc.classSource;
+                            return sourceService.isSourceAllowed(subclassSource);
                         });
+
+                        if (availableSubclasses.length > 0) {
+                            prompts.push({
+                                className: classInfo.name,
+                                level,
+                                availableSubclasses,
+                                selected: this.session.stepData.selectedSubclasses[classInfo.name] || null
+                            });
+                        }
                     }
                 }
             }
@@ -248,67 +281,20 @@ export class Step1ClassFeatures {
         // Attach listeners for subclass selection
         const subclassSelects = contentArea.querySelectorAll('select[data-class-name]');
         subclassSelects.forEach(select => {
-            this._cleanup.on(select, 'change', (e) => {
+            this._cleanup.on(select, 'change', async (e) => {
                 const className = e.target.dataset.className;
                 const selectedValue = e.target.value;
                 this.session.stepData.selectedSubclasses[className] = selectedValue;
+
+                // Dynamically add features granted by the newly selected subclass
+                await this._handleSubclassSelectionChange(className, selectedValue, contentArea);
             });
         });
 
         // Attach listeners for feature selection buttons
         const featureButtons = contentArea.querySelectorAll('[data-feature-select-btn]');
         featureButtons.forEach(button => {
-            this._cleanup.on(button, 'click', async () => {
-                const featureId = button.dataset.featureSelectBtn;
-                const featureType = button.dataset.featureType;
-                const className = button.dataset.featureClass;
-                const level = parseInt(button.dataset.featureLevel, 10);
-                const isMulti = button.dataset.isMulti === 'true';
-
-                // Find feature data
-                const summary = this.session.getChangeSummary();
-                const leveledClasses = summary.leveledClasses.map(lc => ({
-                    name: lc.name,
-                    newLevel: lc.to,
-                    oldLevel: lc.from
-                }));
-                const allFeatures = await this._gatherFeaturesForLevel(leveledClasses);
-                const feature = allFeatures.find(f => f.id === featureId);
-
-                if (!feature || !feature.options) {
-                    console.error('[Step1]', 'Feature not found or has no options:', featureId);
-                    return;
-                }
-
-                // Get current selections
-                const currentSelections = this.session.stepData.selectedFeatures[featureId]
-                    ? (Array.isArray(this.session.stepData.selectedFeatures[featureId])
-                        ? this.session.stepData.selectedFeatures[featureId]
-                        : [this.session.stepData.selectedFeatures[featureId]])
-                    : [];
-
-                // Map selected IDs to full feature objects
-                const currentFeatureObjects = currentSelections
-                    .map(selId => feature.options.find(opt => opt.id === selId))
-                    .filter(Boolean);
-
-                // Open feature selector modal
-                const selector = new LevelUpFeatureSelector(
-                    this.session,
-                    this,
-                    className,
-                    featureType,
-                    level,
-                    featureId  // Pass the current feature ID
-                );
-
-                await selector.show(
-                    feature.options,
-                    currentFeatureObjects,
-                    isMulti,
-                    feature.count || 1
-                );
-            });
+            this._attachFeatureSelectListener(button); // Feature data will be fetched inside
         });
     }
 
@@ -383,19 +369,39 @@ export class Step1ClassFeatures {
 
     /**
      * Gather features that should be displayed at this level
+     * Includes both NEW features from level-up AND missing historical features
      */
     async _gatherFeaturesForLevel(leveledClasses) {
         const features = [];
+        const validationReport = this.session.getFilteredValidationReport();
 
+        // First, gather missing features from ALL character classes (not just leveled ones)
+        if (validationReport && !validationReport.isValid) {
+            const allClasses = this.session.stagedChanges.progression?.classes || [];
+            const processedClasses = new Set();
+
+            for (const classEntry of allClasses) {
+                const missingFeatures = this._getMissingHistoricalFeatures(classEntry.name, validationReport);
+                if (missingFeatures.length > 0) {
+                    features.push(...missingFeatures);
+                    processedClasses.add(classEntry.name);
+                }
+            }
+        }
+
+        // Then, gather NEW features from leveled classes
         for (const classInfo of leveledClasses) {
             const classData = classService.getClass(classInfo.name);
             if (!classData) continue;
 
             // Get subclass from session if user selected one, otherwise use current
-            let subclass = classInfo.subclass;
+            let subclass = null;
             if (this.session.stepData.selectedSubclasses[classInfo.name]) {
                 const selectedSubclassName = this.session.stepData.selectedSubclasses[classInfo.name];
                 subclass = classService.getSubclass(classInfo.name, selectedSubclassName);
+            } else if (classInfo.subclass) {
+                // Fetch subclass data object (classInfo.subclass is just a string)
+                subclass = classService.getSubclass(classInfo.name, classInfo.subclass);
             }
 
             // Get features for each newly gained level
@@ -409,7 +415,7 @@ export class Step1ClassFeatures {
                 );
 
                 // Add known choice features for specific classes/levels
-                levelFeatures.push(...this._getKnownChoiceFeatures(classInfo.name, level));
+                levelFeatures.push(...this._getKnownChoiceFeatures(classInfo.name, level, subclass));
 
                 // Optionally fetch additional service features (informational only)
                 try {
@@ -444,15 +450,109 @@ export class Step1ClassFeatures {
 
     /**
      * Get known choice features for specific class/level combinations
-     * Uses optionalfeatureProgression from class JSON data
+     * Uses optionalfeatureProgression from class and subclass JSON data
      */
-    _getKnownChoiceFeatures(className, level) {
+    _getKnownChoiceFeatures(className, level, subclass = null) {
         const features = [];
         const classData = classService.getClass(className);
-        if (!classData?.optionalfeatureProgression) return features;
+
+        // Check class optionalfeatureProgression
+        if (classData?.optionalfeatureProgression) {
+            features.push(...this._processOptionalFeatureProgression(classData.optionalfeatureProgression, className, level));
+        }
+
+        // Check subclass optionalfeatureProgression
+        if (subclass?.optionalfeatureProgression) {
+            features.push(...this._processOptionalFeatureProgression(subclass.optionalfeatureProgression, className, level));
+        }
+
+        // Check for specific subclass features like "Additional Fighting Style"
+        if (subclass) {
+            features.push(...this._processSubclassFeatureStrings(subclass, className, level));
+        }
+
+        return features;
+    }
+
+    /**
+     * Process subclass feature strings to find choice features at a specific level
+     * @private
+     */
+    _processSubclassFeatureStrings(subclass, className, level) {
+        const features = [];
+
+        if (!subclass.subclassFeatures || !Array.isArray(subclass.subclassFeatures)) {
+            console.debug('[Step1]', 'No subclassFeatures array found');
+            return features;
+        }
+
+        console.debug('[Step1]', `Processing ${subclass.subclassFeatures.length} subclass features for level ${level}`);
+
+        // Parse subclass feature strings like "Additional Fighting Style|Fighter||Champion||10"
+        for (const featureStr of subclass.subclassFeatures) {
+            if (typeof featureStr !== 'string') continue;
+
+            const parts = featureStr.split('|');
+            const featureName = parts[0];
+            const featureLevel = parseInt(parts[parts.length - 1], 10);
+
+            console.debug('[Step1]', `  - "${featureName}" at level ${featureLevel}`);
+
+            // Check if this feature is at the requested level
+            if (featureLevel !== level) continue;
+
+            console.debug('[Step1]', `    ✓ Matches current level ${level}`);
+
+            // Check if this is a known choice feature
+            const lowerName = featureName.toLowerCase();
+
+            // Additional Fighting Style
+            if (lowerName.includes('additional fighting style') || lowerName.includes('fighting style')) {
+                console.debug('[Step1]', '    ✓ Identified as Fighting Style choice feature');
+
+                const options = optionalFeatureService.getFeaturesByType(['FS:F', 'FS:R', 'FS:P'])
+                    .filter(opt => sourceService.isSourceAllowed(opt.source))
+                    .map(opt => ({
+                        id: `${opt.name}_${opt.source}`,
+                        name: opt.name,
+                        source: opt.source,
+                        description: this._getFeatureDescription(opt),
+                        entries: opt.entries
+                    }));
+
+                console.debug('[Step1]', `    Found ${options.length} Fighting Style options`);
+
+                if (options.length > 0) {
+                    const feature = {
+                        id: `${className.toLowerCase()}_${subclass.shortName.toLowerCase()}_fighting_style_${level}`,
+                        name: featureName,
+                        type: 'fighting-style',
+                        options,
+                        required: true,
+                        description: `Choose an additional Fighting Style`,
+                        count: 1
+                    };
+                    features.push(feature);
+                    console.debug('[Step1]', `    ✓ Added feature with ID: ${feature.id}`);
+                }
+            }
+            // Add more feature type checks here as needed
+            // For example: Maneuver choices, Metamagic, etc.
+        }
+
+        console.debug('[Step1]', `Processed subclass features, found ${features.length} choice features`);
+        return features;
+    }
+
+    /**
+     * Process optionalfeatureProgression array and return features for the given level
+     * @private
+     */
+    _processOptionalFeatureProgression(progressions, className, level) {
+        const features = [];
 
         // Check each optional feature progression
-        for (const progression of classData.optionalfeatureProgression) {
+        for (const progression of progressions) {
             const featureTypes = progression.featureType || [];
             const featureName = progression.name;
 
@@ -463,12 +563,12 @@ export class Step1ClassFeatures {
 
             // Handle array-based progression (indexed by level-1)
             if (Array.isArray(progression.progression)) {
-                countAtPrev = progression.progression[prevLevel - 1] || 0;
+                countAtPrev = prevLevel > 0 ? (progression.progression[prevLevel - 1] || 0) : 0;
                 countAtCurrent = progression.progression[level - 1] || 0;
             }
             // Handle object-based progression (level as key)
             else if (typeof progression.progression === 'object') {
-                countAtPrev = progression.progression[prevLevel.toString()] || 0;
+                countAtPrev = prevLevel > 0 ? (progression.progression[prevLevel.toString()] || 0) : 0;
                 countAtCurrent = progression.progression[level.toString()] || 0;
             }
 
@@ -504,6 +604,40 @@ export class Step1ClassFeatures {
                     description: `Choose ${newCount} ${featureName}`,
                     count: newCount // How many to select
                 });
+            }
+        }
+
+        // Also check for standard choice features like Fighting Style from ClassService
+        const classData = classService.getClass(className);
+        const classFeatures = classService.getClassFeatures(className, level, classData?.source || 'PHB');
+        for (const feature of classFeatures) {
+            if (feature.level === level) {
+                const featureName = feature.name || '';
+
+                // Check for Fighting Style
+                if (featureName.includes('Fighting Style')) {
+                    const options = optionalFeatureService.getFeaturesByType(['FS:F', 'FS:R', 'FS:P'])
+                        .filter(opt => sourceService.isSourceAllowed(opt.source))
+                        .map(opt => ({
+                            id: `${opt.name}_${opt.source}`,
+                            name: opt.name,
+                            source: opt.source,
+                            description: this._getFeatureDescription(opt),
+                            entries: opt.entries
+                        }));
+
+                    if (options.length > 0) {
+                        features.push({
+                            id: `${className.toLowerCase()}_fighting_style_${level}`,
+                            name: 'Fighting Style',
+                            type: 'fighting-style',
+                            options,
+                            required: true,
+                            description: 'Choose a Fighting Style',
+                            count: 1
+                        });
+                    }
+                }
             }
         }
 
@@ -796,6 +930,332 @@ export class Step1ClassFeatures {
         `;
 
         return html;
+    }
+
+    /**
+     * Handle dynamic feature addition when subclass is selected
+     * @param {string} className - The class name
+     * @param {string} subclassName - The selected subclass name
+     * @param {HTMLElement} contentArea - The container element for step content
+     */
+    async _handleSubclassSelectionChange(className, subclassName, contentArea) {
+        if (!subclassName) {
+            // Subclass deselected - could potentially remove dynamic features here
+            return;
+        }
+
+        console.info('[Step1]', '=== Subclass Selection Change ===');
+        console.info('[Step1]', 'Class:', className, '| Subclass:', subclassName);
+
+        // Get the character's current level for this class
+        const summary = this.session.getChangeSummary();
+        const leveledClass = summary.leveledClasses.find(lc => lc.name === className);
+
+        let levelsToCheck = [];
+
+        if (!leveledClass) {
+            // Not actively leveling this class, check current level from character
+            console.info('[Step1]', 'Not actively leveling, checking current character level');
+            const character = this.session.originalCharacter;
+            if (character?.progression?.classes) {
+                const charClass = character.progression.classes.find(c => c.name === className);
+                if (charClass) {
+                    const currentLevel = charClass.levels || 1;
+                    console.info('[Step1]', 'Current character level:', currentLevel);
+                    levelsToCheck = [currentLevel];
+                } else {
+                    console.warn('[Step1]', 'Could not find class in character progression');
+                    return;
+                }
+            } else {
+                console.warn('[Step1]', 'No progression data in character');
+                return;
+            }
+        } else {
+            // Actively leveling - check all levels from old to new
+            const oldLevel = leveledClass.from || 0;
+            const newLevel = leveledClass.to;
+            console.info('[Step1]', `Leveling from ${oldLevel} to ${newLevel}`);
+
+            for (let level = oldLevel + 1; level <= newLevel; level++) {
+                levelsToCheck.push(level);
+            }
+        }
+
+        console.info('[Step1]', 'Levels to check for features:', levelsToCheck);
+
+        // Get the subclass data
+        const subclass = classService.getSubclass(className, subclassName);
+        if (!subclass) {
+            console.warn('[Step1]', 'Could not load subclass data for', className, subclassName);
+            return;
+        }
+
+        console.info('[Step1]', 'Subclass data loaded:', subclass.name, '| Features:', subclass.subclassFeatures?.length || 0);
+
+        // Check each level for features
+        const allNewFeatures = [];
+        for (const level of levelsToCheck) {
+            const levelFeatures = this._getKnownChoiceFeatures(className, level, subclass);
+            console.info('[Step1]', `  Level ${level}: found ${levelFeatures.length} choice features`);
+
+            levelFeatures.forEach(f => {
+                console.info('[Step1]', `    - ${f.name} (${f.type}) with ${f.options?.length || 0} options`);
+            });
+
+            allNewFeatures.push(...levelFeatures);
+        }
+
+        if (allNewFeatures.length === 0) {
+            console.debug('[Step1]', 'No new choice features from subclass at checked levels');
+            return;
+        }
+
+        // Filter to only features that aren't already displayed
+        const existingFeatureIds = new Set(
+            Array.from(contentArea.querySelectorAll('[data-feature-card]'))
+                .map(card => card.dataset.featureCard)
+        );
+
+        console.info('[Step1]', 'Existing feature IDs:', Array.from(existingFeatureIds));
+
+        const featuresToAdd = allNewFeatures.filter(f => !existingFeatureIds.has(f.id));
+
+        if (featuresToAdd.length === 0) {
+            console.debug('[Step1]', 'All subclass features already displayed');
+            return;
+        }
+
+        console.info('[Step1]', `Adding ${featuresToAdd.length} new feature choice(s) from ${subclassName} subclass`);
+
+        // Find the insertion point (after subclass dropdown card)
+        const subclassCard = contentArea.querySelector(`[data-subclass-card="${className}"]`);
+        let insertionPoint = null;
+
+        if (subclassCard) {
+            // Insert after the subclass card's parent
+            insertionPoint = subclassCard.closest('.card');
+            console.info('[Step1]', 'Insertion point found: after subclass card');
+        } else {
+            console.warn('[Step1]', 'Subclass card not found, will append to end');
+        }
+
+        // Render and insert each new feature
+        for (const feature of featuresToAdd) {
+            console.info('[Step1]', 'Rendering feature:', feature.id);
+            const featureHtml = this._renderFeatureChoice(feature);
+
+            if (insertionPoint) {
+                insertionPoint.insertAdjacentHTML('afterend', featureHtml);
+                // Update insertion point for next feature
+                insertionPoint = insertionPoint.nextElementSibling;
+            } else {
+                // Fallback: append to content area
+                contentArea.insertAdjacentHTML('beforeend', featureHtml);
+            }
+
+            // Attach listener for the new feature button
+            const newFeatureCard = contentArea.querySelector(`[data-feature-card="${feature.id}"]`);
+            if (newFeatureCard) {
+                const selectBtn = newFeatureCard.querySelector('[data-feature-select-btn]');
+                if (selectBtn) {
+                    this._attachFeatureSelectListener(selectBtn, feature);
+                    console.info('[Step1]', 'Listener attached for feature:', feature.id);
+                } else {
+                    console.warn('[Step1]', 'Select button not found in feature card:', feature.id);
+                }
+            } else {
+                console.warn('[Step1]', 'Feature card not found after insertion:', feature.id);
+            }
+        }
+
+        console.info('[Step1]', '=== Subclass Feature Addition Complete ===');
+    }
+
+    /**
+     * Attach listener for a single feature select button
+     * @param {HTMLElement} button - The button element
+     * @param {Object} feature - The feature data (optional, will be fetched if not provided)
+     */
+    _attachFeatureSelectListener(button, feature = null) {
+        this._cleanup.on(button, 'click', async () => {
+            const featureId = button.dataset.featureSelectBtn;
+            const featureType = button.dataset.featureType;
+            const className = button.dataset.featureClass;
+            const level = parseInt(button.dataset.featureLevel, 10);
+            const isMulti = button.dataset.isMulti === 'true';
+
+            // If feature data not provided, fetch it
+            if (!feature) {
+                const summary = this.session.getChangeSummary();
+                const leveledClasses = summary.leveledClasses.map(lc => ({
+                    name: lc.name,
+                    newLevel: lc.to,
+                    oldLevel: lc.from
+                }));
+                const allFeatures = await this._gatherFeaturesForLevel(leveledClasses);
+                feature = allFeatures.find(f => f.id === featureId);
+
+                if (!feature || !feature.options) {
+                    console.error('[Step1]', 'Feature not found or has no options:', featureId);
+                    return;
+                }
+            }
+
+            // Get current selections
+            const currentSelections = this.session.stepData.selectedFeatures[featureId]
+                ? (Array.isArray(this.session.stepData.selectedFeatures[featureId])
+                    ? this.session.stepData.selectedFeatures[featureId]
+                    : [this.session.stepData.selectedFeatures[featureId]])
+                : [];
+
+            // Map selected IDs to full feature objects
+            const currentFeatureObjects = currentSelections
+                .map(selId => feature.options.find(opt => opt.id === selId))
+                .filter(Boolean);
+
+            // Open feature selector modal
+            const selector = new LevelUpFeatureSelector(
+                this.session,
+                this,
+                className,
+                featureType,
+                level,
+                featureId
+            );
+
+            await selector.show(
+                feature.options,
+                currentFeatureObjects,
+                isMulti,
+                feature.count || 1
+            );
+        });
+    }
+
+    /**
+     * Convert validation report missing features into feature objects for display
+     * @param {string} className - Class name to filter by
+     * @param {Object} validationReport - Validation report from CharacterValidationService
+     * @returns {Array} Feature objects for missing historical choices
+     */
+    _getMissingHistoricalFeatures(className, validationReport) {
+        const features = [];
+
+        // Process missing invocations
+        for (const missing of validationReport.missing.invocations || []) {
+            if (missing.class !== className) continue;
+
+            const options = optionalFeatureService.getFeaturesByType(['EI'])
+                .filter(opt => sourceService.isSourceAllowed(opt.source))
+                .map(opt => ({
+                    id: `${opt.name}_${opt.source}`,
+                    name: opt.name,
+                    source: opt.source,
+                    description: this._getFeatureDescription(opt),
+                    prerequisite: opt.prerequisite,
+                    entries: opt.entries
+                }));
+
+            features.push({
+                id: `${className.toLowerCase()}_invocation_${missing.level}_missing`,
+                name: 'Eldritch Invocations',
+                type: 'invocation',
+                options,
+                required: true,
+                description: `Select ${missing.missing} missing Eldritch Invocation(s) from level ${missing.level}`,
+                count: missing.missing,
+                class: className,
+                gainLevel: missing.level,
+                isMissing: true // Flag to indicate this is a historical gap
+            });
+        }
+
+        // Process missing metamagic
+        for (const missing of validationReport.missing.metamagic || []) {
+            if (missing.class !== className) continue;
+
+            const options = optionalFeatureService.getFeaturesByType(['MM'])
+                .filter(opt => sourceService.isSourceAllowed(opt.source))
+                .map(opt => ({
+                    id: `${opt.name}_${opt.source}`,
+                    name: opt.name,
+                    source: opt.source,
+                    description: this._getFeatureDescription(opt),
+                    entries: opt.entries
+                }));
+
+            features.push({
+                id: `${className.toLowerCase()}_metamagic_${missing.level}_missing`,
+                name: 'Metamagic Options',
+                type: 'metamagic',
+                options,
+                required: true,
+                description: `Select ${missing.missing} missing Metamagic option(s) from level ${missing.level}`,
+                count: missing.missing,
+                class: className,
+                gainLevel: missing.level,
+                isMissing: true
+            });
+        }
+
+        // Process missing fighting styles
+        for (const missing of validationReport.missing.fightingStyles || []) {
+            if (missing.class !== className) continue;
+
+            const options = optionalFeatureService.getFeaturesByType(['FS:F', 'FS:R', 'FS:P'])
+                .filter(opt => sourceService.isSourceAllowed(opt.source))
+                .map(opt => ({
+                    id: `${opt.name}_${opt.source}`,
+                    name: opt.name,
+                    source: opt.source,
+                    description: this._getFeatureDescription(opt),
+                    entries: opt.entries
+                }));
+
+            features.push({
+                id: `${className.toLowerCase()}_fighting_style_${missing.level}_missing`,
+                name: 'Fighting Style',
+                type: 'fighting-style',
+                options,
+                required: true,
+                description: `Select missing Fighting Style from level ${missing.level}`,
+                count: 1,
+                class: className,
+                gainLevel: missing.level,
+                isMissing: true
+            });
+        }
+
+        // Process missing pact boons
+        for (const missing of validationReport.missing.pactBoons || []) {
+            if (missing.class !== className) continue;
+
+            const options = optionalFeatureService.getFeaturesByType(['PB'])
+                .filter(opt => sourceService.isSourceAllowed(opt.source))
+                .map(opt => ({
+                    id: `${opt.name}_${opt.source}`,
+                    name: opt.name,
+                    source: opt.source,
+                    description: this._getFeatureDescription(opt),
+                    entries: opt.entries
+                }));
+
+            features.push({
+                id: `${className.toLowerCase()}_pact_boon_${missing.level}_missing`,
+                name: 'Pact Boon',
+                type: 'patron',
+                options,
+                required: true,
+                description: `Select missing Pact Boon from level ${missing.level}`,
+                count: 1,
+                class: className,
+                gainLevel: missing.level,
+                isMissing: true
+            });
+        }
+
+        return features;
     }
 
     /**

@@ -408,13 +408,7 @@ body.debug-mode .nav-item.debug-only {
 	box-shadow: var(--shadow-md);
 	border: 1px solid var(--border-color);
 	margin-bottom: 1.5rem;
-	transition: all 0.2s ease;
 	overflow: hidden;
-}
-
-.card:hover {
-	box-shadow: var(--shadow-lg);
-	transform: translateY(-1px);
 }
 
 /* Card Headers */

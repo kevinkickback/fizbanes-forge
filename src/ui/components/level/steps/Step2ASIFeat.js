@@ -352,10 +352,29 @@ export class Step2ASIFeat {
 
     /**
      * Calculate ASI slots available at this level
+     * Includes both NEW slots from level-up AND missing historical slots
      */
     async _calculateASISlots(leveledClasses) {
         const slots = [];
+        const validationReport = this.session.getFilteredValidationReport();
 
+        // First, add any MISSING ASI slots from ALL character classes
+        if (validationReport?.missing?.asis) {
+            for (const missing of validationReport.missing.asis) {
+                // Add each unused ASI level
+                for (const level of missing.asiLevels || []) {
+                    slots.push({
+                        class: missing.class,
+                        level,
+                        slotId: `${missing.class}_${level}_missing`,
+                        feat: false,
+                        isMissing: true // Flag to indicate this is a historical gap
+                    });
+                }
+            }
+        }
+
+        // Then, add NEW ASI slots from newly gained levels
         for (const classInfo of leveledClasses) {
             // Get ASI levels from levelUpService (handles special cases like Fighter)
             const asiLevels = levelUpService._getASILevelsForClass(classInfo.name);
@@ -363,12 +382,19 @@ export class Step2ASIFeat {
 
             for (let level = currentLevel + 1; level <= classInfo.newLevel; level++) {
                 if (asiLevels.includes(level)) {
-                    slots.push({
-                        class: classInfo.name,
-                        level,
-                        slotId: `${classInfo.name}_${level}`,
-                        feat: false // Can choose feat instead of ASI at this point
-                    });
+                    // Check if this level was already added as missing
+                    const alreadyAdded = slots.some(s =>
+                        s.class === classInfo.name && s.level === level
+                    );
+
+                    if (!alreadyAdded) {
+                        slots.push({
+                            class: classInfo.name,
+                            level,
+                            slotId: `${classInfo.name}_${level}`,
+                            feat: false // Can choose feat instead of ASI at this point
+                        });
+                    }
                 }
             }
         }

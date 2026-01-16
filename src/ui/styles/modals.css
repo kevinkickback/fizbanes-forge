@@ -319,6 +319,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	flex-direction: row;
 	gap: 1rem;
 	align-items: flex-start;
+	flex-shrink: 0;
 }
 .portrait-preview {
 	width: 72px;
@@ -340,6 +341,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	justify-content: center;
 	background: var(--secondary-color);
 	flex-shrink: 0;
+	align-self: flex-start;
 }
 .portrait-preview img,
 .portrait-preview-horizontal img {
@@ -377,6 +379,12 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	cursor: pointer;
 	width: 80px;
 	height: 80px;
+	transition:
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
+}
+.portrait-icon-btn:hover {
+	border-color: var(--accent-color);
 }
 .portrait-icon-btn.upload {
 	display: flex;
@@ -1454,13 +1462,9 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	/* ===== Level Up Modal - Class Selection Cards ===== */
 	.class-selection-card {
 		background-color: var(--card-background);
-		transition:
-			all 0.2s ease,
-			transform 0.15s ease !important;
 	}
 
 	.class-selection-card:hover {
-		transform: translateY(-2px);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		border-color: var(--accent-color) !important;
 	}
@@ -1509,7 +1513,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 
 	.feature-option-card {
 		border-color: var(--border-color);
-		transition: all 0.2s ease;
 		cursor: pointer;
 	}
 

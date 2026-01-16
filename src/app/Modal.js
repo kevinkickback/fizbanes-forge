@@ -4,7 +4,6 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { showNotification } from '../lib/Notifications.js';
-import { SourceCard } from '../ui/components/sources/Card.js';
 
 let _instance = null;
 
@@ -14,7 +13,6 @@ export class Modal {
 			throw new Error('Modal is a singleton. Use Modal.getInstance() instead.');
 		}
 
-		this._sourceCard = new SourceCard();
 		this._eventHandlers = {
 			onShowModal: null,
 			onCreateCharacter: null,
@@ -99,51 +97,27 @@ export class Modal {
 		try {
 			if (e) e.preventDefault();
 
-			const modal = document.getElementById('newCharacterModal');
-			if (!modal) {
-				console.error('Modal', 'New character modal not found in the DOM');
-				showNotification('Could not open new character form', 'error');
-				return;
-			}
+			// Use new CharacterCreationModal
+			const { CharacterCreationModal } = await import('../ui/components/character/Modal.js');
+			const characterCreationModal = new CharacterCreationModal();
+			await characterCreationModal.show();
 
-			// Dispose old Bootstrap modal instance if exists (via DOMCleanup)
-			const existingModal = this._cleanup.getBootstrapModal(modal);
-			if (existingModal) {
-				try {
-					existingModal.dispose();
-				} catch (e) {
-					console.warn('Modal', 'Error disposing old new character modal', e);
-				}
-			}
-
-			// Create new Bootstrap modal instance
-			const bootstrapModal = new bootstrap.Modal(modal);
-			this._cleanup.registerBootstrapModal(modal, bootstrapModal);
-
-			// Setup cleanup on hide
-			this._cleanup.once(modal, 'hidden.bs.modal', () => this._onNewCharacterModalHidden());
-
-			bootstrapModal.show();
-
-			// Initialize source UI
-			this._sourceCard.container = document.getElementById(
-				'sourceBookSelection',
-			);
-			await this._sourceCard.initializeSourceSelection();
-
-			// Initialize wizard controls
-			this._initWizard();
-
-			// Initialize portrait selector
-			this._initPortraitSelector();
 		} catch (error) {
 			console.error('Modal', 'Error showing new character modal:', error);
 			showNotification('Could not open new character form', 'error');
 		}
 	}
 
-	_initWizard() {
-		try {
+	_onNewCharacterModalHidden() {
+		// Cleanup handled by CharacterCreationModal
+		console.debug('Modal', 'Character creation modal hidden');
+	}
+
+	//-------------------------------------------------------------------------
+	// Confirmation Dialog
+	//-------------------------------------------------------------------------
+
+	/**
 			const sections = Array.from(
 				document.querySelectorAll('#newCharacterForm .form-section'),
 			);
@@ -949,23 +923,6 @@ export class Modal {
 			console.error('Modal', 'Error showing duplicate ID modal:', error);
 			return 'cancel';
 		}
-	}
-
-	_onNewCharacterModalHidden() {
-		console.debug('Modal', 'New Character modal hidden, cleaning up resources');
-
-		// Cleanup all tracked event listeners
-		this._cleanup.cleanup();
-
-		// Clear wizard state
-		if (this._wizard) {
-			this._wizard = null;
-		}
-
-		// Clear portrait selector state
-		this._selectedPortrait = null;
-
-		console.debug('Modal', 'New Character modal cleanup complete');
 	}
 
 	static getInstance() {

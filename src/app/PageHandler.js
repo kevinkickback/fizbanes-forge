@@ -48,12 +48,21 @@ class PageHandlerImpl {
 
 		try {
 			// Clean up home page listeners when leaving home
-			if (pageName !== 'home' && this._homeCharacterSelectedHandler) {
-				eventBus.off(
-					EVENTS.CHARACTER_SELECTED,
-					this._homeCharacterSelectedHandler,
-				);
-				this._homeCharacterSelectedHandler = null;
+			if (pageName !== 'home') {
+				if (this._homeCharacterSelectedHandler) {
+					eventBus.off(
+						EVENTS.CHARACTER_SELECTED,
+						this._homeCharacterSelectedHandler,
+					);
+					this._homeCharacterSelectedHandler = null;
+				}
+				if (this._homeCharacterCreatedHandler) {
+					eventBus.off(
+						EVENTS.CHARACTER_CREATED,
+						this._homeCharacterCreatedHandler,
+					);
+					this._homeCharacterCreatedHandler = null;
+				}
 			}
 
 			switch (pageName) {
@@ -170,6 +179,24 @@ class PageHandlerImpl {
 				EVENTS.CHARACTER_SELECTED,
 				this._homeCharacterSelectedHandler,
 			);
+
+			// Listen for character creation to refresh the list
+			// Remove any existing listener to avoid duplicates
+			eventBus.off(
+				EVENTS.CHARACTER_CREATED,
+				this._homeCharacterCreatedHandler,
+			);
+
+			// Store the handler so we can remove it later
+			this._homeCharacterCreatedHandler = async () => {
+				const reloadCharacters = await CharacterManager.loadCharacterList();
+				await this.renderCharacterList(reloadCharacters);
+			};
+
+			eventBus.on(
+				EVENTS.CHARACTER_CREATED,
+				this._homeCharacterCreatedHandler,
+			);
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing home page', error);
 			showNotification('Error loading home page', 'error');
@@ -284,7 +311,7 @@ class PageHandlerImpl {
 					? character.progression.classes
 					: [];
 				const characterLevel = progressionClasses.length
-					? progressionClasses.reduce((sum, cls) => sum + (cls.level || 0), 0) || 1
+					? progressionClasses.reduce((sum, cls) => sum + (cls.levels || 0), 0) || 1
 					: character.level || character.class?.level || 1;
 				const classDisplay = progressionClasses.length
 					? progressionClasses

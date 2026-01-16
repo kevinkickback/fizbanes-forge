@@ -171,7 +171,6 @@
                     <h5 class="modal-title" id="newCharacterModalLabel">Create New Character</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <!-- Wizard Progress removed -->
                 <div class="modal-body">
                     <div class="row g-3">
                         <!-- Sidebar Stepper -->
@@ -201,143 +200,9 @@
                             </ol>
                         </aside>
 
-                        <!-- Wizard Content -->
-                        <section class="col-md-9">
-                            <form id="newCharacterForm">
-                                <!-- Step 0: Basics -->
-                                <div class="form-section" data-step="0">
-                                    <div class="row mt-3">
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="newCharacterName" class="form-label">
-                                                    <i class="fas fa-user"></i> Character Name
-                                                </label>
-                                                <input type="text" class="form-control" id="newCharacterName" required>
-                                            </div>
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label for="newCharacterLevel" class="form-label">
-                                                        <i class="fas fa-level-up-alt"></i> Starting Level
-                                                    </label>
-                                                    <input type="number" class="form-control" id="newCharacterLevel"
-                                                        value="1" min="1" max="20" required>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        <i class="fas fa-venus-mars"></i> Gender
-                                                    </label>
-                                                    <select class="form-select" id="newCharacterGender" required>
-                                                        <option value="male" selected>Male</option>
-                                                        <option value="female">Female</option>
-                                                        <option value="nonBinary">Non-binary</option>
-                                                        <option value="construct">Construct</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-3">
-                                        <div class="col-12">
-                                            <label class="form-label">
-                                                <i class="fas fa-image"></i> Portrait
-                                            </label>
-                                            <div class="character-icon-selector-horizontal">
-                                                <div class="portrait-preview-horizontal" id="portraitPreview">
-                                                    <img id="portraitPreviewImg"
-                                                        src="assets/images/characters/placeholder_char_card.webp"
-                                                        alt="Portrait preview" />
-                                                </div>
-                                                <div class="portrait-options">
-                                                    <div class="icon-grid-horizontal" id="portraitImageGrid"
-                                                        aria-label="Default portraits">
-                                                        <!-- Default portraits will be populated by JavaScript -->
-                                                    </div>
-                                                    <!-- Hidden upload input; triggered by upload icon tile -->
-                                                    <input type="file" id="portraitUploadInput" class="visually-hidden"
-                                                        accept="image/*" aria-label="Upload portrait image">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Step 1: Rules -->
-                                <div class="form-section" data-step="1" hidden>
-                                    <div class="row">
-                                        <div class="col-md-6 ability-scores-section">
-                                            <label class="form-label">
-                                                <i class="fas fa-dice"></i> Ability Score Generation
-                                            </label>
-                                            <div class="btn-group w-100" role="group"
-                                                aria-label="Select ability score method">
-                                                <input type="radio" class="btn-check" name="abilityScoreMethod"
-                                                    id="pointBuy" value="pointBuy" checked>
-                                                <label class="btn btn-outline-secondary" for="pointBuy">Point
-                                                    Buy</label>
-                                                <input type="radio" class="btn-check" name="abilityScoreMethod"
-                                                    id="standardArray" value="standardArray">
-                                                <label class="btn btn-outline-secondary" for="standardArray">Standard
-                                                    Array</label>
-                                                <input type="radio" class="btn-check" name="abilityScoreMethod"
-                                                    id="rollDice" value="rollDice">
-                                                <label class="btn btn-outline-secondary" for="rollDice">Custom</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6 variant-rules-section">
-                                            <label class="form-label">
-                                                <i class="fas fa-cogs"></i> Variant Rules
-                                            </label>
-                                            <div class="form-check form-switch mb-2">
-                                                <input class="form-check-input" type="checkbox" id="featVariant"
-                                                    checked>
-                                                <label class="form-check-label" for="featVariant">Optional Class
-                                                    Features</label>
-                                            </div>
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" id="averageHitPoints"
-                                                    checked>
-                                                <label class="form-check-label" for="averageHitPoints">Average Hit
-                                                    Points</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Step 2: Sources -->
-                                <div class="form-section" data-step="2" hidden>
-                                    <div id="sourceBookHeader"
-                                        class="d-flex justify-content-between align-items-center">
-                                        <div class="mb-1">
-                                            <label class="form-label">
-                                                <i class="fas fa-book"></i> Source Books
-                                            </label>
-                                            <div class="d-flex align-items-center gap-2 ps-2">
-                                                <a href="#" class="text-decoration-none text-accent"
-                                                    id="selectAllSources">Select All</a>
-                                                <span class="text-muted">|</span>
-                                                <a href="#" class="text-decoration-none text-accent"
-                                                    id="deselectAllSources">None</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div id="sourceBookSelection">
-                                        <!-- Source book toggles will be added here -->
-                                    </div>
-                                    <small class="text-muted d-block mt-2">* At least one Player's Handbook (2014 or
-                                        2024) must be selected</small>
-                                </div>
-
-                                <!-- Step 3: Review -->
-                                <div class="form-section" data-step="3" hidden>
-                                    <h5 class="mb-3"><i class="fas fa-check-circle"></i> Review and Confirm</h5>
-                                    <ul class="list-unstyled mb-3" id="newCharacterReviewList">
-                                        <!-- Summary populated by JavaScript -->
-                                    </ul>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted" id="reviewValidationHint"></small>
-                                    </div>
-                                </div>
-                            </form>
+                        <!-- Dynamic Step Content -->
+                        <section class="col-md-9" data-step-content>
+                            <!-- Step content is dynamically inserted here -->
                         </section>
                     </div>
                 </div>

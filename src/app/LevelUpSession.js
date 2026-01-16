@@ -7,6 +7,7 @@
  * This ensures atomic updates and prevents partial state corruption if the user exits.
  */
 
+import { characterValidationService } from '../services/CharacterValidationService.js';
 import { levelUpService } from '../services/LevelUpService.js';
 
 export class LevelUpSession {
@@ -21,6 +22,17 @@ export class LevelUpSession {
 
         // Progression history tracking - records user choices for each class/level
         this.choicesByClassLevel = {}; // { className: { level: { features: [], spells: [], ... }, ... }, ... }
+
+        // Validate character and detect missing choices
+        this.validationReport = characterValidationService.validateCharacter(character);
+        this.hasMissingChoices = !this.validationReport.isValid;
+
+        if (this.hasMissingChoices) {
+            console.warn('[LevelUpSession]', 'Character has missing choices', {
+                summary: characterValidationService.getSummary(this.validationReport),
+                details: this.validationReport.missing,
+            });
+        }
 
         // Deep clone character data into staged changes
         this.stagedChanges = {
@@ -461,5 +473,67 @@ export class LevelUpSession {
         delete this.choicesByClassLevel[className][levelKey];
 
         console.debug('[LevelUpSession]', `Cleared choices for ${className} level ${level}`);
+    }
+
+    /**
+     * Get validation report for character
+     * @returns {Object} Validation report with missing choices
+     */
+    getValidationReport() {
+        return this.validationReport;
+    }
+
+    /**     * Get validation report filtered by current staged class levels
+     * Removes missing choices for levels that have been removed via level-down
+     * @returns {Object} Filtered validation report
+     */
+    getFilteredValidationReport() {
+        if (!this.validationReport) return null;
+
+        // Get current staged class levels
+        const stagedClasses = this.stagedChanges.progression?.classes || [];
+        const stagedLevelsByClass = {};
+        stagedClasses.forEach(cls => {
+            stagedLevelsByClass[cls.name] = cls.levels || 0;
+        });
+
+        // Deep clone the validation report
+        const filtered = JSON.parse(JSON.stringify(this.validationReport));
+
+        // Filter each category of missing choices
+        const categories = ['subclasses', 'invocations', 'metamagic', 'fightingStyles', 'pactBoons', 'asis', 'spells', 'features', 'other'];
+
+        for (const category of categories) {
+            if (filtered.missing[category]) {
+                filtered.missing[category] = filtered.missing[category].filter(missing => {
+                    const className = missing.class;
+                    const requiredLevel = missing.level || missing.requiredAt;
+                    const currentStagedLevel = stagedLevelsByClass[className] || 0;
+
+                    // Keep this missing choice only if the class still has that level
+                    return currentStagedLevel >= requiredLevel;
+                });
+            }
+        }
+
+        // Update isValid flag
+        filtered.isValid = Object.values(filtered.missing).every(arr => arr.length === 0);
+
+        return filtered;
+    }
+
+    /**     * Check if character has any missing choices
+     * @returns {boolean} True if missing choices detected
+     */
+    hasMissingChoicesForCurrentLevel() {
+        return this.hasMissingChoices;
+    }
+
+    /**
+     * Get summary of missing choices
+     * @returns {string[]} Array of summary messages
+     */
+    getMissingChoicesSummary() {
+        return characterValidationService.getSummary(this.validationReport);
     }
 }

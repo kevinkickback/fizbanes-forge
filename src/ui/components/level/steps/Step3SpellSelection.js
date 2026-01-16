@@ -31,8 +31,45 @@ export class Step3SpellSelection {
             oldLevel: lc.from
         }));
 
+        const validationReport = this.session.getFilteredValidationReport();
+
         // Expand into individual levels and group by class
         const levelsByClass = {};
+
+        // First, add any MISSING spell levels from validation report
+        if (validationReport?.missing?.spells) {
+            for (const missing of validationReport.missing.spells) {
+                const classData = classService.getClass(missing.class);
+                if (classData?.casterProgression) {
+                    if (!levelsByClass[missing.class]) {
+                        levelsByClass[missing.class] = {
+                            className: missing.class,
+                            minLevel: missing.level,
+                            maxLevel: missing.level,
+                            levels: [],
+                            hasMissing: true
+                        };
+                    }
+
+                    // Add this level if not already present
+                    const alreadyHasLevel = levelsByClass[missing.class].levels.some(
+                        l => l.level === missing.level
+                    );
+
+                    if (!alreadyHasLevel) {
+                        levelsByClass[missing.class].levels.push({
+                            level: missing.level,
+                            oldLevel: missing.level - 1,
+                            isMissing: true,
+                            missingCount: missing.missing,
+                            missingType: missing.type // 'cantrips' or undefined (spells)
+                        });
+                    }
+                }
+            }
+        }
+
+        // Then, add NEW spell levels from level-up
         for (const classInfo of leveledClasses) {
             const classData = classService.getClass(classInfo.name);
             // Only expand for spellcasting classes
@@ -47,10 +84,17 @@ export class Step3SpellSelection {
                 }
 
                 for (let level = classInfo.oldLevel + 1; level <= classInfo.newLevel; level++) {
-                    levelsByClass[classInfo.name].levels.push({
-                        level,
-                        oldLevel: level - 1
-                    });
+                    // Check if this level was already added as missing
+                    const alreadyHasLevel = levelsByClass[classInfo.name].levels.some(
+                        l => l.level === level
+                    );
+
+                    if (!alreadyHasLevel) {
+                        levelsByClass[classInfo.name].levels.push({
+                            level,
+                            oldLevel: level - 1
+                        });
+                    }
                 }
             }
         }

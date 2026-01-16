@@ -119,7 +119,7 @@ class LevelUpService {
         );
 
         if (classEntry) {
-            classEntry.level = level;
+            classEntry.levels = level;
             console.info(`[${this.loggerScope}]`, 'Updated class level', {
                 className,
                 level,
@@ -130,7 +130,7 @@ class LevelUpService {
         // Create new class entry
         classEntry = {
             name: className,
-            level,
+            levels: level,  // Fixed: use 'levels' (plural) to match progression system
             subclass: null,
             hitDice: this._getHitDiceForClass(className),
             hitPoints: [],

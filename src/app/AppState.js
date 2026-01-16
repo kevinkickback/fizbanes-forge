@@ -81,12 +81,15 @@ class AppStateImpl {
 		console.info('AppState', 'State updated', { updates });
 	}
 
-	setCurrentCharacter(character) {
+	setCurrentCharacter(character, options = {}) {
 		console.info('AppState', 'Setting current character', {
 			id: character?.id,
+			skipEvent: options.skipEvent,
 		});
 		this.setState({ currentCharacter: character });
-		eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
+		if (!options.skipEvent) {
+			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
+		}
 	}
 
 	getCurrentCharacter() {

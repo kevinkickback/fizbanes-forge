@@ -148,7 +148,6 @@ class CharacterManagerImpl {
 			// Serialize character using centralized utility
 			const serializedCharacter = serializeCharacter(character);
 
-			// Save via IPC
 			const saveResult =
 				await window.characterStorage.saveCharacter(serializedCharacter);
 

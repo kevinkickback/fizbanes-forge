@@ -162,6 +162,10 @@ export class LevelUpModal {
                 }
             }
 
+            // Update the character reference in AppState (skipEvent to avoid CHARACTER_SELECTED)
+            // CHARACTER_SELECTED clears unsaved changes, but we want to mark the character as unsaved
+            AppState.setCurrentCharacter(updatedCharacter, { skipEvent: true });
+
             // Emit event for other UI components to update
             eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: updatedCharacter });
 

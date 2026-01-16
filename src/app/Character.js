@@ -264,9 +264,7 @@ export class Character {
 
 		// Initialize character progression (tracks per-class levels and features)
 		this.progression = data.progression || {
-			classes: [], // Array of { name, level, subclass, hitDice, hitPoints, features, spellSlots }
-			experiencePoints: 0,
-			levelUps: [], // Track history of level-ups for debugging/rollback
+			classes: [], // Array of { name, levels, subclass, hitDice, hitPoints, features, spellSlots }
 		};
 
 		// Use ProficiencyCore to initialize proficiency structures
@@ -725,7 +723,7 @@ export class Character {
 		serializedData.progression = {
 			classes: (this.progression?.classes || []).map((cls) => ({
 				name: cls.name,
-				level: cls.level,
+				levels: cls.levels,  // Fixed: was "level", should be "levels" (plural)
 				subclass: cls.subclass ? { ...cls.subclass } : null,
 				hitDice: cls.hitDice,
 				hitPoints: safeArray(cls.hitPoints),

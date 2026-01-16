@@ -53,6 +53,14 @@ export class TitlebarController {
             this.updateActionButtons();
         });
 
+        // Listen to hasUnsavedChanges state changes directly
+        // This ensures save button updates even when CHARACTER_UPDATED
+        // listeners fire in different order
+        eventBus.on('state:hasUnsavedChanges:changed', () => {
+            this.updateUnsavedIndicator();
+            this.updateActionButtons();
+        });
+
         // Settings button
         if (this.settingsBtn) {
             this.settingsBtn.addEventListener('click', () => {
