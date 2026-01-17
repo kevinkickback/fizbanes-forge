@@ -1,12 +1,12 @@
 /**
- * Step 5: Review
+ * Step 6: Review
  * 
  * User reviews all settings before creating the character.
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
 
-export class Step5Review {
+export class Step6Review {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;
@@ -50,7 +50,7 @@ export class Step5Review {
         const backgroundDisplay = `${backgroundName}${backgroundSource}`;
 
         return `
-            <div class="step-5-review">
+            <div class="step-6-review">
                 <div class="card">
                     <div class="card-body">
                         <div class="row g-3">

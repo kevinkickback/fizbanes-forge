@@ -7,7 +7,7 @@
 
 export class CharacterCreationSession {
     constructor() {
-        this.currentStep = 0; // 0-5, tracks wizard progress (Basics -> Rules -> Race -> Class -> Background -> Review)
+        this.currentStep = 0; // 0-6, tracks wizard progress (Basics -> Rules -> Race -> Class -> Background -> Ability Scores -> Review)
 
         // Staged character data
         this.stagedData = {
@@ -44,6 +44,16 @@ export class CharacterCreationSession {
             background: {
                 name: '',
                 source: ''
+            },
+
+            // Step 5: Ability Scores
+            abilityScores: {
+                strength: 8,
+                dexterity: 8,
+                constitution: 8,
+                intelligence: 8,
+                wisdom: 8,
+                charisma: 8
             },
         };
 
