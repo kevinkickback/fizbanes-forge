@@ -5,6 +5,7 @@
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { sourceService } from '../../../../services/SourceService.js';
 import { SourceCard } from '../../sources/Card.js';
 
 export class Step1Rules {
@@ -20,8 +21,8 @@ export class Step1Rules {
      */
     async render() {
         const abilityScoreMethod = this.session.get('abilityScoreMethod') || 'pointBuy';
-        const feats = this.session.get('variantRules.feats') ?? true;
-        const averageHitPoints = this.session.get('variantRules.averageHitPoints') ?? true;
+        const feats = this.session.get('variantRules.feats') ?? false;
+        const averageHitPoints = this.session.get('variantRules.averageHitPoints') ?? false;
 
         return `
             <div class="step-1-rules">
@@ -96,7 +97,7 @@ export class Step1Rules {
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="fw-bold">Select Allowed Sources</span>
+                                    <i class="fas fa-book"></i> Allowed Sources
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <a href="#" class="text-decoration-none text-accent" id="selectAllSources">Select All</a>
@@ -245,6 +246,19 @@ export class Step1Rules {
         // Save source selection
         const selectedSources = this._getSelectedSources();
         this.session.set('allowedSources', selectedSources);
+
+        // Update sourceService with selected sources
+        // Clear existing sources first (except PHB which can't be removed)
+        const currentSources = sourceService.getAllowedSources();
+        for (const source of currentSources) {
+            if (source !== 'PHB' && !selectedSources.has(source)) {
+                sourceService.removeAllowedSource(source);
+            }
+        }
+        // Add newly selected sources
+        for (const source of selectedSources) {
+            sourceService.addAllowedSource(source);
+        }
 
         console.debug('[Step1Rules]', 'Saved data:', {
             abilityScoreMethod: this.session.get('abilityScoreMethod'),

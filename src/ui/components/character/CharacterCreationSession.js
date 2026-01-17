@@ -24,9 +24,13 @@ export class CharacterCreationSession {
                 multiclassing: true,
                 averageHitPoints: true,
             },
-
-            // Step 2: Sources
             allowedSources: new Set(),
+
+            // Step 2: Race
+            race: null,
+
+            // Step 3: Class
+            class: null,
         };
 
         console.info('[CharacterCreationSession]', 'Initialized new character creation session');

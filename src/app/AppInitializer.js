@@ -44,8 +44,11 @@ function _sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function _loadDataWithErrorHandling(promise, component) {
+async function _loadDataWithErrorHandling(promise, component, loadingModal) {
 	try {
+		if (loadingModal) {
+			loadingModal.updateDetail(`Loading ${component}...`);
+		}
 		return await promise;
 	} catch (error) {
 		console.warn('AppInitializer', `Failed to load ${component} data:`, error);
@@ -127,32 +130,58 @@ async function _promptDataSourceFix(errorMessage) {
 	}
 }
 
-async function _loadAllGameData() {
+async function _loadAllGameData(loadingModal) {
 	const errors = [];
 	try {
-		// Initialize all services in parallel
-		const dataLoadPromises = [
-			_loadDataWithErrorHandling(spellService.initialize(), 'spells'),
-			_loadDataWithErrorHandling(itemService.initialize(), 'items'),
-			_loadDataWithErrorHandling(classService.initialize(), 'classes'),
-			_loadDataWithErrorHandling(raceService.initialize(), 'races'),
-			_loadDataWithErrorHandling(backgroundService.initialize(), 'backgrounds'),
-			_loadDataWithErrorHandling(conditionService.initialize(), 'conditions'),
-			_loadDataWithErrorHandling(monsterService.initialize(), 'monsters'),
-			_loadDataWithErrorHandling(featService.initialize(), 'feats'),
-			_loadDataWithErrorHandling(skillService.initialize(), 'skills'),
-			_loadDataWithErrorHandling(actionService.initialize(), 'actions'),
-			_loadDataWithErrorHandling(
-				variantRuleService.initialize(),
-				'variantrules',
-			),
-			_loadDataWithErrorHandling(
-				optionalFeatureService.initialize(),
-				'optionalfeatures',
-			),
+		// Get data source info for display
+		const dataSource = await window.app.getDataSource();
+		const sourceType = dataSource?.type || 'unknown';
+		const sourceValue = dataSource?.value || '';
+
+		let sourceDesc = '';
+		if (sourceType === 'local') {
+			// Extract just the folder name for brevity
+			const parts = sourceValue.split(/[\\/]/);
+			const folderName = parts[parts.length - 1] || parts[parts.length - 2] || 'local folder';
+			sourceDesc = `local: ${folderName}`;
+		} else if (sourceType === 'url') {
+			try {
+				const url = new URL(sourceValue);
+				sourceDesc = `remote: ${url.hostname}`;
+			} catch {
+				sourceDesc = 'remote server';
+			}
+		} else {
+			sourceDesc = sourceType;
+		}
+
+		if (loadingModal) {
+			loadingModal.updateDetail(`Data source: ${sourceDesc}`);
+		}
+
+		// Initialize all services sequentially to show progress
+		const services = [
+			{ name: 'spells', init: () => spellService.initialize() },
+			{ name: 'items', init: () => itemService.initialize() },
+			{ name: 'classes', init: () => classService.initialize() },
+			{ name: 'races', init: () => raceService.initialize() },
+			{ name: 'backgrounds', init: () => backgroundService.initialize() },
+			{ name: 'conditions', init: () => conditionService.initialize() },
+			{ name: 'monsters', init: () => monsterService.initialize() },
+			{ name: 'feats', init: () => featService.initialize() },
+			{ name: 'skills', init: () => skillService.initialize() },
+			{ name: 'actions', init: () => actionService.initialize() },
+			{ name: 'variant rules', init: () => variantRuleService.initialize() },
+			{ name: 'optional features', init: () => optionalFeatureService.initialize() },
 		];
 
-		await Promise.all(dataLoadPromises);
+		for (const service of services) {
+			await _loadDataWithErrorHandling(service.init(), service.name, loadingModal);
+		}
+
+		if (loadingModal) {
+			loadingModal.updateDetail('All game data loaded');
+		}
 		return { success: true, errors };
 	} catch (error) {
 		console.error('AppInitializer', 'Error during game data loading:', error);
@@ -186,7 +215,7 @@ async function _loadAllGameDataWithRetry() {
 			continue;
 		}
 
-		const loadResult = await _loadAllGameData();
+		const loadResult = await _loadAllGameData(null);
 		if (loadResult.success) return loadResult;
 
 		lastError = loadResult.errors?.[0] || new Error('Data load failed');
@@ -610,8 +639,58 @@ export async function initializeAll(_options = {}) {
 			if (autoUpdate) {
 				loadingModal.updateMessage('Updating data source...');
 				loadingModal.updateProgress(15);
+
+				// Get data source info for display
+				const dataSource = await window.app.getDataSource();
+				const sourceType = dataSource?.type || 'unknown';
+				const sourceValue = dataSource?.value || '';
+
+				let sourceDesc = '';
+				if (sourceType === 'local') {
+					const parts = sourceValue.split(/[\\\\/]/);
+					const folderName = parts[parts.length - 1] || parts[parts.length - 2] || 'local folder';
+					sourceDesc = `local: ${folderName}`;
+					loadingModal.updateDetail(`Checking ${sourceDesc} for changes...`);
+				} else if (sourceType === 'url') {
+					try {
+						const url = new URL(sourceValue);
+						sourceDesc = `remote: ${url.hostname}`;
+						loadingModal.updateDetail(`Connecting to ${url.hostname}...`);
+					} catch {
+						sourceDesc = 'remote server';
+						loadingModal.updateDetail('Connecting to remote server...');
+					}
+				}
+
+				// Set up progress listener for download updates
+				const progressListener = (progress) => {
+					if (progress.status === 'start') {
+						loadingModal.updateDetail(`Checking ${progress.total} files...`);
+					} else if (progress.status === 'progress' && progress.file) {
+						const fileName = progress.file.split('/').pop();
+						// Show whether file is being downloaded or just verified
+						if (progress.skipped) {
+							loadingModal.updateDetail(`Verified: ${fileName} (${progress.completed}/${progress.total})`);
+						} else {
+							loadingModal.updateDetail(`Downloading: ${fileName} (${progress.completed}/${progress.total})`);
+						}
+					} else if (progress.status === 'complete') {
+						if (progress.downloaded > 0) {
+							loadingModal.updateDetail(`Downloaded ${progress.downloaded} file(s), ${progress.skipped || 0} unchanged`);
+						} else {
+							loadingModal.updateDetail('All files up to date');
+						}
+					}
+				};
+
+				const unsubscribe = window.app.onDataDownloadProgress(progressListener);
+
 				try {
 					const refreshResult = await window.app.refreshDataSource();
+
+					// Clean up listener
+					unsubscribe();
+
 					if (!refreshResult?.success) {
 						console.warn(
 							'AppInitializer',
@@ -629,6 +708,8 @@ export async function initializeAll(_options = {}) {
 						);
 					}
 				} catch (error) {
+					// Clean up listener on error
+					unsubscribe();
 					console.warn('AppInitializer', 'Data source update failed', error);
 				}
 			} else {
@@ -641,14 +722,16 @@ export async function initializeAll(_options = {}) {
 
 		// Step 1: Load all game data
 		loadingModal.updateMessage('Loading game data...');
+		loadingModal.updateDetail('');
 		loadingModal.updateProgress(30);
-		const dataLoadResult = await _loadAllGameDataWithRetry();
+		const dataLoadResult = await _loadAllGameData(loadingModal);
 		if (!dataLoadResult.success) {
 			result.errors.push(...dataLoadResult.errors);
 		}
 
 		// Step 2: Initialize core components
 		loadingModal.updateMessage('Initializing components...');
+		loadingModal.updateDetail('Setting up UI controllers...');
 		loadingModal.updateProgress(70);
 		const componentsResult = await _initializeCoreComponents();
 		result.loadedComponents = componentsResult.loadedComponents;
@@ -656,6 +739,7 @@ export async function initializeAll(_options = {}) {
 
 		// Step 3: Set up UI event handlers
 		loadingModal.updateMessage('Setting up UI...');
+		loadingModal.updateDetail('Registering event handlers...');
 		loadingModal.updateProgress(90);
 		try {
 			_setupUiEventHandlers();
@@ -669,6 +753,7 @@ export async function initializeAll(_options = {}) {
 
 		// Hide loading modal before showing any notifications
 		loadingModal.updateProgress(100);
+		loadingModal.updateDetail('Ready');
 		setTimeout(() => loadingModal.hide(), 200);
 
 		if (!result.success) {

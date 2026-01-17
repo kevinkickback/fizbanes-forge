@@ -1,12 +1,12 @@
 /**
- * Step 3: Review
+ * Step 4: Review
  * 
  * User reviews all settings before creating the character.
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
 
-export class Step3Review {
+export class Step4Review {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;
@@ -32,8 +32,20 @@ export class Step3Review {
             ? sources.map(s => `<span class="badge source-badge">${s}</span>`).join(' ')
             : '<span class="text-muted">None selected</span>';
 
+        // Race info
+        const raceName = data.race?.name || 'Not selected';
+        const raceSource = data.race?.source ? ` (${data.race.source})` : '';
+        const subraceName = data.race?.subrace ? ` - ${data.race.subrace}` : '';
+        const raceDisplay = `${raceName}${raceSource}${subraceName}`;
+
+        // Class info
+        const className = data.class?.name || 'Not selected';
+        const classSource = data.class?.source ? ` (${data.class.source})` : '';
+        const subclassName = data.class?.subclass ? ` - ${data.class.subclass}` : '';
+        const classDisplay = `${className}${classSource}${subclassName}`;
+
         return `
-            <div class="step-3-review">
+            <div class="step-4-review">
                 <div class="card">
                     <div class="card-body">
                         <div class="row g-3">
@@ -54,6 +66,16 @@ export class Step3Review {
                                         <i class="fas fa-venus-mars review-icon"></i>
                                         <strong>Gender:</strong> 
                                         <span class="review-value">${gender}</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-users review-icon"></i>
+                                        <strong>Race:</strong> 
+                                        <span class="review-value">${raceDisplay}</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-hat-wizard review-icon"></i>
+                                        <strong>Class:</strong> 
+                                        <span class="review-value">${classDisplay}</span>
                                     </li>
                                     <li class="mb-2">
                                         <i class="fas fa-star review-icon"></i>

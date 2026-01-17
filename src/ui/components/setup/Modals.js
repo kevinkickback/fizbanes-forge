@@ -38,6 +38,7 @@ export class LoadingModal {
         }
 
         this.messageElement = this.modal.querySelector('.loading-message');
+        this.detailElement = this.modal.querySelector('.loading-detail');
         this.progressBar = this.modal.querySelector('.progress-bar');
 
         if (this.messageElement) {
@@ -55,6 +56,12 @@ export class LoadingModal {
     updateMessage(message) {
         if (this.messageElement) {
             this.messageElement.textContent = message;
+        }
+    }
+
+    updateDetail(detail) {
+        if (this.detailElement) {
+            this.detailElement.textContent = detail;
         }
     }
 

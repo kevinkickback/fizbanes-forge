@@ -1,11 +1,12 @@
 /**
  * CharacterCreationModal - Main wizard controller for character creation flow
  * 
- * Orchestrates a 4-step wizard:
+ * Orchestrates a 5-step wizard:
  * 0. Basics - Name, gender, level, portrait
  * 1. Rules - Ability score method, variant rules, source selection
  * 2. Race - Select character race
- * 3. Review - Review all settings and create character
+ * 3. Class - Select character class
+ * 4. Review - Review all settings and create character
  * 
  * All data is staged in a CharacterCreationSession and only applied on confirmation.
  */
@@ -248,8 +249,13 @@ export class CharacterCreationModal {
                     break;
                 }
                 case 3: {
-                    const { Step3Review } = await import('./steps/Step3Review.js');
-                    StepClass = Step3Review;
+                    const { Step3Class } = await import('./steps/Step3Class.js');
+                    StepClass = Step3Class;
+                    break;
+                }
+                case 4: {
+                    const { Step4Review } = await import('./steps/Step4Review.js');
+                    StepClass = Step4Review;
                     break;
                 }
                 default:
@@ -361,6 +367,27 @@ export class CharacterCreationModal {
             character.portrait = stagedData.portrait || 'assets/images/characters/placeholder_char_card.webp';
             character.allowedSources = stagedData.allowedSources;
             character.variantRules = stagedData.variantRules;
+
+            // Apply race selection
+            if (stagedData.race) {
+                character.race = {
+                    name: stagedData.race.name,
+                    source: stagedData.race.source,
+                    subrace: stagedData.race.subrace || ''
+                };
+            }
+
+            // Apply class selection
+            if (stagedData.class) {
+                character.class = {
+                    name: stagedData.class.name,
+                    source: stagedData.class.source,
+                    level: stagedData.level || 1
+                };
+                if (stagedData.class.subclass) {
+                    character.subclass = stagedData.class.subclass;
+                }
+            }
 
             // Update SourceService
             const { sourceService } = await import('../../../services/SourceService.js');
