@@ -9,13 +9,7 @@ function validateCharacterData(character) {
 	if (!character.id) errors.push('Missing character ID');
 	if (!character.name || String(character.name).trim() === '')
 		errors.push('Missing character name');
-	if (
-		typeof character.level !== 'number' ||
-		character.level < 1 ||
-		character.level > 20
-	) {
-		errors.push('Level must be a number between 1 and 20');
-	}
+	// Note: level is calculated from progression.classes[], no validation needed
 	if (
 		!Array.isArray(character.allowedSources) &&
 		!(character.allowedSources instanceof Set)
@@ -63,7 +57,6 @@ export const CharacterSchema = {
 		return {
 			id: null,
 			name: '',
-			level: 1,
 			portrait: '',
 
 			// Ability scores
@@ -77,12 +70,11 @@ export const CharacterSchema = {
 			},
 
 			// Character details
-			class: null,
-			subclass: null,
+			// Note: class info stored in progression.classes[], no legacy class field
 			race: null,
 			background: null,
-
-			// Proficiencies (stored as arrays)
+			// Note: subclass is stored in progression.classes[].subclass, not at root level
+			// Note: total level is calculated from progression.classes[].levels, no legacy level field
 			proficiencies: {
 				armor: [],
 				weapons: [],

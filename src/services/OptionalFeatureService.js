@@ -124,7 +124,7 @@ class OptionalFeatureService extends BaseDataService {
             // Check level requirement
             if (prereq.level) {
                 // For class-specific features, check the class level, not total level
-                let charLevel = character.level || 1;
+                let charLevel = character.getTotalLevel();
                 if (className) {
                     // Check in progression.classes first (used during level-up)
                     if (character.progression?.classes) {

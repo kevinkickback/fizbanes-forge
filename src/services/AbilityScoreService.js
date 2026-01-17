@@ -139,12 +139,7 @@ class AbilityScoreService {
 		}
 
 		// Add class bonuses
-		if (
-			character.class?.abilityBonuses &&
-			typeof character.class.abilityBonuses[normalizedAbility] === 'number'
-		) {
-			totalScore += character.class.abilityBonuses[normalizedAbility];
-		}
+		// Note: ability bonuses are stored in character.abilityBonuses, not in class object
 
 		// Add all other ability bonuses from any source
 		if (

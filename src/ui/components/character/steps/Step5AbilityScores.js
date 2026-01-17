@@ -6,13 +6,15 @@
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { abilityScoreService } from '../../../../services/AbilityScoreService.js';
+import { abilityScoreService, getRaceAbilityData } from '../../../../services/AbilityScoreService.js';
+import { raceService } from '../../../../services/RaceService.js';
 
 export class Step5AbilityScores {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;
         this._cleanup = DOMCleanup.create();
+        this._abilityChoiceData = null; // Store choice data for dropdowns
     }
 
     /**
@@ -22,6 +24,19 @@ export class Step5AbilityScores {
         const stagedData = this.session.getStagedData();
         const method = stagedData.abilityScoreMethod || 'pointBuy';
 
+        // Get race ability data for choices
+        const raceName = stagedData.race?.name;
+        const raceSource = stagedData.race?.source;
+        const subraceName = stagedData.race?.subrace;
+
+        if (raceName && raceSource) {
+            const race = raceService.getRace(raceName, raceSource);
+            const subrace = subraceName ? raceService.getSubrace(raceName, subraceName, raceSource) : null;
+            this._abilityChoiceData = getRaceAbilityData(race, subrace);
+        } else {
+            this._abilityChoiceData = { fixed: [], choices: [] };
+        }
+
         return `
             <div class="step-5-ability-scores">
                 <div class="card">
@@ -29,13 +44,13 @@ export class Step5AbilityScores {
                         <i class="fas fa-star"></i> Ability Scores
                     </div>
                     <div class="card-body">
+                        ${method === 'pointBuy' ? this._renderPointBuyInfo() : ''}
+                        ${this._abilityChoiceData.choices.length > 0 ? this._renderAbilityChoices() : ''}
                         <div class="ability-score-container">
                             <div class="ability-score-grid">
                                 ${this._renderAbilityScoreBoxes()}
                             </div>
                         </div>
-                        
-                        ${method === 'pointBuy' ? this._renderPointBuyInfo() : ''}
                     </div>
                 </div>
             </div>
@@ -79,6 +94,57 @@ export class Step5AbilityScores {
     }
 
     /**
+     * Render ability choice dropdowns.
+     * @private
+     */
+    _renderAbilityChoices() {
+        if (!this._abilityChoiceData || !this._abilityChoiceData.choices.length) {
+            return '';
+        }
+
+        const stagedData = this.session.getStagedData();
+        const savedChoices = stagedData.race?.abilityChoices || [];
+
+        let dropdownsHTML = '';
+        let choiceIndex = 0;
+
+        for (const choice of this._abilityChoiceData.choices) {
+            const count = choice.count || 1;
+            const amount = choice.amount || 1;
+            const source = choice.source === 'race' ? 'Race' : 'Subrace';
+
+            for (let i = 0; i < count; i++) {
+                const savedChoice = savedChoices[choiceIndex];
+                const selectedAbility = savedChoice?.ability || '';
+
+                dropdownsHTML += `
+                    <div class="ability-choice-dropdown mb-2">
+                        <label class="form-label">
+                            <strong>${source} Choice ${i + 1}:</strong> +${amount} to
+                        </label>
+                        <select class="form-select form-select-sm" data-choice-index="${choiceIndex}">
+                            <option value="">Choose an ability...</option>
+                            ${choice.from.map(ability => `
+                                <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
+                                    ${ability.charAt(0).toUpperCase() + ability.slice(1)}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                `;
+                choiceIndex++;
+            }
+        }
+
+        return `
+            <div class="racial-ability-choices mb-3 p-3 border rounded">
+                <h6 class="mb-2"><i class="fas fa-plus-circle"></i> Racial Ability Choices</h6>
+                ${dropdownsHTML}
+            </div>
+        `;
+    }
+
+    /**
      * Render point buy info section.
      * @private
      */
@@ -87,14 +153,9 @@ export class Step5AbilityScores {
         const pointsRemaining = 27 - pointsUsed;
 
         return `
-            <div class="mt-3 p-3 bg-primary bg-opacity-10 border border-primary rounded">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><strong>Points Used:</strong></span>
-                    <span class="badge bg-${pointsRemaining >= 0 ? 'primary' : 'danger'}">${pointsUsed} / 27</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span><strong>Points Remaining:</strong></span>
-                    <span class="badge bg-${pointsRemaining >= 0 ? 'success' : 'danger'}">${pointsRemaining}</span>
+            <div class="mb-3 d-flex justify-content-end">
+                <div class="points-remaining-display px-3 py-2 rounded">
+                    <strong>Points Remaining:</strong> ${pointsRemaining}
                 </div>
             </div>
         `;
@@ -125,26 +186,45 @@ export class Step5AbilityScores {
     _getRacialBonus(ability) {
         const stagedData = this.session.getStagedData();
         const raceName = stagedData.race?.name;
+        const raceSource = stagedData.race?.source;
+        const subraceName = stagedData.race?.subrace;
 
-        if (!raceName) return 0;
+        if (!raceName || !raceSource) return 0;
 
-        // Import race service and get race data
-        // For now, return simple mapping - this should use raceService in production
-        // Common racial bonuses (simplified)
-        const raceBonuses = {
-            'Dwarf': { constitution: 2 },
-            'Elf': { dexterity: 2 },
-            'Halfling': { dexterity: 2 },
-            'Human': { strength: 1, dexterity: 1, constitution: 1, intelligence: 1, wisdom: 1, charisma: 1 },
-            'Dragonborn': { strength: 2, charisma: 1 },
-            'Gnome': { intelligence: 2 },
-            'Half-Elf': { charisma: 2 },
-            'Half-Orc': { strength: 2, constitution: 1 },
-            'Tiefling': { charisma: 2, intelligence: 1 }
-        };
+        // Get race and subrace data from service
+        const race = raceService.getRace(raceName, raceSource);
+        if (!race) return 0;
 
-        const bonuses = raceBonuses[raceName] || {};
-        return bonuses[ability] || 0;
+        const subrace = subraceName ? raceService.getSubrace(raceName, subraceName, raceSource) : null;
+
+        // Parse ability increases from race and subrace
+        const abilityArray = [
+            ...(race?.ability || []),
+            ...(subrace?.ability || [])
+        ];
+
+        if (abilityArray.length === 0) return 0;
+
+        // Calculate bonus for this specific ability
+        let bonus = 0;
+        for (const abilityEntry of abilityArray) {
+            if (!abilityEntry) continue;
+
+            // Handle different ability entry formats
+            if (typeof abilityEntry === 'object') {
+                // Direct ability mapping: { str: 2, dex: 1 }
+                const shortName = ability.substring(0, 3);
+                if (abilityEntry[shortName]) {
+                    bonus += abilityEntry[shortName];
+                }
+
+                // Choose format: { choose: { from: [...], count: 1, amount: 1 } }
+                // This requires user choice, which we handle elsewhere
+                // For now, we don't add anything for choose abilities
+            }
+        }
+
+        return bonus;
     }
 
     /**
@@ -408,15 +488,45 @@ export class Step5AbilityScores {
      * @private
      */
     async _refreshDisplay() {
-        const contentArea = document.querySelector('[data-step-content]');
-        if (!contentArea) return;
+        const stagedData = this.session.getStagedData();
+        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
 
-        // Re-render the entire step
-        const html = await this.render();
-        contentArea.innerHTML = html;
+        // Update each ability box
+        for (const ability of abilities) {
+            const box = document.querySelector(`.ability-score-box[data-ability="${ability}"]`);
+            if (!box) continue;
 
-        // Re-attach listeners
-        await this.attachListeners(contentArea);
+            const baseScore = stagedData.abilityScores?.[ability] || 8;
+            const racialBonus = this._getRacialBonus(ability);
+            const totalScore = baseScore + racialBonus;
+            const modifier = this._formatModifier(Math.floor((totalScore - 10) / 2));
+
+            // Update displayed values
+            const scoreEl = box.querySelector('.score');
+            const modifierEl = box.querySelector('.modifier');
+            if (scoreEl) scoreEl.textContent = totalScore;
+            if (modifierEl) modifierEl.textContent = modifier;
+
+            // Update button states for point buy
+            const method = stagedData.abilityScoreMethod || 'pointBuy';
+            if (method === 'pointBuy') {
+                const controls = box.querySelector('.ability-controls');
+                if (controls) {
+                    const decreaseBtn = controls.querySelector('button:first-child');
+                    const increaseBtn = controls.querySelector('button:last-child');
+                    if (decreaseBtn) decreaseBtn.disabled = baseScore <= 8;
+                    if (increaseBtn) increaseBtn.disabled = baseScore >= 15;
+                }
+            }
+        }
+
+        // Update point buy info if visible
+        const pointsDisplay = document.querySelector('.points-remaining-display');
+        if (pointsDisplay) {
+            const pointsUsed = this._calculatePointsUsed();
+            const pointsRemaining = 27 - pointsUsed;
+            pointsDisplay.innerHTML = `<strong>Points Remaining:</strong> ${pointsRemaining}`;
+        }
     }
 
     /**

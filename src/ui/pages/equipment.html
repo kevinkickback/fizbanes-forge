@@ -26,46 +26,18 @@
         <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Inventory</h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary btn-sm" id="addItemBtn">
-                        <i class="fas fa-plus"></i> Add Item
-                    </button>
+                <button class="btn btn-primary btn-sm" id="addItemBtn">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-end mb-3">
                     <span class="text-muted">
                         Weight: <span id="inventoryWeight">0</span> / <span id="weightCapacity">0</span> lbs
                     </span>
                 </div>
-            </div>
-            <div class="card-body">
                 <div class="inventory-list" id="inventoryList">
                     <!-- Inventory items will be populated dynamically -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Equipment Packs -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header py-2">
-                <h5 class="mb-0">Equipment Packs</h5>
-            </div>
-            <div class="card-body">
-                <div class="pack-list" id="packList">
-                    <!-- Equipment packs will be populated dynamically -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Equipment Slots -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header py-2">
-                <h5 class="mb-0">Equipped Items</h5>
-            </div>
-            <div class="card-body">
-                <div class="equipment-slots" id="equipmentSlots">
-                    <!-- Equipment slots will be populated dynamically -->
                 </div>
             </div>
         </div>

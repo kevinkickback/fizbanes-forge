@@ -6,6 +6,7 @@
 
 import { getSpeedString, SIZE_ABV_TO_FULL, sizeAbvToFull } from '../../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { textProcessor } from '../../../../lib/TextProcessor.js';
 import { getAbilityData } from '../../../../services/AbilityScoreService.js';
 import { raceService } from '../../../../services/RaceService.js';
 import { sourceService } from '../../../../services/SourceService.js';
@@ -108,6 +109,16 @@ export class Step2Race {
 
         // Restore allowed sources from session if available
         const savedSources = this.session.get('allowedSources');
+        console.debug('[Step2Race]', 'Saved sources from session:', {
+            savedSources,
+            type: typeof savedSources,
+            isSet: savedSources instanceof Set,
+            isArray: Array.isArray(savedSources),
+            size: savedSources?.size,
+            length: savedSources?.length,
+            values: savedSources instanceof Set ? Array.from(savedSources) : savedSources
+        });
+
         if (savedSources && savedSources instanceof Set && savedSources.size > 0) {
             // Update sourceService with saved sources
             const currentSources = sourceService.getAllowedSources();
@@ -119,6 +130,10 @@ export class Step2Race {
             for (const source of savedSources) {
                 sourceService.addAllowedSource(source);
             }
+            console.debug('[Step2Race]', 'Updated sourceService with saved sources:', Array.from(sourceService.getAllowedSources()));
+        } else {
+            console.warn('[Step2Race]', 'No saved sources or invalid format, using sourceService defaults');
+            console.debug('[Step2Race]', 'Current sourceService sources:', Array.from(sourceService.getAllowedSources()));
         }
 
         // Populate race dropdown
@@ -127,7 +142,7 @@ export class Step2Race {
         // Restore saved selection if available
         const savedRace = this.session.get('race');
         if (savedRace?.name && savedRace?.source) {
-            const raceValue = `${savedRace.name}_${savedRace.source}`;
+            const raceValue = `${savedRace.name}|||${savedRace.source}`;
             this._raceSelect.value = raceValue;
             await this._handleRaceChange({ target: { value: raceValue } });
 
@@ -168,7 +183,7 @@ export class Step2Race {
         // Populate select
         for (const race of sortedRaces) {
             const option = document.createElement('option');
-            option.value = `${race.name}_${race.source}`;
+            option.value = `${race.name}|||${race.source}`;
             option.textContent = `${race.name} (${race.source})`;
             this._raceSelect.appendChild(option);
         }
@@ -222,7 +237,7 @@ export class Step2Race {
     }
 
     async _handleRaceChange(event) {
-        const [raceName, source] = event.target.value.split('_');
+        const [raceName, source] = event.target.value.split('|||');
 
         if (!raceName || !source) {
             this._resetDetails();
@@ -247,7 +262,7 @@ export class Step2Race {
     async _handleSubraceChange(event) {
         const subraceName = event.target.value;
         const raceValue = this._raceSelect.value;
-        const [raceName, source] = raceValue.split('_');
+        const [raceName, source] = raceValue.split('|||');
 
         if (!raceName || !source) return;
 
@@ -438,15 +453,37 @@ export class Step2Race {
      */
     async validate() {
         const raceValue = this._raceSelect?.value;
-        if (!raceValue) {
+        if (!raceValue || raceValue === '') {
             console.warn('[Step2Race]', 'No race selected');
             return false;
         }
 
-        const [raceName, source] = raceValue.split('_');
+        const parts = raceValue.split('|||');
+        const raceName = parts[0];
+        const source = parts[1];
+
+        console.debug('[Step2Race]', 'Validating race:', {
+            raceValue,
+            raceName,
+            source
+        });
+
+        if (!raceName || !source) {
+            console.error('[Step2Race]', 'Failed to parse race value:', { raceValue, parts });
+            return false;
+        }
 
         // Check if subrace is required
-        if (this._raceService.isSubraceRequired(raceName, source)) {
+        const isRequired = this._raceService.isSubraceRequired(raceName, source);
+
+        console.debug('[Step2Race]', 'Subrace validation:', {
+            raceName,
+            source,
+            isRequired,
+            subraceValue: this._subraceSelect?.value
+        });
+
+        if (isRequired) {
             const subraceValue = this._subraceSelect?.value;
             if (!subraceValue) {
                 console.warn('[Step2Race]', 'Subrace required but not selected');
@@ -454,6 +491,7 @@ export class Step2Race {
             }
         }
 
+        console.debug('[Step2Race]', 'Validation passed');
         return true;
     }
 
@@ -467,7 +505,7 @@ export class Step2Race {
             return;
         }
 
-        const [raceName, source] = raceValue.split('_');
+        const [raceName, source] = raceValue.split('|||');
         const subraceValue = this._subraceSelect?.value || '';
 
         this.session.set('race', {

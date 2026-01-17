@@ -20,9 +20,8 @@ export class CharacterCreationSession {
             // Step 1: Rules
             abilityScoreMethod: 'pointBuy',
             variantRules: {
-                feats: true,
-                multiclassing: true,
-                averageHitPoints: true,
+                variantfeat: false,
+                averageHitPoints: false,
             },
             allowedSources: new Set(),
 

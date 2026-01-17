@@ -310,22 +310,16 @@ class PageHandlerImpl {
 				const progressionClasses = Array.isArray(character.progression?.classes)
 					? character.progression.classes
 					: [];
-				const characterLevel = progressionClasses.length
-					? progressionClasses.reduce((sum, cls) => sum + (cls.levels || 0), 0) || 1
-					: character.level || character.class?.level || 1;
+				const characterLevel = character.getTotalLevel();
 				const classDisplay = progressionClasses.length
 					? progressionClasses
 						.map((cls) => {
 							return cls.name || 'Unknown Class';
 						})
 						.join('<br>')
-					: (() => {
-						return character.class?.name || 'No Class';
-					})();
-
+					: 'No Class';
 				// Default placeholder portraits
-				const placeholderImages = [
-					'assets/images/characters/placeholder_char_card.webp',
+				const placeholderImages = ['assets/images/characters/placeholder_char_card.webp',
 					'assets/images/characters/placeholder_char_card2.webp',
 					'assets/images/characters/placeholder_char_card3.webp'
 				];

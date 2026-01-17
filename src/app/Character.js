@@ -26,13 +26,10 @@ export class Character {
 			this.race.abilityChoices = [];
 		}
 
-		this.class = data.class || {
-			level: 1,
-		};
-
-		// Removed top-level subclass property; use class.subclass only
+		// Note: class info stored in progression.classes[], no legacy character.class field
+		// Note: subclass is stored in progression.classes[].subclass
 		this.background = data.background || '';
-		this.level = data.level || 1;
+		// Note: total level is calculated from progression.classes[].levels, no legacy character.level field
 		this.createdAt = data.createdAt || new Date().toISOString();
 		this.lastModified = data.lastModified || new Date().toISOString();
 
@@ -223,8 +220,7 @@ export class Character {
 
 		// Initialize variant rules with defaults or from data
 		this.variantRules = data.variantRules || {
-			feats: true,
-			multiclassing: true,
+			variantfeat: false,
 			abilityScoreMethod: 'custom', // Options: 'custom', 'pointBuy', 'standardArray'
 		};
 
@@ -548,8 +544,7 @@ export class Character {
 			race: this.race
 				? { ...this.race }
 				: { name: '', source: '', subrace: '' },
-			class: this.class ? { ...this.class } : { level: 1 },
-			subclass: this.subclass || '',
+			// Note: class info stored in progression.classes[], no legacy character.class field
 			background: this.background
 				? typeof this.background === 'object'
 					? { ...this.background }
@@ -723,8 +718,8 @@ export class Character {
 		serializedData.progression = {
 			classes: (this.progression?.classes || []).map((cls) => ({
 				name: cls.name,
-				levels: cls.levels,  // Fixed: was "level", should be "levels" (plural)
-				subclass: cls.subclass ? { ...cls.subclass } : null,
+				levels: cls.levels,
+				subclass: cls.subclass || '',  // Always store as string
 				hitDice: cls.hitDice,
 				hitPoints: safeArray(cls.hitPoints),
 				features: safeArray(cls.features),
@@ -853,6 +848,49 @@ export class Character {
 				this.optionalProficiencies.tools.race.selected = [];
 			}
 		}
+	}
+
+	/**
+	 * Get total character level (sum of all class levels)
+	 * @returns {number} Total character level
+	 */
+	getTotalLevel() {
+		if (!this.progression?.classes || this.progression.classes.length === 0) {
+			return 1;
+		}
+		return this.progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
+	}
+
+	/**
+	 * Get primary class (first class in progression)
+	 * @returns {Object|null} Class entry {name, source, levels, subclass} or null
+	 */
+	getPrimaryClass() {
+		if (!this.progression?.classes || this.progression.classes.length === 0) {
+			return null;
+		}
+		return this.progression.classes[0];
+	}
+
+	/**
+	 * Get class entry by name
+	 * @param {string} className - Name of the class to find
+	 * @returns {Object|null} Class entry {name, source, levels, subclass} or null
+	 */
+	getClassEntry(className) {
+		if (!this.progression?.classes) {
+			return null;
+		}
+		return this.progression.classes.find(c => c.name === className) || null;
+	}
+
+	/**
+	 * Check if character has a specific class
+	 * @param {string} className - Name of the class to check
+	 * @returns {boolean} True if character has this class
+	 */
+	hasClass(className) {
+		return this.getClassEntry(className) !== null;
 	}
 }
 

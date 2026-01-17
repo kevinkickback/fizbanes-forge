@@ -140,7 +140,7 @@ export class FeatCard {
 
 		// Level requirement
 		if (prereq.level !== undefined) {
-			const characterLevel = character.level || 1;
+			const characterLevel = character.getTotalLevel();
 			if (characterLevel < prereq.level) {
 				return false;
 			}
@@ -181,7 +181,8 @@ export class FeatCard {
 
 		// Class requirement
 		if (Array.isArray(prereq.class)) {
-			const characterClass = character.class?.name?.toLowerCase() || '';
+			const primaryClass = character.getPrimaryClass();
+			const characterClass = primaryClass?.name?.toLowerCase() || '';
 			const meetsClassRequirement = prereq.class.some((classReq) => {
 				if (typeof classReq === 'string') {
 					return characterClass === classReq.toLowerCase();
@@ -195,32 +196,46 @@ export class FeatCard {
 
 		// Spellcasting requirement (character must be a spellcaster)
 		if (prereq.spellcasting === true) {
-			const hasSpellcasting =
-				character.spellcastingAbility || character.class?.hasSpellcasting;
+			// Check if any class in progression is a spellcaster
+			const classes = character.progression?.classes || [];
+			const hasSpellcasting = classes.some(cls => {
+				const classData = featService._classService?.getClass(cls.name, cls.source);
+				return classData?.spellcastingAbility;
+			});
 			if (!hasSpellcasting) return false;
 		}
 
 		// Spellcasting 2020 requirement (character must be a spellcaster with 2020+ rules)
 		if (prereq.spellcasting2020 === true) {
-			const hasSpellcasting =
-				character.spellcastingAbility || character.class?.hasSpellcasting;
+			// Check if any class in progression is a spellcaster
+			const classes = character.progression?.classes || [];
+			const hasSpellcasting = classes.some(cls => {
+				const classData = featService._classService?.getClass(cls.name, cls.source);
+				return classData?.spellcastingAbility;
+			});
 			if (!hasSpellcasting) return false;
 		}
 
 		// Spellcasting prepared requirement (character must prepare spells)
 		if (prereq.spellcastingPrepared === true) {
-			const canPrepareSpells =
-				character.class?.name?.toLowerCase().includes('cleric') ||
-				character.class?.name?.toLowerCase().includes('druid') ||
-				character.class?.name?.toLowerCase().includes('wizard') ||
-				character.class?.name?.toLowerCase().includes('paladin');
+			// Check if any class in progression can prepare spells
+			const classes = character.progression?.classes || [];
+			const canPrepareSpells = classes.some(cls => {
+				const name = cls.name?.toLowerCase() || '';
+				return name.includes('cleric') || name.includes('druid') ||
+					name.includes('wizard') || name.includes('paladin');
+			});
 			if (!canPrepareSpells) return false;
 		}
 
 		// Spellcasting feature requirement
 		if (prereq.spellcastingFeature === true) {
-			const hasSpellcasting =
-				character.spellcastingAbility || character.class?.hasSpellcasting;
+			// Check if any class in progression is a spellcaster
+			const classes = character.progression?.classes || [];
+			const hasSpellcasting = classes.some(cls => {
+				const classData = featService._classService?.getClass(cls.name, cls.source);
+				return classData?.spellcastingAbility;
+			});
 			if (!hasSpellcasting) return false;
 		}
 
@@ -255,11 +270,12 @@ export class FeatCard {
 
 		// Feature requirement (class feature, like "Fighting Style")
 		if (Array.isArray(prereq.feature)) {
-			const classFeatures = character.class?.features || [];
+			// Get all class features from progression
+			const allFeatures = (character.progression?.classes || []).flatMap(cls => cls.features || []);
 			const meetsFeatureRequirement = prereq.feature.some((featureReq) => {
 				const reqName =
 					typeof featureReq === 'string' ? featureReq : featureReq.name || '';
-				return classFeatures.some((cf) =>
+				return allFeatures.some((cf) =>
 					(typeof cf === 'string' ? cf : cf.name || '')
 						.toLowerCase()
 						.includes(reqName.toLowerCase()),

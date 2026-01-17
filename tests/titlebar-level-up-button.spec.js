@@ -3,19 +3,18 @@
  * 
  * This test verifies that the Level Up button:
  * - Is disabled when no character is loaded
- * - Is disabled when character has no classes
- * - Becomes enabled when character has at least one class
- * - Updates correctly on CHARACTER_UPDATED events
+ * - Becomes enabled immediately after character creation (character creator forces class selection)
+ * - Works from home page without requiring navigation to build page
+ * - Updates correctly on CHARACTER_SELECTED events
  */
 
 import { _electron as electron, expect, test } from '@playwright/test';
 
 test.describe('Titlebar Level Up Button', () => {
-    test('should enable Level Up button when character gets a class', async () => {
+    test('should enable Level Up button immediately after character creation', async () => {
         test.setTimeout(120000);
 
-        const testCharacterName = `LevelUpTest-${Date.now()}`;
-        console.log(`\n=== Testing Level Up Button: "${testCharacterName}" ===\n`);
+        console.log(`\n=== Testing Level Up Button on Character Selection ===\n`);
 
         // Launch app
         console.log('1. Launching app...');
@@ -63,39 +62,23 @@ test.describe('Titlebar Level Up Button', () => {
             console.log(`   Disabled: ${initialDisabled}, Title: "${initialTitle}"`);
             expect(initialDisabled).toBe(true);
 
-            // Create a new character
-            console.log('4. Creating new character...');
-            const welcomeBtn = await page
-                .locator('#welcomeCreateCharacterBtn')
-                .isVisible()
-                .catch(() => false);
-
-            if (welcomeBtn) {
-                await page.locator('#welcomeCreateCharacterBtn').click();
-            } else {
-                await page.locator('#newCharacterBtn').click();
-            }
+            // Always create a new character to ensure proper progression format
+            console.log('4. Creating a new character with proper progression format...');
+            const createBtn = page.locator('#newCharacterBtn, #welcomeCreateCharacterBtn').first();
+            await createBtn.click();
 
             await page.waitForSelector('#newCharacterModal.show', { timeout: 15000 });
-            await page.locator('#newCharacterName').fill(testCharacterName);
+            await page.locator('#newCharacterName').fill(`TestChar-${Date.now()}`);
 
-            // Navigate through wizard steps (4 steps: 0, 1, 2, 3)
+            // Navigate through wizard steps
             console.log('   Navigating through character creation wizard...');
             const nextBtn = page.locator('#wizardNextBtn');
-
-            // Step 0 -> 1 (Basics -> Rules)
-            await nextBtn.click();
+            await nextBtn.click(); // Step 0 -> 1 (Basics -> Rules)
             await page.waitForTimeout(500);
-
-            // Step 1 -> 2 (Rules -> Sources)
-            await nextBtn.click();
+            await nextBtn.click(); // Step 1 -> 2 (Rules -> Sources)
             await page.waitForTimeout(500);
-
-            // Step 2 -> 3 (Sources -> Review)
-            await nextBtn.click();
+            await nextBtn.click(); // Step 2 -> 3 (Sources -> Review)
             await page.waitForTimeout(500);
-
-            // On step 3, button changes to "Create", click it
             await nextBtn.click(); // Create character
 
             await page.waitForSelector('#newCharacterModal.show', {
@@ -104,110 +87,30 @@ test.describe('Titlebar Level Up Button', () => {
             });
             await page.waitForTimeout(2000);
 
-            // Check Level Up button after creating character (should still be disabled - no class)
-            console.log('5. Checking Level Up button after character creation (no class yet)...');
+            // Since character creator now forces class selection, newly created characters should have a class
+            // Check Level Up button after character creation
+            console.log('5. Checking Level Up button after character creation...');
+
+            // Wait a bit for CHARACTER_SELECTED event to propagate and update button state
+            await page.waitForTimeout(1500);
+
             const afterCreateDisabled = await levelUpBtn.isDisabled();
             const afterCreateTitle = await levelUpBtn.getAttribute('title');
             console.log(`   Disabled: ${afterCreateDisabled}, Title: "${afterCreateTitle}"`);
-            expect(afterCreateDisabled).toBe(true);
-            expect(afterCreateTitle).toContain('Add a class');
 
-            // Navigate to Build page
-            console.log('6. Navigating to Build page...');
-            await page.locator('button.nav-link[data-page="build"]').click();
-            await page.waitForSelector('[data-current-page="build"]', { timeout: 15000 });
-            await page.waitForTimeout(2000); // Wait a bit longer for page to initialize
-
-            // Check character state before adding class
-            console.log('7. Checking character state before adding class...');
-            const characterDebug = await page.evaluate(() => {
-                // Check what's available on window
-                const debug = {
-                    hasWindow: typeof window !== 'undefined',
-                    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('app') || k.toLowerCase().includes('state')),
-                    hasAppState: typeof window.AppState !== 'undefined',
-                    AppStateType: typeof window.AppState
-                };
-
-                try {
-                    const char = window.AppState?.getCurrentCharacter?.();
-                    debug.hasCharacter = !!char;
-                    debug.characterName = char?.name;
-                    debug.hasProgression = !!char?.progression;
-                    debug.classCount = char?.progression?.classes?.length || 0;
-                } catch (e) {
-                    debug.error = e.message;
-                }
-
-                return debug;
-            });
-            console.log('   Debug info:', JSON.stringify(characterDebug, null, 2));
-
-            // Add a class
-            console.log('8. Adding a class (Wizard)...');
-            const classSelect = page.locator('#classSelect').first();
-            await classSelect.waitFor({ state: 'visible', timeout: 15000 });
-
-            // Wait for options to load (class dropdown populated when data loads)
-            console.log('   Waiting for class options to load...');
-            try {
-                await page.waitForFunction(() => {
-                    const select = document.querySelector('#classSelect');
-                    const count = select?.options?.length || 0;
-                    if (count > 1) console.log(`[Test] Class select loaded with ${count} options`);
-                    return count > 1; // More than just placeholder
-                }, { timeout: 30000 });
-                console.log('   Class options loaded successfully');
-            } catch (_e) {
-                // If timeout, show what we have
-                const optionInfo = await page.evaluate(() => {
-                    const select = document.querySelector('#classSelect');
-                    return {
-                        exists: !!select,
-                        optionCount: select?.options?.length || 0,
-                        firstOptions: Array.from(select?.options || []).slice(0, 5).map(o => o.text)
-                    };
-                });
-                console.error('   Class options load timeout. Info:', JSON.stringify(optionInfo, null, 2));
-                throw new Error('Class options did not load in time');
-            }
-
-            console.log('   Selecting Wizard...');
-
-            // Debug: check available options
-            const availableOptions = await page.evaluate(() => {
-                const select = document.querySelector('#classSelect');
-                return Array.from(select?.options || []).map(o => ({
-                    text: o.text,
-                    value: o.value,
-                    disabled: o.disabled
-                }));
-            });
-            console.log('   Available options:', JSON.stringify(availableOptions.slice(0, 5), null, 2));
-
-            await classSelect.selectOption({ label: 'Wizard (PHB)' });
-
-            // Wait for class to be added and CHARACTER_UPDATED to fire
-            await page.waitForTimeout(2000);
-
-            // Check character state after adding class
-            console.log('9. Checking character state after adding class...');
+            // Check character state to verify it has a class in progression format
+            console.log('6. Checking character state...');
             const characterAfter = await page.evaluate(() => {
                 const char = window.AppState?.getCurrentCharacter?.();
                 return {
                     hasCharacter: !!char,
                     name: char?.name,
+                    hasProgression: !!char?.progression,
                     progressionClasses: char?.progression?.classes,
                     classCount: char?.progression?.classes?.length || 0
                 };
             });
             console.log('   Character after:', JSON.stringify(characterAfter, null, 2));
-
-            // Check Level Up button state after adding class
-            console.log('10. Checking Level Up button after adding class...');
-            const afterClassDisabled = await levelUpBtn.isDisabled();
-            const afterClassTitle = await levelUpBtn.getAttribute('title');
-            console.log(`   Disabled: ${afterClassDisabled}, Title: "${afterClassTitle}"`);
 
             // Filter console messages for TitlebarController updates
             const titlebarLogs = consoleMessages.filter(msg =>
@@ -218,9 +121,10 @@ test.describe('Titlebar Level Up Button', () => {
                 console.log(log.text);
             }
 
-            // Assertions - verify the button became enabled
-            expect(afterClassDisabled).toBe(false);
-            expect(afterClassTitle).toBe('Level Up');
+            // Assertions - verify the button is enabled with the new progression format
+            expect(characterAfter.classCount).toBeGreaterThan(0);
+            expect(afterCreateDisabled).toBe(false);
+            expect(afterCreateTitle).toBe('Level Up');
 
             console.log('\n✓ Test completed successfully!\n');
 

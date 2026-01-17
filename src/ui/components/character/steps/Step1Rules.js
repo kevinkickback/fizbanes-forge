@@ -21,7 +21,7 @@ export class Step1Rules {
      */
     async render() {
         const abilityScoreMethod = this.session.get('abilityScoreMethod') || 'pointBuy';
-        const feats = this.session.get('variantRules.feats') ?? false;
+        const variantfeat = this.session.get('variantRules.variantfeat') ?? false;
         const averageHitPoints = this.session.get('variantRules.averageHitPoints') ?? false;
 
         return `
@@ -72,7 +72,7 @@ export class Step1Rules {
                                     <input class="form-check-input" 
                                            type="checkbox" 
                                            id="featVariant"
-                                           ${feats ? 'checked' : ''}>
+                                           ${variantfeat ? 'checked' : ''}>
                                     <label class="form-check-label" for="featVariant">
                                         Optional Class Features
                                     </label>
@@ -233,15 +233,12 @@ export class Step1Rules {
         }
 
         if (featVariant) {
-            this.session.set('variantRules.feats', featVariant.checked);
+            this.session.set('variantRules.variantfeat', featVariant.checked);
         }
 
         if (averageHitPoints) {
             this.session.set('variantRules.averageHitPoints', averageHitPoints.checked);
         }
-
-        // Always set multiclassing to true (removed from UI)
-        this.session.set('variantRules.multiclassing', true);
 
         // Save source selection
         const selectedSources = this._getSelectedSources();

@@ -36,7 +36,7 @@ export class LevelUpSession {
 
         // Deep clone character data into staged changes
         this.stagedChanges = {
-            level: character.level || 1,
+            // Note: level is calculated from progression.classes[], not stored
             progression: JSON.parse(JSON.stringify(character.progression || { classes: [], experiencePoints: 0, levelUps: [] })),
             spellcasting: JSON.parse(JSON.stringify(character.spellcasting || { classes: {}, multiclass: {}, other: {} })),
             feats: JSON.parse(JSON.stringify(character.feats || [])),
@@ -49,7 +49,7 @@ export class LevelUpSession {
 
         console.info('[LevelUpSession]', 'Initialized for character', {
             characterName: character.name,
-            currentLevel: character.level,
+            currentLevel: character.getTotalLevel(),
             classes: character.progression?.classes?.map(c => `${c.name} ${c.levels}`).join(', '),
         });
     }
@@ -96,7 +96,8 @@ export class LevelUpSession {
             newASIs: this.stepData.asiChoices || [],
             newSpells: this.stepData.selectedSpells || {},
             changedAbilities: {},
-            totalLevelChange: (this.stagedChanges.level || 1) - (this.originalCharacter.level || 1),
+            // Calculate level change from progression.classes
+            totalLevelChange: this._calculateTotalLevel(this.stagedChanges.progression) - this.originalCharacter.getTotalLevel(),
         };
 
         // Compare class levels for summary
@@ -183,7 +184,7 @@ export class LevelUpSession {
             this._validateCharacter();
 
             console.info('[LevelUpSession]', 'Changes applied successfully', {
-                newLevel: this.originalCharacter.level,
+                newLevel: this.originalCharacter.getTotalLevel(),
                 fromLevel,
                 toLevel,
                 newClasses: this.originalCharacter.progression?.classes?.map(c => `${c.name} ${c.levels}`).join(', '),
@@ -535,5 +536,18 @@ export class LevelUpSession {
      */
     getMissingChoicesSummary() {
         return characterValidationService.getSummary(this.validationReport);
+    }
+
+    /**
+     * Calculate total level from progression object
+     * @param {Object} progression - Progression object with classes array
+     * @returns {number} Total level
+     * @private
+     */
+    _calculateTotalLevel(progression) {
+        if (!progression?.classes || progression.classes.length === 0) {
+            return 1;
+        }
+        return progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
     }
 }

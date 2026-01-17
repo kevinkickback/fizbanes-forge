@@ -159,7 +159,7 @@ export class Step3Class {
             if (feature.gainSubclassFeature === true) {
                 // Parse level from classFeature string format: "Feature Name|ClassName||Level"
                 const parts = feature.classFeature.split('|');
-                const level = parseInt(parts[parts.length - 1]);
+                const level = parseInt(parts[parts.length - 1], 10);
                 return Number.isNaN(level) ? null : level;
             }
         }

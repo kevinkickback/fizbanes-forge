@@ -22,83 +22,20 @@ class LevelUpService {
                 levelUps: [],
             };
         }
-
-        // If character has a class but no progression tracking, create entry
-        if (character.class?.name && character.progression.classes.length === 0) {
-            this.addClassLevel(character, character.class.name, character.level || 1);
-        }
-
-        // If character has a class but the progression doesn't match (class was changed),
-        // reset progression to match current class
-        if (character.class?.name &&
-            character.progression.classes.length > 0 &&
-            !character.progression.classes.find(c => c.name === character.class.name)) {
-            console.info(`[${this.loggerScope}]`, 'Class mismatch detected, resetting progression');
-            character.progression.classes = [];
-            character.spellcasting = { classes: {} };
-            this.addClassLevel(character, character.class.name, character.level || 1);
-        }
+        // Note: progression.classes is the single source of truth
+        // No legacy character.class field to sync
     }
 
     /**
-     * Increase character's total level by 1.
+     * Get total character level (calculated from progression.classes[])
      * @param {Object} character - Character object
-     * @returns {boolean} True if successful
+     * @returns {number} Total character level
      */
-    increaseLevel(character) {
-        if (!character.level) character.level = 1;
-        if (character.level >= 20) {
-            console.warn(`[${this.loggerScope}]`, 'Character already at max level');
-            return false;
+    getTotalLevel(character) {
+        if (!character?.progression?.classes || character.progression.classes.length === 0) {
+            return 1;
         }
-
-        const oldLevel = character.level;
-        character.level++;
-
-        // Increase primary class level if only one class
-        if (character.progression.classes.length === 1) {
-            character.progression.classes[0].level++;
-        }
-
-        const newLevel = character.level;
-
-        console.info(`[${this.loggerScope}]`, 'Character leveled up', {
-            from: oldLevel,
-            to: newLevel,
-        });
-
-        eventBus.emit(EVENTS.CHARACTER_LEVEL_CHANGED, character, { from: oldLevel, to: newLevel });
-        return true;
-    }
-
-    /**
-     * Decrease character's total level by 1.
-     * @param {Object} character - Character object
-     * @returns {boolean} True if successful
-     */
-    decreaseLevel(character) {
-        if (!character.level || character.level <= 1) {
-            console.warn(`[${this.loggerScope}]`, 'Character already at minimum level');
-            return false;
-        }
-
-        const oldLevel = character.level;
-        character.level--;
-
-        // Decrease primary class level if only one class
-        if (character.progression.classes.length === 1) {
-            character.progression.classes[0].level--;
-        }
-
-        const newLevel = character.level;
-
-        console.info(`[${this.loggerScope}]`, 'Character leveled down', {
-            from: oldLevel,
-            to: newLevel,
-        });
-
-        eventBus.emit(EVENTS.CHARACTER_LEVEL_CHANGED, character, { from: oldLevel, to: newLevel });
-        return true;
+        return character.progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
     }
 
     /**
@@ -108,7 +45,7 @@ class LevelUpService {
      * @param {number} level - Level in that class (default 1)
      * @returns {Object} Class progression entry or null
      */
-    addClassLevel(character, className, level = 1) {
+    addClassLevel(character, className, level = 1, source = 'PHB') {
         if (!character.progression) {
             this.initializeProgression(character);
         }
@@ -120,6 +57,10 @@ class LevelUpService {
 
         if (classEntry) {
             classEntry.levels = level;
+            // Update source if provided and currently missing
+            if (source && !classEntry.source) {
+                classEntry.source = source;
+            }
             console.info(`[${this.loggerScope}]`, 'Updated class level', {
                 className,
                 level,
@@ -130,9 +71,7 @@ class LevelUpService {
         // Create new class entry
         classEntry = {
             name: className,
-            levels: level,  // Fixed: use 'levels' (plural) to match progression system
-            subclass: null,
-            hitDice: this._getHitDiceForClass(className),
+            source,
             hitPoints: [],
             features: [],
             spellSlots: {},
@@ -333,7 +272,7 @@ class LevelUpService {
      * @returns {boolean} True if ASI is available at current level
      */
     hasASIAvailable(character) {
-        const currentLevel = character.level || 1;
+        const currentLevel = this.getTotalLevel(character);
         const asiLevels = this.getASILevels(character);
         return asiLevels.includes(currentLevel);
     }
@@ -423,7 +362,8 @@ class LevelUpService {
         }
 
         // Apply CON modifier per level (minimum 1 per level)
-        totalHP += Math.max(character.level || 1, (conMod * (character.level || 1)));
+        const totalLevel = this.getTotalLevel(character);
+        totalHP += Math.max(totalLevel, (conMod * totalLevel));
 
         return Math.max(1, totalHP);
     }

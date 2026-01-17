@@ -211,7 +211,10 @@ class CharacterManagerImpl {
 				throw new Error(listResult.error || 'Failed to load list');
 			}
 
-			const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
+			const charactersData = listResult.characters || []; // FIX: Use 'characters' not 'data'
+
+			// Convert plain objects to Character instances so helper methods work
+			const characters = charactersData.map((data) => new Character(data));
 
 			// Update state
 			AppState.setCharacters(characters);

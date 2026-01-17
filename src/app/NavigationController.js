@@ -553,7 +553,26 @@ class NavigationControllerImpl {
 
 		const target = document.getElementById(sectionId);
 		if (target) {
-			target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			// Try to find the card header within the section for more precise scrolling
+			const cardHeader = target.querySelector('.card-header');
+			const scrollTarget = cardHeader || target;
+
+			// Use scrollIntoView with nearest block to minimize jump
+			scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+			// Adjust for titlebar after scrollIntoView
+			setTimeout(() => {
+				// Get titlebar height from CSS variable
+				const titlebarHeight = parseInt(
+					getComputedStyle(document.documentElement)
+						.getPropertyValue('--titlebar-height'), 10
+				) || 56;
+
+				// Scroll up a bit to account for fixed titlebar with comfortable spacing
+				window.scrollBy({
+					top: -(titlebarHeight + 500),
+				});
+			}, 0);
 		} else {
 			console.warn('NavigationController', 'Unable to find section to scroll', {
 				sectionId,

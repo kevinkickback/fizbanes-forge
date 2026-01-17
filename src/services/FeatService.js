@@ -152,9 +152,10 @@ class FeatService {
 		let slots = 0;
 		const reasons = [];
 
-		const className = character.class?.name;
-		const classSource = character.class?.source || 'PHB';
-		const level = Number(character.class?.level || character.level || 1);
+		const primaryClass = character.getPrimaryClass();
+		const className = primaryClass?.name;
+		const classSource = primaryClass?.source || 'PHB';
+		const level = character.getTotalLevel();
 
 		if (!className || !Number.isFinite(level)) return { slots, reasons };
 

@@ -105,11 +105,12 @@ export class SpellSelectionModal {
         // Determine which class to add spells for
         if (!this.className) {
             // If no class specified, use primary class
-            if (!character.class || !character.class.name) {
+            const primaryClass = character.getPrimaryClass();
+            if (!primaryClass || !primaryClass.name) {
                 showNotification('Character has no class selected', 'error');
                 return null;
             }
-            this.className = character.class.name;
+            this.className = primaryClass.name;
         }
 
         try {

@@ -161,7 +161,7 @@ export class ProficiencyService {
 
 		const abilityMod = character.getAbilityModifier(ability);
 		const profBonus = character.hasProficiency('skill', skill)
-			? this.calculateProficiencyBonus(character.level)
+			? this.calculateProficiencyBonus(character.getTotalLevel())
 			: 0;
 
 		return abilityMod + profBonus;

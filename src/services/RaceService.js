@@ -213,14 +213,20 @@ class RaceService extends BaseDataService {
 
 	/**
 	 * Check if a subrace is required for a given race
-	 * A subrace is required if the race has NO entry without a name (no base race option)
+	 * A subrace is required if the race has named subraces BUT no base/unnamed subrace option
+	 * (i.e., you MUST pick a specific subrace, not "Standard")
 	 * @param {string} raceName - Name of the race
 	 * @param {string} source - Source book
-	 * @returns {boolean} True if subrace selection is required, false if optional
+	 * @returns {boolean} True if subrace selection is required, false if optional or no subraces exist
 	 */
 	isSubraceRequired(raceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
-		return bundle ? !bundle.baseSubrace : false;
+		if (!bundle) return false;
+
+		// Subrace is required only if:
+		// 1. There are subraces available (length > 0)
+		// 2. There is no base/unnamed subrace option (baseSubrace is null)
+		return bundle.subraces.length > 0 && !bundle.baseSubrace;
 	}
 
 	/**

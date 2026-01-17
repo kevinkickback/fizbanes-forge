@@ -965,6 +965,18 @@ body.debug-mode .nav-item.debug-only {
 	gap: 1rem;
 }
 
+.points-remaining-display {
+	display: inline-block;
+	width: auto;
+	background-color: color-mix(
+		in srgb,
+		var(--accent-color) 18%,
+		var(--secondary-color)
+	);
+	border: 1px solid var(--accent-color);
+	color: var(--text-color);
+}
+
 .ability-score-grid {
 	display: grid;
 	grid-template-columns: repeat(6, 1fr);
@@ -1065,7 +1077,7 @@ body.debug-mode .nav-item.debug-only {
 
 .ability-score-box {
 	position: relative;
-	padding: 1rem;
+	padding: 0.7rem;
 	border-radius: 8px;
 	background-color: var(--secondary-color);
 	border: 1px solid var(--border-color);

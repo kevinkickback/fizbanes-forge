@@ -15,7 +15,10 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { classService } from '../../../services/ClassService.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
+import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
+import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
 import { sourceService } from '../../../services/SourceService.js';
+import { LevelUpFeatureSelector } from '../level/LevelUpFeatureSelector.js';
 
 export class ClassCard {
 	constructor(_container) {
@@ -74,6 +77,9 @@ export class ClassCard {
 		this._sourcesChangedHandler = () => {
 			this._loadSavedClassSelection();
 		};
+		this._levelUpCompleteHandler = () => {
+			this._handleLevelUpComplete();
+		};
 
 		// Listen to view events via EventBus
 		eventBus.on(EVENTS.CLASS_SELECTED, this._classSelectedHandler);
@@ -81,6 +87,7 @@ export class ClassCard {
 		eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+		eventBus.on('LEVEL_UP_COMPLETE', this._levelUpCompleteHandler);
 	}
 
 	_cleanupEventListeners() {
@@ -100,6 +107,9 @@ export class ClassCard {
 		if (this._sourcesChangedHandler) {
 			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
 		}
+		if (this._levelUpCompleteHandler) {
+			eventBus.off('LEVEL_UP_COMPLETE', this._levelUpCompleteHandler);
+		}
 
 		// Clean up all tracked DOM listeners
 		this._cleanup.cleanup();
@@ -110,35 +120,46 @@ export class ClassCard {
 	//-------------------------------------------------------------------------
 
 	async _loadSavedClassSelection() {
+		console.log('[ClassCard] _loadSavedClassSelection called');
 		try {
 			// Populate class dropdown first
 			await this._populateClassSelect();
 
 			const character = AppState.getCurrentCharacter();
-			if (!character?.class?.name || !character?.class?.source) {
+			console.log('[ClassCard] Current character:', character ? character.name : 'null');
+			const primaryClass = character?.getPrimaryClass();
+			console.log('[ClassCard] Primary class:', primaryClass);
+
+			if (!primaryClass?.name) {
+				console.log('[ClassCard] No primary class found, rendering tabs and returning');
 				await this._renderClassTabsFromProgression();
 				return; // No saved class to load
 			}
 
+			// Default to PHB if source is missing (legacy characters)
+			const classSource = primaryClass.source || 'PHB';
+
 			// Set the class selection if it exists in available options
-			const classValue = `${character.class.name}_${character.class.source}`;
+			const classValue = `${primaryClass.name}_${classSource}`;
+			console.log('[ClassCard] Setting class value:', classValue);
 
 			if (this._cardView.hasClassOption(classValue)) {
 				this._cardView.setSelectedClassValue(classValue);
 				// Update UI from character data (skip unsaved event)
 				await this._handleClassChange({ target: { value: classValue } }, true);
 
-				// Also set subclass if one was selected
-				if (character.class.subclass) {
+				// Get subclass from progression.classes[]
+				const subclassName = primaryClass.subclass || null;
+				console.log('[ClassCard] Subclass name:', subclassName);
+
+				if (subclassName) {
 					// Wait for subclass options to populate
 					await new Promise((resolve) => setTimeout(resolve, 100));
 
-					if (this._subclassView.hasSubclassOption(character.class.subclass)) {
-						this._subclassView.setSelectedSubclassValue(
-							character.class.subclass,
-						);
+					if (this._subclassView.hasSubclassOption(subclassName)) {
+						this._subclassView.setSelectedSubclassValue(subclassName);
 						// Optionally, update UI for subclass as well
-						// await this._handleSubclassChange({ target: { value: character.class.subclass } }, true);
+						// await this._handleSubclassChange({ target: { value: subclassName } }, true);
 					}
 				}
 			} else {
@@ -190,6 +211,21 @@ export class ClassCard {
 		}
 
 		try {
+			// Get character level
+			const character = CharacterManager.getCurrentCharacter();
+			const characterLevel = character?.getTotalLevel() || 1;
+
+			// Get the level at which this class gains its subclass
+			const subclassLevel = this._getSubclassLevel(classData);
+
+			// Check if character is high enough level for subclass
+			if (!subclassLevel || characterLevel < subclassLevel) {
+				this._subclassView.resetWithMessage(
+					`Available at level ${subclassLevel || '?'}`
+				);
+				return;
+			}
+
 			// Get subclasses from the service
 			const subclasses = this._classService.getSubclasses(
 				classData.name,
@@ -325,6 +361,21 @@ export class ClassCard {
 		}
 	}
 
+	async _handleLevelUpComplete() {
+		try {
+			console.log('[ClassCard]', 'Level up complete - refreshing class card');
+
+			// Refresh the entire class selection to pick up new level and choices
+			await this._loadSavedClassSelection();
+		} catch (error) {
+			console.error(
+				'ClassCard',
+				'Error handling level up completion:',
+				error,
+			);
+		}
+	}
+
 	//-------------------------------------------------------------------------
 	// UI Update Methods
 	//-------------------------------------------------------------------------
@@ -372,7 +423,7 @@ export class ClassCard {
 				const isActive = cls.name === this._activeClassTab;
 				const activeClass = isActive ? 'active' : '';
 				return `<button type="button" class="nav-link ${activeClass}" data-class-name="${cls.name}">
-					${cls.name} <span class="badge bg-secondary ms-1">Lv ${cls.level}</span>
+					${cls.name} <span class="badge bg-secondary ms-1">Lv ${cls.levels}</span>
 				</button>`;
 			})
 			.join('');
@@ -444,7 +495,7 @@ export class ClassCard {
 
 	async _updateFeatures(classData, subclassData = null) {
 		const character = CharacterManager.getCurrentCharacter();
-		const level = character?.level || 1;
+		const level = character?.getTotalLevel() || 1;
 
 		// Get all class features up to the current level (cumulative)
 		const classFeatures =
@@ -469,6 +520,373 @@ export class ClassCard {
 		// Combine and pass to view
 		const allFeatures = [...classFeatures, ...subclassFeatures];
 		await this._detailsView.updateFeatures(classData, allFeatures);
+
+		// Update class choices section
+		await this._updateClassChoices(classData, subclassData);
+	}
+
+	async _updateClassChoices(classData, subclassData = null) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character || !classData) {
+			this._hideClassChoices();
+			return;
+		}
+
+		const level = character?.getTotalLevel() || 1;
+		const className = classData.name;
+
+		// Get class choices at current level
+		const choices = await this._getClassChoicesAtLevel(className, level, subclassData);
+
+		if (choices.length === 0) {
+			this._hideClassChoices();
+			return;
+		}
+
+		// Show and render class choices
+		this._showClassChoices();
+		await this._renderClassChoices(className, choices);
+	}
+
+	async _getClassChoicesAtLevel(className, level, subclassData = null) {
+		const choices = [];
+
+		// Check for optional feature progressions (subclass is handled by main dropdown)
+		const classData = this._classService.getClass(className);
+		if (!classData) return choices;
+
+		// Check for optional feature progressions
+		const progressions = classData.optionalfeatureProgression || [];
+		for (const progression of progressions) {
+			const count = this._getCountAtLevel(progression.progression, level);
+			if (count > 0) {
+				const featureTypes = progression.featureType || [];
+				const options = optionalFeatureService.getFeaturesByType(featureTypes)
+					.filter(opt => sourceService.isSourceAllowed(opt.source))
+					.map(opt => ({
+						id: `${opt.name}_${opt.source}`,
+						name: opt.name,
+						source: opt.source,
+						description: this._getFeatureDescription(opt),
+						entries: opt.entries
+					}));
+
+				if (options.length > 0) {
+					choices.push({
+						id: `${className.toLowerCase()}_${progression.name.toLowerCase().replace(/\s+/g, '_')}_${level}`,
+						name: progression.name,
+						type: this._mapFeatureType(featureTypes[0]),
+						options,
+						required: true,
+						count,
+						level
+					});
+				}
+			}
+		}
+
+		// Check subclass optional feature progressions
+		if (subclassData?.optionalfeatureProgression) {
+			for (const progression of subclassData.optionalfeatureProgression) {
+				const count = this._getCountAtLevel(progression.progression, level);
+				if (count > 0) {
+					const featureTypes = progression.featureType || [];
+					const options = optionalFeatureService.getFeaturesByType(featureTypes)
+						.filter(opt => sourceService.isSourceAllowed(opt.source))
+						.map(opt => ({
+							id: `${opt.name}_${opt.source}`,
+							name: opt.name,
+							source: opt.source,
+							description: this._getFeatureDescription(opt),
+							entries: opt.entries
+						}));
+
+					if (options.length > 0) {
+						choices.push({
+							id: `${className.toLowerCase()}_${subclassData.shortName.toLowerCase()}_${progression.name.toLowerCase().replace(/\s+/g, '_')}_${level}`,
+							name: progression.name,
+							type: this._mapFeatureType(featureTypes[0]),
+							options,
+							required: true,
+							count,
+							level
+						});
+					}
+				}
+			}
+		}
+
+		return choices;
+	}
+
+	_getSubclassLevel(classData) {
+		if (!classData?.classFeatures) return null;
+
+		// Find the first classFeature with gainSubclassFeature flag
+		for (const feature of classData.classFeatures) {
+			if (feature.gainSubclassFeature === true) {
+				// Parse level from classFeature string format: "Feature Name|ClassName||Level"
+				const parts = feature.classFeature.split('|');
+				const level = parseInt(parts[parts.length - 1], 10);
+				return Number.isNaN(level) ? null : level;
+			}
+		}
+
+		return null;
+	}
+
+	_getCountAtLevel(progression, level) {
+		if (Array.isArray(progression)) {
+			return progression[level - 1] || 0;
+		}
+		if (typeof progression === 'object') {
+			return progression[level.toString()] || 0;
+		}
+		return 0;
+	}
+
+	_mapFeatureType(featureTypeCode) {
+		const typeMap = {
+			'EI': 'invocation',
+			'MM': 'metamagic',
+			'MV:B': 'maneuver',
+			'FS:F': 'fighting-style',
+			'FS:R': 'fighting-style',
+			'FS:P': 'fighting-style',
+			'PB': 'patron'
+		};
+		return typeMap[featureTypeCode] || 'other';
+	}
+
+	_getFeatureDescription(feature) {
+		if (!feature.entries) return '';
+		const firstEntry = feature.entries.find(e => typeof e === 'string');
+		if (firstEntry) {
+			return `${firstEntry.replace(/\{@[^}]+\}/g, '').substring(0, 150)}...`;
+		}
+		return '';
+	}
+
+	async _renderClassChoices(className, choices) {
+		const container = document.getElementById('classChoicesContent');
+		if (!container) return;
+
+		let html = '';
+
+		for (const choice of choices) {
+			html += this._renderFeatureChoice(choice);
+		}
+
+		container.innerHTML = html;
+
+		// Attach listeners
+		this._attachClassChoiceListeners(container, className);
+	}
+
+	_renderFeatureChoice(choice) {
+		const character = CharacterManager.getCurrentCharacter();
+		const primaryClass = character?.getPrimaryClass();
+		const className = primaryClass?.name;
+
+		// Get current selections from progression history
+		const currentSelections = progressionHistoryService.getChoices(
+			character,
+			className,
+			choice.level
+		)?.[choice.type]?.selected || [];
+
+		const isMultiSelect = (choice.count || 1) > 1;
+		let selectedDisplay = 'None selected';
+
+		if (currentSelections.length > 0) {
+			const selectedNames = currentSelections.map(selId => {
+				const opt = choice.options.find(o => o.id === selId || o.name === selId);
+				return opt ? opt.name : selId;
+			});
+			selectedDisplay = selectedNames.join(', ');
+		}
+
+		return `
+			<div class="card mb-3" data-choice-card="${choice.id}">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<div>
+						<h6 class="mb-0">${this._getFeatureIcon(choice.type)} ${choice.name}</h6>
+						<small class="text-muted">Level ${choice.level}</small>
+					</div>
+					${isMultiSelect ? `<span class="badge" style="background-color: var(--accent-color);" data-selection-count="${choice.id}">${currentSelections.length}/${choice.count}</span>` : ''}
+				</div>
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center">
+						<div class="flex-grow-1">
+							<div class="text-muted small" data-selected-display="${choice.id}">
+								<strong>Selected:</strong> ${selectedDisplay}
+							</div>
+						</div>
+						<button 
+							class="btn btn-primary btn-sm ms-2" 
+							data-feature-select-btn="${choice.id}"
+							data-feature-type="${choice.type}"
+							data-feature-level="${choice.level}"
+							data-is-multi="${isMultiSelect}"
+							data-max-count="${choice.count || 1}">
+							<i class="fas fa-list"></i> Choose
+						</button>
+					</div>
+				</div>
+			</div>
+		`;
+	}
+
+	_getFeatureIcon(type) {
+		const icons = {
+			'invocation': '<i class="fas fa-sparkles"></i>',
+			'metamagic': '<i class="fas fa-wand-sparkles"></i>',
+			'maneuver': '<i class="fas fa-fist-raised"></i>',
+			'fighting-style': '<i class="fas fa-shield-alt"></i>',
+			'patron': '<i class="fas fa-hand-sparkles"></i>',
+			'other': '<i class="fas fa-star"></i>'
+		};
+		return icons[type] || icons.other;
+	}
+
+	_attachClassChoiceListeners(container, className) {
+		// Feature selection buttons
+		const featureButtons = container.querySelectorAll('[data-feature-select-btn]');
+		featureButtons.forEach(button => {
+			this._cleanup.on(button, 'click', async () => {
+				const featureId = button.dataset.featureSelectBtn;
+				const featureType = button.dataset.featureType;
+				const featureLevel = parseInt(button.dataset.featureLevel, 10);
+				const isMulti = button.dataset.isMulti === 'true';
+				const maxCount = parseInt(button.dataset.maxCount, 10) || 1;
+
+				await this._handleFeatureSelection(className, featureType, featureLevel, featureId, isMulti, maxCount);
+			});
+		});
+	}
+
+	async _handleFeatureSelection(className, featureType, level, featureId, isMulti, maxCount) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		// Get current selections
+		const currentSelections = progressionHistoryService.getChoices(
+			character,
+			className,
+			level
+		)?.[featureType]?.selected || [];
+
+		// Get available options based on feature type
+		const featureTypeMap = {
+			'invocation': ['EI'],
+			'metamagic': ['MM'],
+			'maneuver': ['MV:B'],
+			'fighting-style': ['FS:F', 'FS:R', 'FS:P'],
+			'patron': ['PB']
+		};
+
+		const featureTypeCodes = featureTypeMap[featureType] || [];
+		const availableFeatures = optionalFeatureService.getFeaturesByType(featureTypeCodes)
+			.filter(opt => sourceService.isSourceAllowed(opt.source));
+
+		// Create a minimal session-like object for the selector
+		const mockSession = {
+			originalCharacter: character,
+			stagedChanges: character,
+			stepData: {
+				selectedFeatures: {}
+			}
+		};
+
+		// Show feature selector
+		const selector = new LevelUpFeatureSelector(
+			mockSession,
+			this,
+			className,
+			featureTypeCodes[0] || featureType,
+			level,
+			featureId
+		);
+
+		// Map to selector format
+		const mappedFeatures = availableFeatures.map(opt => ({
+			id: `${opt.name}_${opt.source}`,
+			name: opt.name,
+			source: opt.source,
+			description: this._getFeatureDescription(opt),
+			entries: opt.entries,
+			prerequisite: opt.prerequisite
+		}));
+
+		// Map current selections to feature objects
+		const selectedFeatures = currentSelections.map(selId => {
+			const opt = availableFeatures.find(f =>
+				`${f.name}_${f.source}` === selId || f.name === selId
+			);
+			return opt ? {
+				id: `${opt.name}_${opt.source}`,
+				name: opt.name,
+				source: opt.source
+			} : { id: selId, name: selId };
+		}).filter(Boolean);
+
+		await selector.show(mappedFeatures, selectedFeatures, isMulti, maxCount);
+	}
+
+	updateFeatureSelection(className, featureType, level, selectedNames) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		// Save selections to progression history
+		const choices = {};
+		choices[featureType] = {
+			selected: selectedNames,
+			count: selectedNames.length
+		};
+
+		progressionHistoryService.recordChoices(character, className, level, choices);
+
+		// Update display
+		this._updateFeatureDisplay(className);
+
+		// Emit event to notify about character update
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+			character: CharacterManager.getCurrentCharacter(),
+		});
+	}
+
+	async _updateFeatureDisplay(className) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		const classData = this._classService.getClass(className);
+		if (!classData) return;
+
+		// Get subclass from progression.classes[]
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const subclassName = progressionClass?.subclass;
+		let subclassData = null;
+		if (subclassName) {
+			const subclasses = this._classService.getSubclasses(className, classData.source);
+			subclassData = subclasses.find(sc => sc.name === subclassName);
+		}
+
+		// Refresh the class choices section
+		await this._updateClassChoices(classData, subclassData);
+	}
+
+	_showClassChoices() {
+		const container = document.getElementById('classChoicesContainer');
+		if (container) {
+			container.style.display = 'block';
+		}
+	}
+
+	_hideClassChoices() {
+		const container = document.getElementById('classChoicesContainer');
+		if (container) {
+			container.style.display = 'none';
+		}
 	}
 
 	resetClassDetails() {
@@ -484,12 +902,15 @@ export class ClassCard {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
-		// Check if class has changed
+		// Check if class has changed (compare with progression.classes[])
+		const primaryClass = character.getPrimaryClass();
+		const progressionClass = character.progression?.classes?.find(c => c.name === classData?.name);
+		const currentSubclass = progressionClass?.subclass || '';
 		const hasChanged = !classData
-			? character.class?.name || character.class?.source
-			: character.class?.name !== classData.name ||
-			character.class?.source !== classData.source ||
-			character.subclass !== subclassName;
+			? primaryClass?.name || primaryClass?.source
+			: primaryClass?.name !== classData.name ||
+			primaryClass?.source !== classData.source ||
+			currentSubclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits
@@ -507,23 +928,11 @@ export class ClassCard {
 				}),
 			);
 
-			if (!classData) {
-				// Clear class
-				character.class = {
-					level: 1,
-					subclass: '',
-				};
-			} else {
-				// Set class
-				character.class = {
-					name: classData.name,
-					source: classData.source,
-					level: 1,
-					subclass: subclassName || character.class.subclass || '',
-				};
+			// Initialize progression to track classes (needed for multiclass)
+			levelUpService.initializeProgression(character);
 
-				// Initialize progression to track classes (needed for multiclass)
-				levelUpService.initializeProgression(character);
+			if (classData) {
+				// Update or add class in progression.classes[] (no legacy character.class field)
 
 				// Add proficiencies
 				this._updateProficiencies(classData);
@@ -1824,6 +2233,12 @@ class SubclassPickerView {
 	reset() {
 		this._subclassSelect.innerHTML =
 			'<option value="">Select a Subclass</option>';
+		this._subclassSelect.disabled = true;
+	}
+
+	resetWithMessage(message) {
+		this._subclassSelect.innerHTML =
+			`<option value="">${message}</option>`;
 		this._subclassSelect.disabled = true;
 	}
 

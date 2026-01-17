@@ -467,26 +467,195 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	color: var(--accent-color);
 }
 
+.review-bottom-anchor {
+	height: 0;
+	flex-shrink: 0;
+}
+
 .review-portrait-preview {
 	display: flex;
 	align-items: flex-start;
 	gap: 1rem;
-	padding: 0.5rem 0.6rem;
+	padding: 0.5rem;
 	background: var(--secondary-color);
 	border-radius: var(--border-radius);
 	border: 1px solid var(--border-color);
-	grid-column: span 1;
-	grid-row: span 7;
-	width: fit-content;
-	flex: 0 0 auto;
-	align-self: start;
+	width: 100%;
+	justify-content: center;
 }
 
 .review-portrait-preview img {
-	width: 200px;
-	height: 280px;
+	width: 100%;
+	max-width: 240px;
+	height: auto;
+	aspect-ratio: 5 / 7;
 	object-fit: cover;
 	border-radius: var(--border-radius);
+}
+
+.review-info-compact {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.review-item {
+	display: grid;
+	grid-template-columns: 140px 1fr;
+	gap: 0.75rem;
+	align-items: center;
+	padding: 0.4rem 0.6rem;
+	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	min-height: 32px;
+}
+
+.review-item .review-label {
+	font-weight: 600;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.review-item .review-label i {
+	color: var(--accent-color);
+	font-size: 0.8rem;
+	width: 14px;
+	text-align: center;
+}
+
+.review-item .review-value {
+	color: var(--text-color);
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.review-sources-compact {
+	padding: 0.6rem;
+	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+}
+
+.review-sources-label {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.review-sources-label i {
+	color: var(--accent-color);
+}
+
+.review-sources-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.ability-scores-review {
+	padding: 0.6rem;
+	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.ability-scores-review h6 {
+	margin-bottom: 0.5rem;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.ability-scores-review h6 i {
+	color: var(--accent-color);
+}
+
+.review-sources-container {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.review-sources-header-with-badges {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	align-content: flex-start;
+	gap: 0.5rem;
+	flex: 1;
+	max-height: 100px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.review-sources-header-with-badges .sources-label {
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.review-sources-header-with-badges .sources-label i {
+	color: var(--accent-color);
+}
+
+.review-sources-badges-inline {
+	display: contents;
+}
+
+.ability-scores-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0.5rem;
+}
+
+.ability-score-summary {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.4rem 0.6rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+}
+
+.ability-score-summary .ability-label {
+	font-weight: 600;
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	min-width: 2rem;
+}
+
+.ability-score-summary .ability-score {
+	font-weight: 700;
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.ability-score-summary .ability-modifier {
+	color: var(--accent-color);
+	font-size: 0.85rem;
+	margin-left: auto;
 }
 
 .modal-lg .modal-content,
@@ -1470,398 +1639,398 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	.modal .source-toggle .source-name {
 		font-size: 0.85rem;
 	}
+}
 
-	/* ===== Level Up Modal - Class Selection Cards ===== */
-	.class-selection-card {
-		background-color: var(--card-background);
-	}
+/* ===== Level Up Modal - Class Selection Cards ===== */
+.class-selection-card {
+	background-color: var(--card-background);
+}
 
-	.class-selection-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		border-color: var(--accent-color) !important;
-	}
+.class-selection-card:hover {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	border-color: var(--accent-color) !important;
+}
 
-	.class-selection-card:active {
-		transform: translateY(0);
-	}
+.class-selection-card:active {
+	transform: translateY(0);
+}
 
-	/* Class card selected state */
-	.class-card-selected {
-		border-color: var(--accent-color) !important;
-		background-color: color-mix(
-			in srgb,
-			var(--accent-color) 12%,
-			var(--card-background)
-		) !important;
-	}
+/* Class card selected state */
+.class-card-selected {
+	border-color: var(--accent-color) !important;
+	background-color: color-mix(
+		in srgb,
+		var(--accent-color) 12%,
+		var(--card-background)
+	) !important;
+}
 
-	/* ===== Level Up Modal - Feature Selection ===== */
-	.feature-choice-card {
-		background-color: var(--card-background);
-		border-color: var(--border-color);
-	}
+/* ===== Level Up Modal - Feature Selection ===== */
+.feature-choice-card {
+	background-color: var(--card-background);
+	border-color: var(--border-color);
+}
 
-	.feature-choice-card .card-header {
-		background-color: var(--secondary-color) !important;
-	}
+.feature-choice-card .card-header {
+	background-color: var(--secondary-color) !important;
+}
 
-	.feature-options-scroll {
-		border-top: 1px solid var(--border-color);
-		scrollbar-width: thin;
-	}
+.feature-options-scroll {
+	border-top: 1px solid var(--border-color);
+	scrollbar-width: thin;
+}
 
-	.feature-options-scroll::-webkit-scrollbar {
-		width: 6px;
-	}
+.feature-options-scroll::-webkit-scrollbar {
+	width: 6px;
+}
 
-	.feature-options-scroll::-webkit-scrollbar-track {
-		background: transparent;
-	}
+.feature-options-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
 
-	.feature-options-scroll::-webkit-scrollbar-thumb {
-		background: var(--accent-color);
-		border-radius: 3px;
-	}
+.feature-options-scroll::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 3px;
+}
 
-	.feature-option-card {
-		border-color: var(--border-color);
-		cursor: pointer;
-	}
+.feature-option-card {
+	border-color: var(--border-color);
+	cursor: pointer;
+}
 
-	.feature-option-card:first-child {
-		border-top: none;
-	}
+.feature-option-card:first-child {
+	border-top: none;
+}
 
-	.feature-option-card:hover {
-		background-color: var(--highlight-bg, rgba(88, 166, 255, 0.08)) !important;
-	}
+.feature-option-card:hover {
+	background-color: var(--highlight-bg, rgba(88, 166, 255, 0.08)) !important;
+}
 
-	.feature-option-card.selected {
-		background-color: var(--highlight-bg, rgba(88, 166, 255, 0.15)) !important;
-		border-color: var(--accent-color) !important;
-	}
+.feature-option-card.selected {
+	background-color: var(--highlight-bg, rgba(88, 166, 255, 0.15)) !important;
+	border-color: var(--accent-color) !important;
+}
 
-	.feature-option-card .form-check-input {
-		margin-top: 0.25rem;
-	}
+.feature-option-card .form-check-input {
+	margin-top: 0.25rem;
+}
 
-	.feature-option-card strong {
-		color: var(--accent-color);
-		font-weight: 600;
-	}
+.feature-option-card strong {
+	color: var(--accent-color);
+	font-weight: 600;
+}
 
-	/* ===================================
+/* ===================================
    MODAL RESPONSIVE STYLES
    =================================== */
 
-	@media (max-width: 992px) {
-		.modal-dialog {
-			max-width: 90%;
-			margin: 1rem auto;
-		}
-
-		#sourceBookSelection {
-			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-		}
+@media (max-width: 992px) {
+	.modal-dialog {
+		max-width: 90%;
+		margin: 1rem auto;
 	}
 
-	@media (max-width: 576px) {
-		.modal-dialog {
-			max-width: 95%;
-			margin: 0.5rem auto;
-		}
+	#sourceBookSelection {
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	}
+}
 
-		#sourceBookSelection {
-			grid-template-columns: 1fr;
-		}
-
-		.source-toggle {
-			padding: 0.25rem 0.5rem;
-			min-height: 1.75rem;
-		}
+@media (max-width: 576px) {
+	.modal-dialog {
+		max-width: 95%;
+		margin: 0.5rem auto;
 	}
 
-	/* ===================================
+	#sourceBookSelection {
+		grid-template-columns: 1fr;
+	}
+
+	.source-toggle {
+		padding: 0.25rem 0.5rem;
+		min-height: 1.75rem;
+	}
+}
+
+/* ===================================
    MODAL FORM SECTIONS
    =================================== */
 
-	/* Create Modal Section Styling */
-	.modal-body .form-section {
-		padding: 1.5rem;
-		border-bottom: 1px solid var(--border-color);
-	}
+/* Create Modal Section Styling */
+.modal-body .form-section {
+	padding: 1.5rem;
+	border-bottom: 1px solid var(--border-color);
+}
 
-	.modal-body .form-section:last-child {
-		border-bottom: none;
-	}
+.modal-body .form-section:last-child {
+	border-bottom: none;
+}
 
-	/* Adjust spacing for the first section */
-	.modal-body .form-section:first-child {
-		padding-top: 0;
-		display: flex;
-		flex-direction: column;
-	}
+/* Adjust spacing for the first section */
+.modal-body .form-section:first-child {
+	padding-top: 0;
+	display: flex;
+	flex-direction: column;
+}
 
-	.modal-body .form-section:first-child .row {
-		flex: 1;
-		min-height: 100px;
-	}
+.modal-body .form-section:first-child .row {
+	flex: 1;
+	min-height: 100px;
+}
 
-	.modal-body .form-section:first-child .col-md-8 {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-	}
+.modal-body .form-section:first-child .col-md-8 {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
 
-	.modal-body .form-section:first-child .col-md-8 .row {
-		margin-bottom: 1rem;
-	}
+.modal-body .form-section:first-child .col-md-8 .row {
+	margin-bottom: 1rem;
+}
 
-	.modal-body .form-section:first-child .col-md-8 .row:last-child {
-		margin-bottom: 0;
-	}
+.modal-body .form-section:first-child .col-md-8 .row:last-child {
+	margin-bottom: 0;
+}
 
-	.modal-body .form-section:first-child .col-md-4 {
-		display: flex;
-		flex-direction: column;
-	}
+.modal-body .form-section:first-child .col-md-4 {
+	display: flex;
+	flex-direction: column;
+}
 
-	/* Adjust spacing for the last section */
-	.modal-body .form-section:last-child {
-		padding-bottom: 0;
-	}
+/* Adjust spacing for the last section */
+.modal-body .form-section:last-child {
+	padding-bottom: 0;
+}
 
-	/* Ensure proper spacing between form groups */
-	.modal-body .form-group {
-		margin-bottom: 1rem;
-	}
+/* Ensure proper spacing between form groups */
+.modal-body .form-group {
+	margin-bottom: 1rem;
+}
 
-	.modal-body .form-group:last-child {
-		margin-bottom: 0;
-	}
+.modal-body .form-group:last-child {
+	margin-bottom: 0;
+}
 
-	/* ===================================
+/* ===================================
    FEAT SELECTION MODAL
    =================================== */
 
-	.feat-item {
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+.feat-item {
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
 
-	.feat-item:hover {
-		background: var(--secondary-color);
-	}
+.feat-item:hover {
+	background: var(--secondary-color);
+}
 
-	.feat-item.selected {
-		background: var(--overlay-success-15);
-		border-color: var(--accent-color);
-	}
+.feat-item.selected {
+	background: var(--overlay-success-15);
+	border-color: var(--accent-color);
+}
 
-	.feat-item.disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		background: var(--secondary-color);
-	}
+.feat-item.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background: var(--secondary-color);
+}
 
-	/* ===================================
+/* ===================================
    SPELL LIST MODAL
    =================================== */
 
-	.spell-list-container {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		padding: 0.5rem;
-	}
+.spell-list-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.5rem;
+}
 
-	.spell-card {
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius);
-		background: var(--card-background);
-		overflow: hidden;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+.spell-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
 
-	.spell-card:hover {
-		border-color: var(--accent-color);
-		background: var(--accent-10);
-	}
+.spell-card:hover {
+	border-color: var(--accent-color);
+	background: var(--accent-10);
+}
 
-	.spell-card.selected {
-		border-color: var(--accent-color);
-		background: var(--accent-15);
-		box-shadow: 0 0 0 2px var(--accent-color);
-	}
+.spell-card.selected {
+	border-color: var(--accent-color);
+	background: var(--accent-15);
+	box-shadow: 0 0 0 2px var(--accent-color);
+}
 
-	.spell-card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.75rem 1rem;
-		background: var(--secondary-color);
-		border-bottom: 1px solid var(--border-color);
-	}
+.spell-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+}
 
-	.spell-card.selected .spell-card-header {
-		background: var(--accent-15);
-	}
+.spell-card.selected .spell-card-header {
+	background: var(--accent-15);
+}
 
-	.spell-card-header strong {
-		color: var(--text-color);
-		font-size: 1rem;
-	}
+.spell-card-header strong {
+	color: var(--text-color);
+	font-size: 1rem;
+}
 
-	.spell-card-body {
-		padding: 1rem;
-	}
+.spell-card-body {
+	padding: 1rem;
+}
 
-	.spell-stats {
-		margin-bottom: 0.75rem;
-		padding-bottom: 0.75rem;
-		border-bottom: 1px solid var(--border-color);
-	}
+.spell-stats {
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border-color);
+}
 
-	.spell-stat-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-		margin-bottom: 0.5rem;
-	}
+.spell-stat-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
 
-	.spell-stat-row:last-child {
-		margin-bottom: 0;
-	}
+.spell-stat-row:last-child {
+	margin-bottom: 0;
+}
 
-	.spell-stat {
-		color: var(--text-color);
-		font-size: 0.9rem;
-	}
+.spell-stat {
+	color: var(--text-color);
+	font-size: 0.9rem;
+}
 
-	.spell-stat strong {
-		color: var(--text-light);
-	}
+.spell-stat strong {
+	color: var(--text-light);
+}
 
-	.spell-description {
-		color: var(--text-light);
-		font-size: 0.9rem;
-		line-height: 1.5;
-	}
+.spell-description {
+	color: var(--text-light);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
 
-	.selected-spells-container {
-		min-height: 2rem;
-	}
+.selected-spells-container {
+	min-height: 2rem;
+}
 
-	.selected-spells-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-	}
+.selected-spells-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
 
-	.selected-spells-list .badge {
-		display: inline-flex;
-		align-items: center;
-		padding: 0.5rem 0.75rem;
-	}
+.selected-spells-list .badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 0.75rem;
+}
 
-	.selected-spells-list .btn-close {
-		padding: 0;
-		margin: 0;
-		opacity: 0.7;
-	}
+.selected-spells-list .btn-close {
+	padding: 0;
+	margin: 0;
+	opacity: 0.7;
+}
 
-	.selected-spells-list .btn-close:hover {
-		opacity: 1;
-	}
+.selected-spells-list .btn-close:hover {
+	opacity: 1;
+}
 
-	/* ===================================
+/* ===================================
    EQUIPMENT SELECTION MODAL
    =================================== */
 
-	.item-card {
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius);
-		background: var(--card-background);
-		overflow: hidden;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		margin-bottom: 0.75rem;
-	}
+.item-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	margin-bottom: 0.75rem;
+}
 
-	.item-card:hover {
-		border-color: var(--accent-color);
-		background: var(--accent-10);
-	}
+.item-card:hover {
+	border-color: var(--accent-color);
+	background: var(--accent-10);
+}
 
-	.item-card.selected {
-		border-color: var(--accent-color);
-		background: var(--accent-15);
-		box-shadow: 0 0 0 2px var(--accent-color);
-	}
+.item-card.selected {
+	border-color: var(--accent-color);
+	background: var(--accent-15);
+	box-shadow: 0 0 0 2px var(--accent-color);
+}
 
-	.item-card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.75rem 1rem;
-		background: var(--secondary-color);
-		border-bottom: 1px solid var(--border-color);
-	}
+.item-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+}
 
-	.item-card.selected .item-card-header {
-		background: var(--accent-15);
-	}
+.item-card.selected .item-card-header {
+	background: var(--accent-15);
+}
 
-	.item-card-header strong {
-		color: var(--text-color);
-		font-size: 1rem;
-	}
+.item-card-header strong {
+	color: var(--text-color);
+	font-size: 1rem;
+}
 
-	.item-card-body {
-		padding: 1rem;
-	}
+.item-card-body {
+	padding: 1rem;
+}
 
-	.item-stats {
-		margin-bottom: 0.75rem;
-		padding-bottom: 0.75rem;
-		border-bottom: 1px solid var(--border-color);
-	}
+.item-stats {
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border-color);
+}
 
-	.item-stat-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-		margin-bottom: 0.5rem;
-	}
+.item-stat-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
 
-	.item-stat-row:last-child {
-		margin-bottom: 0;
-	}
+.item-stat-row:last-child {
+	margin-bottom: 0;
+}
 
-	.item-stat {
-		color: var(--text-color);
-		font-size: 0.9rem;
-	}
+.item-stat {
+	color: var(--text-color);
+	font-size: 0.9rem;
+}
 
-	.item-stat strong {
-		color: var(--text-light);
-	}
+.item-stat strong {
+	color: var(--text-light);
+}
 
-	.item-description {
-		color: var(--text-light);
-		font-size: 0.9rem;
-		line-height: 1.5;
-	}
+.item-description {
+	color: var(--text-light);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
 
-	.selected-equipment-list {
-		min-height: 2rem;
-	}
+.selected-equipment-list {
+	min-height: 2rem;
+}
 
-	.feature-option-card .text-muted {
-		max-width: 100%;
-		word-break: break-word;
-	}
+.feature-option-card .text-muted {
+	max-width: 100%;
+	word-break: break-word;
 }
 
 /* ===== Character Creation Modal - Race Details ===== */

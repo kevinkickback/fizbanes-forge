@@ -373,8 +373,7 @@ export class CharacterCreationModal {
             // Create character
             const character = await CharacterManager.createCharacter(stagedData.name);
 
-            // Apply staged data
-            character.level = stagedData.level;
+            // Apply staged data (no legacy character.level field)
             character.gender = stagedData.gender;
             character.portrait = stagedData.portrait || 'assets/images/characters/placeholder_char_card.webp';
             character.allowedSources = stagedData.allowedSources;
@@ -389,16 +388,28 @@ export class CharacterCreationModal {
                 };
             }
 
-            // Apply class selection
+            // Apply class selection (only in progression.classes[], no legacy character.class field)
             if (stagedData.class) {
-                character.class = {
+                // New progression format - add class to progression.classes array
+                if (!character.progression) {
+                    character.progression = {
+                        classes: [],
+                        experiencePoints: 0,
+                        levelUps: []
+                    };
+                }
+
+                const classEntry = {
                     name: stagedData.class.name,
                     source: stagedData.class.source,
-                    level: stagedData.level || 1
+                    levels: stagedData.level || 1  // Use 'levels' (plural) to match progression system
                 };
+
                 if (stagedData.class.subclass) {
-                    character.subclass = stagedData.class.subclass;
+                    classEntry.subclass = stagedData.class.subclass;
                 }
+
+                character.progression.classes.push(classEntry);
             }
 
             // Apply background selection

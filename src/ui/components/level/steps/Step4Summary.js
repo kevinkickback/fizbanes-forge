@@ -35,9 +35,9 @@ export class Step4Summary {
                     <div class="card-body">
                         <p class="mb-2">
                             <strong>Total Level:</strong> 
-                            <span class="text-muted">${this.session.originalCharacter.level || 1}</span>
+                            <span class="text-muted">${this.session.originalCharacter.getTotalLevel()}</span>
                             <i class="fas fa-arrow-right text-success mx-2"></i>
-                            <span class="text-success">${this.session.stagedChanges.level}</span>
+                            <span class="text-success">${this.session._calculateTotalLevel(this.session.stagedChanges.progression)}</span>
                         </p>
         `;
 

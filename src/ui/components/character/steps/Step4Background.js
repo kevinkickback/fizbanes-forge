@@ -123,7 +123,9 @@ export class Step4Background {
      */
     async _loadBackgrounds() {
         try {
-            if (!backgroundService.isInitialized()) {
+            // BackgroundService is initialized by AppInitializer, no need to check
+            // Just ensure it's ready - if not initialized, this will initialize it
+            if (!backgroundService._backgroundData) {
                 await backgroundService.initialize();
             }
         } catch (error) {
