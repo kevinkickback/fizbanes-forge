@@ -1,12 +1,13 @@
 /**
  * CharacterCreationModal - Main wizard controller for character creation flow
  * 
- * Orchestrates a 5-step wizard:
+ * Orchestrates a 6-step wizard:
  * 0. Basics - Name, gender, level, portrait
  * 1. Rules - Ability score method, variant rules, source selection
  * 2. Race - Select character race
  * 3. Class - Select character class
- * 4. Review - Review all settings and create character
+ * 4. Background - Select character background
+ * 5. Review - Review all settings and create character
  * 
  * All data is staged in a CharacterCreationSession and only applied on confirmation.
  */
@@ -94,8 +95,8 @@ export class CharacterCreationModal {
         // Save current step data
         await this._saveStepData(currentStep);
 
-        // If on last step, create character
-        if (currentStep === 3) {
+        // If on last step (step 5 = review), create character
+        if (currentStep === 5) {
             await this._createCharacter();
             return;
         }
@@ -254,8 +255,13 @@ export class CharacterCreationModal {
                     break;
                 }
                 case 4: {
-                    const { Step4Review } = await import('./steps/Step4Review.js');
-                    StepClass = Step4Review;
+                    const { Step4Background } = await import('./steps/Step4Background.js');
+                    StepClass = Step4Background;
+                    break;
+                }
+                case 5: {
+                    const { Step5Review } = await import('./steps/Step5Review.js');
+                    StepClass = Step5Review;
                     break;
                 }
                 default:
@@ -333,8 +339,8 @@ export class CharacterCreationModal {
         }
 
         if (nextBtn) {
-            if (currentStep === 3) {
-                // Final step - show Create button
+            if (currentStep === 5) {
+                // Final step (review) - show Create button
                 nextBtn.textContent = 'Create';
                 nextBtn.classList.remove('btn-primary');
                 nextBtn.classList.add('btn-success');
@@ -387,6 +393,14 @@ export class CharacterCreationModal {
                 if (stagedData.class.subclass) {
                     character.subclass = stagedData.class.subclass;
                 }
+            }
+
+            // Apply background selection
+            if (stagedData.background) {
+                character.background = {
+                    name: stagedData.background.name,
+                    source: stagedData.background.source
+                };
             }
 
             // Update SourceService

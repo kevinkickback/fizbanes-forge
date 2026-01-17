@@ -7,7 +7,7 @@
 
 export class CharacterCreationSession {
     constructor() {
-        this.currentStep = 0; // 0-3, tracks wizard progress (Basics -> Rules -> Sources -> Review)
+        this.currentStep = 0; // 0-5, tracks wizard progress (Basics -> Rules -> Race -> Class -> Background -> Review)
 
         // Staged character data
         this.stagedData = {
@@ -27,10 +27,24 @@ export class CharacterCreationSession {
             allowedSources: new Set(),
 
             // Step 2: Race
-            race: null,
+            race: {
+                name: '',
+                source: '',
+                subrace: ''
+            },
 
             // Step 3: Class
-            class: null,
+            class: {
+                name: '',
+                source: '',
+                subclass: ''
+            },
+
+            // Step 4: Background
+            background: {
+                name: '',
+                source: ''
+            },
         };
 
         console.info('[CharacterCreationSession]', 'Initialized new character creation session');

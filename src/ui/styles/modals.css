@@ -138,6 +138,13 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	height: 700px;
 }
 
+/* Background feature box in character creation - make scrollable to prevent overflow */
+.modal-background-feature-scroll {
+	max-height: 120px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
 /* Close button */
 .btn-close {
 	filter: var(--btn-close-filter, invert(0.7));

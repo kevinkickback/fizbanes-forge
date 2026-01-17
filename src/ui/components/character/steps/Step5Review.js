@@ -1,12 +1,12 @@
 /**
- * Step 4: Review
+ * Step 5: Review
  * 
  * User reviews all settings before creating the character.
  */
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
 
-export class Step4Review {
+export class Step5Review {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;
@@ -44,8 +44,13 @@ export class Step4Review {
         const subclassName = data.class?.subclass ? ` - ${data.class.subclass}` : '';
         const classDisplay = `${className}${classSource}${subclassName}`;
 
+        // Background info
+        const backgroundName = data.background?.name || 'Not selected';
+        const backgroundSource = data.background?.source ? ` (${data.background.source})` : '';
+        const backgroundDisplay = `${backgroundName}${backgroundSource}`;
+
         return `
-            <div class="step-4-review">
+            <div class="step-5-review">
                 <div class="card">
                     <div class="card-body">
                         <div class="row g-3">
@@ -78,6 +83,11 @@ export class Step4Review {
                                         <span class="review-value">${classDisplay}</span>
                                     </li>
                                     <li class="mb-2">
+                                        <i class="fas fa-book review-icon"></i>
+                                        <strong>Background:</strong> 
+                                        <span class="review-value">${backgroundDisplay}</span>
+                                    </li>
+                                    <li class="mb-2">
                                         <i class="fas fa-star review-icon"></i>
                                         <strong>Ability Scores:</strong> 
                                         <span class="review-value">${abilityMethod}</span>
@@ -93,7 +103,7 @@ export class Step4Review {
                                         <span class="review-value">${averageHp}</span>
                                     </li>
                                     <li class="review-sources">
-                                        <i class="fas fa-book review-icon"></i>
+                                        <i class="fas fa-books review-icon"></i>
                                         <strong>Sources:</strong> 
                                         ${sourceBadges}
                                     </li>
