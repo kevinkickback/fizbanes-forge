@@ -60,60 +60,19 @@ test.describe('Level Up Modal Reopen', () => {
             });
             await page.waitForTimeout(2000);
 
-            // Create a new character with a class
-            console.log('3. Creating character with class...');
-            const welcomeBtn = await page
-                .locator('#welcomeCreateCharacterBtn')
-                .isVisible()
-                .catch(() => false);
-
-            if (welcomeBtn) {
-                await page.locator('#welcomeCreateCharacterBtn').click();
-            } else {
-                await page.locator('#newCharacterBtn').click();
-            }
-
-            await page.waitForSelector('#newCharacterModal.show', {
-                timeout: 15000,
-            });
-            await page.locator('#newCharacterName').fill(testCharacterName);
-
-            // Navigate through wizard
-            const nextBtn = page.locator('#wizardNextBtn');
-            await nextBtn.click();
-            await page.waitForTimeout(500);
-            await nextBtn.click();
-            await page.waitForTimeout(500);
-            await nextBtn.click();
-            await page.waitForTimeout(500);
-            await nextBtn.click();
-
-            await page.waitForSelector('#newCharacterModal.show', {
-                state: 'hidden',
-                timeout: 15000,
-            });
+            // Click first available character card
+            console.log('3. Loading existing character...');
+            const firstCard = page.locator('.character-card').first();
+            await firstCard.click();
             await page.waitForTimeout(2000);
 
-            // Navigate to Build page and add a class
-            console.log('4. Adding a class...');
+            // Navigate to Build page
+            console.log('4. Navigating to Build page...');
             await page.locator('button.nav-link[data-page="build"]').click();
             await page.waitForSelector('[data-current-page="build"]', {
                 timeout: 15000,
             });
-            await page.waitForTimeout(2000);
-
-            const classSelect = page.locator('#classSelect').first();
-            await classSelect.waitFor({ state: 'visible', timeout: 15000 });
-
-            // Wait for options to load
-            await page.waitForFunction(() => {
-                const select = document.querySelector('#classSelect');
-                return (select?.options?.length || 0) > 1;
-            }, { timeout: 30000 });
-
-            // Select a class
-            await classSelect.selectOption({ label: 'Wizard (PHB)' });
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(1000);
 
             // Now test opening and closing the Level Up modal multiple times
             console.log('5. Testing Level Up modal open/close cycles...');
@@ -132,6 +91,11 @@ test.describe('Level Up Modal Reopen', () => {
 
                 // Wait a moment to ensure modal is fully rendered
                 await page.waitForTimeout(1000);
+
+                // Verify modal content is rendered (simplified picker, not wizard)
+                const classLevelCards = await page.locator('.class-level-card').count();
+                console.log(`   Cycle ${cycle}: Found ${classLevelCards} class level card(s)`);
+                expect(classLevelCards).toBeGreaterThan(0);
 
                 // Close modal by clicking the close button or backdrop
                 console.log(`   Cycle ${cycle}: Closing modal...`);

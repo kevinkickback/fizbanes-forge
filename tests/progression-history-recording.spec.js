@@ -82,24 +82,15 @@ test.describe('Progression History Recording', () => {
             // Wait for level-up modal
             await page.waitForSelector('#levelUpModal.show', { timeout: 15000 });
 
-            // Click through wizard steps
-            const nextStepBtn = page.locator('button[data-action="next-step"], #levelUpNextBtn, button:has-text("Next")').first();
-            await expect(nextStepBtn).toBeVisible({ timeout: 10000 });
+            // Add a level (simplified modal - no wizard steps)
+            const addLevelBtn = page.locator('.class-level-card button[aria-label="Add level"]').first();
+            await expect(addLevelBtn).toBeVisible({ timeout: 10000 });
+            await addLevelBtn.click();
+            await page.waitForTimeout(500);
 
-            // Navigate through level-up steps
-            for (let i = 0; i < 4; i++) {
-                const btn = page.locator('button[data-action="next-step"], #levelUpNextBtn, button:has-text("Next")').first();
-                const canClick = await btn.isEnabled().catch(() => false);
-                if (canClick) {
-                    await btn.click();
-                    await page.waitForTimeout(300);
-                }
-            }
-
-            // Confirm level-up
-            const confirmBtn = page.locator('button[data-action="confirm"], #levelUpConfirmBtn, button:has-text("Confirm")').first();
-            await expect(confirmBtn).toBeVisible({ timeout: 10000 });
-            await confirmBtn.click();
+            // Close modal to apply changes
+            const closeBtn = page.locator('#levelUpModal button.btn-close');
+            await closeBtn.click();
 
             // Wait for modal to close
             await page.waitForTimeout(1000);
@@ -108,7 +99,7 @@ test.describe('Progression History Recording', () => {
             const characterData = await page.evaluate(() => {
                 // Access the character from the page context
                 // Try various ways to access the character
-                return (window.appState?.character ||
+                return (window.appState?.state?.currentCharacter ||
                     window.AppState?.character ||
                     window.character ||
                     null);

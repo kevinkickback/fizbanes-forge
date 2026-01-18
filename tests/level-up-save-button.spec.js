@@ -102,7 +102,7 @@ test.describe('Level Up Save Button', () => {
             console.log(`7. Adding ${LEVELS_TO_ADD} levels...`);
 
             // Find the class to level up and click increase buttons
-            const increaseButtons = page.locator('.level-up-class-card button[data-action="increase"]');
+            const increaseButtons = page.locator('.class-level-card button[aria-label="Add level"]');
             const count = await increaseButtons.count();
             console.log(`   Found ${count} class(es) to level up`);
 
@@ -116,35 +116,10 @@ test.describe('Level Up Save Button', () => {
                 console.log(`   Added ${LEVELS_TO_ADD} levels`);
             }
 
-            // Navigate through wizard steps
-            console.log('8. Navigating through wizard steps...');
-            const nextBtn = page.locator('button[data-action="next"]');
-
-            // Step 1: Class Features
-            await nextBtn.click();
-            await page.waitForTimeout(1000);
-            console.log('   Step 1: Class Features');
-
-            // Step 2: ASI/Feat Selection
-            await nextBtn.click();
-            await page.waitForTimeout(1000);
-            console.log('   Step 2: ASI/Feat Selection');
-
-            // Step 3: Spell Selection
-            await nextBtn.click();
-            await page.waitForTimeout(1000);
-            console.log('   Step 3: Spell Selection');
-
-            // Step 4: Summary - button should now say "Confirm"
-            await nextBtn.click();
-            await page.waitForTimeout(1000);
-            console.log('   Step 4: Summary');
-
-            // Confirm changes
-            console.log('9. Confirming changes...');
-            const confirmBtn = page.locator('button[data-action="confirm"]');
-            await expect(confirmBtn).toBeVisible({ timeout: 10000 });
-            await confirmBtn.click();
+            // Confirm changes (modal now has no wizard steps, just close to apply)
+            console.log('8. Closing modal to apply changes...');
+            const closeBtn = page.locator('#levelUpModal button.btn-close');
+            await closeBtn.click();
 
             // Wait for modal to close
             await page.waitForSelector('#levelUpModal.show', {
@@ -153,7 +128,7 @@ test.describe('Level Up Save Button', () => {
             });
             await page.waitForTimeout(2000);
 
-            console.log('10. Checking CHARACTER_UPDATED event...');
+            console.log('9. Checking CHARACTER_UPDATED event...');
             const characterUpdatedEvents = consoleMessages.filter(
                 msg => msg.text.includes('CHARACTER_UPDATED')
             );
@@ -163,7 +138,7 @@ test.describe('Level Up Save Button', () => {
             }
 
             // Check save button state after level-up
-            console.log('11. Checking save button state after level-up...');
+            console.log('10. Checking save button state after level-up...');
             const saveDisabledAfter = await saveBtn.isDisabled();
             console.log(`   Save button disabled after level-up: ${saveDisabledAfter}`);
 
@@ -182,7 +157,7 @@ test.describe('Level Up Save Button', () => {
             console.log('   AppState:', JSON.stringify(appStateData, null, 2));
 
             // Try to click save button (will fail if disabled)
-            console.log('12. Attempting to click save button...');
+            console.log('11. Attempting to click save button...');
             if (saveDisabledAfter) {
                 console.log('   ❌ ISSUE: Save button is disabled after level-up!');
                 console.log('   Expected: Save button should be enabled');
