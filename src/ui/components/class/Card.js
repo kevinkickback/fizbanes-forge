@@ -529,23 +529,359 @@ export class ClassCard {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !classData) {
 			this._hideClassChoices();
+			this._hideSubclassNotification();
+			this._hideASISection();
+			this._hideSpellNotification();
 			return;
 		}
 
 		const level = character?.getTotalLevel() || 1;
 		const className = classData.name;
 
+		// Check and render subclass notification
+		this._renderSubclassNotification(classData, className, level);
+
+		// Check and render ASI section
+		this._renderASISection(className, level);
+
 		// Get class choices at current level
 		const choices = await this._getClassChoicesAtLevel(className, level, subclassData);
 
-		if (choices.length === 0) {
+		// Check and render spell notification
+		this._renderSpellNotification(className);
+
+		// Show container if any section has content
+		const hasChoices = choices.length > 0;
+		const hasSubclassNotification = document.getElementById('subclassChoiceSection')?.style.display !== 'none';
+		const hasASISection = document.getElementById('asiChoiceSection')?.style.display !== 'none';
+		const hasSpellNotification = document.getElementById('spellNotificationSection')?.style.display !== 'none';
+
+		if (hasChoices || hasSubclassNotification || hasASISection || hasSpellNotification) {
+			this._showClassChoices();
+		} else {
 			this._hideClassChoices();
+		}
+
+		if (hasChoices) {
+			await this._renderClassChoices(className, choices);
+		}
+	}
+
+	_renderSubclassNotification(classData, className, level) {
+		const character = CharacterManager.getCurrentCharacter();
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		
+		// Check if subclass is already selected
+		if (progressionClass?.subclass) {
+			this._hideSubclassNotification();
 			return;
 		}
 
-		// Show and render class choices
-		this._showClassChoices();
-		await this._renderClassChoices(className, choices);
+		// Get subclass level requirement
+		const subclassLevel = this._getSubclassLevel(classData) || 3;
+		
+		if (level >= subclassLevel) {
+			const container = document.getElementById('subclassChoiceSection');
+			if (!container) return;
+
+			container.innerHTML = `
+				<div class="alert alert-warning mb-3">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<i class="fas fa-exclamation-triangle me-2"></i>
+							<strong>Subclass Required</strong>
+							<p class="mb-0 mt-1">You've reached level ${subclassLevel}. Please select a subclass from the dropdown above.</p>
+						</div>
+					</div>
+				</div>
+			`;
+			container.style.display = 'block';
+		} else {
+			this._hideSubclassNotification();
+		}
+	}
+
+	_renderASISection(className) {
+		const character = CharacterManager.getCurrentCharacter();
+		
+		// Get ASI levels for this class
+		const asiLevels = levelUpService._getASILevelsForClass(className);
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const classLevel = progressionClass?.levels || 0;
+		
+		// Check if this class level has an ASI
+		if (!asiLevels.includes(classLevel)) {
+			this._hideASISection();
+			return;
+		}
+
+		// Check if ASI was already used at this level
+		const levelUps = character.progression?.levelUps || [];
+		const asiUsed = levelUps.some(lu => {
+			const isThisLevel = lu.toLevel === classLevel;
+			const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0) ||
+			                 (lu.appliedFeats && lu.appliedFeats.length > 0);
+			return isThisLevel && hasChanges;
+		});
+
+		if (asiUsed) {
+			this._hideASISection();
+			return;
+		}
+
+		// Render ASI choice section
+		const container = document.getElementById('asiChoiceSection');
+		if (!container) return;
+
+		container.innerHTML = `
+			<div class="card mb-3">
+				<div class="card-header">
+					<h6 class="mb-0"><i class="fas fa-arrow-up"></i> Ability Score Improvement</h6>
+					<small class="text-muted">Level ${classLevel}</small>
+				</div>
+				<div class="card-body">
+					<p class="mb-3">You can increase one ability score by 2, or two ability scores by 1 each. Alternatively, you can choose a feat instead.</p>
+					
+					<div class="form-check mb-2">
+						<input class="form-check-input" type="radio" name="asiChoice_${classLevel}" id="asiStandard_${classLevel}" value="standard">
+						<label class="form-check-label" for="asiStandard_${classLevel}">
+							<strong>Standard ASI</strong> - Increase ability scores
+						</label>
+					</div>
+					
+					<div id="asiAbilitySelectors_${classLevel}" class="ms-4 mb-3" style="display: none;">
+						<div class="row g-2">
+							<div class="col-md-6">
+								<label class="form-label small">Ability 1</label>
+								<select class="form-select form-select-sm" id="asiAbility1_${classLevel}">
+									<option value="">Select ability...</option>
+									<option value="str">Strength</option>
+									<option value="dex">Dexterity</option>
+									<option value="con">Constitution</option>
+									<option value="int">Intelligence</option>
+									<option value="wis">Wisdom</option>
+									<option value="cha">Charisma</option>
+								</select>
+							</div>
+							<div class="col-md-6">
+								<label class="form-label small">Bonus</label>
+								<select class="form-select form-select-sm" id="asiBonus1_${classLevel}">
+									<option value="2">+2</option>
+									<option value="1">+1</option>
+								</select>
+							</div>
+						</div>
+						<div class="row g-2 mt-2" id="asiSecondAbility_${classLevel}" style="display: none;">
+							<div class="col-md-6">
+								<label class="form-label small">Ability 2</label>
+								<select class="form-select form-select-sm" id="asiAbility2_${classLevel}">
+									<option value="">Select ability...</option>
+									<option value="str">Strength</option>
+									<option value="dex">Dexterity</option>
+									<option value="con">Constitution</option>
+									<option value="int">Intelligence</option>
+									<option value="wis">Wisdom</option>
+									<option value="cha">Charisma</option>
+								</select>
+							</div>
+							<div class="col-md-6">
+								<label class="form-label small">Bonus</label>
+								<input type="text" class="form-control form-control-sm" value="+1" disabled>
+							</div>
+						</div>
+						<button class="btn btn-primary btn-sm mt-3" id="applyASI_${classLevel}">
+							Apply ASI
+						</button>
+					</div>
+					
+					<div class="form-check">
+						<input class="form-check-input" type="radio" name="asiChoice_${classLevel}" id="asiFeat_${classLevel}" value="feat">
+						<label class="form-check-label" for="asiFeat_${classLevel}">
+							<strong>Choose a Feat</strong> - Browse and select a feat
+						</label>
+					</div>
+					
+					<div id="asiFeatButton_${classLevel}" class="ms-4 mt-2" style="display: none;">
+						<button class="btn btn-secondary btn-sm" id="browseFeat_${classLevel}">
+							<i class="fas fa-arrow-down"></i> Browse Feats Below
+						</button>
+					</div>
+				</div>
+			</div>
+		`;
+		container.style.display = 'block';
+
+		// Attach event listeners
+		this._attachASISectionListeners(classLevel);
+	}
+
+	_attachASISectionListeners(classLevel) {
+		// Standard ASI radio
+		const standardRadio = document.getElementById(`asiStandard_${classLevel}`);
+		const asiAbilitySelectors = document.getElementById(`asiAbilitySelectors_${classLevel}`);
+		
+		if (standardRadio && asiAbilitySelectors) {
+			this._cleanup.on(standardRadio, 'change', () => {
+				asiAbilitySelectors.style.display = standardRadio.checked ? 'block' : 'none';
+				document.getElementById(`asiFeatButton_${classLevel}`).style.display = 'none';
+			});
+		}
+
+		// Feat radio
+		const featRadio = document.getElementById(`asiFeat_${classLevel}`);
+		const asiFeatButton = document.getElementById(`asiFeatButton_${classLevel}`);
+		
+		if (featRadio && asiFeatButton) {
+			this._cleanup.on(featRadio, 'change', () => {
+				asiFeatButton.style.display = featRadio.checked ? 'block' : 'none';
+				if (asiAbilitySelectors) {
+					asiAbilitySelectors.style.display = 'none';
+				}
+			});
+		}
+
+		// Bonus dropdown changes
+		const bonus1Select = document.getElementById(`asiBonus1_${classLevel}`);
+		const secondAbilityRow = document.getElementById(`asiSecondAbility_${classLevel}`);
+		
+		if (bonus1Select && secondAbilityRow) {
+			this._cleanup.on(bonus1Select, 'change', () => {
+				secondAbilityRow.style.display = bonus1Select.value === '1' ? 'block' : 'none';
+			});
+		}
+
+		// Apply ASI button
+		const applyButton = document.getElementById(`applyASI_${classLevel}`);
+		if (applyButton) {
+			this._cleanup.on(applyButton, 'click', () => {
+				this._handleASIApplication(classLevel);
+			});
+		}
+
+		// Browse feats button
+		const browseFeatButton = document.getElementById(`browseFeat_${classLevel}`);
+		if (browseFeatButton) {
+			this._cleanup.on(browseFeatButton, 'click', () => {
+				// Scroll to feat section
+				const featSection = document.getElementById('build-feats');
+				if (featSection) {
+					featSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		}
+	}
+
+	_handleASIApplication(classLevel) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		const ability1 = document.getElementById(`asiAbility1_${classLevel}`)?.value;
+		const bonus1 = parseInt(document.getElementById(`asiBonus1_${classLevel}`)?.value || '2', 10);
+		
+		if (!ability1) {
+			alert('Please select an ability to improve.');
+			return;
+		}
+
+		const changes = {};
+		changes[ability1] = bonus1;
+
+		// Check for second ability if +1/+1
+		if (bonus1 === 1) {
+			const ability2 = document.getElementById(`asiAbility2_${classLevel}`)?.value;
+			if (!ability2) {
+				alert('Please select a second ability for +1 bonus.');
+				return;
+			}
+			if (ability2 === ability1) {
+				alert('Please select two different abilities.');
+				return;
+			}
+			changes[ability2] = 1;
+		}
+
+		// Apply changes to character
+		for (const [ability, bonus] of Object.entries(changes)) {
+			const currentScore = character.getAbilityScore(ability) || 10;
+			character.setAbilityScore(ability, currentScore + bonus);
+		}
+
+		// Record in progression history
+		levelUpService.recordLevelUp(character, classLevel - 1, classLevel, {
+			changedAbilities: changes,
+			appliedFeats: [],
+			appliedFeatures: [],
+		});
+
+		// Hide ASI section and notify
+		this._hideASISection();
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+	}
+
+	_renderSpellNotification(className) {
+		const classData = this._classService.getClass(className);
+		
+		// Check if class is a spellcaster
+		if (!classData?.spellcastingAbility) {
+			this._hideSpellNotification();
+			return;
+		}
+
+		// Check if there are pending spell choices
+		// This would need SpellSelectionService.getPendingSpellChoices() to be implemented
+		// For now, show a basic notification
+		const container = document.getElementById('spellNotificationSection');
+		if (!container) return;
+
+		container.innerHTML = `
+			<div class="alert alert-info mb-3">
+				<div class="d-flex justify-content-between align-items-center">
+					<div>
+						<i class="fas fa-wand-sparkles me-2"></i>
+						<strong>Spell Selection Available</strong>
+						<p class="mb-0 mt-1">Visit the Spells page to select your spells for ${className}.</p>
+					</div>
+					<button class="btn btn-primary btn-sm" id="goToSpells">
+						Go to Spells <i class="fas fa-arrow-right"></i>
+					</button>
+				</div>
+			</div>
+		`;
+		container.style.display = 'block';
+
+		// Attach listener for "Go to Spells" button
+		const goToSpellsBtn = document.getElementById('goToSpells');
+		if (goToSpellsBtn) {
+			this._cleanup.on(goToSpellsBtn, 'click', () => {
+				// Navigate to spells page
+				const { NavigationController } = require('../../../app/NavigationController.js');
+				NavigationController.getInstance().navigate('spells');
+			});
+		}
+	}
+
+	_hideSubclassNotification() {
+		const container = document.getElementById('subclassChoiceSection');
+		if (container) {
+			container.style.display = 'none';
+			container.innerHTML = '';
+		}
+	}
+
+	_hideASISection() {
+		const container = document.getElementById('asiChoiceSection');
+		if (container) {
+			container.style.display = 'none';
+			container.innerHTML = '';
+		}
+	}
+
+	_hideSpellNotification() {
+		const container = document.getElementById('spellNotificationSection');
+		if (container) {
+			container.style.display = 'none';
+			container.innerHTML = '';
+		}
 	}
 
 	async _getClassChoicesAtLevel(className, level, subclassData = null) {
