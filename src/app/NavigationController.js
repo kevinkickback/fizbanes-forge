@@ -676,6 +676,39 @@ class NavigationControllerImpl {
 	}
 
 	/**
+	 * Set a badge count on a navigation button.
+	 * @param {string} page - Page name (e.g., 'build', 'spells')
+	 * @param {number} count - Badge count (0 to hide badge)
+	 */
+	setBadge(page, count) {
+		const button = this.navButtons.get(page);
+		if (!button) {
+			console.warn('NavigationController', 'Button not found for badge', { page });
+			return;
+		}
+
+		// Find or create badge element
+		let badge = button.querySelector('.nav-badge');
+		
+		if (count > 0) {
+			if (!badge) {
+				badge = document.createElement('span');
+				badge.className = 'nav-badge badge rounded-pill';
+				badge.style.cssText = 'background-color: var(--accent-color); margin-left: 5px; font-size: 0.7em;';
+				button.appendChild(badge);
+			}
+			badge.textContent = count.toString();
+			badge.style.display = '';
+		} else {
+			if (badge) {
+				badge.style.display = 'none';
+			}
+		}
+
+		console.debug('NavigationController', 'Badge updated', { page, count });
+	}
+
+	/**
 	 * Update navigation state based on character availability.
 	 */
 	updateNavigationState() {
