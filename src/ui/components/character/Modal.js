@@ -377,7 +377,10 @@ export class CharacterCreationModal {
             character.gender = stagedData.gender;
             character.portrait = stagedData.portrait || 'assets/images/characters/placeholder_char_card.webp';
             character.allowedSources = stagedData.allowedSources;
-            character.variantRules = stagedData.variantRules;
+            character.variantRules = {
+                ...stagedData.variantRules,
+                abilityScoreMethod: stagedData.abilityScoreMethod || 'pointBuy'
+            };
 
             // Apply race selection
             if (stagedData.race) {
