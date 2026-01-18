@@ -434,7 +434,7 @@ class CharacterValidationServiceImpl {
      */
     getPendingChoicesSummary(character) {
         const report = this.validateCharacter(character);
-        
+
         const summary = {
             total: 0,
             byCategory: {},
@@ -497,7 +497,7 @@ class CharacterValidationServiceImpl {
      */
     getMissingChoicesForClass(character, className) {
         const report = this.validateCharacter(character);
-        
+
         const classChoices = {
             subclass: null,
             features: [],

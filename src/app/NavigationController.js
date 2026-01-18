@@ -689,7 +689,7 @@ class NavigationControllerImpl {
 
 		// Find or create badge element
 		let badge = button.querySelector('.nav-badge');
-		
+
 		if (count > 0) {
 			if (!badge) {
 				badge = document.createElement('span');

@@ -655,7 +655,7 @@ class LevelUpService {
             const asiUsed = levelUps.some(lu => {
                 const isThisLevel = lu.toLevel === level;
                 const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0) ||
-                                 (lu.appliedFeats && lu.appliedFeats.length > 0);
+                    (lu.appliedFeats && lu.appliedFeats.length > 0);
                 return isThisLevel && hasChanges;
             });
 
@@ -672,9 +672,9 @@ class LevelUpService {
         for (const feature of features) {
             const featureName = feature.name || '';
             const hasChoice = featureName.includes('Fighting Style') ||
-                            featureName.includes('Metamagic') ||
-                            featureName.includes('Eldritch Invocations') ||
-                            featureName.includes('Pact Boon');
+                featureName.includes('Metamagic') ||
+                featureName.includes('Eldritch Invocations') ||
+                featureName.includes('Pact Boon');
 
             if (hasChoice && feature.level === level) {
                 choices.features.push({

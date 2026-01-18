@@ -1,40 +1,33 @@
 /**
- * LevelUpModal - Main wizard controller for character level-up flow
+ * LevelUpModal - Simplified level picker for character progression
  * 
- * Orchestrates a 5-step wizard:
- * 0. Level & Multiclass - Select which classes to level
- * 1. Class Features - Review and select class features
- * 2. ASI/Feat Selection - Choose ability improvements or feats
- * 3. Spell Selection - Select new spells for spellcasting classes
- * 4. Summary - Review all changes before applying
+ * Provides a simple interface to:
+ * - Add levels to existing classes
+ * - Add new multiclass
+ * - Remove the last level
  * 
- * All changes are staged in a LevelUpSession and only applied on confirmation.
+ * All changes apply immediately to the character (no session/staging).
+ * Choices are made on the Build page after leveling up.
  */
 
 import { AppState } from '../../../app/AppState.js';
-import { LevelUpSession } from '../../../app/LevelUpSession.js';
 import { Modal } from '../../../app/Modal.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
-import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
+import { levelUpService } from '../../../services/LevelUpService.js';
 
 export class LevelUpModal {
     constructor() {
         this.modalEl = null;
         this.bootstrapModal = null;
-        this.session = null;
         this._cleanup = DOMCleanup.create();
-
-        // Step components (lazy loaded)
-        this._stepComponents = {};
 
         console.debug('[LevelUpModal]', 'Constructor initialized');
     }
 
     /**
-     * Show the modal and initialize the wizard.
-     * Creates a new LevelUpSession and starts at step 0.
+     * Show the modal with current character progression.
      */
     async show() {
         try {
@@ -59,17 +52,14 @@ export class LevelUpModal {
                 return;
             }
 
-            // Create new session
-            this.session = new LevelUpSession(character);
-
             // Fresh cleanup instance
             this._cleanup = DOMCleanup.create();
 
             // Initialize Bootstrap modal
             this._initializeBootstrapModal();
 
-            // Render step 0
-            await this._renderStep(0);
+            // Render the level picker
+            await this._renderLevelPicker();
 
             // Show modal
             this.bootstrapModal.show();
@@ -81,114 +71,11 @@ export class LevelUpModal {
     }
 
     /**
-     * Hide the modal without applying changes.
-     * Confirmation is now handled automatically by the hide.bs.modal event.
+     * Hide the modal.
      */
     async hide() {
         if (!this.bootstrapModal) return;
-
-        // Simply trigger the hide - confirmation will be handled by the event listener
         this.bootstrapModal.hide();
-    }
-
-    /**
-     * Move to the next step.
-     */
-    async nextStep() {
-        if (!this.session) return;
-
-        const currentStep = this.session.currentStep;
-
-        // Validate current step
-        if (!this.session.canGoToStep(currentStep + 1)) {
-            showNotification('Please complete this step before proceeding', 'warning');
-            return;
-        }
-
-        this.session.nextStep();
-        await this._renderStep(this.session.currentStep);
-    }
-
-    /**
-     * Move to the previous step.
-     */
-    async previousStep() {
-        if (!this.session) return;
-
-        if (!this.session.previousStep()) {
-            console.warn('[LevelUpModal]', 'Cannot go back from step 0');
-            return;
-        }
-
-        await this._renderStep(this.session.currentStep);
-    }
-
-    /**
-     * Jump to a specific step (for stepper navigation).
-     */
-    async jumpToStep(stepNumber) {
-        if (!this.session) return;
-
-        if (!this.session.jumpToStep(stepNumber)) {
-            showNotification('Cannot jump to that step', 'warning');
-            return;
-        }
-
-        await this._renderStep(stepNumber);
-    }
-
-    /**
-     * Confirm and apply all staged changes to the character.
-     */
-    async confirm() {
-        if (!this.session) return;
-
-        try {
-            console.info('[LevelUpModal]', 'Confirming changes...');
-
-            // Apply staged changes to character
-            const updatedCharacter = await this.session.applyChanges();
-
-            // Record progression history from session choices
-            const allChoices = this.session.getAllChoices();
-            for (const [className, levelChoices] of Object.entries(allChoices)) {
-                for (const [level, choices] of Object.entries(levelChoices)) {
-                    progressionHistoryService.recordChoices(
-                        updatedCharacter,
-                        className,
-                        parseInt(level, 10),
-                        choices
-                    );
-                }
-            }
-
-            // Update the character reference in AppState (skipEvent to avoid CHARACTER_SELECTED)
-            // CHARACTER_SELECTED clears unsaved changes, but we want to mark the character as unsaved
-            AppState.setCurrentCharacter(updatedCharacter, { skipEvent: true });
-
-            // Emit event for other UI components to update
-            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character: updatedCharacter });
-
-            // Optional: Emit level-up specific event
-            eventBus.emit('LEVEL_UP_COMPLETE', {
-                character: updatedCharacter,
-                changes: this.session.getChangeSummary(),
-            });
-
-            // Close modal
-            if (this.bootstrapModal) {
-                this.bootstrapModal.hide();
-            }
-
-            // Show success notification
-            showNotification('Character leveled up successfully!', 'success');
-
-            console.info('[LevelUpModal]', 'Changes applied and modal closed');
-
-        } catch (error) {
-            console.error('[LevelUpModal]', 'Failed to apply changes', error);
-            showNotification(`Failed to apply changes: ${error.message}`, 'error');
-        }
     }
 
     /**
@@ -197,7 +84,6 @@ export class LevelUpModal {
     _onModalHidden() {
         console.debug('[LevelUpModal]', 'Modal hidden');
         this._cleanup.cleanup();
-        this.session = null;
     }
 
     /**
@@ -223,231 +109,263 @@ export class LevelUpModal {
             throw new Error('Bootstrap not found on window');
         }
 
-        // Don't pass options since they're already set in HTML via data-bs-* attributes
         this.bootstrapModal = new bs.Modal(this.modalEl);
 
         // Register cleanup
         this._cleanup.registerBootstrapModal(this.modalEl, this.bootstrapModal);
 
-        // Intercept modal close to check for unsaved changes
-        this._cleanup.on(this.modalEl, 'hide.bs.modal', async (e) => {
-            // Check if we have unsaved changes
-            if (this.session) {
-                const summary = this.session.getChangeSummary();
-                const hasChanges = summary.totalLevelChange !== 0 ||
-                    summary.leveledClasses.length > 0 ||
-                    Object.keys(summary.changedAbilities).length > 0;
-
-                if (hasChanges) {
-                    // Prevent the modal from closing
-                    e.preventDefault();
-
-                    // Show confirmation
-                    const confirmed = await this._showConfirmation(
-                        'Unsaved Changes',
-                        'You have unsaved changes. Are you sure you want to exit?'
-                    );
-
-                    if (confirmed) {
-                        // User confirmed, discard changes and close
-                        this.session.discard();
-                        this.session = null;
-                        this.bootstrapModal.hide();
-                    }
-                    // If not confirmed, do nothing (modal stays open)
-                }
-            }
-        });
-
         // Setup hide listener for cleanup
         this._cleanup.once(this.modalEl, 'hidden.bs.modal', () => this._onModalHidden());
-
-        // Attach button listeners
-        this._attachButtonListeners();
     }
 
     /**
-     * Attach event listeners to modal buttons.
+     * Render the level picker UI.
      * @private
      */
-    _attachButtonListeners() {
-        const backBtn = this.modalEl.querySelector('[data-action="back"]');
-        const nextBtn = this.modalEl.querySelector('[data-action="next"]');
-        const confirmBtn = this.modalEl.querySelector('[data-action="confirm"]');
-
-        if (backBtn) {
-            this._cleanup.on(backBtn, 'click', () => this.previousStep());
+    async _renderLevelPicker() {
+        const character = AppState.getCurrentCharacter();
+        const contentArea = this.modalEl.querySelector('.modal-body');
+        if (!contentArea) {
+            console.warn('[LevelUpModal]', 'Modal body not found');
+            return;
         }
 
-        if (nextBtn) {
-            this._cleanup.on(nextBtn, 'click', () => this.nextStep());
+        const totalLevel = levelUpService.getTotalLevel(character);
+        const classes = character.progression?.classes || [];
+
+        // Build class breakdown
+        let classBreakdown = '';
+        for (const cls of classes) {
+            classBreakdown += `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>${cls.name}</strong>
+                        <span class="badge bg-secondary ms-2">Level ${cls.levels || 0}</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary" data-add-level="${cls.name}">
+                        <i class="fas fa-plus"></i> Add Level
+                    </button>
+                </div>
+            `;
         }
 
-        if (confirmBtn) {
-            this._cleanup.on(confirmBtn, 'click', () => this.confirm());
+        // Get multiclass options
+        const multiclassOptions = levelUpService.getMulticlassOptions(character);
+        let multiclassSection = '';
+        if (multiclassOptions.length > 0) {
+            multiclassSection = `
+                <div class="mt-4">
+                    <h6>Add Multiclass</h6>
+                    <select class="form-select" id="multiclassSelect">
+                        <option value="">Choose a class...</option>
+                        ${multiclassOptions.map(opt => `
+                            <option value="${opt.name}" ${!opt.meetsRequirements ? 'disabled' : ''}>
+                                ${opt.name} ${!opt.meetsRequirements ? '(Requirements not met)' : ''}
+                            </option>
+                        `).join('')}
+                    </select>
+                    <button class="btn btn-secondary mt-2" id="addMulticlassBtn">
+                        <i class="fas fa-plus"></i> Add Multiclass
+                    </button>
+                </div>
+            `;
         }
 
-        console.debug('[LevelUpModal]', 'Button listeners attached');
+        contentArea.innerHTML = `
+            <div class="level-picker">
+                <div class="mb-3">
+                    <h5>Current Level: ${totalLevel}</h5>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Your Classes</h6>
+                    ${classBreakdown}
+                </div>
+                
+                ${multiclassSection}
+                
+                <div class="mt-4">
+                    <button class="btn btn-outline-danger btn-sm" id="removeLastLevelBtn" ${classes.length === 0 ? 'disabled' : ''}>
+                        <i class="fas fa-minus"></i> Remove Last Level
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Attach listeners
+        this._attachLevelPickerListeners();
     }
 
     /**
-     * Render a specific step.
-     * Lazy-loads the step component and renders it.
+     * Attach event listeners to level picker buttons.
      * @private
      */
-    async _renderStep(stepNumber) {
+    _attachLevelPickerListeners() {
+        // Add level buttons for existing classes
+        const addLevelButtons = this.modalEl.querySelectorAll('[data-add-level]');
+        addLevelButtons.forEach(btn => {
+            const className = btn.dataset.addLevel;
+            this._cleanup.on(btn, 'click', async () => {
+                await this._addClassLevel(className);
+            });
+        });
+
+        // Add multiclass button
+        const addMulticlassBtn = this.modalEl.querySelector('#addMulticlassBtn');
+        const multiclassSelect = this.modalEl.querySelector('#multiclassSelect');
+        if (addMulticlassBtn && multiclassSelect) {
+            this._cleanup.on(addMulticlassBtn, 'click', async () => {
+                const className = multiclassSelect.value;
+                if (!className) {
+                    showNotification('Please select a class', 'warning');
+                    return;
+                }
+                await this._addMulticlass(className);
+            });
+        }
+
+        // Remove last level button
+        const removeLastLevelBtn = this.modalEl.querySelector('#removeLastLevelBtn');
+        if (removeLastLevelBtn) {
+            this._cleanup.on(removeLastLevelBtn, 'click', async () => {
+                await this._removeLastLevel();
+            });
+        }
+    }
+
+    /**
+     * Add a level to an existing class.
+     * @private
+     */
+    async _addClassLevel(className) {
+        const character = AppState.getCurrentCharacter();
+        if (!character) return;
+
         try {
-            const contentArea = this.modalEl.querySelector('.modal-body [data-step-content]');
-            if (!contentArea) {
-                console.warn('[LevelUpModal]', 'Step content area not found');
+            // Find the class in progression
+            const classEntry = character.progression.classes.find(c => c.name === className);
+            if (!classEntry) {
+                showNotification(`Class ${className} not found`, 'error');
                 return;
             }
 
-            // Clear previous step content
-            contentArea.innerHTML = '';
+            // Increment level
+            const newLevel = (classEntry.levels || 0) + 1;
+            levelUpService.addClassLevel(character, className, newLevel);
 
-            console.debug('[LevelUpModal]', 'Rendering step', stepNumber);
+            // Update character and emit event
+            AppState.setCurrentCharacter(character, { skipEvent: true });
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 
-            // Load and render appropriate step
-            switch (stepNumber) {
-                case 0:
-                    await this._renderStep0LevelMulticlass(contentArea);
-                    break;
-                case 1:
-                    await this._renderStep1ClassFeatures(contentArea);
-                    break;
-                case 2:
-                    await this._renderStep2ASIFeat(contentArea);
-                    break;
-                case 3:
-                    await this._renderStep3SpellSelection(contentArea);
-                    break;
-                case 4:
-                    await this._renderStep4Summary(contentArea);
-                    break;
-            }
+            showNotification(`Added level to ${className}!`, 'success');
 
-            // Update stepper
-            this._updateStepper(stepNumber);
-
-            // Update button states
-            this._updateButtons(stepNumber);
+            // Re-render picker
+            await this._renderLevelPicker();
 
         } catch (error) {
-            console.error('[LevelUpModal]', 'Failed to render step', stepNumber, error);
-            showNotification(`Failed to render step ${stepNumber}`, 'error');
+            console.error('[LevelUpModal]', 'Failed to add level', error);
+            showNotification(`Failed to add level: ${error.message}`, 'error');
         }
     }
 
     /**
-     * Render Step 0: Level & Multiclass
+     * Add a new multiclass.
      * @private
      */
-    async _renderStep0LevelMulticlass(contentArea) {
-        const { Step0LevelMulticlass } = await import('./steps/Step0LevelMulticlass.js');
-        const step = new Step0LevelMulticlass(this.session, this);
-        const html = await step.render();
-        contentArea.innerHTML = html;
-        step.attachListeners(contentArea);
-    }
+    async _addMulticlass(className) {
+        const character = AppState.getCurrentCharacter();
+        if (!character) return;
 
-    /**
-     * Render Step 1: Class Features
-     * @private
-     */
-    async _renderStep1ClassFeatures(contentArea) {
-        const { Step1ClassFeatures } = await import('./steps/Step1ClassFeatures.js');
-        const step = new Step1ClassFeatures(this.session, this);
-        const html = await step.render();
-        contentArea.innerHTML = html;
-        step.attachListeners(contentArea);
-    }
-
-    /**
-     * Render Step 2: ASI/Feat
-     * @private
-     */
-    async _renderStep2ASIFeat(contentArea) {
-        const { Step2ASIFeat } = await import('./steps/Step2ASIFeat.js');
-        const step = new Step2ASIFeat(this.session, this);
-        const html = await step.render();
-        contentArea.innerHTML = html;
-        step.attachListeners(contentArea);
-    }
-
-    /**
-     * Render Step 3: Spell Selection
-     * @private
-     */
-    async _renderStep3SpellSelection(contentArea) {
-        const { Step3SpellSelection } = await import('./steps/Step3SpellSelection.js');
-        const step = new Step3SpellSelection(this.session, this);
-        const html = await step.render();
-        contentArea.innerHTML = html;
-        step.attachListeners(contentArea);
-    }
-
-    /**
-     * Render Step 4: Summary
-     * @private
-     */
-    async _renderStep4Summary(contentArea) {
-        const { Step4Summary } = await import('./steps/Step4Summary.js');
-        const step = new Step4Summary(this.session, this);
-        const html = await step.render();
-        contentArea.innerHTML = html;
-        step.attachListeners(contentArea);
-    }
-
-    /**
-     * Update the stepper to highlight current step.
-     * @private
-     */
-    _updateStepper(stepNumber) {
-        const stepItems = this.modalEl.querySelectorAll('[data-step]');
-        stepItems.forEach((item, index) => {
-            if (index === stepNumber) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
+        try {
+            // Check multiclass requirements
+            if (!levelUpService.canMulticlass(character, className)) {
+                showNotification(`You don't meet the requirements for ${className}`, 'warning');
+                return;
             }
-        });
-    }
 
-    /**
-     * Update button states based on current step.
-     * @private
-     */
-    _updateButtons(stepNumber) {
-        const backBtn = this.modalEl.querySelector('[data-action="back"]');
-        const nextBtn = this.modalEl.querySelector('[data-action="next"]');
-        const confirmBtn = this.modalEl.querySelector('[data-action="confirm"]');
+            // Add the class at level 1
+            levelUpService.addClassLevel(character, className, 1);
 
-        if (backBtn) {
-            backBtn.disabled = stepNumber === 0;
-        }
+            // Update character and emit event
+            AppState.setCurrentCharacter(character, { skipEvent: true });
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+            eventBus.emit(EVENTS.MULTICLASS_ADDED, character, { name: className });
 
-        if (nextBtn) {
-            nextBtn.style.display = stepNumber < 4 ? 'block' : 'none';
-        }
+            showNotification(`Added ${className} multiclass!`, 'success');
 
-        if (confirmBtn) {
-            confirmBtn.style.display = stepNumber === 4 ? 'block' : 'none';
+            // Re-render picker
+            await this._renderLevelPicker();
+
+        } catch (error) {
+            console.error('[LevelUpModal]', 'Failed to add multiclass', error);
+            showNotification(`Failed to add multiclass: ${error.message}`, 'error');
         }
     }
 
     /**
-     * Show a confirmation dialog.
+     * Remove the last level from the character.
      * @private
      */
-    async _showConfirmation(title, message) {
+    async _removeLastLevel() {
+        const character = AppState.getCurrentCharacter();
+        if (!character) return;
+
+        // Show confirmation
         const modal = Modal.getInstance();
-        return await modal.showConfirmationModal({
-            title,
-            message,
-            confirmButtonText: 'Exit',
-            cancelButtonText: 'Stay',
+        const confirmed = await modal.showConfirmationModal({
+            title: 'Remove Level',
+            message: 'Are you sure you want to remove the last level? This cannot be undone.',
+            confirmButtonText: 'Remove',
+            cancelButtonText: 'Cancel',
             confirmButtonClass: 'btn-danger',
         });
+
+        if (!confirmed) return;
+
+        try {
+            const classes = character.progression?.classes || [];
+            if (classes.length === 0) {
+                showNotification('No classes to remove', 'warning');
+                return;
+            }
+
+            // Find the last class leveled (highest level)
+            let lastClass = null;
+            let highestLevel = 0;
+            for (const cls of classes) {
+                if ((cls.levels || 0) > highestLevel) {
+                    highestLevel = cls.levels || 0;
+                    lastClass = cls;
+                }
+            }
+
+            if (!lastClass) {
+                showNotification('Could not determine last level', 'error');
+                return;
+            }
+
+            // Remove level
+            if (lastClass.levels <= 1) {
+                // Remove entire class if at level 1
+                levelUpService.removeClassLevel(character, lastClass.name);
+                eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, lastClass);
+            } else {
+                // Just decrement level
+                levelUpService.addClassLevel(character, lastClass.name, lastClass.levels - 1);
+            }
+
+            // Update character and emit event
+            AppState.setCurrentCharacter(character, { skipEvent: true });
+            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+
+            showNotification(`Removed level from ${lastClass.name}`, 'success');
+
+            // Re-render picker
+            await this._renderLevelPicker();
+
+        } catch (error) {
+            console.error('[LevelUpModal]', 'Failed to remove level', error);
+            showNotification(`Failed to remove level: ${error.message}`, 'error');
+        }
     }
 }

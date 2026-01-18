@@ -570,7 +570,7 @@ export class ClassCard {
 	_renderSubclassNotification(classData, className, level) {
 		const character = CharacterManager.getCurrentCharacter();
 		const progressionClass = character.progression?.classes?.find(c => c.name === className);
-		
+
 		// Check if subclass is already selected
 		if (progressionClass?.subclass) {
 			this._hideSubclassNotification();
@@ -579,7 +579,7 @@ export class ClassCard {
 
 		// Get subclass level requirement
 		const subclassLevel = this._getSubclassLevel(classData) || 3;
-		
+
 		if (level >= subclassLevel) {
 			const container = document.getElementById('subclassChoiceSection');
 			if (!container) return;
@@ -603,12 +603,12 @@ export class ClassCard {
 
 	_renderASISection(className) {
 		const character = CharacterManager.getCurrentCharacter();
-		
+
 		// Get ASI levels for this class
 		const asiLevels = levelUpService._getASILevelsForClass(className);
 		const progressionClass = character.progression?.classes?.find(c => c.name === className);
 		const classLevel = progressionClass?.levels || 0;
-		
+
 		// Check if this class level has an ASI
 		if (!asiLevels.includes(classLevel)) {
 			this._hideASISection();
@@ -620,7 +620,7 @@ export class ClassCard {
 		const asiUsed = levelUps.some(lu => {
 			const isThisLevel = lu.toLevel === classLevel;
 			const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0) ||
-			                 (lu.appliedFeats && lu.appliedFeats.length > 0);
+				(lu.appliedFeats && lu.appliedFeats.length > 0);
 			return isThisLevel && hasChanges;
 		});
 
@@ -719,7 +719,7 @@ export class ClassCard {
 		// Standard ASI radio
 		const standardRadio = document.getElementById(`asiStandard_${classLevel}`);
 		const asiAbilitySelectors = document.getElementById(`asiAbilitySelectors_${classLevel}`);
-		
+
 		if (standardRadio && asiAbilitySelectors) {
 			this._cleanup.on(standardRadio, 'change', () => {
 				asiAbilitySelectors.style.display = standardRadio.checked ? 'block' : 'none';
@@ -730,7 +730,7 @@ export class ClassCard {
 		// Feat radio
 		const featRadio = document.getElementById(`asiFeat_${classLevel}`);
 		const asiFeatButton = document.getElementById(`asiFeatButton_${classLevel}`);
-		
+
 		if (featRadio && asiFeatButton) {
 			this._cleanup.on(featRadio, 'change', () => {
 				asiFeatButton.style.display = featRadio.checked ? 'block' : 'none';
@@ -743,7 +743,7 @@ export class ClassCard {
 		// Bonus dropdown changes
 		const bonus1Select = document.getElementById(`asiBonus1_${classLevel}`);
 		const secondAbilityRow = document.getElementById(`asiSecondAbility_${classLevel}`);
-		
+
 		if (bonus1Select && secondAbilityRow) {
 			this._cleanup.on(bonus1Select, 'change', () => {
 				secondAbilityRow.style.display = bonus1Select.value === '1' ? 'block' : 'none';
@@ -777,7 +777,7 @@ export class ClassCard {
 
 		const ability1 = document.getElementById(`asiAbility1_${classLevel}`)?.value;
 		const bonus1 = parseInt(document.getElementById(`asiBonus1_${classLevel}`)?.value || '2', 10);
-		
+
 		if (!ability1) {
 			alert('Please select an ability to improve.');
 			return;
@@ -820,7 +820,7 @@ export class ClassCard {
 
 	_renderSpellNotification(className) {
 		const classData = this._classService.getClass(className);
-		
+
 		// Check if class is a spellcaster
 		if (!classData?.spellcastingAbility) {
 			this._hideSpellNotification();
