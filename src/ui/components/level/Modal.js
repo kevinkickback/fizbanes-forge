@@ -133,14 +133,16 @@ export class LevelUpModal {
         const totalLevel = levelUpService.getTotalLevel(character);
         const classes = character.progression?.classes || [];
 
-        // Build class breakdown
+        // Build class breakdown with cards
         let classBreakdown = '';
         for (const cls of classes) {
             classBreakdown += `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div>
-                        <strong>${cls.name}</strong>
-                        <span class="badge bg-secondary ms-2">Level ${cls.levels || 0}</span>
+                <div class="class-level-card">
+                    <div class="class-info">
+                        <div>
+                            <div class="class-name">${cls.name}</div>
+                            <small class="text-muted">Class Level ${cls.levels || 0}</small>
+                        </div>
                     </div>
                     <button class="btn btn-sm btn-primary" data-add-level="${cls.name}">
                         <i class="fas fa-plus"></i> Add Level
@@ -154,8 +156,8 @@ export class LevelUpModal {
         let multiclassSection = '';
         if (multiclassOptions.length > 0) {
             multiclassSection = `
-                <div class="mt-4">
-                    <h6>Add Multiclass</h6>
+                <div class="multiclass-section">
+                    <h6><i class="fas fa-users"></i> Add Multiclass</h6>
                     <select class="form-select" id="multiclassSelect">
                         <option value="">Choose a class...</option>
                         ${multiclassOptions.map(opt => `
@@ -164,7 +166,7 @@ export class LevelUpModal {
                             </option>
                         `).join('')}
                     </select>
-                    <button class="btn btn-secondary mt-2" id="addMulticlassBtn">
+                    <button class="btn btn-secondary" id="addMulticlassBtn" ${multiclassOptions.filter(o => o.meetsRequirements).length === 0 ? 'disabled' : ''}>
                         <i class="fas fa-plus"></i> Add Multiclass
                     </button>
                 </div>
@@ -173,21 +175,26 @@ export class LevelUpModal {
 
         contentArea.innerHTML = `
             <div class="level-picker">
-                <div class="mb-3">
-                    <h5>Current Level: ${totalLevel}</h5>
+                <div>
+                    <h5>
+                        <i class="fas fa-chart-line"></i>
+                        Current Character Level
+                        <span class="badge">${totalLevel}</span>
+                    </h5>
                 </div>
                 
-                <div class="mb-4">
+                <div>
                     <h6>Your Classes</h6>
-                    ${classBreakdown}
+                    ${classBreakdown || '<p class="text-muted text-center">No classes yet</p>'}
                 </div>
                 
                 ${multiclassSection}
                 
-                <div class="mt-4">
+                <div class="remove-level-section">
                     <button class="btn btn-outline-danger btn-sm" id="removeLastLevelBtn" ${classes.length === 0 ? 'disabled' : ''}>
                         <i class="fas fa-minus"></i> Remove Last Level
                     </button>
+                    ${classes.length > 0 ? '<p class="text-muted small mt-2 mb-0">This will remove your most recent level gain</p>' : ''}
                 </div>
             </div>
         `;

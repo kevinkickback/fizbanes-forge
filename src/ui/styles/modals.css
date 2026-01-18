@@ -2156,3 +2156,162 @@ body > .modal-backdrop.show:nth-last-child(2) {
 .step-3-class .trait-tag:hover {
 	background-color: var(--hover-color);
 }
+/* ===================================
+   Level Up Modal Styles (Simplified)
+   =================================== */
+
+#levelUpModal .modal-dialog {
+	max-width: 600px;
+}
+
+.level-up-modal-body {
+	padding: 1.5rem;
+	min-height: 300px;
+}
+
+.level-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.level-picker h5 {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--text-color);
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.level-picker h5 .badge {
+	font-size: 1rem;
+	padding: 0.5rem 0.75rem;
+	background-color: var(--accent-color);
+}
+
+.level-picker h6 {
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 1rem;
+}
+
+/* Class cards in level picker */
+.level-picker .class-level-card {
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	transition: all 0.2s ease;
+}
+
+.level-picker .class-level-card:hover {
+	border-color: var(--accent-color);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transform: translateY(-1px);
+}
+
+.level-picker .class-level-card .class-info {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.level-picker .class-level-card .class-name {
+	font-weight: 600;
+	font-size: 1.05rem;
+	color: var(--text-color);
+}
+
+.level-picker .class-level-card .badge {
+	background-color: var(--secondary-color);
+	color: var(--text-color);
+	padding: 0.375rem 0.75rem;
+	border-radius: var(--border-radius);
+	font-size: 0.85rem;
+	font-weight: 500;
+}
+
+.level-picker .class-level-card .btn-sm {
+	padding: 0.5rem 1rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	border-radius: var(--border-radius);
+}
+
+/* Multiclass section */
+.level-picker .multiclass-section {
+	padding: 1.25rem;
+	background: var(--secondary-color);
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+}
+
+.level-picker .multiclass-section .form-select {
+	margin-bottom: 0.75rem;
+}
+
+.level-picker .multiclass-section .btn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+/* Remove level section */
+.level-picker .remove-level-section {
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color);
+	text-align: center;
+}
+
+.level-picker .remove-level-section .btn-outline-danger {
+	border: 1px solid var(--danger-color);
+	color: var(--danger-color);
+	background: transparent;
+	font-size: 0.875rem;
+	padding: 0.5rem 1rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.level-picker .remove-level-section .btn-outline-danger:hover {
+	background: var(--danger-color);
+	color: #fff;
+}
+
+/* Empty state */
+.level-picker-empty {
+	text-align: center;
+	padding: 3rem 1.5rem;
+	color: var(--text-muted);
+}
+
+.level-picker-empty i {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+	opacity: 0.3;
+}
+
+.level-picker-empty h6 {
+	font-size: 1.1rem;
+	margin-bottom: 0.5rem;
+	color: var(--text-color);
+}
+
+.level-picker-empty p {
+	font-size: 0.9rem;
+	margin: 0;
+}
