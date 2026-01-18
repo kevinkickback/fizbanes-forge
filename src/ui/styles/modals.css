@@ -2161,7 +2161,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
    =================================== */
 
 #levelUpModal .modal-dialog {
-	max-width: 600px;
+	max-width: 800px;
 }
 
 .level-up-modal-body {

@@ -151,31 +151,40 @@ export class LevelUpModal {
             `;
         }
 
-        // Get multiclass options
-        const multiclassOptions = levelUpService.getMulticlassOptions(character);
+        // Get multiclass options - check for ignore restrictions preference
+        const ignoreRestrictions = this._ignoreRestrictions || false;
+        const multiclassOptions = levelUpService.getMulticlassOptions(character, ignoreRestrictions);
         let multiclassSection = '';
         if (multiclassOptions.length > 0) {
             multiclassSection = `
-                <div class="multiclass-section">
-                    <h6><i class="fas fa-users"></i> Add Multiclass</h6>
-                    <select class="form-select" id="multiclassSelect">
-                        <option value="">Choose a class...</option>
-                        ${multiclassOptions.map(opt => `
-                            <option value="${opt.name}" ${!opt.meetsRequirements ? 'disabled' : ''}>
-                                ${opt.name} ${!opt.meetsRequirements ? '(Requirements not met)' : ''}
-                            </option>
-                        `).join('')}
-                    </select>
-                    <button class="btn btn-secondary" id="addMulticlassBtn" ${multiclassOptions.filter(o => o.meetsRequirements).length === 0 ? 'disabled' : ''}>
-                        <i class="fas fa-plus"></i> Add Multiclass
-                    </button>
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-users"></i> Add Multiclass</h6>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="ignoreRestrictionsToggle" ${ignoreRestrictions ? 'checked' : ''}>
+                            <label class="form-check-label" for="ignoreRestrictionsToggle">Ignore Restrictions</label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <select class="form-select mb-2" id="multiclassSelect">
+                            <option value="">Choose a class...</option>
+                            ${multiclassOptions.map(opt => `
+                                <option value="${opt.name}" ${!opt.meetsRequirements && !ignoreRestrictions ? 'disabled' : ''}>
+                                    ${opt.name}${opt.requirementText ? ` (${opt.requirementText})` : ''}
+                                </option>
+                            `).join('')}
+                        </select>
+                        <button class="btn btn-primary w-100" id="addMulticlassBtn">
+                            <i class="fas fa-plus"></i> Add Multiclass
+                        </button>
+                    </div>
                 </div>
             `;
         }
 
         contentArea.innerHTML = `
             <div class="level-picker">
-                <div>
+                <div class="mb-3">
                     <h5>
                         <i class="fas fa-chart-line"></i>
                         Current Character Level
@@ -183,9 +192,13 @@ export class LevelUpModal {
                     </h5>
                 </div>
                 
-                <div>
-                    <h6>Your Classes</h6>
-                    ${classBreakdown || '<p class="text-muted text-center">No classes yet</p>'}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Your Classes</h6>
+                    </div>
+                    <div class="card-body">
+                        ${classBreakdown || '<p class="text-muted text-center mb-0">No classes yet</p>'}
+                    </div>
                 </div>
                 
                 ${multiclassSection}
@@ -216,6 +229,15 @@ export class LevelUpModal {
                 await this._addClassLevel(className);
             });
         });
+
+        // Ignore restrictions toggle
+        const ignoreRestrictionsToggle = this.modalEl.querySelector('#ignoreRestrictionsToggle');
+        if (ignoreRestrictionsToggle) {
+            this._cleanup.on(ignoreRestrictionsToggle, 'change', () => {
+                this._ignoreRestrictions = ignoreRestrictionsToggle.checked;
+                this._renderLevelPicker(); // Re-render to update options
+            });
+        }
 
         // Add multiclass button
         const addMulticlassBtn = this.modalEl.querySelector('#addMulticlassBtn');
@@ -284,8 +306,8 @@ export class LevelUpModal {
         if (!character) return;
 
         try {
-            // Check multiclass requirements
-            if (!levelUpService.canMulticlass(character, className)) {
+            // Check multiclass requirements (unless ignoring restrictions)
+            if (!this._ignoreRestrictions && !levelUpService.checkMulticlassRequirements(character, className)) {
                 showNotification(`You don't meet the requirements for ${className}`, 'warning');
                 return;
             }
