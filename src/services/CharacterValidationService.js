@@ -425,6 +425,113 @@ class CharacterValidationServiceImpl {
 
         return messages;
     }
+
+    /**
+     * Get pending choices summary for display in UI
+     * Returns user-friendly summary with counts
+     * @param {Object} character - Character object
+     * @returns {Object} Summary with counts and messages
+     */
+    getPendingChoicesSummary(character) {
+        const report = this.validateCharacter(character);
+        
+        const summary = {
+            total: 0,
+            byCategory: {},
+            messages: [],
+        };
+
+        // Count subclass choices
+        if (report.missing.subclasses.length > 0) {
+            summary.byCategory.subclasses = report.missing.subclasses.length;
+            summary.total += report.missing.subclasses.length;
+            summary.messages.push(`${report.missing.subclasses.length} subclass choice${report.missing.subclasses.length > 1 ? 's' : ''}`);
+        }
+
+        // Count ASI/Feat choices
+        if (report.missing.asis.length > 0) {
+            const totalASIs = report.missing.asis.reduce((sum, a) => sum + (a.expectedCount || 0), 0);
+            summary.byCategory.asis = totalASIs;
+            summary.total += totalASIs;
+            summary.messages.push(`${totalASIs} ASI/Feat choice${totalASIs > 1 ? 's' : ''}`);
+        }
+
+        // Count spell choices
+        if (report.missing.spells.length > 0) {
+            const totalSpells = report.missing.spells.reduce((sum, s) => sum + (s.missing || 0), 0);
+            summary.byCategory.spells = totalSpells;
+            summary.total += totalSpells;
+            summary.messages.push(`${totalSpells} spell${totalSpells > 1 ? 's' : ''}`);
+        }
+
+        // Count class feature choices
+        const featureTypes = ['invocations', 'metamagic', 'fightingStyles', 'pactBoons'];
+        let totalFeatures = 0;
+        for (const type of featureTypes) {
+            if (report.missing[type].length > 0) {
+                const count = report.missing[type].reduce((sum, f) => sum + (f.missing || 1), 0);
+                totalFeatures += count;
+            }
+        }
+        if (totalFeatures > 0) {
+            summary.byCategory.features = totalFeatures;
+            summary.total += totalFeatures;
+            summary.messages.push(`${totalFeatures} class feature choice${totalFeatures > 1 ? 's' : ''}`);
+        }
+
+        // Add other choices
+        if (report.missing.other.length > 0) {
+            summary.byCategory.other = report.missing.other.length;
+            summary.total += report.missing.other.length;
+        }
+
+        return summary;
+    }
+
+    /**
+     * Get missing choices for a specific class
+     * Used by build page to show pending choices for each class card
+     * @param {Object} character - Character object
+     * @param {string} className - Class name to check
+     * @returns {Object} Missing choices scoped to this class
+     */
+    getMissingChoicesForClass(character, className) {
+        const report = this.validateCharacter(character);
+        
+        const classChoices = {
+            subclass: null,
+            features: [],
+            spells: null,
+            asi: null,
+        };
+
+        // Filter subclass choices
+        const subclassChoice = report.missing.subclasses.find(s => s.class === className);
+        if (subclassChoice) {
+            classChoices.subclass = subclassChoice;
+        }
+
+        // Filter ASI choices
+        const asiChoice = report.missing.asis.find(a => a.class === className);
+        if (asiChoice) {
+            classChoices.asi = asiChoice;
+        }
+
+        // Filter spell choices
+        const spellChoice = report.missing.spells.find(s => s.class === className);
+        if (spellChoice) {
+            classChoices.spells = spellChoice;
+        }
+
+        // Collect all feature choices for this class
+        const featureTypes = ['invocations', 'metamagic', 'fightingStyles', 'pactBoons', 'other'];
+        for (const type of featureTypes) {
+            const choices = report.missing[type].filter(f => f.class === className);
+            classChoices.features.push(...choices);
+        }
+
+        return classChoices;
+    }
 }
 
 // Export singleton instance

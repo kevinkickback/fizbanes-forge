@@ -615,6 +615,99 @@ class LevelUpService {
 
         return combinedSlots;
     }
+
+    /**
+     * Get pending choices for a specific level-up.
+     * Used by build page to detect what choices are needed after leveling up.
+     * @param {Object} character - Character object
+     * @param {string} className - Class name
+     * @param {number} level - Level to check
+     * @returns {Object} Pending choices object with categories
+     */
+    getPendingChoicesForLevel(character, className, level) {
+        const choices = {
+            subclass: null,
+            asi: null,
+            features: [],
+            spells: null,
+        };
+
+        const classData = classService.getClass(className);
+        if (!classData) return choices;
+
+        const classEntry = character.progression?.classes?.find(c => c.name === className);
+        if (!classEntry) return choices;
+
+        // Check subclass requirement
+        const subclassLevel = classData.subclassTitle?.level || 3;
+        if (level >= subclassLevel && !classEntry.subclass) {
+            choices.subclass = {
+                level: subclassLevel,
+                required: true,
+            };
+        }
+
+        // Check ASI availability
+        const asiLevels = this._getASILevelsForClass(className);
+        if (asiLevels.includes(level)) {
+            // Check if ASI was already used at this level
+            const levelUps = character.progression?.levelUps || [];
+            const asiUsed = levelUps.some(lu => {
+                const isThisLevel = lu.toLevel === level;
+                const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0) ||
+                                 (lu.appliedFeats && lu.appliedFeats.length > 0);
+                return isThisLevel && hasChanges;
+            });
+
+            if (!asiUsed) {
+                choices.asi = {
+                    level,
+                    available: true,
+                };
+            }
+        }
+
+        // Check class features with choices
+        const features = classService.getClassFeatures(className, level, classData.source || 'PHB');
+        for (const feature of features) {
+            const featureName = feature.name || '';
+            const hasChoice = featureName.includes('Fighting Style') ||
+                            featureName.includes('Metamagic') ||
+                            featureName.includes('Eldritch Invocations') ||
+                            featureName.includes('Pact Boon');
+
+            if (hasChoice && feature.level === level) {
+                choices.features.push({
+                    name: featureName,
+                    level: feature.level,
+                    type: this._detectFeatureType(featureName),
+                });
+            }
+        }
+
+        // Check spell availability (if spellcaster)
+        if (classData.spellcastingAbility) {
+            const spellInfo = spellSelectionService.getPendingSpellChoices?.(character) || [];
+            const classSpellInfo = spellInfo.find(s => s.class === className);
+            if (classSpellInfo) {
+                choices.spells = classSpellInfo;
+            }
+        }
+
+        return choices;
+    }
+
+    /**
+     * Detect feature type from name
+     * @private
+     */
+    _detectFeatureType(featureName) {
+        if (featureName.includes('Fighting Style')) return 'fightingStyle';
+        if (featureName.includes('Metamagic')) return 'metamagic';
+        if (featureName.includes('Eldritch Invocations')) return 'invocations';
+        if (featureName.includes('Pact Boon')) return 'pactBoon';
+        return 'other';
+    }
 }
 
 // Export singleton
