@@ -2,6 +2,7 @@
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { skillService } from '../../../services/SkillService.js';
@@ -146,7 +147,7 @@ class AbilityScoreCard {
 		});
 	}
 
-	_showSkillsForAbility(ability) {
+	async _showSkillsForAbility(ability) {
 		if (!this._infoPanel) return;
 
 		const skills = skillService.getSkillsByAbility(ability);
@@ -169,6 +170,7 @@ class AbilityScoreCard {
 					<h6 class="mb-1">Concentration</h6>
 					<p class="small text-muted mb-0">Constitution saves determine whether you maintain concentration on a spell when you take damage.</p>
 				</div>
+				<p class="text-muted small mt-3">Source: PHB, p. 174</p>
 			`;
 			return;
 		}
@@ -178,6 +180,7 @@ class AbilityScoreCard {
 				<h6>${ability.charAt(0).toUpperCase() + ability.slice(1)}</h6>
 				<p class="text-muted small">No skills use this ability score.</p>
 			`;
+			await textProcessor.processElement(infoContent);
 			return;
 		}
 
@@ -207,7 +210,9 @@ class AbilityScoreCard {
 				<p class="text-muted small">Skills that use this ability score:</p>
 			</div>
 			${skillsHTML}
+			<p class="text-muted small mt-3">Source: PHB, p. 174</p>
 		`;
+		await textProcessor.processElement(infoContent);
 	}
 
 	_setupEventListeners() {

@@ -968,14 +968,36 @@ export class ClassCard {
 					const subclassSource = sc.subclassSource || sc.source || sc.classSource;
 					return sourceService.isSourceAllowed(subclassSource);
 				})
-				.map(sc => ({
-					id: `${sc.name}_${sc.subclassSource || sc.source || sc.classSource}`,
-					name: sc.name,
-					source: sc.subclassSource || sc.source || sc.classSource,
-					description: this._getSubclassDescription(sc),
-					entries: sc.subclassFeatures?.[0]?.entries || [],
-					shortName: sc.shortName
-				}));
+				.map(sc => {
+					// Resolve subclass feature entries if they're string references
+					let entries = [];
+					if (sc.subclassFeatures && sc.subclassFeatures.length > 0) {
+						const firstFeatureRef = sc.subclassFeatures[0];
+						if (typeof firstFeatureRef === 'string') {
+							// Resolve from service data
+							const features = this._classService.getSubclassFeatures(
+								sc.className,
+								sc.shortName,
+								1,
+								sc.source || 'PHB'
+							);
+							const firstFeature = features.find(f => f.level === 1);
+							entries = firstFeature?.entries || [];
+						} else {
+							// Already an object with entries
+							entries = firstFeatureRef?.entries || [];
+						}
+					}
+
+					return {
+						id: `${sc.name}_${sc.subclassSource || sc.source || sc.classSource}`,
+						name: sc.name,
+						source: sc.subclassSource || sc.source || sc.classSource,
+						description: this._getSubclassDescription(sc),
+						entries,
+						shortName: sc.shortName
+					};
+				});
 
 			if (availableSubclasses.length > 0) {
 				choices.push({
@@ -1124,7 +1146,22 @@ export class ClassCard {
 
 	_getSubclassDescription(subclass) {
 		if (!subclass.subclassFeatures || subclass.subclassFeatures.length === 0) return '';
-		const firstFeature = subclass.subclassFeatures[0];
+
+		// Get the actual feature data - subclassFeatures may be string references
+		const firstFeatureRef = subclass.subclassFeatures[0];
+		let firstFeature = firstFeatureRef;
+
+		// If it's a string reference, resolve it from the service data
+		if (typeof firstFeatureRef === 'string') {
+			const features = this._classService.getSubclassFeatures(
+				subclass.className,
+				subclass.shortName,
+				1,
+				subclass.source || 'PHB'
+			);
+			firstFeature = features.find(f => f.level === 1);
+		}
+
 		if (firstFeature?.entries) {
 			const firstEntry = firstFeature.entries.find(e => typeof e === 'string');
 			if (firstEntry) {
@@ -1777,14 +1814,36 @@ export class ClassCard {
 				const subclassSource = sc.subclassSource || sc.source || sc.classSource;
 				return sourceService.isSourceAllowed(subclassSource);
 			})
-			.map(sc => ({
-				id: `${sc.name}_${sc.subclassSource || sc.source || sc.classSource}`,
-				name: sc.name,
-				source: sc.subclassSource || sc.source || sc.classSource,
-				description: this._getSubclassDescription(sc),
-				entries: sc.subclassFeatures?.[0]?.entries || [],
-				shortName: sc.shortName
-			}));
+			.map(sc => {
+				// Resolve subclass feature entries if they're string references
+				let entries = [];
+				if (sc.subclassFeatures && sc.subclassFeatures.length > 0) {
+					const firstFeatureRef = sc.subclassFeatures[0];
+					if (typeof firstFeatureRef === 'string') {
+						// Resolve from service data
+						const features = this._classService.getSubclassFeatures(
+							sc.className,
+							sc.shortName,
+							1,
+							sc.source || 'PHB'
+						);
+						const firstFeature = features.find(f => f.level === 1);
+						entries = firstFeature?.entries || [];
+					} else {
+						// Already an object with entries
+						entries = firstFeatureRef?.entries || [];
+					}
+				}
+
+				return {
+					id: `${sc.name}_${sc.subclassSource || sc.source || sc.classSource}`,
+					name: sc.name,
+					source: sc.subclassSource || sc.source || sc.classSource,
+					description: this._getSubclassDescription(sc),
+					entries,
+					shortName: sc.shortName
+				};
+			});
 
 		// Create a minimal session-like object for the selector
 		const mockSession = {

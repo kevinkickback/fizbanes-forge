@@ -170,7 +170,7 @@ class FeatService {
 			if (isASI) {
 				slots += 1;
 				reasons.push(
-					`Class ASI at level ${feature.level ?? '?'} (${className})`,
+					`Ability Score Improvement at level ${feature.level ?? '?'} (${className})`,
 				);
 			}
 		}

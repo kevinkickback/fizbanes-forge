@@ -887,36 +887,13 @@ class PageHandlerImpl {
 	}
 
 	_updateFeatAvailabilitySection(character) {
-		const availabilitySection = document.getElementById('featAvailabilitySection');
-		const availabilityContent = document.getElementById('featAvailabilityContent');
-		const featSourcesSection = document.getElementById('featSourcesSection');
+		const featSourcesContainer = document.getElementById('featSources');
 
-		if (!character || !availabilityContent) return;
+		if (!character) return;
 
-		const availability = character.getFeatAvailability?.() || {
-			used: 0,
-			max: 0,
-			remaining: 0,
-			reasons: [],
-			blockedReason: null,
-		};
-
-		// Show/hide availability section
-		if (availabilitySection) {
-			if (availability.max > 0 || availability.reasons.length > 0) {
-				availabilitySection.style.display = 'block';
-				const reasonsList = availability.reasons.length > 0
-					? `<ul class="mb-0">${availability.reasons.map(r => `<li>${r}</li>`).join('')}</ul>`
-					: '<p class="mb-0">You have feat selections available.</p>';
-				availabilityContent.innerHTML = reasonsList;
-			} else {
-				availabilitySection.style.display = 'none';
-			}
-		}
-
-		// Show/hide feat sources section if feats exist
-		if (featSourcesSection) {
-			featSourcesSection.style.display = character.feats?.length > 0 ? 'block' : 'none';
+		// Show/hide feat sources if feats exist
+		if (featSourcesContainer) {
+			featSourcesContainer.style.display = character.feats?.length > 0 ? 'block' : 'none';
 		}
 	}
 

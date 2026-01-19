@@ -6,10 +6,12 @@ import { toTitleCase } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
 
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../../../lib/ProficiencyConstants.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './Display.js';
+import { ProficiencyNotesView } from './Notes.js';
 import { ProficiencySelectionView } from './Selection.js';
 
 class InstrumentChoicesView {
@@ -104,6 +106,7 @@ export class ProficiencyCard {
 		// Initialize views
 		this._displayView = new ProficiencyDisplayView();
 		this._selectionView = new ProficiencySelectionView();
+		this._notesView = new ProficiencyNotesView();
 		this._instrumentChoicesView = new InstrumentChoicesView();
 
 		// DOM cleanup manager
@@ -151,6 +154,8 @@ export class ProficiencyCard {
 		this._accordion = document.getElementById('proficienciesAccordion');
 		this._infoPanel = document.getElementById('proficienciesInfoPanel');
 		this._toggleBtn = document.getElementById('proficienciesInfoToggle');
+		this._notesContainer = document.getElementById('proficienciesNotes');
+		this._notesContainer = document.getElementById('proficienciesNotes');
 
 		// Legacy: Keep container references for backward compatibility
 		// These will be created dynamically within accordion items
@@ -643,6 +648,15 @@ export class ProficiencyCard {
 		// Render instrument dropdowns
 		this._renderInstrumentChoices();
 
+		// Update proficiency notes showing sources
+		if (this._notesContainer && this._notesView) {
+			await this._notesView.updateProficiencyNotes(
+				this._notesContainer,
+				this._character,
+				(type) => this._getTypeLabel(type)
+			);
+		}
+
 		// Setup click listeners for the new structure
 		this._setupAccordionClickListeners();
 	}
@@ -764,12 +778,17 @@ export class ProficiencyCard {
 			if (type === 'skills') {
 				const info = await proficiencyService.getSkillDescription(proficiency);
 				if (info) {
+					// Join description entries as raw text - textProcessor.processElement will handle tag resolution
+					const descriptionText = Array.isArray(info.description)
+						? info.description.join(' ')
+						: (info.description || 'No description available.');
+
 					html = `
 						<div class="proficiency-info">
 							<h5><i class="fas fa-check-circle me-2"></i>${info.name}</h5>
 							<p class="text-muted"><strong>Ability:</strong> ${info.ability.toUpperCase()}</p>
 							<div class="mt-3">
-								${info.description}
+								${descriptionText}
 							</div>
 							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
 						</div>
@@ -802,24 +821,36 @@ export class ProficiencyCard {
 			} else if (type === 'tools') {
 				const info = await proficiencyService.getToolDescription(proficiency);
 				if (info) {
+					// Render tool description using helper that handles 5etools entry structures
+					const descriptionHtml = this._renderEntries(info.description);
+
 					html = `
 						<div class="proficiency-info">
 							<h5><i class="fas fa-tools me-2"></i>${info.name}</h5>
 							<div class="mt-3">
-								${info.description}
+								${descriptionHtml}
 							</div>
+							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
 						</div>
 					`;
 				}
 			} else if (type === 'savingThrows') {
 				const abilityName = proficiency;
+				const savingThrowInfo = await proficiencyService.getSavingThrowInfo();
+
+				// Render saving throw description using helper
+				const descriptionHtml = savingThrowInfo?.entries
+					? this._renderEntries(savingThrowInfo.entries)
+					: `<p>When you make a ${abilityName} saving throw, you can add your proficiency bonus to the roll.</p>
+					   <p class="text-muted mt-2">Saving throws are used to resist spells, traps, poisons, diseases, and other harmful effects. Your ${abilityName} modifier and proficiency bonus (if proficient) are added to the d20 roll.</p>`;
+
 				html = `
 					<div class="proficiency-info">
 						<h5><i class="fas fa-dice-d20 me-2"></i>${abilityName} Saving Throw</h5>
 						<div class="mt-3">
-							<p>When you make a ${abilityName} saving throw, you can add your proficiency bonus to the roll.</p>
-							<p class="text-muted mt-2">Saving throws are used to resist spells, traps, poisons, diseases, and other harmful effects. Your ${abilityName} modifier and proficiency bonus (if proficient) are added to the d20 roll.</p>
+							${descriptionHtml}
 						</div>
+						${savingThrowInfo?.source && savingThrowInfo?.page ? `<p class="text-muted small mt-3">Source: ${savingThrowInfo.source}, p. ${savingThrowInfo.page}</p>` : ''}
 					</div>
 				`;
 			} else if (type === 'armor') {
@@ -829,12 +860,17 @@ export class ProficiencyCard {
 					if (info.ac) extraInfo.push(`AC: ${info.ac}`);
 					if (info.weight) extraInfo.push(`Weight: ${info.weight} lb.`);
 
+					// Handle description - can be entries array from book or string
+					const descriptionHtml = Array.isArray(info.description)
+						? this._renderEntries(info.description)
+						: info.description;
+
 					html = `
 						<div class="proficiency-info">
 							<h5><i class="fas ${this._displayView.getIconForType(type)} me-2"></i>${info.name}</h5>
 							${extraInfo.length > 0 ? `<p class="text-muted">${extraInfo.join(' • ')}</p>` : ''}
 							<div class="mt-3">
-								${info.description}
+								${descriptionHtml}
 							</div>
 							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
 						</div>
@@ -847,12 +883,17 @@ export class ProficiencyCard {
 					if (info.damage) extraInfo.push(`Damage: ${info.damage} ${info.damageType || ''}`);
 					if (info.weaponCategory) extraInfo.push(`Category: ${info.weaponCategory.charAt(0).toUpperCase() + info.weaponCategory.slice(1)}`);
 
+					// Handle description - can be entries array from book or string
+					const descriptionHtml = Array.isArray(info.description)
+						? this._renderEntries(info.description)
+						: info.description;
+
 					html = `
 						<div class="proficiency-info">
 							<h5><i class="fas ${this._displayView.getIconForType(type)} me-2"></i>${info.name}</h5>
 							${extraInfo.length > 0 ? `<p class="text-muted">${extraInfo.join(' • ')}</p>` : ''}
 							<div class="mt-3">
-								${info.description}
+								${descriptionHtml}
 							</div>
 							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
 						</div>
@@ -883,6 +924,58 @@ export class ProficiencyCard {
 		}
 
 		this._infoPanel.innerHTML = html;
+		await textProcessor.processElement(this._infoPanel);
+	}
+
+	/**
+	 * Recursively render 5etools entry structures into HTML
+	 * Handles strings, lists, nested entries, etc.
+	 * Tags will be processed later by textProcessor.processElement
+	 */
+	_renderEntries(entries) {
+		if (!entries) return '';
+		if (!Array.isArray(entries)) entries = [entries];
+
+		return entries.map(entry => {
+			// Simple string entry
+			if (typeof entry === 'string') {
+				return `<p>${entry}</p>`;
+			}
+
+			// Object entry with type
+			if (typeof entry === 'object') {
+				if (entry.type === 'list' && entry.items) {
+					// Render list items
+					const items = entry.items.map(item => {
+						if (typeof item === 'string') {
+							return `<li>${item}</li>`;
+						}
+						if (item.type === 'item' && item.name) {
+							// List item with name/entries (e.g., "Ability: Intelligence")
+							const itemContent = item.entries ? item.entries.join(' ') : '';
+							return `<li><strong>${item.name}</strong> ${itemContent}</li>`;
+						}
+						return '';
+					}).filter(Boolean).join('');
+
+					return `<ul class="mb-2">${items}</ul>`;
+				}
+
+				if (entry.type === 'entries' && entry.entries) {
+					// Nested entries block
+					const title = entry.name ? `<h6>${entry.name}</h6>` : '';
+					return `${title}${this._renderEntries(entry.entries)}`;
+				}
+
+				if (entry.type === 'item' && entry.name) {
+					// Single item (shouldn't be at top level but handle it)
+					const itemContent = entry.entries ? entry.entries.join(' ') : '';
+					return `<p><strong>${entry.name}</strong> ${itemContent}</p>`;
+				}
+			}
+
+			return '';
+		}).filter(Boolean).join('');
 	}
 
 	_renderInstrumentChoices() {
@@ -1633,5 +1726,17 @@ export class ProficiencyCard {
 			this._character.optionalProficiencies[type]?.background?.allowed || 0;
 
 		return raceAllowed + classAllowed + backgroundAllowed;
+	}
+
+	_getTypeLabel(type) {
+		const labels = {
+			skills: 'Skills',
+			languages: 'Languages',
+			tools: 'Tools',
+			savingThrows: 'Saving Throws',
+			armor: 'Armor',
+			weapons: 'Weapons'
+		};
+		return labels[type] || toTitleCase(type);
 	}
 }

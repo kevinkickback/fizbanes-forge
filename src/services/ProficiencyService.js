@@ -343,31 +343,44 @@ export class ProficiencyService {
 
 		const normalizedSearch = DataNormalizer.normalizeForLookup(skillName);
 
-		// Find the skill - prefer XPHB source (2024 rules), fallback to PHB
-		let skill = skillData.find(s =>
-			DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
-			s.source === 'XPHB'
-		);
+		// Import sourceService dynamically to avoid circular dependency
+		const { sourceService } = await import('./SourceService.js');
+		const allowedSources = new Set(sourceService.getAllowedSources().map(s => s.toUpperCase()));
 
-		if (!skill) {
+		// Find the skill - prioritize allowed sources
+		let skill = null;
+
+		// First try XPHB if allowed
+		if (allowedSources.has('XPHB')) {
+			skill = skillData.find(s =>
+				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+				s.source === 'XPHB'
+			);
+		}
+
+		// Then try PHB if allowed and not found
+		if (!skill && allowedSources.has('PHB')) {
 			skill = skillData.find(s =>
 				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
 				s.source === 'PHB'
 			);
 		}
 
+		// Finally try any allowed source
 		if (!skill) {
 			skill = skillData.find(s =>
-				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch
+				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+				allowedSources.has(s.source?.toUpperCase())
 			);
 		}
 
 		if (!skill) return null;
 
+		// Return entries as array so textProcessor can handle tags properly
 		return {
 			name: skill.name,
 			ability: skill.ability,
-			description: skill.entries?.join(' ') || 'No description available.',
+			description: skill.entries || [],
 			source: skill.source,
 			page: skill.page
 		};
@@ -384,22 +397,34 @@ export class ProficiencyService {
 
 		const normalizedSearch = DataNormalizer.normalizeForLookup(languageName);
 
-		// Find the language - prefer XPHB source, fallback to PHB, then any
-		let language = languageData.find(l =>
-			DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
-			l.source === 'XPHB'
-		);
+		// Import sourceService dynamically to avoid circular dependency
+		const { sourceService } = await import('./SourceService.js');
+		const allowedSources = new Set(sourceService.getAllowedSources().map(s => s.toUpperCase()));
 
-		if (!language) {
+		// Find the language - prioritize allowed sources
+		let language = null;
+
+		// First try XPHB if allowed
+		if (allowedSources.has('XPHB')) {
+			language = languageData.find(l =>
+				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+				l.source === 'XPHB'
+			);
+		}
+
+		// Then try PHB if allowed and not found
+		if (!language && allowedSources.has('PHB')) {
 			language = languageData.find(l =>
 				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
 				l.source === 'PHB'
 			);
 		}
 
+		// Finally try any allowed source
 		if (!language) {
 			language = languageData.find(l =>
-				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch
+				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+				allowedSources.has(l.source?.toUpperCase())
 			);
 		}
 
@@ -434,53 +459,61 @@ export class ProficiencyService {
 
 		const normalizedSearch = DataNormalizer.normalizeForLookup(toolName);
 
-		// Find the tool - prefer XPHB source, fallback to PHB
-		let tool = items.find(item =>
-			DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-			item.source === 'XPHB' &&
-			(item.type === 'AT' || item.type?.includes('AT'))
-		);
+		// Import sourceService dynamically to avoid circular dependency
+		const { sourceService } = await import('./SourceService.js');
+		const allowedSources = new Set(sourceService.getAllowedSources().map(s => s.toUpperCase()));
 
-		if (!tool) {
+		// Helper to check if item is a tool (AT=Artisan Tools, T=Tools, GS=Gaming Set, INS=Instrument)
+		const isToolType = (type) => {
+			if (!type) return false;
+			const typeStr = String(type);
+			return typeStr === 'AT' || typeStr === 'T' || typeStr === 'GS' || typeStr === 'INS' ||
+				typeStr.includes('AT') || typeStr.includes('T|') || typeStr.includes('GS') || typeStr.includes('INS');
+		};
+
+		// Find the tool - prioritize allowed sources
+		let tool = null;
+
+		// First try XPHB if allowed
+		if (allowedSources.has('XPHB')) {
 			tool = items.find(item =>
 				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				item.source === 'PHB' &&
-				(item.type === 'AT' || item.type?.includes('AT'))
+				item.source === 'XPHB' &&
+				isToolType(item.type)
 			);
 		}
 
+		// Then try PHB if allowed and not found
+		if (!tool && allowedSources.has('PHB')) {
+			tool = items.find(item =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				item.source === 'PHB' &&
+				isToolType(item.type)
+			);
+		}
+
+		// Finally try any allowed source
 		if (!tool) {
 			tool = items.find(item =>
 				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				(item.type === 'AT' || item.type?.includes('AT'))
+				allowedSources.has(item.source?.toUpperCase()) &&
+				isToolType(item.type)
 			);
 		}
 
 		if (!tool) {
 			return {
 				name: toolName,
-				description: `Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
+				description: [`Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`],
 				type: 'tool'
 			};
 		}
 
-		// Extract text from entries - handle both string and object entries
-		const extractText = (entry) => {
-			if (typeof entry === 'string') return entry;
-			if (entry.entries) return entry.entries.map(extractText).join(' ');
-			if (entry.items) return entry.items.map(extractText).join(' ');
-			return '';
-		};
+		// Return raw entries so textProcessor can handle tags properly
+		let description = tool.entries || tool.additionalEntries || [];
 
-		let description = '';
-		if (tool.entries && tool.entries.length > 0) {
-			description = tool.entries.map(extractText).filter(Boolean).join(' ');
-		} else if (tool.additionalEntries && tool.additionalEntries.length > 0) {
-			description = tool.additionalEntries.map(extractText).filter(Boolean).join(' ');
-		}
-
-		if (!description) {
-			description = `Proficiency with ${tool.name.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`;
+		if (!description || description.length === 0) {
+			description = [`Proficiency with ${tool.name.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`];
 		}
 
 		return {
@@ -495,7 +528,7 @@ export class ProficiencyService {
 	/**
 	 * Gets description for armor proficiency
 	 * @param {string} armorName - Name of the armor type
-	 * @returns {Promise<Object|null>} Object with name and description
+	 * @returns {Promise<Object|null>} Object with name, description, source, and page
 	 */
 	async getArmorDescription(armorName) {
 		const baseItems = itemService.getAllBaseItems();
@@ -511,7 +544,10 @@ export class ProficiencyService {
 		const typeCode = armorCategories[armorName];
 
 		if (typeCode) {
-			// Return category description
+			// Get category info from PHB book
+			const categoryInfo = await this.getArmorCategoryInfo(armorName);
+
+			// Return category description with book reference
 			const examples = baseItems
 				.filter(item => (item.type === typeCode || item.type === `${typeCode}|XPHB`) && item.armor)
 				.slice(0, 3)
@@ -519,10 +555,12 @@ export class ProficiencyService {
 
 			return {
 				name: armorName,
-				description: examples.length > 0
+				description: categoryInfo?.entries || (examples.length > 0
 					? `You are proficient with ${armorName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
-					: `You are proficient with ${armorName.toLowerCase()}.`,
-				type: 'armor'
+					: `You are proficient with ${armorName.toLowerCase()}.`),
+				type: 'armor',
+				source: categoryInfo?.source,
+				page: categoryInfo?.page
 			};
 		}
 
@@ -563,13 +601,16 @@ export class ProficiencyService {
 	/**
 	 * Gets description for weapon proficiency
 	 * @param {string} weaponName - Name of the weapon type
-	 * @returns {Promise<Object|null>} Object with name and description
+	 * @returns {Promise<Object|null>} Object with name, description, source, and page
 	 */
 	async getWeaponDescription(weaponName) {
 		const baseItems = itemService.getAllBaseItems();
 
 		// Handle weapon categories
 		if (weaponName === 'Simple Weapons' || weaponName === 'Martial Weapons') {
+			// Get category info from PHB book
+			const categoryInfo = await this.getWeaponCategoryInfo(weaponName);
+
 			const category = weaponName === 'Simple Weapons' ? 'simple' : 'martial';
 			const examples = baseItems
 				.filter(item => item.weaponCategory === category && item.weapon)
@@ -578,10 +619,12 @@ export class ProficiencyService {
 
 			return {
 				name: weaponName,
-				description: examples.length > 0
+				description: categoryInfo?.entries || (examples.length > 0
 					? `You are proficient with ${weaponName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
-					: `You are proficient with ${weaponName.toLowerCase()}.`,
-				type: 'weapon'
+					: `You are proficient with ${weaponName.toLowerCase()}.`),
+				type: 'weapon',
+				source: categoryInfo?.source,
+				page: categoryInfo?.page
 			};
 		}
 
@@ -627,6 +670,107 @@ export class ProficiencyService {
 			type: 'weapon',
 			source: weapon.source,
 			page: weapon.page
+		};
+	}
+
+	/**
+	 * Load and cache PHB book data for proficiency categories
+	 * @returns {Promise<Object>} Book data
+	 */
+	async _loadBookData() {
+		if (this._bookData) {
+			return this._bookData;
+		}
+
+		try {
+			const bookData = await DataLoader.loadJSON('book/book-phb.json');
+			// Book structure is { "data": [...] } not { "book": [...] }
+			this._bookData = bookData || null;
+			return this._bookData;
+		} catch (error) {
+			console.error('ProficiencyService', 'Failed to load book data', error);
+			return null;
+		}
+	}
+
+	/**
+	 * Find book entry by name (searches recursively through nested entries)
+	 * @param {Array} entries - Array of book entries to search
+	 * @param {string} name - Name to search for
+	 * @returns {Object|null} Found entry or null
+	 */
+	_findBookEntry(entries, name) {
+		if (!entries || !Array.isArray(entries)) return null;
+
+		for (const entry of entries) {
+			if (entry.name === name) {
+				return entry;
+			}
+			if (entry.entries) {
+				const found = this._findBookEntry(entry.entries, name);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Gets armor category information from PHB
+	 * @param {string} categoryName - Category name (e.g., "Light Armor", "Medium Armor")
+	 * @returns {Promise<Object|null>} Category info with entries, source, and page
+	 */
+	async getArmorCategoryInfo(categoryName) {
+		const bookData = await this._loadBookData();
+		if (!bookData) return null;
+
+		const entry = this._findBookEntry(bookData.data, categoryName);
+		if (!entry) return null;
+
+		return {
+			name: entry.name,
+			entries: entry.entries || [],
+			source: 'PHB',
+			page: entry.page
+		};
+	}
+
+	/**
+	 * Gets weapon category information from PHB
+	 * @param {string} categoryName - Category name (e.g., "Simple Weapons", "Martial Weapons")
+	 * @returns {Promise<Object|null>} Category info with entries, source, and page
+	 */
+	async getWeaponCategoryInfo(categoryName) {
+		const bookData = await this._loadBookData();
+		if (!bookData) return null;
+
+		// Weapon proficiency section contains the category info
+		const weaponProfEntry = this._findBookEntry(bookData.data, 'Weapon Proficiency');
+		if (!weaponProfEntry) return null;
+
+		return {
+			name: categoryName,
+			entries: weaponProfEntry.entries || [],
+			source: 'PHB',
+			page: weaponProfEntry.page
+		};
+	}
+
+	/**
+	 * Gets saving throw information from PHB
+	 * @returns {Promise<Object|null>} Saving throw info with entries, source, and page
+	 */
+	async getSavingThrowInfo() {
+		const bookData = await this._loadBookData();
+		if (!bookData) return null;
+
+		const entry = this._findBookEntry(bookData.data, 'Saving Throws');
+		if (!entry) return null;
+
+		return {
+			name: entry.name,
+			entries: entry.entries || [],
+			source: 'PHB',
+			page: entry.page
 		};
 	}
 }

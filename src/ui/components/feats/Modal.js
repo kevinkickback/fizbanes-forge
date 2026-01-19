@@ -21,7 +21,7 @@ export class FeatCard {
 		this.selectedFeatIds = new Set();
 		this.featSlotLimit = 0;
 		this._availability = null;
-		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Class ASI at level 4")
+		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Ability Score Improvement at level 4")
 		this.ignoreRaceRestrictions = false; // Start with restrictions enforced
 
 		// DOM cleanup manager
@@ -795,7 +795,7 @@ export class FeatSourcesView {
 		const featLines = character.feats.map((feat) => {
 			const name = feat?.name || 'Unknown';
 			const source = feat?.source || 'Unknown';
-			return `${name} (${source})`;
+			return `<strong>${source}:</strong> ${name}`;
 		});
 
 		let html = '<h6 class="mb-2">Sources:</h6>';

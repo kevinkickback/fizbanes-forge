@@ -351,6 +351,7 @@ export class RaceCard {
 		html += await this._detailsView.generateDetailsHTML(race, subrace);
 
 		infoContent.innerHTML = html;
+		await textProcessor.processElement(infoContent);
 		this._infoPanel.appendChild(infoContent);
 	}
 
@@ -1085,10 +1086,47 @@ class RaceDetailsView {
 			html += `<div class="mb-3">
                 <h6 class="small">Traits</h6>
                 <div class="traits-grid">`;
-			for (const trait of traits) {
-				const name = trait.name || trait.text;
-				html += `<span class="trait-tag">${name}</span>`;
-			}
+
+			// Process traits to create hover links with descriptions
+			const processedTraits = await Promise.all(
+				traits.map(async (trait) => {
+					if (typeof trait === 'string') {
+						const processed = await textProcessor.processString(trait);
+						return `<span class="trait-tag">${processed}</span>`;
+					}
+
+					const name = trait.name || trait.text;
+					let description = '';
+
+					if (trait.entries) {
+						if (Array.isArray(trait.entries)) {
+							const processedEntries = await Promise.all(
+								trait.entries.map((entry) => {
+									if (typeof entry === 'string') {
+										return textProcessor.processString(entry);
+									} else if (entry.type === 'list' && entry.items) {
+										return Promise.all(
+											entry.items.map((item) =>
+												textProcessor.processString(
+													typeof item === 'string' ? item : '',
+												),
+											),
+										).then((items) => items.map((i) => `• ${i}`).join('<br>'));
+									}
+									return '';
+								}),
+							);
+							description = processedEntries.join(' ');
+						} else if (typeof trait.entries === 'string') {
+							description = await textProcessor.processString(trait.entries);
+						}
+					}
+
+					return `<a class="trait-tag rd__hover-link" data-hover-type="trait" data-hover-name="${name}" data-hover-content="${description.replace(/"/g, '&quot;')}">${name}</a>`;
+				}),
+			);
+
+			html += processedTraits.join('');
 			html += `</div></div>`;
 		}
 
