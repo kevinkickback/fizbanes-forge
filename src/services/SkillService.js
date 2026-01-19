@@ -58,6 +58,41 @@ class SkillService {
 			this._skillMap.get(DataNormalizer.normalizeForLookup(skillName)) || null
 		);
 	}
+
+	/**
+	 * Get all skills that use a specific ability score
+	 * @param {string} abilityName - The ability name (e.g., 'strength', 'dexterity')
+	 * @returns {Array<Object>} Array of skill objects that use this ability
+	 */
+	getSkillsByAbility(abilityName) {
+		if (!this._skillData?.skill) return [];
+
+		// Convert full ability name to 3-letter abbreviation used in JSON
+		const abilityMap = {
+			strength: 'str',
+			dexterity: 'dex',
+			constitution: 'con',
+			intelligence: 'int',
+			wisdom: 'wis',
+			charisma: 'cha'
+		};
+
+		const normalizedName = abilityName.toLowerCase().trim();
+		const abilityAbbr = abilityMap[normalizedName] || normalizedName;
+
+		return this._skillData.skill.filter(skill => {
+			if (!skill.ability) return false;
+
+			// Handle both string and array formats for ability
+			if (Array.isArray(skill.ability)) {
+				return skill.ability.some(a =>
+					DataNormalizer.normalizeForLookup(a) === abilityAbbr
+				);
+			}
+
+			return DataNormalizer.normalizeForLookup(skill.ability) === abilityAbbr;
+		});
+	}
 }
 
 export const skillService = new SkillService();

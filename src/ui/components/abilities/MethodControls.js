@@ -29,19 +29,14 @@ class MethodControlsView {
 	renderPointBuyControls(container, ability, baseScore) {
 		// Create button group for +/- controls
 		const buttonGroup = document.createElement('div');
-		buttonGroup.className = 'd-flex align-items-center justify-content-center';
+		buttonGroup.className = 'd-flex align-items-center justify-content-center gap-1';
 
 		// Create decrease button
 		const decreaseBtn = document.createElement('button');
-		decreaseBtn.className = 'btn btn-sm btn-light me-1';
+		decreaseBtn.className = 'btn btn-sm btn-light';
 		decreaseBtn.dataset.action = 'decrease';
 		decreaseBtn.dataset.ability = ability;
 		decreaseBtn.textContent = '-';
-
-		// Create value display
-		const valueDisplay = document.createElement('span');
-		valueDisplay.className = 'mx-2 fw-bold';
-		valueDisplay.textContent = baseScore;
 
 		// Create increase button
 		const increaseBtn = document.createElement('button');
@@ -63,9 +58,8 @@ class MethodControlsView {
 		costIndicator.className = `point-cost ${costClass}`;
 		costIndicator.textContent = `${cost} pts`;
 
-		// Assemble the controls
+		// Assemble the controls - no value display between buttons
 		buttonGroup.appendChild(decreaseBtn);
-		buttonGroup.appendChild(valueDisplay);
 		buttonGroup.appendChild(increaseBtn);
 
 		container.appendChild(buttonGroup);

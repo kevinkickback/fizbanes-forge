@@ -25,6 +25,7 @@ export class RaceCard {
 		this._choicesPanel = document.getElementById('raceChoicesPanel');
 		this._raceList = document.getElementById('raceList');
 		this._infoPanel = document.getElementById('raceInfoPanel');
+		this._toggleBtn = document.getElementById('raceInfoToggle');
 
 		this._detailsView = new RaceDetailsView();
 
@@ -49,11 +50,12 @@ export class RaceCard {
 			// This ensures race data is ready before any events try to use it
 			this._raceService
 				.initialize()
-				.then(() => {
+				.then(async () => {
 					// NOW set up event listeners and load saved selection
 					this._setupEventListeners();
-					this._populateRaceList();
-					this._loadSavedRaceSelection();
+					this._setupToggleButton();
+					await this._populateRaceList();
+					await this._loadSavedRaceSelection();
 				})
 				.catch((error) => {
 					console.error(
@@ -65,6 +67,22 @@ export class RaceCard {
 		} catch (error) {
 			console.error('RaceCard', 'Failed to initialize race card:', error);
 		}
+	}
+
+	_setupToggleButton() {
+		if (!this._toggleBtn || !this._infoPanel) return;
+
+		this._cleanup.on(this._toggleBtn, 'click', () => {
+			const isCollapsed = this._infoPanel.classList.contains('collapsed');
+
+			if (isCollapsed) {
+				this._infoPanel.classList.remove('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-right';
+			} else {
+				this._infoPanel.classList.add('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-left';
+			}
+		});
 	}
 
 	_setupEventListeners() {
@@ -164,44 +182,50 @@ export class RaceCard {
 
 		// Add subrace dropdown if applicable
 		if (hasSubraces) {
-			const dropdownContainer = document.createElement('div');
-			dropdownContainer.className = 'inline-dropdown-container';
-
-			const select = document.createElement('select');
-			select.className = 'form-select form-select-sm';
-
-			// Filter subraces by source
+			// Filter subraces by source first
 			const filteredSubraces = subraces.filter((subrace) => {
 				const subraceSource = subrace.source || race.source;
 				return sourceService.isSourceAllowed(subraceSource) && subrace.name && subrace.name.trim() !== '';
 			});
 
-			// Add subrace options
-			for (const subrace of filteredSubraces) {
-				const option = document.createElement('option');
-				option.value = subrace.name;
-				option.textContent = subrace.name;
-				select.appendChild(option);
-				await this._createRaceInfoPanel(race, subrace);
+			// Only create dropdown if there are filtered subraces
+			if (filteredSubraces.length > 0) {
+				const dropdownContainer = document.createElement('div');
+				dropdownContainer.className = 'inline-dropdown-container';
+
+				const select = document.createElement('select');
+				select.className = 'form-select form-select-sm';
+
+				// Add subrace options
+				for (const subrace of filteredSubraces) {
+					const option = document.createElement('option');
+					option.value = subrace.name;
+					option.textContent = subrace.name;
+					select.appendChild(option);
+					await this._createRaceInfoPanel(race, subrace);
+				}
+
+				dropdownContainer.appendChild(select);
+				const flexContainer = itemWrapper.querySelector('.d-flex');
+				flexContainer.appendChild(dropdownContainer);
+
+				// Handle subrace selection
+				this._cleanup.on(select, 'change', () => {
+					const subraceName = select.value;
+					const subraceData = this._raceService.getSubrace(
+						race.name,
+						subraceName,
+						race.source,
+					);
+					this._selectedSubrace = subraceData;
+					const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
+					this._showInfo(subraceId);
+					this._updateCharacterRace(race, subraceData);
+				});
+			} else {
+				// No filtered subraces, treat as race without subraces
+				await this._createRaceInfoPanel(race, null);
 			}
-
-			dropdownContainer.appendChild(select);
-			const flexContainer = itemWrapper.querySelector('.d-flex');
-			flexContainer.appendChild(dropdownContainer);
-
-			// Handle subrace selection
-			this._cleanup.on(select, 'change', () => {
-				const subraceName = select.value;
-				const subraceData = this._raceService.getSubrace(
-					race.name,
-					subraceName,
-					race.source,
-				);
-				this._selectedSubrace = subraceData;
-				const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
-				this._showInfo(subraceId);
-				this._updateCharacterRace(race, subraceData);
-			});
 		} else {
 			await this._createRaceInfoPanel(race, null);
 		}
@@ -216,10 +240,12 @@ export class RaceCard {
 				radio.checked = true;
 				this._selectedRace = race;
 
-				// If has subraces, show first subrace info, otherwise show race info
-				if (hasSubraces) {
-					const select = itemWrapper.querySelector('select');
-					const subraceName = select?.value;
+				// Check if dropdown actually exists (filtered subraces)
+				const select = itemWrapper.querySelector('select');
+
+				// If has dropdown with subraces, show first subrace info, otherwise show race info
+				if (select && select.options.length > 0) {
+					const subraceName = select.value;
 					if (subraceName) {
 						const subraceData = this._raceService.getSubrace(
 							race.name,
@@ -230,11 +256,21 @@ export class RaceCard {
 						const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
 						this._showInfo(subraceId);
 						this._updateCharacterRace(race, subraceData);
+
+						// Emit event to notify about character update (unsaved changes)
+						eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+							character: CharacterManager.getCurrentCharacter(),
+						});
 					}
 				} else {
 					this._selectedSubrace = null;
 					this._showInfo(raceId);
 					this._updateCharacterRace(race, null);
+
+					// Emit event to notify about character update (unsaved changes)
+					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+						character: CharacterManager.getCurrentCharacter(),
+					});
 				}
 
 				// Remove selected class from all race items
@@ -247,9 +283,11 @@ export class RaceCard {
 
 		// Add hover to show info
 		this._cleanup.on(raceItem, 'mouseenter', () => {
-			if (hasSubraces) {
-				const select = itemWrapper.querySelector('select');
-				const subraceName = select?.value;
+			// Check if dropdown actually exists
+			const select = itemWrapper.querySelector('select');
+
+			if (select && select.options.length > 0) {
+				const subraceName = select.value;
 				if (subraceName) {
 					const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
 					this._showInfo(subraceId, false);
@@ -267,7 +305,9 @@ export class RaceCard {
 
 		// Hide all info content
 		const allContent = this._infoPanel.querySelectorAll('.info-content');
-		allContent.forEach(content => content.classList.add('d-none'));
+		allContent.forEach(content => {
+			content.classList.add('d-none');
+		});
 
 		// Show the selected content
 		const targetContent = this._infoPanel.querySelector(`[data-for="${contentId}"]`);
@@ -320,295 +360,136 @@ export class RaceCard {
 
 	async _loadSavedRaceSelection() {
 		try {
-			// Populate race dropdown first
-			await this._populateRaceSelect();
-
 			const character = AppState.getCurrentCharacter();
 			if (!character?.race?.name || !character?.race?.source) {
 				return; // No saved race to load
 			}
 
-			// Set the race selection if it exists in available options
+			// Find the race item in the list
 			const raceValue = `${character.race.name}_${character.race.source}`;
+			console.info('[RaceCard]', 'Loading saved race:', raceValue);
 
-			console.info('[RaceCard]', 'Setting race value:', raceValue);
-			if (this._cardView.hasRaceOption(raceValue)) {
-				console.info('[RaceCard]', 'Race option found, setting race');
-				this._cardView.setSelectedRaceValue(raceValue);
-				// Update UI from character data (skip unsaved event)
-				await this._handleRaceChange({ target: { value: raceValue } }, true);
-
-				// Also set subrace if one was selected
-				if (character.race.subrace) {
-					console.info(
-						'[RaceCard]',
-						'Saved subrace found:',
-						character.race.subrace,
-					);
-					// Wait for subrace options to populate
-					await new Promise((resolve) => setTimeout(resolve, 100));
-
-					const subraceOptions = Array.from(
-						this._subraceView.getSubraceSelect().options,
-					).map((o) => ({ value: o.value, text: o.text }));
-					console.info(
-						'[RaceCard]',
-						`Loading saved subrace: "${character.race.subrace}"`,
-						{
-							availableOptions: subraceOptions,
-						},
-					);
-					if (this._subraceView.hasSubraceOption(character.race.subrace)) {
-						console.info(
-							'[RaceCard]',
-							'Subrace option found, setting subrace value',
-						);
-						this._subraceView.setSelectedSubraceValue(character.race.subrace);
-						// Update character data with the saved subrace (skip unsaved event during load)
-						await this._handleSubraceChange(
-							{ target: { value: character.race.subrace } },
-							true,
-							true,
-						);
-					} else {
-						console.warn(
-							'RaceCard',
-							`Saved subrace "${character.race.subrace}" not found in available options for ${character.race.name}.`,
-							{ availableOptions: subraceOptions },
-						);
-					}
-				} else {
-					console.info('[RaceCard]', 'No saved subrace for character');
-
-					// Apply race benefits even when no subrace is present
-					await this._handleSubraceChange(
-						{ target: { value: '' } },
-						true,
-						true,
-					);
-				}
-			} else {
+			const raceItem = this._raceList?.querySelector(`[data-race="${raceValue}"]`);
+			if (!raceItem) {
 				console.warn(
 					'RaceCard',
 					`Saved race "${raceValue}" not found in available options. Character might use a source that's not currently allowed.`,
 				);
+				return;
 			}
+
+			// Check the radio button for this race
+			const radioButton = raceItem.querySelector('input[type="radio"]');
+			if (radioButton) {
+				radioButton.checked = true;
+			}
+
+			// Mark the race item as selected
+			this._raceList.querySelectorAll('.race-item').forEach(item => {
+				item.classList.remove('selected');
+			});
+			raceItem.classList.add('selected');
+
+			// Scroll the race list to show the selected item if any part is not visible
+			// Use requestAnimationFrame to ensure layout is complete
+			requestAnimationFrame(() => {
+				if (this._raceList) {
+					const padding = 20; // Add padding to ensure full visibility
+					const itemTop = raceItem.offsetTop;
+					const itemHeight = raceItem.offsetHeight;
+					const itemBottom = itemTop + itemHeight;
+					const listScrollTop = this._raceList.scrollTop;
+					const listHeight = this._raceList.offsetHeight;
+					const listScrollBottom = listScrollTop + listHeight;
+
+					console.log('[RaceCard] Scrolling to selected race:', {
+						itemTop,
+						itemBottom,
+						listScrollTop,
+						listScrollBottom,
+						listHeight,
+						padding
+					});
+
+					// Scroll if any part of the item is not visible (with padding buffer)
+					if (itemBottom + padding > listScrollBottom) {
+						// Item bottom is below visible area - scroll down with padding
+						const targetScroll = itemBottom + padding - listHeight;
+						console.log('[RaceCard] Item bottom cut off, scrolling to:', targetScroll);
+						this._raceList.scrollTop = targetScroll;
+					} else if (itemTop - padding < listScrollTop) {
+						// Item top is above visible area - scroll up with padding
+						const targetScroll = Math.max(0, itemTop - padding);
+						console.log('[RaceCard] Item top cut off, scrolling to:', targetScroll);
+						this._raceList.scrollTop = targetScroll;
+					}
+
+					// Verify scroll happened
+					setTimeout(() => {
+						console.log('[RaceCard] Scroll complete. New scrollTop:', this._raceList.scrollTop);
+					}, 100);
+				} else {
+					console.warn('[RaceCard] No race list found for scrolling');
+				}
+			});
+
+			// Get the race data
+			const race = this._raceService.getRace(
+				character.race.name,
+				character.race.source,
+			);
+			if (!race) {
+				console.error('[RaceCard]', 'Could not find race data for:', raceValue);
+				return;
+			}
+
+			// Store the selected race
+			this._selectedRace = race;
+
+			// Handle subrace if present
+			let subrace = null;
+			let infoId = this.sanitizeId(race.name);
+
+			if (character.race.subrace) {
+				console.info('[RaceCard]', 'Saved subrace found:', character.race.subrace);
+
+				// Find and set the subrace dropdown if it exists
+				const subraceSelect = raceItem.querySelector('select');
+				if (subraceSelect) {
+					const subraceOption = Array.from(subraceSelect.options).find(
+						(opt) => opt.value === character.race.subrace,
+					);
+					if (subraceOption) {
+						subraceSelect.value = character.race.subrace;
+						subrace = this._raceService.getSubrace(
+							race.name,
+							character.race.subrace,
+							race.source,
+						);
+						this._selectedSubrace = subrace;
+						infoId = this.sanitizeId(`${race.name}-${character.race.subrace}`);
+						console.info('[RaceCard]', 'Subrace restored:', character.race.subrace);
+					} else {
+						console.warn(
+							'RaceCard',
+							`Saved subrace "${character.race.subrace}" not found in dropdown options.`,
+						);
+					}
+				}
+			}
+
+			// Show info panel for this race/subrace
+			this._showInfo(infoId, true);
+
+			console.info('[RaceCard]', 'Saved race selection loaded successfully');
 		} catch (error) {
 			console.error('RaceCard', 'Error loading saved race selection:', error);
-		}
-	}
-
-	async _populateRaceSelect() {
-		try {
-			const races = this._raceService.getAllRaces();
-			if (!races || races.length === 0) {
-				console.error('RaceCard', 'No races available to populate dropdown');
-				return;
-			}
-
-			// Filter races by allowed sources (supports PHB variants)
-			const filteredRaces = races.filter((race) =>
-				sourceService.isSourceAllowed(race.source),
-			);
-
-			if (filteredRaces.length === 0) {
-				console.error('RaceCard', 'No races available after source filtering');
-				return;
-			}
-
-			// Populate view
-			this._cardView.populateRaceSelect(filteredRaces);
-		} catch (error) {
-			console.error('RaceCard', 'Error populating race dropdown:', error);
-		}
-	}
-
-	async _populateSubraceSelect(race) {
-		if (!race) {
-			this._subraceView.reset();
-			return;
-		}
-
-		try {
-			// Get subraces from service
-			const subraces = this._raceService.getSubraces(race.name, race.source);
-
-			console.info(
-				'[RaceCard]',
-				`Populating subraces for ${race.name} (${race.source}):`,
-				{
-					total: subraces?.length,
-					names: subraces?.map((s) => s.name),
-				},
-			);
-
-			if (!subraces || subraces.length === 0) {
-				this._subraceView.reset();
-				return;
-			}
-
-			// Filter subraces by allowed sources and validate they have names
-			const filteredSubraces = subraces.filter((subrace) => {
-				const subraceSource = subrace.source || race.source;
-				const hasName = subrace.name && subrace.name.trim() !== '';
-				const sourceAllowed = sourceService.isSourceAllowed(subraceSource);
-				const passes = sourceAllowed && hasName;
-
-				if (subrace.name === 'Variant') {
-					console.info('[RaceCard]', 'Variant filter check:', {
-						source: subraceSource,
-						sourceAllowed,
-						hasName,
-						passes,
-					});
-				}
-
-				return passes;
-			});
-
-			console.info('[RaceCard]', `Filtered subraces for ${race.name}:`, {
-				filtered: filteredSubraces.length,
-				names: filteredSubraces.map((s) => s.name),
-			});
-
-			// Check if subraces are required for this race
-			const subraceRequired = this._raceService.isSubraceRequired(
-				race.name,
-				race.source,
-			);
-
-			// Populate view with the filtered subraces
-			this._subraceView.populateSubraceSelect(
-				filteredSubraces,
-				subraceRequired,
-			);
-
-			// Auto-select the first subrace if it's required
-			if (subraceRequired && filteredSubraces.length > 0) {
-				const firstSubraceName = filteredSubraces[0].name;
-				this._subraceView.setSelectedSubraceValue(firstSubraceName);
-				// Trigger change event to update character data
-				setTimeout(() => {
-					this._subraceView.triggerSubraceSelectChange();
-				}, 0);
-			}
-		} catch (error) {
-			console.error('RaceCard', 'Error loading subraces for dropdown:', error);
 		}
 	}
 
 	//-------------------------------------------------------------------------
 	// Event Handlers
 	//-------------------------------------------------------------------------
-
-	async _handleRaceChange(event, skipCharacterUpdate = false) {
-		try {
-			const [raceName, source] = event.target.value.split('_');
-
-			if (!raceName || !source) {
-				this.resetRaceDetails();
-				await this._populateSubraceSelect(null);
-				return;
-			}
-
-			const raceData = this._raceService.getRace(raceName, source);
-			if (!raceData) {
-				console.error('RaceCard', `Race not found: ${raceName} (${source})`);
-				return;
-			}
-
-			// Check if there's a nameless subrace (base variant like Human PHB)
-			const namelessSubrace = this._raceService.getBaseSubrace(
-				raceName,
-				source,
-			);
-
-			// Get fluff data for quick description
-			const fluffData = this._raceService.getRaceFluff(
-				raceData.name,
-				raceData.source,
-			);
-
-			// Update the UI with the selected race data
-			await this._cardView.updateQuickDescription(raceData, fluffData);
-			await this._detailsView.updateAllDetails(raceData, namelessSubrace);
-			await this._populateSubraceSelect(raceData);
-
-			// Update character data ONLY if not skipped (e.g., during initial load)
-			if (!skipCharacterUpdate) {
-				this._updateCharacterRace(raceData, namelessSubrace);
-
-				// Emit event to notify about character update (unsaved changes)
-				eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-					character: CharacterManager.getCurrentCharacter(),
-				});
-			}
-		} catch (error) {
-			console.error('RaceCard', 'Error handling race change:', error);
-		}
-	}
-
-	async _handleSubraceChange(
-		event,
-		skipEventDuringInit = false,
-		restoreAbilityChoices = false,
-	) {
-		try {
-			const subraceName = event.target.value;
-			const raceValue = this._cardView.getSelectedRaceValue();
-			const [raceName, source] = raceValue.split('_');
-
-			if (!raceName || !source) {
-				return;
-			}
-
-			const raceData = this._raceService.getRace(raceName, source);
-			if (!raceData) {
-				console.error('RaceCard', `Race not found: ${raceName} (${source})`);
-				return;
-			}
-
-			let subraceData = null;
-			if (subraceName) {
-				// User selected a named subrace
-				subraceData = this._raceService.getSubrace(
-					raceName,
-					subraceName,
-					source,
-				);
-			} else {
-				// User selected "Standard" - get the unnamed base subrace if it exists
-				subraceData = this._raceService.getBaseSubrace(raceName, source);
-			}
-			console.debug(
-				'RaceCard',
-				`Subrace changed: ${subraceName || 'Standard'}`,
-				{
-					raceName,
-					subraceName,
-					subraceData: subraceData?.name || 'null',
-				},
-			);
-
-			// Update the UI with the subrace data
-			await this._detailsView.updateAllDetails(raceData, subraceData);
-
-			// Update character data
-			this._updateCharacterRace(raceData, subraceData, {
-				restoreAbilityChoices,
-			});
-
-			// Emit event to notify about character update (unsaved changes)
-			// Skip during initialization to prevent showing unsaved indicator on page load
-			if (!skipEventDuringInit) {
-				eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-					character: CharacterManager.getCurrentCharacter(),
-				});
-			}
-		} catch (error) {
-			console.error('RaceCard', 'Error handling subrace change:', error);
-		}
-	}
 
 	async _handleCharacterChanged() {
 		try {
@@ -621,40 +502,6 @@ export class RaceCard {
 				error,
 			);
 		}
-	}
-
-	//-------------------------------------------------------------------------
-	// UI Update Methods
-	//-------------------------------------------------------------------------
-
-	resetRaceDetails() {
-		this._cardView.resetQuickDescription();
-		this._detailsView.resetAllDetails();
-	}
-
-	async updateRaceDetails(raceData) {
-		if (!raceData) {
-			this.resetRaceDetails();
-			return;
-		}
-
-		// Get fluff data for quick description
-		const fluffData = this._raceService.getRaceFluff(
-			raceData.name,
-			raceData.source,
-		);
-
-		// Update the UI with the selected race data
-		await this._cardView.updateQuickDescription(raceData, fluffData);
-
-		// Check if there's a nameless subrace (base variant like Human PHB)
-		const namelessSubrace = this._raceService.getBaseSubrace(
-			raceData.name,
-			raceData.source,
-		);
-
-		await this._detailsView.updateAllDetails(raceData, namelessSubrace);
-		await this._populateSubraceSelect(raceData);
 	}
 
 	//-------------------------------------------------------------------------
@@ -1572,4 +1419,3 @@ class RaceDetailsView {
 		return traits;
 	}
 }
-

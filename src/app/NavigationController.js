@@ -566,26 +566,26 @@ class NavigationControllerImpl {
 
 		const target = document.getElementById(sectionId);
 		if (target) {
-			// Try to find the card header within the section for more precise scrolling
-			const cardHeader = target.querySelector('.card-header');
-			const scrollTarget = cardHeader || target;
+			// Find the scrollable container (main-content, not window)
+			const scrollContainer = document.querySelector('.main-content');
+			if (!scrollContainer) {
+				console.warn('[NavigationController] Could not find scroll container');
+				return;
+			}
 
-			// Use scrollIntoView with nearest block to minimize jump
-			scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			// Scroll the section (not the card) to account for spacing
+			const sectionRect = target.getBoundingClientRect();
+			const containerRect = scrollContainer.getBoundingClientRect();
 
-			// Adjust for titlebar after scrollIntoView
-			setTimeout(() => {
-				// Get titlebar height from CSS variable
-				const titlebarHeight = parseInt(
-					getComputedStyle(document.documentElement)
-						.getPropertyValue('--titlebar-height'), 10
-				) || 56;
+			// Calculate absolute position of section top relative to scroll container
+			const sectionTop = sectionRect.top - containerRect.top + scrollContainer.scrollTop;
 
-				// Scroll up a bit to account for fixed titlebar with comfortable spacing
-				window.scrollBy({
-					top: -(titlebarHeight + 500),
-				});
-			}, 0);
+			// Scroll to position the section at the top with minimal offset
+			// This ensures the entire card is visible and no previous card shows
+			const scrollTo = sectionTop - 16; // Small margin for visual breathing room
+
+			// Scroll to position the section
+			scrollContainer.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
 		} else {
 			console.warn('NavigationController', 'Unable to find section to scroll', {
 				sectionId,

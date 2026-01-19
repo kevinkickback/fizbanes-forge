@@ -1,8 +1,10 @@
 // Controller for managing ability score UI and interactions.
 import { CharacterManager } from '../../../app/CharacterManager.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
+import { skillService } from '../../../services/SkillService.js';
 import { bonusNotesView } from './BonusNotes.js';
 import { abilityChoicesView } from './Choices.js';
 import { methodControlsView } from './MethodControls.js';
@@ -14,6 +16,8 @@ class AbilityScoreCard {
 		// Main DOM containers (querySelector for container, getElementById for bonuses)
 		this._container = document.querySelector('.ability-score-container');
 		this._bonusesContainer = document.getElementById('abilityBonusesNotes');
+		this._infoPanel = document.getElementById('abilityScoreInfoPanel');
+		this._toggleBtn = document.getElementById('abilityScoreInfoToggle');
 
 		// Views (initialized after first render)
 		this._methodSwitcherView = null;
@@ -30,6 +34,9 @@ class AbilityScoreCard {
 		// Initialization tracking
 		this._initializedMethod = false;
 		this._lastInitializedMethod = null;
+
+		// DOM cleanup manager
+		this._cleanup = DOMCleanup.create();
 	}
 
 	async initialize() {
@@ -37,6 +44,11 @@ class AbilityScoreCard {
 			// Re-fetch container references each time in case DOM has been rebuilt
 			this._container = document.querySelector('.ability-score-container');
 			this._bonusesContainer = document.getElementById('abilityBonusesNotes');
+			this._infoPanel = document.getElementById('abilityScoreInfoPanel');
+			this._toggleBtn = document.getElementById('abilityScoreInfoToggle');
+
+			// Ensure skill service is initialized
+			await skillService.initialize();
 
 			// Get or create view instances
 			this._methodSwitcherView = methodSwitcherView(this._container);
@@ -56,6 +68,10 @@ class AbilityScoreCard {
 
 			// Set up event listeners
 			this._setupEventListeners();
+
+			// Setup toggle button and hover listeners
+			this._setupToggleButton();
+			this._setupAbilityHoverListeners();
 
 			// Add custom styles
 			this._addStyles();
@@ -97,6 +113,102 @@ class AbilityScoreCard {
 		}
 	}
 
+	_setupToggleButton() {
+		if (!this._toggleBtn || !this._infoPanel) return;
+
+		this._cleanup.on(this._toggleBtn, 'click', () => {
+			const isCollapsed = this._infoPanel.classList.contains('collapsed');
+
+			if (isCollapsed) {
+				this._infoPanel.classList.remove('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-right';
+			} else {
+				this._infoPanel.classList.add('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-left';
+			}
+		});
+	}
+
+	_setupAbilityHoverListeners() {
+		const abilityBoxes = document.querySelectorAll('.ability-score-box');
+
+		abilityBoxes.forEach(box => {
+			this._cleanup.on(box, 'mouseenter', () => {
+				const ability = box.getAttribute('data-ability');
+				if (ability) {
+					this._showSkillsForAbility(ability);
+					// Expand the info panel on hover
+					if (this._infoPanel) {
+						this._infoPanel.classList.remove('collapsed');
+					}
+				}
+			});
+		});
+	}
+
+	_showSkillsForAbility(ability) {
+		if (!this._infoPanel) return;
+
+		const skills = skillService.getSkillsByAbility(ability);
+		const infoContent = document.getElementById('abilityScoreInfoContent');
+
+		if (!infoContent) return;
+
+		// Special handling for Constitution (no skills, but has health/concentration)
+		if (ability === 'constitution' && skills.length === 0) {
+			infoContent.innerHTML = `
+				<div class="mb-2">
+					<h5>Constitution Effects</h5>
+					<p class="text-muted small">Constitution affects the following:</p>
+				</div>
+				<div class="skill-info mb-3">
+					<h6 class="mb-1">Hit Points</h6>
+					<p class="small text-muted mb-0">Your Constitution modifier is added to each Hit Die you roll for your hit points.</p>
+				</div>
+				<div class="skill-info mb-3">
+					<h6 class="mb-1">Concentration</h6>
+					<p class="small text-muted mb-0">Constitution saves determine whether you maintain concentration on a spell when you take damage.</p>
+				</div>
+			`;
+			return;
+		}
+
+		if (skills.length === 0) {
+			infoContent.innerHTML = `
+				<h6>${ability.charAt(0).toUpperCase() + ability.slice(1)}</h6>
+				<p class="text-muted small">No skills use this ability score.</p>
+			`;
+			return;
+		}
+
+		// Group skills by name (PHB vs XPHB versions) and prefer XPHB or most recent
+		const uniqueSkills = new Map();
+		for (const skill of skills) {
+			if (!uniqueSkills.has(skill.name) || skill.source === 'XPHB') {
+				uniqueSkills.set(skill.name, skill);
+			}
+		}
+
+		const skillsHTML = Array.from(uniqueSkills.values())
+			.map(skill => {
+				const description = skill.entries?.[0] || 'No description available.';
+				return `
+					<div class="skill-info mb-3">
+						<h6 class="mb-1">${skill.name}</h6>
+						<p class="small text-muted mb-0">${description}</p>
+					</div>
+				`;
+			})
+			.join('');
+
+		infoContent.innerHTML = `
+			<div class="mb-2">
+				<h5>${ability.charAt(0).toUpperCase() + ability.slice(1)} Skills</h5>
+				<p class="text-muted small">Skills that use this ability score:</p>
+			</div>
+			${skillsHTML}
+		`;
+	}
 
 	_setupEventListeners() {
 		try {
@@ -253,6 +365,13 @@ class AbilityScoreCard {
 			character.variantRules = {};
 		}
 		character.variantRules.abilityScoreMethod = method;
+
+		// Show/hide point counter based on method
+		if (method === 'pointBuy') {
+			this._methodSwitcherView.showPointBuyCounter();
+		} else {
+			this._methodSwitcherView.hidePointBuyCounter();
+		}
 
 		// Reset method and render
 		abilityScoreService.resetAbilityScoreMethod();
@@ -510,7 +629,16 @@ class AbilityScoreCard {
 
 			// Render method switcher/info
 			this._methodSwitcherView.render(this._handleMethodChange.bind(this));
-
+			// Get current method and show/hide point counter accordingly
+			const character = CharacterManager.getCurrentCharacter();
+			if (character) {
+				const currentMethod = character.variantRules?.abilityScoreMethod || 'custom';
+				if (currentMethod === 'pointBuy') {
+					this._methodSwitcherView.showPointBuyCounter();
+				} else {
+					this._methodSwitcherView.hidePointBuyCounter();
+				}
+			}
 			// Render ability scores
 			this._renderAbilityScores();
 

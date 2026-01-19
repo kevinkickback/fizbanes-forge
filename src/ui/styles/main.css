@@ -364,7 +364,7 @@ body.debug-mode .nav-item.debug-only {
 	flex: 1;
 	width: calc(100% - var(--sidebar-width));
 	margin-left: var(--sidebar-width);
-	padding: 2rem 1.5rem;
+	padding: 2rem;
 	height: 100vh;
 	overflow-y: auto;
 	overflow-x: hidden;
@@ -984,6 +984,18 @@ body.debug-mode .nav-item.debug-only {
 	width: 100%;
 }
 
+@media (max-width: 1400px) {
+	.ability-score-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 768px) {
+	.ability-score-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
 /* Ability score choice dropdowns at the bottom of the ability-score-container */
 .ability-choices-container {
 	width: 100%;
@@ -1075,6 +1087,77 @@ body.debug-mode .nav-item.debug-only {
 	}
 }
 
+/* Ability Score Card split pane styles */
+.ability-score-card-body.split-card-body .choices-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.ability-score-container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.ability-method-tabs {
+	margin-bottom: 1rem;
+}
+
+.ability-method-tabs .nav-pills {
+	background: var(--bg-secondary);
+	padding: 0.5rem;
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+	display: flex !important;
+	flex-direction: row !important;
+	flex-wrap: nowrap;
+	width: auto;
+	gap: 0.5rem;
+}
+
+.ability-method-tabs .nav-link {
+	padding: 0.5rem 1rem;
+	text-align: center;
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--text-color);
+	transition: all 0.2s ease;
+	min-width: auto;
+}
+
+.ability-method-tabs .nav-link:hover {
+	background: var(--hover-bg);
+	border-color: var(--border-color);
+}
+
+.ability-method-tabs .nav-link.active {
+	background: var(--bs-primary);
+	color: white;
+	border-color: var(--bs-primary);
+}
+
+.ability-method-tabs .nav-link i {
+	margin-right: 0;
+}
+
+.ability-method-tabs .method-status {
+	font-size: 0.75rem;
+	margin-left: 0.5rem;
+	opacity: 0.8;
+	font-weight: normal;
+}
+
+.ability-method-tabs .method-status .danger {
+	color: var(--danger-color);
+	font-weight: bold;
+}
+
 .ability-score-box {
 	position: relative;
 	padding: 0.7rem;
@@ -1084,9 +1167,6 @@ body.debug-mode .nav-item.debug-only {
 	text-align: center;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 	transition: var(--transition);
-	width: 100%;
-	max-width: 150px;
-	margin: 0 auto;
 }
 
 .ability-score-box .bonus {
@@ -1358,32 +1438,41 @@ small.text-muted {
 	white-space: nowrap;
 }
 
-/* Race Selection Styling - Split Pane Layout */
-.race-card-body.split-card-body {
-	display: flex;
+/* Split Pane Layout - Generic */
+.split-card-body {
+	display: flex !important;
+	flex-direction: row !important;
 	gap: 1rem;
-	padding: 1rem;
+	padding: 1rem !important;
 	position: relative;
 	align-items: stretch;
+	box-sizing: border-box;
 }
 
-.race-card-body .choices-panel {
+.split-card-body * {
+	box-sizing: border-box;
+}
+
+.split-card-body .choices-panel {
 	flex: 1;
 	min-width: 0;
+	min-height: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 0.75rem;
+	box-sizing: border-box;
 	transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	overflow: hidden;
 }
 
-.race-card-body .info-panel {
-	width: 350px;
+.split-card-body .section-header {
+	flex-shrink: 0;
+	margin-bottom: 0.75rem;
+}
+
+.split-card-body .info-panel {
+	width: 40%;
 	min-width: 350px;
-	max-height: 600px;
-	background: black;
-	border-radius: 0.375rem;
-	padding: 1rem;
+	max-width: 600px;
 	overflow-y: auto;
 	position: relative;
 	transition:
@@ -1398,13 +1487,12 @@ small.text-muted {
 	transform-origin: right center;
 }
 
-.race-card-body .info-panel.collapsed {
+.split-card-body .info-panel.collapsed {
 	opacity: 0;
 	transform: translateX(0) scaleX(0);
 	pointer-events: none;
 	width: 0;
 	min-width: 0;
-	padding: 0;
 	margin: 0;
 	overflow: hidden;
 	visibility: hidden;
@@ -1420,7 +1508,7 @@ small.text-muted {
 		visibility 0s 0.3s;
 }
 
-.race-card-body .section-header h6 {
+.split-card-body .section-header h6 {
 	color: var(--text-primary);
 	font-weight: 600;
 	margin-bottom: 0;
@@ -1431,7 +1519,9 @@ small.text-muted {
 	flex-direction: column;
 	gap: 0.5rem;
 	overflow-y: auto;
-	max-height: 500px;
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
 }
 
 .race-card-body .race-item {
@@ -1466,7 +1556,50 @@ small.text-muted {
 	padding: 0.25rem 0.5rem;
 }
 
-.race-card-body .info-content {
+/* Background card styles (split pane layout) */
+.background-card-body .background-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	overflow-y: auto;
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+}
+
+.background-card-body .background-item {
+	padding: 1rem;
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: 0.375rem;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.background-card-body .background-item:hover {
+	border-color: var(--bs-primary);
+	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+	background: var(--hover-bg);
+}
+
+.background-card-body .background-item.selected {
+	background: rgba(var(--bs-primary-rgb), 0.1);
+	border-color: var(--bs-primary);
+}
+
+.background-card-body .inline-dropdown-container {
+	flex-shrink: 0;
+	width: auto;
+	min-width: 200px;
+	max-width: 50%;
+}
+
+.background-card-body .inline-dropdown-container select {
+	font-size: 0.875rem;
+	padding: 0.25rem 0.5rem;
+}
+
+.split-card-body .info-content {
 	animation: fadeIn 0.3s ease;
 }
 
@@ -1481,10 +1614,65 @@ small.text-muted {
 	}
 }
 
-.race-card-body .info-content h6 {
+.split-card-body .info-content h6 {
 	color: var(--text-primary);
 	font-weight: 600;
 	margin-bottom: 0.75rem;
+}
+
+/* Generic toggle button for split card layouts */
+.split-card-body .info-toggle-btn {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	z-index: 10;
+	background: var(--bs-primary);
+	border: none;
+	color: white;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.split-card-body .info-toggle-btn:hover {
+	background: var(--bs-primary-dark);
+	transform: scale(1.1);
+}
+
+.split-card-body .info-toggle-btn i {
+	font-size: 14px;
+}
+
+/* Class tabs when in body (for multiclass) */
+.choices-panel .class-tabs {
+	margin-bottom: 1rem;
+}
+
+.choices-panel .class-tabs .nav-pills {
+	background: var(--bg-secondary);
+	padding: 0.5rem;
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+	display: inline-flex;
+	width: auto;
+	gap: 0.5rem;
+}
+
+.choices-panel .class-tabs .nav-link {
+	max-width: 150px;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 /* Race Selection Styling - Legacy */
@@ -1713,17 +1901,6 @@ small.text-muted {
 .card-header h5 {
 	font-size: 1.1rem;
 	font-weight: 600;
-}
-
-/* Race card container needs relative positioning for absolute image positioning */
-.card-body.race-card-body {
-	position: relative;
-	padding-right: 1.5rem;
-	padding-bottom: 1rem;
-	min-height: 500px;
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
 }
 
 .card-body.race-card-body > .mb-3 {
@@ -2800,21 +2977,28 @@ small.text-muted {
 #classChoicesAccordion .accordion-item {
 	background: var(--card-background);
 	border: 1px solid var(--border-color);
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.75rem;
 	border-radius: var(--border-radius) !important;
 	overflow: hidden;
+	transition: all 0.2s ease;
 }
 
 #classChoicesAccordion .accordion-item:last-child {
 	margin-bottom: 0;
 }
 
+#classChoicesAccordion .accordion-item:hover {
+	border-color: var(--bs-primary);
+	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+}
+
 /* Accordion button (level header) */
 #classChoicesAccordion .accordion-button {
 	background: var(--secondary-color);
 	color: var(--text-color);
-	padding: 0.75rem 1rem;
-	font-size: 0.95rem;
+	padding: 1rem 1.25rem;
+	font-size: 1rem;
+	font-weight: 500;
 	border: none;
 	border-radius: 0;
 	box-shadow: none;
@@ -2847,20 +3031,20 @@ small.text-muted {
 
 /* Level badge in accordion header */
 #classChoicesAccordion .accordion-button .badge {
-	font-size: 0.75rem;
-	padding: 0.25rem 0.5rem;
+	font-size: 0.8rem;
+	padding: 0.35rem 0.6rem;
 }
 
 /* Accordion body (choices container) */
 #classChoicesAccordion .accordion-body {
-	padding: 0.75rem;
+	padding: 1rem 1.25rem;
 	background: var(--card-background);
 }
 
 /* Individual choice item */
 .choice-item {
-	padding-bottom: 0.5rem;
-	margin-bottom: 0.5rem;
+	padding: 0.75rem 0;
+	margin-bottom: 0.75rem;
 	border-bottom: 1px solid var(--border-color);
 }
 
@@ -2901,4 +3085,501 @@ small.text-muted {
 
 .choice-item .btn-sm i {
 	margin-right: 0.25rem;
+}
+
+/* Build Page - Full Viewport Cards */
+#build-race .card,
+#build-class .card,
+#build-background .card,
+#build-ability-scores .card,
+#build-proficiencies .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-race .card-body,
+#build-class .card-body,
+#build-background .card-body,
+#build-ability-scores .card-body,
+#build-proficiencies .card-body {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* Ensure split card bodies fill available space */
+#build-race .split-card-body,
+#build-class .split-card-body {
+	flex: 1;
+	display: flex;
+	flex-direction: row;
+	min-height: 0;
+}
+
+/* ==========================================================================
+   SPLIT CARD LAYOUT (merged from split-card-layout.css)
+   Two-panel layout: choices/actions on left, contextual info on right
+   ========================================================================== */
+
+/* Split Card Layout - Demo Styles */
+/* Left panel: choices/actions | Right panel: contextual info (collapsible) */
+
+.split-card-demo {
+	border: 2px solid var(--bs-primary);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.split-card-body {
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+	position: relative;
+	align-items: stretch;
+}
+
+/* LEFT PANEL: Choices and Actions */
+.choices-panel {
+	flex: 1;
+	min-width: 0; /* Allow flex shrinking */
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	overflow: hidden;
+}
+
+.section-header h6 {
+	color: var(--text-primary);
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Individual choice item */
+.choice-item {
+	padding: 1rem;
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: 0.375rem;
+	transition: all 0.2s ease;
+}
+
+.choice-item:hover {
+	border-color: var(--bs-primary);
+	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.choice-item.clickable {
+	cursor: pointer;
+}
+
+.choice-item.clickable:hover {
+	background: var(--hover-bg);
+}
+
+.choice-item.completed {
+	background: rgba(var(--bs-success-rgb), 0.05);
+	border-color: var(--bs-success);
+}
+
+.choice-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.choice-label strong {
+	color: var(--text-primary);
+}
+
+.choice-value {
+	margin-top: 0.5rem;
+	padding: 0.5rem;
+	background: var(--bg-secondary);
+	border-radius: 0.25rem;
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+}
+
+/* Feat list specific styles */
+.feat-list,
+.race-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	overflow-y: auto;
+	flex: 1;
+	min-height: 0;
+}
+
+/* Nested list styles for expandable races/subraces */
+.nested-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.nested-race-container {
+	border-left: 3px solid var(--bg-tertiary);
+	margin-bottom: 1.5rem;
+	position: relative;
+}
+
+/* Style labels for different demo patterns */
+.style-label {
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+	padding-left: 0.5rem;
+}
+
+/* Style 1: Nested Expandable - default styling (already defined above) */
+.style-nested {
+	border-left-color: var(--bs-primary);
+}
+
+/* Style 2: List Replacement - orange accent */
+.style-replacement {
+	border-left-color: #ff9800;
+}
+
+.subrace-replacement-view {
+	margin-left: 1rem;
+	padding: 0.5rem;
+	background: var(--bg-secondary);
+	border-radius: 0.375rem;
+}
+
+/* Style 3: Inline Info - green accent */
+.style-inline-info {
+	border-left-color: #4caf50;
+}
+
+/* Style 4: Inline Dropdown - purple accent */
+.style-dropdown {
+	border-left-color: #9c27b0;
+}
+
+.inline-dropdown-container {
+	flex-shrink: 0;
+	width: auto;
+	min-width: 200px;
+	max-width: 50%;
+}
+
+.inline-dropdown-container select {
+	font-size: 0.875rem;
+	padding: 0.25rem 0.5rem;
+}
+
+.nested-race-item {
+	padding: 0.75rem;
+	background: var(--bg-primary);
+	border: 1px solid var(--border-color);
+	border-radius: 0.375rem;
+	transition: all 0.2s;
+	cursor: pointer;
+}
+
+.nested-race-item:hover {
+	background: var(--bg-secondary);
+	border-color: var(--primary);
+}
+
+.expand-icon {
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+	cursor: pointer;
+	user-select: none;
+	min-width: 16px;
+	text-align: center;
+	transition: transform 0.2s;
+}
+
+.expand-icon:hover {
+	color: var(--primary);
+}
+
+.expand-icon-spacer {
+	display: inline-block;
+	min-width: 16px;
+}
+
+.subrace-list {
+	overflow: hidden;
+	transition:
+		max-height 0.3s ease-out,
+		opacity 0.3s ease-out;
+	margin-left: 1.5rem;
+	margin-top: 0.5rem;
+}
+
+.subrace-list.collapsed {
+	max-height: 0;
+	opacity: 0;
+}
+
+.subrace-list.expanded {
+	max-height: 500px;
+	opacity: 1;
+}
+
+.nested-subrace-item {
+	padding: 0.5rem 0.75rem;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 0.25rem;
+	margin-bottom: 0.25rem;
+	transition: all 0.2s;
+	cursor: pointer;
+}
+
+.nested-subrace-item:hover {
+	background: var(--bg-tertiary);
+	border-color: var(--primary);
+}
+
+.nested-subrace-item:last-child {
+	margin-bottom: 0;
+}
+
+.spell-summary {
+	padding: 0.5rem;
+	background: var(--bg-secondary);
+	border-radius: 0.25rem;
+}
+
+/* RIGHT PANEL: Contextual Info */
+.info-panel {
+	width: 350px;
+	min-width: 350px;
+	height: 100%;
+	background: black;
+	border-radius: 0.375rem;
+	padding: 1rem;
+	overflow-y: auto;
+	position: relative;
+	transition:
+		opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		margin 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		visibility 0s 0s;
+	transform-origin: right center;
+}
+
+.info-panel.collapsed {
+	opacity: 0;
+	transform: translateX(0) scaleX(0);
+	pointer-events: none;
+	width: 0;
+	min-width: 0;
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+	visibility: hidden;
+	max-height: 0;
+	transition:
+		opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		margin 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		visibility 0s 0.3s;
+}
+
+.info-content {
+	animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.info-content h6 {
+	color: var(--text-primary);
+	font-weight: 600;
+	margin-bottom: 0.75rem;
+}
+
+.info-content hr {
+	margin: 0.75rem 0;
+	opacity: 0.3;
+}
+
+.info-content .alert-sm {
+	padding: 0.5rem 0.75rem;
+	font-size: 0.85rem;
+}
+
+/* Info Toggle Button */
+.info-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	transition: all 0.2s ease;
+}
+
+.info-toggle i {
+	transition: transform 0.3s ease;
+}
+
+.info-toggle.active i {
+	transform: rotate(180deg);
+}
+
+/* Subrace button group for Style 3 */
+.subrace-button-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.subrace-btn {
+	flex: 1;
+	min-width: fit-content;
+}
+
+.subrace-btn.active {
+	background: var(--bs-primary);
+	color: white;
+	border-color: var(--bs-primary);
+}
+
+.subrace-details-container {
+	border-top: 1px solid var(--border-color);
+	padding-top: 1rem;
+	min-height: 200px;
+}
+
+/* Badge Styles */
+.badge {
+	font-size: 0.7rem;
+	padding: 0.25rem 0.5rem;
+	font-weight: 600;
+}
+
+/* Trait Summary Styles */
+.trait-summary {
+	padding: 0.75rem;
+	background: var(--bg-secondary);
+	border-radius: 0.375rem;
+}
+
+/* Traits Grid - matches build page style */
+.traits-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.trait-tag {
+	display: inline-block;
+	padding: 0.25rem 0.75rem;
+	background: var(--bg-secondary);
+	border-radius: 0.375rem;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+	text-decoration: none;
+	transition: background-color 0.2s;
+}
+
+.trait-tag:hover {
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+}
+
+/* Responsive Behavior */
+@media (max-width: 991.98px) {
+	.split-card-body {
+		flex-direction: column;
+	}
+
+	.info-panel {
+		width: 100%;
+		min-width: 100%;
+		max-height: 300px;
+	}
+
+	.info-panel.collapsed {
+		max-height: 0;
+		padding: 0;
+		margin: 0;
+	}
+}
+
+@media (max-width: 767.98px) {
+	.choices-panel .d-flex.gap-2 {
+		flex-direction: column;
+		gap: 0.5rem !important;
+	}
+
+	.info-panel {
+		max-height: 250px;
+	}
+}
+
+/* Smooth transitions for all interactive elements */
+.form-select,
+.btn {
+	transition: all 0.15s ease-in-out;
+}
+
+/* Focus states for accessibility */
+.choice-item:focus-within {
+	outline: 2px solid var(--bs-primary);
+	outline-offset: 2px;
+}
+
+/* Loading state (if needed) */
+.choices-panel.loading,
+.info-panel.loading {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* Empty state */
+.choices-panel:empty::before {
+	content: "No choices available";
+	display: block;
+	text-align: center;
+	padding: 3rem 1rem;
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* Scrollbar styling for info panel */
+.info-panel::-webkit-scrollbar {
+	width: 6px;
+}
+
+.info-panel::-webkit-scrollbar-track {
+	background: var(--bg-secondary);
+	border-radius: 3px;
+}
+
+.info-panel::-webkit-scrollbar-thumb {
+	background: var(--border-color);
+	border-radius: 3px;
+}
+
+.info-panel::-webkit-scrollbar-thumb:hover {
+	background: var(--text-muted);
 }

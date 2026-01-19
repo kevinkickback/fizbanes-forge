@@ -6,18 +6,20 @@
                 <h5 class="mb-0">Race</h5>
             </div>
             <div class="card-body race-card-body split-card-body">
+                <!-- Toggle button for info panel -->
+                <button class="info-toggle-btn" id="raceInfoToggle" title="Toggle Details Panel">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
                 <!-- Left Panel: Race Selection/Actions -->
                 <div class="choices-panel" id="raceChoicesPanel">
-                    <div class="section-header">
-                        <h6 class="mb-3">Choose Your Race</h6>
-                    </div>
                     <div class="race-list" id="raceList">
                         <!-- Race items will be populated dynamically -->
                     </div>
                 </div>
-                
+
                 <!-- Right Panel: Race Info/Details -->
-                <div class="info-panel collapsed" id="raceInfoPanel" data-target="raceInfo">
+                <div class="info-panel" id="raceInfoPanel" data-target="raceInfo">
                     <!-- Race details will be populated dynamically -->
                 </div>
             </div>
@@ -27,116 +29,65 @@
     <!-- Class Selection -->
     <div class="col-12 mb-4" id="build-class">
         <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center gap-3">
+            <div class="card-header py-2">
                 <h5 class="mb-0">Class</h5>
-                <div class="class-tabs" id="classTabs" style="display:none;">
-                    <div class="nav nav-pills" id="classTabsList"
-                        style="flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap;"></div>
-                </div>
             </div>
-            <div class="card-body class-card-body">
-                <div class="mb-3">
-                    <div class="class-selection-controls">
-                        <!-- Class and subclass dropdowns hidden - now managed through class features -->
-                        <div class="class-selectors" style="display: none;">
-                            <div class="class-select-container">
-                                <select class="form-select" id="classSelect">
-                                    <!-- Options will be populated dynamically -->
-                                </select>
-                            </div>
-                            <div class="class-select-container">
-                                <select class="form-select" id="subclassSelect" disabled>
-                                    <option value="">Select Class First</option>
-                                </select>
-                            </div>
+            <div class="card-body class-card-body split-card-body">
+                <!-- Toggle button for info panel -->
+                <button class="info-toggle-btn" id="classInfoToggle" title="Toggle Details Panel">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <!-- Left Panel: Class Choices/Actions -->
+                <div class="choices-panel" id="classChoicesPanel">
+                    <!-- Class tabs for multiclass characters -->
+                    <div class="class-tabs" id="classTabs" style="display:none;">
+                        <div class="nav nav-pills" id="classTabsList"
+                            style="flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap;"></div>
+                    </div>
+
+                    <!-- Class and subclass dropdowns hidden - now managed through class features -->
+                    <div class="class-selectors" style="display: none;">
+                        <div class="class-select-container">
+                            <select class="form-select" id="classSelect">
+                                <!-- Options will be populated dynamically -->
+                            </select>
                         </div>
-                        <div class="class-content-container">
-                            <div class="class-quick-desc" id="classQuickDesc">
-                                <h6>Class Description</h6>
-                                <p>Select a Class to see their abilities, proficiencies, and other
-                                    characteristics.</p>
-                            </div>
+                        <div class="class-select-container">
+                            <select class="form-select" id="subclassSelect" disabled>
+                                <option value="">Select Class First</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="class-image-container">
-                        <div class="class-image" id="classImage">
-                            <i class="fas fa-user-circle placeholder-icon"></i>
+
+                    <!-- Class Choices Section -->
+                    <div id="classChoicesContainer" style="display: none;">
+
+                        <!-- Subclass Choice Section -->
+                        <div id="subclassChoiceSection" style="display: none;">
+                            <!-- Dynamically populated when subclass choice is needed -->
                         </div>
-                    </div>
-                </div>
-                <div class="class-content-container">
-                    <div id="classDetails">
-                        <div class="class-details-grid">
-                            <div class="detail-section">
-                                <h6>Hit Die</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Skill Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Saving Throw Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Armor Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Weapon Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Tool Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section features-section">
-                                <h6>Features</h6>
-                                <div class="features-grid">
-                                    <ul class="mb-0">
-                                        <li class="placeholder-text">—</li>
-                                    </ul>
-                                </div>
-                            </div>
+
+                        <!-- ASI/Feat Choice Section -->
+                        <div id="asiChoiceSection" style="display: none;">
+                            <!-- Dynamically populated when ASI is available -->
+                        </div>
+
+                        <!-- Class Feature Choices Section (Fighting Style, Metamagic, etc.) -->
+                        <div id="classChoicesContent">
+                            <!-- Class feature choices will be rendered here dynamically -->
+                        </div>
+
+                        <!-- Spell Notification Section -->
+                        <div id="spellNotificationSection" style="display: none;">
+                            <!-- Dynamically populated when spells are available -->
                         </div>
                     </div>
                 </div>
-                <!-- Class Choices Section -->
-                <div class="class-content-container mt-3" id="classChoicesContainer" style="display: none;">
-                    <h6 class="mb-3"><i class="fas fa-list-check"></i> Class Choices at Current Level</h6>
 
-                    <!-- Subclass Choice Section -->
-                    <div id="subclassChoiceSection" style="display: none;">
-                        <!-- Dynamically populated when subclass choice is needed -->
-                    </div>
-
-                    <!-- ASI/Feat Choice Section -->
-                    <div id="asiChoiceSection" style="display: none;">
-                        <!-- Dynamically populated when ASI is available -->
-                    </div>
-
-                    <!-- Class Feature Choices Section (Fighting Style, Metamagic, etc.) -->
-                    <div id="classChoicesContent">
-                        <!-- Class feature choices will be rendered here dynamically -->
-                    </div>
-
-                    <!-- Spell Notification Section -->
-                    <div id="spellNotificationSection" style="display: none;">
-                        <!-- Dynamically populated when spells are available -->
-                    </div>
+                <!-- Right Panel: Class Info/Details -->
+                <div class="info-panel" id="classInfoPanel" data-target="classInfo">
+                    <!-- Class details will be populated dynamically -->
                 </div>
             </div>
         </div>
@@ -148,67 +99,22 @@
             <div class="card-header py-2">
                 <h5 class="mb-0">Background</h5>
             </div>
-            <div class="card-body background-card-body">
-                <div class="mb-3">
-                    <div class="background-selection-controls">
-                        <div class="background-selectors">
-                            <div class="background-select-container">
-                                <select class="form-select" id="backgroundSelect">
-                                    <option value="">Choose a background...</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="background-content-container">
-                        <div class="background-quick-desc" id="backgroundQuickDesc">
-                            <div class="placeholder-content">
-                                <h5>Select a Background</h5>
-                                <p>Choose a background to see details about their traits, proficiencies, and
-                                    other characteristics.</p>
-                            </div>
-                        </div>
+            <div class="card-body background-card-body split-card-body">
+                <!-- Toggle button for info panel -->
+                <button class="info-toggle-btn" id="backgroundInfoToggle" title="Toggle Details Panel">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <!-- Left Panel: Background Selection/Actions -->
+                <div class="choices-panel" id="backgroundChoicesPanel">
+                    <div class="background-list" id="backgroundList">
+                        <!-- Background items will be populated dynamically -->
                     </div>
                 </div>
-                <div class="background-content-container">
-                    <div id="backgroundDetails">
-                        <div class="background-details-grid">
-                            <div class="detail-section">
-                                <h6>Skill Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Tool Proficiencies</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Languages</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Equipment</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section .features-section">
-                                <h6>Features</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="background-image-container">
-                    <div class="background-image" id="backgroundImage">
-                        <i class="fas fa-user-circle placeholder-icon"></i>
-                    </div>
+
+                <!-- Right Panel: Background Info/Details -->
+                <div class="info-panel" id="backgroundInfoPanel" data-target="backgroundInfo">
+                    <!-- Background details will be populated dynamically -->
                 </div>
             </div>
         </div>
@@ -217,76 +123,106 @@
     <!-- Ability Scores -->
     <div class="col-12 mb-4" id="build-ability-scores">
         <div class="card">
-            <div class="card-header py-2">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Ability Scores</h5>
+                <!-- Point Buy Counter -->
+                <div id="pointBuyCounter" style="display: none;">
+                    <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+                        <strong>Remaining:</strong> <span id="pointBuyDisplay">27</span>
+                    </span>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="ability-score-container">
-                    <div class="ability-score-grid">
-                        <div class="ability-score-box" data-ability="strength">
-                            <h6>STRENGTH</h6>
-                            <div class="score">10</div>
-                            <div class="modifier">+0</div>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
-                                <button class="btn btn-sm btn-light" data-action="increase">+</button>
+            <div class="card-body ability-score-card-body split-card-body">
+                <!-- Toggle button for info panel -->
+                <button class="info-toggle-btn" id="abilityScoreInfoToggle" title="Toggle Info Panel">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <!-- Left Panel: Method Tabs and Ability Scores -->
+                <div class="choices-panel" id="abilityScoreChoicesPanel">
+                    <!-- Method Tabs -->
+                    <div class="ability-method-tabs mb-3" id="abilityMethodTabs">
+                        <div class="nav nav-pills" id="abilityMethodTabsList"></div>
+                    </div>
+
+                    <!-- Ability Score Grid -->
+                    <div class="ability-score-container">
+                        <div class="ability-score-grid">
+                            <div class="ability-score-box" data-ability="strength">
+                                <h6>STRENGTH</h6>
+                                <div class="score">10</div>
+                                <div class="modifier">+0</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
+                                    <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                                </div>
+                                <div class="bonus"></div>
                             </div>
-                            <div class="bonus"></div>
-                        </div>
-                        <div class="ability-score-box" data-ability="dexterity">
-                            <h6>DEXTERITY</h6>
-                            <div class="score">10</div>
-                            <div class="modifier">+0</div>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
-                                <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                            <div class="ability-score-box" data-ability="dexterity">
+                                <h6>DEXTERITY</h6>
+                                <div class="score">10</div>
+                                <div class="modifier">+0</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
+                                    <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                                </div>
+                                <div class="bonus"></div>
                             </div>
-                            <div class="bonus"></div>
-                        </div>
-                        <div class="ability-score-box" data-ability="constitution">
-                            <h6>CONSTITUTION</h6>
-                            <div class="score">10</div>
-                            <div class="modifier">+0</div>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
-                                <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                            <div class="ability-score-box" data-ability="constitution">
+                                <h6>CONSTITUTION</h6>
+                                <div class="score">10</div>
+                                <div class="modifier">+0</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
+                                    <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                                </div>
+                                <div class="bonus"></div>
                             </div>
-                            <div class="bonus"></div>
-                        </div>
-                        <div class="ability-score-box" data-ability="intelligence">
-                            <h6>INTELLIGENCE</h6>
-                            <div class="score">10</div>
-                            <div class="modifier">+0</div>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
-                                <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                            <div class="ability-score-box" data-ability="intelligence">
+                                <h6>INTELLIGENCE</h6>
+                                <div class="score">10</div>
+                                <div class="modifier">+0</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
+                                    <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                                </div>
+                                <div class="bonus"></div>
                             </div>
-                            <div class="bonus"></div>
-                        </div>
-                        <div class="ability-score-box" data-ability="wisdom">
-                            <h6>WISDOM</h6>
-                            <div class="score">10</div>
-                            <div class="modifier">+0</div>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
-                                <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                            <div class="ability-score-box" data-ability="wisdom">
+                                <h6>WISDOM</h6>
+                                <div class="score">10</div>
+                                <div class="modifier">+0</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
+                                    <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                                </div>
+                                <div class="bonus"></div>
                             </div>
-                            <div class="bonus"></div>
-                        </div>
-                        <div class="ability-score-box" data-ability="charisma">
-                            <h6>CHARISMA</h6>
-                            <div class="score">10</div>
-                            <div class="modifier">+0</div>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
-                                <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                            <div class="ability-score-box" data-ability="charisma">
+                                <h6>CHARISMA</h6>
+                                <div class="score">10</div>
+                                <div class="modifier">+0</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-light me-1" data-action="decrease">-</button>
+                                    <button class="btn btn-sm btn-light" data-action="increase">+</button>
+                                </div>
+                                <div class="bonus"></div>
                             </div>
-                            <div class="bonus"></div>
                         </div>
                     </div>
+
+                    <!-- Ability Choices (racial/class bonuses) -->
+                    <div class="ability-bonuses-container mt-3" id="abilityBonusesNotes">
+                        <!-- Ability score bonuses notes will be displayed here -->
+                    </div>
                 </div>
-                <div class="ability-bonuses-container mt-3" id="abilityBonusesNotes">
-                    <!-- Ability score bonuses notes will be displayed here -->
+
+                <!-- Right Panel: Skill Info on Hover -->
+                <div class="info-panel" id="abilityScoreInfoPanel" data-target="abilityScoreInfo">
+                    <div class="info-content" id="abilityScoreInfoContent">
+                        <h6>Hover over an ability score</h6>
+                        <p class="text-muted small">Hover over any ability score to see which skills it affects.</p>
+                    </div>
                 </div>
             </div>
         </div>

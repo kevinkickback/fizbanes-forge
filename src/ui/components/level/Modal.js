@@ -388,7 +388,7 @@ export class LevelUpModal {
                         if (entry.timestamp && (!lastTimestamp || entry.timestamp > lastTimestamp)) {
                             lastTimestamp = entry.timestamp;
                             lastClassName = className;
-                            lastLevel = Number.parseInt(level);
+                            lastLevel = Number.parseInt(level, 10);
                         }
                     }
                 }

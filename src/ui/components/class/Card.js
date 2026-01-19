@@ -6,13 +6,11 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import {
 	attAbvToFull,
-	levelToProficiencyBonus,
 	toSentenceCase, toTitleCase,
 } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { ARTISAN_TOOLS } from '../../../lib/ProficiencyConstants.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
-import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { classService } from '../../../services/ClassService.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
@@ -39,6 +37,10 @@ export class ClassCard {
 		this._classTabsWrapper = document.getElementById('classTabs');
 		this._classTabsList = document.getElementById('classTabsList');
 
+		// Info panel and toggle button
+		this._infoPanel = document.getElementById('classInfoPanel');
+		this._toggleBtn = document.getElementById('classInfoToggle');
+
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
 
@@ -55,6 +57,9 @@ export class ClassCard {
 			// Initialize required dependencies
 			await this._classService.initialize();
 
+			// Set up toggle button
+			this._setupToggleButton();
+
 			// Set up event listeners
 			this._setupEventListeners();
 
@@ -63,6 +68,22 @@ export class ClassCard {
 		} catch (error) {
 			console.error('ClassCard', 'Failed to initialize class card:', error);
 		}
+	}
+
+	_setupToggleButton() {
+		if (!this._toggleBtn || !this._infoPanel) return;
+
+		this._cleanup.on(this._toggleBtn, 'click', () => {
+			const isCollapsed = this._infoPanel.classList.contains('collapsed');
+
+			if (isCollapsed) {
+				this._infoPanel.classList.remove('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-right';
+			} else {
+				this._infoPanel.classList.add('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-left';
+			}
+		});
 	}
 
 	_setupEventListeners() {
@@ -140,9 +161,6 @@ export class ClassCard {
 			// Load class data directly without dropdown
 			const classData = this._classService.getClass(primaryClass.name, classSource);
 			if (classData) {
-				const fluffData = this._classService.getClassFluff(classData.name, classData.source);
-				await this._cardView.updateQuickDescription(classData, fluffData);
-
 				// Get subclass from progression.classes[]
 				const subclassName = primaryClass.subclass || null;
 				console.log('[ClassCard] Subclass name:', subclassName);
@@ -223,11 +241,14 @@ export class ClassCard {
 			return;
 		}
 
-		// Update class details (proficiencies, etc.)
-		await this._detailsView.updateAllDetails(classData);
+		// Get fluff data for description
+		const fluffData = this._classService.getClassFluff(classData.name, classData.source);
 
-		// Update features separately
-		await this._updateFeatures(classData, subclassData);
+		// Update class details (proficiencies, etc.) in info panel
+		await this._detailsView.updateAllDetails(classData, fluffData);
+
+		// Update class choices section
+		await this._updateClassChoices(classData, subclassData);
 	}
 
 	async _renderClassTabsFromProgression() {
@@ -301,9 +322,7 @@ export class ClassCard {
 			subclassData = subclasses.find((sc) => sc.name === subclassName);
 		}
 
-		// Update UI
-		const fluffData = this._classService.getClassFluff(classData.name, classData.source);
-		await this._cardView.updateQuickDescription(classData, fluffData);
+		// Update UI (fluffData is fetched in updateClassDetails now)
 		await this.updateClassDetails(classData, subclassData);
 
 		if (!skipTabUpdate) {
@@ -311,37 +330,7 @@ export class ClassCard {
 		}
 	}
 
-	async _updateFeatures(classData, subclassData = null) {
-		const character = CharacterManager.getCurrentCharacter();
-		const level = character?.getTotalLevel() || 1;
 
-		// Get all class features up to the current level (cumulative)
-		const classFeatures =
-			this._classService.getClassFeatures(
-				classData.name,
-				level,
-				classData.source,
-			) || [];
-
-		// Get all subclass features up to the current level if a subclass is selected
-		let subclassFeatures = [];
-		if (subclassData) {
-			subclassFeatures =
-				this._classService.getSubclassFeatures(
-					classData.name,
-					subclassData.shortName || subclassData.name,
-					level,
-					subclassData.source || subclassData.classSource,
-				) || [];
-		}
-
-		// Combine and pass to view
-		const allFeatures = [...classFeatures, ...subclassFeatures];
-		await this._detailsView.updateFeatures(classData, allFeatures);
-
-		// Update class choices section
-		await this._updateClassChoices(classData, subclassData);
-	}
 
 	async _updateClassChoices(classData, subclassData = null) {
 		const character = CharacterManager.getCurrentCharacter();
@@ -1149,6 +1138,19 @@ export class ClassCard {
 		const container = document.getElementById('classChoicesContent');
 		if (!container) return;
 
+		// Preserve accordion state before re-rendering
+		const expandedLevels = new Set();
+		const existingAccordion = document.getElementById('classChoicesAccordion');
+		if (existingAccordion) {
+			const collapses = existingAccordion.querySelectorAll('.accordion-collapse.show');
+			collapses.forEach(collapse => {
+				const match = collapse.id.match(/classChoicesLevel(\d+)/);
+				if (match) {
+					expandedLevels.add(Number(match[1]));
+				}
+			});
+		}
+
 		// Group choices by level
 		const choicesByLevel = {};
 		for (const choice of choices) {
@@ -1161,14 +1163,14 @@ export class ClassCard {
 
 		// Sort levels
 		const levels = Object.keys(choicesByLevel).map(Number).sort((a, b) => a - b);
-		const highestLevel = levels[levels.length - 1];
 
 		// Build accordion HTML
 		let html = '<div class="accordion accordion-flush" id="classChoicesAccordion">';
 
 		for (const level of levels) {
 			const levelChoices = choicesByLevel[level];
-			const isExpanded = level === highestLevel; // Expand highest level by default
+			// Keep previously expanded state, or default to collapsed
+			const isExpanded = expandedLevels.size > 0 ? expandedLevels.has(level) : false;
 			const collapseId = `classChoicesLevel${level}`;
 
 			html += `
@@ -1182,7 +1184,7 @@ export class ClassCard {
 						</button>
 					</h2>
 					<div id="${collapseId}" class="accordion-collapse collapse ${isExpanded ? 'show' : ''}" 
-						aria-labelledby="heading${collapseId}" data-bs-parent="#classChoicesAccordion">
+						aria-labelledby="heading${collapseId}">
 						<div class="accordion-body p-2">
 							${levelChoices.map(choice => this._renderFeatureChoice(choice)).join('')}
 						</div>
@@ -2004,7 +2006,6 @@ export class ClassCard {
 	}
 
 	resetClassDetails() {
-		this._cardView.resetQuickDescription();
 		this._detailsView.resetAllDetails();
 	}
 
@@ -2457,80 +2458,139 @@ export class ClassCard {
 
 class ClassDetailsView {
 	constructor() {
-		this._classDetails = document.getElementById('classDetails');
+		this._classInfoPanel = document.getElementById('classInfoPanel');
 	}
 
 	//-------------------------------------------------------------------------
 	// Public API
 	//-------------------------------------------------------------------------
 
-	async updateAllDetails(classData) {
+	async updateAllDetails(classData, fluffData = null) {
 		if (!classData) {
 			this.resetAllDetails();
 			return;
 		}
 
-		// Update individual sections
-		this.updateHitDie(classData);
-		this.updateSkillProficiencies(classData);
-		this.updateSavingThrows(classData);
-		this.updateArmorProficiencies(classData);
-		this.updateWeaponProficiencies(classData);
-		this.updateToolProficiencies(classData);
+		// Build the complete info panel content
+		let html = '';
 
-		// Process the entire details container at once to resolve all reference tags
-		await textProcessor.processElement(this._classDetails);
+		// Class Description Section
+		html += '<div class="info-section">';
+		html += await this._renderClassDescription(classData, fluffData);
+		html += '</div>';
+
+		// Hit Die Section
+		html += '<div class="info-section">';
+		html += '<h6><i class="fas fa-heart"></i> Hit Die</h6>';
+		html += `<div class="info-content">${this._formatHitDie(classData)}</div>`;
+		html += '</div>';
+
+		// Proficiencies Section
+		html += '<div class="info-section">';
+		html += '<h6><i class="fas fa-shield-alt"></i> Proficiencies</h6>';
+		html += '<div class="info-content">';
+		html += await this._renderProficiencies(classData);
+		html += '</div>';
+		html += '</div>';
+
+		// Set the complete content
+		this._classInfoPanel.innerHTML = html;
+
+		// Process the entire panel at once to resolve all reference tags
+		await textProcessor.processElement(this._classInfoPanel);
+	}
+
+	async _renderClassDescription(classData, fluffData = null) {
+		let description = '';
+
+		// Extract description from fluff data
+		if (fluffData?.entries) {
+			for (const entry of fluffData.entries) {
+				if (entry.entries && Array.isArray(entry.entries)) {
+					let foundDescription = false;
+					for (let i = 0; i < entry.entries.length; i++) {
+						const subEntry = entry.entries[i];
+						if (typeof subEntry === 'string') {
+							// Skip the first 3 story vignettes, get the 4th paragraph (index 3)
+							if (i >= 3) {
+								description = subEntry;
+								foundDescription = true;
+								break;
+							}
+						}
+					}
+					if (foundDescription) break;
+				}
+			}
+		}
+
+		// Fallback if no fluff found
+		if (!description) {
+			description = classData.description || `${classData.name} class features and characteristics.`;
+		}
+
+		return `
+			<h5 class="info-title">${classData.name}</h5>
+			<p class="info-description">${description}</p>
+		`;
+	}
+
+	async _renderProficiencies(classData) {
+		let html = '';
+
+		// Skill Proficiencies
+		html += '<div class="proficiency-group">';
+		html += '<strong>Skills:</strong> ';
+		html += `<span>${this._formatSkillProficiencies(classData)}</span>`;
+		html += '</div>';
+
+		// Saving Throws
+		html += '<div class="proficiency-group">';
+		html += '<strong>Saving Throws:</strong> ';
+		const savingThrows = this._formatSavingThrows(classData);
+		html += `<span>${savingThrows.join(', ') || 'None'}</span>`;
+		html += '</div>';
+
+		// Armor Proficiencies
+		html += '<div class="proficiency-group">';
+		html += '<strong>Armor:</strong> ';
+		const armorProfs = this._formatArmorProficiencies(classData);
+		html += `<span>${armorProfs.join(', ') || 'None'}</span>`;
+		html += '</div>';
+
+		// Weapon Proficiencies
+		html += '<div class="proficiency-group">';
+		html += '<strong>Weapons:</strong> ';
+		const weaponProfs = this._formatWeaponProficiencies(classData);
+		html += `<span>${weaponProfs.map(w => toTitleCase(w)).join(', ') || 'None'}</span>`;
+		html += '</div>';
+
+		// Tool Proficiencies
+		const toolProfs = this._formatToolProficiencies(classData);
+		if (toolProfs.length > 0) {
+			html += '<div class="proficiency-group">';
+			html += '<strong>Tools:</strong> ';
+			html += `<span>${toolProfs.map(t => toSentenceCase(t)).join(', ')}</span>`;
+			html += '</div>';
+		}
+
+		return html;
 	}
 
 	resetAllDetails() {
-		const detailSections =
-			this._classDetails.querySelectorAll('.detail-section');
-		for (const section of detailSections) {
-			const list = section.querySelector('ul');
-			const paragraph = section.querySelector('p');
+		if (!this._classInfoPanel) return;
 
-			if (list) {
-				list.innerHTML = '<li class="placeholder-text">—</li>';
-			}
-
-			if (paragraph) {
-				paragraph.textContent = '—';
-				paragraph.classList.add('placeholder-text');
-			}
-		}
-
-		// Reset features section
-		const featuresSection =
-			this._classDetails.querySelector('.features-section');
-		if (featuresSection) {
-			featuresSection.innerHTML = `
-                <h6>Features</h6>
-                <div class="features-grid">
-                    <ul class="mb-0">
-                        <li class="placeholder-text">—</li>
-                    </ul>
-                </div>
-            `;
-		}
+		this._classInfoPanel.innerHTML = `
+			<div class="info-section">
+				<h5 class="info-title">Select a Class</h5>
+				<p class="info-description">Choose a class to see details about their abilities, proficiencies, and other characteristics.</p>
+			</div>
+		`;
 	}
 
 	//-------------------------------------------------------------------------
 	// Hit Die Section
 	//-------------------------------------------------------------------------
-
-	updateHitDie(classData) {
-		const hitDieSection = this._classDetails.querySelector(
-			'.detail-section:nth-child(1) ul',
-		);
-		if (hitDieSection) {
-			hitDieSection.innerHTML = '';
-			const li = document.createElement('li');
-			li.className = 'text-content';
-			const hitDieText = this._formatHitDie(classData);
-			li.textContent = hitDieText;
-			hitDieSection.appendChild(li);
-		}
-	}
 
 	_formatHitDie(classData) {
 		if (!classData?.hd) return 'Unknown';
@@ -2541,103 +2601,6 @@ class ClassDetailsView {
 	//-------------------------------------------------------------------------
 	// Skill Proficiencies Section
 	//-------------------------------------------------------------------------
-
-	updateSkillProficiencies(classData) {
-		const skillProficienciesSection = this._classDetails.querySelector(
-			'.detail-section:nth-child(2)',
-		);
-		if (!skillProficienciesSection) return;
-
-		const skillList = skillProficienciesSection.querySelector('ul');
-		if (!skillList) return;
-
-		// Remove any existing choose header
-		const existingChooseHeader =
-			skillProficienciesSection.querySelector('.choose-text');
-		if (existingChooseHeader) {
-			existingChooseHeader.remove();
-		}
-
-		skillList.innerHTML = '';
-		skillList.className = ''; // Reset classes
-
-		if (classData) {
-			const formattedString = this._formatSkillProficiencies(classData);
-			const hasChoices = formattedString.includes('Choose');
-
-			if (hasChoices) {
-				// Check for "any skills" format first
-				if (formattedString.includes('Choose any')) {
-					const anySkillPattern = /(Choose any \d+ skills?)/;
-					const anyMatches = formattedString.match(anySkillPattern);
-
-					if (anyMatches && anyMatches.length >= 1) {
-						const li = document.createElement('li');
-						li.className = 'text-content';
-						li.textContent = anyMatches[1];
-						skillList.appendChild(li);
-					}
-				} else {
-					// For "Choose X from Y" format, split into header and skills list
-					const choosePattern = /(Choose \d+ from:)\s+(.*)/;
-					const matches = formattedString.match(choosePattern);
-
-					if (matches && matches.length >= 3) {
-						const chooseText = matches[1]; // "Choose X from:"
-						const skillsText = matches[2]; // The list of skills
-
-						// Add the "Choose X from:" header
-						const chooseHeader = document.createElement('div');
-						chooseHeader.className = 'choose-text';
-						chooseHeader.textContent = chooseText;
-						skillProficienciesSection.insertBefore(chooseHeader, skillList);
-
-						// Add the skills list, title-cased
-						const skills = skillsText.split(', ').map(toTitleCase);
-
-						// Apply multi-column if more than 3 skills
-						if (skills.length > 3) {
-							skillList.className = 'multi-column-list';
-							if (skills.length > 6) {
-								skillList.classList.add('many-items');
-							}
-						}
-
-						for (const skill of skills) {
-							const li = document.createElement('li');
-							li.className = 'text-content';
-							li.textContent = skill;
-							skillList.appendChild(li);
-						}
-					} else {
-						// Fallback for other formats, title-cased
-						const li = document.createElement('li');
-						li.className = 'text-content';
-						li.textContent = toTitleCase(formattedString);
-						skillList.appendChild(li);
-					}
-				}
-			} else {
-				// For simple list format
-				const skills = formattedString.split(', ');
-
-				// Apply multi-column if more than 3 skills
-				if (skills.length > 3) {
-					skillList.className = 'multi-column-list';
-					if (skills.length > 6) {
-						skillList.classList.add('many-items');
-					}
-				}
-
-				for (const skill of skills) {
-					const li = document.createElement('li');
-					li.className = 'text-content';
-					li.textContent = skill;
-					skillList.appendChild(li);
-				}
-			}
-		}
-	}
 
 	_formatSkillProficiencies(classData) {
 		if (!classData?.startingProficiencies?.skills) return 'None';
@@ -2670,29 +2633,6 @@ class ClassDetailsView {
 	// Saving Throws Section
 	//-------------------------------------------------------------------------
 
-	updateSavingThrows(classData) {
-		const savingThrowsSection = this._classDetails.querySelector(
-			'.detail-section:nth-child(3) ul',
-		);
-		if (savingThrowsSection) {
-			savingThrowsSection.innerHTML = '';
-
-			const savingThrows = this._formatSavingThrows(classData);
-			if (savingThrows && savingThrows.length > 0) {
-				for (const save of savingThrows) {
-					const li = document.createElement('li');
-					li.className = 'text-content';
-					li.textContent = save;
-					savingThrowsSection.appendChild(li);
-				}
-			} else {
-				const li = document.createElement('li');
-				li.textContent = '—';
-				savingThrowsSection.appendChild(li);
-			}
-		}
-	}
-
 	_formatSavingThrows(classData) {
 		if (!classData?.proficiency) return [];
 		return classData.proficiency.map((prof) => attAbvToFull(prof) || prof);
@@ -2701,39 +2641,6 @@ class ClassDetailsView {
 	//-------------------------------------------------------------------------
 	// Armor Proficiencies Section
 	//-------------------------------------------------------------------------
-
-	updateArmorProficiencies(classData) {
-		const armorSection = this._classDetails.querySelector(
-			'.detail-section:nth-child(4) ul',
-		);
-		if (armorSection) {
-			armorSection.innerHTML = '';
-			armorSection.className = ''; // Reset classes
-
-			const armorProficiencies = this._formatArmorProficiencies(classData);
-			if (armorProficiencies && armorProficiencies.length > 0) {
-				// Apply multi-column if more than 3 proficiencies
-				if (armorProficiencies.length > 3) {
-					armorSection.className = 'multi-column-list';
-					if (armorProficiencies.length > 6) {
-						armorSection.classList.add('many-items');
-					}
-				}
-
-				for (const armor of armorProficiencies) {
-					const li = document.createElement('li');
-					li.className = 'text-content';
-					const armorStr = typeof armor === 'string' ? armor : String(armor);
-					li.textContent = armorStr;
-					armorSection.appendChild(li);
-				}
-			} else {
-				const li = document.createElement('li');
-				li.textContent = '—';
-				armorSection.appendChild(li);
-			}
-		}
-	}
 
 	_formatArmorProficiencies(classData) {
 		if (!classData?.startingProficiencies?.armor) return [];
@@ -2756,40 +2663,6 @@ class ClassDetailsView {
 	// Weapon Proficiencies Section
 	//-------------------------------------------------------------------------
 
-	updateWeaponProficiencies(classData) {
-		const weaponSection = this._classDetails.querySelector(
-			'.detail-section:nth-child(5) ul',
-		);
-		if (weaponSection) {
-			weaponSection.innerHTML = '';
-			weaponSection.className = ''; // Reset classes
-
-			const weaponProficiencies = this._formatWeaponProficiencies(classData);
-			if (weaponProficiencies && weaponProficiencies.length > 0) {
-				// Apply multi-column if more than 3 proficiencies
-				if (weaponProficiencies.length > 3) {
-					weaponSection.className = 'multi-column-list';
-					if (weaponProficiencies.length > 6) {
-						weaponSection.classList.add('many-items');
-					}
-				}
-
-				for (const weapon of weaponProficiencies) {
-					const li = document.createElement('li');
-					li.className = 'text-content';
-					const weaponStr =
-						typeof weapon === 'string' ? weapon : String(weapon);
-					li.textContent = toTitleCase(weaponStr);
-					weaponSection.appendChild(li);
-				}
-			} else {
-				const li = document.createElement('li');
-				li.textContent = '—';
-				weaponSection.appendChild(li);
-			}
-		}
-	}
-
 	_formatWeaponProficiencies(classData) {
 		if (!classData?.startingProficiencies?.weapons) return [];
 
@@ -2808,39 +2681,6 @@ class ClassDetailsView {
 	//-------------------------------------------------------------------------
 	// Tool Proficiencies Section
 	//-------------------------------------------------------------------------
-
-	updateToolProficiencies(classData) {
-		const toolSection = this._classDetails.querySelector(
-			'.detail-section:nth-child(6) ul',
-		);
-		if (toolSection) {
-			toolSection.innerHTML = '';
-			toolSection.className = ''; // Reset classes
-
-			const toolProficiencies = this._formatToolProficiencies(classData);
-			if (toolProficiencies && toolProficiencies.length > 0) {
-				// Apply multi-column if more than 3 proficiencies
-				if (toolProficiencies.length > 3) {
-					toolSection.className = 'multi-column-list';
-					if (toolProficiencies.length > 6) {
-						toolSection.classList.add('many-items');
-					}
-				}
-
-				for (const tool of toolProficiencies) {
-					const li = document.createElement('li');
-					li.className = 'text-content';
-					const toolStr = typeof tool === 'string' ? tool : String(tool);
-					li.textContent = toSentenceCase(toolStr);
-					toolSection.appendChild(li);
-				}
-			} else {
-				const li = document.createElement('li');
-				li.textContent = '—';
-				toolSection.appendChild(li);
-			}
-		}
-	}
 
 	_formatToolProficiencies(classData) {
 		if (!classData?.startingProficiencies?.tools) return [];
@@ -2865,264 +2705,6 @@ class ClassDetailsView {
 		}
 
 		return tools;
-	}
-
-	//-------------------------------------------------------------------------
-	// Features Section
-	//-------------------------------------------------------------------------
-
-	async updateFeatures(classData, allFeatures) {
-		const featuresSection =
-			this._classDetails.querySelector('.features-section');
-		if (!featuresSection) {
-			console.warn(
-				'ClassDetailsView',
-				'Features section not found in class details',
-			);
-			return;
-		}
-
-		const character = CharacterManager.getCurrentCharacter();
-		const level = character?.level || 1;
-
-		if (allFeatures.length > 0) {
-			const processedFeatures = await Promise.all(
-				allFeatures.map(async (feature) => {
-					if (!feature.name) {
-						console.warn('ClassDetailsView', 'Feature missing name:', feature);
-						return '';
-					}
-
-					const name = feature.name;
-					let description = '';
-
-					// Handle different entry formats
-					if (typeof feature.entries === 'string') {
-						description = feature.entries;
-					} else if (Array.isArray(feature.entries)) {
-						description = await this._formatFeatureEntries(feature.entries);
-					} else if (feature.entry) {
-						description = await textProcessor.processString(feature.entry);
-					} else if (feature.text) {
-						description = await textProcessor.processString(feature.text);
-					} else {
-						console.warn('ClassDetailsView', 'Feature missing entries:', feature);
-					}
-
-					// Format source and page info
-					const source = feature.source || classData.source || '';
-					const page = feature.page || '';
-					if (page) {
-						description += `<div class="tooltip-source">${source}, p. ${page}</div>`;
-					} else if (source) {
-						description += `<div class="tooltip-source">${source}</div>`;
-					}
-
-					// Create hover link that will trigger tooltip (same as traits)
-					return `<a class="trait-tag rd__hover-link" data-hover-type="feature" data-hover-name="${name}" data-hover-content="${description.replace(/"/g, '&quot;')}">${name}</a>`;
-				}),
-			);
-
-			featuresSection.innerHTML = `
-                <h6>Features</h6>
-                <div class="traits-grid">
-                    ${processedFeatures.join('')}
-                </div>
-            `;
-		} else {
-			featuresSection.innerHTML = `
-                <h6>Features</h6>
-                <div class="traits-grid">
-                    <span class="trait-tag">No features at level ${level}</span>
-                </div>
-            `;
-		}
-	}
-
-	async _formatFeatureEntries(entries) {
-		// If entries is a string, process it and return
-		if (typeof entries === 'string') {
-			return await textProcessor.processString(entries);
-		}
-
-		// If entries is not an array, return empty string
-		if (!Array.isArray(entries)) {
-			console.warn(
-				'ClassDetailsView',
-				'Feature entries is not an array or string:',
-				entries,
-			);
-			return '';
-		}
-
-		let result = '';
-
-		// Process each entry in the array
-		for (const entry of entries) {
-			// Handle strings directly
-			if (typeof entry === 'string') {
-				const processed = await textProcessor.processString(entry);
-				result += `<p>${processed}</p>`;
-				continue;
-			}
-
-			// Handle objects with different types
-			if (typeof entry === 'object') {
-				// Handle lists
-				if (entry.type === 'list') {
-					result += '<ul class="tooltip-list">';
-
-					if (Array.isArray(entry.items)) {
-						for (const item of entry.items) {
-							if (typeof item === 'string') {
-								const processed = await textProcessor.processString(item);
-								result += `<li>${processed}</li>`;
-							} else if (typeof item === 'object') {
-								// Handle items with name and entry
-								if (item.name && item.entry) {
-									const processedName = await textProcessor.processString(
-										item.name,
-									);
-									const processedEntry = await textProcessor.processString(
-										item.entry,
-									);
-									result += `<li><strong>${processedName}</strong>: ${processedEntry}</li>`;
-								} else if (item.name && item.entries) {
-									// Handle items with name and entries array
-									const processedName = await textProcessor.processString(
-										item.name,
-									);
-									const processedEntries = await this._formatFeatureEntries(
-										item.entries,
-									);
-									result += `<li><strong>${processedName}</strong>: ${processedEntries}</li>`;
-								} else {
-									console.warn(
-										'ClassDetailsView',
-										'Unhandled list item format:',
-										item,
-									);
-								}
-							}
-						}
-					}
-
-					result += '</ul>';
-				}
-				// Handle tables
-				else if (entry.type === 'table') {
-					result += '<div class="table-container">';
-
-					if (entry.caption) {
-						const processedCaption = await textProcessor.processString(
-							entry.caption,
-						);
-						result += `<p><strong>${processedCaption}</strong></p>`;
-					}
-
-					result += '<table class="tooltip-table"><tbody>';
-
-					if (Array.isArray(entry.rows)) {
-						for (const row of entry.rows) {
-							result += '<tr>';
-
-							if (Array.isArray(row)) {
-								for (const cell of row) {
-									if (typeof cell === 'string') {
-										const processed = await textProcessor.processString(cell);
-										result += `<td>${processed}</td>`;
-									} else {
-										result += `<td>${JSON.stringify(cell)}</td>`;
-									}
-								}
-							}
-
-							result += '</tr>';
-						}
-					}
-
-					result += '</tbody></table></div>';
-				}
-				// Handle entries property (recursive)
-				else if (Array.isArray(entry.entries)) {
-					result += await this._formatFeatureEntries(entry.entries);
-				}
-				// Handle entry property
-				else if (entry.entry) {
-					const processed = await textProcessor.processString(entry.entry);
-					result += `<p>${processed}</p>`;
-				}
-				// Handle name and text properties
-				else if (entry.name && entry.text) {
-					const processedName = await textProcessor.processString(entry.name);
-					const processedText = await textProcessor.processString(entry.text);
-					result += `<p><strong>${processedName}</strong>. ${processedText}</p>`;
-				}
-				// Handle Spell Save DC
-				else if (entry.type === 'abilityDc') {
-					const character = CharacterManager.getCurrentCharacter();
-					const abilityAbbr = entry.attributes?.[0]; // e.g., 'wis'
-					if (!character || !abilityAbbr) {
-						result += '<p>Error calculating Spell Save DC.</p>';
-					} else {
-						const abilityName = attAbvToFull(abilityAbbr) || abilityAbbr;
-						const modifier = abilityScoreService.getModifier(abilityAbbr);
-						const profBonus = character.getProficiencyBonus
-							? character.getProficiencyBonus()
-							: levelToProficiencyBonus(character.level);
-						const dc = 8 + profBonus + modifier;
-						const processedName = await textProcessor.processString(
-							entry.name || 'Spell Save DC',
-						);
-						result += `<p><strong>${processedName}</strong> = 8 + your proficiency bonus + your ${abilityName} modifier (${dc})</p>`;
-					}
-				}
-				// Handle Spell Attack Modifier
-				else if (entry.type === 'abilityAttackMod') {
-					const character = CharacterManager.getCurrentCharacter();
-					const abilityAbbr = entry.attributes?.[0]; // e.g., 'wis'
-					if (!character || !abilityAbbr) {
-						result += '<p>Error calculating Spell Attack Modifier.</p>';
-					} else {
-						const abilityName = attAbvToFull(abilityAbbr) || abilityAbbr;
-						const modifier = abilityScoreService.getModifier(abilityAbbr);
-						const profBonus = character.getProficiencyBonus
-							? character.getProficiencyBonus()
-							: levelToProficiencyBonus(character.level);
-						const attackMod = profBonus + modifier;
-						const sign = attackMod >= 0 ? '+' : '';
-						const processedName = await textProcessor.processString(
-							entry.name || 'Spell Attack Modifier',
-						);
-						result += `<p><strong>${processedName}</strong> = your proficiency bonus + your ${abilityName} modifier (${sign}${attackMod})</p>`;
-					}
-				}
-				// Handle optional feature reference
-				else if (entry.type === 'refOptionalfeature') {
-					const featureName = entry.optionalfeature;
-					if (featureName) {
-						const processed = await textProcessor.processString(featureName);
-						result += `<p><em>${processed}</em></p>`;
-					}
-				}
-				// Handle class feature reference (format: FeatureName|ParentClass|Source|Level)
-				else if (entry.type === 'refClassFeature') {
-					const featureRef = entry.classFeature;
-					if (featureRef) {
-						const { name: featureName } = window.api.unpackUid(featureRef);
-						const processed = await textProcessor.processString(featureName);
-						result += `<p><em>${processed}</em></p>`;
-					}
-				}
-				// Fall back to JSON for unhandled formats
-				else {
-					console.warn('ClassDetailsView', 'Unhandled entry format:', entry);
-					result += `<p>${JSON.stringify(entry)}</p>`;
-				}
-			}
-		}
-
-		return result;
 	}
 }
 

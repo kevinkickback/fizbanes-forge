@@ -1,4 +1,4 @@
-// Controller for background selection UI (card + details + service wiring).
+// Controller for background selection UI, coordinating views and variant logic.
 
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
@@ -10,43 +10,44 @@ import { toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { backgroundService } from '../../../services/BackgroundService.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { BaseCard } from '../BaseCard.js';
 
-export class BackgroundCard extends BaseCard {
+export class BackgroundCard {
 	constructor() {
-		// Use null for parent constructor
-		super(null);
-		this._card = document.createElement('div');
+		this._backgroundService = backgroundService;
 
-		// Initialize view components
-		const card = document.querySelector('.background-card') || document.body;
-		this._cardView = new BackgroundCardView(card);
-		this._detailsView = new BackgroundDetailsView(card);
+		// DOM elements
+		this._choicesPanel = document.getElementById('backgroundChoicesPanel');
+		this._backgroundList = document.getElementById('backgroundList');
+		this._infoPanel = document.getElementById('backgroundInfoPanel');
+		this._toggleBtn = document.getElementById('backgroundInfoToggle');
 
-		// Default placeholder text
-		this.placeholderTitle = 'Select a Background';
-		this.placeholderDesc =
-			'Choose a background to see details about their traits, proficiencies, and other characteristics.';
+		this._detailsView = new BackgroundDetailsView();
 
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
+
+		// Track current selection
+		this._selectedBackground = null;
+		this._selectedVariant = null;
 
 		// Initialize the component
 		this.initialize();
 	}
 
+	//-------------------------------------------------------------------------
+	// Initialization Methods
+	//-------------------------------------------------------------------------
+
 	async initialize() {
 		try {
-			// Initialize required dependencies
-			await backgroundService.initialize();
+			// Initialize background service FIRST before setting up listeners
+			// This ensures background data is ready before any events try to use it
+			await this._backgroundService.initialize();
 
-			// Populate background dropdown
-			this._renderBackgroundSelection();
-
-			// Set up event listeners
-			this._attachSelectionListeners();
-
-			// Load saved background selection from character data
+			// NOW set up event listeners and load saved selection
+			this._setupEventListeners();
+			this._setupToggleButton();
+			await this._populateBackgroundList();
 			await this._loadSavedBackgroundSelection();
 		} catch (error) {
 			console.error(
@@ -57,105 +58,42 @@ export class BackgroundCard extends BaseCard {
 		}
 	}
 
-	_renderBackgroundSelection() {
-		try {
-			const backgrounds = backgroundService.getAllBackgrounds();
-			if (!backgrounds || backgrounds.length === 0) {
-				console.error(
-					'BackgroundCard',
-					'No backgrounds available to populate dropdown',
-				);
-				return;
+	_setupToggleButton() {
+		if (!this._toggleBtn || !this._infoPanel) return;
+
+		this._cleanup.on(this._toggleBtn, 'click', () => {
+			const isCollapsed = this._infoPanel.classList.contains('collapsed');
+
+			if (isCollapsed) {
+				this._infoPanel.classList.remove('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-right';
+			} else {
+				this._infoPanel.classList.add('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-left';
 			}
-
-			// Filter backgrounds by allowed sources using SourceService
-			const filteredBackgrounds = backgrounds.filter((bg) =>
-				sourceService.isSourceAllowed(bg.source),
-			);
-
-			// Sort backgrounds by name
-			filteredBackgrounds.sort((a, b) => a.name.localeCompare(b.name));
-
-			// Populate view
-			this._cardView.populateBackgroundSelect(filteredBackgrounds);
-
-			// Reset to placeholder
-			this._cardView.resetQuickDescription();
-			this._detailsView.clearDetails();
-		} catch (error) {
-			console.error(
-				'BackgroundCard',
-				'Error populating background dropdown:',
-				error,
-			);
-		}
+		});
 	}
 
-	async _loadSavedBackgroundSelection() {
-		try {
-			const character = AppState.getCurrentCharacter();
-			if (!character?.background?.name) {
-				return; // No saved background to load
-			}
-
-			// Set the background selection
-			const backgroundName = character.background.name;
-			const backgroundSource = character.background.source;
-
-			if (backgroundName && backgroundSource) {
-				const background = backgroundService.selectBackground(
-					backgroundName,
-					backgroundSource,
-				);
-				if (background) {
-					this._cardView.setSelectedBackground(
-						`${backgroundName}_${backgroundSource}`,
-					);
-					// Don't emit CHARACTER_UPDATED during initialization (skip event emission)
-					this._handleBackgroundChange(true);
-
-					// Also set variant if one was selected
-					if (character.background.variant) {
-						await new Promise((resolve) => setTimeout(resolve, 100));
-						this._cardView.setSelectedVariant(character.background.variant);
-						// Don't emit CHARACTER_UPDATED during initialization
-						this._handleVariantChange(true);
-					}
-				} else {
-					console.warn(
-						'BackgroundCard',
-						`Saved background "${backgroundName}" (${backgroundSource}) not found. Character might use a source that's not currently allowed.`,
-					);
-				}
-			}
-		} catch (error) {
-			console.error(
-				'BackgroundCard',
-				'Error loading saved background selection:',
-				error,
-			);
-		}
-	}
-
-	_attachSelectionListeners() {
-		// Store handler reference for cleanup
+	_setupEventListeners() {
+		// Store handler references for cleanup
+		this._characterSelectedHandler = () => {
+			this._handleCharacterChanged();
+		};
 		this._sourcesChangedHandler = () => {
-			this._renderBackgroundSelection();
-			// Reload saved selection if one was made
+			this._populateBackgroundList();
 			this._loadSavedBackgroundSelection();
 		};
 
-		this._cardView.attachListeners(
-			() => this._handleBackgroundChange(),
-			() => this._handleVariantChange(),
-		);
-
-		// Listen for source changes and repopulate background dropdown
+		// Listen to EventBus
+		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
 	}
 
 	_cleanupEventListeners() {
-		// Manually remove eventBus listener
+		// Manually remove all eventBus listeners
+		if (this._characterSelectedHandler) {
+			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		}
 		if (this._sourcesChangedHandler) {
 			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
 		}
@@ -164,150 +102,363 @@ export class BackgroundCard extends BaseCard {
 		this._cleanup.cleanup();
 	}
 
-	_handleBackgroundChange(skipEventDuringInit = false) {
-		try {
-			const backgroundId = this._cardView.getSelectedBackground();
+	//-------------------------------------------------------------------------
+	// Data Loading Methods
+	//-------------------------------------------------------------------------
 
-			if (!backgroundId) {
-				this._cardView.hideVariantSelector();
-				this._cardView.resetQuickDescription();
-				this._detailsView.clearDetails();
-				this._updateCharacterBackground(null, null);
+	async _populateBackgroundList() {
+		if (!this._backgroundList) return;
+
+		try {
+			const backgrounds = this._backgroundService.getAllBackgrounds();
+			if (!backgrounds || backgrounds.length === 0) {
+				console.error('BackgroundCard', 'No backgrounds available to populate list');
 				return;
 			}
 
-			// Extract name and source from ID (format: name_source)
-			const [name, source] = backgroundId.split('_');
-			const background = backgroundService.selectBackground(name, source);
+			// Filter backgrounds by allowed sources
+			const filteredBackgrounds = backgrounds.filter((background) =>
+				sourceService.isSourceAllowed(background.source),
+			);
 
-			if (background) {
-				// Update variant options
-				this._updateVariantOptions(background);
+			if (filteredBackgrounds.length === 0) {
+				console.error('BackgroundCard', 'No backgrounds available after source filtering');
+				return;
+			}
 
-				// Render the background details
-				this._renderEntityDetails(background);
+			// Sort backgrounds by name
+			const sortedBackgrounds = [...filteredBackgrounds].sort((a, b) =>
+				a.name.localeCompare(b.name),
+			);
 
-				// Update character model
-				this._updateCharacterBackground(background, null);
+			// Clear existing content
+			this._backgroundList.innerHTML = '';
 
-				// Emit event to notify about character update (unsaved changes)
-				// Skip during initialization to prevent showing unsaved indicator on page load
-				if (!skipEventDuringInit) {
+			// Create background items
+			for (const background of sortedBackgrounds) {
+				await this._createBackgroundItem(background);
+			}
+
+			console.info('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
+		} catch (error) {
+			console.error('BackgroundCard', 'Error populating background list:', error);
+		}
+	}
+
+	async _createBackgroundItem(background) {
+		const variants = background.variants || [];
+		const hasVariants = variants && variants.length > 0;
+		const backgroundId = this.sanitizeId(background.name);
+
+		const backgroundItem = document.createElement('div');
+		backgroundItem.className = 'background-item';
+		backgroundItem.setAttribute('data-background', `${background.name}_${background.source}`);
+		backgroundItem.setAttribute('data-info', backgroundId);
+
+		const itemWrapper = document.createElement('div');
+		itemWrapper.className = 'background-item-wrapper';
+
+		itemWrapper.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <input type="radio" name="background" value="${background.name}_${background.source}" class="form-check-input">
+                <div class="flex-grow-1">
+                    <strong>${background.name}</strong>
+                </div>
+            </div>
+        `;
+
+		backgroundItem.appendChild(itemWrapper);
+
+		// Add variant dropdown if applicable
+		if (hasVariants) {
+			// Filter variants by source first
+			const filteredVariants = variants.filter((variant) => {
+				const variantSource = variant.source || background.source;
+				return sourceService.isSourceAllowed(variantSource) && variant.name && variant.name.trim() !== '';
+			});
+
+			// Only create dropdown if there are filtered variants
+			if (filteredVariants.length > 0) {
+				const dropdownContainer = document.createElement('div');
+				dropdownContainer.className = 'inline-dropdown-container';
+
+				const select = document.createElement('select');
+				select.className = 'form-select form-select-sm';
+
+				// Add variant options
+				for (const variant of filteredVariants) {
+					const option = document.createElement('option');
+					option.value = variant.name;
+					option.textContent = variant.name;
+					select.appendChild(option);
+					await this._createBackgroundInfoPanel(background, variant);
+				}
+
+				dropdownContainer.appendChild(select);
+				const flexContainer = itemWrapper.querySelector('.d-flex');
+				flexContainer.appendChild(dropdownContainer);
+
+				// Handle variant selection
+				this._cleanup.on(select, 'change', () => {
+					const variantName = select.value;
+					const variantData = variants.find(v => v.name === variantName);
+					this._selectedVariant = variantData;
+					const variantId = this.sanitizeId(`${background.name}-${variantName}`);
+					this._showInfo(variantId);
+					this._updateCharacterBackground(background, variantData);
+				});
+			} else {
+				// No filtered variants, treat as background without variants
+				await this._createBackgroundInfoPanel(background, null);
+			}
+		} else {
+			await this._createBackgroundInfoPanel(background, null);
+		}
+
+		// Handle background selection
+		const radio = itemWrapper.querySelector('input[type="radio"]');
+		this._cleanup.on(backgroundItem, 'click', (e) => {
+			// Don't trigger if clicking on the select itself
+			if (e.target.tagName === 'SELECT' || e.target.closest('.inline-dropdown-container')) return;
+
+			if (radio) {
+				radio.checked = true;
+				this._selectedBackground = background;
+
+				// Check if dropdown actually exists (filtered variants)
+				const select = itemWrapper.querySelector('select');
+
+				// If has dropdown with variants, show first variant info, otherwise show background info
+				if (select && select.options.length > 0) {
+					const variantName = select.value;
+					if (variantName) {
+						const variantData = variants.find(v => v.name === variantName);
+						this._selectedVariant = variantData;
+						const variantId = this.sanitizeId(`${background.name}-${variantName}`);
+						this._showInfo(variantId);
+						this._updateCharacterBackground(background, variantData);
+
+						// Emit event to notify about character update (unsaved changes)
+						eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+							character: CharacterManager.getCurrentCharacter(),
+						});
+					}
+				} else {
+					this._selectedVariant = null;
+					this._showInfo(backgroundId);
+					this._updateCharacterBackground(background, null);
+
+					// Emit event to notify about character update (unsaved changes)
 					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 						character: CharacterManager.getCurrentCharacter(),
 					});
+				}
+
+				// Remove selected class from all background items
+				this._backgroundList.querySelectorAll('.background-item').forEach(item => {
+					item.classList.remove('selected');
+				});
+				backgroundItem.classList.add('selected');
+			}
+		});
+
+		// Add hover to show info
+		this._cleanup.on(backgroundItem, 'mouseenter', () => {
+			// Check if dropdown actually exists
+			const select = itemWrapper.querySelector('select');
+
+			if (select && select.options.length > 0) {
+				const variantName = select.value;
+				if (variantName) {
+					const variantId = this.sanitizeId(`${background.name}-${variantName}`);
+					this._showInfo(variantId, false);
 				}
 			} else {
-				this._cardView.hideVariantSelector();
-				this._cardView.resetQuickDescription();
-				this._detailsView.clearDetails();
-				this._updateCharacterBackground(null, null);
+				this._showInfo(backgroundId, false);
 			}
-		} catch (error) {
-			console.error(
-				'BackgroundCard',
-				'Error handling background change:',
-				error,
-			);
+		});
+
+		this._backgroundList.appendChild(backgroundItem);
+	}
+
+	_showInfo(contentId, expand = true) {
+		if (!this._infoPanel) return;
+
+		// Hide all info content
+		const allContent = this._infoPanel.querySelectorAll('.info-content');
+		allContent.forEach(content => {
+			content.classList.add('d-none');
+		});
+
+		// Show the selected content
+		const targetContent = this._infoPanel.querySelector(`[data-for="${contentId}"]`);
+		if (targetContent) {
+			targetContent.classList.remove('d-none');
+			// Expand info panel if requested
+			if (expand) {
+				this._infoPanel.classList.remove('collapsed');
+			}
 		}
 	}
 
-	_handleVariantChange(skipEventDuringInit = false) {
-		try {
-			const variantName = this._cardView.getSelectedVariant();
-			const background = backgroundService.getSelectedBackground();
+	async _createBackgroundInfoPanel(background, variant = null) {
+		if (!this._infoPanel) return;
 
+		const infoContent = document.createElement('div');
+		infoContent.className = 'info-content d-none';
+
+		// Use combined ID if variant is provided
+		const contentId = variant
+			? this.sanitizeId(`${background.name}-${variant.name}`)
+			: this.sanitizeId(background.name);
+		infoContent.setAttribute('data-for', contentId);
+
+		// Get description
+		const description = this._extractDescription(variant || background);
+
+		// Title shows variant name if provided
+		const title = variant ? `${background.name} (${variant.name})` : background.name;
+		let html = `<h6>${title}</h6>`;
+
+		// Add description
+		html += description;
+
+		html += `<hr class="my-2">`;
+
+		// Use the details view to generate sections
+		html += await this._detailsView.generateDetailsHTML(variant || background);
+
+		infoContent.innerHTML = html;
+		await textProcessor.processElement(infoContent);
+		this._infoPanel.appendChild(infoContent);
+	}
+
+	sanitizeId(name) {
+		return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+	}
+
+	_extractDescription(background) {
+		if (background?.entries) {
+			for (const entry of background.entries) {
+				if (typeof entry === 'string') {
+					const truncated = entry.substring(0, 200);
+					return `<p class="text-muted small">${truncated}${entry.length > 200 ? '...' : ''}</p>`;
+				}
+				if (entry.type === 'entries' && entry.entries) {
+					for (const subEntry of entry.entries) {
+						if (typeof subEntry === 'string') {
+							const truncated = subEntry.substring(0, 200);
+							return `<p class="text-muted small">${truncated}${subEntry.length > 200 ? '...' : ''}</p>`;
+						}
+					}
+				}
+			}
+		}
+		return `<p class="text-muted small">${background.name} is a character background from ${background.source}.</p>`;
+	}
+
+	async _loadSavedBackgroundSelection() {
+		try {
+			const character = AppState.getCurrentCharacter();
+			if (!character?.background?.name || !character?.background?.source) {
+				return; // No saved background to load
+			}
+
+			// Find the background item in the list
+			const backgroundValue = `${character.background.name}_${character.background.source}`;
+			console.info('[BackgroundCard]', 'Loading saved background:', backgroundValue);
+
+			const backgroundItem = this._backgroundList?.querySelector(`[data-background="${backgroundValue}"]`);
+			if (!backgroundItem) {
+				console.warn(
+					'BackgroundCard',
+					`Saved background "${backgroundValue}" not found in available options. Character might use a source that's not currently allowed.`,
+				);
+				return;
+			}
+
+			// Check the radio button for this background
+			const radioButton = backgroundItem.querySelector('input[type="radio"]');
+			if (radioButton) {
+				radioButton.checked = true;
+			}
+
+			// Mark the background item as selected
+			this._backgroundList.querySelectorAll('.background-item').forEach(item => {
+				item.classList.remove('selected');
+			});
+			backgroundItem.classList.add('selected');
+
+			// Get the background data
+			const background = this._backgroundService.selectBackground(
+				character.background.name,
+				character.background.source,
+			);
 			if (!background) {
+				console.error('[BackgroundCard]', 'Could not find background data for:', backgroundValue);
 				return;
 			}
 
-			if (!variantName) {
-				// Show standard background
-				this._renderEntityDetails(background);
-				this._updateCharacterBackground(background, null);
+			// Store the selected background
+			this._selectedBackground = background;
 
-				// Emit event to notify about character update (unsaved changes)
-				// Skip during initialization to prevent showing unsaved indicator on page load
-				if (!skipEventDuringInit) {
-					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-						character: CharacterManager.getCurrentCharacter(),
-					});
+			// Handle variant if present
+			let variant = null;
+			let infoId = this.sanitizeId(background.name);
+
+			if (character.background.variant) {
+				console.info('[BackgroundCard]', 'Saved variant found:', character.background.variant);
+
+				// Find and set the variant dropdown if it exists
+				const variantSelect = backgroundItem.querySelector('select');
+				if (variantSelect) {
+					const variantOption = Array.from(variantSelect.options).find(
+						(opt) => opt.value === character.background.variant,
+					);
+					if (variantOption) {
+						variantSelect.value = character.background.variant;
+						variant = background.variants?.find(v => v.name === character.background.variant);
+						this._selectedVariant = variant;
+						infoId = this.sanitizeId(`${background.name}-${character.background.variant}`);
+						console.info('[BackgroundCard]', 'Variant restored:', character.background.variant);
+					} else {
+						console.warn(
+							'BackgroundCard',
+							`Saved variant "${character.background.variant}" not found in dropdown options.`,
+						);
+					}
 				}
-				return;
 			}
 
-			// Select and render the variant
-			const variant = backgroundService.selectVariant(variantName);
-			if (variant) {
-				this._renderEntityDetails(variant);
-				this._updateCharacterBackground(background, variant);
+			// Show info panel for this background/variant
+			this._showInfo(infoId, true);
 
-				// Emit event to notify about character update (unsaved changes)
-				// Skip during initialization to prevent showing unsaved indicator on page load
-				if (!skipEventDuringInit) {
-					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-						character: CharacterManager.getCurrentCharacter(),
-					});
-				}
-			}
+			console.info('[BackgroundCard]', 'Saved background selection loaded successfully');
 		} catch (error) {
-			console.error('BackgroundCard', 'Error handling variant change:', error);
+			console.error('BackgroundCard', 'Error loading saved background selection:', error);
 		}
 	}
 
-	_updateVariantOptions(background) {
+	//-------------------------------------------------------------------------
+	// Event Handlers
+	//-------------------------------------------------------------------------
+
+	async _handleCharacterChanged() {
 		try {
-			if (background.variants?.length > 0) {
-				// Filter variants by allowed sources using SourceService
-				const filteredVariants = background.variants.filter((variant) => {
-					const variantSource = variant.source || background.source;
-					return sourceService.isSourceAllowed(variantSource);
-				});
-
-				if (filteredVariants.length > 0) {
-					// Sort variants by name
-					filteredVariants.sort((a, b) => a.name.localeCompare(b.name));
-
-					this._cardView.populateVariantSelect(filteredVariants);
-					this._cardView.showVariantSelector();
-					return;
-				}
-			}
-
-			this._cardView.hideVariantSelector();
-		} catch (error) {
-			console.error('BackgroundCard', 'Error updating variant options:', error);
-			this._cardView.hideVariantSelector();
-		}
-	}
-
-	async _renderEntityDetails(background) {
-		if (!background) {
-			this._cardView.resetQuickDescription();
-			this._detailsView.clearDetails();
-			return;
-		}
-
-		try {
-			// Update image
-			this._cardView.updateBackgroundImage(
-				background.imageUrl || null,
-				background.name,
-			);
-
-			// Update quick description
-			await this._cardView.updateQuickDescription(background);
-
-			// Update background details
-			await this._detailsView.updateAllDetails(background);
+			// Reload background selection to match character's background
+			await this._loadSavedBackgroundSelection();
 		} catch (error) {
 			console.error(
 				'BackgroundCard',
-				'Error rendering background details:',
+				'Error handling character changed event:',
 				error,
 			);
 		}
 	}
+
+	//-------------------------------------------------------------------------
+	// Character Data Management
+	//-------------------------------------------------------------------------
 
 	_updateCharacterBackground(background, variant) {
 		const character = CharacterManager.getCurrentCharacter();
@@ -704,305 +855,64 @@ export class BackgroundCard extends BaseCard {
 }
 
 //=============================================================================
-// Background Card View - Selection dropdowns and quick description
-//=============================================================================
-
-class BackgroundCardView {
-	constructor(card) {
-		this._card = card;
-		this._backgroundSelect = document.getElementById('backgroundSelect');
-		this._variantContainer = document.getElementById('variantContainer');
-		this._variantSelect = document.getElementById('variantSelect');
-		this._quickDescription = document.getElementById('backgroundQuickDesc');
-		this._imageElement = document.getElementById('backgroundImage');
-
-		// Create variant container if it doesn't exist
-		if (!this._variantContainer) {
-			this._createVariantContainer();
-		}
-	}
-
-	_createVariantContainer() {
-		const selectors = document.querySelector('.background-selectors');
-		if (!selectors) {
-			console.warn(
-				'BackgroundView',
-				'Background selectors container not found',
-			);
-			return;
-		}
-
-		this._variantContainer = document.createElement('div');
-		this._variantContainer.id = 'variantContainer';
-		this._variantContainer.className = 'background-select-container';
-		this._variantContainer.style.display = 'none';
-		this._variantContainer.innerHTML = `
-			<label for="variantSelect">Variant</label>
-			<select class="form-select" id="variantSelect">
-				<option value="">Standard background</option>
-			</select>
-		`;
-		selectors.appendChild(this._variantContainer);
-
-		// Update the reference to the variant select element
-		this._variantSelect = document.getElementById('variantSelect');
-	}
-
-	populateBackgroundSelect(backgrounds) {
-		if (!this._backgroundSelect) return;
-
-		// Clear existing options except the first (default)
-		while (this._backgroundSelect.options.length > 1) {
-			this._backgroundSelect.remove(1);
-		}
-
-		// Add background options
-		backgrounds.forEach((background) => {
-			const option = document.createElement('option');
-			option.value = `${background.name}_${background.source}`;
-			option.textContent = `${background.name} (${background.source})`;
-			this._backgroundSelect.appendChild(option);
-		});
-	}
-
-	populateVariantSelect(variants) {
-		if (!this._variantSelect) return;
-
-		// Clear existing options except the first (default)
-		while (this._variantSelect.options.length > 1) {
-			this._variantSelect.remove(1);
-		}
-
-		// Add variant options
-		variants.forEach((variant) => {
-			const option = document.createElement('option');
-			option.value = variant.name;
-			option.textContent = `${variant.name} (${variant.source})`;
-			this._variantSelect.appendChild(option);
-		});
-	}
-
-	async updateQuickDescription(background) {
-		if (!this._quickDescription || !background) return;
-
-		const description = this._extractDescription(background);
-		this._quickDescription.innerHTML = description;
-		await textProcessor.processElement(this._quickDescription);
-	}
-
-	resetQuickDescription() {
-		if (!this._quickDescription) return;
-		this._quickDescription.innerHTML = `
-			<div class="placeholder-content">
-				<h5>Select a Background</h5>
-				<p>Choose a background to see details about their traits, proficiencies, and other characteristics.</p>
-			</div>
-		`;
-	}
-
-	updateBackgroundImage(imageSrc, altText = 'Background image') {
-		if (!this._imageElement) return;
-
-		try {
-			// Clear existing content
-			this._imageElement.innerHTML = '';
-
-			// Create and append the image element
-			if (imageSrc) {
-				const img = document.createElement('img');
-				img.src = imageSrc;
-				img.alt = altText;
-				img.classList.add('entity-img');
-				this._imageElement.appendChild(img);
-			} else {
-				// Set a default icon
-				this._imageElement.innerHTML =
-					'<i class="fas fa-user-circle placeholder-icon"></i>';
-			}
-		} catch (error) {
-			console.error(
-				'BackgroundView',
-				'Error updating background image:',
-				error,
-			);
-			// Set a default icon on error
-			this._imageElement.innerHTML =
-				'<i class="fas fa-user-circle placeholder-icon"></i>';
-		}
-	}
-
-	showVariantSelector() {
-		if (this._variantContainer) {
-			this._variantContainer.style.display = 'block';
-		}
-	}
-
-	hideVariantSelector() {
-		if (this._variantContainer) {
-			this._variantContainer.style.display = 'none';
-		}
-		if (this._variantSelect) {
-			this._variantSelect.selectedIndex = 0;
-		}
-	}
-
-	getSelectedBackground() {
-		return this._backgroundSelect?.value || '';
-	}
-
-	getSelectedVariant() {
-		return this._variantSelect?.value || '';
-	}
-
-	setSelectedBackground(backgroundName) {
-		if (!this._backgroundSelect) return;
-
-		// Find and select the option
-		for (let i = 0; i < this._backgroundSelect.options.length; i++) {
-			if (this._backgroundSelect.options[i].value === backgroundName) {
-				this._backgroundSelect.selectedIndex = i;
-				break;
-			}
-		}
-	}
-
-	setSelectedVariant(variantName) {
-		if (!this._variantSelect) return;
-
-		// Find and select the option
-		for (let i = 0; i < this._variantSelect.options.length; i++) {
-			if (this._variantSelect.options[i].value === variantName) {
-				this._variantSelect.selectedIndex = i;
-				break;
-			}
-		}
-	}
-
-	attachListeners(onBackgroundChange, onVariantChange) {
-		if (this._backgroundSelect) {
-			this._backgroundSelect.addEventListener('change', onBackgroundChange);
-		}
-		if (this._variantSelect) {
-			this._variantSelect.addEventListener('change', onVariantChange);
-		}
-	}
-
-	_extractDescription(background) {
-		if (background?.entries) {
-			for (const entry of background.entries) {
-				if (typeof entry === 'string') {
-					return `<p>${entry}</p>`;
-				}
-				if (entry.type === 'entries' && entry.entries) {
-					for (const subEntry of entry.entries) {
-						if (typeof subEntry === 'string') {
-							return `<p>${subEntry}</p>`;
-						}
-					}
-				}
-			}
-		}
-		return `<p>${background.name} is a character background from ${background.source}.</p>`;
-	}
-}
-
-//=============================================================================
-// Background Details View - Proficiencies, equipment, features
+// Background Details View - Proficiencies, equipment, features for info panel
 //=============================================================================
 
 class BackgroundDetailsView {
-	constructor(card) {
-		this._card = card;
-		this._detailsContainer = document.getElementById('backgroundDetails');
-	}
 
-	async updateAllDetails(background) {
-		if (!this._detailsContainer || !background) {
-			this.clearDetails();
-			return;
+	async generateDetailsHTML(background) {
+		if (!background) return '';
+
+		let html = '';
+
+		// Skills section
+		const skillsHtml = this._formatSkillProficiencies(background);
+		html += `
+			<div class="detail-section mb-2">
+				<h6 class="small mb-1"><strong>Skills</strong></h6>
+				<div class="small text-muted">${skillsHtml}</div>
+			</div>
+		`;
+
+		// Tools section
+		const toolsHtml = this._formatToolProficiencies(background);
+		html += `
+			<div class="detail-section mb-2">
+				<h6 class="small mb-1"><strong>Tools</strong></h6>
+				<div class="small text-muted">${toolsHtml}</div>
+			</div>
+		`;
+
+		// Languages section
+		const languagesHtml = this._formatLanguages(background);
+		html += `
+			<div class="detail-section mb-2">
+				<h6 class="small mb-1"><strong>Languages</strong></h6>
+				<div class="small text-muted">${languagesHtml}</div>
+			</div>
+		`;
+
+		// Equipment section
+		const equipmentHtml = this._formatEquipment(background);
+		html += `
+			<div class="detail-section mb-2">
+				<h6 class="small mb-1"><strong>Equipment</strong></h6>
+				<div class="small text-muted">${equipmentHtml}</div>
+			</div>
+		`;
+
+		// Feature section
+		const feature = this._extractFeature(background);
+		if (feature) {
+			html += `
+				<div class="detail-section mb-2">
+					<h6 class="small mb-1"><strong>Feature</strong></h6>
+					<div class="small text-muted"><strong>${feature.name}:</strong> ${feature.description}</div>
+				</div>
+			`;
 		}
 
-		const html = `
-			<div class="background-details-grid">
-				${this._renderSkillProficiencies(background)}
-				${this._renderToolProficiencies(background)}
-				${this._renderLanguages(background)}
-				${this._renderEquipment(background)}
-			</div>
-			${this._renderFeature(background)}
-		`;
-
-		this._detailsContainer.innerHTML = html;
-		await textProcessor.processElement(this._detailsContainer);
-	}
-
-	clearDetails() {
-		// Do nothing - the HTML already has the placeholder structure
-		// We don't want to clear it
-	}
-
-	_renderSkillProficiencies(background) {
-		const skillsHtml = this._formatSkillProficiencies(background);
-		return `
-			<div class="detail-section">
-				<h6>Skill Proficiencies</h6>
-				<ul class="mb-0">
-					<li class="text-content">${skillsHtml}</li>
-				</ul>
-			</div>
-		`;
-	}
-
-	_renderToolProficiencies(background) {
-		const toolsHtml = this._formatToolProficiencies(background);
-		return `
-			<div class="detail-section">
-				<h6>Tool Proficiencies</h6>
-				<ul class="mb-0">
-					<li class="text-content">${toolsHtml}</li>
-				</ul>
-			</div>
-		`;
-	}
-
-	_renderLanguages(background) {
-		const languagesHtml = this._formatLanguages(background);
-		return `
-			<div class="detail-section">
-				<h6>Languages</h6>
-				<ul class="mb-0">
-					<li class="text-content">${languagesHtml}</li>
-				</ul>
-			</div>
-		`;
-	}
-
-	_renderEquipment(background) {
-		const equipmentHtml = this._formatEquipment(background);
-		return `
-			<div class="detail-section">
-				<h6>Equipment</h6>
-				<ul class="mb-0">
-					${equipmentHtml}
-				</ul>
-			</div>
-		`;
-	}
-
-	_renderFeature(background) {
-		const feature = this._extractFeature(background);
-		if (!feature) return '';
-
-		return `
-			<div class="traits-section detail-section">
-				<h6>Feature</h6>
-				<div class="feature-content">
-					<ul class="mb-0">
-						<li class="text-content"><strong>${feature.name}:</strong> ${feature.description}</li>
-					</ul>
-				</div>
-			</div>
-		`;
+		return html;
 	}
 
 	_formatSkillProficiencies(background) {
@@ -1061,7 +971,7 @@ class BackgroundDetailsView {
 	}
 
 	_formatEquipment(background) {
-		if (!background?.equipment) return '<li>None</li>';
+		if (!background?.equipment) return 'None';
 
 		// 5etools normalizes equipment: equipment = [{item: "...", quantity: n}] or [{a: [...], b: [...]}]
 		const equipment = [];
@@ -1081,7 +991,7 @@ class BackgroundDetailsView {
 			}
 		}
 
-		return equipment.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
+		return equipment.join('; ') || 'None';
 	}
 
 	_formatEquipmentList(items) {
@@ -1121,9 +1031,12 @@ class BackgroundDetailsView {
 				.join(' ')
 			: featureEntry.entry || '';
 
+		// Truncate description for compact display
+		const truncated = description.substring(0, 150);
+
 		return {
 			name: featureEntry.name || 'Feature',
-			description: description.trim(),
+			description: truncated + (description.length > 150 ? '...' : ''),
 		};
 	}
 }

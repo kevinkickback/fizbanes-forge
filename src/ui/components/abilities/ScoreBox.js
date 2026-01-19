@@ -45,10 +45,35 @@ class AbilityScoreBoxView {
 			return;
 		}
 
-		// Remove any existing buttons that might be in the HTML template
+		// Remove all existing control elements (buttons, selects, inputs, spans, divs)
+		// This ensures clean slate when switching between methods
 		const existingButtons = box.querySelectorAll('button');
 		for (const button of existingButtons) {
 			button.remove();
+		}
+
+		// Remove any select dropdowns from standard array
+		const existingSelects = box.querySelectorAll('select');
+		for (const select of existingSelects) {
+			select.remove();
+		}
+
+		// Remove any input elements from custom method
+		const existingInputs = box.querySelectorAll('input[type="number"]');
+		for (const input of existingInputs) {
+			input.remove();
+		}
+
+		// Remove any spans that might be value displays from previous renders
+		const existingSpans = box.querySelectorAll('span:not(.bonus)');
+		for (const span of existingSpans) {
+			span.remove();
+		}
+
+		// Remove any divs with mt-2 or ability-controls classes
+		const existingControlDivs = box.querySelectorAll('.mt-2, .ability-controls');
+		for (const div of existingControlDivs) {
+			div.remove();
 		}
 
 		const baseScore = abilityScoreService.getBaseScore(ability);
@@ -70,12 +95,6 @@ class AbilityScoreBoxView {
 		} else {
 			bonusDiv.textContent = '';
 			bonusDiv.style.display = 'none';
-		}
-
-		// Remove any existing method-specific controls
-		const existingControlsContainer = box.querySelector('.ability-controls');
-		if (existingControlsContainer) {
-			existingControlsContainer.remove();
 		}
 
 		// Create new controls container

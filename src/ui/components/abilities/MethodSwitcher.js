@@ -1,4 +1,4 @@
-// View for ability score method selection and info display.
+// View for ability score method selection using tabs (like class tabs).
 import { CharacterManager } from '../../../app/CharacterManager.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
@@ -6,17 +6,13 @@ import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 class MethodSwitcherView {
 	constructor(container) {
 		this._container = container;
+		this._methodTabsContainer = document.getElementById('abilityMethodTabs');
+		this._tabsList = document.getElementById('abilityMethodTabsList');
 	}
 
 	render(onMethodChange) {
 		try {
-			// Remove existing info container if it exists
-			let infoContainer = this._container.querySelector(
-				'.ability-score-method-info',
-			);
-			if (infoContainer) {
-				infoContainer.remove();
-			}
+			if (!this._tabsList) return;
 
 			// Get the character and method directly
 			const character = CharacterManager.getCurrentCharacter();
@@ -25,134 +21,111 @@ class MethodSwitcherView {
 			}
 
 			// Always use the method directly from character.variantRules
-			const methodFromCharacter =
+			const currentMethod =
 				character.variantRules?.abilityScoreMethod || 'custom';
-			const isPointBuy = methodFromCharacter === 'pointBuy';
-			const isStandardArray = methodFromCharacter === 'standardArray';
 
-			// Create a new container
-			infoContainer = document.createElement('div');
-			infoContainer.className = 'ability-score-method-info mb-3';
+			// Create method tabs
+			const methods = [
+				{ id: 'pointBuy', label: 'Point Buy', icon: 'fa-calculator' },
+				{ id: 'standardArray', label: 'Standard Array', icon: 'fa-list-ol' },
+				{ id: 'custom', label: 'Custom', icon: 'fa-edit' }
+			];
 
-			// Populate based on current method
-			if (isPointBuy) {
-				const usedPoints = abilityScoreService.getUsedPoints();
-				const remainingPoints = abilityScoreService.getRemainingPoints();
-				const maxPoints = abilityScoreService.getMaxPoints();
+			this._tabsList.innerHTML = methods.map(method => {
+				const isActive = currentMethod === method.id;
 
-				infoContainer.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="ability-score-method-select-container">
-                        <select class="form-select form-select-sm" id="abilityScoreMethod">
-                            <option value="pointBuy">Point Buy</option>
-                            <option value="standardArray">Standard Array</option>
-                            <option value="custom">Custom</option>
-                        </select>
-                    </div>
-                    <div class="text-end">
-                        ${usedPoints}/${maxPoints} points (<strong>${remainingPoints}</strong> remaining)
-                    </div>
-                </div>
-            `;
-			} else if (isStandardArray) {
-				// Get the available values
-				const availableValues =
-					abilityScoreService.getAvailableStandardArrayValues();
-				const usedCount = 6 - availableValues.length;
+				return `
+					<button class="nav-link ${isActive ? 'active' : ''}" 
+							data-method="${method.id}"
+							type="button">
+						<i class="fas ${method.icon} me-1"></i>
+						${method.label}
+					</button>
+				`;
+			}).join('');
 
-				infoContainer.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="ability-score-method-select-container">
-                            <select class="form-select form-select-sm" id="abilityScoreMethod">
-                                <option value="pointBuy">Point Buy</option>
-                                <option value="standardArray">Standard Array</option>
-                                <option value="custom">Custom</option>
-                            </select>
-                        </div>
-                        <div class="text-end">
-                            ${usedCount}/6 assigned
-                        </div>
-                    </div>
-            `;
-			} else if (methodFromCharacter === 'custom') {
-				infoContainer.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="ability-score-method-select-container">
-                            <select class="form-select form-select-sm" id="abilityScoreMethod">
-                                <option value="pointBuy">Point Buy</option>
-                                <option value="standardArray">Standard Array</option>
-                                <option value="custom">Custom</option>
-                            </select>
-                        </div>
-                        <div class="text-end text-muted">
-                            Enter your ability scores directly.
-                        </div>
-                    </div>
-                `;
-			}
+			// Attach event listeners
+			this._tabsList.querySelectorAll('.nav-link').forEach(tab => {
+				tab.addEventListener('click', (e) => {
+					const method = e.currentTarget.getAttribute('data-method');
+					if (method && method !== currentMethod) {
+						// Update active state
+						this._tabsList.querySelectorAll('.nav-link').forEach(t => {
+							t.classList.remove('active');
+						});
+						e.currentTarget.classList.add('active');
 
-			// Add the container only if we have content
-			if (infoContainer.innerHTML.trim()) {
-				this._container.prepend(infoContainer);
-
-				// Attach event listener to the newly created dropdown
-				const methodSelect = document.getElementById('abilityScoreMethod');
-				if (methodSelect) {
-					methodSelect.value = methodFromCharacter;
-					methodSelect.removeEventListener('change', onMethodChange);
-					methodSelect.addEventListener('change', onMethodChange);
-				}
-			}
+						// Trigger method change
+						const event = { target: { value: method } };
+						onMethodChange(event);
+					}
+				});
+			});
 		} catch (error) {
 			console.error(
 				'MethodSwitcher',
-				'Error rendering ability score method info:',
+				'Error rendering ability score method tabs:',
 				error,
 			);
 		}
 	}
 
-	updatePointBuyCounter() {
-		const counter = this._container.querySelector('.point-buy-badge');
-		if (!counter) {
-			// Update the text display in the method info if it exists
-			const methodInfo = this._container.querySelector(
-				'.ability-score-method-info .text-end',
-			);
-			if (methodInfo) {
-				const usedPoints = abilityScoreService.getUsedPoints();
-				const remainingPoints = abilityScoreService.getRemainingPoints();
-				const maxPoints = abilityScoreService.getMaxPoints();
+	_getMethodStatusText(method) {
+		if (method === 'pointBuy') {
+			const usedPoints = abilityScoreService.getUsedPoints();
+			const remainingPoints = abilityScoreService.getRemainingPoints();
+			const maxPoints = abilityScoreService.getMaxPoints();
 
-				methodInfo.innerHTML = `${usedPoints}/${maxPoints} points (<strong>${remainingPoints}</strong> remaining)`;
-
-				// Apply danger color only if over the limit
-				if (remainingPoints < 0) {
-					methodInfo.classList.add('text-danger');
-				} else {
-					methodInfo.classList.remove('text-danger');
-				}
-			}
-			return;
+			const status = remainingPoints < 0 ? 'danger' : '';
+			return `<span class="${status}">${usedPoints}/${maxPoints}</span>`;
+		} else if (method === 'standardArray') {
+			const availableValues = abilityScoreService.getAvailableStandardArrayValues();
+			const usedCount = 6 - availableValues.length;
+			return `${usedCount}/6`;
 		}
+		return '';
+	}
 
-		const usedPoints = abilityScoreService.getUsedPoints();
-		const remainingPoints = abilityScoreService.getRemainingPoints();
-		const maxPoints = abilityScoreService.getMaxPoints();
+	updatePointBuyCounter() {
+		// Update the separate point buy counter display
+		const counterDisplay = document.getElementById('pointBuyDisplay');
+		const counterContainer = document.getElementById('pointBuyCounter');
 
-		counter.innerHTML = `<span class="label">Point Buy</span>${usedPoints}/${maxPoints} 
-                            (<strong>${remainingPoints}</strong> remaining)`;
+		if (counterDisplay && counterContainer) {
+			const remainingPoints = abilityScoreService.getRemainingPoints();
 
-		// Apply danger color only if over the limit
-		if (remainingPoints < 0) {
-			counter.classList.add('danger');
-		} else {
-			counter.classList.remove('danger');
+			counterDisplay.textContent = `${remainingPoints}`;
+
+			// Change badge color if over budget
+			if (remainingPoints < 0) {
+				counterContainer.classList.remove('bg-primary');
+				counterContainer.classList.add('bg-danger');
+			} else {
+				counterContainer.classList.remove('bg-danger');
+				counterContainer.classList.add('bg-primary');
+			}
+		}
+	}
+
+	showPointBuyCounter() {
+		const counterContainer = document.getElementById('pointBuyCounter');
+		if (counterContainer) {
+			counterContainer.style.display = 'block';
+			this.updatePointBuyCounter();
+		}
+	}
+
+	hidePointBuyCounter() {
+		const counterContainer = document.getElementById('pointBuyCounter');
+		if (counterContainer) {
+			counterContainer.style.display = 'none';
 		}
 	}
 
 	setContainer(container) {
 		this._container = container;
+		this._methodTabsContainer = document.getElementById('abilityMethodTabs');
+		this._tabsList = document.getElementById('abilityMethodTabsList');
 	}
 }
 
