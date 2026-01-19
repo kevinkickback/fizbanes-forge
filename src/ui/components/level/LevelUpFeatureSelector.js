@@ -132,53 +132,29 @@ export class LevelUpFeatureSelector {
             // Get character from session for prerequisite checking
             const character = this.session.stagedChanges;
 
-            // Create prerequisite checker function that includes staged spell selections
+            // Create prerequisite checker function
             const prerequisiteChecker = (feature) => {
                 if (!feature.prerequisite) return true;
 
-                // Gather all staged spell selections for this class across all levels
-                const stagedSpells = [];
-                if (this.session.stepData?.selectedSpells) {
-                    Object.keys(this.session.stepData.selectedSpells).forEach(key => {
-                        // Key format is "ClassName_Level"
-                        if (key.startsWith(`${this.className}_`)) {
-                            const spells = this.session.stepData.selectedSpells[key] || [];
-                            // Each spell can be a string (name) or object with name property
-                            spells.forEach(spell => {
-                                const spellName = typeof spell === 'string' ? spell : spell.name;
-                                if (spellName) {
-                                    stagedSpells.push({ name: spellName });
-                                }
-                            });
-                        }
-                    });
-                }
-
-                // Merge character data with session spell selections for prerequisite checking
-                const characterWithStagedSpells = {
-                    ...character,
-                    // Include spell selections from step data if available
-                    spellcasting: {
-                        ...character.spellcasting,
-                        classes: {
-                            ...character.spellcasting?.classes,
-                            [this.className]: {
-                                ...character.spellcasting?.classes?.[this.className],
-                                // Merge existing spells with staged selections
-                                cantrips: [
-                                    ...(character.spellcasting?.classes?.[this.className]?.cantrips || []),
-                                    ...stagedSpells
-                                ],
-                                spellsKnown: [
-                                    ...(character.spellcasting?.classes?.[this.className]?.spellsKnown || []),
-                                    ...stagedSpells
-                                ]
-                            }
+                // Build a character context with features array for prerequisite checking
+                // The Character class has features as an object, but prerequisite checking expects an array
+                const featuresArray = [];
+                if (character.progression?.classes) {
+                    for (const cls of character.progression.classes) {
+                        if (cls.features && Array.isArray(cls.features)) {
+                            featuresArray.push(...cls.features);
                         }
                     }
-                };
+                }
 
-                return this.optionalFeatureService.meetsPrerequisites(feature, characterWithStagedSpells, this.className);
+                // Add features array to character without spreading (to preserve methods)
+                // Store original features and restore after prerequisite check
+                const originalFeatures = character.features;
+                character.features = featuresArray;
+                const result = this.optionalFeatureService.meetsPrerequisites(feature, character, this.className);
+                character.features = originalFeatures;
+
+                return result;
             };
 
             // Get appropriate note based on feature type

@@ -133,22 +133,28 @@ export class LevelUpModal {
         const totalLevel = levelUpService.getTotalLevel(character);
         const classes = character.progression?.classes || [];
 
-        // Build class breakdown with cards
+        // Build class breakdown with cards in two columns
         let classBreakdown = '';
-        for (const cls of classes) {
-            classBreakdown += `
-                <div class="class-level-card">
-                    <div class="class-info">
-                        <div>
-                            <div class="class-name">${cls.name}</div>
-                            <small class="text-muted">Class Level ${cls.levels || 0}</small>
+        if (classes.length > 0) {
+            classBreakdown = '<div class="row g-3">';
+            for (const cls of classes) {
+                classBreakdown += `
+                    <div class="col-6">
+                        <div class="class-level-card h-100">
+                            <div class="class-info">
+                                <div>
+                                    <div class="class-name">${cls.name}</div>
+                                    <small class="text-muted">Class Level ${cls.levels || 0}</small>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-primary" data-add-level="${cls.name}">
+                                <i class="fas fa-plus"></i> Add Level
+                            </button>
                         </div>
                     </div>
-                    <button class="btn btn-sm btn-primary" data-add-level="${cls.name}">
-                        <i class="fas fa-plus"></i> Add Level
-                    </button>
-                </div>
-            `;
+                `;
+            }
+            classBreakdown += '</div>';
         }
 
         // Get multiclass options - check for ignore restrictions preference
@@ -159,24 +165,26 @@ export class LevelUpModal {
             multiclassSection = `
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0"><i class="fas fa-users"></i> Add Multiclass</h6>
+                        <h6 class="mb-0"><i class="fas fa-users"></i> Add Class</h6>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="ignoreRestrictionsToggle" ${ignoreRestrictions ? 'checked' : ''}>
                             <label class="form-check-label" for="ignoreRestrictionsToggle">Ignore Restrictions</label>
                         </div>
                     </div>
                     <div class="card-body">
-                        <select class="form-select mb-2" id="multiclassSelect">
-                            <option value="">Choose a class...</option>
-                            ${multiclassOptions.map(opt => `
-                                <option value="${opt.name}" ${!opt.meetsRequirements && !ignoreRestrictions ? 'disabled' : ''}>
-                                    ${opt.name}${opt.requirementText ? ` (${opt.requirementText})` : ''}
-                                </option>
-                            `).join('')}
-                        </select>
-                        <button class="btn btn-primary w-100" id="addMulticlassBtn">
-                            <i class="fas fa-plus"></i> Add Multiclass
-                        </button>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" id="multiclassSelect">
+                                <option value="">Choose a class...</option>
+                                ${multiclassOptions.map(opt => `
+                                    <option value="${opt.name}" ${!opt.meetsRequirements && !ignoreRestrictions ? 'disabled' : ''}>
+                                        ${opt.name}${opt.requirementText ? ` (${opt.requirementText})` : ''}
+                                    </option>
+                                `).join('')}
+                            </select>
+                            <button class="btn btn-primary" id="addMulticlassBtn" style="white-space: nowrap;">
+                                <i class="fas fa-plus"></i> Add Class
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -184,31 +192,27 @@ export class LevelUpModal {
 
         contentArea.innerHTML = `
             <div class="level-picker">
-                <div class="mb-3">
-                    <h5>
-                        <i class="fas fa-chart-line"></i>
-                        Current Character Level
-                        <span class="badge">${totalLevel}</span>
-                    </h5>
-                </div>
-                
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0">Your Classes</h6>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-scroll"></i> Your Classes</h6>
+                        <div>
+                            <small class="text-muted me-2">Character Level</small>
+                            <span class="badge bg-primary">${totalLevel}</span>
+                        </div>
                     </div>
                     <div class="card-body">
                         ${classBreakdown || '<p class="text-muted text-center mb-0">No classes yet</p>'}
                     </div>
+                    ${classes.length > 0 ? `
+                    <div class="card-footer text-center">
+                        <button class="btn btn-outline-danger btn-sm" id="removeLastLevelBtn">
+                            <i class="fas fa-minus"></i> Remove Last Level
+                        </button>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 ${multiclassSection}
-                
-                <div class="remove-level-section">
-                    <button class="btn btn-outline-danger btn-sm" id="removeLastLevelBtn" ${classes.length === 0 ? 'disabled' : ''}>
-                        <i class="fas fa-minus"></i> Remove Last Level
-                    </button>
-                    ${classes.length > 0 ? '<p class="text-muted small mt-2 mb-0">This will remove your most recent level gain</p>' : ''}
-                </div>
             </div>
         `;
 
@@ -239,7 +243,7 @@ export class LevelUpModal {
             });
         }
 
-        // Add multiclass button
+        // Add class button
         const addMulticlassBtn = this.modalEl.querySelector('#addMulticlassBtn');
         const multiclassSelect = this.modalEl.querySelector('#multiclassSelect');
         if (addMulticlassBtn && multiclassSelect) {
@@ -315,12 +319,24 @@ export class LevelUpModal {
             // Add the class at level 1
             levelUpService.addClassLevel(character, className, 1);
 
+            // Create progression history entry to track when this class was added
+            if (!character.progressionHistory) {
+                character.progressionHistory = {};
+            }
+            if (!character.progressionHistory[className]) {
+                character.progressionHistory[className] = {};
+            }
+            character.progressionHistory[className]['1'] = {
+                choices: {},
+                timestamp: new Date().toISOString(),
+            };
+
             // Update character and emit event
             AppState.setCurrentCharacter(character, { skipEvent: true });
             eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
             eventBus.emit(EVENTS.MULTICLASS_ADDED, character, { name: className });
 
-            showNotification(`Added ${className} multiclass!`, 'success');
+            showNotification(`Added ${className} class!`, 'success');
 
             // Re-render picker
             await this._renderLevelPicker();
@@ -358,36 +374,73 @@ export class LevelUpModal {
                 return;
             }
 
-            // Find the last class leveled (highest level)
-            let lastClass = null;
-            let highestLevel = 0;
-            for (const cls of classes) {
-                if ((cls.levels || 0) > highestLevel) {
-                    highestLevel = cls.levels || 0;
-                    lastClass = cls;
+            // Determine which class was added last by checking progression history timestamps
+            let lastClassName = null;
+            let lastTimestamp = null;
+            let lastLevel = null;
+
+            if (character.progressionHistory) {
+                // Find the most recent timestamp across all classes
+                for (const className of Object.keys(character.progressionHistory)) {
+                    const classHistory = character.progressionHistory[className];
+                    for (const level of Object.keys(classHistory)) {
+                        const entry = classHistory[level];
+                        if (entry.timestamp && (!lastTimestamp || entry.timestamp > lastTimestamp)) {
+                            lastTimestamp = entry.timestamp;
+                            lastClassName = className;
+                            lastLevel = Number.parseInt(level);
+                        }
+                    }
                 }
             }
 
-            if (!lastClass) {
+            // Fallback: if no progression history, find class with highest level
+            if (!lastClassName) {
+                let highestLevel = 0;
+                for (const cls of classes) {
+                    if ((cls.levels || 0) > highestLevel) {
+                        highestLevel = cls.levels || 0;
+                        lastClassName = cls.name;
+                        lastLevel = cls.levels;
+                    }
+                }
+            }
+
+            if (!lastClassName) {
                 showNotification('Could not determine last level', 'error');
                 return;
             }
 
+            const classEntry = classes.find(c => c.name === lastClassName);
+            if (!classEntry) {
+                showNotification('Class not found', 'error');
+                return;
+            }
+
+            // Remove level from progression history if it exists
+            if (character.progressionHistory?.[lastClassName]?.[lastLevel]) {
+                delete character.progressionHistory[lastClassName][lastLevel];
+                // Clean up empty class history
+                if (Object.keys(character.progressionHistory[lastClassName]).length === 0) {
+                    delete character.progressionHistory[lastClassName];
+                }
+            }
+
             // Remove level
-            if (lastClass.levels <= 1) {
+            if (classEntry.levels <= 1) {
                 // Remove entire class if at level 1
-                levelUpService.removeClassLevel(character, lastClass.name);
-                eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, lastClass);
+                levelUpService.removeClassLevel(character, lastClassName);
+                eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, classEntry);
+                showNotification(`Removed ${lastClassName} class`, 'success');
             } else {
                 // Just decrement level
-                levelUpService.addClassLevel(character, lastClass.name, lastClass.levels - 1);
+                levelUpService.addClassLevel(character, lastClassName, classEntry.levels - 1);
+                showNotification(`Removed level from ${lastClassName}`, 'success');
             }
 
             // Update character and emit event
             AppState.setCurrentCharacter(character, { skipEvent: true });
             eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
-
-            showNotification(`Removed level from ${lastClass.name}`, 'success');
 
             // Re-render picker
             await this._renderLevelPicker();

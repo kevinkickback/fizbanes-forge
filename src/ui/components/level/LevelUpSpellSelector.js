@@ -54,11 +54,26 @@ export class LevelUpSpellSelector {
             const key = `${this.className}_${this.currentLevel}`;
             const previousSelections = this.session.stepData.selectedSpells[key] || [];
 
+            console.log('[LevelUpSpellSelector]', 'Loading previous selections:', {
+                key,
+                previousSelections,
+                sessionStepData: this.session.stepData,
+                spellDataCount: spellData.length
+            });
+
             // Find the actual spell objects from spellData for previous selections
             const initialSelections = previousSelections.map(prevSpell => {
                 const spellName = typeof prevSpell === 'string' ? prevSpell : prevSpell.name;
-                return spellData.find(spell => spell.name === spellName);
+                const foundSpell = spellData.find(spell => spell.name === spellName);
+                if (!foundSpell) {
+                    console.warn('[LevelUpSpellSelector]', 'Could not find spell in spellData:', spellName);
+                }
+                return foundSpell;
             }).filter(Boolean); // Filter out any not found
+
+            console.log('[LevelUpSpellSelector]', 'Initial selections resolved:', {
+                initialSelections: initialSelections.map(s => s.name)
+            });
 
             // Get the maximum spell level available at this character level
             const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
@@ -232,10 +247,41 @@ export class LevelUpSpellSelector {
             });
         }
 
+        // 3. Spells from progression history at OTHER levels (but same class)
+        if (this.session.originalCharacter?.progression?.spellSelections) {
+            const progressionClass = this.session.originalCharacter.progression?.classes?.find(c => c.name === this.className);
+            const classLevel = progressionClass?.levels || 0;
+
+            for (let lvl = 1; lvl <= classLevel; lvl++) {
+                // Skip the current level being edited
+                if (lvl === this.currentLevel) {
+                    continue;
+                }
+
+                const sessionKey = `${this.className}_${lvl}`;
+                const levelSpells = this.session.originalCharacter.progression.spellSelections[sessionKey] || [];
+
+                levelSpells.forEach(spell => {
+                    const spellName = typeof spell === 'string' ? spell : spell.name;
+                    if (spellName) alreadyKnown.add(spellName);
+                });
+            }
+        }
+
         console.log('[LevelUpSpellSelector] Already known spells:', Array.from(alreadyKnown));
 
         // Get all spells from SpellService
         const allSpells = this.spellService.getAllSpells();
+
+        // Get current level's selections to include them even if "already known"
+        const currentKey = `${this.className}_${this.currentLevel}`;
+        const currentLevelSelections = new Set();
+        if (this.session.stepData?.selectedSpells?.[currentKey]) {
+            this.session.stepData.selectedSpells[currentKey].forEach(spell => {
+                const spellName = typeof spell === 'string' ? spell : spell.name;
+                if (spellName) currentLevelSelections.add(spellName);
+            });
+        }
 
         // Filter by class eligibility, spell level, allowed sources, and exclude already known
         const availableSpells = allSpells.filter(spell => {
@@ -264,7 +310,12 @@ export class LevelUpSpellSelector {
                 return false;
             }
 
-            // Exclude spells already known
+            // Include spells selected for this level, even if already known
+            if (currentLevelSelections.has(spell.name)) {
+                return true;
+            }
+
+            // Exclude spells already known (from other levels/classes)
             if (alreadyKnown.has(spell.name)) {
                 return false;
             }

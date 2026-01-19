@@ -2656,3 +2656,120 @@ small.text-muted {
 		display: none !important;
 	}
 }
+
+/* ====================================== */
+/* Class Choice Accordion Items         */
+/* ====================================== */
+
+/* Accordion wrapper for class choices */
+#classChoicesAccordion {
+	border-radius: var(--border-radius);
+	overflow: hidden;
+}
+
+/* Accordion item styling */
+#classChoicesAccordion .accordion-item {
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	margin-bottom: 0.5rem;
+	border-radius: var(--border-radius) !important;
+	overflow: hidden;
+}
+
+#classChoicesAccordion .accordion-item:last-child {
+	margin-bottom: 0;
+}
+
+/* Accordion button (level header) */
+#classChoicesAccordion .accordion-button {
+	background: var(--secondary-color);
+	color: var(--text-color);
+	padding: 0.75rem 1rem;
+	font-size: 0.95rem;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	transition: background-color 0.2s ease;
+}
+
+#classChoicesAccordion .accordion-button:not(.collapsed) {
+	background: var(--secondary-color);
+	color: var(--text-color);
+	box-shadow: none;
+}
+
+#classChoicesAccordion .accordion-button:hover {
+	background: var(--hover-color);
+}
+
+#classChoicesAccordion .accordion-button:focus {
+	box-shadow: none;
+	border-color: var(--border-color);
+}
+
+#classChoicesAccordion .accordion-button::after {
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23999'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+	filter: brightness(0.8);
+}
+
+#classChoicesAccordion .accordion-button:not(.collapsed)::after {
+	filter: brightness(1);
+}
+
+/* Level badge in accordion header */
+#classChoicesAccordion .accordion-button .badge {
+	font-size: 0.75rem;
+	padding: 0.25rem 0.5rem;
+}
+
+/* Accordion body (choices container) */
+#classChoicesAccordion .accordion-body {
+	padding: 0.75rem;
+	background: var(--card-background);
+}
+
+/* Individual choice item */
+.choice-item {
+	padding-bottom: 0.5rem;
+	margin-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.choice-item:last-child {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+/* Choice item text styling */
+.choice-item strong {
+	color: var(--text-color);
+	font-weight: 600;
+}
+
+.choice-item .text-muted {
+	color: var(--text-muted);
+	font-size: 0.875rem;
+}
+
+/* Check mark icon for completed choices */
+.choice-item .fa-check-circle {
+	font-size: 1rem;
+}
+
+/* Badge within choice items */
+.choice-item .badge {
+	font-size: 0.75rem;
+	padding: 0.25rem 0.5rem;
+}
+
+/* Buttons in choice items */
+.choice-item .btn-sm {
+	padding: 0.375rem 0.75rem;
+	font-size: 0.875rem;
+	white-space: nowrap;
+}
+
+.choice-item .btn-sm i {
+	margin-right: 0.25rem;
+}

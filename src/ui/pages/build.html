@@ -79,13 +79,18 @@
     <!-- Class Selection -->
     <div class="col-12 mb-4" id="build-class">
         <div class="card">
-            <div class="card-header py-2">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center gap-3">
                 <h5 class="mb-0">Class</h5>
+                <div class="class-tabs" id="classTabs" style="display:none;">
+                    <div class="nav nav-pills" id="classTabsList"
+                        style="flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap;"></div>
+                </div>
             </div>
             <div class="card-body class-card-body">
                 <div class="mb-3">
                     <div class="class-selection-controls">
-                        <div class="class-selectors">
+                        <!-- Class and subclass dropdowns hidden - now managed through class features -->
+                        <div class="class-selectors" style="display: none;">
                             <div class="class-select-container">
                                 <select class="form-select" id="classSelect">
                                     <!-- Options will be populated dynamically -->
@@ -102,15 +107,6 @@
                                 <h6>Class Description</h6>
                                 <p>Select a Class to see their abilities, proficiencies, and other
                                     characteristics.</p>
-                            </div>
-                            <div class="class-tabs" id="classTabs" style="display:none;">
-                                <div class="nav nav-pills flex-wrap gap-2" id="classTabsList"></div>
-                            </div>
-                            <div class="alert alert-info small mt-2 mb-0" id="progressionHistoryNote"
-                                style="display:none;">
-                                <i class="fas fa-info-circle me-1"></i>
-                                <strong>Note:</strong> Level removal for multiclass characters will be available in a
-                                future update. Use the Level Up modal to add levels.
                             </div>
                         </div>
                     </div>

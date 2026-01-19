@@ -18,9 +18,14 @@ import { levelUpService } from '../../../services/LevelUpService.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
 import { sourceService } from '../../../services/SourceService.js';
+import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { LevelUpFeatureSelector } from '../level/LevelUpFeatureSelector.js';
+import { LevelUpSpellSelector } from '../level/LevelUpSpellSelector.js';
 
 export class ClassCard {
+	// Spell level ordinal names for UI display
+	static SPELL_LEVEL_ORDINALS = ['', '1st-level', '2nd-level', '3rd-level', '4th-level', '5th-level', '6th-level', '7th-level', '8th-level', '9th-level'];
+
 	constructor(_container) {
 		this._classService = classService;
 
@@ -62,12 +67,6 @@ export class ClassCard {
 
 	_setupEventListeners() {
 		// Store handler references for cleanup
-		this._classSelectedHandler = (classData) => {
-			this._handleClassChange({ target: { value: classData.value } });
-		};
-		this._subclassSelectedHandler = (subclassData) => {
-			this._handleSubclassChange({ target: { value: subclassData.value } });
-		};
 		this._characterUpdatedHandler = () => {
 			this._syncWithCharacterProgression();
 		};
@@ -81,9 +80,7 @@ export class ClassCard {
 			this._handleLevelUpComplete();
 		};
 
-		// Listen to view events via EventBus
-		eventBus.on(EVENTS.CLASS_SELECTED, this._classSelectedHandler);
-		eventBus.on(EVENTS.SUBCLASS_SELECTED, this._subclassSelectedHandler);
+		// Listen to view events via EventBus (dropdown events removed)
 		eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
@@ -92,12 +89,6 @@ export class ClassCard {
 
 	_cleanupEventListeners() {
 		// Manually remove all eventBus listeners
-		if (this._classSelectedHandler) {
-			eventBus.off(EVENTS.CLASS_SELECTED, this._classSelectedHandler);
-		}
-		if (this._subclassSelectedHandler) {
-			eventBus.off(EVENTS.SUBCLASS_SELECTED, this._subclassSelectedHandler);
-		}
 		if (this._characterUpdatedHandler) {
 			eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 		}
@@ -122,50 +113,52 @@ export class ClassCard {
 	async _loadSavedClassSelection() {
 		console.log('[ClassCard] _loadSavedClassSelection called');
 		try {
-			// Populate class dropdown first
-			await this._populateClassSelect();
-
 			const character = AppState.getCurrentCharacter();
 			console.log('[ClassCard] Current character:', character ? character.name : 'null');
-			const primaryClass = character?.getPrimaryClass();
+
+			// Check if character has class data in progression
+			if (!character || !character.progression?.classes || character.progression.classes.length === 0) {
+				console.log('[ClassCard] No class progression data found');
+				await this._renderClassTabsFromProgression();
+				this.resetClassDetails();
+				return; // No class data to load
+			}
+
+			const primaryClass = character.getPrimaryClass();
 			console.log('[ClassCard] Primary class:', primaryClass);
 
 			if (!primaryClass?.name) {
 				console.log('[ClassCard] No primary class found, rendering tabs and returning');
 				await this._renderClassTabsFromProgression();
+				this.resetClassDetails();
 				return; // No saved class to load
 			}
 
 			// Default to PHB if source is missing (legacy characters)
 			const classSource = primaryClass.source || 'PHB';
 
-			// Set the class selection if it exists in available options
-			const classValue = `${primaryClass.name}_${classSource}`;
-			console.log('[ClassCard] Setting class value:', classValue);
-
-			if (this._cardView.hasClassOption(classValue)) {
-				this._cardView.setSelectedClassValue(classValue);
-				// Update UI from character data (skip unsaved event)
-				await this._handleClassChange({ target: { value: classValue } }, true);
+			// Load class data directly without dropdown
+			const classData = this._classService.getClass(primaryClass.name, classSource);
+			if (classData) {
+				const fluffData = this._classService.getClassFluff(classData.name, classData.source);
+				await this._cardView.updateQuickDescription(classData, fluffData);
 
 				// Get subclass from progression.classes[]
 				const subclassName = primaryClass.subclass || null;
 				console.log('[ClassCard] Subclass name:', subclassName);
 
+				let subclassData = null;
 				if (subclassName) {
-					// Wait for subclass options to populate
-					await new Promise((resolve) => setTimeout(resolve, 100));
-
-					if (this._subclassView.hasSubclassOption(subclassName)) {
-						this._subclassView.setSelectedSubclassValue(subclassName);
-						// Optionally, update UI for subclass as well
-						// await this._handleSubclassChange({ target: { value: subclassName } }, true);
-					}
+					const subclasses = this._classService.getSubclasses(classData.name, classData.source);
+					subclassData = subclasses.find((sc) => sc.name === subclassName);
 				}
+
+				// Update class details with class and subclass data
+				await this.updateClassDetails(classData, subclassData);
 			} else {
 				console.warn(
 					'ClassCard',
-					`Saved class "${classValue}" not found in available options. Character might use a source that's not currently allowed.`,
+					`Saved class "${primaryClass.name}" (${classSource}) not found. Character might use a source that's not currently allowed.`,
 				);
 			}
 
@@ -176,167 +169,11 @@ export class ClassCard {
 		}
 	}
 
-	async _populateClassSelect() {
-		try {
-			const classes = this._classService.getAllClasses();
-			if (!classes || classes.length === 0) {
-				console.error('ClassCard', 'No classes available to populate dropdown');
-				return;
-			}
-
-			// Filter classes by allowed sources (supports PHB variants)
-			const filteredClasses = classes.filter((cls) =>
-				sourceService.isSourceAllowed(cls.source),
-			);
-
-			if (filteredClasses.length === 0) {
-				console.error(
-					'ClassCard',
-					'No classes available after source filtering',
-				);
-				return;
-			}
-
-			// Populate view
-			this._cardView.populateClassSelect(filteredClasses);
-		} catch (error) {
-			console.error('ClassCard', 'Error populating class dropdown:', error);
-		}
-	}
-
-	async _populateSubclassSelect(classData) {
-		if (!classData) {
-			this._subclassView.reset();
-			return;
-		}
-
-		try {
-			// Get character level
-			const character = CharacterManager.getCurrentCharacter();
-			const characterLevel = character?.getTotalLevel() || 1;
-
-			// Get the level at which this class gains its subclass
-			const subclassLevel = this._getSubclassLevel(classData);
-
-			// Check if character is high enough level for subclass
-			if (!subclassLevel || characterLevel < subclassLevel) {
-				this._subclassView.resetWithMessage(
-					`Available at level ${subclassLevel || '?'}`
-				);
-				return;
-			}
-
-			// Get subclasses from the service
-			const subclasses = this._classService.getSubclasses(
-				classData.name,
-				classData.source,
-			);
-
-			if (!subclasses || subclasses.length === 0) {
-				this._subclassView.reset();
-				return;
-			}
-
-			// Filter subclasses by allowed sources
-			const filteredSubclasses = subclasses.filter((sc) => {
-				// Prefer explicit subclass source, then generic source, and only then classSource
-				const subclassSource = sc.subclassSource || sc.source || sc.classSource;
-				return sourceService.isSourceAllowed(subclassSource);
-			});
-
-			// Populate view
-			this._subclassView.populateSubclassSelect(filteredSubclasses);
-		} catch (error) {
-			console.error(
-				'ClassCard',
-				'Error loading subclasses for dropdown:',
-				error,
-			);
-		}
-	}
+	// Dropdown population methods removed - class/subclass now managed through feature selection
 
 	//-------------------------------------------------------------------------
 	// Event Handlers
 	//-------------------------------------------------------------------------
-
-	async _handleClassChange(event) {
-		try {
-			const [className, source] = event.target.value.split('_');
-
-			if (!className || !source) {
-				this.resetClassDetails();
-				await this._populateSubclassSelect(null);
-				return;
-			}
-			const classData = this._classService.getClass(className, source);
-			if (!classData) {
-				console.error('ClassCard', `Class not found: ${className} (${source})`);
-				return;
-			}
-
-			// Get fluff data for quick description
-			const fluffData = this._classService.getClassFluff(
-				classData.name,
-				classData.source,
-			);
-
-			// Keep tab state aligned with the selected class
-			this._activeClassTab = classData.name;
-			await this._renderClassTabsFromProgression();
-
-			// Update the UI with the selected class data
-			await this._cardView.updateQuickDescription(classData, fluffData);
-			await this.updateClassDetails(classData);
-			await this._populateSubclassSelect(classData);
-
-			// Update character data
-			this._updateCharacterClass(classData);
-
-			// Emit event to notify about character update (unsaved changes)
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-				character: CharacterManager.getCurrentCharacter(),
-			});
-		} catch (error) {
-			console.error('ClassCard', 'Error handling class change:', error);
-		}
-	}
-
-	async _handleSubclassChange(event) {
-		try {
-			const subclassName = event.target.value;
-			const classValue = this._cardView.getSelectedClassValue();
-			const [className, source] = classValue.split('_');
-
-			if (!className || !source) {
-				return;
-			}
-
-			const classData = this._classService.getClass(className, source);
-			if (!classData) {
-				console.error('ClassCard', `Class not found: ${className} (${source})`);
-				return;
-			}
-
-			let subclassData = null;
-			if (subclassName) {
-				const subclasses = this._classService.getSubclasses(className, source);
-				subclassData = subclasses.find((sc) => sc.name === subclassName);
-			}
-
-			// Update the UI with the subclass data
-			await this.updateClassDetails(classData, subclassData);
-
-			// Update character data
-			this._updateCharacterClass(classData, subclassName);
-
-			// Emit event to notify about character update (unsaved changes)
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-				character: CharacterManager.getCurrentCharacter(),
-			});
-		} catch (error) {
-			console.error('ClassCard', 'Error handling subclass change:', error);
-		}
-	}
 
 	async _handleCharacterChanged() {
 		try {
@@ -357,7 +194,7 @@ export class ClassCard {
 
 		// If the active tab changed, also sync the class select/details without firing change events
 		if (this._activeClassTab) {
-			await this._selectClassByName(this._activeClassTab, { triggerChange: false });
+			await this._selectClassByName(this._activeClassTab);
 		}
 	}
 
@@ -403,12 +240,6 @@ export class ClassCard {
 			this._classTabsWrapper.style.display = 'none';
 			this._classTabsList.innerHTML = '';
 			this._activeClassTab = classes[0]?.name || null;
-
-			// Hide progression history note for single class
-			const progressionNote = document.getElementById('progressionHistoryNote');
-			if (progressionNote) {
-				progressionNote.style.display = 'none';
-			}
 			return;
 		}
 
@@ -422,20 +253,14 @@ export class ClassCard {
 			.map((cls) => {
 				const isActive = cls.name === this._activeClassTab;
 				const activeClass = isActive ? 'active' : '';
-				return `<button type="button" class="nav-link ${activeClass}" data-class-name="${cls.name}">
-					${cls.name} <span class="badge bg-secondary ms-1">Lv ${cls.levels}</span>
+				return `<button type="button" class="nav-link py-1 px-3 ${activeClass}" data-class-name="${cls.name}" style="font-size: 0.875rem;">
+					${cls.name} <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;">Lv ${cls.levels}</span>
 				</button>`;
 			})
 			.join('');
 
 		this._classTabsList.innerHTML = buttonsHtml;
 		this._classTabsWrapper.style.display = 'block';
-
-		// Show progression history note for multiclass
-		const progressionNote = document.getElementById('progressionHistoryNote');
-		if (progressionNote) {
-			progressionNote.style.display = 'block';
-		}
 
 		// Bind click handlers
 		this._classTabsList.querySelectorAll('[data-class-name]').forEach((btn) => {
@@ -448,45 +273,38 @@ export class ClassCard {
 					b.classList.toggle('active', b === btn);
 				});
 
-				await this._selectClassByName(name, { triggerChange: true });
+				await this._selectClassByName(name);
 			});
 		});
 	}
 
-	async _selectClassByName(className, { triggerChange = true, skipTabUpdate = false } = {}) {
+	async _selectClassByName(className, { skipTabUpdate = false } = {}) {
 		if (!className) return;
 
-		// Try to match existing class select option by name prefix
-		const classSelect = this._cardView.getClassSelect();
-		const match = Array.from(classSelect?.options || []).find((opt) =>
-			opt.value.startsWith(`${className}_`),
-		);
+		// Get character to find class source
+		const character = CharacterManager.getCurrentCharacter();
+		const progressionClass = character?.progression?.classes?.find(c => c.name === className);
+		const classSource = progressionClass?.source || 'PHB';
 
-		if (match) {
-			classSelect.value = match.value;
-			if (triggerChange) {
-				// Trigger normal flow (this will emit CHARACTER_UPDATED once)
-				classSelect.dispatchEvent(new Event('change', { bubbles: true }));
-			} else {
-				// Update UI without emitting events
-				const [clsName, source] = match.value.split('_');
-				const classData = this._classService.getClass(clsName, source);
-				if (classData) {
-					const fluffData = this._classService.getClassFluff(classData.name, classData.source);
-					await this._cardView.updateQuickDescription(classData, fluffData);
-					await this.updateClassDetails(classData);
-					await this._populateSubclassSelect(classData);
-				}
-			}
+		// Load class data directly by name and source
+		const classData = this._classService.getClass(className, classSource);
+		if (!classData) {
+			console.warn('[ClassCard]', `Class not found: ${className} (${classSource})`);
 			return;
 		}
 
-		// Fallback: load class data directly by name
-		const classData = this._classService.getClass(className);
-		if (!classData) return;
+		// Get subclass if selected
+		const subclassName = progressionClass?.subclass;
+		let subclassData = null;
+		if (subclassName) {
+			const subclasses = this._classService.getSubclasses(className, classSource);
+			subclassData = subclasses.find((sc) => sc.name === subclassName);
+		}
+
+		// Update UI
 		const fluffData = this._classService.getClassFluff(classData.name, classData.source);
 		await this._cardView.updateQuickDescription(classData, fluffData);
-		await this.updateClassDetails(classData);
+		await this.updateClassDetails(classData, subclassData);
 
 		if (!skipTabUpdate) {
 			await this._renderClassTabsFromProgression();
@@ -535,71 +353,43 @@ export class ClassCard {
 			return;
 		}
 
-		const level = character?.getTotalLevel() || 1;
 		const className = classData.name;
 
-		// Check and render subclass notification
-		this._renderSubclassNotification(classData, className, level);
+		// Subclass notification removed - now handled as a mandatory feature choice
 
-		// Check and render ASI section
-		this._renderASISection(className, level);
+		// Get all class choices across all levels (including spell selections and ASI)
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const classLevel = progressionClass?.levels || 0;
 
-		// Get class choices at current level
-		const choices = await this._getClassChoicesAtLevel(className, level, subclassData);
+		const allChoices = [];
+		for (let lvl = 1; lvl <= classLevel; lvl++) {
+			const levelChoices = await this._getClassChoicesAtLevel(className, lvl, subclassData);
+			allChoices.push(...levelChoices);
+		}
 
-		// Check and render spell notification
-		this._renderSpellNotification(className);
+		// Sort all choices by level to ensure proper display order
+		allChoices.sort((a, b) => a.level - b.level);
 
-		// Show container if any section has content
-		const hasChoices = choices.length > 0;
-		const hasSubclassNotification = document.getElementById('subclassChoiceSection')?.style.display !== 'none';
-		const hasASISection = document.getElementById('asiChoiceSection')?.style.display !== 'none';
-		const hasSpellNotification = document.getElementById('spellNotificationSection')?.style.display !== 'none';
+		// Hide the old spell notification section since spells are now integrated
+		this._hideSpellNotification();
+		// Hide the old separate ASI section since ASI is now integrated
+		this._hideASISection();
 
-		if (hasChoices || hasSubclassNotification || hasASISection || hasSpellNotification) {
+		// Show container if any choices exist
+		const hasChoices = allChoices.length > 0;
+
+		if (hasChoices) {
 			this._showClassChoices();
 		} else {
 			this._hideClassChoices();
 		}
 
 		if (hasChoices) {
-			await this._renderClassChoices(className, choices);
+			await this._renderClassChoices(className, allChoices);
 		}
 	}
 
-	_renderSubclassNotification(classData, className, level) {
-		const character = CharacterManager.getCurrentCharacter();
-		const progressionClass = character.progression?.classes?.find(c => c.name === className);
-
-		// Check if subclass is already selected
-		if (progressionClass?.subclass) {
-			this._hideSubclassNotification();
-			return;
-		}
-
-		// Get subclass level requirement
-		const subclassLevel = this._getSubclassLevel(classData) || 3;
-
-		if (level >= subclassLevel) {
-			const container = document.getElementById('subclassChoiceSection');
-			if (!container) return;
-
-			container.innerHTML = `
-				<div class="alert alert-warning mb-3">
-					<div class="d-flex justify-content-between align-items-center">
-						<div>
-							<i class="fas fa-exclamation-triangle me-2"></i>
-							<strong>Subclass Required</strong>
-							<p class="mb-0 mt-1">You've reached level ${subclassLevel}. Please select a subclass from the dropdown above.</p>
-						</div>
-					</div>
-				</div>
-			`;
-			container.style.display = 'block';
-		} else {
-			this._hideSubclassNotification();
-		}
-	}
+	// Subclass notification removed - now handled as a mandatory feature choice in _getClassChoicesAtLevel
 
 	_renderASISection(className) {
 		const character = CharacterManager.getCurrentCharacter();
@@ -820,6 +610,7 @@ export class ClassCard {
 
 	_renderSpellNotification(className) {
 		const classData = this._classService.getClass(className);
+		const character = CharacterManager.getCurrentCharacter();
 
 		// Check if class is a spellcaster
 		if (!classData?.spellcastingAbility) {
@@ -827,37 +618,313 @@ export class ClassCard {
 			return;
 		}
 
-		// Check if there are pending spell choices
-		// This would need SpellSelectionService.getPendingSpellChoices() to be implemented
-		// For now, show a basic notification
+		// Get progression info for this class
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const classLevel = progressionClass?.levels || 0;
+
+		if (classLevel === 0) {
+			this._hideSpellNotification();
+			return;
+		}
+
+		// Get spell choices for each level
+		const spellChoices = this._getSpellChoicesForLevels(className, classLevel);
+
+		// Filter to only show levels that need spell selection
+		const pendingLevels = spellChoices.filter(choice => choice.cantrips > 0 || choice.spells > 0);
+
+		if (pendingLevels.length === 0) {
+			this._hideSpellNotification();
+			return;
+		}
+
+		// Render spell selection card
 		const container = document.getElementById('spellNotificationSection');
 		if (!container) return;
 
-		container.innerHTML = `
-			<div class="alert alert-info mb-3">
-				<div class="d-flex justify-content-between align-items-center">
-					<div>
-						<i class="fas fa-wand-sparkles me-2"></i>
-						<strong>Spell Selection Available</strong>
-						<p class="mb-0 mt-1">Visit the Spells page to select your spells for ${className}.</p>
+		// Get existing spell selections from character
+		const classSpellcasting = character.spellcasting?.classes?.[className];
+		const existingSpells = classSpellcasting?.spellsKnown || [];
+
+		let cardsHTML = '';
+		for (const choice of pendingLevels) {
+			// Get spells selected for this level from session data (stored in character progression)
+			const sessionKey = `${className}_${choice.level}`;
+			const levelSpells = character.progression?.spellSelections?.[sessionKey] || [];
+
+			// Separate cantrips from leveled spells
+			const selectedCantrips = levelSpells.filter(s => {
+				const spell = existingSpells.find(es => es.name === s);
+				return spell && spell.level === 0;
+			});
+			const selectedLeveledSpells = levelSpells.filter(s => {
+				const spell = existingSpells.find(es => es.name === s);
+				return spell && spell.level > 0;
+			});
+
+			// Build badge display for spell requirements
+			const badges = [];
+			if (choice.cantrips > 0) {
+				const cantripCount = selectedCantrips.length;
+				const cantripClass = cantripCount === choice.cantrips ? 'bg-success' : cantripCount > choice.cantrips ? 'bg-danger' : '';
+				badges.push(`<span class="badge me-1 ${cantripClass}" style="${!cantripClass ? 'background-color: var(--accent-color);' : ''}">Cantrips ${cantripCount}/${choice.cantrips}</span>`);
+			}
+			if (choice.spells > 0) {
+				// Use centralized method to get max spell level
+				const maxSpellLevel = this._getMaxSpellLevel(className, choice.level);
+				const spellCount = selectedLeveledSpells.length;
+				const spellClass = spellCount === choice.spells ? 'bg-success' : spellCount > choice.spells ? 'bg-danger' : '';
+				const spellLevelName = ClassCard.SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level';
+				badges.push(`<span class="badge ${spellClass}" style="${!spellClass ? 'background-color: var(--accent-color);' : ''}">${spellLevelName} ${spellCount}/${choice.spells}</span>`);
+			}
+			const badgeDisplay = badges.join('');
+
+			// Build selected spell display
+			let selectedDisplay = 'None selected';
+			if (levelSpells.length > 0) {
+				selectedDisplay = levelSpells.join(', ');
+			}
+
+			cardsHTML += `
+				<div class="card mb-3">
+					<div class="card-header d-flex justify-content-between align-items-center">
+						<div>
+							<h6 class="mb-0"><i class="fas fa-wand-sparkles"></i> Spell Selection</h6>
+							<small class="text-muted">Level ${choice.level}</small>
+						</div>
+						<div>
+							${badgeDisplay}
+						</div>
 					</div>
-					<button class="btn btn-primary btn-sm" id="goToSpells">
-						Go to Spells <i class="fas fa-arrow-right"></i>
-					</button>
+					<div class="card-body">
+						<div class="d-flex justify-content-between align-items-center">
+							<div class="flex-grow-1">
+								<div class="text-muted small">
+									<strong>Selected:</strong> ${selectedDisplay}
+								</div>
+							</div>
+							<button class="btn btn-primary btn-sm ms-2" data-spell-select-level="${choice.level}" data-spell-select-class="${className}">
+								<i class="fas fa-wand-sparkles"></i> Choose
+							</button>
+						</div>
+					</div>
 				</div>
-			</div>
-		`;
+			`;
+		}
+
+		container.innerHTML = cardsHTML;
 		container.style.display = 'block';
 
-		// Attach listener for "Go to Spells" button
-		const goToSpellsBtn = document.getElementById('goToSpells');
-		if (goToSpellsBtn) {
-			this._cleanup.on(goToSpellsBtn, 'click', () => {
-				// Navigate to spells page
-				const { NavigationController } = require('../../../app/NavigationController.js');
-				NavigationController.getInstance().navigate('spells');
+		// Attach listeners for spell selection buttons
+		const spellButtons = container.querySelectorAll('[data-spell-select-level]');
+		for (const button of spellButtons) {
+			this._cleanup.on(button, 'click', () => {
+				const level = parseInt(button.dataset.spellSelectLevel, 10);
+				const className = button.dataset.spellSelectClass;
+				this._handleSpellSelection(className, level);
 			});
 		}
+	}
+
+	/**
+	 * Get spell selection requirements for each level up to classLevel
+	 * @param {string} className - Class name
+	 * @param {number} classLevel - Current class level
+	 * @returns {Array} Array of {level, cantrips, spells}
+	 * @private
+	 */
+	_getSpellChoicesForLevels(className, classLevel) {
+		const classData = this._classService.getClass(className);
+		if (!classData) return [];
+
+		const choices = [];
+
+		// For each level, calculate new spells/cantrips available
+		for (let level = 1; level <= classLevel; level++) {
+			const cantripsAtLevel = spellSelectionService._getCantripsKnown(className, level);
+			const cantripsAtPrevLevel = level > 1 ? spellSelectionService._getCantripsKnown(className, level - 1) : 0;
+			const newCantrips = cantripsAtLevel - cantripsAtPrevLevel;
+
+			let newSpells = 0;
+
+			// Check if class learns spells on level up
+			if (classData.spellsKnownProgressionFixed) {
+				// Wizard: learns X spells per level
+				const index = Math.max(0, Math.min(level - 1, classData.spellsKnownProgressionFixed.length - 1));
+				newSpells = classData.spellsKnownProgressionFixed[index] || 0;
+			} else if (classData.spellsKnownProgression) {
+				// Bard, Sorcerer, Warlock, Ranger: total spells known increases
+				const spellsAtLevel = spellSelectionService._getSpellsKnownLimit(className, level);
+				const spellsAtPrevLevel = level > 1 ? spellSelectionService._getSpellsKnownLimit(className, level - 1) : 0;
+				newSpells = spellsAtLevel - spellsAtPrevLevel;
+			}
+			// For prepared casters (Cleric, Druid, Paladin), they don't "learn" spells at level up
+			// so newSpells stays 0
+
+			if (newCantrips > 0 || newSpells > 0) {
+				choices.push({
+					level,
+					cantrips: newCantrips,
+					spells: newSpells,
+					maxSpellLevel: this._getMaxSpellLevel(className, level)
+				});
+			}
+		}
+
+		return choices;
+	}
+
+	_getMaxSpellLevel(className, characterLevel) {
+		const classData = this._classService.getClass(className);
+		if (!classData) return 0;
+
+		const progression = classData.casterProgression;
+		let casterLevel = characterLevel;
+
+		// Calculate effective caster level based on progression type
+		if (progression === '1/2') {
+			casterLevel = Math.floor(characterLevel / 2);
+		} else if (progression === '1/3') {
+			casterLevel = Math.floor(characterLevel / 3);
+		} else if (progression === 'pact') {
+			// Warlock uses pact magic - special progression
+			if (characterLevel >= 9) return 5;
+			if (characterLevel >= 7) return 4;
+			if (characterLevel >= 5) return 3;
+			if (characterLevel >= 3) return 2;
+			return 1;
+		}
+
+		// Standard spell level progression
+		if (casterLevel >= 17) return 9;
+		if (casterLevel >= 15) return 8;
+		if (casterLevel >= 13) return 7;
+		if (casterLevel >= 11) return 6;
+		if (casterLevel >= 9) return 5;
+		if (casterLevel >= 7) return 4;
+		if (casterLevel >= 5) return 3;
+		if (casterLevel >= 3) return 2;
+		if (casterLevel >= 1) return 1;
+		return 0;
+	}
+
+	/**
+	 * Handle spell selection for a specific level
+	 * @param {string} className - Class name
+	 * @param {number} level - Level to select spells for
+	 * @private
+	 */
+	async _handleSpellSelection(className, level) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) {
+			console.warn('[ClassCard]', 'No character found for spell selection');
+			return;
+		}
+
+		// Get existing selections for this level
+		const sessionKey = `${className}_${level}`;
+		const existingSelections = character.progression?.spellSelections?.[sessionKey] || [];
+
+		console.log('[ClassCard]', '_handleSpellSelection:', {
+			className,
+			level,
+			sessionKey,
+			existingSelections,
+			progressionSpellSelections: character.progression?.spellSelections
+		});
+
+		// Create a mock session for LevelUpSpellSelector
+		const mockSession = {
+			originalCharacter: character,
+			stagedChanges: character,
+			stepData: {
+				selectedSpells: {
+					[sessionKey]: [...existingSelections] // Preload existing selections (copy array)
+				}
+			}
+		};
+
+		// Create and show spell selector
+		const spellSelector = new LevelUpSpellSelector(
+			mockSession,
+			this, // parent step
+			className,
+			level
+		);
+
+		try {
+			await spellSelector.show();
+			// Note: CHARACTER_UPDATED event and display refresh happen in updateSpellSelection callback
+		} catch (error) {
+			console.error('[ClassCard]', 'Error in spell selection:', error);
+		}
+	}
+
+	/**
+	 * Update spell selection callback for LevelUpSpellSelector
+	 * @param {string} className - Class name
+	 * @param {number} level - Level
+	 * @param {Array} selectedSpells - Array of spell objects
+	 */
+	async updateSpellSelection(className, level, selectedSpells) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) {
+			console.warn('[ClassCard]', 'No character found for updateSpellSelection');
+			return;
+		}
+
+		// Ensure spellcasting is initialized for this class
+		if (!character.spellcasting?.classes?.[className]) {
+			const classLevel = character.progression.classes.find(c => c.name === className)?.levels || level;
+			spellSelectionService.initializeSpellcastingForClass(character, className, classLevel);
+		}
+
+		// Get the session key
+		const sessionKey = `${className}_${level}`;
+
+		// Initialize spell selections tracking if needed
+		if (!character.progression.spellSelections) {
+			character.progression.spellSelections = {};
+		}
+
+		// Get previous selections for this level
+		const previousSelections = character.progression.spellSelections[sessionKey] || [];
+
+		// Remove spells that are no longer selected
+		for (const prevSpellName of previousSelections) {
+			const stillSelected = selectedSpells.some(s => s.name === prevSpellName);
+			if (!stillSelected) {
+				spellSelectionService.removeKnownSpell(character, className, prevSpellName);
+			}
+		}
+
+		// Add newly selected spells
+		for (const spell of selectedSpells) {
+			// Check if spell is already in known spells
+			const alreadyKnown = character.spellcasting.classes[className].spellsKnown.some(
+				s => s.name === spell.name
+			);
+
+			if (!alreadyKnown) {
+				spellSelectionService.addKnownSpell(character, className, spell);
+			}
+		}
+
+		// Update progression tracking
+		character.progression.spellSelections[sessionKey] = selectedSpells.map(s => s.name);
+
+		console.log('[ClassCard]', 'Updated spell selection:', {
+			className,
+			level,
+			selectedSpells: selectedSpells.map(s => s.name),
+			knownSpells: character.spellcasting.classes[className].spellsKnown.map(s => s.name)
+		});
+
+		// Emit CHARACTER_UPDATED event after spells are added
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+
+		// Refresh spell notification display
+		this._renderSpellNotification(className);
 	}
 
 	_hideSubclassNotification() {
@@ -886,16 +953,62 @@ export class ClassCard {
 
 	async _getClassChoicesAtLevel(className, level, subclassData = null) {
 		const choices = [];
+		const character = CharacterManager.getCurrentCharacter();
 
-		// Check for optional feature progressions (subclass is handled by main dropdown)
 		const classData = this._classService.getClass(className);
 		if (!classData) return choices;
+
+		// Check for subclass selection at appropriate level
+		// Different classes get subclass at different levels:
+		// - Warlock, Cleric: Level 1
+		// - Most classes: Level 3
+		// - Some classes: Level 2
+		// Get the level at which this class gains subclass from ClassService
+		const subclassLevel = this._classService.getSubclassLevel(classData);
+
+		// Default to level 3 if subclass level can't be determined
+		const effectiveSubclassLevel = subclassLevel !== null ? subclassLevel : 3;
+
+		// Always add subclass choice at the appropriate level (even if already selected, so users can see/change it)
+		// This handles classes that get subclass at level 1 (Warlock, Cleric) or level 3 (most others)
+		if (level === effectiveSubclassLevel) {
+			console.log(`[ClassCard] Adding subclass choice for ${className} at level ${level} (subclass level: ${effectiveSubclassLevel})`);
+
+			const availableSubclasses = this._classService.getSubclasses(className, classData.source)
+				.filter((sc) => {
+					const subclassSource = sc.subclassSource || sc.source || sc.classSource;
+					return sourceService.isSourceAllowed(subclassSource);
+				})
+				.map(sc => ({
+					id: `${sc.name}_${sc.subclassSource || sc.source || sc.classSource}`,
+					name: sc.name,
+					source: sc.subclassSource || sc.source || sc.classSource,
+					description: this._getSubclassDescription(sc),
+					entries: sc.subclassFeatures?.[0]?.entries || [],
+					shortName: sc.shortName
+				}));
+
+			if (availableSubclasses.length > 0) {
+				choices.push({
+					id: `${className.toLowerCase()}_subclass_${level}`,
+					name: 'Subclass Selection',
+					type: 'subclass',
+					options: availableSubclasses,
+					required: true,
+					count: 1,
+					level
+				});
+			}
+		}
 
 		// Check for optional feature progressions
 		const progressions = classData.optionalfeatureProgression || [];
 		for (const progression of progressions) {
-			const count = this._getCountAtLevel(progression.progression, level);
-			if (count > 0) {
+			const count = this._classService.getCountAtLevel(progression.progression, level);
+			const prevCount = level > 1 ? this._classService.getCountAtLevel(progression.progression, level - 1) : 0;
+			const newCount = count - prevCount; // Only new selections at this level
+
+			if (newCount > 0) {
 				const featureTypes = progression.featureType || [];
 				const options = optionalFeatureService.getFeaturesByType(featureTypes)
 					.filter(opt => sourceService.isSourceAllowed(opt.source))
@@ -911,10 +1024,10 @@ export class ClassCard {
 					choices.push({
 						id: `${className.toLowerCase()}_${progression.name.toLowerCase().replace(/\s+/g, '_')}_${level}`,
 						name: progression.name,
-						type: this._mapFeatureType(featureTypes[0]),
+						type: this._classService.mapFeatureType(featureTypes[0]),
 						options,
 						required: true,
-						count,
+						count: newCount, // Use only the new count for this level
 						level
 					});
 				}
@@ -924,8 +1037,11 @@ export class ClassCard {
 		// Check subclass optional feature progressions
 		if (subclassData?.optionalfeatureProgression) {
 			for (const progression of subclassData.optionalfeatureProgression) {
-				const count = this._getCountAtLevel(progression.progression, level);
-				if (count > 0) {
+				const count = this._classService.getCountAtLevel(progression.progression, level);
+				const prevCount = level > 1 ? this._classService.getCountAtLevel(progression.progression, level - 1) : 0;
+				const newCount = count - prevCount; // Only new selections at this level
+
+				if (newCount > 0) {
 					const featureTypes = progression.featureType || [];
 					const options = optionalFeatureService.getFeaturesByType(featureTypes)
 						.filter(opt => sourceService.isSourceAllowed(opt.source))
@@ -941,10 +1057,10 @@ export class ClassCard {
 						choices.push({
 							id: `${className.toLowerCase()}_${subclassData.shortName.toLowerCase()}_${progression.name.toLowerCase().replace(/\s+/g, '_')}_${level}`,
 							name: progression.name,
-							type: this._mapFeatureType(featureTypes[0]),
+							type: this._classService.mapFeatureType(featureTypes[0]),
 							options,
 							required: true,
-							count,
+							count: newCount, // Use only the new count for this level
 							level
 						});
 					}
@@ -952,47 +1068,61 @@ export class ClassCard {
 			}
 		}
 
-		return choices;
-	}
+		// Add spell selections for each level
+		if (character && classData?.spellcastingAbility) {
+			const progressionClass = character.progression?.classes?.find(c => c.name === className);
+			const classLevel = progressionClass?.levels || 0;
 
-	_getSubclassLevel(classData) {
-		if (!classData?.classFeatures) return null;
+			// Get spell choices for all levels up to current class level
+			const spellChoices = this._getSpellChoicesForLevels(className, classLevel);
 
-		// Find the first classFeature with gainSubclassFeature flag
-		for (const feature of classData.classFeatures) {
-			if (feature.gainSubclassFeature === true) {
-				// Parse level from classFeature string format: "Feature Name|ClassName||Level"
-				const parts = feature.classFeature.split('|');
-				const level = parseInt(parts[parts.length - 1], 10);
-				return Number.isNaN(level) ? null : level;
+			for (const spellChoice of spellChoices) {
+				// Only add spell choices that match this level
+				if (spellChoice.level === level && (spellChoice.cantrips > 0 || spellChoice.spells > 0)) {
+					choices.push({
+						id: `${className.toLowerCase()}_spell_selection_${spellChoice.level}`,
+						name: 'Spell Selection',
+						type: 'spell',
+						required: true,
+						count: spellChoice.cantrips + spellChoice.spells,
+						level: spellChoice.level,
+						spellData: spellChoice
+					});
+				}
 			}
 		}
 
-		return null;
+		// Check for ASI at this level
+		const asiLevels = levelUpService._getASILevelsForClass(className);
+		if (asiLevels.includes(level)) {
+			// Check if ASI was already used at this level
+			const levelUps = character.progression?.levelUps || [];
+			const asiUsed = levelUps.some(lu => {
+				const isThisLevel = lu.toLevel === level;
+				const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0) ||
+					(lu.appliedFeats && lu.appliedFeats.length > 0);
+				return isThisLevel && hasChanges;
+			});
+
+			// Always show ASI choice (even if used, so user can see what was selected)
+			choices.push({
+				id: `${className.toLowerCase()}_asi_${level}`,
+				name: 'Ability Score Improvement',
+				type: 'asi',
+				required: true,
+				count: 1,
+				level,
+				asiUsed
+			});
+		}
+
+		// Sort by level
+		choices.sort((a, b) => a.level - b.level);
+
+		return choices;
 	}
 
-	_getCountAtLevel(progression, level) {
-		if (Array.isArray(progression)) {
-			return progression[level - 1] || 0;
-		}
-		if (typeof progression === 'object') {
-			return progression[level.toString()] || 0;
-		}
-		return 0;
-	}
-
-	_mapFeatureType(featureTypeCode) {
-		const typeMap = {
-			'EI': 'invocation',
-			'MM': 'metamagic',
-			'MV:B': 'maneuver',
-			'FS:F': 'fighting-style',
-			'FS:R': 'fighting-style',
-			'FS:P': 'fighting-style',
-			'PB': 'patron'
-		};
-		return typeMap[featureTypeCode] || 'other';
-	}
+	// Helper methods moved to ClassService for better separation of concerns
 
 	_getFeatureDescription(feature) {
 		if (!feature.entries) return '';
@@ -1003,16 +1133,65 @@ export class ClassCard {
 		return '';
 	}
 
+	_getSubclassDescription(subclass) {
+		if (!subclass.subclassFeatures || subclass.subclassFeatures.length === 0) return '';
+		const firstFeature = subclass.subclassFeatures[0];
+		if (firstFeature?.entries) {
+			const firstEntry = firstFeature.entries.find(e => typeof e === 'string');
+			if (firstEntry) {
+				return `${firstEntry.replace(/\{@[^}]+\}/g, '').substring(0, 150)}...`;
+			}
+		}
+		return '';
+	}
+
 	async _renderClassChoices(className, choices) {
 		const container = document.getElementById('classChoicesContent');
 		if (!container) return;
 
-		let html = '';
-
+		// Group choices by level
+		const choicesByLevel = {};
 		for (const choice of choices) {
-			html += this._renderFeatureChoice(choice);
+			const level = choice.level || 1;
+			if (!choicesByLevel[level]) {
+				choicesByLevel[level] = [];
+			}
+			choicesByLevel[level].push(choice);
 		}
 
+		// Sort levels
+		const levels = Object.keys(choicesByLevel).map(Number).sort((a, b) => a - b);
+		const highestLevel = levels[levels.length - 1];
+
+		// Build accordion HTML
+		let html = '<div class="accordion accordion-flush" id="classChoicesAccordion">';
+
+		for (const level of levels) {
+			const levelChoices = choicesByLevel[level];
+			const isExpanded = level === highestLevel; // Expand highest level by default
+			const collapseId = `classChoicesLevel${level}`;
+
+			html += `
+				<div class="accordion-item">
+					<h2 class="accordion-header" id="heading${collapseId}">
+						<button class="accordion-button ${isExpanded ? '' : 'collapsed'}" type="button" 
+							data-bs-toggle="collapse" data-bs-target="#${collapseId}" 
+							aria-expanded="${isExpanded}" aria-controls="${collapseId}">
+							<strong>Level ${level} Choices</strong>
+							<span class="badge bg-secondary ms-2">${levelChoices.length}</span>
+						</button>
+					</h2>
+					<div id="${collapseId}" class="accordion-collapse collapse ${isExpanded ? 'show' : ''}" 
+						aria-labelledby="heading${collapseId}" data-bs-parent="#classChoicesAccordion">
+						<div class="accordion-body p-2">
+							${levelChoices.map(choice => this._renderFeatureChoice(choice)).join('')}
+						</div>
+					</div>
+				</div>
+			`;
+		}
+
+		html += '</div>';
 		container.innerHTML = html;
 
 		// Attach listeners
@@ -1024,6 +1203,21 @@ export class ClassCard {
 		const primaryClass = character?.getPrimaryClass();
 		const className = primaryClass?.name;
 
+		// Handle spell selection differently
+		if (choice.type === 'spell') {
+			return this._renderSpellChoice(choice, className);
+		}
+
+		// Handle subclass selection specially
+		if (choice.type === 'subclass') {
+			return this._renderSubclassChoice(choice, className);
+		}
+
+		// Handle ASI specially
+		if (choice.type === 'asi') {
+			return this._renderASIChoice(choice, className);
+		}
+
 		// Get current selections from progression history
 		const currentSelections = progressionHistoryService.getChoices(
 			character,
@@ -1032,6 +1226,7 @@ export class ClassCard {
 		)?.[choice.type]?.selected || [];
 
 		const isMultiSelect = (choice.count || 1) > 1;
+		const isComplete = currentSelections.length >= (choice.count || 1);
 		let selectedDisplay = 'None selected';
 
 		if (currentSelections.length > 0) {
@@ -1043,31 +1238,196 @@ export class ClassCard {
 		}
 
 		return `
-			<div class="card mb-3" data-choice-card="${choice.id}">
-				<div class="card-header d-flex justify-content-between align-items-center">
-					<div>
-						<h6 class="mb-0">${this._getFeatureIcon(choice.type)} ${choice.name}</h6>
-						<small class="text-muted">Level ${choice.level}</small>
+			<div class="choice-item border-bottom pb-2 mb-2" data-choice-card="${choice.id}">
+				<div class="d-flex justify-content-between align-items-start">
+					<div class="flex-grow-1">
+						<div class="d-flex align-items-center mb-1">
+							<strong>${this._getFeatureIcon(choice.type)} ${choice.name}</strong>
+							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+						</div>
+						<div class="text-muted small" data-selected-display="${choice.id}">
+							${selectedDisplay}
+						</div>
 					</div>
-					${isMultiSelect ? `<span class="badge" style="background-color: var(--accent-color);" data-selection-count="${choice.id}">${currentSelections.length}/${choice.count}</span>` : ''}
+					<button 
+						class="btn btn-sm ${isComplete ? 'btn-outline-secondary' : 'btn-primary'}" 
+						data-feature-select-btn="${choice.id}"
+						data-feature-type="${choice.type}"
+						data-feature-level="${choice.level}"
+						data-is-multi="${isMultiSelect}"
+						data-max-count="${choice.count || 1}">
+						<i class="fas fa-list"></i> ${isComplete ? 'Change' : 'Choose'}
+					</button>
 				</div>
-				<div class="card-body">
-					<div class="d-flex justify-content-between align-items-center">
-						<div class="flex-grow-1">
-							<div class="text-muted small" data-selected-display="${choice.id}">
-								<strong>Selected:</strong> ${selectedDisplay}
+			</div>
+		`;
+	}
+
+	_renderSubclassChoice(choice, className) {
+		const character = CharacterManager.getCurrentCharacter();
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const currentSubclass = progressionClass?.subclass;
+
+		const selectedDisplay = currentSubclass || 'None selected';
+		const isComplete = !!currentSubclass;
+
+		return `
+			<div class="choice-item border-bottom pb-2 mb-2" data-choice-card="${choice.id}">
+				<div class="d-flex justify-content-between align-items-start">
+					<div class="flex-grow-1">
+						<div class="d-flex align-items-center mb-1">
+							<strong><i class="fas fa-star"></i> ${choice.name}</strong>
+							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+						</div>
+						<div class="text-muted small" data-selected-display="${choice.id}">
+							${selectedDisplay}
+						</div>
+					</div>
+					<button 
+						class="btn btn-sm ${isComplete ? 'btn-outline-secondary' : 'btn-primary'}" 
+						data-feature-select-btn="${choice.id}"
+						data-feature-type="${choice.type}"
+						data-feature-level="${choice.level}"
+						data-is-multi="false"
+						data-max-count="1">
+						<i class="fas fa-list"></i> ${isComplete ? 'Change' : 'Choose'}
+					</button>
+				</div>
+			</div>
+		`;
+	}
+
+	_renderSpellChoice(choice, className) {
+		const character = CharacterManager.getCurrentCharacter();
+
+		const sessionKey = `${className}_${choice.level}`;
+		const levelSpells = character.progression?.spellSelections?.[sessionKey] || [];
+
+		// Build display of selected spells
+		let selectedDisplay = 'None selected';
+		if (levelSpells.length > 0) {
+			selectedDisplay = levelSpells.join(', ');
+		}
+
+		const isComplete = levelSpells.length > 0;
+
+		return `
+			<div class="choice-item border-bottom pb-2 mb-2" data-choice-card="${choice.id}">
+				<div class="d-flex justify-content-between align-items-start">
+					<div class="flex-grow-1">
+						<div class="d-flex align-items-center mb-1">
+							<strong><i class="fas fa-wand-sparkles"></i> Spell Selection</strong>
+							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+						</div>
+						<div class="text-muted small">
+							${selectedDisplay}
+						</div>
+					</div>
+					<button 
+						class="btn btn-sm ${isComplete ? 'btn-outline-secondary' : 'btn-primary'}" 
+						data-spell-select-level="${choice.level}" 
+						data-spell-select-class="${className}">
+						<i class="fas fa-wand-sparkles"></i> ${isComplete ? 'Change' : 'Choose'}
+					</button>
+				</div>
+			</div>
+		`;
+	}
+
+	_renderASIChoice(choice) {
+		const character = CharacterManager.getCurrentCharacter();
+
+		// Check if ASI was used at this level
+		const levelUps = character.progression?.levelUps || [];
+		const asiRecord = levelUps.find(lu => {
+			const isThisLevel = lu.toLevel === choice.level;
+			const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0) ||
+				(lu.appliedFeats && lu.appliedFeats.length > 0);
+			return isThisLevel && hasChanges;
+		});
+
+		const asiUsed = !!asiRecord;
+		const hasFeat = asiRecord?.appliedFeats && asiRecord.appliedFeats.length > 0;
+		const hasASI = asiRecord?.changedAbilities && Object.keys(asiRecord.changedAbilities).length > 0;
+
+		// Determine what was selected
+		let selectedChoice = 'none'; // 'asi', 'feat', or 'none'
+		let selectedDisplay = 'None selected';
+
+		if (asiUsed) {
+			if (hasFeat) {
+				selectedChoice = 'feat';
+				selectedDisplay = `Selected: Feat — ${asiRecord.appliedFeats.join(', ')}`;
+			} else if (hasASI) {
+				selectedChoice = 'asi';
+				const abilityChanges = Object.entries(asiRecord.changedAbilities)
+					.map(([ability, change]) => `+${change} ${toTitleCase(attAbvToFull(ability))}`)
+					.join(', ');
+				selectedDisplay = `Selected: ${abilityChanges}`;
+			}
+		}
+
+		// Determine radio button state
+		const asiChecked = selectedChoice === 'asi' || selectedChoice === 'none';
+		const featChecked = selectedChoice === 'feat';
+		const radiosDisabled = asiUsed; // Disable after selection
+
+		// Determine button text and icon based on state
+		let buttonText, buttonIcon;
+		if (asiUsed) {
+			// Show "Change" when already selected
+			buttonText = 'Change';
+			buttonIcon = 'fa-list';
+		} else if (featChecked) {
+			// Show contextual for feat when not yet selected
+			buttonText = 'Go to Feats';
+			buttonIcon = 'fa-list';
+		} else {
+			// Show contextual for ASI when not yet selected
+			buttonText = 'Increase Scores';
+			buttonIcon = 'fa-arrow-up';
+		}
+
+		return `
+			<div class="choice-item border-bottom pb-2 mb-2" data-choice-card="${choice.id}">
+				<div class="d-flex justify-content-between align-items-start flex-column flex-md-row gap-2">
+					<div class="flex-grow-1">
+						<div class="d-flex align-items-center mb-2">
+							<strong><i class="fas fa-arrow-up"></i> Ability Score Improvement</strong>
+							${asiUsed ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+						</div>
+						<div class="text-muted small mb-2">
+							${selectedDisplay}
+						</div>
+						<div class="d-flex flex-column gap-1">
+							<div class="form-check form-check-inline">
+								<input class="form-check-input" type="radio" name="asiChoice_${choice.level}" 
+									id="asiRadio_${choice.level}" value="asi" ${asiChecked ? 'checked' : ''}
+									${radiosDisabled ? 'disabled' : ''}
+									data-asi-radio="${choice.level}">
+								<label class="form-check-label" for="asiRadio_${choice.level}">
+									Ability Score Increase
+								</label>
+							</div>
+							<div class="form-check form-check-inline">
+								<input class="form-check-input" type="radio" name="asiChoice_${choice.level}" 
+									id="featRadio_${choice.level}" value="feat" ${featChecked ? 'checked' : ''}
+									${radiosDisabled ? 'disabled' : ''}
+									data-feat-radio="${choice.level}">
+								<label class="form-check-label" for="featRadio_${choice.level}">
+									Feat
+								</label>
 							</div>
 						</div>
-						<button 
-							class="btn btn-primary btn-sm ms-2" 
-							data-feature-select-btn="${choice.id}"
-							data-feature-type="${choice.type}"
-							data-feature-level="${choice.level}"
-							data-is-multi="${isMultiSelect}"
-							data-max-count="${choice.count || 1}">
-							<i class="fas fa-list"></i> Choose
-						</button>
 					</div>
+					<button 
+						class="btn btn-sm ${asiUsed ? 'btn-outline-secondary' : 'btn-primary'} align-self-md-start" 
+						data-asi-action-btn="${choice.level}"
+						data-current-choice="${selectedChoice}"
+						data-asi-used="${asiUsed}">
+						<i class="fas ${buttonIcon}" data-asi-icon="${choice.level}"></i> 
+						<span data-asi-btn-text="${choice.level}">${buttonText}</span>
+					</button>
 				</div>
 			</div>
 		`;
@@ -1080,12 +1440,25 @@ export class ClassCard {
 			'maneuver': '<i class="fas fa-fist-raised"></i>',
 			'fighting-style': '<i class="fas fa-shield-alt"></i>',
 			'patron': '<i class="fas fa-hand-sparkles"></i>',
+			'spell': '<i class="fas fa-wand-sparkles"></i>',
+			'subclass': '<i class="fas fa-star"></i>',
+			'asi': '<i class="fas fa-arrow-up"></i>',
 			'other': '<i class="fas fa-star"></i>'
 		};
 		return icons[type] || icons.other;
 	}
 
 	_attachClassChoiceListeners(container, className) {
+		// Spell selection buttons
+		const spellButtons = container.querySelectorAll('[data-spell-select-level]');
+		spellButtons.forEach(button => {
+			this._cleanup.on(button, 'click', () => {
+				const level = parseInt(button.dataset.spellSelectLevel, 10);
+				const className = button.dataset.spellSelectClass;
+				this._handleSpellSelection(className, level);
+			});
+		});
+
 		// Feature selection buttons
 		const featureButtons = container.querySelectorAll('[data-feature-select-btn]');
 		featureButtons.forEach(button => {
@@ -1099,18 +1472,205 @@ export class ClassCard {
 				await this._handleFeatureSelection(className, featureType, featureLevel, featureId, isMulti, maxCount);
 			});
 		});
+
+		// ASI selection - radio buttons and action button
+		const asiActionButtons = container.querySelectorAll('[data-asi-action-btn]');
+		asiActionButtons.forEach(button => {
+			const level = parseInt(button.dataset.asiActionBtn, 10);
+			const asiUsed = button.dataset.asiUsed === 'true';
+
+			// Radio button change handlers (only if not yet selected)
+			if (!asiUsed) {
+				const asiRadio = container.querySelector(`[data-asi-radio="${level}"]`);
+				const featRadio = container.querySelector(`[data-feat-radio="${level}"]`);
+				const buttonTextEl = button.querySelector(`[data-asi-btn-text="${level}"]`);
+				const buttonIconEl = button.querySelector(`[data-asi-icon="${level}"]`);
+
+				const updateButtonState = () => {
+					if (featRadio?.checked) {
+						buttonTextEl.textContent = 'Go to Feats';
+						buttonIconEl.className = 'fas fa-list';
+					} else {
+						buttonTextEl.textContent = 'Increase Scores';
+						buttonIconEl.className = 'fas fa-arrow-up';
+					}
+				};
+
+				if (asiRadio) {
+					this._cleanup.on(asiRadio, 'change', updateButtonState);
+				}
+				if (featRadio) {
+					this._cleanup.on(featRadio, 'change', updateButtonState);
+				}
+			}
+
+			// Button click handler
+			this._cleanup.on(button, 'click', () => {
+				if (asiUsed) {
+					// When changing, show options to pick ASI or Feat again
+					this._handleASIChange(level);
+				} else {
+					// First time selection
+					const featRadio = container.querySelector(`[data-feat-radio="${level}"]`);
+					const isSelectingFeat = featRadio?.checked;
+					this._handleASISelection(level, isSelectingFeat);
+				}
+			});
+		});
+	}
+
+	async _handleASIChange(level) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		// Clear the existing selection from levelUps
+		const levelUps = character.progression?.levelUps || [];
+		const existingASI = levelUps.find(lu => lu.toLevel === level);
+
+		if (existingASI) {
+			// Clear the old ASI bonuses from character.abilityBonuses
+			if (existingASI.changedAbilities) {
+				for (const [ability, bonus] of Object.entries(existingASI.changedAbilities)) {
+					// Normalize ability name (str -> strength, dex -> dexterity, etc.)
+					const normalizedAbility = ability
+						.toLowerCase()
+						.replace(/^str$/, 'strength')
+						.replace(/^dex$/, 'dexterity')
+						.replace(/^con$/, 'constitution')
+						.replace(/^int$/, 'intelligence')
+						.replace(/^wis$/, 'wisdom')
+						.replace(/^cha$/, 'charisma');
+
+					character.removeAbilityBonus(normalizedAbility, bonus, 'Ability Score Increase');
+					// Also remove from base scores
+					character.abilityScores[ability] = (character.abilityScores[ability] || 10) - bonus;
+				}
+			}
+
+			// Remove the levelUp record
+			const existingIndex = levelUps.findIndex(lu => lu.toLevel === level);
+			if (existingIndex !== -1) {
+				levelUps.splice(existingIndex, 1);
+			}
+		}
+
+		// Re-render to show selection UI again
+		await this._syncWithCharacterProgression();
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+
+		// Notify ability score card to update
+		const event = new CustomEvent('abilityScoresChanged', {
+			detail: { character },
+		});
+		document.dispatchEvent(event);
+	}
+
+	async _handleASISelection(level, isSelectingFeat = false) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		if (isSelectingFeat) {
+			// Scroll to feats section
+			const featsSection = document.getElementById('build-feats');
+			if (featsSection) {
+				featsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				// Highlight the section briefly
+				featsSection.style.transition = 'background-color 0.3s';
+				featsSection.style.backgroundColor = 'var(--accent-color-dim)';
+				setTimeout(() => {
+					featsSection.style.backgroundColor = '';
+				}, 1500);
+			}
+			return;
+		}
+
+		// Otherwise, open ASI modal for ability score selection
+		const primaryClass = character.getPrimaryClass();
+		if (!primaryClass) return;
+
+		// Import ASIModal
+		const { ASIModal } = await import('../level/ASIModal.js');
+
+		// Check if ASI was already used at this level
+		const levelUps = character.progression?.levelUps || [];
+		const existingASI = levelUps.find(lu => {
+			const isThisLevel = lu.toLevel === level;
+			const hasChanges = (lu.changedAbilities && Object.keys(lu.changedAbilities).length > 0);
+			return isThisLevel && hasChanges;
+		});
+
+		const currentASI = existingASI?.changedAbilities || {};
+
+		// Show ASI modal
+		const modal = new ASIModal(level, currentASI);
+
+		try {
+			const result = await modal.show();
+
+			if (result) {
+				// Apply ability score changes and track as bonuses
+				for (const [ability, bonus] of Object.entries(result)) {
+					// Update base score
+					const currentScore = character.abilityScores[ability] || 10;
+					character.abilityScores[ability] = currentScore + bonus;
+
+					// Track as ability bonus for display in ability scores card
+					character.addAbilityBonus(ability, bonus, 'Ability Score Increase');
+				}
+
+				// Record in progression history
+				levelUpService.recordLevelUp(character, level - 1, level, {
+					changedAbilities: result,
+					appliedFeats: [],
+					appliedFeatures: [],
+				});
+
+				// Update UI
+				await this._syncWithCharacterProgression();
+				eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+
+				// Notify ability score card to update
+				const event = new CustomEvent('abilityScoresChanged', {
+					detail: { character },
+				});
+				document.dispatchEvent(event);
+			}
+		} catch (error) {
+			console.error('[ClassCard] Error in ASI selection:', error);
+		}
 	}
 
 	async _handleFeatureSelection(className, featureType, level, featureId, isMulti, maxCount) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
-		// Get current selections
+		// Handle subclass selection separately
+		if (featureType === 'subclass') {
+			return this._handleSubclassFeatureSelection(className, level, featureId);
+		}
+
+		// Get current selections at this level
 		const currentSelections = progressionHistoryService.getChoices(
 			character,
 			className,
 			level
 		)?.[featureType]?.selected || [];
+
+		// Get all selections from OTHER levels to exclude them
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const classLevel = progressionClass?.levels || 0;
+		const otherLevelSelections = new Set();
+
+		// Collect selections from all other levels
+		for (let lvl = 1; lvl <= classLevel; lvl++) {
+			if (lvl !== level) {
+				const levelChoices = progressionHistoryService.getChoices(character, className, lvl);
+				const levelSelections = levelChoices?.[featureType]?.selected || [];
+				for (const sel of levelSelections) {
+					otherLevelSelections.add(sel);
+				}
+			}
+		}
 
 		// Get available options based on feature type
 		const featureTypeMap = {
@@ -1123,7 +1683,13 @@ export class ClassCard {
 
 		const featureTypeCodes = featureTypeMap[featureType] || [];
 		const availableFeatures = optionalFeatureService.getFeaturesByType(featureTypeCodes)
-			.filter(opt => sourceService.isSourceAllowed(opt.source));
+			.filter(opt => sourceService.isSourceAllowed(opt.source))
+			.filter(opt => {
+				// Exclude features already selected at OTHER levels
+				const featureName = opt.name;
+				const featureId = `${opt.name}_${opt.source}`;
+				return !otherLevelSelections.has(featureName) && !otherLevelSelections.has(featureId);
+			});
 
 		// Create a minimal session-like object for the selector
 		const mockSession = {
@@ -1139,7 +1705,7 @@ export class ClassCard {
 			mockSession,
 			this,
 			className,
-			featureTypeCodes[0] || featureType,
+			featureType, // Use the mapped type, not the code
 			level,
 			featureId
 		);
@@ -1169,9 +1735,57 @@ export class ClassCard {
 		await selector.show(mappedFeatures, selectedFeatures, isMulti, maxCount);
 	}
 
+	async _handleSubclassFeatureSelection(className, level, featureId) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		// Get available subclasses
+		const classData = this._classService.getClass(className);
+		const availableSubclasses = this._classService.getSubclasses(className, classData.source)
+			.filter((sc) => {
+				const subclassSource = sc.subclassSource || sc.source || sc.classSource;
+				return sourceService.isSourceAllowed(subclassSource);
+			})
+			.map(sc => ({
+				id: `${sc.name}_${sc.subclassSource || sc.source || sc.classSource}`,
+				name: sc.name,
+				source: sc.subclassSource || sc.source || sc.classSource,
+				description: this._getSubclassDescription(sc),
+				entries: sc.subclassFeatures?.[0]?.entries || [],
+				shortName: sc.shortName
+			}));
+
+		// Create a minimal session-like object for the selector
+		const mockSession = {
+			originalCharacter: character,
+			stagedChanges: character,
+			stepData: {
+				selectedFeatures: {}
+			}
+		};
+
+		// Show feature selector
+		const selector = new LevelUpFeatureSelector(
+			mockSession,
+			this,
+			className,
+			'subclass',
+			level,
+			featureId
+		);
+
+		await selector.show(availableSubclasses, [], false, 1);
+	}
+
 	updateFeatureSelection(className, featureType, level, selectedNames) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
+
+		// Handle subclass selection separately
+		if (featureType === 'subclass') {
+			this._updateSubclassSelection(className, selectedNames);
+			return;
+		}
 
 		// Save selections to progression history
 		const choices = {};
@@ -1189,6 +1803,141 @@ export class ClassCard {
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
 		});
+	}
+
+	_updateSubclassSelection(className, selectedNames) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character || selectedNames.length === 0) return;
+
+		// Extract subclass name from the selected ID (format: "SubclassName_Source")
+		const selectedId = selectedNames[0];
+		const subclassName = selectedId.split('_')[0];
+
+		// Get class data
+		const classData = this._classService.getClass(className);
+		if (!classData) return;
+
+		// Get current subclass before changing
+		const progressionClass = character.progression?.classes?.find(c => c.name === className);
+		const oldSubclass = progressionClass?.subclass;
+
+		// Check if subclass is actually changing
+		const isChanging = oldSubclass && oldSubclass !== subclassName;
+
+		if (isChanging) {
+			console.log(`[ClassCard] Subclass changing from ${oldSubclass} to ${subclassName} - clearing old subclass data`);
+
+			// 1. Clear subclass-specific features from progression.classes[].features
+			if (progressionClass?.features) {
+				// Remove features that came from the old subclass
+				const oldSubclassData = this._classService.getSubclasses(className, classData.source)
+					.find((sc) => sc.name === oldSubclass);
+
+				if (oldSubclassData) {
+					// Get all old subclass feature names
+					const oldSubclassFeatureNames = new Set();
+					const classLevel = progressionClass.levels || 1;
+					const oldFeatures = this._classService.getSubclassFeatures(
+						className,
+						oldSubclassData.shortName || oldSubclass,
+						classLevel,
+						oldSubclassData.source || classData.source
+					);
+
+					for (const feature of oldFeatures) {
+						oldSubclassFeatureNames.add(feature.name);
+					}
+
+					// Remove old subclass features
+					progressionClass.features = (progressionClass.features || []).filter(
+						featureName => !oldSubclassFeatureNames.has(featureName)
+					);
+				}
+			}
+
+			// 2. Clear subclass-specific optional feature choices from progression history
+			// This includes invocations, metamagic, maneuvers, etc. that might be subclass-restricted
+			const classLevel = progressionClass?.levels || 1;
+			for (let level = 1; level <= classLevel; level++) {
+				const choices = progressionHistoryService.getChoices(character, className, level);
+				if (choices) {
+					// Clear optional feature choices that might be subclass-specific
+					// We'll let the user re-select them for the new subclass
+					if (choices.invocation) {
+						console.log(`[ClassCard] Clearing invocation choices at level ${level}`);
+						delete choices.invocation;
+					}
+					if (choices.metamagic) {
+						console.log(`[ClassCard] Clearing metamagic choices at level ${level}`);
+						delete choices.metamagic;
+					}
+					if (choices['fighting-style']) {
+						console.log(`[ClassCard] Clearing fighting-style choices at level ${level}`);
+						delete choices['fighting-style'];
+					}
+					if (choices.maneuver) {
+						console.log(`[ClassCard] Clearing maneuver choices at level ${level}`);
+						delete choices.maneuver;
+					}
+
+					// Update the progression history with cleared choices
+					progressionHistoryService.recordChoices(character, className, level, choices);
+				}
+			}
+
+			// 3. Clear subclass-specific spells if the spellcasting is subclass-dependent
+			// Some subclasses grant specific spell lists (e.g., Cleric domains)
+			if (character.spellcasting?.classes?.[className]) {
+				// Clear spell selections from progression.spellSelections for this class
+				// The user will need to re-select appropriate spells for the new subclass
+				if (character.progression?.spellSelections) {
+					for (let level = 1; level <= classLevel; level++) {
+						const sessionKey = `${className}_${level}`;
+						if (character.progression.spellSelections[sessionKey]) {
+							console.log(`[ClassCard] Clearing spell selections at level ${level}`);
+							delete character.progression.spellSelections[sessionKey];
+						}
+					}
+				}
+
+				// Note: We keep spellsKnown intact for now, but the user can use the spell selection
+				// UI to remove incompatible spells and add new ones
+				console.log(`[ClassCard] Spell selections cleared - user should review and update spells`);
+			}
+		}
+
+		// Update character's subclass in progression.classes[]
+		if (progressionClass) {
+			progressionClass.subclass = subclassName;
+
+			// Get new subclass data to add subclass features
+			const subclasses = this._classService.getSubclasses(className, classData.source);
+			const subclassData = subclasses.find((sc) => sc.name === subclassName);
+
+			if (subclassData) {
+				// Update UI with new subclass data
+				this.updateClassDetails(classData, subclassData);
+			}
+		}
+
+		// Emit event to notify about character update
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+			character: CharacterManager.getCurrentCharacter(),
+		});
+
+		// Show notification if subclass was changed
+		if (isChanging) {
+			// Import notification service dynamically to avoid circular dependencies
+			import('../../lib/NotificationCenter.js').then(({ notificationCenter }) => {
+				notificationCenter.show(
+					`Subclass changed to ${subclassName}. Please review and update your class features, spells, and other subclass-specific choices.`,
+					'warning',
+					5000
+				);
+			}).catch(err => {
+				console.error('[ClassCard] Failed to show notification:', err);
+			});
+		}
 	}
 
 	async _updateFeatureDisplay(className) {

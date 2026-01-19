@@ -83,7 +83,7 @@ test('wizard spell selection after level-up should show pending choices', async 
         console.log('Checking for spell notification on Build page...');
         const spellNotification = page.locator('#spellNotificationSection');
         await expect(spellNotification).toBeVisible({ timeout: 5000 });
-        
+
         const spellNotificationText = await spellNotification.textContent();
         console.log(`Spell notification: ${spellNotificationText}`);
         expect(spellNotificationText).toContain('spell');
@@ -98,7 +98,7 @@ test('wizard spell selection after level-up should show pending choices', async 
         console.log('Checking for pending spell choices alert...');
         const pendingAlert = page.locator('#pendingSpellChoicesAlert');
         await expect(pendingAlert).toBeVisible({ timeout: 5000 });
-        
+
         const pendingAlertText = await pendingAlert.textContent();
         console.log(`Pending alert: ${pendingAlertText}`);
 

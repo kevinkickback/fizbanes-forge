@@ -72,6 +72,7 @@ class LevelUpService {
         classEntry = {
             name: className,
             source,
+            levels: level,
             hitPoints: [],
             features: [],
             spellSlots: {},

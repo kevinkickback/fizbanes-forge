@@ -362,6 +362,61 @@ class ClassService extends BaseDataService {
 		const countAtNew = this.getOptionalFeatureCountAtLevel(className, newLevel, featureTypes, source);
 		return countAtNew > countAtCurrent;
 	}
+
+	/**
+	 * Get the level at which a class gains its subclass
+	 * @param {Object} classData - Class data object
+	 * @returns {number|null} Level number or null if not found
+	 */
+	getSubclassLevel(classData) {
+		if (!classData?.classFeatures) return null;
+
+		// Find the first classFeature with gainSubclassFeature flag
+		for (const feature of classData.classFeatures) {
+			if (feature.gainSubclassFeature === true) {
+				// Parse level from classFeature string format: "Feature Name|ClassName||Level"
+				const parts = feature.classFeature.split('|');
+				const level = parseInt(parts[parts.length - 1], 10);
+				return Number.isNaN(level) ? null : level;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get count from a progression array or object at a specific level
+	 * @param {Array|Object} progression - Progression data (array indexed by level-1, or object with level keys)
+	 * @param {number} level - Character level (1-20)
+	 * @returns {number} Count at this level
+	 */
+	getCountAtLevel(progression, level) {
+		if (Array.isArray(progression)) {
+			return progression[level - 1] || 0;
+		}
+		if (typeof progression === 'object') {
+			return progression[level.toString()] || 0;
+		}
+		return 0;
+	}
+
+	/**
+	 * Map feature type code to readable feature type name
+	 * @param {string} featureTypeCode - Feature type code (e.g., 'EI', 'MM', 'FS:F')
+	 * @returns {string} Readable feature type name
+	 */
+	mapFeatureType(featureTypeCode) {
+		const typeMap = {
+			'EI': 'invocation',
+			'MM': 'metamagic',
+			'MV:B': 'maneuver',
+			'FS:F': 'fighting-style',
+			'FS:R': 'fighting-style',
+			'FS:P': 'fighting-style',
+			'PB': 'patron'
+		};
+		return typeMap[featureTypeCode] || 'other';
+	}
 }
 
 // Create and export singleton instance
