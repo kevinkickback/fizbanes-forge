@@ -92,6 +92,9 @@ class PageHandlerImpl {
 				case 'preview':
 					await this.initializePreviewPage();
 					break;
+				case 'layout-test':
+					await this.initializeLayoutTestPage();
+					break;
 				default:
 					console.debug('PageHandler', 'No special initialization for page', {
 						pageName,
@@ -1010,6 +1013,27 @@ class PageHandlerImpl {
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing spells page', error);
 			showNotification('Error loading spells page', 'error');
+		}
+	}
+
+	async initializeLayoutTestPage() {
+		console.info('PageHandler', 'Initializing layout test page');
+
+		try {
+			// Import and initialize the demo module
+			const { SplitCardDemo } = await import('../ui/scripts/layout-test.js');
+
+			// Create instance and await initialization
+			const demo = new SplitCardDemo();
+			await demo.init();
+
+			// Store for cleanup if needed
+			window._splitCardDemoInstance = demo;
+
+			console.info('PageHandler', 'Layout test page initialized successfully');
+		} catch (error) {
+			console.error('PageHandler', 'Error initializing layout test page', error);
+			showNotification('Error loading layout test page', 'error');
 		}
 	}
 }

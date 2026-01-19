@@ -1358,7 +1358,136 @@ small.text-muted {
 	white-space: nowrap;
 }
 
-/* Race Selection Styling */
+/* Race Selection Styling - Split Pane Layout */
+.race-card-body.split-card-body {
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+	position: relative;
+	align-items: stretch;
+}
+
+.race-card-body .choices-panel {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	overflow: hidden;
+}
+
+.race-card-body .info-panel {
+	width: 350px;
+	min-width: 350px;
+	max-height: 600px;
+	background: black;
+	border-radius: 0.375rem;
+	padding: 1rem;
+	overflow-y: auto;
+	position: relative;
+	transition:
+		opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		margin 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		visibility 0s 0s;
+	transform-origin: right center;
+}
+
+.race-card-body .info-panel.collapsed {
+	opacity: 0;
+	transform: translateX(0) scaleX(0);
+	pointer-events: none;
+	width: 0;
+	min-width: 0;
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+	visibility: hidden;
+	max-height: 0;
+	transition:
+		opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		margin 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		visibility 0s 0.3s;
+}
+
+.race-card-body .section-header h6 {
+	color: var(--text-primary);
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.race-card-body .race-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	overflow-y: auto;
+	max-height: 500px;
+}
+
+.race-card-body .race-item {
+	padding: 1rem;
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: 0.375rem;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.race-card-body .race-item:hover {
+	border-color: var(--bs-primary);
+	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+	background: var(--hover-bg);
+}
+
+.race-card-body .race-item.selected {
+	background: rgba(var(--bs-primary-rgb), 0.1);
+	border-color: var(--bs-primary);
+}
+
+.race-card-body .inline-dropdown-container {
+	flex-shrink: 0;
+	width: auto;
+	min-width: 200px;
+	max-width: 50%;
+}
+
+.race-card-body .inline-dropdown-container select {
+	font-size: 0.875rem;
+	padding: 0.25rem 0.5rem;
+}
+
+.race-card-body .info-content {
+	animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.race-card-body .info-content h6 {
+	color: var(--text-primary);
+	font-weight: 600;
+	margin-bottom: 0.75rem;
+}
+
+/* Race Selection Styling - Legacy */
 .race-select-container {
 	width: 200px;
 	flex-shrink: 0;

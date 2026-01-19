@@ -254,6 +254,13 @@ class NavigationControllerImpl {
 			title: 'Preview',
 		});
 
+		// Register demo/test route (development only)
+		this.router.register('layout-test', {
+			template: 'layout-test.html',
+			requiresCharacter: false,
+			title: 'Split Card Layout Demo',
+		});
+
 		console.info('[Router]', 'All routes registered', {
 			routes: this.router.getAllRoutes(),
 		});

@@ -21,14 +21,19 @@ export class RaceCard {
 	constructor() {
 		this._raceService = raceService;
 
-		this._cardView = new RaceCardView();
-
-		this._subraceView = new SubracePickerView();
+		// DOM elements
+		this._choicesPanel = document.getElementById('raceChoicesPanel');
+		this._raceList = document.getElementById('raceList');
+		this._infoPanel = document.getElementById('raceInfoPanel');
 
 		this._detailsView = new RaceDetailsView();
 
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
+
+		// Track current selection
+		this._selectedRace = null;
+		this._selectedSubrace = null;
 
 		// Initialize the component
 		this.initialize();
@@ -47,6 +52,7 @@ export class RaceCard {
 				.then(() => {
 					// NOW set up event listeners and load saved selection
 					this._setupEventListeners();
+					this._populateRaceList();
 					this._loadSavedRaceSelection();
 				})
 				.catch((error) => {
@@ -63,34 +69,21 @@ export class RaceCard {
 
 	_setupEventListeners() {
 		// Store handler references for cleanup
-		this._raceSelectedHandler = (raceData) => {
-			this._handleRaceChange({ target: { value: raceData.value } });
-		};
-		this._subraceSelectedHandler = (subraceData) => {
-			this._handleSubraceChange({ target: { value: subraceData.value } });
-		};
 		this._characterSelectedHandler = () => {
 			this._handleCharacterChanged();
 		};
 		this._sourcesChangedHandler = () => {
+			this._populateRaceList();
 			this._loadSavedRaceSelection();
 		};
 
-		// Listen to view events via EventBus
-		eventBus.on(EVENTS.RACE_SELECTED, this._raceSelectedHandler);
-		eventBus.on(EVENTS.SUBRACE_SELECTED, this._subraceSelectedHandler);
+		// Listen to EventBus
 		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
 	}
 
 	_cleanupEventListeners() {
 		// Manually remove all eventBus listeners
-		if (this._raceSelectedHandler) {
-			eventBus.off(EVENTS.RACE_SELECTED, this._raceSelectedHandler);
-		}
-		if (this._subraceSelectedHandler) {
-			eventBus.off(EVENTS.SUBRACE_SELECTED, this._subraceSelectedHandler);
-		}
 		if (this._characterSelectedHandler) {
 			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		}
@@ -105,6 +98,225 @@ export class RaceCard {
 	//-------------------------------------------------------------------------
 	// Data Loading Methods
 	//-------------------------------------------------------------------------
+
+	async _populateRaceList() {
+		if (!this._raceList) return;
+
+		try {
+			const races = this._raceService.getAllRaces();
+			if (!races || races.length === 0) {
+				console.error('RaceCard', 'No races available to populate list');
+				return;
+			}
+
+			// Filter races by allowed sources
+			const filteredRaces = races.filter((race) =>
+				sourceService.isSourceAllowed(race.source),
+			);
+
+			if (filteredRaces.length === 0) {
+				console.error('RaceCard', 'No races available after source filtering');
+				return;
+			}
+
+			// Sort races by name
+			const sortedRaces = [...filteredRaces].sort((a, b) =>
+				a.name.localeCompare(b.name),
+			);
+
+			// Clear existing content
+			this._raceList.innerHTML = '';
+
+			// Create race items
+			for (const race of sortedRaces) {
+				await this._createRaceItem(race);
+			}
+
+			console.info('[RaceCard]', `Populated ${sortedRaces.length} races`);
+		} catch (error) {
+			console.error('RaceCard', 'Error populating race list:', error);
+		}
+	}
+
+	async _createRaceItem(race) {
+		const subraces = this._raceService.getSubraces(race.name, race.source);
+		const hasSubraces = subraces && subraces.length > 0;
+		const raceId = this.sanitizeId(race.name);
+
+		const raceItem = document.createElement('div');
+		raceItem.className = 'race-item';
+		raceItem.setAttribute('data-race', `${race.name}_${race.source}`);
+		raceItem.setAttribute('data-info', raceId);
+
+		const itemWrapper = document.createElement('div');
+		itemWrapper.className = 'race-item-wrapper';
+
+		itemWrapper.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <input type="radio" name="race" value="${race.name}_${race.source}" class="form-check-input">
+                <div class="flex-grow-1">
+                    <strong>${race.name}</strong>
+                </div>
+            </div>
+        `;
+
+		raceItem.appendChild(itemWrapper);
+
+		// Add subrace dropdown if applicable
+		if (hasSubraces) {
+			const dropdownContainer = document.createElement('div');
+			dropdownContainer.className = 'inline-dropdown-container';
+
+			const select = document.createElement('select');
+			select.className = 'form-select form-select-sm';
+
+			// Filter subraces by source
+			const filteredSubraces = subraces.filter((subrace) => {
+				const subraceSource = subrace.source || race.source;
+				return sourceService.isSourceAllowed(subraceSource) && subrace.name && subrace.name.trim() !== '';
+			});
+
+			// Add subrace options
+			for (const subrace of filteredSubraces) {
+				const option = document.createElement('option');
+				option.value = subrace.name;
+				option.textContent = subrace.name;
+				select.appendChild(option);
+				await this._createRaceInfoPanel(race, subrace);
+			}
+
+			dropdownContainer.appendChild(select);
+			const flexContainer = itemWrapper.querySelector('.d-flex');
+			flexContainer.appendChild(dropdownContainer);
+
+			// Handle subrace selection
+			this._cleanup.on(select, 'change', () => {
+				const subraceName = select.value;
+				const subraceData = this._raceService.getSubrace(
+					race.name,
+					subraceName,
+					race.source,
+				);
+				this._selectedSubrace = subraceData;
+				const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
+				this._showInfo(subraceId);
+				this._updateCharacterRace(race, subraceData);
+			});
+		} else {
+			await this._createRaceInfoPanel(race, null);
+		}
+
+		// Handle race selection
+		const radio = itemWrapper.querySelector('input[type="radio"]');
+		this._cleanup.on(raceItem, 'click', (e) => {
+			// Don't trigger if clicking on the select itself
+			if (e.target.tagName === 'SELECT' || e.target.closest('.inline-dropdown-container')) return;
+
+			if (radio) {
+				radio.checked = true;
+				this._selectedRace = race;
+
+				// If has subraces, show first subrace info, otherwise show race info
+				if (hasSubraces) {
+					const select = itemWrapper.querySelector('select');
+					const subraceName = select?.value;
+					if (subraceName) {
+						const subraceData = this._raceService.getSubrace(
+							race.name,
+							subraceName,
+							race.source,
+						);
+						this._selectedSubrace = subraceData;
+						const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
+						this._showInfo(subraceId);
+						this._updateCharacterRace(race, subraceData);
+					}
+				} else {
+					this._selectedSubrace = null;
+					this._showInfo(raceId);
+					this._updateCharacterRace(race, null);
+				}
+
+				// Remove selected class from all race items
+				this._raceList.querySelectorAll('.race-item').forEach(item => {
+					item.classList.remove('selected');
+				});
+				raceItem.classList.add('selected');
+			}
+		});
+
+		// Add hover to show info
+		this._cleanup.on(raceItem, 'mouseenter', () => {
+			if (hasSubraces) {
+				const select = itemWrapper.querySelector('select');
+				const subraceName = select?.value;
+				if (subraceName) {
+					const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
+					this._showInfo(subraceId, false);
+				}
+			} else {
+				this._showInfo(raceId, false);
+			}
+		});
+
+		this._raceList.appendChild(raceItem);
+	}
+
+	_showInfo(contentId, expand = true) {
+		if (!this._infoPanel) return;
+
+		// Hide all info content
+		const allContent = this._infoPanel.querySelectorAll('.info-content');
+		allContent.forEach(content => content.classList.add('d-none'));
+
+		// Show the selected content
+		const targetContent = this._infoPanel.querySelector(`[data-for="${contentId}"]`);
+		if (targetContent) {
+			targetContent.classList.remove('d-none');
+			// Expand info panel if requested
+			if (expand) {
+				this._infoPanel.classList.remove('collapsed');
+			}
+		}
+	}
+
+	async _createRaceInfoPanel(race, subrace = null) {
+		if (!this._infoPanel) return;
+
+		const infoContent = document.createElement('div');
+		infoContent.className = 'info-content d-none';
+
+		// Use combined ID if subrace is provided
+		const contentId = subrace
+			? this.sanitizeId(`${race.name}-${subrace.name}`)
+			: this.sanitizeId(race.name);
+		infoContent.setAttribute('data-for', contentId);
+
+		// Get fluff for description
+		const fluff = this._raceService.getRaceFluff(race.name, race.source);
+		const intro = fluff?.entries?.[0];
+
+		// Title shows subrace name if provided
+		const title = subrace ? `${race.name} (${subrace.name})` : race.name;
+		let html = `<h6>${title}</h6>`;
+
+		// Add description
+		if (typeof intro === 'string') {
+			html += `<p class="text-muted small">${intro.substring(0, 200)}${intro.length > 200 ? '...' : ''}</p>`;
+		}
+
+		html += `<hr class="my-2">`;
+
+		// Use the details view to generate sections
+		html += await this._detailsView.generateDetailsHTML(race, subrace);
+
+		infoContent.innerHTML = html;
+		this._infoPanel.appendChild(infoContent);
+	}
+
+	sanitizeId(name) {
+		return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+	}
 
 	async _loadSavedRaceSelection() {
 		try {
@@ -980,6 +1192,63 @@ class RaceDetailsView {
 	}
 
 	//-------------------------------------------------------------------------
+	// HTML Generation for Info Panel
+	//-------------------------------------------------------------------------
+
+	async generateDetailsHTML(race, subrace = null) {
+		if (!race) return '';
+
+		let html = '';
+
+		// Ability Scores section
+		html += `<div class="mb-3">
+            <h6 class="small">Ability Score Increase</h6>
+            <ul class="text-muted small mb-0 list-unstyled">`;
+		const abilityImprovements = this._formatAbilityImprovements(race, subrace).split('\n');
+		html += abilityImprovements.map(improvement => `<li>${improvement}</li>`).join('');
+		html += `</ul></div>`;
+
+		// Size section
+		html += `<div class="mb-3">
+            <h6 class="small">Size</h6>
+            <ul class="text-muted small mb-0 list-unstyled">
+                <li>${this._formatSize(race)}</li>
+            </ul>
+        </div>`;
+
+		// Speed section
+		html += `<div class="mb-3">
+            <h6 class="small">Speed</h6>
+            <ul class="text-muted small mb-0 list-unstyled">`;
+		const speeds = this._formatMovementSpeeds(race).split('\n');
+		html += speeds.map(speed => `<li>${speed}</li>`).join('');
+		html += `</ul></div>`;
+
+		// Languages section
+		html += `<div class="mb-3">
+            <h6 class="small">Languages</h6>
+            <ul class="text-muted small mb-0 list-unstyled">`;
+		const languages = this._formatLanguages(race).split('\n');
+		html += languages.map(lang => `<li>${lang}</li>`).join('');
+		html += `</ul></div>`;
+
+		// Traits section
+		const traits = this._getCombinedTraits(race, subrace);
+		if (traits.length > 0) {
+			html += `<div class="mb-3">
+                <h6 class="small">Traits</h6>
+                <div class="traits-grid">`;
+			for (const trait of traits) {
+				const name = trait.name || trait.text;
+				html += `<span class="trait-tag">${name}</span>`;
+			}
+			html += `</div></div>`;
+		}
+
+		return html;
+	}
+
+	//-------------------------------------------------------------------------
 	// Public API
 	//-------------------------------------------------------------------------
 
@@ -1304,236 +1573,3 @@ class RaceDetailsView {
 	}
 }
 
-//=============================================================================
-// RaceCardView - Consolidated from RaceViews.js (Main race dropdown and quick description)
-//=============================================================================
-
-class RaceCardView {
-	constructor() {
-		this._raceSelect = document.getElementById('raceSelect');
-
-		this._raceQuickDesc = document.getElementById('raceQuickDesc');
-
-		// Set up event listeners
-		this._setupEventListeners();
-	}
-
-	//-------------------------------------------------------------------------
-	// Event Setup
-	//-------------------------------------------------------------------------
-
-	_setupEventListeners() {
-		if (this._raceSelect) {
-			this._raceSelect.addEventListener('change', (event) => {
-				const selectedValue = event.target.value;
-				if (selectedValue) {
-					const [raceName, source] = selectedValue.split('_');
-					eventBus.emit(EVENTS.RACE_SELECTED, {
-						name: raceName,
-						source,
-						value: selectedValue,
-					});
-				}
-			});
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Public API
-	//-------------------------------------------------------------------------
-
-	getRaceSelect() {
-		return this._raceSelect;
-	}
-
-	getSelectedRaceValue() {
-		return this._raceSelect.value;
-	}
-
-	setSelectedRaceValue(value) {
-		this._raceSelect.value = value;
-	}
-
-	populateRaceSelect(races) {
-		this._raceSelect.innerHTML = '<option value="">Select a Race</option>';
-
-		if (!races || races.length === 0) {
-			console.error('RaceView', 'No races provided to populate dropdown');
-			return;
-		}
-
-		// Sort races by name
-		const sortedRaces = [...races].sort((a, b) => a.name.localeCompare(b.name));
-
-		// Add options to select
-		for (const race of sortedRaces) {
-			const option = document.createElement('option');
-			option.value = `${race.name}_${race.source}`;
-			option.textContent = `${race.name} (${race.source})`;
-			this._raceSelect.appendChild(option);
-		}
-	}
-
-	async updateQuickDescription(race, fluffData = null) {
-		if (!race) {
-			this.resetQuickDescription();
-			return;
-		}
-
-		let description = '';
-
-		// Extract description from fluff data
-		if (fluffData?.entries) {
-			// Race fluff has a deeply nested structure:
-			// entries[0].entries[0].entries[0] is usually the first descriptive paragraph
-			const traverseEntries = (entries) => {
-				if (!Array.isArray(entries)) return null;
-
-				for (const entry of entries) {
-					if (typeof entry === 'string') {
-						return entry;
-					} else if (entry?.entries) {
-						const result = traverseEntries(entry.entries);
-						if (result) return result;
-					}
-				}
-				return null;
-			};
-
-			description = traverseEntries(fluffData.entries);
-		}
-
-		// Fallback if no fluff found
-		if (!description) {
-			description = `${race.name} are a playable race in D&D.`;
-		}
-
-		const processedDescription = await textProcessor.processString(description);
-
-		this._raceQuickDesc.innerHTML = `
-            <h5>${race.name}</h5>
-            <p>${processedDescription}</p>
-        `;
-	}
-
-	resetQuickDescription() {
-		this._raceQuickDesc.innerHTML = `
-            <div class="placeholder-content">
-                <h5>Select a Race</h5>
-                <p>Choose a race to see details about their traits, abilities, and other characteristics.</p>
-            </div>
-        `;
-	}
-
-	hasRaceOption(raceValue) {
-		return Array.from(this._raceSelect.options).some(
-			(option) => option.value === raceValue,
-		);
-	}
-
-	triggerRaceSelectChange() {
-		this._raceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-	}
-}
-
-//=============================================================================
-// SubracePickerView - Consolidated from RaceViews.js (Subrace dropdown)
-//=============================================================================
-
-class SubracePickerView {
-	constructor() {
-		this._subraceSelect = document.getElementById('subraceSelect');
-
-		// Set up event listeners
-		this._setupEventListeners();
-	}
-
-	//-------------------------------------------------------------------------
-	// Event Setup
-	//-------------------------------------------------------------------------
-
-	_setupEventListeners() {
-		if (this._subraceSelect) {
-			this._subraceSelect.addEventListener('change', (event) => {
-				const selectedValue = event.target.value;
-				// Emit event for both named subraces and standard (empty value)
-				eventBus.emit(EVENTS.SUBRACE_SELECTED, {
-					name: selectedValue,
-					value: selectedValue,
-				});
-			});
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Public API
-	//-------------------------------------------------------------------------
-
-	getSubraceSelect() {
-		return this._subraceSelect;
-	}
-
-	getSelectedSubraceValue() {
-		return this._subraceSelect.value;
-	}
-
-	setSelectedSubraceValue(value) {
-		this._subraceSelect.value = value;
-	}
-
-	populateSubraceSelect(subraces, isRequired = false) {
-		this._subraceSelect.innerHTML = '<option value="">No Subraces</option>';
-		this._subraceSelect.disabled = true;
-
-		if (!subraces || subraces.length === 0) {
-			return;
-		}
-
-		// Filter out subraces without names
-		const namedSubraces = subraces.filter(
-			(sr) => sr.name && sr.name.trim() !== '',
-		);
-
-		if (namedSubraces.length === 0) {
-			return;
-		}
-
-		// Sort subraces by name
-		const sortedSubraces = [...namedSubraces].sort((a, b) =>
-			a.name.localeCompare(b.name),
-		);
-
-		// If subraces are optional, show "Standard" option as the default
-		if (!isRequired) {
-			this._subraceSelect.innerHTML = '<option value="">Standard</option>';
-		} else {
-			// If required, don't show a placeholder option
-			this._subraceSelect.innerHTML = '';
-		}
-
-		this._subraceSelect.disabled = false;
-
-		// Add options to select
-		for (const subrace of sortedSubraces) {
-			const option = document.createElement('option');
-			option.value = subrace.name;
-			option.textContent = subrace.name;
-			this._subraceSelect.appendChild(option);
-		}
-	}
-
-	reset() {
-		this._subraceSelect.innerHTML = '<option value="">No Subraces</option>';
-		this._subraceSelect.disabled = true;
-	}
-
-	hasSubraceOption(subraceName) {
-		return Array.from(this._subraceSelect.options).some(
-			(option) => option.value === subraceName,
-		);
-	}
-
-	triggerSubraceSelectChange() {
-		this._subraceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-	}
-}

@@ -1,0 +1,89 @@
+<!-- Demo page for testing split card layout with collapsible info panel -->
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5 class="mb-2">🧪 Split Card Layout Demo</h5>
+                <p class="mb-1">Testing left (choices/actions) + right (contextual info) layout with collapsible panel.
+                </p>
+                <p class="mb-0"><strong>Data Source:</strong> <span id="dataSource">Loading from current character or
+                        defaults...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo: Class Card with Feature Choices -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card split-card-demo" id="classCardDemo">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Loading...</h5>
+                    <button class="btn btn-sm btn-outline-secondary info-toggle" data-target="classInfo">
+                        <i class="fas fa-info-circle"></i> Info
+                    </button>
+                </div>
+                <div class="card-body split-card-body">
+                    <!-- LEFT: Choices and Actions -->
+                    <div class="choices-panel" id="classChoicesPanel">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- RIGHT: Contextual Info Panel -->
+                    <div class="info-panel" id="classInfo">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo: Race Card with Trait Selections -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card split-card-demo" id="raceCardDemo">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Select a Race</h5>
+                    <button class="btn btn-sm btn-outline-secondary info-toggle" data-target="raceInfo">
+                        <i class="fas fa-info-circle"></i> Info
+                    </button>
+                </div>
+                <div class="card-body split-card-body">
+                    <!-- LEFT: Choices -->
+                    <div class="choices-panel" id="raceChoicesPanel">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- RIGHT: Info Panel -->
+                    <div class="info-panel" id="raceInfo">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo: Feat Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card split-card-demo" id="featCardDemo">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Select a Feat</h5>
+                    <button class="btn btn-sm btn-outline-secondary info-toggle" data-target="featInfo">
+                        <i class="fas fa-info-circle"></i> Info
+                    </button>
+                </div>
+                <div class="card-body split-card-body">
+                    <!-- LEFT: Feat List -->
+                    <div class="choices-panel" id="featChoicesPanel">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- RIGHT: Feat Details -->
+                    <div class="info-panel" id="featInfo">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

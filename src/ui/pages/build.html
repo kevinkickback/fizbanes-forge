@@ -5,72 +5,20 @@
             <div class="card-header py-2">
                 <h5 class="mb-0">Race</h5>
             </div>
-            <div class="card-body race-card-body">
-                <div class="mb-3">
-                    <div class="race-selection-controls">
-                        <div class="race-selectors">
-                            <div class="race-select-container">
-                                <select class="form-select" id="raceSelect">
-                                    <!-- Options will be populated dynamically -->
-                                </select>
-                            </div>
-                            <div class="race-select-container">
-                                <select class="form-select" id="subraceSelect" disabled>
-                                    <option value="">Select Race First</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="race-content-container">
-                            <div class="race-quick-desc" id="raceQuickDesc">
-                                <div class="placeholder-content">
-                                    <h5>Select a Race</h5>
-                                    <p>Choose a race to see details about their traits, abilities, and other
-                                        characteristics.</p>
-                                </div>
-                            </div>
-                        </div>
+            <div class="card-body race-card-body split-card-body">
+                <!-- Left Panel: Race Selection/Actions -->
+                <div class="choices-panel" id="raceChoicesPanel">
+                    <div class="section-header">
+                        <h6 class="mb-3">Choose Your Race</h6>
                     </div>
-                    <div class="race-image-container">
-                        <div class="race-image" id="raceImage">
-                            <i class="fas fa-user-circle placeholder-icon"></i>
-                        </div>
+                    <div class="race-list" id="raceList">
+                        <!-- Race items will be populated dynamically -->
                     </div>
                 </div>
-                <div class="race-content-container">
-                    <div id="raceDetails">
-                        <div class="race-details-grid">
-                            <div class="detail-section">
-                                <h6>Ability Score Increase</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Size</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Speed</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section">
-                                <h6>Languages</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                            <div class="detail-section traits-section">
-                                <h6>Traits</h6>
-                                <ul class="mb-0">
-                                    <li class="placeholder-text">—</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+                
+                <!-- Right Panel: Race Info/Details -->
+                <div class="info-panel collapsed" id="raceInfoPanel" data-target="raceInfo">
+                    <!-- Race details will be populated dynamically -->
                 </div>
             </div>
         </div>
