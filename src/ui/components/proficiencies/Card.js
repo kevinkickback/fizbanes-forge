@@ -2,6 +2,7 @@
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { ProficiencyCore } from '../../../app/Proficiency.js';
+import { toTitleCase } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
@@ -9,7 +10,6 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../../../lib/ProficiencyConstants.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { ProficiencyDisplayView } from './Display.js';
-import { ProficiencyNotesView } from './Notes.js';
 import { ProficiencySelectionView } from './Selection.js';
 
 class InstrumentChoicesView {
@@ -100,12 +100,10 @@ export class ProficiencyCard {
 		};
 
 		this._proficiencyContainers = {};
-		this._proficiencyNotesContainer = null;
 
 		// Initialize views
 		this._displayView = new ProficiencyDisplayView();
 		this._selectionView = new ProficiencySelectionView();
-		this._notesView = new ProficiencyNotesView();
 		this._instrumentChoicesView = new InstrumentChoicesView();
 
 		// DOM cleanup manager
@@ -121,34 +119,55 @@ export class ProficiencyCard {
 			}
 
 			this._initializeDomReferences();
+			this._setupToggleButton();
 			this._setupEventListeners();
 			this._initializeCharacterProficiencies();
 			this._rehydrateInstrumentChoices();
-			await this._populateProficiencyContainers();
-			this._updateProficiencyNotes();
+			await this._populateAccordion();
+			this._setupHoverListeners();
 		} catch (error) {
 			console.error('ProficiencyCard', 'Initialization error:', error);
 		}
 	}
 
-	_initializeDomReferences() {
-		for (const type of this._proficiencyTypes) {
-			const containerId = `${type}Container`;
-			this._proficiencyContainers[type] = document.getElementById(containerId);
+	_setupToggleButton() {
+		if (!this._toggleBtn || !this._infoPanel) return;
 
-			if (!this._proficiencyContainers[type]) {
-				console.warn(
-					'ProficiencyCard',
-					`Container for ${type} not found: #${containerId}`,
-				);
+		this._cleanup.on(this._toggleBtn, 'click', () => {
+			const isCollapsed = this._infoPanel.classList.contains('collapsed');
+
+			if (isCollapsed) {
+				this._infoPanel.classList.remove('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-right';
+			} else {
+				this._infoPanel.classList.add('collapsed');
+				this._toggleBtn.querySelector('i').className = 'fas fa-chevron-left';
 			}
+		});
+	}
+
+	_initializeDomReferences() {
+		// Main containers for the new split-pane design
+		this._accordion = document.getElementById('proficienciesAccordion');
+		this._infoPanel = document.getElementById('proficienciesInfoPanel');
+		this._toggleBtn = document.getElementById('proficienciesInfoToggle');
+
+		// Legacy: Keep container references for backward compatibility
+		// These will be created dynamically within accordion items
+		for (const type of this._proficiencyTypes) {
+			this._proficiencyContainers[type] = null; // Will be populated dynamically
 		}
 
-		this._proficiencyNotesContainer =
-			document.getElementById('proficiencyNotes');
+		if (!this._accordion) {
+			console.warn('ProficiencyCard', 'Proficiencies accordion not found');
+		}
 
-		if (!this._proficiencyNotesContainer) {
-			console.warn('ProficiencyCard', 'Proficiency notes container not found');
+		if (!this._infoPanel) {
+			console.warn('ProficiencyCard', 'Info panel not found');
+		}
+
+		if (!this._toggleBtn) {
+			console.warn('ProficiencyCard', 'Toggle button not found');
 		}
 	}
 
@@ -322,43 +341,8 @@ export class ProficiencyCard {
 	}
 
 	_setupContainerClickListeners() {
-		for (const type of this._proficiencyTypes) {
-			const container = this._proficiencyContainers[type];
-			if (!container) continue;
-
-			this._cleanup.on(container, 'click', (e) => {
-				const item = e.target.closest('.proficiency-item');
-				if (!item) return;
-
-				// Only toggle if it's selectable or optionally selected
-				const isSelectable = item.classList.contains('selectable');
-				const isOptionalSelected = item.classList.contains('optional-selected');
-				const isDefault = item.classList.contains('default');
-
-				if ((isSelectable || isOptionalSelected) && !isDefault) {
-					const changed = this._selectionView.toggleOptionalProficiency(
-						item,
-						this._character,
-					);
-
-					if (changed) {
-						// Update proficiency count displays for all types
-						this._displayView.updateSelectionCounters(
-							this._proficiencyContainers,
-							this._character,
-						);
-
-						// Refresh the specific container to reflect detailed UI state changes
-						this._populateProficiencyContainers();
-
-						// Emit CHARACTER_UPDATED event to signal proficiency change
-						eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-							character: CharacterManager.getCurrentCharacter(),
-						});
-					}
-				}
-			});
-		}
+		// This method is now handled by _setupAccordionClickListeners
+		// Keeping for backward compatibility but doing nothing
 	}
 
 	_handleProficiencyAdded(data) {
@@ -394,8 +378,7 @@ export class ProficiencyCard {
 				this._reinitializeClassToolProficiencies();
 				this._cleanupOptionalProficiencies();
 				this._rehydrateInstrumentChoices();
-				this._populateProficiencyContainers();
-				this._updateProficiencyNotes();
+				this._populateAccordion();
 				this._renderInstrumentChoices();
 			}
 		} catch (error) {
@@ -536,15 +519,12 @@ export class ProficiencyCard {
 			}
 
 			if (detail.forcedRefresh) {
-				this._populateProficiencyContainers();
+				this._populateAccordion();
 			} else {
-				this._displayView.updateSelectionCounters(
-					this._proficiencyContainers,
-					this._character,
-				);
+				// For minor changes, still refresh the accordion to update counters
+				this._populateAccordion();
 			}
 
-			this._updateProficiencyNotes();
 			this._renderInstrumentChoices();
 
 			if (detail.showRefund && detail.proficiency) {
@@ -564,7 +544,12 @@ export class ProficiencyCard {
 	}
 
 	async _populateProficiencyContainers() {
-		if (!this._character) return;
+		// This method now delegates to _populateAccordion for the new UI
+		await this._populateAccordion();
+	}
+
+	async _populateAccordion() {
+		if (!this._character || !this._accordion) return;
 
 		// Get available options for all types
 		const availableOptionsMap = {};
@@ -572,20 +557,332 @@ export class ProficiencyCard {
 			availableOptionsMap[type] = await this._getAvailableOptions(type);
 		}
 
-		// Render containers using display view
-		this._displayView.renderContainers(
-			this._proficiencyContainers,
-			this._character,
-			availableOptionsMap,
-			this._defaultProficiencies,
-			this._isGrantedBySource.bind(this),
-			this._isProficiencyAvailable.bind(this),
-			this._displayView.getIconForType.bind(this._displayView),
-			this._proficiencyManager,
-		);
+		// Preserve accordion state before re-rendering
+		const expandedItems = new Set();
+		const existingAccordion = this._accordion;
+		if (existingAccordion) {
+			const collapses = existingAccordion.querySelectorAll('.accordion-collapse.show');
+			for (const collapse of collapses) {
+				// Extract type from the collapse ID (e.g., "proficienciesSkills" -> "skills")
+				const id = collapse.id;
+				const type = id.replace('proficiencies', '').toLowerCase();
+				expandedItems.add(type);
+			}
+		}
 
-		// Render instrument dropdowns (after main list so container exists)
+		// Build accordion HTML
+		let html = '';
+
+		for (const type of this._proficiencyTypes) {
+			const isExpanded = expandedItems.size === 0 ? type === 'skills' : expandedItems.has(type);
+			const collapseId = `proficiencies${type.charAt(0).toUpperCase() + type.slice(1)}`;
+			const typeLabel = this._displayView.getTypeLabel(type);
+			const iconClass = this._displayView.getIconForType(type);
+			const availableOptions = availableOptionsMap[type] || [];
+
+			// Calculate selection counter
+			let counterHtml = '';
+			if (type !== 'savingThrows') {
+				const selectedCount = this._character?.optionalProficiencies?.[type]?.selected?.length || 0;
+				let optionalAllowed = this._character?.optionalProficiencies?.[type]?.allowed || 0;
+
+				// Add source-specific slots for skills, languages, and tools
+				if (type === 'skills' || type === 'languages' || type === 'tools') {
+					const raceAllowed = this._character?.optionalProficiencies?.[type]?.race?.allowed || 0;
+					const classAllowed = this._character?.optionalProficiencies?.[type]?.class?.allowed || 0;
+					const backgroundAllowed = this._character?.optionalProficiencies?.[type]?.background?.allowed || 0;
+
+					if (raceAllowed > 0 || classAllowed > 0 || backgroundAllowed > 0) {
+						optionalAllowed = raceAllowed + classAllowed + backgroundAllowed;
+					}
+				}
+
+				if (optionalAllowed > 0) {
+					counterHtml = `<span class="badge bg-secondary ms-2">${selectedCount}/${optionalAllowed}</span>`;
+				}
+			}
+
+			// Build the proficiency items HTML
+			const itemsHtml = this._buildProficiencyItemsHtml(
+				type,
+				availableOptions,
+				availableOptionsMap
+			);
+
+			html += `
+				<div class="accordion-item">
+					<h2 class="accordion-header" id="heading${collapseId}">
+						<button class="accordion-button ${isExpanded ? '' : 'collapsed'}" type="button" 
+							data-bs-toggle="collapse" data-bs-target="#${collapseId}" 
+							aria-expanded="${isExpanded}" aria-controls="${collapseId}">
+							<i class="fas ${iconClass} me-2"></i>
+							<strong>${typeLabel}</strong>
+							${counterHtml}
+						</button>
+					</h2>
+					<div id="${collapseId}" class="accordion-collapse collapse ${isExpanded ? 'show' : ''}" 
+						aria-labelledby="heading${collapseId}">
+						<div class="accordion-body p-2">
+							<div class="proficiency-grid" data-type="${type}">
+								${itemsHtml}
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+		}
+
+		this._accordion.innerHTML = html;
+
+		// Re-populate container references for legacy code compatibility
+		for (const type of this._proficiencyTypes) {
+			const grid = this._accordion.querySelector(`.proficiency-grid[data-type="${type}"]`);
+			this._proficiencyContainers[type] = grid;
+		}
+
+		// Render instrument dropdowns
 		this._renderInstrumentChoices();
+
+		// Setup click listeners for the new structure
+		this._setupAccordionClickListeners();
+	}
+
+	_buildProficiencyItemsHtml(type, availableOptions, _availableOptionsMap) {
+		// Calculate if combined slots are available
+		let optionalAllowed = this._character?.optionalProficiencies?.[type]?.allowed || 0;
+		const selectedCount = this._character?.optionalProficiencies?.[type]?.selected?.length || 0;
+
+		// Add source-specific slots for skills, languages, and tools
+		if (type === 'skills' || type === 'languages' || type === 'tools') {
+			const raceAllowed = this._character?.optionalProficiencies?.[type]?.race?.allowed || 0;
+			const classAllowed = this._character?.optionalProficiencies?.[type]?.class?.allowed || 0;
+			const backgroundAllowed = this._character?.optionalProficiencies?.[type]?.background?.allowed || 0;
+
+			if (raceAllowed > 0 || classAllowed > 0 || backgroundAllowed > 0) {
+				optionalAllowed = raceAllowed + classAllowed + backgroundAllowed;
+			}
+		}
+
+		const combinedSlotsAvailable = optionalAllowed > 0 && selectedCount < optionalAllowed;
+
+		let itemsHtml = '';
+
+		for (const item of availableOptions) {
+			const isOptionallySelected = this._character?.optionalProficiencies?.[type]?.selected?.includes(item) || false;
+			const isDefault = this._defaultProficiencies[type]?.includes(item);
+			const isGranted = this._isGrantedBySource(type, item);
+			const isPotentiallySelectable = this._isProficiencyAvailable(type, item);
+
+			const cssClasses = ['proficiency-item'];
+
+			if (isDefault || isGranted) {
+				cssClasses.push('proficient', 'default');
+			} else if (isOptionallySelected) {
+				cssClasses.push('proficient', 'selected', 'optional-selected');
+			} else if (combinedSlotsAvailable && isPotentiallySelectable) {
+				cssClasses.push('selectable');
+			} else {
+				cssClasses.push('disabled');
+			}
+
+			const iconClass = this._displayView.getIconForType(type);
+			const optionalClass = isOptionallySelected ? 'optional' : '';
+			const abilityDisplay = type === 'skills'
+				? `<span class="ability">(${this._proficiencyManager.getSkillAbility(item)})</span>`
+				: '';
+			const unselectHint = isOptionallySelected
+				? '<span class="unselect-hint"><i class="fas fa-times"></i></span>'
+				: '';
+
+			const displayName = type === 'skills' || type === 'languages'
+				? toTitleCase(item)
+				: item;
+
+			itemsHtml += (
+				`<div class="${cssClasses.join(' ')}" data-proficiency="${item}" data-type="${type}">` +
+				`<i class="fas ${iconClass} ${optionalClass}"></i>${displayName}` +
+				abilityDisplay +
+				unselectHint +
+				'</div>'
+			);
+		}
+
+		return itemsHtml;
+	}
+
+	_setupAccordionClickListeners() {
+		if (!this._accordion) return;
+
+		this._cleanup.on(this._accordion, 'click', (e) => {
+			const item = e.target.closest('.proficiency-item');
+			if (!item) return;
+
+			// Only toggle if it's selectable or optionally selected
+			const isSelectable = item.classList.contains('selectable');
+			const isOptionalSelected = item.classList.contains('optional-selected');
+			const isDefault = item.classList.contains('default');
+
+			if ((isSelectable || isOptionalSelected) && !isDefault) {
+				const changed = this._selectionView.toggleOptionalProficiency(
+					item,
+					this._character,
+				);
+
+				if (changed) {
+					// Refresh the accordion to reflect changes
+					this._populateAccordion();
+
+					// Emit CHARACTER_UPDATED event to signal proficiency change
+					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+						character: CharacterManager.getCurrentCharacter(),
+					});
+				}
+			}
+		});
+	}
+
+	_setupHoverListeners() {
+		if (!this._accordion || !this._infoPanel) return;
+
+		this._cleanup.on(this._accordion, 'mouseenter', async (e) => {
+			const item = e.target.closest('.proficiency-item');
+			if (!item) return;
+
+			const type = item.dataset.type;
+			const proficiency = item.dataset.proficiency;
+
+			await this._showProficiencyInfo(type, proficiency);
+		}, true); // Use capture phase for delegation
+	}
+
+	async _showProficiencyInfo(type, proficiency) {
+		if (!this._infoPanel) return;
+
+		let html = '';
+
+		try {
+			if (type === 'skills') {
+				const info = await proficiencyService.getSkillDescription(proficiency);
+				if (info) {
+					html = `
+						<div class="proficiency-info">
+							<h5><i class="fas fa-check-circle me-2"></i>${info.name}</h5>
+							<p class="text-muted"><strong>Ability:</strong> ${info.ability.toUpperCase()}</p>
+							<div class="mt-3">
+								${info.description}
+							</div>
+							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
+						</div>
+					`;
+				}
+			} else if (type === 'languages') {
+				const info = await proficiencyService.getLanguageDescription(proficiency);
+				if (info) {
+					const speakersText = info.typicalSpeakers.length > 0
+						? `<p><strong>Typical Speakers:</strong> ${info.typicalSpeakers.join(', ')}</p>`
+						: '';
+					const scriptText = info.script
+						? `<p><strong>Script:</strong> ${info.script}</p>`
+						: '';
+					const entriesText = info.entries.length > 0
+						? `<div class="mt-3">${info.entries.join(' ')}</div>`
+						: '';
+
+					html = `
+						<div class="proficiency-info">
+							<h5><i class="fas fa-comment me-2"></i>${info.name}</h5>
+							<p class="text-muted"><strong>Type:</strong> ${toTitleCase(info.type)}</p>
+							${scriptText}
+							${speakersText}
+							${entriesText}
+							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
+						</div>
+					`;
+				}
+			} else if (type === 'tools') {
+				const info = await proficiencyService.getToolDescription(proficiency);
+				if (info) {
+					html = `
+						<div class="proficiency-info">
+							<h5><i class="fas fa-tools me-2"></i>${info.name}</h5>
+							<div class="mt-3">
+								${info.description}
+							</div>
+						</div>
+					`;
+				}
+			} else if (type === 'savingThrows') {
+				const abilityName = proficiency;
+				html = `
+					<div class="proficiency-info">
+						<h5><i class="fas fa-dice-d20 me-2"></i>${abilityName} Saving Throw</h5>
+						<div class="mt-3">
+							<p>When you make a ${abilityName} saving throw, you can add your proficiency bonus to the roll.</p>
+							<p class="text-muted mt-2">Saving throws are used to resist spells, traps, poisons, diseases, and other harmful effects. Your ${abilityName} modifier and proficiency bonus (if proficient) are added to the d20 roll.</p>
+						</div>
+					</div>
+				`;
+			} else if (type === 'armor') {
+				const info = await proficiencyService.getArmorDescription(proficiency);
+				if (info) {
+					const extraInfo = [];
+					if (info.ac) extraInfo.push(`AC: ${info.ac}`);
+					if (info.weight) extraInfo.push(`Weight: ${info.weight} lb.`);
+
+					html = `
+						<div class="proficiency-info">
+							<h5><i class="fas ${this._displayView.getIconForType(type)} me-2"></i>${info.name}</h5>
+							${extraInfo.length > 0 ? `<p class="text-muted">${extraInfo.join(' • ')}</p>` : ''}
+							<div class="mt-3">
+								${info.description}
+							</div>
+							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
+						</div>
+					`;
+				}
+			} else if (type === 'weapons') {
+				const info = await proficiencyService.getWeaponDescription(proficiency);
+				if (info) {
+					const extraInfo = [];
+					if (info.damage) extraInfo.push(`Damage: ${info.damage} ${info.damageType || ''}`);
+					if (info.weaponCategory) extraInfo.push(`Category: ${info.weaponCategory.charAt(0).toUpperCase() + info.weaponCategory.slice(1)}`);
+
+					html = `
+						<div class="proficiency-info">
+							<h5><i class="fas ${this._displayView.getIconForType(type)} me-2"></i>${info.name}</h5>
+							${extraInfo.length > 0 ? `<p class="text-muted">${extraInfo.join(' • ')}</p>` : ''}
+							<div class="mt-3">
+								${info.description}
+							</div>
+							${info.source && info.page ? `<p class="text-muted small mt-3">Source: ${info.source}, p. ${info.page}</p>` : ''}
+						</div>
+					`;
+				}
+			}
+
+			if (!html) {
+				html = `
+					<div class="proficiency-info">
+						<h5>${proficiency}</h5>
+						<div class="mt-3 text-muted">
+							No additional information available.
+						</div>
+					</div>
+				`;
+			}
+		} catch (error) {
+			console.error('ProficiencyCard', 'Error loading proficiency info:', error);
+			html = `
+				<div class="proficiency-info">
+					<h5>${proficiency}</h5>
+					<div class="mt-3 text-muted">
+						Error loading information.
+					</div>
+				</div>
+			`;
+		}
+
+		this._infoPanel.innerHTML = html;
 	}
 
 	_renderInstrumentChoices() {
@@ -883,7 +1180,6 @@ export class ProficiencyCard {
 		this._renderInstrumentChoices();
 
 		// Notify of change
-		this._updateProficiencyNotes();
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
 		});
@@ -1103,14 +1399,6 @@ export class ProficiencyCard {
 		return false;
 	}
 
-	_updateProficiencyNotes() {
-		this._notesView.updateProficiencyNotes(
-			this._proficiencyNotesContainer,
-			this._character,
-			this._displayView.getTypeLabel.bind(this._displayView),
-		);
-	}
-
 	_isGrantedBySource(type, proficiency) {
 		// For tools, first check if this is an auto-granted item in optional selections
 		// (e.g., Bard's auto-selected "Musical instrument")
@@ -1214,7 +1502,7 @@ export class ProficiencyCard {
 		}
 
 		if (changesDetected) {
-			this._populateProficiencyContainers();
+			this._populateAccordion();
 			// Emit CHARACTER_UPDATED when proficiencies are cleaned up
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 				character: CharacterManager.getCurrentCharacter(),

@@ -234,58 +234,22 @@
             <div class="card-header py-2">
                 <h5 class="mb-0">Proficiencies</h5>
             </div>
-            <div class="card-body">
-                <div class="proficiency-container">
-                    <!-- Skills -->
-                    <div class="proficiency-section mb-4">
-                        <h6>Skills</h6>
-                        <div id="skillsContainer" class="proficiency-grid">
-                            <!-- Skills will be populated dynamically -->
-                        </div>
-                    </div>
+            <div class="card-body proficiencies-card-body split-card-body">
+                <!-- Toggle button for info panel -->
+                <button class="info-toggle-btn" id="proficienciesInfoToggle" title="Toggle Details Panel">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
 
-                    <!-- Saving Throws -->
-                    <div class="proficiency-section mb-4">
-                        <h6>Saving Throws</h6>
-                        <div id="savingThrowsContainer" class="proficiency-grid">
-                            <!-- Saving throws will be populated dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Languages -->
-                    <div class="proficiency-section mb-4">
-                        <h6>Languages</h6>
-                        <div id="languagesContainer" class="proficiency-grid">
-                            <!-- Languages will be populated dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Tools -->
-                    <div class="proficiency-section mb-4">
-                        <h6>Tools</h6>
-                        <div id="toolsContainer" class="proficiency-grid">
-                            <!-- Tools will be populated dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Armor -->
-                    <div class="proficiency-section mb-4">
-                        <h6>Armor</h6>
-                        <div id="armorContainer" class="proficiency-grid">
-                            <!-- Armor will be populated dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Weapons -->
-                    <div class="proficiency-section">
-                        <h6>Weapons</h6>
-                        <div id="weaponsContainer" class="proficiency-grid">
-                            <!-- Weapons will be populated dynamically -->
-                        </div>
+                <!-- Left Panel: Proficiency Selection -->
+                <div class="choices-panel" id="proficienciesChoicesPanel">
+                    <div class="accordion accordion-flush" id="proficienciesAccordion">
+                        <!-- Proficiency accordions will be populated dynamically -->
                     </div>
                 </div>
-                <div class="proficiency-notes-container mt-3" id="proficiencyNotes">
-                    <!-- Proficiency notes will be displayed here -->
+
+                <!-- Right Panel: Proficiency Info/Details -->
+                <div class="info-panel" id="proficienciesInfoPanel" data-target="proficienciesInfo">
+                    <!-- Proficiency details will be populated dynamically on hover -->
                 </div>
             </div>
         </div>

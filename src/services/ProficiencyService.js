@@ -1,6 +1,7 @@
 /** Manages proficiencies and proficiency bonuses. */
 import { ProficiencyCore } from '../app/Proficiency.js';
 import { SKILL_TO_ABILITY } from '../lib/5eToolsParser.js';
+import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
@@ -8,6 +9,7 @@ import {
 	STANDARD_SKILL_OPTIONS,
 	STANDARD_TOOL_OPTIONS,
 } from '../lib/ProficiencyConstants.js';
+import { itemService } from './ItemService.js';
 
 export class ProficiencyService {
 	constructor() {
@@ -15,6 +17,8 @@ export class ProficiencyService {
 		this._skills = null;
 		this._tools = null;
 		this._languages = null;
+		this._skillData = null;
+		this._languageData = null;
 	}
 
 	async initialize() {
@@ -290,6 +294,340 @@ export class ProficiencyService {
 	 */
 	getProficienciesWithSources(character, type) {
 		return ProficiencyCore.getProficienciesWithSources(character, type);
+	}
+
+	/**
+	 * Loads skill data from JSON file
+	 * @private
+	 */
+	async _loadSkillData() {
+		if (this._skillData) return this._skillData;
+
+		try {
+			const data = await DataLoader.loadJSON('skills.json');
+			this._skillData = data?.skill || [];
+			return this._skillData;
+		} catch (error) {
+			console.error('[ProficiencyService]', 'Failed to load skill data', error);
+			this._skillData = [];
+			return [];
+		}
+	}
+
+	/**
+	 * Loads language data from JSON file
+	 * @private
+	 */
+	async _loadLanguageData() {
+		if (this._languageData) return this._languageData;
+
+		try {
+			const data = await DataLoader.loadJSON('languages.json');
+			this._languageData = data?.language || [];
+			return this._languageData;
+		} catch (error) {
+			console.error('[ProficiencyService]', 'Failed to load language data', error);
+			this._languageData = [];
+			return [];
+		}
+	}
+
+	/**
+	 * Gets description for a skill
+	 * @param {string} skillName - Name of the skill
+	 * @returns {Promise<Object|null>} Object with name, ability, and description, or null if not found
+	 */
+	async getSkillDescription(skillName) {
+		const skillData = await this._loadSkillData();
+		if (!skillData || skillData.length === 0) return null;
+
+		const normalizedSearch = DataNormalizer.normalizeForLookup(skillName);
+
+		// Find the skill - prefer XPHB source (2024 rules), fallback to PHB
+		let skill = skillData.find(s =>
+			DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+			s.source === 'XPHB'
+		);
+
+		if (!skill) {
+			skill = skillData.find(s =>
+				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+				s.source === 'PHB'
+			);
+		}
+
+		if (!skill) {
+			skill = skillData.find(s =>
+				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch
+			);
+		}
+
+		if (!skill) return null;
+
+		return {
+			name: skill.name,
+			ability: skill.ability,
+			description: skill.entries?.join(' ') || 'No description available.',
+			source: skill.source,
+			page: skill.page
+		};
+	}
+
+	/**
+	 * Gets description for a language
+	 * @param {string} languageName - Name of the language
+	 * @returns {Promise<Object|null>} Object with name, type, script, speakers, and description, or null if not found
+	 */
+	async getLanguageDescription(languageName) {
+		const languageData = await this._loadLanguageData();
+		if (!languageData || languageData.length === 0) return null;
+
+		const normalizedSearch = DataNormalizer.normalizeForLookup(languageName);
+
+		// Find the language - prefer XPHB source, fallback to PHB, then any
+		let language = languageData.find(l =>
+			DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+			l.source === 'XPHB'
+		);
+
+		if (!language) {
+			language = languageData.find(l =>
+				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+				l.source === 'PHB'
+			);
+		}
+
+		if (!language) {
+			language = languageData.find(l =>
+				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch
+			);
+		}
+
+		if (!language) return null;
+
+		return {
+			name: language.name,
+			type: language.type || 'standard',
+			script: language.script,
+			typicalSpeakers: language.typicalSpeakers || [],
+			entries: language.entries || [],
+			source: language.source,
+			page: language.page
+		};
+	}
+
+	/**
+	 * Gets description for a tool proficiency
+	 * @param {string} toolName - Name of the tool
+	 * @returns {Promise<Object|null>} Object with name and description
+	 */
+	async getToolDescription(toolName) {
+		const items = itemService.getAllItems();
+		if (!items || items.length === 0) {
+			console.warn('[ProficiencyService] No items available for tool lookup');
+			return {
+				name: toolName,
+				description: `Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
+				type: 'tool'
+			};
+		}
+
+		const normalizedSearch = DataNormalizer.normalizeForLookup(toolName);
+
+		// Find the tool - prefer XPHB source, fallback to PHB
+		let tool = items.find(item =>
+			DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+			item.source === 'XPHB' &&
+			(item.type === 'AT' || item.type?.includes('AT'))
+		);
+
+		if (!tool) {
+			tool = items.find(item =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				item.source === 'PHB' &&
+				(item.type === 'AT' || item.type?.includes('AT'))
+			);
+		}
+
+		if (!tool) {
+			tool = items.find(item =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				(item.type === 'AT' || item.type?.includes('AT'))
+			);
+		}
+
+		if (!tool) {
+			return {
+				name: toolName,
+				description: `Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
+				type: 'tool'
+			};
+		}
+
+		// Extract text from entries - handle both string and object entries
+		const extractText = (entry) => {
+			if (typeof entry === 'string') return entry;
+			if (entry.entries) return entry.entries.map(extractText).join(' ');
+			if (entry.items) return entry.items.map(extractText).join(' ');
+			return '';
+		};
+
+		let description = '';
+		if (tool.entries && tool.entries.length > 0) {
+			description = tool.entries.map(extractText).filter(Boolean).join(' ');
+		} else if (tool.additionalEntries && tool.additionalEntries.length > 0) {
+			description = tool.additionalEntries.map(extractText).filter(Boolean).join(' ');
+		}
+
+		if (!description) {
+			description = `Proficiency with ${tool.name.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`;
+		}
+
+		return {
+			name: tool.name,
+			description,
+			type: 'tool',
+			source: tool.source,
+			page: tool.page
+		};
+	}
+
+	/**
+	 * Gets description for armor proficiency
+	 * @param {string} armorName - Name of the armor type
+	 * @returns {Promise<Object|null>} Object with name and description
+	 */
+	async getArmorDescription(armorName) {
+		const baseItems = itemService.getAllBaseItems();
+
+		// Handle armor categories
+		const armorCategories = {
+			'Light Armor': 'LA',
+			'Medium Armor': 'MA',
+			'Heavy Armor': 'HA',
+			'Shields': 'S'
+		};
+
+		const typeCode = armorCategories[armorName];
+
+		if (typeCode) {
+			// Return category description
+			const examples = baseItems
+				.filter(item => (item.type === typeCode || item.type === `${typeCode}|XPHB`) && item.armor)
+				.slice(0, 3)
+				.map(item => item.name);
+
+			return {
+				name: armorName,
+				description: examples.length > 0
+					? `You are proficient with ${armorName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
+					: `You are proficient with ${armorName.toLowerCase()}.`,
+				type: 'armor'
+			};
+		}
+
+		// Look for specific armor item
+		const normalizedSearch = DataNormalizer.normalizeForLookup(armorName);
+		let armor = baseItems.find(item =>
+			DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+			item.armor &&
+			item.source === 'XPHB'
+		);
+
+		if (!armor) {
+			armor = baseItems.find(item =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				item.armor
+			);
+		}
+
+		if (!armor) {
+			return {
+				name: armorName,
+				description: `You are proficient with ${armorName.toLowerCase()}.`,
+				type: 'armor'
+			};
+		}
+
+		return {
+			name: armor.name,
+			description: armor.entries?.join(' ') || `You are proficient with ${armor.name.toLowerCase()}.`,
+			ac: armor.ac,
+			weight: armor.weight,
+			type: 'armor',
+			source: armor.source,
+			page: armor.page
+		};
+	}
+
+	/**
+	 * Gets description for weapon proficiency
+	 * @param {string} weaponName - Name of the weapon type
+	 * @returns {Promise<Object|null>} Object with name and description
+	 */
+	async getWeaponDescription(weaponName) {
+		const baseItems = itemService.getAllBaseItems();
+
+		// Handle weapon categories
+		if (weaponName === 'Simple Weapons' || weaponName === 'Martial Weapons') {
+			const category = weaponName === 'Simple Weapons' ? 'simple' : 'martial';
+			const examples = baseItems
+				.filter(item => item.weaponCategory === category && item.weapon)
+				.slice(0, 5)
+				.map(item => item.name);
+
+			return {
+				name: weaponName,
+				description: examples.length > 0
+					? `You are proficient with ${weaponName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
+					: `You are proficient with ${weaponName.toLowerCase()}.`,
+				type: 'weapon'
+			};
+		}
+
+		// Look for specific weapon
+		const normalizedSearch = DataNormalizer.normalizeForLookup(weaponName);
+		let weapon = baseItems.find(item =>
+			DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+			item.weapon &&
+			item.source === 'XPHB'
+		);
+
+		if (!weapon) {
+			weapon = baseItems.find(item =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				item.weapon
+			);
+		}
+
+		if (!weapon) {
+			return {
+				name: weaponName,
+				description: `You are proficient with ${weaponName.toLowerCase()}.`,
+				type: 'weapon'
+			};
+		}
+
+		const properties = [];
+		if (weapon.dmg1) properties.push(`Damage: ${weapon.dmg1} ${weapon.dmgType}`);
+		if (weapon.range) properties.push(`Range: ${weapon.range}`);
+		if (weapon.weight) properties.push(`Weight: ${weapon.weight} lb.`);
+
+		const description = weapon.entries?.join(' ') ||
+			(properties.length > 0
+				? `${weapon.name} (${properties.join(', ')})`
+				: `You are proficient with ${weapon.name.toLowerCase()}.`);
+
+		return {
+			name: weapon.name,
+			description,
+			damage: weapon.dmg1,
+			damageType: weapon.dmgType,
+			weaponCategory: weapon.weaponCategory,
+			type: 'weapon',
+			source: weapon.source,
+			page: weapon.page
+		};
 	}
 }
 
