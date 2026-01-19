@@ -10,6 +10,7 @@ import { AbilityScoreCard } from '../ui/components/abilities/ScoreSheet.js';
 import { BackgroundCard } from '../ui/components/background/Card.js';
 import { ClassCard } from '../ui/components/class/Card.js';
 import { FeatListView, FeatSourcesView } from '../ui/components/feats/Modal.js';
+import { LevelUpFeatSelector } from '../ui/components/level/LevelUpFeatSelector.js';
 import { ProficiencyCard } from '../ui/components/proficiencies/Card.js';
 import { RaceCard } from '../ui/components/race/Card.js';
 import { AppState } from './AppState.js';
@@ -857,7 +858,7 @@ class PageHandlerImpl {
 			// Set up feat sources footer rendering and listeners
 			this._initializeFeatSources();
 
-			// --- FeatSelectionModal integration ---
+			// --- Feat Selection Modal integration ---
 			// Add event listener to the "+ Add Feat" button
 			const addFeatBtn = document.getElementById('addFeatBtn');
 			if (addFeatBtn) {
@@ -865,12 +866,38 @@ class PageHandlerImpl {
 				const newAddFeatBtn = addFeatBtn.cloneNode(true);
 				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
 				newAddFeatBtn.addEventListener('click', async () => {
-					// Dynamically import the FeatSelectionModal to avoid circular deps
-					const { FeatCard } = await import(
-						'../ui/components/feats/Modal.js'
-					);
-					const modal = new FeatCard();
-					await modal.show();
+					const availability = character.getFeatAvailability?.();
+					const maxFeats = availability?.max || 0;
+
+					if (maxFeats <= 0) {
+						showNotification(
+							availability?.blockedReason || 'No feat selections available.',
+							'warning'
+						);
+						return;
+					}
+
+					const selector = new LevelUpFeatSelector();
+					await selector.show({
+						currentSelection: character.feats || [],
+						multiSelect: true,
+						maxSelections: maxFeats,
+						onConfirm: async (feats) => {
+							if (feats && feats.length > 0) {
+								// Update character feats
+								character.setFeats(feats, 'Manual selection');
+
+								// Update UI
+								this._featListView.update(this._featListContainer, character);
+								this._featSourcesView.update(this._featSourcesContainer, character);
+								this._updateFeatUIState(character);
+								this._updateFeatAvailabilitySection(character);
+
+								eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+								showNotification(`${feats.length} feat(s) selected!`, 'success');
+							}
+						}
+					});
 				});
 
 				this._updateFeatUIState(character);

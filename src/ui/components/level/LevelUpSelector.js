@@ -572,6 +572,11 @@ export class LevelUpSelector {
         // Custom filters
         for (const [filterKey, filterValue] of Object.entries(this.activeFilters)) {
             if (filterValue && filterValue.size > 0) {
+                // Skip Prerequisites filter - handled externally by LevelUpFeatSelector
+                if (filterKey === 'Prerequisites') {
+                    continue;
+                }
+                
                 // Special handling for school filter - check both abbreviated and full name
                 if (filterKey === 'school') {
                     const schoolAbbreviations = {
