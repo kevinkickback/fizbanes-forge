@@ -218,6 +218,12 @@ class NavigationControllerImpl {
 			title: 'Build',
 		});
 
+		this.router.register('feats', {
+			template: 'feats.html',
+			requiresCharacter: true,
+			title: 'Feats',
+		});
+
 		this.router.register('equipment', {
 			template: 'equipment.html',
 			requiresCharacter: true,

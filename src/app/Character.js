@@ -200,6 +200,8 @@ export class Character {
 		this.height = data.height || '';
 		this.weight = data.weight || '';
 		this.gender = data.gender || '';
+		this.alignment = data.alignment || '';
+		this.deity = data.deity || '';
 		this.backstory = data.backstory || '';
 
 		// Initialize instrument choices for specific musical instruments
@@ -534,6 +536,8 @@ export class Character {
 			height: this.height || '',
 			weight: this.weight || '',
 			gender: this.gender || '',
+			alignment: this.alignment || '',
+			deity: this.deity || '',
 			backstory: this.backstory || '',
 
 			// Ability scores and bonuses

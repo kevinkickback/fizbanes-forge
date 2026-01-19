@@ -8,6 +8,16 @@
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 
+const ABILITY_NAMES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const ABILITY_LABELS = {
+    str: 'Strength',
+    dex: 'Dexterity',
+    con: 'Constitution',
+    int: 'Intelligence',
+    wis: 'Wisdom',
+    cha: 'Charisma'
+};
+
 export class ASIModal {
     constructor(level, currentASI = {}) {
         this.level = level;
@@ -17,6 +27,8 @@ export class ASIModal {
         this._cleanup = DOMCleanup.create();
         this._resolve = null;
         this._result = null;
+        this._asiMode = 'plus2'; // 'plus2' or 'plus1'
+        this._selectedAbilities = { ability1: '', ability2: '' };
     }
 
     /**
@@ -100,77 +112,155 @@ export class ASIModal {
         const body = document.getElementById('asiModalBody');
         if (!body) return;
 
-        body.innerHTML = `
-			<p class="mb-3">Increase one ability score by 2, or two ability scores by 1 each.</p>
-			
-			<div class="row g-2 mb-2">
-				<div class="col-6">
-					<label class="form-label small">First Ability</label>
-					<select class="form-select form-select-sm" id="asiAbility1">
-						<option value="">Select...</option>
-						<option value="str">Strength</option>
-						<option value="dex">Dexterity</option>
-						<option value="con">Constitution</option>
-						<option value="int">Intelligence</option>
-						<option value="wis">Wisdom</option>
-						<option value="cha">Charisma</option>
-					</select>
-				</div>
-				<div class="col-6">
-					<label class="form-label small">Increase</label>
-					<select class="form-select form-select-sm" id="asiBonus1">
-						<option value="2">+2</option>
-						<option value="1">+1</option>
-					</select>
-				</div>
-			</div>
-			<div class="row g-2" id="asiSecondAbility" style="display: none;">
-				<div class="col-6">
-					<label class="form-label small">Second Ability</label>
-					<select class="form-select form-select-sm" id="asiAbility2">
-						<option value="">Select...</option>
-						<option value="str">Strength</option>
-						<option value="dex">Dexterity</option>
-						<option value="con">Constitution</option>
-						<option value="int">Intelligence</option>
-						<option value="wis">Wisdom</option>
-						<option value="cha">Charisma</option>
-					</select>
-				</div>
-				<div class="col-6">
-					<label class="form-label small">Increase</label>
-					<input type="text" class="form-control form-control-sm" value="+1" disabled>
-				</div>
-			</div>
-		`;
-
-        // Pre-fill ASI values if they exist
+        // Determine mode from currentASI
         if (this.currentASI && Object.keys(this.currentASI).length > 0) {
             const abilities = Object.entries(this.currentASI);
-            if (abilities.length > 0) {
-                const [ability1, bonus1] = abilities[0];
-                document.getElementById('asiAbility1').value = ability1;
-                document.getElementById('asiBonus1').value = bonus1.toString();
-
-                if (abilities.length > 1) {
-                    const [ability2] = abilities[1];
-                    document.getElementById('asiAbility2').value = ability2;
-                    document.getElementById('asiSecondAbility').style.display = 'block';
-                }
+            if (abilities.length === 1) {
+                const [ability, bonus] = abilities[0];
+                this._asiMode = bonus === 2 ? 'plus2' : 'plus1';
+                this._selectedAbilities.ability1 = ability;
+            } else if (abilities.length > 1) {
+                this._asiMode = 'plus1';
+                this._selectedAbilities.ability1 = abilities[0][0];
+                this._selectedAbilities.ability2 = abilities[1][0];
             }
+        }
+
+        body.innerHTML = `
+			<p class="mb-3 text-center">Choose how to improve your ability scores</p>
+			
+			<!-- ASI Mode Toggle -->
+			<div class="d-flex justify-content-center mb-4">
+				<div class="btn-group asi-mode-toggle" role="group">
+					<input
+						type="radio"
+						class="btn-check"
+						name="asi_mode"
+						id="asi_plus2"
+						value="plus2"
+						${this._asiMode === 'plus2' ? 'checked' : ''}
+					>
+					<label class="btn btn-outline-primary" for="asi_plus2">
+						+2 to one ability
+					</label>
+
+					<input
+						type="radio"
+						class="btn-check"
+						name="asi_mode"
+						id="asi_plus1"
+						value="plus1"
+						${this._asiMode === 'plus1' ? 'checked' : ''}
+					>
+					<label class="btn btn-outline-primary" for="asi_plus1">
+						+1 to two abilities
+					</label>
+				</div>
+			</div>
+
+			<!-- Ability Score Boxes -->
+			<div class="row g-2 justify-content-center" id="asiAbilityBoxes">
+				${this._renderAbilityBoxes()}
+			</div>
+
+			<!-- Selection Summary -->
+			<div class="mt-3" id="asiSelectionSummary">
+				${this._renderSelectionSummary()}
+			</div>
+		`;
+    }
+
+    _renderAbilityBoxes() {
+        return ABILITY_NAMES.map(ability => {
+            const isSelected = this._selectedAbilities.ability1 === ability || this._selectedAbilities.ability2 === ability;
+            const bonus = this._getAbilityBonus(ability);
+
+            return `
+                <div class="col-4 col-md-4">
+                    <button
+                        type="button"
+                        class="btn w-100 ability-select-btn ${isSelected ? 'active' : ''}"
+                        data-ability="${ability}"
+                    >
+                        <strong>${ABILITY_LABELS[ability]}</strong>
+                        <div class="bonus-display">
+                            ${bonus ? `+${bonus}` : '\u00A0'}
+                        </div>
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    _getAbilityBonus(ability) {
+        if (this._selectedAbilities.ability1 === ability) {
+            return this._asiMode === 'plus2' ? 2 : 1;
+        }
+        if (this._selectedAbilities.ability2 === ability && this._asiMode === 'plus1') {
+            return 1;
+        }
+        return 0;
+    }
+
+    _renderSelectionSummary() {
+        const { ability1, ability2 } = this._selectedAbilities;
+
+        if (this._asiMode === 'plus2' && ability1) {
+            return `
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check me-2"></i>
+                    <strong>Selected:</strong> ${ABILITY_LABELS[ability1]} +2
+                </div>
+            `;
+        } else if (this._asiMode === 'plus1' && ability1 && ability2) {
+            return `
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check me-2"></i>
+                    <strong>Selected:</strong> ${ABILITY_LABELS[ability1]} +1, ${ABILITY_LABELS[ability2]} +1
+                </div>
+            `;
+        } else if (this._asiMode === 'plus1' && ability1 && !ability2) {
+            return `
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Select a second ability for +1
+                </div>
+            `;
+        } else {
+            return `
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Select ${this._asiMode === 'plus2' ? 'an ability' : 'two abilities'} to improve
+                </div>
+            `;
         }
     }
 
     _attachListeners() {
-        // Bonus dropdown - show/hide second ability
-        const bonus1Select = document.getElementById('asiBonus1');
-        const secondAbilityRow = document.getElementById('asiSecondAbility');
+        // ASI mode toggle - re-render entire content to update toggle styles
+        const modeToggles = this.modalEl.querySelectorAll('[name="asi_mode"]');
+        modeToggles.forEach(toggle => {
+            this._cleanup.on(toggle, 'change', (e) => {
+                this._asiMode = e.target.value;
 
-        if (bonus1Select && secondAbilityRow) {
-            this._cleanup.on(bonus1Select, 'change', () => {
-                secondAbilityRow.style.display = bonus1Select.value === '1' ? 'block' : 'none';
+                // Clear selections when switching modes
+                this._selectedAbilities = { ability1: '', ability2: '' };
+
+                // Re-render entire content to update toggle button styles
+                this._renderContent();
+                this._attachListeners();
             });
-        }
+        });
+
+        // Ability box clicks
+        const abilityButtons = this.modalEl.querySelectorAll('[data-ability]');
+        abilityButtons.forEach(btn => {
+            this._cleanup.on(btn, 'click', () => {
+                const ability = btn.dataset.ability;
+                this._handleAbilityClick(ability);
+                this._updateDisplay();
+            });
+        });
 
         // Apply button
         const applyButton = document.getElementById('asiApplyButton');
@@ -181,30 +271,87 @@ export class ASIModal {
         }
     }
 
-    _handleApply() {
-        // Validate ASI selection
-        const ability1 = document.getElementById('asiAbility1')?.value;
-        const bonus1 = parseInt(document.getElementById('asiBonus1')?.value || '2', 10);
+    _handleAbilityClick(ability) {
+        const { ability1, ability2 } = this._selectedAbilities;
 
-        if (!ability1) {
-            alert('Please select an ability to improve.');
+        if (this._asiMode === 'plus2') {
+            // Simple toggle for +2 mode
+            this._selectedAbilities.ability1 = ability1 === ability ? '' : ability;
+            this._selectedAbilities.ability2 = '';
+        } else {
+            // +1/+1 mode - allow two different abilities
+            if (ability1 === ability) {
+                // Deselect first, move second to first if exists
+                this._selectedAbilities.ability1 = ability2;
+                this._selectedAbilities.ability2 = '';
+            } else if (ability2 === ability) {
+                // Deselect second
+                this._selectedAbilities.ability2 = '';
+            } else if (!ability1) {
+                // First selection
+                this._selectedAbilities.ability1 = ability;
+            } else if (!ability2) {
+                // Second selection (ensure different from first)
+                if (ability !== ability1) {
+                    this._selectedAbilities.ability2 = ability;
+                }
+            } else {
+                // Both slots filled, replace second with new selection
+                this._selectedAbilities.ability2 = ability;
+            }
+        }
+    }
+
+    _updateDisplay() {
+        // Update ability boxes
+        const boxesContainer = document.getElementById('asiAbilityBoxes');
+        if (boxesContainer) {
+            boxesContainer.innerHTML = this._renderAbilityBoxes();
+
+            // Re-attach click listeners for new boxes
+            const abilityButtons = boxesContainer.querySelectorAll('[data-ability]');
+            abilityButtons.forEach(btn => {
+                this._cleanup.on(btn, 'click', () => {
+                    const ability = btn.dataset.ability;
+                    this._handleAbilityClick(ability);
+                    this._updateDisplay();
+                });
+            });
+        }
+
+        // Update summary
+        const summaryContainer = document.getElementById('asiSelectionSummary');
+        if (summaryContainer) {
+            summaryContainer.innerHTML = this._renderSelectionSummary();
+        }
+    }
+
+    _handleApply() {
+        const { ability1, ability2 } = this._selectedAbilities;
+
+        // Validate selection
+        if (this._asiMode === 'plus2' && !ability1) {
+            alert('Please select an ability to improve by +2.');
             return;
         }
 
-        const changedAbilities = {};
-        changedAbilities[ability1] = bonus1;
-
-        // Check for second ability if +1/+1
-        if (bonus1 === 1) {
-            const ability2 = document.getElementById('asiAbility2')?.value;
-            if (!ability2) {
-                alert('Please select a second ability for the +1 bonus.');
+        if (this._asiMode === 'plus1') {
+            if (!ability1 || !ability2) {
+                alert('Please select two abilities to improve by +1 each.');
                 return;
             }
-            if (ability2 === ability1) {
+            if (ability1 === ability2) {
                 alert('Please select two different abilities.');
                 return;
             }
+        }
+
+        // Build result
+        const changedAbilities = {};
+        if (this._asiMode === 'plus2') {
+            changedAbilities[ability1] = 2;
+        } else {
+            changedAbilities[ability1] = 1;
             changedAbilities[ability2] = 1;
         }
 

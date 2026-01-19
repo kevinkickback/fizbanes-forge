@@ -25,51 +25,75 @@ export class LevelUpFeatSelector {
 
         // Generic selector instance
         this._selector = null;
+
+        // Promise resolver for awaiting selection
+        this._resolveSelection = null;
     }
 
     /**
      * Initialize and display the feat selector modal
+     * Returns a Promise that resolves with the selected feat name or null if cancelled
      */
     async show(currentSelection = null) {
-        try {
-            // Load all feats
-            const allFeats = this.featService.getAllFeats();
+        return new Promise((resolve, reject) => {
+            try {
+                // Store resolver for later use
+                this._resolveSelection = resolve;
 
-            // Filter to only allowed sources
-            const filtered = allFeats.filter(feat =>
-                sourceService.isSourceAllowed(feat.source)
-            );
+                // Load all feats
+                const allFeats = this.featService.getAllFeats();
 
-            // Create generic selector with feat-specific config
-            this._selector = new LevelUpSelector({
-                items: filtered,
-                searchFields: ['name'],
-                filterSets: {},
-                multiSelect: false,
-                maxSelections: 1,
-                tabLevels: [],
-                onConfirm: this._onFeatConfirmed.bind(this),
-                modalTitle: 'Select a Feat',
-                context: {
-                    currentSelection
-                }
-            });
-
-            // Pre-select current selection if provided
-            if (currentSelection) {
-                const selected = filtered.find(f =>
-                    (f.id === currentSelection.id || f.name === currentSelection.name)
+                // Filter to only allowed sources
+                const filtered = allFeats.filter(feat =>
+                    sourceService.isSourceAllowed(feat.source)
                 );
-                if (selected) {
-                    this._selector.selectedItems = [selected];
-                }
-            }
 
-            // Show modal
-            await this._selector.show();
-        } catch (error) {
-            console.error('[LevelUpFeatSelector]', 'Error showing feat selector:', error);
-        }
+                // Create generic selector with feat-specific config
+                this._selector = new LevelUpSelector({
+                    items: filtered,
+                    searchFields: ['name'],
+                    filterSets: {},
+                    multiSelect: false,
+                    maxSelections: 1,
+                    tabLevels: [],
+                    onConfirm: this._onFeatConfirmed.bind(this),
+                    modalTitle: 'Select a Feat',
+                    context: {
+                        currentSelection
+                    }
+                });
+
+                // Pre-select current selection if provided
+                if (currentSelection) {
+                    const selected = filtered.find(f =>
+                        (f.id === currentSelection.id || f.name === currentSelection.name)
+                    );
+                    if (selected) {
+                        this._selector.selectedItems = [selected];
+                    }
+                }
+
+                // Hook into modal close to handle cancellation
+                const modalEl = document.getElementById('levelUpSelectorModal');
+                if (modalEl) {
+                    const handleHidden = () => {
+                        // If promise not yet resolved, user cancelled
+                        if (this._resolveSelection) {
+                            this._resolveSelection(null);
+                            this._resolveSelection = null;
+                        }
+                        modalEl.removeEventListener('hidden.bs.modal', handleHidden);
+                    };
+                    modalEl.addEventListener('hidden.bs.modal', handleHidden);
+                }
+
+                // Show modal
+                this._selector.show();
+            } catch (error) {
+                console.error('[LevelUpFeatSelector]', 'Error showing feat selector:', error);
+                reject(error);
+            }
+        });
     }
 
     /**
@@ -78,8 +102,22 @@ export class LevelUpFeatSelector {
     async _onFeatConfirmed(selectedFeats) {
         if (selectedFeats.length > 0) {
             const selectedFeat = selectedFeats[0];
-            // Update parent step
-            this.parentStep?.updateFeatSelection?.(selectedFeat.name || selectedFeat.id);
+            const featName = selectedFeat.name || selectedFeat.id;
+
+            // Update parent step (legacy behavior for compatibility)
+            this.parentStep?.updateFeatSelection?.(featName);
+
+            // Resolve the promise with the feat name
+            if (this._resolveSelection) {
+                this._resolveSelection(featName);
+                this._resolveSelection = null;
+            }
+        } else {
+            // No selection made
+            if (this._resolveSelection) {
+                this._resolveSelection(null);
+                this._resolveSelection = null;
+            }
         }
     }
 

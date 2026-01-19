@@ -2,7 +2,9 @@
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
+import { ALIGNMENTS } from '../lib/constants.js';
 import { showNotification } from '../lib/Notifications.js';
+import { deityService } from '../services/DeityService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { AbilityScoreCard } from '../ui/components/abilities/ScoreSheet.js';
 import { BackgroundCard } from '../ui/components/background/Card.js';
@@ -77,6 +79,9 @@ class PageHandlerImpl {
 					break;
 				case 'details':
 					await this.initializeDetailsPage();
+					break;
+				case 'feats':
+					await this.initializeFeatsPage();
 					break;
 				case 'equipment':
 					await this.initializeEquipmentPage();
@@ -600,28 +605,6 @@ class PageHandlerImpl {
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
 
-			// Set up feat sources footer rendering and listeners
-			this._initializeFeatSources();
-
-			// --- FeatSelectionModal integration ---
-			// Add event listener to the "+ Add Feat" button
-			const addFeatBtn = document.getElementById('addFeatBtn');
-			if (addFeatBtn) {
-				// Remove any existing listeners by replacing the node
-				const newAddFeatBtn = addFeatBtn.cloneNode(true);
-				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
-				newAddFeatBtn.addEventListener('click', async () => {
-					// Dynamically import the FeatSelectionModal to avoid circular deps
-					const { FeatCard } = await import(
-						'../ui/components/feats/Modal.js'
-					);
-					const modal = new FeatCard();
-					await modal.show();
-				});
-
-				this._updateFeatUIState(AppState.getCurrentCharacter());
-			}
-
 			console.info('PageHandler', 'Build page cards initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing build page', error);
@@ -673,6 +656,7 @@ class PageHandlerImpl {
 			this._featListView.update(this._featListContainer, character);
 			this._featSourcesView.update(this._featSourcesContainer, character);
 			this._updateFeatUIState(character);
+			this._updateFeatAvailabilitySection(character);
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 		};
 
@@ -686,6 +670,7 @@ class PageHandlerImpl {
 				character || AppState.getCurrentCharacter(),
 			);
 			this._updateFeatUIState(character || AppState.getCurrentCharacter());
+			this._updateFeatAvailabilitySection(character || AppState.getCurrentCharacter());
 		};
 
 		this._onCharacterSelectedForFeats = (character) => {
@@ -698,6 +683,7 @@ class PageHandlerImpl {
 				character || AppState.getCurrentCharacter(),
 			);
 			this._updateFeatUIState(character || AppState.getCurrentCharacter());
+			this._updateFeatAvailabilitySection(character || AppState.getCurrentCharacter());
 		};
 
 		eventBus.on(EVENTS.FEATS_SELECTED, this._onFeatsSelected);
@@ -757,6 +743,41 @@ class PageHandlerImpl {
 				return;
 			}
 
+			// Populate alignment dropdown
+			const alignmentInput = document.getElementById('alignment');
+			if (alignmentInput) {
+				// Clear existing options except the first (placeholder)
+				while (alignmentInput.options.length > 1) {
+					alignmentInput.remove(1);
+				}
+				// Populate from constants
+				ALIGNMENTS.forEach((alignment) => {
+					const option = document.createElement('option');
+					option.value = alignment.value;
+					option.textContent = alignment.label;
+					alignmentInput.appendChild(option);
+				});
+				alignmentInput.value = character.alignment || '';
+			}
+
+			// Populate deity datalist
+			const deityInput = document.getElementById('deity');
+			const deityList = document.getElementById('deityList');
+			if (deityList) {
+				// Clear existing options
+				deityList.innerHTML = '';
+				// Populate from deity service
+				const deityNames = deityService.getDeityNames();
+				deityNames.forEach((name) => {
+					const option = document.createElement('option');
+					option.value = name;
+					deityList.appendChild(option);
+				});
+			}
+			if (deityInput) {
+				deityInput.value = character.deity || '';
+			}
+
 			// Populate character info fields
 			const characterNameInput = document.getElementById('characterName');
 			const playerNameInput = document.getElementById('playerName');
@@ -794,6 +815,8 @@ class PageHandlerImpl {
 			'height',
 			'weight',
 			'gender',
+			'alignment',
+			'deity',
 			'backstory',
 		];
 
@@ -813,6 +836,85 @@ class PageHandlerImpl {
 				});
 			}
 		});
+	}
+
+	/**
+	 * Initialize the feats page
+	 */
+	async initializeFeatsPage() {
+		console.info('PageHandler', 'Initializing feats page');
+
+		try {
+			const character = AppState.getCurrentCharacter();
+			if (!character) {
+				console.warn('PageHandler', 'No character loaded for feats page');
+				return;
+			}
+
+			// Set up feat sources footer rendering and listeners
+			this._initializeFeatSources();
+
+			// --- FeatSelectionModal integration ---
+			// Add event listener to the "+ Add Feat" button
+			const addFeatBtn = document.getElementById('addFeatBtn');
+			if (addFeatBtn) {
+				// Remove any existing listeners by replacing the node
+				const newAddFeatBtn = addFeatBtn.cloneNode(true);
+				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
+				newAddFeatBtn.addEventListener('click', async () => {
+					// Dynamically import the FeatSelectionModal to avoid circular deps
+					const { FeatCard } = await import(
+						'../ui/components/feats/Modal.js'
+					);
+					const modal = new FeatCard();
+					await modal.show();
+				});
+
+				this._updateFeatUIState(character);
+			}
+
+			// Update feat availability info
+			this._updateFeatAvailabilitySection(character);
+
+			console.info('PageHandler', 'Feats page initialized');
+		} catch (error) {
+			console.error('PageHandler', 'Error initializing feats page', error);
+			showNotification('Error loading feats page', 'error');
+		}
+	}
+
+	_updateFeatAvailabilitySection(character) {
+		const availabilitySection = document.getElementById('featAvailabilitySection');
+		const availabilityContent = document.getElementById('featAvailabilityContent');
+		const featSourcesSection = document.getElementById('featSourcesSection');
+
+		if (!character || !availabilityContent) return;
+
+		const availability = character.getFeatAvailability?.() || {
+			used: 0,
+			max: 0,
+			remaining: 0,
+			reasons: [],
+			blockedReason: null,
+		};
+
+		// Show/hide availability section
+		if (availabilitySection) {
+			if (availability.max > 0 || availability.reasons.length > 0) {
+				availabilitySection.style.display = 'block';
+				const reasonsList = availability.reasons.length > 0
+					? `<ul class="mb-0">${availability.reasons.map(r => `<li>${r}</li>`).join('')}</ul>`
+					: '<p class="mb-0">You have feat selections available.</p>';
+				availabilityContent.innerHTML = reasonsList;
+			} else {
+				availabilitySection.style.display = 'none';
+			}
+		}
+
+		// Show/hide feat sources section if feats exist
+		if (featSourcesSection) {
+			featSourcesSection.style.display = character.feats?.length > 0 ? 'block' : 'none';
+		}
 	}
 
 	/**

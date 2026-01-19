@@ -23,6 +23,7 @@ import { actionService } from '../services/ActionService.js';
 import { backgroundService } from '../services/BackgroundService.js';
 import { classService } from '../services/ClassService.js';
 import { conditionService } from '../services/ConditionService.js';
+import { deityService } from '../services/DeityService.js';
 import { featService } from '../services/FeatService.js';
 import { itemService } from '../services/ItemService.js';
 import { monsterService } from '../services/MonsterService.js';
@@ -171,6 +172,7 @@ async function _loadAllGameData(loadingModal) {
 			{ name: 'feats', init: () => featService.initialize() },
 			{ name: 'skills', init: () => skillService.initialize() },
 			{ name: 'actions', init: () => actionService.initialize() },
+			{ name: 'deities', init: () => deityService.initialize() },
 			{ name: 'variant rules', init: () => variantRuleService.initialize() },
 			{ name: 'optional features', init: () => optionalFeatureService.initialize() },
 		];

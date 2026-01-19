@@ -1357,13 +1357,13 @@ export class ClassCard {
 		if (asiUsed) {
 			if (hasFeat) {
 				selectedChoice = 'feat';
-				selectedDisplay = `Selected: Feat — ${asiRecord.appliedFeats.join(', ')}`;
+				selectedDisplay = asiRecord.appliedFeats.join(', ');
 			} else if (hasASI) {
 				selectedChoice = 'asi';
 				const abilityChanges = Object.entries(asiRecord.changedAbilities)
 					.map(([ability, change]) => `+${change} ${toTitleCase(attAbvToFull(ability))}`)
 					.join(', ');
-				selectedDisplay = `Selected: ${abilityChanges}`;
+				selectedDisplay = abilityChanges;
 			}
 		}
 
@@ -1379,9 +1379,9 @@ export class ClassCard {
 			buttonText = 'Change';
 			buttonIcon = 'fa-list';
 		} else if (featChecked) {
-			// Show contextual for feat when not yet selected
-			buttonText = 'Go to Feats';
-			buttonIcon = 'fa-list';
+			// Show "Choose" for feat when not yet selected
+			buttonText = 'Choose';
+			buttonIcon = 'fa-scroll';
 		} else {
 			// Show contextual for ASI when not yet selected
 			buttonText = 'Increase Scores';
@@ -1488,10 +1488,8 @@ export class ClassCard {
 
 				const updateButtonState = () => {
 					if (featRadio?.checked) {
-						buttonTextEl.textContent = 'Go to Feats';
-						buttonIconEl.className = 'fas fa-list';
-					} else {
-						buttonTextEl.textContent = 'Increase Scores';
+						buttonTextEl.textContent = 'Choose';
+						buttonIconEl.className = 'fas fa-scroll';
 						buttonIconEl.className = 'fas fa-arrow-up';
 					}
 				};
@@ -1570,16 +1568,47 @@ export class ClassCard {
 		if (!character) return;
 
 		if (isSelectingFeat) {
-			// Scroll to feats section
-			const featsSection = document.getElementById('build-feats');
-			if (featsSection) {
-				featsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				// Highlight the section briefly
-				featsSection.style.transition = 'background-color 0.3s';
-				featsSection.style.backgroundColor = 'var(--accent-color-dim)';
-				setTimeout(() => {
-					featsSection.style.backgroundColor = '';
-				}, 1500);
+			// Open feat selection modal
+			const { LevelUpFeatSelector } = await import('../level/LevelUpFeatSelector.js');
+			const { levelUpService } = await import('../../../services/LevelUpService.js');
+
+			// Check if feat was already selected at this level
+			const levelUps = character.progression?.levelUps || [];
+			const existingFeat = levelUps.find(lu => {
+				const isThisLevel = lu.toLevel === level;
+				const hasFeat = lu.appliedFeats && lu.appliedFeats.length > 0;
+				return isThisLevel && hasFeat;
+			});
+
+			const currentFeat = existingFeat?.appliedFeats?.[0];
+
+			// Create feat selector (no wrapper needed now)
+			const featSelector = new LevelUpFeatSelector(null, null);
+
+			try {
+				// Show modal and await the selected feat name
+				const selectedFeatName = await featSelector.show(currentFeat ? { name: currentFeat } : null);
+
+				if (selectedFeatName) {
+					// Record feat selection in progression history
+					levelUpService.recordLevelUp(character, level - 1, level, {
+						changedAbilities: {},
+						appliedFeats: [selectedFeatName],
+						appliedFeatures: [],
+					});
+
+					// Apply feat to character
+					character.feats.push({ name: selectedFeatName, source: 'ASI' });
+
+					// Save character
+					await CharacterManager.saveCharacter();
+
+					// Update UI
+					await this._syncWithCharacterProgression();
+					eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+				}
+			} catch (error) {
+				console.error('[ClassCard] Error in feat selection:', error);
 			}
 			return;
 		}

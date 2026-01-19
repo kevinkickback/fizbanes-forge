@@ -1,0 +1,52 @@
+<div class="row">
+    <!-- Feat Availability Info -->
+    <div class="col-12 mb-3" id="featAvailabilitySection">
+        <div class="alert alert-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Feat Selections Available</strong>
+                    <div id="featAvailabilityContent" class="mt-2">
+                        <!-- Feat availability info will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected Feats -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Selected Feats</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="selection-counter">
+                        <span id="featCount">0</span>/<span id="maxFeats">0</span> selected
+                    </span>
+                    <button class="btn btn-primary btn-sm" id="addFeatBtn">
+                        <i class="fas fa-plus"></i> Add Feat
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="feat-list" id="featList">
+                    <!-- Feats will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feat Sources Info -->
+    <div class="col-12 mb-4" id="featSourcesSection" style="display: none;">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Feat Sources</h5>
+            </div>
+            <div class="card-body">
+                <div class="feat-notes-container" id="featSources">
+                    <!-- Feat sources will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
