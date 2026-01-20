@@ -17,8 +17,8 @@ import { optionalFeatureService } from '../../../services/OptionalFeatureService
 import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
-import { LevelUpFeatureSelector } from '../level/LevelUpFeatureSelector.js';
-import { LevelUpSpellSelector } from '../level/LevelUpSpellSelector.js';
+import { ClassFeatureSelector } from '../class-progression/ClassFeatureSelector.js';
+import { ClassSpellSelector } from '../class-progression/ClassSpellSelector.js';
 
 export class ClassCard {
 	// Spell level ordinal names for UI display
@@ -834,7 +834,7 @@ export class ClassCard {
 		};
 
 		// Create and show spell selector
-		const spellSelector = new LevelUpSpellSelector(
+		const spellSelector = new ClassSpellSelector(
 			mockSession,
 			this, // parent step
 			className,
@@ -1608,7 +1608,7 @@ export class ClassCard {
 
 		if (isSelectingFeat) {
 			// Open feat selection modal
-			const { LevelUpFeatSelector } = await import('../level/LevelUpFeatSelector.js');
+			const { ClassFeatSelector } = await import('../class-progression/ClassFeatSelector.js');
 			const { levelUpService } = await import('../../../services/LevelUpService.js');
 
 			// Check if feat was already selected at this level
@@ -1622,7 +1622,7 @@ export class ClassCard {
 			const currentFeat = existingFeat?.appliedFeats?.[0];
 
 			// Create feat selector (no wrapper needed now)
-			const featSelector = new LevelUpFeatSelector(null, null);
+			const featSelector = new ClassFeatSelector(null, null);
 
 			try {
 				// Show modal and await the selected feat name
@@ -1637,12 +1637,7 @@ export class ClassCard {
 					});
 
 					// Apply feat to character
-					character.feats.push({ name: selectedFeatName, source: 'ASI' });
-
-					// Save character
-					await CharacterManager.saveCharacter();
-
-					// Update UI
+					character.feats.push({ name: selectedFeatName, source: 'Ability Score Improvement' });
 					await this._syncWithCharacterProgression();
 					eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 				}
@@ -1769,7 +1764,7 @@ export class ClassCard {
 		};
 
 		// Show feature selector
-		const selector = new LevelUpFeatureSelector(
+		const selector = new ClassFeatureSelector(
 			mockSession,
 			this,
 			className,
@@ -1855,7 +1850,7 @@ export class ClassCard {
 		};
 
 		// Show feature selector
-		const selector = new LevelUpFeatureSelector(
+		const selector = new ClassFeatureSelector(
 			mockSession,
 			this,
 			className,

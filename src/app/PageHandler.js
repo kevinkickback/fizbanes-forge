@@ -8,9 +8,9 @@ import { deityService } from '../services/DeityService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { AbilityScoreCard } from '../ui/components/abilities/ScoreSheet.js';
 import { BackgroundCard } from '../ui/components/background/Card.js';
+import { ClassFeatSelector } from '../ui/components/class-progression/ClassFeatSelector.js';
 import { ClassCard } from '../ui/components/class/Card.js';
 import { FeatListView, FeatSourcesView } from '../ui/components/feats/Modal.js';
-import { LevelUpFeatSelector } from '../ui/components/level/LevelUpFeatSelector.js';
 import { ProficiencyCard } from '../ui/components/proficiencies/Card.js';
 import { RaceCard } from '../ui/components/race/Card.js';
 import { AppState } from './AppState.js';
@@ -876,7 +876,7 @@ class PageHandlerImpl {
 						);
 					}
 
-					const selector = new LevelUpFeatSelector();
+					const selector = new ClassFeatSelector();
 					await selector.show({
 						currentSelection: character.feats || [],
 						multiSelect: true,

@@ -1,7 +1,9 @@
 import { AppState } from '../../../app/AppState.js';
+import { showNotification } from '../../../lib/Notifications.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
+import { UniversalSelectionModal, formatCounter } from '../../../lib/UniversalSelectionModal.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
 /**
  * LevelUpFeatSelector
@@ -17,7 +19,7 @@ import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js
  * - Uses generic LevelUpSelector for consistent UX
  */
 
-export class LevelUpFeatSelector {
+export class ClassFeatSelector {
     constructor(session = null, parentStep = null) {
         this.session = session;
         this.parentStep = parentStep;
@@ -32,6 +34,9 @@ export class LevelUpFeatSelector {
         this._baseMaxSelections = 1;
         this._ignoreSelectionLimit = false;
         this._ignorePrerequisites = false;
+
+        // Description caching
+        this._descriptionCache = new Map();
 
         // Promise resolver for awaiting selection
         this._resolveSelection = null;
@@ -121,8 +126,11 @@ export class LevelUpFeatSelector {
                     if (ignoreLimitCheckbox) {
                         cleanup.on(ignoreLimitCheckbox, 'change', () => {
                             this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
-                            // Update modal's max selections display if needed
+                            // Update modal's max selections display and refresh item states
                             this._selector.config.selectionLimit = this._getCurrentMaxSelections();
+                            // Trigger re-render of items and counter to reflect new limit state
+                            this._selector._updateConfirmButton();
+                            this._selector._renderList();
                         });
                     }
                 } : null;
@@ -130,7 +138,7 @@ export class LevelUpFeatSelector {
                 this._selector = new UniversalSelectionModal({
                     modalId: `featSelectorModal_${Date.now()}`,
                     modalTitle: multiSelect ? 'Select Feats' : 'Select a Feat',
-                    items: this._filteredFeats,
+                    loadItems: () => this._filteredFeats,
                     selectionMode: multiSelect ? 'multiple' : 'single',
                     selectionLimit: maxSelections,
                     initialSelectedItems: this._getInitialSelections(currentSelection),
@@ -150,6 +158,23 @@ export class LevelUpFeatSelector {
                         }
                         return true;
                     },
+                    descriptionCache: this._descriptionCache,
+                    fetchDescription: (item) => this._fetchFeatDescription(item),
+                    descriptionContainerSelector: '.feat-description',
+                    canSelectItem: (_item, state) => {
+                        const selectedCount = state.selectedIds.size;
+                        const maxSelections = this._ignoreSelectionLimit ? Infinity : this._baseMaxSelections;
+                        return selectedCount < maxSelections;
+                    },
+                    onSelectBlocked: () => {
+                        showNotification('Selection limit reached', 'warning');
+                    },
+                    customCountFn: (selectedItems) => formatCounter({
+                        label: 'feat',
+                        selected: selectedItems.length,
+                        max: this._ignoreSelectionLimit ? '∞' : this._baseMaxSelections,
+                        color: 'bg-info'
+                    }),
                     onConfirm: this._onFeatConfirmed.bind(this),
                     onCancel: () => {
                         if (this._resolveSelection) {
@@ -198,10 +223,33 @@ export class LevelUpFeatSelector {
                     <div>${badgesHtml}</div>
                 </div>
                 <div class="spell-card-body">
-                    <div class="spell-description">${description}</div>
+                    <div class="feat-description">${description}</div>
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Async description fetcher for rich text processing
+     */
+    async _fetchFeatDescription(feat) {
+        const parts = [];
+        if (Array.isArray(feat.entries)) {
+            for (const entry of feat.entries) {
+                if (typeof entry === 'string') {
+                    parts.push(await textProcessor.processString(entry));
+                } else if (Array.isArray(entry?.entries)) {
+                    for (const sub of entry.entries) {
+                        if (typeof sub === 'string') {
+                            parts.push(await textProcessor.processString(sub));
+                        }
+                    }
+                }
+            }
+        } else if (typeof feat.entries === 'string') {
+            parts.push(await textProcessor.processString(feat.entries));
+        }
+        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
     }
 
     /**

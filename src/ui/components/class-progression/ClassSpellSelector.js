@@ -1,12 +1,12 @@
 import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { UniversalSelectionModal, formatCategoryCounters } from '../../../lib/UniversalSelectionModal.js';
 import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
-import { UniversalSelectionModal, formatCategoryCounters } from '../selection/UniversalSelectionModal.js';
 
 /**
  * LevelUpSpellSelector
@@ -21,7 +21,7 @@ import { UniversalSelectionModal, formatCategoryCounters } from '../selection/Un
  * - Uses generic LevelUpSelector for consistent UX with other selectors
  */
 
-export class LevelUpSpellSelector {
+export class ClassSpellSelector {
     constructor(session, parentStep, className, currentLevel) {
         this.session = session;
         this.parentStep = parentStep;

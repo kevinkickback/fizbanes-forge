@@ -484,7 +484,7 @@ function _setupUiEventHandlers() {
 
 					if (!levelUpModalInstance) {
 						console.debug('AppInitializer', '[LevelUp] Importing LevelUpModal');
-						const { LevelUpModal } = await import('../ui/components/level/Modal.js');
+						const { LevelUpModal } = await import('../ui/components/level-up/LevelUpModal.js');
 						levelUpModalInstance = new LevelUpModal();
 					}
 					console.debug('AppInitializer', '[LevelUp] Showing modal via controller');

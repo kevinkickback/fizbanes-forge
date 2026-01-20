@@ -1,8 +1,8 @@
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { UniversalSelectionModal, formatCounter } from '../../../lib/UniversalSelectionModal.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { UniversalSelectionModal, formatCounter } from '../selection/UniversalSelectionModal.js';
 
 /**
  * LevelUpFeatureSelector
@@ -17,7 +17,7 @@ import { UniversalSelectionModal, formatCounter } from '../selection/UniversalSe
  * - Uses generic LevelUpSelector for consistent UX
  */
 
-export class LevelUpFeatureSelector {
+export class ClassFeatureSelector {
     constructor(session, parentStep, className, featureType, requirementLevel, currentFeatureId = null) {
         this.session = session;
         this.parentStep = parentStep;
@@ -167,7 +167,7 @@ export class LevelUpFeatureSelector {
                 descriptionContainerSelector: '.feature-description',
                 // Counter rendering
                 customCountFn: (selectedItems) => formatCounter({
-                    label: 'choice' + (this.maxSelections === 1 ? '' : 's'),
+                    label: `choice${this.maxSelections === 1 ? '' : 's'}`,
                     selected: selectedItems.length,
                     max: this.maxSelections || selectedItems.length,
                     color: 'bg-info'
