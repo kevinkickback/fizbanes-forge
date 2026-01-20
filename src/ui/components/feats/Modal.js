@@ -1,31 +1,27 @@
 // FeatCard.js
-// Modal for selecting feats valid for the current character
+// Modal for selecting feats valid for the current character using the universal selector
 
 import { AppState } from '../../../app/AppState.js';
-import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
+import { FilterBuilder } from '../selection/FilterBuilder.js';
+import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
 export class FeatCard {
 	constructor({ allowClose = true } = {}) {
 		this.allowClose = allowClose;
-		this.modal = null;
-		this.bootstrapModal = null;
-		this.validFeats = [];
-		this.filteredFeats = [];
-		this.searchTerm = '';
-		this.selectedSources = new Set();
-		this.selectedFeatIds = new Set();
-		this.featSlotLimit = 0;
+		this._controller = null;
 		this._availability = null;
-		this._featOrigins = new Map(); // Map of feat ID to origin reason (e.g., "Variant Human", "Ability Score Improvement at level 4")
-		this.ignoreRaceRestrictions = false; // Start with restrictions enforced
-
-		// DOM cleanup manager
-		this._cleanup = DOMCleanup.create();
+		this._selectionLimit = null;
+		this._baseSelectionLimit = null;
+		this.selectedFeats = [];
+		this._snapshot = [];
+		this.ignoreRaceRestrictions = false;
+		this.ignoreSelectionLimit = false;
+		this.descriptionCache = new Map();
 	}
 
 	async show() {
@@ -38,610 +34,367 @@ export class FeatCard {
 				'No feat selections available. Choose Variant Human or reach level 4.',
 		};
 
-		this.featSlotLimit = this._availability.max;
+		this._baseSelectionLimit = this._availability?.max || 0;
+		this._selectionLimit = this.ignoreSelectionLimit
+			? null
+			: this._baseSelectionLimit;
 
-		if (!this.featSlotLimit) {
+		if (!this._selectionLimit) {
 			showNotification(
 				this._availability.blockedReason ||
 				'No feat selections available for this character.',
 				'warning',
 			);
-			return;
+			return null;
 		}
 
-		await this._loadValidFeats();
-		this._populateFeatOrigins(); // Build the origin map
-		this.filteredFeats = this.validFeats;
-		this.selectedFeatIds.clear();
+		this.selectedFeats = this._getInitialSelection();
+		this._snapshot = [...this.selectedFeats];
+		this._ensureController();
+		this._controller.config.selectionLimit = this._selectionLimit;
 
-		// Pre-select any already-selected feats
-		this._preselectSavedFeats(character);
-
-		// Get the modal element from DOM
-		this.modal = document.getElementById('featSelectionModal');
-		if (!this.modal) {
-			console.error('FeatSelectionModal', 'Modal element not found in DOM');
-			showNotification('Could not open feat selection modal', 'error');
-			return;
+		const result = await this._controller.show(this._getContext());
+		if (Array.isArray(result)) {
+			this.selectedFeats = result;
+			this._snapshot = [...result];
+			return result;
 		}
 
-		await this._renderFeatList();
+		return null;
+	}
 
-		// Dispose old Bootstrap instance if it exists
-		if (this.bootstrapModal) {
-			this.bootstrapModal.dispose();
-			this.bootstrapModal = null;
-		}
+	_getContext() {
+		return {
+			character: AppState.getCurrentCharacter(),
+		};
+	}
 
-		// Create new Bootstrap modal instance
-		this.bootstrapModal = new bootstrap.Modal(this.modal, {
-			backdrop: true,
-			keyboard: true,
+	_ensureController() {
+		if (this._controller) return;
+
+		this._controller = new UniversalSelectionModal({
+			modalId: 'featSelectionModal',
+			allowClose: this.allowClose,
+			pageSize: 50,
+			listContainerSelector: '.feat-list',
+			selectedContainerSelector: '.selected-feats-container',
+			searchInputSelector: '.feat-search',
+			filterPanelSelector: '[data-feat-filter-panel]',
+			confirmSelector: '.btn-ok',
+			cancelSelector: '.btn-secondary',
+			itemIdAttribute: 'data-feat-id',
+			selectionMode: 'multiple',
+			selectionLimit: this._selectionLimit,
+			getContext: () => this._getContext(),
+			getInitialSelection: () => [...this.selectedFeats],
+			loadItems: (ctx) => this._loadValidFeats(ctx),
+			matchItem: (feat, state) => this._featMatchesFilters(feat, state),
+			renderItem: (feat, state) => this._renderFeatCard(feat, state),
+			getItemId: (feat) => feat.id,
+			onConfirm: (selected) => this._handleConfirm(selected),
+			onCancel: () => this._handleCancel(),
+			buildFilters: (ctx, panel, cleanup) =>
+				this._buildFilters(ctx, panel, cleanup),
+			onSelectionChange: (state) => this._updateSelectionUi(state),
+			onListRendered: (state) => {
+				this._processDescriptions(state);
+				this._updateSelectionUi(state);
+			},
+			onError: (err) => this._onError(err),
+		});
+	}
+
+	_getInitialSelection() {
+		const character = AppState.getCurrentCharacter();
+		if (!character?.feats?.length) return [];
+
+		return character.feats.map((feat) => ({
+			...feat,
+			id: this._buildFeatId(feat),
+		}));
+	}
+
+	_buildFeatId(feat) {
+		const name = (feat?.name || '').toLowerCase();
+		const source = (feat?.source || 'PHB').toLowerCase();
+		return feat?.id || `${name}|${source}`;
+	}
+
+	async _loadValidFeats(ctx) {
+		const character = ctx.character;
+		const allFeats = featService.getAllFeats();
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => (s || '').toLowerCase()),
+		);
+
+		const filtered = allFeats
+			.filter((feat) => {
+				const src = (feat.source || '').toLowerCase();
+				if (!allowedSources.has(src)) return false;
+				return featService.isFeatValidForCharacter(feat, character, {
+					ignoreRacePrereq: this.ignoreRaceRestrictions,
+				});
+			})
+			.map((feat) => ({
+				...feat,
+				id: this._buildFeatId(feat),
+			}));
+
+		// Keep already selected feats even if they are filtered out (e.g., saved feats from another source)
+		this.selectedFeats.forEach((feat) => {
+			const exists = filtered.some((f) => f.id === feat.id);
+			if (!exists) {
+				filtered.push({ ...feat, id: this._buildFeatId(feat) });
+			}
 		});
 
-		// Register cleanup handler for when modal is hidden
-		this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
-		this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onModalHidden());
-
-		// Attach tracked event listeners
-		this._attachEventListeners();
-
-		// Set initial state of restrictions toggle button
-		const ignoreRestrictionsBtn = this.modal.querySelector('#ignoreRestrictionsToggle');
-		if (ignoreRestrictionsBtn) {
-			ignoreRestrictionsBtn.setAttribute(
-				'data-restrictions',
-				!this.ignoreRaceRestrictions,
-			);
-		}
-
-		this.bootstrapModal.show();
+		return filtered.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
-	async _loadValidFeats() {
-		const allFeats = await featService.getAllFeats();
-		const character = AppState.getCurrentCharacter();
-		const allowedSources = sourceService.getAllowedSources();
-
-		// Filter feats based on:
-		// 1. Source is in allowed sources
-		// 2. Character prerequisites (level, race, etc.)
-		this.validFeats = allFeats
-			.filter((f) => {
-				// Check if source is allowed
-				const featSource = (f.source || '').toLowerCase();
-				const isSourceAllowed = allowedSources.some(
-					(s) => s.toLowerCase() === featSource,
-				);
-				if (!isSourceAllowed) return false;
-
-				// Check character prerequisites
-				return this._isFeatValidForCharacter(f, character);
-			})
-			.map((f, index) => ({
-				...f,
-				id: f.id || `feat-${index}`, // Generate ID if not present
-			}));
-	}
-
-	_isFeatValidForCharacter(feat, character) {
-		if (!feat.prerequisite || !Array.isArray(feat.prerequisite)) {
-			return true;
-		}
-
-		// All prerequisite conditions must be met (AND logic)
-		return feat.prerequisite.every((prereq) =>
-			this._validatePrerequisiteCondition(prereq, character),
-		);
-	}
-
-	_validatePrerequisiteCondition(prereq, character) {
-		if (!character) return false;
-
-		// Level requirement
-		if (prereq.level !== undefined) {
-			const characterLevel = character.getTotalLevel();
-			if (characterLevel < prereq.level) {
-				return false;
-			}
-		}
-
-		// Ability score requirement
-		if (Array.isArray(prereq.ability)) {
-			const abilityScores = character.abilityScores || {};
-			const meetsAbilityRequirement = prereq.ability.some((abilityReq) => {
-				if (typeof abilityReq === 'string') {
-					// Simple ability string (e.g., "str", "dex")
-					const score = abilityScores[abilityReq] || 0;
-					return score >= 13; // Default threshold
-				} else if (typeof abilityReq === 'object' && abilityReq.ability) {
-					// Object with ability and minimum score
-					const score = abilityScores[abilityReq.ability] || 0;
-					const minScore = abilityReq.score || 13;
-					return score >= minScore;
-				}
-				return false;
-			});
-			if (!meetsAbilityRequirement) return false;
-		}
-
-		// Race requirement - skip if ignoreRaceRestrictions is enabled
-		if (!this.ignoreRaceRestrictions && Array.isArray(prereq.race)) {
-			const characterRace = character.race?.name?.toLowerCase() || '';
-			const meetsRaceRequirement = prereq.race.some((raceReq) => {
-				if (typeof raceReq === 'string') {
-					return characterRace === raceReq.toLowerCase();
-				} else if (typeof raceReq === 'object' && raceReq.name) {
-					return characterRace === raceReq.name.toLowerCase();
-				}
-				return false;
-			});
-			if (!meetsRaceRequirement) return false;
-		}
-
-		// Class requirement
-		if (Array.isArray(prereq.class)) {
-			const primaryClass = character.getPrimaryClass();
-			const characterClass = primaryClass?.name?.toLowerCase() || '';
-			const meetsClassRequirement = prereq.class.some((classReq) => {
-				if (typeof classReq === 'string') {
-					return characterClass === classReq.toLowerCase();
-				} else if (typeof classReq === 'object' && classReq.name) {
-					return characterClass === classReq.name.toLowerCase();
-				}
-				return false;
-			});
-			if (!meetsClassRequirement) return false;
-		}
-
-		// Spellcasting requirement (character must be a spellcaster)
-		if (prereq.spellcasting === true) {
-			// Check if any class in progression is a spellcaster
-			const classes = character.progression?.classes || [];
-			const hasSpellcasting = classes.some(cls => {
-				const classData = featService._classService?.getClass(cls.name, cls.source);
-				return classData?.spellcastingAbility;
-			});
-			if (!hasSpellcasting) return false;
-		}
-
-		// Spellcasting 2020 requirement (character must be a spellcaster with 2020+ rules)
-		if (prereq.spellcasting2020 === true) {
-			// Check if any class in progression is a spellcaster
-			const classes = character.progression?.classes || [];
-			const hasSpellcasting = classes.some(cls => {
-				const classData = featService._classService?.getClass(cls.name, cls.source);
-				return classData?.spellcastingAbility;
-			});
-			if (!hasSpellcasting) return false;
-		}
-
-		// Spellcasting prepared requirement (character must prepare spells)
-		if (prereq.spellcastingPrepared === true) {
-			// Check if any class in progression can prepare spells
-			const classes = character.progression?.classes || [];
-			const canPrepareSpells = classes.some(cls => {
-				const name = cls.name?.toLowerCase() || '';
-				return name.includes('cleric') || name.includes('druid') ||
-					name.includes('wizard') || name.includes('paladin');
-			});
-			if (!canPrepareSpells) return false;
-		}
-
-		// Spellcasting feature requirement
-		if (prereq.spellcastingFeature === true) {
-			// Check if any class in progression is a spellcaster
-			const classes = character.progression?.classes || [];
-			const hasSpellcasting = classes.some(cls => {
-				const classData = featService._classService?.getClass(cls.name, cls.source);
-				return classData?.spellcastingAbility;
-			});
-			if (!hasSpellcasting) return false;
-		}
-
-		// Proficiency requirement (weapon/armor)
-		if (Array.isArray(prereq.proficiency)) {
-			const proficiencies = character.proficiencies || {};
-			const meetsProficiencyRequirement = prereq.proficiency.some((profReq) => {
-				if (typeof profReq === 'string') {
-					return proficiencies[profReq] === true;
-				} else if (typeof profReq === 'object' && profReq.proficiency) {
-					return proficiencies[profReq.proficiency] === true;
-				}
-				return false;
-			});
-			if (!meetsProficiencyRequirement) return false;
-		}
-
-		// Previous feat requirement
-		if (Array.isArray(prereq.feat)) {
-			const characterFeats = (character.feats || []).map((f) =>
-				typeof f === 'string' ? f.toLowerCase() : (f.name || '').toLowerCase(),
-			);
-			const meetsFeatRequirement = prereq.feat.some((featReq) => {
-				const reqName =
-					typeof featReq === 'string'
-						? featReq.toLowerCase()
-						: (featReq.name || '').toLowerCase();
-				return characterFeats.some((cf) => cf.includes(reqName));
-			});
-			if (!meetsFeatRequirement) return false;
-		}
-
-		// Feature requirement (class feature, like "Fighting Style")
-		if (Array.isArray(prereq.feature)) {
-			// Get all class features from progression
-			const allFeatures = (character.progression?.classes || []).flatMap(cls => cls.features || []);
-			const meetsFeatureRequirement = prereq.feature.some((featureReq) => {
-				const reqName =
-					typeof featureReq === 'string' ? featureReq : featureReq.name || '';
-				return allFeatures.some((cf) =>
-					(typeof cf === 'string' ? cf : cf.name || '')
-						.toLowerCase()
-						.includes(reqName.toLowerCase()),
-				);
-			});
-			if (!meetsFeatureRequirement) return false;
-		}
-
-		// Campaign requirement (specific campaign, e.g., Eberron)
-		if (Array.isArray(prereq.campaign)) {
-			const characterCampaign = character.campaign?.toLowerCase() || '';
-			const meetsCampaignRequirement = prereq.campaign.some(
-				(camp) => characterCampaign === camp.toLowerCase(),
-			);
-			if (!meetsCampaignRequirement) return false;
-		}
-
-		// Other requirements (generic/campaign-specific) - skip validation for now
-		// These typically require special knowledge and are handled by DM approval
-		if (prereq.other) {
-			// For "No other dragonmark" etc., we can't validate without additional context
-			// Return true to allow DM override
-			return true;
-		}
-
-		// If we've made it this far, all conditions are met
+	_featMatchesFilters() {
+		// Additional filters are handled via source/search in UniversalSelectionModal
 		return true;
 	}
 
-	_populateFeatOrigins() {
-		this._featOrigins.clear();
+	_renderFeatCard(feat, state) {
+		const description = this.descriptionCache.has(feat.id)
+			? this.descriptionCache.get(feat.id)
+			: '<span class="text-muted small">Loading...</span>';
 
-		if (
-			!this._availability?.reasons ||
-			this._availability.reasons.length === 0
-		) {
-			return;
-		}
+		const isSelected = state?.selectedIds?.has(feat.id);
+		const atLimit =
+			this._selectionLimit &&
+			state?.selectedIds?.size >= this._selectionLimit &&
+			!isSelected;
 
-		// For now, assign each reason sequentially to feat selections
-		// A more sophisticated approach could let users choose which feat goes with which origin
-		let reasonIndex = 0;
-		for (const feat of this.validFeats) {
-			const reason =
-				this._availability.reasons[
-				reasonIndex % this._availability.reasons.length
-				];
-			// Format the reason: "Race: Variant Human" -> "Variant Human"
-			const origin = reason.replace(/^[^:]+:\s*/, '').trim();
-			this._featOrigins.set(feat.id, origin);
-			reasonIndex++;
-		}
+		return `
+			<div class="feat-item ${isSelected ? 'selected' : ''} ${atLimit ? 'disabled' : ''}" data-feat-id="${feat.id}" role="button" aria-pressed="${isSelected}" aria-disabled="${atLimit ? 'true' : 'false'}" tabindex="${atLimit ? '-1' : '0'}">
+				<div class="flex-grow-1">
+					<div class="feat-item-header">
+						<strong class="feat-item-name">${feat.name}</strong>
+						<span class="badge feat-item-source">${feat.source}</span>
+					</div>
+					<div class="feat-desc">${description}</div>
+				</div>
+				<div class="feat-selected-indicator" aria-hidden="true">✓ Selected</div>
+			</div>
+		`;
 	}
 
-	_preselectSavedFeats(character) {
-		if (!character || !Array.isArray(character.feats)) return;
+	_processDescriptions(state) {
+		const pending = state.filtered.filter(
+			(feat) => !this.descriptionCache.has(feat.id),
+		);
+		if (!pending.length) return;
 
-		// Find matching feat objects by name and pre-select them
-		for (const savedFeat of character.feats) {
-			const matchingFeat = this.validFeats.find(
-				(f) =>
-					f.name &&
-					f.name.toLowerCase() === (savedFeat.name || '').toLowerCase(),
-			);
-			if (matchingFeat) {
-				this.selectedFeatIds.add(matchingFeat.id);
-				console.debug('FeatSelectionModal', 'Pre-selected saved feat', {
-					featName: matchingFeat.name,
-					featId: matchingFeat.id,
-				});
-			}
-		}
-	}
-
-	async _renderFeatList() {
-		const listEl = this.modal.querySelector('.feat-list');
-		if (!listEl) return;
-
-		const featsToShow = this.filteredFeats
-			.filter((f) => {
-				const source = (f.source || '').toLowerCase();
-				const matchesSource =
-					this.selectedSources.size === 0 || this.selectedSources.has(source);
-				if (!matchesSource) return false;
-				if (!this.searchTerm) return true;
-				return f.name.toLowerCase().includes(this.searchTerm);
-			})
-			.sort((a, b) => a.name.localeCompare(b.name));
-
-		if (featsToShow.length === 0) {
-			listEl.innerHTML =
-				'<div class="text-center py-4">No feats match your filters.</div>';
-			return;
-		}
-
-		const renderedFeats = await Promise.all(
-			featsToShow.map(async (f) => {
+		const processNext = async (index) => {
+			if (index >= pending.length) return;
+			const feat = pending[index];
+			try {
 				const descParts = [];
-				if (Array.isArray(f.entries)) {
-					for (const e of f.entries) {
-						if (typeof e === 'string') {
-							descParts.push(await textProcessor.processString(e));
-						} else if (Array.isArray(e?.entries)) {
-							for (const se of e.entries) {
-								if (typeof se === 'string') {
-									descParts.push(await textProcessor.processString(se));
+				if (Array.isArray(feat.entries)) {
+					for (const entry of feat.entries) {
+						if (typeof entry === 'string') {
+							descParts.push(await textProcessor.processString(entry));
+						} else if (Array.isArray(entry?.entries)) {
+							for (const sub of entry.entries) {
+								if (typeof sub === 'string') {
+									descParts.push(await textProcessor.processString(sub));
 								}
 							}
 						}
 					}
-				} else if (typeof f.entries === 'string') {
-					descParts.push(await textProcessor.processString(f.entries));
+				} else if (typeof feat.entries === 'string') {
+					descParts.push(await textProcessor.processString(feat.entries));
 				}
 
-				const desc = descParts.join(' ');
+				const description = descParts.length
+					? descParts.join(' ')
+					: '<span class="text-muted small">No description available.</span>';
+				this.descriptionCache.set(feat.id, description);
 
-				const isSelected = this.selectedFeatIds.has(f.id);
-				return `
-					<div class="feat-item ${isSelected ? 'selected' : ''} ${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'disabled' : ''}" data-feat-id="${f.id}" role="button" tabindex="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? '-1' : '0'}" aria-pressed="${isSelected}" aria-disabled="${!isSelected && this.selectedFeatIds.size >= this.featSlotLimit ? 'true' : 'false'}">
-						<div class="flex-grow-1">
-							<div class="feat-item-header">
-								<strong class="feat-item-name">${f.name}</strong>
-								<span class="badge feat-item-source">${f.source}</span>
-							</div>
-							<div class="feat-desc">${desc}</div>
-						</div>
-						<div class="feat-selected-indicator" aria-hidden="true">✓ Selected</div>
-					</div>
-				`;
-			}),
-		);
-
-		listEl.innerHTML = renderedFeats.join('');
-		this._bindFeatSelectionHandlers(listEl);
-	}
-
-	_attachEventListeners() {
-		// Cancel button closes modal (using Bootstrap dismiss)
-		const cancelButton = this.modal.querySelector('.btn-secondary');
-		if (cancelButton) {
-			this._cleanup.on(cancelButton, 'click', () => this.close());
-		}
-
-		// OK button emits selected feats (should all be within allowance now)
-		const okButton = this.modal.querySelector('.btn-ok');
-		if (okButton) {
-			this._cleanup.on(okButton, 'click', () => {
-				const selectedFeats = this.validFeats.filter((f) =>
-					this.selectedFeatIds.has(f.id),
+				const slot = document.querySelector(
+					`[data-feat-id="${feat.id}"] .feat-desc`,
 				);
-
-				if (selectedFeats.length > 0) {
-					// Add origin field to each selected feat
-					const featsWithOrigin = selectedFeats.map((f) => ({
-						...f,
-						origin: this._featOrigins.get(f.id) || 'Unknown',
-					}));
-
-					console.debug('FeatSelectionModal', 'Emitting FEATS_SELECTED event', {
-						count: featsWithOrigin.length,
-						feats: featsWithOrigin.map((f) => `${f.name} (${f.origin})`),
-					});
-					eventBus.emit(EVENTS.FEATS_SELECTED, featsWithOrigin);
-					showNotification(
-						`${featsWithOrigin.length} feat(s) selected!`,
-						'success',
-					);
+				if (slot) {
+					slot.innerHTML = description;
 				}
-				this.close();
-			});
-		}
-
-		const searchInput = this.modal.querySelector('.feat-search');
-		const sourceMenu = this.modal.querySelector('.feat-source-menu');
-		const sourceToggle = this.modal.querySelector('.feat-source-toggle');
-		const ignoreRestrictionsBtn = this.modal.querySelector(
-			'#ignoreRestrictionsToggle',
-		);
-
-		if (searchInput) {
-			this._cleanup.on(searchInput, 'input', async () => {
-				this.searchTerm = searchInput.value.trim().toLowerCase();
-				await this._renderFeatList();
-			});
-		}
-
-		if (ignoreRestrictionsBtn) {
-			this._cleanup.on(ignoreRestrictionsBtn, 'click', async () => {
-				this.ignoreRaceRestrictions = !this.ignoreRaceRestrictions;
-				ignoreRestrictionsBtn.setAttribute(
-					'data-restrictions',
-					!this.ignoreRaceRestrictions,
-				);
-				// Reload valid feats with new race restriction setting
-				await this._loadValidFeats();
-				this.filteredFeats = this.validFeats;
-				await this._renderFeatList();
-			});
-		}
-
-		if (sourceMenu && sourceToggle) {
-			this._populateSourceFilter(sourceMenu, sourceToggle);
-			this._cleanup.on(sourceToggle, 'click', (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				sourceMenu.classList.toggle('show');
-				sourceToggle.setAttribute(
-					'aria-expanded',
-					sourceMenu.classList.contains('show'),
-				);
-			});
-
-			// Track document-level click handler for cleanup
-			this._cleanup.on(document, 'click', (e) => {
-				if (!this.modal.contains(e.target)) return;
-				if (
-					!sourceMenu.contains(e.target) &&
-					!sourceToggle.contains(e.target)
-				) {
-					sourceMenu.classList.remove('show');
-					sourceToggle.setAttribute('aria-expanded', 'false');
-				}
-			});
-		}
-	}
-
-	_bindFeatSelectionHandlers(listEl) {
-		const items = listEl.querySelectorAll('.feat-item');
-		items.forEach((item) => {
-			const featId = item.getAttribute('data-feat-id');
-			const toggle = async () => {
-				const isCurrentlySelected = this.selectedFeatIds.has(featId);
-				const isDisabled = item.getAttribute('aria-disabled') === 'true';
-
-				// Only allow toggling if not disabled, or if already selected (can deselect)
-				if (isDisabled && !isCurrentlySelected) {
-					return;
-				}
-
-				if (isCurrentlySelected) {
-					this.selectedFeatIds.delete(featId);
-					item.classList.remove('selected');
-					item.setAttribute('aria-pressed', 'false');
-				} else {
-					this.selectedFeatIds.add(featId);
-					item.classList.add('selected');
-					item.setAttribute('aria-pressed', 'true');
-				}
-
-				// Update disabled state of all items after selection changes
-				this._updateItemDisabledStates(listEl);
-			};
-
-			item.addEventListener('click', (e) => {
-				e.preventDefault();
-				toggle();
-			});
-			item.addEventListener('keydown', (e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					toggle();
-				}
-			});
-		});
-
-		// Initial disable state
-		this._updateItemDisabledStates(listEl);
-	}
-
-	_updateItemDisabledStates(listEl) {
-		const items = listEl.querySelectorAll('.feat-item');
-		const atLimit = this.selectedFeatIds.size >= this.featSlotLimit;
-
-		items.forEach((item) => {
-			const featId = item.getAttribute('data-feat-id');
-			const isSelected = this.selectedFeatIds.has(featId);
-
-			if (!isSelected && atLimit) {
-				item.classList.add('disabled');
-				item.setAttribute('aria-disabled', 'true');
-				item.setAttribute('tabindex', '-1');
-			} else {
-				item.classList.remove('disabled');
-				item.setAttribute('aria-disabled', 'false');
-				item.setAttribute('tabindex', '0');
+			} catch (error) {
+				console.error('[FeatSelectionModal]', 'Failed to process description', error);
 			}
+
+			setTimeout(() => processNext(index + 1), 0);
+		};
+
+		processNext(0);
+	}
+
+	_buildFilters(_ctx, panel, cleanup) {
+		if (!panel) return;
+		panel.innerHTML = '';
+
+		// Build a card manually to control title and body contents
+		const card = document.createElement('div');
+		card.className = 'card mb-3';
+
+		const header = document.createElement('div');
+		header.className = 'card-header';
+		header.innerHTML = `
+			<h6 class="mb-0 d-flex align-items-center">
+				<span>Prerequisites / Limits</span>
+				<i class="fas fa-chevron-down ms-auto"></i>
+			</h6>
+		`;
+		card.appendChild(header);
+
+		const body = document.createElement('div');
+		body.className = 'card-body';
+		const builder = new FilterBuilder(body, cleanup);
+
+		builder.addSwitch({
+			id: 'featIgnoreRacePrereq',
+			label: 'Ignore race prerequisites',
+			checked: this.ignoreRaceRestrictions,
+			onChange: async (checked) => {
+				this.ignoreRaceRestrictions = checked;
+				await this._reloadItems();
+			},
+		});
+
+		builder.addSwitch({
+			id: 'featIgnoreSelectionLimit',
+			label: 'Ignore selection limit',
+			checked: this.ignoreSelectionLimit,
+			onChange: (checked) => {
+				this.ignoreSelectionLimit = checked;
+				this._applySelectionLimitFromToggle();
+			},
+		});
+
+		const note = document.createElement('div');
+		note.className = 'text-muted small';
+		note.textContent = 'Race requirements can be ignored; other prerequisites remain enforced.';
+		body.appendChild(note);
+
+		if (Array.isArray(this._availability?.reasons) && this._availability.reasons.length) {
+			const reasonList = document.createElement('div');
+			reasonList.className = 'text-muted small mt-2';
+			reasonList.innerHTML = `Origins: ${this._availability.reasons
+				.map((r) => this._formatOrigin(r))
+				.join(', ')}`;
+			body.appendChild(reasonList);
+		}
+
+		card.appendChild(body);
+		panel.appendChild(card);
+	}
+
+	_updateSelectionUi(state) {
+		const okButton = document.querySelector('#featSelectionModal .btn-ok');
+		if (okButton) {
+			const count = state?.selectedItems?.length || 0;
+			okButton.disabled = count === 0;
+			okButton.innerHTML = count > 0
+				? `Add ${count} Feat${count > 1 ? 's' : ''}`
+				: 'Add Feats';
+		}
+
+		this._renderSelectionLimitIndicator(state);
+		this._applyLimitClasses(state);
+	}
+
+	_renderSelectionLimitIndicator(state) {
+		const indicator = document.getElementById('featSelectionLimitIndicator');
+		if (!indicator) return;
+
+		const total = this._selectionLimit === null ? '∞' : this._selectionLimit || 0;
+		const selected = state?.selectedItems?.length || 0;
+		const reasons = this._availability?.reasons || [];
+
+		indicator.innerHTML = `Allowed: ${selected}/${total}`;
+		if (reasons.length) {
+			indicator.innerHTML += `<div class="text-muted">${reasons
+				.map((r) => this._formatOrigin(r))
+				.join(', ')}</div>`;
+		}
+	}
+
+	_applyLimitClasses(state) {
+		const list = document.querySelector('#featSelectionModal .feat-list');
+		if (!list) return;
+
+		const atLimit =
+			this._selectionLimit &&
+			state?.selectedIds?.size >= this._selectionLimit;
+
+		list.querySelectorAll('[data-feat-id]').forEach((el) => {
+			const id = el.getAttribute('data-feat-id');
+			const isSelected = state?.selectedIds?.has(id);
+			const disabled = atLimit && !isSelected;
+			el.classList.toggle('disabled', disabled);
+			el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+			el.setAttribute('tabindex', disabled ? '-1' : '0');
 		});
 	}
 
-	_populateSourceFilter(menuEl, toggleBtn) {
-		// Reset existing items to avoid duplicates across multiple shows
-		menuEl.innerHTML = '';
+	async _reloadItems() {
+		const items = await this._loadValidFeats(this._getContext());
+		this._controller.state.items = items;
+		this._controller.state.page = 0;
+		this._controller._renderList();
+	}
 
-		// Get all sources from valid feats, filtered to only allowed sources
-		const allowedSources = new Set(
-			sourceService.getAllowedSources().map((s) => s.toLowerCase()),
+	_applySelectionLimitFromToggle() {
+		this._selectionLimit = this.ignoreSelectionLimit
+			? null
+			: this._baseSelectionLimit;
+		if (this._controller) {
+			this._controller.config.selectionLimit = this._selectionLimit;
+			this._updateSelectionUi(this._controller.state || {});
+		}
+	}
+
+	_applyOrigins(selected) {
+		const reasons = this._availability?.reasons || [];
+		if (!reasons.length) return selected.map((feat) => ({ ...feat }));
+
+		return selected.map((feat, idx) => ({
+			...feat,
+			origin: feat.origin || this._formatOrigin(reasons[idx % reasons.length]) || 'Unknown',
+		}));
+	}
+
+	async _handleConfirm(selected) {
+		if (!Array.isArray(selected) || !selected.length) {
+			showNotification('Please select at least one feat', 'warning');
+			return null;
+		}
+
+		const enriched = this._applyOrigins(selected);
+		this.selectedFeats = enriched;
+		this._snapshot = [...enriched];
+
+		eventBus.emit(EVENTS.FEATS_SELECTED, enriched);
+		showNotification(
+			`${enriched.length} feat${enriched.length === 1 ? '' : 's'} selected!`,
+			'success',
 		);
 
-		const sources = Array.from(
-			new Set(
-				this.validFeats
-					.map((f) => (f.source || '').trim())
-					.filter((source) => {
-						// Only include sources that are in the allowed sources list
-						return source && allowedSources.has(source.toLowerCase());
-					})
-					.map((s) => s.toLowerCase()),
-			),
-		);
-		sources.sort();
-
-		sources.forEach((src) => {
-			const id = `feat-source-${src}`;
-			const item = document.createElement('div');
-			item.className = 'form-check';
-			item.innerHTML = `
-				<input class="form-check-input" type="checkbox" value="${src}" id="${id}">
-				<label class="form-check-label" for="${id}">${src.toUpperCase()}</label>
-			`;
-			const cb = item.querySelector('input');
-			cb.addEventListener('change', async () => {
-				if (cb.checked) {
-					this.selectedSources.add(src);
-				} else {
-					this.selectedSources.delete(src);
-				}
-				this._updateSourceLabel(toggleBtn);
-				await this._renderFeatList();
-			});
-			menuEl.appendChild(item);
-		});
-		this._updateSourceLabel(toggleBtn);
+		return enriched;
 	}
 
-	_updateSourceLabel(toggleBtn) {
-		if (!toggleBtn) return;
-		if (this.selectedSources.size === 0) {
-			toggleBtn.textContent = 'All sources';
-			return;
-		}
-		const count = this.selectedSources.size;
-		const preview = Array.from(this.selectedSources)
-			.slice(0, 2)
-			.map((s) => s.toUpperCase())
-			.join(', ');
-		const suffix = count > 2 ? ` +${count - 2}` : '';
-		toggleBtn.textContent = `${preview}${suffix}`;
+	_handleCancel() {
+		this.selectedFeats = [...this._snapshot];
 	}
 
-	close() {
-		// Hide the Bootstrap modal properly without removing the element
-		if (this.bootstrapModal) {
-			this.bootstrapModal.hide();
-		}
+	_formatOrigin(reason) {
+		if (!reason) return '';
+		return reason.replace(/^[^:]+:\s*/, '').trim();
 	}
 
-	_onModalHidden() {
-		// Clean up all tracked listeners, timers, and Bootstrap instance
-		this._cleanup.cleanup();
-
-		// Clean up any lingering backdrops in case Bootstrap missed them
-		const backdrop = document.querySelector('.modal-backdrop');
-		if (backdrop) {
-			backdrop.remove();
-		}
-		document.body.classList.remove('modal-open');
+	_onError(err) {
+		console.error('[FeatSelectionModal]', err);
+		showNotification('Failed to open feat selection modal', 'error');
 	}
 }
 
@@ -791,15 +544,26 @@ export class FeatSourcesView {
 			return;
 		}
 
-		// Format feats with their sources
-		const featLines = character.feats.map((feat) => {
+		// Group feats by source (origin) and render one line per source
+		const grouped = [];
+		const sourceIndex = new Map();
+		character.feats.forEach((feat) => {
 			const name = feat?.name || 'Unknown';
 			const source = feat?.source || 'Unknown';
-			return `<strong>${source}:</strong> ${name}`;
+
+			if (!sourceIndex.has(source)) {
+				sourceIndex.set(source, grouped.length);
+				grouped.push({ source, names: [] });
+			}
+			grouped[sourceIndex.get(source)].names.push(name);
 		});
 
 		let html = '<h6 class="mb-2">Sources:</h6>';
-		html += `<div class="proficiency-note">${featLines.join(', ')}</div>`;
+		html += '<div class="proficiency-note">';
+		grouped.forEach(({ source, names }) => {
+			html += `<div><strong>${source}:</strong> ${names.join(', ')}</div>`;
+		});
+		html += '</div>';
 
 		container.innerHTML = html;
 		await textProcessor.processElement(container);

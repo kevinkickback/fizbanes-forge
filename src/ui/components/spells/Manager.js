@@ -68,13 +68,7 @@ export class SpellsManager {
         if (!container) return;
 
         const spellcasting = character.spellcasting;
-        if (!spellcasting || Object.keys(spellcasting.classes).length === 0) {
-            container.innerHTML =
-                '<p style="color: var(--text-color)">No spellcasting class selected.</p>';
-            return;
-        }
-
-        const classNames = Object.keys(spellcasting.classes);
+        const classNames = Object.keys(spellcasting?.classes || {});
         const isMulticlass = classNames.length > 1;
         let html = '';
 

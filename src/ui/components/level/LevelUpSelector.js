@@ -174,14 +174,14 @@ export class LevelUpSelector {
                                 </div>
                                 
                                 <!-- Selected Items Display -->
-                                <div class="mt-3">
+                                <div class="mt-3 selected-items-section selected-spells-section">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h6 class="mb-0">Selected Items</h6>
                                         <div data-selector-count-container>
                                             ${this.customCountFn ? '<span data-selector-custom-count></span>' : `<span class="badge bg-info" data-selector-count>0 / ${this.maxSelections === Infinity ? '∞' : this.maxSelections}</span>`}
                                         </div>
                                     </div>
-                                    <div class="alert alert-secondary mb-0" data-selector-selected-display style="min-height: 60px; max-height: 150px; overflow-y: auto;">
+                                    <div class="mb-0" data-selector-selected-display style="min-height: 32px; max-height: 200px; overflow-y: auto;">
                                         <em class="text-muted">No items selected</em>
                                     </div>
                                 </div>
@@ -214,9 +214,9 @@ export class LevelUpSelector {
                 <div class="card mb-3">
                     <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
                         data-bs-target="#collapseLevels" aria-expanded="true">
-                        <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 d-flex align-items-center">
                             <span>Level</span>
-                            <i class="fas fa-chevron-down"></i>
+                            <i class="fas fa-chevron-down ms-auto"></i>
                         </h6>
                     </div>
                     <div class="collapse show" id="collapseLevels">
@@ -246,15 +246,15 @@ export class LevelUpSelector {
         // Other filter sets as collapsible cards
         Object.entries(this.filterSets).forEach(([filterKey, filterOptions]) => {
             const capitalizedKey = filterKey.charAt(0).toUpperCase() + filterKey.slice(1);
-            const collapseId = `collapse${capitalizedKey}`;
+            const collapseId = `collapse${capitalizedKey.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
             html += `
                 <div class="card mb-3">
                     <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
                         data-bs-target="#${collapseId}" aria-expanded="true">
-                        <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 d-flex align-items-center">
                             <span>${capitalizedKey}</span>
-                            <i class="fas fa-chevron-down"></i>
+                            <i class="fas fa-chevron-down ms-auto"></i>
                         </h6>
                     </div>
                     <div class="collapse show" id="${collapseId}">
@@ -572,11 +572,11 @@ export class LevelUpSelector {
         // Custom filters
         for (const [filterKey, filterValue] of Object.entries(this.activeFilters)) {
             if (filterValue && filterValue.size > 0) {
-                // Skip Prerequisites filter - handled externally by LevelUpFeatSelector
-                if (filterKey === 'Prerequisites') {
+                // Skip prerequisite-related filters - handled externally by LevelUpFeatSelector
+                if (filterKey.toLowerCase().includes('prerequisite')) {
                     continue;
                 }
-                
+
                 // Special handling for school filter - check both abbreviated and full name
                 if (filterKey === 'school') {
                     const schoolAbbreviations = {

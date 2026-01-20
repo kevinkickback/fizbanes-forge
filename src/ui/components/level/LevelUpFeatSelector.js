@@ -28,6 +28,11 @@ export class LevelUpFeatSelector {
         // Generic selector instance
         this._selector = null;
 
+        // Selection constraints
+        this._baseMaxSelections = 1;
+        this._ignoreSelectionLimit = false;
+        this._ignorePrerequisites = false;
+
         // Promise resolver for awaiting selection
         this._resolveSelection = null;
     }
@@ -68,6 +73,8 @@ export class LevelUpFeatSelector {
                 this._customOnConfirm = onConfirm;
                 this._multiSelect = multiSelect;
                 this._ignorePrerequisites = false; // Start with prerequisites enforced
+                this._ignoreSelectionLimit = false;
+                this._baseMaxSelections = maxSelections;
 
                 // Get character for prerequisite checking
                 const character = AppState.getCurrentCharacter();
@@ -78,8 +85,9 @@ export class LevelUpFeatSelector {
                 // Build filter sets for feats page (only if multiSelect)
                 const filterSets = {};
                 if (multiSelect) {
-                    // Add ignore prerequisites as a special filter
-                    filterSets.Prerequisites = ['Ignore Prerequisites'];
+                    // Add combined prerequisites/limit controls to mirror feats modal
+                    const prereqFilterKey = 'Prerequisites / Limits';
+                    filterSets[prereqFilterKey] = ['Ignore Prerequisites', 'Ignore Selection Limit'];
                 }
 
                 // Create generic selector with feat-specific config
@@ -88,7 +96,7 @@ export class LevelUpFeatSelector {
                     searchFields: ['name'],
                     filterSets,
                     multiSelect,
-                    maxSelections,
+                    maxSelections: this._getCurrentMaxSelections(),
                     tabLevels: [],
                     onConfirm: this._onFeatConfirmed.bind(this),
                     modalTitle: multiSelect ? 'Select Feats' : 'Select a Feat',
@@ -141,21 +149,30 @@ export class LevelUpFeatSelector {
                 if (multiSelect) {
                     setTimeout(() => {
                         const modalEl = document.getElementById('levelUpSelectorModal');
-                        const ignoreCheckbox = modalEl?.querySelector('[data-selector-filter="Prerequisites"][value="Ignore Prerequisites"]');
-                        
+                        const ignoreCheckbox = modalEl?.querySelector('[data-selector-filter="Prerequisites / Limits"][value="Ignore Prerequisites"]');
+                        const ignoreLimitCheckbox = modalEl?.querySelector('[data-selector-filter="Prerequisites / Limits"][value="Ignore Selection Limit"]');
+
                         if (ignoreCheckbox) {
                             ignoreCheckbox.addEventListener('change', () => {
                                 this._ignorePrerequisites = ignoreCheckbox.checked;
                                 this._loadAndFilterFeats(character);
                                 this._selector.items = this._filteredFeats;
-                                
+
                                 // Preserve currently selected items if they exist in new filtered list
                                 const currentSelections = this._selector.selectedItems;
-                                this._selector.selectedItems = currentSelections.filter(selected => 
+                                this._selector.selectedItems = currentSelections.filter(selected =>
                                     this._filteredFeats.some(f => f.id === selected.id || f.name === selected.name)
                                 );
-                                
+
                                 this._selector._renderItems();
+                            });
+                        }
+
+                        if (ignoreLimitCheckbox) {
+                            ignoreLimitCheckbox.addEventListener('change', () => {
+                                this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
+                                this._selector.maxSelections = this._getCurrentMaxSelections();
+                                this._selector._updateSelectionInfo();
                             });
                         }
                     }, 100);
@@ -180,6 +197,10 @@ export class LevelUpFeatSelector {
                 ...f,
                 id: f.id || `feat-${index}`
             }));
+    }
+
+    _getCurrentMaxSelections() {
+        return this._ignoreSelectionLimit ? Infinity : this._baseMaxSelections;
     }
 
     /**

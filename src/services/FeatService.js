@@ -192,16 +192,17 @@ class FeatService {
 	 * Check if a feat's prerequisites are met by a character
 	 * @param {Object} feat - The feat to check
 	 * @param {Object} character - The character
+	 * @param {{ignoreRacePrereq?: boolean}} [options]
 	 * @returns {boolean} True if character meets prerequisites
 	 */
-	isFeatValidForCharacter(feat, character) {
+	isFeatValidForCharacter(feat, character, options = {}) {
 		if (!feat.prerequisite || !Array.isArray(feat.prerequisite)) {
 			return true;
 		}
 
 		// All prerequisite conditions must be met (AND logic)
 		return feat.prerequisite.every((prereq) =>
-			this._validatePrerequisiteCondition(prereq, character)
+			this._validatePrerequisiteCondition(prereq, character, options)
 		);
 	}
 
@@ -209,7 +210,7 @@ class FeatService {
 	 * Validate a single prerequisite condition
 	 * @private
 	 */
-	_validatePrerequisiteCondition(prereq, character) {
+	_validatePrerequisiteCondition(prereq, character, options = {}) {
 		if (!character) return false;
 
 		// Level requirement
@@ -236,7 +237,7 @@ class FeatService {
 		}
 
 		// Race requirement
-		if (Array.isArray(prereq.race)) {
+		if (!options.ignoreRacePrereq && Array.isArray(prereq.race)) {
 			const characterRace = character.race?.name?.toLowerCase() || '';
 			const meetsRaceRequirement = prereq.race.some((raceReq) => {
 				if (typeof raceReq === 'string') {
@@ -276,7 +277,7 @@ class FeatService {
 
 		// Add other prerequisite types as needed (proficiency, feat, etc.)
 		// For now, accept feats with unhandled prerequisites
-		
+
 		return true;
 	}
 }

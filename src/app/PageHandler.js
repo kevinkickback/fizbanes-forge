@@ -724,13 +724,12 @@ class PageHandlerImpl {
 			selectionCounter.style.display = availability.max > 0 ? '' : 'none';
 		}
 
+		// Always enable Add Feat button to allow unconventional feat sources
 		if (addFeatBtn) {
-			addFeatBtn.disabled = availability.max <= 0;
-			addFeatBtn.title =
-				availability.max > 0
-					? ''
-					: availability.blockedReason ||
-					'No feat selections available. Choose Variant Human or reach level 4.';
+			addFeatBtn.disabled = false;
+			addFeatBtn.title = availability.max > 0
+				? `${availability.remaining} feat choice(s) remaining`
+				: 'Add feats from any source (racial features, magic items, etc.)';
 		}
 	}
 
@@ -869,12 +868,12 @@ class PageHandlerImpl {
 					const availability = character.getFeatAvailability?.();
 					const maxFeats = availability?.max || 0;
 
+					// Inform user if they have no standard feat choices, but still allow selection
 					if (maxFeats <= 0) {
 						showNotification(
-							availability?.blockedReason || 'No feat selections available.',
-							'warning'
+							'Adding feats beyond normal choices (from racial features, magic items, etc.)',
+							'info'
 						);
-						return;
 					}
 
 					const selector = new LevelUpFeatSelector();
@@ -884,8 +883,17 @@ class PageHandlerImpl {
 						maxSelections: maxFeats,
 						onConfirm: async (feats) => {
 							if (feats && feats.length > 0) {
+								// Enrich feats with origin information
+								// Only assign reasons to feats up to the number of available reasons
+								// Additional feats beyond that are marked as "Manual selection"
+								const reasons = availability?.reasons || [];
+								const enrichedFeats = feats.map((feat, idx) => ({
+									...feat,
+									origin: feat.origin || (idx < reasons.length ? this._formatFeatOrigin(reasons[idx]) : 'Manual selection')
+								}));
+
 								// Update character feats
-								character.setFeats(feats, 'Manual selection');
+								character.setFeats(enrichedFeats, 'Manual selection');
 
 								// Update UI
 								this._featListView.update(this._featListContainer, character);
@@ -922,6 +930,28 @@ class PageHandlerImpl {
 		if (featSourcesContainer) {
 			featSourcesContainer.style.display = character.feats?.length > 0 ? 'block' : 'none';
 		}
+	}
+
+	/**
+	 * Format feat origin/reason for display
+	 * Extracts the category portion from the reason
+	 * @param {string} reason - Raw reason string from FeatService (e.g., "Race: Human", "Ability Score Improvement at level 4 (Fighter)")
+	 * @returns {string} The category (e.g., "Race", "Ability Score Improvement")
+	 */
+	_formatFeatOrigin(reason) {
+		if (!reason) return '';
+
+		// Handle "ASI" abbreviation from level-up
+		if (reason === 'ASI') return 'Ability Score Improvement';
+
+		// Extract "Ability Score Improvement" from full text
+		if (reason.startsWith('Ability Score Improvement')) {
+			return 'Ability Score Improvement';
+		}
+
+		// For other reasons with colons, extract the category prefix
+		const match = reason.match(/^([^:]+):/);
+		return match ? match[1].trim() : reason.trim();
 	}
 
 	/**

@@ -205,6 +205,22 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	max-height: 100%;
 }
 
+/* Equipment selection modal - no body scroll */
+#equipmentSelectionModal .modal-body {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+}
+
+/* Item selection modal - no body scroll */
+#itemSelectionModal .modal-body {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+}
+
 /* Level-up selector modal - no body scroll, flex layout */
 #levelUpSelectorModal .modal-body {
 	overflow: hidden;
@@ -212,6 +228,15 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	flex-direction: column;
 	max-height: 100%;
 	gap: 0.75rem;
+}
+
+/* Universal selection modal - no body scroll, flex layout for proper filter/results scrolling */
+#universalSelectionModal .modal-body {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+	padding: 1rem;
 }
 
 /* Ensure spell-filter-row grows properly in level-up selector */
@@ -1455,6 +1480,55 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	letter-spacing: 0.5px;
 }
 
+/* Generic selected items section styling for all universal modals */
+.selected-items-section,
+.selected-equipment-section {
+	flex-shrink: 0;
+	padding: 0.75rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 48px;
+	max-height: 200px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.selected-items-section h6,
+.selected-equipment-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-light);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* Ensure feat modal selected area matches spell styling */
+#featSelectionModal .selected-items-section {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	padding: 0.75rem;
+	min-height: 80px;
+	max-height: 120px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+#featSelectionModal .selected-items-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-light);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
 /* ===== Equipment Selection Modal - Responsive Size ===== */
 #equipmentSelectionModal .modal-dialog {
 	width: 90vw;
@@ -2369,4 +2443,141 @@ body > .modal-backdrop.show:nth-last-child(2) {
 
 .ability-select-btn.active .bonus-display {
 	color: white;
+}
+/* ===================================
+   UNIVERSAL SELECTION MODAL STYLES
+   =================================== */
+
+/* Search bar toolbar - doesn't flex, stays at top */
+#universalSelectionModal .d-flex:has(.universal-selection-search) {
+	flex-shrink: 0;
+	flex-grow: 0;
+}
+
+/* Wrapper that enables independent scrolling for filters and results */
+.universal-selection-filter-row-wrapper {
+	display: flex;
+	flex-direction: column;
+	/* Fill parent flex container */
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Row layout for filters and results columns */
+.universal-selection-filter-row-wrapper .row {
+	display: flex;
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	overflow: hidden;
+}
+
+/* Filter column with independent scrolling and collapse support */
+.universal-selection-filters-column {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border-right: 1px solid var(--border-color);
+	flex: 0 0 auto;
+	width: auto;
+	transition:
+		width 0.3s ease,
+		margin 0.3s ease;
+	min-width: 250px;
+}
+
+/* Filter panel inside column - handle scrolling */
+.universal-selection-filters-column[data-filter-panel] {
+	overflow-y: auto;
+	overflow-x: hidden;
+	flex: 1;
+	max-height: 100%;
+}
+
+/* Collapsed state - hide and minimize width */
+.universal-selection-filters-column.collapsed {
+	width: 0;
+	overflow: hidden;
+	flex: 0 0 0;
+	border-right: none;
+	padding: 0;
+	margin: 0;
+}
+
+.universal-selection-filters-column.collapsed[data-filter-panel] {
+	display: none;
+}
+
+/* Results column - expand to fill remaining space */
+.universal-selection-results-column {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	flex: 1;
+	min-width: 0;
+}
+
+/* Scroll container for list items - flexible height */
+.universal-selection-list-scroll-container {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	min-height: 0;
+	margin-bottom: 0.5rem;
+	padding-right: 0.5rem;
+}
+
+/* List styling */
+.universal-selection-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+/* Selected items container - fixed height for now */
+.universal-selection-selected {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--border-color);
+	flex: 0 0 auto;
+	max-height: 200px;
+	overflow-y: auto;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+	.universal-selection-filter-row-wrapper {
+		min-height: 350px;
+		max-height: calc(80vh - 200px);
+	}
+
+	.universal-selection-filters-column {
+		border-right: none;
+		border-bottom: 1px solid var(--border-color);
+		width: 100%;
+		min-width: 100%;
+		margin-bottom: 0.5rem;
+		padding-bottom: 0.5rem;
+	}
+
+	.universal-selection-filters-column.collapsed {
+		display: none;
+		width: 0;
+		flex: 0 0 0;
+		border-bottom: none;
+		margin-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	.universal-selection-filters-column[data-filter-panel] {
+		min-width: 100%;
+		padding-right: 0.5rem;
+	}
+
+	.universal-selection-results-column {
+		width: 100%;
+	}
 }
