@@ -57,6 +57,8 @@ export class UniversalSelectionModal {
             // Optional per-item selection control
             canSelectItem: null, // (item, state) => boolean
             onSelectBlocked: null, // (item, state) => void
+            // Optional info text to display under search bar
+            prerequisiteNote: null,
             onError: null,
             // Description cache support
             descriptionCache: null,
@@ -133,10 +135,10 @@ export class UniversalSelectionModal {
                     <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; max-height: 100%;">
                         <!-- Search Bar -->
                         <div class="d-flex gap-2 mb-2">
-                            <button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
+                            ${this.config.buildFilters ? `<button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
                                 title="Toggle filters panel" data-filters-visible="true">
                                 <i class="fas fa-filter"></i>
-                            </button>
+                            </button>` : ''}
                             <input type="text" class="form-control spell-search-input flex-grow-1"
                                 placeholder="Search...">
                             <button class="btn btn-outline-secondary" type="button" data-search-clear
@@ -145,12 +147,17 @@ export class UniversalSelectionModal {
                             </button>
                         </div>
                         
+                        <!-- Optional prerequisite/info note -->
+                        ${this.config.prerequisiteNote ? `<div class="alert alert-info small mb-2">
+                            ${this.config.prerequisiteNote}
+                        </div>` : ''}
+                        
                         <!-- Filters and Results (spell-filter-row layout) -->
-                        <div class="spell-filter-row">
-                            <!-- Filters Panel -->
-                            <div class="spell-filters-column">
+                        <div class="spell-filter-row" ${this.config.buildFilters ? '' : 'style="grid-template-columns: 1fr;"'}>
+                            <!-- Filters Panel (only shown if buildFilters provided) -->
+                            ${this.config.buildFilters ? `<div class="spell-filters-column">
                                 <!-- Filters populated by buildFilters callback -->
-                            </div>
+                            </div>` : ''}
                             
                             <!-- Results Column -->
                             <div class="spell-results-column">

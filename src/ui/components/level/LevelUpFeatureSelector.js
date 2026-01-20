@@ -1,6 +1,8 @@
+import { showNotification } from '../../../lib/Notifications.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
+import { UniversalSelectionModal, formatCounter } from '../selection/UniversalSelectionModal.js';
 
 /**
  * LevelUpFeatureSelector
@@ -32,6 +34,9 @@ export class LevelUpFeatureSelector {
 
         // Generic selector instance
         this._selector = null;
+
+        // Description cache for feature cards
+        this._descriptionCache = new Map();
     }
 
     /**
@@ -123,7 +128,7 @@ export class LevelUpFeatureSelector {
             this._selector = new UniversalSelectionModal({
                 modalId: `featureSelectorModal_${Date.now()}`,
                 modalTitle: `Select ${this._getFeatureTypeName()} - ${this.className}`,
-                items: filtered,
+                loadItems: () => filtered,
                 selectionMode: multiSelect ? 'multiple' : 'single',
                 selectionLimit: this.maxSelections,
                 initialSelectedItems: filtered.filter(f =>
@@ -135,6 +140,7 @@ export class LevelUpFeatureSelector {
                     return item.name?.toLowerCase().includes(term) || item.source?.toLowerCase().includes(term);
                 },
                 buildFilters: null,
+                prerequisiteNote: this._getPrerequisiteNote(),
                 renderItem: (item, state) => this._renderFeatureItem(item, state),
                 getItemId: (item) => item.id || item.name,
                 matchItem: (item, state) => {
@@ -145,6 +151,27 @@ export class LevelUpFeatureSelector {
                     }
                     return true;
                 },
+                // Block selection when reaching maxSelections
+                canSelectItem: (_item, state) => {
+                    const isAtCap = this.maxSelections !== null && state.selectedIds.size >= this.maxSelections;
+                    // Always allow deselection; only block new selections at cap
+                    return !isAtCap;
+                },
+                onSelectBlocked: () => {
+                    const label = this._getFeatureTypeName();
+                    showNotification(`${label} selection limit reached. Deselect a choice to add another.`, 'warning');
+                },
+                // Description caching and rendering
+                descriptionCache: this._descriptionCache,
+                fetchDescription: (feature) => this._fetchFeatureDescription(feature),
+                descriptionContainerSelector: '.feature-description',
+                // Counter rendering
+                customCountFn: (selectedItems) => formatCounter({
+                    label: 'choice' + (this.maxSelections === 1 ? '' : 's'),
+                    selected: selectedItems.length,
+                    max: this.maxSelections || selectedItems.length,
+                    color: 'bg-info'
+                }),
                 onConfirm: this._onFeaturesConfirmed.bind(this),
                 onCancel: () => {
                     // No-op
@@ -166,7 +193,9 @@ export class LevelUpFeatureSelector {
             badgesHtml += `<span class="badge bg-secondary me-2">${feature.source}</span>`;
         }
 
-        const description = feature.entries?.join(' ') || 'No description available';
+        const desc = this._descriptionCache.has(feature.id || feature.name)
+            ? this._descriptionCache.get(feature.id || feature.name)
+            : '<span class="text-muted small">Loading...</span>';
 
         return `
             <div class="spell-card selector-card ${selectedClass}" data-item-id="${feature.id || feature.name}">
@@ -177,10 +206,30 @@ export class LevelUpFeatureSelector {
                     <div>${badgesHtml}</div>
                 </div>
                 <div class="spell-card-body">
-                    <div class="spell-description">${description}</div>
+                    <div class="feature-description selector-description">${desc}</div>
                 </div>
             </div>
         `;
+    }
+
+    async _fetchFeatureDescription(feature) {
+        const parts = [];
+        if (Array.isArray(feature.entries)) {
+            for (const entry of feature.entries) {
+                if (typeof entry === 'string') {
+                    parts.push(await textProcessor.processString(entry));
+                } else if (Array.isArray(entry?.entries)) {
+                    for (const sub of entry.entries) {
+                        if (typeof sub === 'string') {
+                            parts.push(await textProcessor.processString(sub));
+                        }
+                    }
+                }
+            }
+        } else if (typeof feature.entries === 'string') {
+            parts.push(await textProcessor.processString(feature.entries));
+        }
+        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
     }
 
     /**
