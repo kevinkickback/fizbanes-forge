@@ -1,10 +1,12 @@
-import { SPELL_SCHOOL_NAMES } from '../../../lib/5eToolsParser.js';
+import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { showNotification } from '../../../lib/Notifications.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
 import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
-import { LevelUpSelector } from './LevelUpSelector.js';
+import { FilterBuilder } from '../selection/FilterBuilder.js';
+import { UniversalSelectionModal, formatCategoryCounters } from '../selection/UniversalSelectionModal.js';
 
 /**
  * LevelUpSpellSelector
@@ -35,8 +37,15 @@ export class LevelUpSpellSelector {
         this.maxCantrips = 0;
         this.slotsByLevel = {}; // { 1: 2, 2: 2, 3: 1 }
 
+        // Filter state (to track which filters are active)
+        this.levelFilters = new Set();
+        this.schoolFilters = new Set();
+
         // Generic selector instance
         this._selector = null;
+
+        // Description cache for spell cards
+        this._descriptionCache = new Map();
     }
 
     /**
@@ -44,58 +53,34 @@ export class LevelUpSpellSelector {
      */
     async show() {
         try {
-            // Calculate limits first (before loading spell data)
+            // Calculate limits first
             this._calculateSpellLimits();
 
             // Load spell data
             const spellData = await this._loadSpellData();
 
-            // Get previously selected spells for this class and level
+            // If there are no spells to learn at this level, bail out with a notice
+            if (!Array.isArray(spellData) || spellData.length === 0) {
+                const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
+                const ordinals = ['', '1st-level', '2nd-level', '3rd-level', '4th-level', '5th-level', '6th-level', '7th-level', '8th-level', '9th-level'];
+                const levelText = ordinals[maxSpellLevel] || 'level';
+                const msg = this.maxCantrips > 0 || this.maxSpells > 0
+                    ? 'No valid spells found for selection.'
+                    : `No new ${levelText} spells or cantrips to learn at this level.`;
+                showNotification(msg, 'info');
+                return;
+            }
+
+            // Get previously selected spells
             const key = `${this.className}_${this.currentLevel}`;
             const previousSelections = this.session.stepData.selectedSpells[key] || [];
 
-            console.log('[LevelUpSpellSelector]', 'Loading previous selections:', {
-                key,
-                previousSelections,
-                sessionStepData: this.session.stepData,
-                spellDataCount: spellData.length
-            });
-
-            // Find the actual spell objects from spellData for previous selections
             const initialSelections = previousSelections.map(prevSpell => {
                 const spellName = typeof prevSpell === 'string' ? prevSpell : prevSpell.name;
-                const foundSpell = spellData.find(spell => spell.name === spellName);
-                if (!foundSpell) {
-                    console.warn('[LevelUpSpellSelector]', 'Could not find spell in spellData:', spellName);
-                }
-                return foundSpell;
-            }).filter(Boolean); // Filter out any not found
+                return spellData.find(spell => spell.name === spellName);
+            }).filter(Boolean);
 
-            console.log('[LevelUpSpellSelector]', 'Initial selections resolved:', {
-                initialSelections: initialSelections.map(s => s.name)
-            });
-
-            // Get the maximum spell level available at this character level
-            const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-
-            // Create tab levels - only show tabs for spell levels that are available
-            const tabLevels = [];
-            const ordinals = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
-
-            // Always include cantrips if there are any in the spell list
-            if (spellData.some(spell => spell.level === 0)) {
-                tabLevels.push({ label: 'Cantrips', value: 0 });
-            }
-
-            // Only include tabs up to the maximum spell level available
-            for (let i = 1; i <= Math.min(maxSpellLevel, 9); i++) {
-                // Only add tab if there are spells of this level in the available list
-                if (spellData.some(spell => spell.level === i)) {
-                    tabLevels.push({ label: `${ordinals[i]} Level`, value: i });
-                }
-            }
-
-            // Build modal title with cantrip and spell counts
+            // Build modal title
             let modalTitle = `Select Spells - ${this.className} (Level ${this.currentLevel})`;
             if (this.maxCantrips > 0 && this.maxSpells > 0) {
                 const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
@@ -109,84 +94,124 @@ export class LevelUpSpellSelector {
                 modalTitle = `Learn ${this.maxSpells} ${ordinals[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
             }
 
-            // Create generic selector with spell-specific config
-            this._selector = new LevelUpSelector({
-                items: spellData,
-                searchFields: ['name'],
-                filterSets: { school: SPELL_SCHOOL_NAMES },
-                multiSelect: true,
-                maxSelections: this.maxSpells + this.maxCantrips, // Total selections allowed
-                initialSelections,
-                tabLevels,
-                itemRenderer: this._renderSpellItem.bind(this),
-                onConfirm: this._onSpellsConfirmed.bind(this),
+            // Build filter sets using FilterBuilder (same as UniversalSpellModal)
+            const buildFilters = (_ctx, panel, cleanup) => {
+                if (!panel) return;
+                const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
+                const ordinals = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+
+                const builder = new FilterBuilder(panel, cleanup);
+
+                // Build level options from available spells
+                const availableLevels = [...new Set(spellData.map(s => s.level))]
+                    .filter(l => l <= maxSpellLevel)
+                    .sort((a, b) => a - b);
+
+                const levelOptions = availableLevels.map(level => ({
+                    label: ordinals[level],
+                    value: String(level),
+                }));
+
+                builder.addCheckboxGroup({
+                    title: 'Spell Level',
+                    options: levelOptions,
+                    stateSet: this.levelFilters,
+                    onChange: () => this._selector._renderList(),
+                    columns: 2,
+                });
+
+                // Build school options
+                const schoolOptions = Array.from(new Set(spellData.map(s => s.school).filter(Boolean)))
+                    .sort()
+                    .map(code => ({ label: getSchoolName(code) || code, value: code }));
+
+                builder.addCheckboxGroup({
+                    title: 'School',
+                    options: schoolOptions,
+                    stateSet: this.schoolFilters,
+                    onChange: () => this._selector._renderList(),
+                    columns: 2,
+                });
+            };
+
+            this._selector = new UniversalSelectionModal({
+                modalId: `spellSelectorModal_${Date.now()}`,
                 modalTitle,
-                validationFn: (_selectedIds, selectedItems) => {
-                    // Separate cantrips from leveled spells
-                    const selectedCantrips = selectedItems.filter(spell => spell.level === 0);
-                    const selectedLeveledSpells = selectedItems.filter(spell => spell.level > 0);
-
-                    // Validate cantrips (allow partial selection, enforce max)
-                    if (this.maxCantrips > 0 && selectedCantrips.length > this.maxCantrips) {
-                        return {
-                            isValid: false,
-                            message: `You cannot select more than ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}.`
-                        };
-                    }
-
-                    // Validate leveled spells (allow partial selection, enforce max)
-                    if (this.maxSpells > 0 && selectedLeveledSpells.length > this.maxSpells) {
-                        return {
-                            isValid: false,
-                            message: `You cannot select more than ${this.maxSpells} spell${this.maxSpells !== 1 ? 's' : ''}.`
-                        };
-                    }
-
-                    // Allow confirmation even with partial selection (0 is also valid)
-                    return { isValid: true };
+                loadItems: () => spellData,
+                selectionMode: 'multiple',
+                selectionLimit: this.maxSpells + this.maxCantrips,
+                initialSelectedItems: initialSelections,
+                searchMatcher: (item, searchTerm) => {
+                    if (!searchTerm) return true;
+                    const term = searchTerm.toLowerCase();
+                    return item.name?.toLowerCase().includes(term);
                 },
-                customCountFn: (selectedItems) => {
-                    const selectedCantrips = selectedItems.filter(spell => spell.level === 0);
-                    const selectedLeveledSpells = selectedItems.filter(spell => spell.level > 0);
-
-                    const badges = [];
-                    if (this.maxCantrips > 0) {
-                        const cantripClass = selectedCantrips.length === this.maxCantrips ? 'bg-success' :
-                            selectedCantrips.length > this.maxCantrips ? 'bg-danger' : 'bg-info';
-                        badges.push(`<span class="badge ${cantripClass} me-1">${selectedCantrips.length} / ${this.maxCantrips} Cantrips</span>`);
+                buildFilters,
+                renderItem: (item, state) => this._renderSpellItem(item, state),
+                getItemId: (item) => item.id || item.name,
+                matchItem: (item, state) => {
+                    if (state.searchTerm) {
+                        const term = state.searchTerm.toLowerCase();
+                        if (!item.name?.toLowerCase().includes(term)) return false;
                     }
-                    if (this.maxSpells > 0) {
-                        const spellClass = selectedLeveledSpells.length === this.maxSpells ? 'bg-success' :
-                            selectedLeveledSpells.length > this.maxSpells ? 'bg-danger' : 'bg-info';
-                        badges.push(`<span class="badge ${spellClass}">${selectedLeveledSpells.length} / ${this.maxSpells} Spells</span>`);
-                    }
-                    return badges.join('');
-                },
-                selectionLimitFn: (item, selectedItems) => {
-                    const isCantrip = item.level === 0;
-                    const selectedCantrips = selectedItems.filter(spell => spell.level === 0);
-                    const selectedLeveledSpells = selectedItems.filter(spell => spell.level > 0);
 
-                    if (isCantrip && this.maxCantrips > 0 && selectedCantrips.length >= this.maxCantrips) {
-                        showNotification(`Maximum ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''} can be selected`, 'warning');
+                    // Level filter - check this.levelFilters Set
+                    if (this.levelFilters.size > 0 && !this.levelFilters.has(String(item.level))) {
                         return false;
                     }
 
-                    if (!isCantrip && this.maxSpells > 0 && selectedLeveledSpells.length >= this.maxSpells) {
-                        showNotification(`Maximum ${this.maxSpells} spell${this.maxSpells !== 1 ? 's' : ''} can be selected`, 'warning');
+                    // School filter - check this.schoolFilters Set
+                    if (this.schoolFilters.size > 0 && !this.schoolFilters.has(item.school)) {
                         return false;
                     }
 
                     return true;
                 },
-                context: {
-                    className: this.className,
-                    currentLevel: this.currentLevel
+                // Block selection per category when limits are reached
+                canSelectItem: (item, state) => {
+                    const selectedByLevel = {};
+                    state.selectedItems.forEach(spell => {
+                        const lvl = spell.level || 0;
+                        selectedByLevel[lvl] = (selectedByLevel[lvl] || 0) + 1;
+                    });
+                    const selectedCantrips = selectedByLevel[0] || 0;
+                    const selectedLeveled = state.selectedItems.filter(s => (s.level || 0) > 0).length;
+
+                    // Allow deselection always; if already selected, OK
+                    const isSelected = state.selectedIds.has(item.id || item.name);
+                    if (isSelected) return true;
+
+                    if ((item.level || 0) === 0) {
+                        if (this.maxCantrips > 0 && selectedCantrips >= this.maxCantrips) return false;
+                        return true;
+                    } else {
+                        if (this.maxSpells > 0 && selectedLeveled >= this.maxSpells) return false;
+                        return true;
+                    }
+                },
+                onSelectBlocked: (item) => {
+                    const isCantrip = (item.level || 0) === 0;
+                    if (isCantrip) {
+                        showNotification('Cantrip limit reached. Deselect a cantrip to add another.', 'warning');
+                    } else {
+                        const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
+                        const ordinals = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+                        const lvlText = ordinals[maxSpellLevel];
+                        showNotification(`${lvlText} spell limit reached. Deselect a spell to add another.`, 'warning');
+                    }
+                },
+                // Description caching (optional, improves UX like manager)
+                descriptionCache: this._descriptionCache,
+                fetchDescription: (spell) => this._fetchSpellDescription(spell),
+                descriptionContainerSelector: '.selector-description',
+                customCountFn: (selectedItems) => this._getCountDisplay(selectedItems),
+                onConfirm: this._onSpellsConfirmed.bind(this),
+                onCancel: () => {
+                    // No-op
                 }
             });
 
-            // Show modal
-            await this._selector.show();
+            this._selector.show();
         } catch (error) {
             console.error('[LevelUpSpellSelector]', 'Error showing spell selector:', error);
         }
@@ -336,12 +361,48 @@ export class LevelUpSpellSelector {
     }
 
     /**
-     * Get spell level ordinal based on maximum available spell level
+     * Generate custom count display showing breakdown by spell level
+     * Example: "2/2 cantrips, 2/2 level 1"
      */
-    _getLevelOrdinal() {
-        const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-        const ordinals = ['', '1st-level', '2nd-level', '3rd-level', '4th-level', '5th-level', '6th-level', '7th-level', '8th-level', '9th-level'];
-        return ordinals[maxSpellLevel] || 'level';
+    _getCountDisplay(selectedItems) {
+        const ordinals = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+
+        // Count selected spells by level
+        const selectedByLevel = {};
+        selectedItems.forEach(spell => {
+            const level = spell.level || 0;
+            selectedByLevel[level] = (selectedByLevel[level] || 0) + 1;
+        });
+
+        // Build category objects for formatCategoryCounters
+        const categories = [];
+
+        // Add cantrips category if applicable
+        if (this.maxCantrips > 0) {
+            const selectedCantrips = selectedByLevel[0] || 0;
+            categories.push({
+                label: selectedCantrips === 1 ? 'cantrip' : 'cantrips',
+                selected: selectedCantrips,
+                max: this.maxCantrips,
+                color: 'bg-info'
+            });
+        }
+
+        // Add leveled spells category if applicable
+        if (this.maxSpells > 0) {
+            const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
+            const selectedLeveled = selectedItems.filter(s => s.level > 0).length;
+            const levelText = ordinals[maxSpellLevel];
+            categories.push({
+                label: `${levelText} spell${this.maxSpells === 1 ? '' : 's'}`,
+                selected: selectedLeveled,
+                max: this.maxSpells,
+                color: 'bg-success'
+            });
+        }
+
+        // Use the shared helper to format badges
+        return formatCategoryCounters(categories);
     }
 
     /**
@@ -447,67 +508,43 @@ export class LevelUpSpellSelector {
     }
 
     /**
-     * Render a single spell item for the generic selector
+     * Render a single spell item
      */
-    _renderSpellItem(spell) {
-        const isSelected = this._selector.selectedItems.some(s => this._selector._itemKey(s) === this._selector._itemKey(spell));
+    _renderSpellItem(spell, state) {
+        const isSelected = state.selectedIds.has(spell.id || spell.name);
         const selectedClass = isSelected ? 'selected' : '';
-        const itemKey = this._selector._itemKey(spell);
 
-        // Use cached description or placeholder
-        const description = this._selector.descriptionCache.has(itemKey)
-            ? this._selector.descriptionCache.get(itemKey)
-            : '<span class="text-muted small">Loading description...</span>';
+        const level = typeof spell.level === 'number' ? spell.level : 0;
+        const levelText = level === 0 ? 'Cantrip' : `${level}-level`;
+        const schoolName = getSchoolName(spell.school) || 'Unknown';
+        const ritualBadge = spell.meta?.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : '';
+        const concentrationBadge = spell.duration?.[0]?.concentration ? '<span class="badge bg-warning ms-2">Concentration</span>' : '';
 
-        // Build spell-specific metadata for header
-        let metadataHtml = '';
-        if (spell.level !== undefined) {
-            const levelText = spell.level === 0 ? 'Cantrip' : `Level ${spell.level}`;
-            metadataHtml += `<span class="badge bg-primary me-2">${levelText}</span>`;
-        }
-        if (spell.school) {
-            // Convert abbreviated school to full name
-            const schoolNames = {
-                A: 'Abjuration', C: 'Conjuration', D: 'Divination',
-                E: 'Enchantment', I: 'Illusion', N: 'Necromancy',
-                T: 'Transmutation', V: 'Evocation'
-            };
-            const schoolName = schoolNames[spell.school] || spell.school;
-            metadataHtml += `<span class="badge bg-info me-2">${schoolName}</span>`;
-        }
-        if (spell.ritual) {
-            metadataHtml += '<span class="badge bg-secondary me-2">Ritual</span>';
-        }
-        if (spell.concentration) {
-            metadataHtml += '<span class="badge bg-warning me-2">Conc.</span>';
-        }
+        const castingTime = spell.time ? `${spell.time[0]?.number || ''} ${spell.time[0]?.unit || ''}`.trim() : 'N/A';
+        const range = spell.range?.distance ? `${spell.range.distance.amount || ''} ${spell.range.distance.type || ''}`.trim() : (spell.range?.type || 'N/A');
+        const duration = spell.duration?.[0]?.type || 'N/A';
 
-        // Format spell stats (Casting Time, Range, Duration, Components)
-        const castingTime = spell.time?.[0]
-            ? `${spell.time[0].number || ''} ${spell.time[0].unit || ''}`.trim()
-            : 'Unknown';
-        const range = spell.range?.distance?.amount
-            ? `${spell.range.distance.amount} ${spell.range.distance.type}`
-            : spell.range?.type || 'Unknown';
-        const duration = spell.duration?.[0]?.duration
-            ? `${spell.duration[0].duration.amount || ''} ${spell.duration[0].duration.type || ''}`.trim()
-            : spell.duration?.[0]?.type || 'Unknown';
-
-        // Format components
         const components = [];
         if (spell.components?.v) components.push('V');
         if (spell.components?.s) components.push('S');
-        if (spell.components?.m) components.push('M');
-        const componentsStr = components.join(', ') || 'None';
-        const materialDesc = spell.components?.m?.text || spell.components?.m || '';
+        if (spell.components?.m) {
+            const material = typeof spell.components.m === 'string' ? spell.components.m : (spell.components.m?.text || 'material');
+            components.push(`M (${material})`);
+        }
+        const componentsStr = components.length ? components.join(', ') : 'N/A';
+
+        const desc = this._descriptionCache.has(spell.id || spell.name)
+            ? this._descriptionCache.get(spell.id || spell.name)
+            : '<span class="text-muted small">Loading...</span>';
 
         return `
-            <div class="spell-card selector-card ${selectedClass}" data-item-id="${itemKey}" data-selector-item-card>
+            <div class="spell-card selector-card ${selectedClass}" data-item-id="${spell.id || spell.name}">
                 <div class="spell-card-header">
                     <div>
                         <strong>${spell.name}</strong>
+                        <span class="text-muted">(${levelText} ${schoolName})</span>
                     </div>
-                    <div>${metadataHtml}</div>
+                    <div>${ritualBadge}${concentrationBadge}</div>
                 </div>
                 <div class="spell-card-body">
                     <div class="spell-stats">
@@ -525,16 +562,35 @@ export class LevelUpSpellSelector {
                             </div>
                             <div class="spell-stat">
                                 <strong>Components:</strong> ${componentsStr}
-                                ${materialDesc ? `<br><span class="text-muted small">(${materialDesc})</span>` : ''}
                             </div>
                         </div>
                     </div>
                     <div class="spell-description selector-description">
-                        ${description}
+                        ${desc}
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    async _fetchSpellDescription(spell) {
+        const parts = [];
+        if (Array.isArray(spell.entries)) {
+            for (const entry of spell.entries) {
+                if (typeof entry === 'string') {
+                    parts.push(await textProcessor.processString(entry));
+                } else if (Array.isArray(entry?.entries)) {
+                    for (const sub of entry.entries) {
+                        if (typeof sub === 'string') {
+                            parts.push(await textProcessor.processString(sub));
+                        }
+                    }
+                }
+            }
+        } else if (typeof spell.entries === 'string') {
+            parts.push(await textProcessor.processString(spell.entries));
+        }
+        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
     }
 
     /**

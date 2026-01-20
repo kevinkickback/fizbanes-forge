@@ -5,7 +5,7 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
-import { SpellSelectionModal } from './Modal.js';
+import { UniversalSpellModal } from './UniversalSpellModal.js';
 
 export class SpellsManager {
     constructor() {
@@ -363,9 +363,18 @@ export class SpellsManager {
             return;
         }
 
+        // Determine which class to add spells for
+        const primaryClass = character.getPrimaryClass();
+        const className = primaryClass?.name || 'Wizard';
+
         try {
             if (!this.spellSelectionModal) {
-                this.spellSelectionModal = new SpellSelectionModal();
+                this.spellSelectionModal = new UniversalSpellModal({
+                    className,
+                });
+            } else {
+                // Update class name for existing modal
+                this.spellSelectionModal.className = className;
             }
 
             const result = await this.spellSelectionModal.show();

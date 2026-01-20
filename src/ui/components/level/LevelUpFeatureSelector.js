@@ -1,6 +1,6 @@
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { LevelUpSelector } from './LevelUpSelector.js';
+import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
 /**
  * LevelUpFeatureSelector
@@ -47,75 +47,48 @@ export class LevelUpFeatureSelector {
                 currentSelectionsCount: currentSelections.length
             });
 
-            // Collect already-selected features from character and session
+            // Collect already-selected features
             const alreadySelected = new Set();
 
-            // 1. Features from original character's progression
-            // Store features that match this class and could be of the same type
             if (this.session.originalCharacter?.progression?.classes) {
                 this.session.originalCharacter.progression.classes.forEach(cls => {
                     if (cls.name === this.className && cls.features) {
                         cls.features.forEach(feature => {
                             if (feature && typeof feature === 'object') {
-                                // Feature might be stored as { name, id, type, ... }
                                 const featureName = feature.name || feature.id || feature;
                                 if (featureName && typeof featureName === 'string') {
                                     alreadySelected.add(featureName);
-                                    console.log('[LevelUpFeatureSelector] Added from character progression:', featureName);
                                 }
                             } else if (typeof feature === 'string') {
                                 alreadySelected.add(feature);
-                                console.log('[LevelUpFeatureSelector] Added from character progression (string):', feature);
                             }
                         });
                     }
                 });
             }
 
-            // 2. Features from current session's selections (from other levels/feature choices)
-            // We need to check all selected features but exclude the current feature choice being edited
             if (this.session.stepData?.selectedFeatures) {
-                console.log('[LevelUpFeatureSelector] Session selectedFeatures:', this.session.stepData.selectedFeatures);
-
-                // Iterate through all feature selections in the session
                 Object.entries(this.session.stepData.selectedFeatures).forEach(([featureId, selection]) => {
-                    console.log('[LevelUpFeatureSelector] Checking featureId:', featureId, 'current:', this.currentFeatureId, 'match:', featureId === this.currentFeatureId);
+                    if (featureId === this.currentFeatureId) return;
 
-                    // Skip the feature choice currently being edited
-                    if (featureId === this.currentFeatureId) {
-                        console.log('[LevelUpFeatureSelector] Skipping current feature ID');
-                        return;
-                    }
-
-                    // Parse selections (can be array or single value)
                     const selections = Array.isArray(selection) ? selection : [selection];
-
                     selections.forEach(featureName => {
                         if (featureName && typeof featureName === 'string') {
                             alreadySelected.add(featureName);
-                            console.log('[LevelUpFeatureSelector] Added from session:', featureName, 'from featureId:', featureId);
                         }
                     });
                 });
             }
 
-            console.log('[LevelUpFeatureSelector] Already selected features:', Array.from(alreadySelected));
-
-            console.log('[LevelUpFeatureSelector] Already selected features:', Array.from(alreadySelected));
-
-            // Filter to only allowed sources AND exclude already-selected features
+            // Filter available features
             const filtered = availableFeatures.filter(feature => {
                 if (!sourceService.isSourceAllowed(feature.source)) {
                     return false;
                 }
 
-                // Check if this feature is already selected elsewhere
                 const featureId = feature.id || feature.name;
                 const featureName = feature.name;
-
-                // Check both ID and name formats
                 if (alreadySelected.has(featureId) || alreadySelected.has(featureName)) {
-                    console.log('[LevelUpFeatureSelector] Filtering out:', featureName, 'id:', featureId);
                     return false;
                 }
 
@@ -129,15 +102,9 @@ export class LevelUpFeatureSelector {
                 this.maxSelections = multiSelect ? filtered.length : 1;
             }
 
-            // Get character from session for prerequisite checking
             const character = this.session.stagedChanges;
-
-            // Create prerequisite checker function
             const prerequisiteChecker = (feature) => {
                 if (!feature.prerequisite) return true;
-
-                // Build a character context with features array for prerequisite checking
-                // The Character class has features as an object, but prerequisite checking expects an array
                 const featuresArray = [];
                 if (character.progression?.classes) {
                     for (const cls of character.progression.classes) {
@@ -146,51 +113,74 @@ export class LevelUpFeatureSelector {
                         }
                     }
                 }
-
-                // Add features array to character without spreading (to preserve methods)
-                // Store original features and restore after prerequisite check
                 const originalFeatures = character.features;
                 character.features = featuresArray;
                 const result = this.optionalFeatureService.meetsPrerequisites(feature, character, this.className);
                 character.features = originalFeatures;
-
                 return result;
             };
 
-            // Get appropriate note based on feature type
-            const prerequisiteNote = this._getPrerequisiteNote();
-
-            // Create generic selector with feature-specific config
-            this._selector = new LevelUpSelector({
-                items: filtered,
-                searchFields: ['name', 'source'],
-                filterSets: {},
-                multiSelect,
-                maxSelections: this.maxSelections,
-                tabLevels: [],
-                onConfirm: this._onFeaturesConfirmed.bind(this),
+            this._selector = new UniversalSelectionModal({
+                modalId: `featureSelectorModal_${Date.now()}`,
                 modalTitle: `Select ${this._getFeatureTypeName()} - ${this.className}`,
-                prerequisiteChecker,
-                prerequisiteNote,
-                context: {
-                    className: this.className,
-                    featureType: this.featureType,
-                    currentSelections
+                items: filtered,
+                selectionMode: multiSelect ? 'multiple' : 'single',
+                selectionLimit: this.maxSelections,
+                initialSelectedItems: filtered.filter(f =>
+                    currentSelections.some(sel => this._featureKey(f) === this._featureKey(sel))
+                ),
+                searchMatcher: (item, searchTerm) => {
+                    if (!searchTerm) return true;
+                    const term = searchTerm.toLowerCase();
+                    return item.name?.toLowerCase().includes(term) || item.source?.toLowerCase().includes(term);
+                },
+                buildFilters: null,
+                renderItem: (item, state) => this._renderFeatureItem(item, state),
+                getItemId: (item) => item.id || item.name,
+                matchItem: (item, state) => {
+                    if (!prerequisiteChecker(item)) return false;
+                    if (state.searchTerm) {
+                        const term = state.searchTerm.toLowerCase();
+                        return item.name?.toLowerCase().includes(term) || item.source?.toLowerCase().includes(term);
+                    }
+                    return true;
+                },
+                onConfirm: this._onFeaturesConfirmed.bind(this),
+                onCancel: () => {
+                    // No-op
                 }
             });
 
-            // Pre-select current selections
-            if (currentSelections.length > 0) {
-                this._selector.selectedItems = filtered.filter(f =>
-                    currentSelections.some(sel => this._featureKey(f) === this._featureKey(sel))
-                );
-            }
-
-            // Show modal
-            await this._selector.show();
+            this._selector.show();
         } catch (error) {
             console.error('[LevelUpFeatureSelector]', 'Error showing feature selector:', error);
         }
+    }
+
+    _renderFeatureItem(feature, state) {
+        const isSelected = state.selectedIds.has(feature.id || feature.name);
+        const selectedClass = isSelected ? 'selected' : '';
+
+        let badgesHtml = '';
+        if (feature.source) {
+            badgesHtml += `<span class="badge bg-secondary me-2">${feature.source}</span>`;
+        }
+
+        const description = feature.entries?.join(' ') || 'No description available';
+
+        return `
+            <div class="spell-card selector-card ${selectedClass}" data-item-id="${feature.id || feature.name}">
+                <div class="spell-card-header">
+                    <div>
+                        <strong>${feature.name}</strong>
+                    </div>
+                    <div>${badgesHtml}</div>
+                </div>
+                <div class="spell-card-body">
+                    <div class="spell-description">${description}</div>
+                </div>
+            </div>
+        `;
     }
 
     /**

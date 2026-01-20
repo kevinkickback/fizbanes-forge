@@ -213,23 +213,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	max-height: 100%;
 }
 
-/* Item selection modal - no body scroll */
-#itemSelectionModal .modal-body {
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
-}
-
-/* Level-up selector modal - no body scroll, flex layout */
-#levelUpSelectorModal .modal-body {
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
-	gap: 0.75rem;
-}
-
 /* Universal selection modal - no body scroll, flex layout for proper filter/results scrolling */
 #universalSelectionModal .modal-body {
 	overflow: hidden;
@@ -237,13 +220,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	flex-direction: column;
 	max-height: 100%;
 	padding: 1rem;
-}
-
-/* Ensure spell-filter-row grows properly in level-up selector */
-#levelUpSelectorModal .spell-filter-row {
-	flex: 1;
-	min-height: 0;
-	max-height: 100%;
 }
 
 /* Custom scrollbar for modal body */
