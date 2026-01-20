@@ -5,7 +5,7 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
-import { UniversalSpellModal } from './UniversalSpellModal.js';
+import { SpellSelectionModal } from './SpellSelectionModal.js';
 
 export class SpellsManager {
     constructor() {
@@ -369,7 +369,7 @@ export class SpellsManager {
 
         try {
             if (!this.spellSelectionModal) {
-                this.spellSelectionModal = new UniversalSpellModal({
+                this.spellSelectionModal = new SpellSelectionModal({
                     className,
                 });
             } else {

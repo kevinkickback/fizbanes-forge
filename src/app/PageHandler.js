@@ -6,13 +6,13 @@ import { ALIGNMENTS } from '../lib/constants.js';
 import { showNotification } from '../lib/Notifications.js';
 import { deityService } from '../services/DeityService.js';
 import { settingsService } from '../services/SettingsService.js';
-import { AbilityScoreCard } from '../ui/components/abilities/ScoreSheet.js';
-import { BackgroundCard } from '../ui/components/background/Card.js';
+import { AbilityScoreCard } from '../ui/components/abilities/AbilityScoreCard.js';
+import { BackgroundCard } from '../ui/components/background/BackgroundCard.js';
 import { ClassFeatSelector } from '../ui/components/class-progression/ClassFeatSelector.js';
-import { ClassCard } from '../ui/components/class/Card.js';
-import { FeatListView, FeatSourcesView } from '../ui/components/feats/Modal.js';
-import { ProficiencyCard } from '../ui/components/proficiencies/Card.js';
-import { RaceCard } from '../ui/components/race/Card.js';
+import { ClassCard } from '../ui/components/class/ClassSelectionCard.js';
+import { FeatListView, FeatSourcesView } from '../ui/components/feats/FeatSelectionModal.js';
+import { ProficiencyCard } from '../ui/components/proficiencies/ProficiencyCard.js';
+import { RaceCard } from '../ui/components/race/RaceCard.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 import { Modal } from './Modal.js';
@@ -969,7 +969,7 @@ class PageHandlerImpl {
 
 			// Initialize equipment manager component
 			const { EquipmentManager } = await import(
-				'../ui/components/equipment/Manager.js'
+				'../ui/components/equipment/EquipmentManager.js'
 			);
 			const equipmentManager = new EquipmentManager();
 			equipmentManager.render();
@@ -1028,7 +1028,7 @@ class PageHandlerImpl {
 
 			// Initialize spells manager component
 			const { SpellsManager } = await import(
-				'../ui/components/spells/Manager.js'
+				'../ui/components/spells/SpellManager.js'
 			);
 			const spellsManager = new SpellsManager();
 			spellsManager.render();

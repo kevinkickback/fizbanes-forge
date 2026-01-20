@@ -7,7 +7,7 @@ import { itemService } from '../../../services/ItemService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
-export class UniversalEquipmentModal {
+export class EquipmentSelectionModal {
     constructor({ allowClose = true } = {}) {
         this.allowClose = allowClose;
         this.descriptionCache = new Map();

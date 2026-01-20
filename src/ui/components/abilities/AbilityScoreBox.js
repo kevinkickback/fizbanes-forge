@@ -1,6 +1,6 @@
 // View for rendering ability score boxes with scores, modifiers, and bonuses.
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
-import { methodControlsView } from './MethodControls.js';
+import { methodControlsView } from './AbilityScoreMethodControls.js';
 
 class AbilityScoreBoxView {
 	constructor(container) {

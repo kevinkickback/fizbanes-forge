@@ -13,8 +13,8 @@ import { themeManager } from './ThemeManager.js';
 import { titlebarController } from './TitlebarController.js';
 
 // Modal for data configuration
-import { DataConfigurationModal } from '../ui/components/setup/DataConfiguration.js';
-import { LoadingModal } from '../ui/components/setup/Modals.js';
+import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
+import { LoadingModal } from '../ui/components/setup/SetupModals.js';
 
 // Service imports
 import { DataLoader } from '../lib/DataLoader.js';

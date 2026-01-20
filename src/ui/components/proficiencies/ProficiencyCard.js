@@ -10,9 +10,9 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../../../lib/ProficiencyConstants.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
-import { ProficiencyDisplayView } from './Display.js';
-import { ProficiencyNotesView } from './Notes.js';
-import { ProficiencySelectionView } from './Selection.js';
+import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
+import { ProficiencyNotesView } from './ProficiencyNotes.js';
+import { ProficiencySelectionView } from './ProficiencySelection.js';
 
 class InstrumentChoicesView {
 	constructor() {

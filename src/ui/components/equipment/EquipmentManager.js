@@ -4,7 +4,7 @@ import { AppState } from '../../../app/AppState.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
-import { UniversalEquipmentModal } from './UniversalEquipmentModal.js';
+import { EquipmentSelectionModal } from './EquipmentSelectionModal.js';
 
 export class EquipmentManager {
     constructor() {
@@ -261,7 +261,7 @@ export class EquipmentManager {
 
         try {
             if (!this.equipmentSelectionModal) {
-                this.equipmentSelectionModal = new UniversalEquipmentModal();
+                this.equipmentSelectionModal = new EquipmentSelectionModal();
             }
 
             const result = await this.equipmentSelectionModal.show();

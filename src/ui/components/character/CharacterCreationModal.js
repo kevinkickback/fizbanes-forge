@@ -236,38 +236,38 @@ export class CharacterCreationModal {
 
             switch (stepIndex) {
                 case 0: {
-                    const { Step0Basics } = await import('./steps/Step0Basics.js');
-                    StepClass = Step0Basics;
+                    const { CharacterStepBasics } = await import('./CharacterStepBasics.js');
+                    StepClass = CharacterStepBasics;
                     break;
                 }
                 case 1: {
-                    const { Step1Rules } = await import('./steps/Step1Rules.js');
-                    StepClass = Step1Rules;
+                    const { CharacterStepRules } = await import('./CharacterStepRules.js');
+                    StepClass = CharacterStepRules;
                     break;
                 }
                 case 2: {
-                    const { Step2Race } = await import('./steps/Step2Race.js');
-                    StepClass = Step2Race;
+                    const { CharacterStepRace } = await import('./CharacterStepRace.js');
+                    StepClass = CharacterStepRace;
                     break;
                 }
                 case 3: {
-                    const { Step3Class } = await import('./steps/Step3Class.js');
-                    StepClass = Step3Class;
+                    const { CharacterStepClass } = await import('./CharacterStepClass.js');
+                    StepClass = CharacterStepClass;
                     break;
                 }
                 case 4: {
-                    const { Step4Background } = await import('./steps/Step4Background.js');
-                    StepClass = Step4Background;
+                    const { CharacterStepBackground } = await import('./CharacterStepBackground.js');
+                    StepClass = CharacterStepBackground;
                     break;
                 }
                 case 5: {
-                    const { Step5AbilityScores } = await import('./steps/Step5AbilityScores.js');
-                    StepClass = Step5AbilityScores;
+                    const { CharacterStepAbilityScores } = await import('./CharacterStepAbilityScores.js');
+                    StepClass = CharacterStepAbilityScores;
                     break;
                 }
                 case 6: {
-                    const { Step6Review } = await import('./steps/Step6Review.js');
-                    StepClass = Step6Review;
+                    const { CharacterStepReview } = await import('./CharacterStepReview.js');
+                    StepClass = CharacterStepReview;
                     break;
                 }
                 default:

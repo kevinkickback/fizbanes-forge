@@ -1,4 +1,4 @@
-// FeatCard.js
+// FeatSelectionModal.js
 // Modal for selecting feats valid for the current character using the universal selector
 
 import { AppState } from '../../../app/AppState.js';
@@ -10,7 +10,7 @@ import { sourceService } from '../../../services/SourceService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
-export class FeatCard {
+export class FeatSelectionModal {
 	constructor({ allowClose = true } = {}) {
 		this.allowClose = allowClose;
 		this._controller = null;

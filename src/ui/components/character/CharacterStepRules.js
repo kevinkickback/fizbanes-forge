@@ -6,7 +6,7 @@
 
 import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
 import { sourceService } from '../../../../services/SourceService.js';
-import { SourceCard } from '../../sources/Card.js';
+import { SourceCard } from '../../sources/SourceCard.js';
 
 export class Step1Rules {
     constructor(session, modal) {

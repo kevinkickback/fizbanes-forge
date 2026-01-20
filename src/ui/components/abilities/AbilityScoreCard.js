@@ -6,11 +6,11 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { skillService } from '../../../services/SkillService.js';
-import { bonusNotesView } from './BonusNotes.js';
-import { abilityChoicesView } from './Choices.js';
-import { methodControlsView } from './MethodControls.js';
-import { methodSwitcherView } from './MethodSwitcher.js';
-import { abilityScoreBoxView } from './ScoreBox.js';
+import { bonusNotesView } from './AbilityScoreBonusNotes.js';
+import { abilityChoicesView } from './AbilityScoreChoices.js';
+import { methodControlsView } from './AbilityScoreMethodControls.js';
+import { methodSwitcherView } from './AbilityScoreMethodSwitcher.js';
+import { abilityScoreBoxView } from './AbilityScoreBox.js';
 
 class AbilityScoreCard {
 	constructor() {

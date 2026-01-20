@@ -98,7 +98,7 @@ export class Modal {
 			if (e) e.preventDefault();
 
 			// Use new CharacterCreationModal
-			const { CharacterCreationModal } = await import('../ui/components/character/Modal.js');
+			const { CharacterCreationModal } = await import('../ui/components/character/CharacterCreationModal.js');
 			const characterCreationModal = new CharacterCreationModal();
 			await characterCreationModal.show();
 

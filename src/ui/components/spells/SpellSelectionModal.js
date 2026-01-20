@@ -9,7 +9,7 @@ import { spellService } from '../../../services/SpellService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
-export class UniversalSpellModal {
+export class SpellSelectionModal {
     constructor({ className = null, allowClose = true, ignoreClassRestrictions = false } = {}) {
         this.className = className;
         this.allowClose = allowClose;
