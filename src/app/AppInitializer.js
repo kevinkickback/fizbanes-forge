@@ -4,7 +4,7 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { getNotificationCenter } from '../lib/NotificationCenter.js';
-import { showNotification } from '../lib/Notifications.js';
+import { addPersistentNotification, showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 import { NavigationController } from './NavigationController.js';
@@ -35,7 +35,8 @@ import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
 
 const MAX_DATA_LOAD_ATTEMPTS = 2;
-const DATA_LOAD_BACKOFF_MS = 350;
+const DATA_LOAD_BACKOFF_BASE_MS = 250; // Base delay for exponential backoff
+const DATA_LOAD_BACKOFF_MAX_MS = 5000; // Max delay cap (5 seconds)
 
 // Guard against multiple initializations
 let _isInitialized = false;
@@ -45,15 +46,58 @@ function _sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+
+function _updateServiceFailureBanner(failedServices = []) {
+	const banner = document.getElementById('serviceFailureBanner');
+	const list = document.getElementById('serviceFailureList');
+	const reloadButton = document.getElementById('serviceReloadButton');
+
+	if (!banner || !list) {
+		return;
+	}
+
+	const hasFailures = Array.isArray(failedServices) && failedServices.length > 0;
+
+	if (!hasFailures) {
+		banner.style.display = 'none';
+		banner.setAttribute('aria-hidden', 'true');
+		list.textContent = '';
+		return;
+	}
+
+	list.textContent = `Failed to load: ${failedServices.join(', ')}`;
+	banner.style.display = 'flex';
+	banner.setAttribute('aria-hidden', 'false');
+
+	if (reloadButton && !reloadButton.dataset.bound) {
+		reloadButton.dataset.bound = 'true';
+		reloadButton.addEventListener('click', () => window.location.reload());
+	}
+}
+
+/**
+ * Calculate exponential backoff delay.
+ * Formula: base * (2^(attempt-1)), capped at max.
+ * @param {number} attempt - Attempt number (1-indexed)
+ * @returns {number} Delay in milliseconds
+ */
+function _calculateExponentialBackoff(attempt) {
+	if (attempt <= 1) return 0;
+	// base * 2^(attempt-1): 250ms, 500ms, 1000ms, 2000ms, 4000ms, capped at 5000ms
+	const delay = DATA_LOAD_BACKOFF_BASE_MS * 2 ** (attempt - 2);
+	return Math.min(delay, DATA_LOAD_BACKOFF_MAX_MS);
+}
+
 async function _loadDataWithErrorHandling(promise, component, loadingModal) {
 	try {
 		if (loadingModal) {
 			loadingModal.updateDetail(`Loading ${component}...`);
 		}
-		return await promise;
+		await promise;
+		return { ok: true, error: null };
 	} catch (error) {
 		console.warn('AppInitializer', `Failed to load ${component} data:`, error);
-		return null;
+		return { ok: false, error };
 	}
 }
 
@@ -133,6 +177,7 @@ async function _promptDataSourceFix(errorMessage) {
 
 async function _loadAllGameData(loadingModal) {
 	const errors = [];
+	const failedServices = [];
 	try {
 		// Get data source info for display
 		const dataSource = await window.app.getDataSource();
@@ -178,25 +223,48 @@ async function _loadAllGameData(loadingModal) {
 		];
 
 		for (const service of services) {
-			await _loadDataWithErrorHandling(service.init(), service.name, loadingModal);
+			const loadResult = await _loadDataWithErrorHandling(
+				service.init(),
+				service.name,
+				loadingModal,
+			);
+			if (!loadResult?.ok) {
+				failedServices.push(service.name);
+				if (loadResult?.error) {
+					errors.push(loadResult.error);
+				} else {
+					errors.push(new Error(`Failed to load ${service.name}`));
+				}
+			}
 		}
 
 		if (loadingModal) {
-			loadingModal.updateDetail('All game data loaded');
+			if (failedServices.length > 0) {
+				loadingModal.updateDetail(
+					`Failed to load: ${failedServices.join(', ')}`,
+				);
+			} else {
+				loadingModal.updateDetail('All game data loaded');
+			}
 		}
-		return { success: true, errors };
+		return { success: failedServices.length === 0, errors, failedServices };
 	} catch (error) {
 		console.error('AppInitializer', 'Error during game data loading:', error);
 		errors.push(error);
-		return { success: false, errors };
+		return { success: false, errors, failedServices };
 	}
 }
 
 async function _loadAllGameDataWithRetry() {
 	let lastError = null;
 	for (let attempt = 1; attempt <= MAX_DATA_LOAD_ATTEMPTS; attempt++) {
-		if (attempt > 1) {
-			await _sleep(DATA_LOAD_BACKOFF_MS * (attempt - 1));
+		const delayMs = _calculateExponentialBackoff(attempt);
+		if (delayMs > 0) {
+			console.debug(
+				'AppInitializer',
+				`Retry attempt ${attempt} in ${delayMs}ms...`,
+			);
+			await _sleep(delayMs);
 		}
 
 		const validation = await _validateDataSource();
@@ -320,197 +388,206 @@ async function _initializeCoreComponents() {
 	}
 }
 
+/**
+ * Setup save button with unsaved indicator logic.
+ * Handles form field collection and character persistence.
+ */
+function _setupSaveButton() {
+	const saveButton = document.getElementById('saveCharacter');
+	if (!saveButton) {
+		console.warn('AppInitializer', 'Save button not found');
+		return;
+	}
+
+	saveButton.addEventListener('click', async () => {
+		try {
+			console.info(
+				'AppInitializer',
+				`[${new Date().toISOString()}] Save button clicked`,
+			);
+
+			// Update character data from form inputs on details page
+			const characterNameInput = document.getElementById('characterName');
+			const playerNameInput = document.getElementById('playerName');
+			const heightInput = document.getElementById('height');
+			const weightInput = document.getElementById('weight');
+			const genderInput = document.getElementById('gender');
+			const backstoryTextarea = document.getElementById('backstory');
+
+			const character = AppState.getCurrentCharacter();
+			if (character) {
+				if (characterNameInput) character.name = characterNameInput.value;
+				if (playerNameInput) character.playerName = playerNameInput.value;
+				if (heightInput) character.height = heightInput.value;
+				if (weightInput) character.weight = weightInput.value;
+				if (genderInput) character.gender = genderInput.value;
+				if (backstoryTextarea)
+					character.backstory = backstoryTextarea.value;
+			}
+
+			await CharacterManager.saveCharacter();
+
+			console.info('AppInitializer', 'Character saved successfully');
+			showNotification('Character saved successfully', 'success');
+			// Emit save event
+			console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
+			eventBus.emit(EVENTS.CHARACTER_SAVED);
+		} catch (error) {
+			console.error('AppInitializer', 'Error saving character', error);
+			showNotification('Error saving character', 'error');
+		}
+	});
+}
+
+/**
+ * Setup Level Up modal button.
+ * Lazy-loads LevelUpModal component on first click.
+ */
+function _setupLevelUpButton() {
+	const levelUpBtn = document.getElementById('openLevelUpModalBtn');
+	if (!levelUpBtn) {
+		console.warn('AppInitializer', 'Level Up button not found');
+		return;
+	}
+
+	let levelUpModalInstance = null;
+	levelUpBtn.addEventListener('click', async () => {
+		console.info('AppInitializer', '[LevelUp] Button clicked');
+		try {
+			const character = AppState.getCurrentCharacter();
+			if (!character) {
+				console.warn('AppInitializer', '[LevelUp] No current character');
+				showNotification('No character selected', 'warning');
+				return;
+			}
+
+			if (!levelUpModalInstance) {
+				console.debug('AppInitializer', '[LevelUp] Importing LevelUpModal');
+				const { LevelUpModal } = await import('../ui/components/level-up/LevelUpModal.js');
+				levelUpModalInstance = new LevelUpModal();
+			}
+			console.debug('AppInitializer', '[LevelUp] Showing modal via controller');
+			await levelUpModalInstance.show();
+		} catch (error) {
+			console.error('AppInitializer', 'Failed to open Level Up modal', error);
+			// Fallback: attempt to open the modal directly if Bootstrap is available and element exists
+			try {
+				const el = document.getElementById('levelUpModal');
+				const bs = window.bootstrap || globalThis.bootstrap;
+				if (el && bs) {
+					console.warn('AppInitializer', '[LevelUp] Falling back to direct Bootstrap.Modal.show()');
+					new bs.Modal(el, { backdrop: true, keyboard: true }).show();
+					showNotification('Level Up modal opened with fallback', 'warning');
+				} else {
+					showNotification('Failed to open Level Up modal', 'error');
+				}
+			} catch (fallbackErr) {
+				console.error('AppInitializer', '[LevelUp] Fallback open failed', fallbackErr);
+				showNotification('Failed to open Level Up modal', 'error');
+			}
+		}
+	});
+}
+
+/**
+ * Setup unsaved indicator logic and event listeners.
+ * Tracks character changes and displays unsaved indicator on relevant pages.
+ */
+function _setupUnsavedIndicator() {
+	const PagesShowUnsaved = new Set(['build', 'details']);
+
+	function updateUnsavedIndicator() {
+		try {
+			const hasUnsaved = AppState.get('hasUnsavedChanges');
+			const currentPage = AppState.getCurrentPage();
+			const shouldShow = Boolean(
+				hasUnsaved && PagesShowUnsaved.has(currentPage),
+			);
+
+			// Update titlebar unsaved indicator (already managed by CHARACTER_UPDATED event)
+			console.debug(
+				'AppInitializer',
+				`Unsaved indicator updated: show=${shouldShow}`,
+				{
+					hasUnsaved,
+					currentPage,
+				},
+			);
+		} catch (e) {
+			console.error('AppInitializer', 'Error updating unsaved indicator', e);
+		}
+	}
+
+	// Listen for CHARACTER_UPDATED events to mark unsaved state
+	// Use explicit state flags instead of temporal suppression to avoid race conditions
+	eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+		// Skip if currently loading a character or navigating
+		if (AppState.get('isLoadingCharacter') || AppState.get('isNavigating')) {
+			console.debug(
+				'AppInitializer',
+				'Ignored CHARACTER_UPDATED - loading or navigating',
+				{
+					isLoadingCharacter: AppState.get('isLoadingCharacter'),
+					isNavigating: AppState.get('isNavigating'),
+				},
+			);
+			return;
+		}
+
+		console.debug(
+			'AppInitializer',
+			`[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`,
+		);
+		AppState.setHasUnsavedChanges(true);
+		updateUnsavedIndicator();
+	});
+
+	// Listen for CHARACTER_SAVED events to clear unsaved state
+	eventBus.on(EVENTS.CHARACTER_SAVED, () => {
+		console.debug(
+			'AppInitializer',
+			`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`,
+		);
+		AppState.setHasUnsavedChanges(false);
+		updateUnsavedIndicator();
+	});
+
+	// Clear unsaved indicator when a new character is selected (fresh load)
+	eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+		console.debug(
+			'AppInitializer',
+			`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`,
+		);
+		AppState.setHasUnsavedChanges(false);
+		updateUnsavedIndicator();
+	});
+
+	// Update indicator on page changes (show only on certain pages)
+	eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
+		console.debug(
+			'AppInitializer',
+			`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
+		);
+		updateUnsavedIndicator();
+	});
+
+	// Listen for explicit AppState changes to hasUnsavedChanges
+	eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
+		console.debug(
+			'AppInitializer',
+			`state:hasUnsavedChanges:changed -> ${newVal}`,
+		);
+		updateUnsavedIndicator();
+	});
+}
+
 function _setupUiEventHandlers() {
 	try {
 		console.info('AppInitializer', 'Setting up UI event handlers');
 
-		// Set up save button handler
-		const saveButton = document.getElementById('saveCharacter');
-
-		// Centralized unsaved indicator logic
-		const PagesShowUnsaved = new Set(['build', 'details']);
-
-		function updateUnsavedIndicator() {
-			try {
-				const hasUnsaved = AppState.get('hasUnsavedChanges');
-				const currentPage = AppState.getCurrentPage();
-				const shouldShow = Boolean(
-					hasUnsaved && PagesShowUnsaved.has(currentPage),
-				);
-
-				// Update titlebar unsaved indicator (already managed by CHARACTER_UPDATED event)
-				console.debug(
-					'AppInitializer',
-					`Unsaved indicator updated: show=${shouldShow}`,
-					{
-						hasUnsaved,
-						currentPage,
-					},
-				);
-			} catch (e) {
-				console.error('AppInitializer', 'Error updating unsaved indicator', e);
-			}
-		}
-
-		// Suppress CHARACTER_UPDATED events immediately after page/character changes
-		let _suppressUntil = 0; // timestamp in ms
-		const SuppressWindowMs = 150;
-
-		// Helper to mark a short suppression window
-		function suppressTemporary() {
-			_suppressUntil = Date.now() + SuppressWindowMs;
-			console.debug(
-				'AppInitializer',
-				`Temporary suppression enabled until ${new Date(_suppressUntil).toISOString()}`,
-			);
-		}
-
-		// Listen for CHARACTER_UPDATED events to mark unsaved state
-		eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
-			const now = Date.now();
-			if (now < _suppressUntil) {
-				console.debug(
-					'AppInitializer',
-					`Ignored CHARACTER_UPDATED due to suppression (now=${now})`,
-				);
-				return;
-			}
-
-			console.debug(
-				'AppInitializer',
-				`[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`,
-			);
-			AppState.setHasUnsavedChanges(true);
-			updateUnsavedIndicator();
-		});
-
-		// Listen for CHARACTER_SAVED events to clear unsaved state
-		eventBus.on(EVENTS.CHARACTER_SAVED, () => {
-			console.debug(
-				'AppInitializer',
-				`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`,
-			);
-			AppState.setHasUnsavedChanges(false);
-			updateUnsavedIndicator();
-		});
-
-		// Clear unsaved indicator when a new character is selected (fresh load)
-		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
-			console.debug(
-				'AppInitializer',
-				`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`,
-			);
-			AppState.setHasUnsavedChanges(false);
-			suppressTemporary();
-			updateUnsavedIndicator();
-		});
-
-		// Update indicator on page changes (show only on certain pages)
-		eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
-			console.debug(
-				'AppInitializer',
-				`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
-			);
-			// Suppress CHARACTER_UPDATED events that may be emitted during page init
-			suppressTemporary();
-			updateUnsavedIndicator();
-		});
-
-		// Listen for explicit AppState changes to hasUnsavedChanges
-		eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
-			console.debug(
-				'AppInitializer',
-				`state:hasUnsavedChanges:changed -> ${newVal}`,
-			);
-			updateUnsavedIndicator();
-		});
-
-		if (saveButton) {
-			saveButton.addEventListener('click', async () => {
-				try {
-					console.info(
-						'AppInitializer',
-						`[${new Date().toISOString()}] Save button clicked`,
-					);
-
-					// Update character data from form inputs on details page
-					const characterNameInput = document.getElementById('characterName');
-					const playerNameInput = document.getElementById('playerName');
-					const heightInput = document.getElementById('height');
-					const weightInput = document.getElementById('weight');
-					const genderInput = document.getElementById('gender');
-					const backstoryTextarea = document.getElementById('backstory');
-
-					const character = AppState.getCurrentCharacter();
-					if (character) {
-						if (characterNameInput) character.name = characterNameInput.value;
-						if (playerNameInput) character.playerName = playerNameInput.value;
-						if (heightInput) character.height = heightInput.value;
-						if (weightInput) character.weight = weightInput.value;
-						if (genderInput) character.gender = genderInput.value;
-						if (backstoryTextarea)
-							character.backstory = backstoryTextarea.value;
-					}
-
-					await CharacterManager.saveCharacter();
-
-					console.info('AppInitializer', 'Character saved successfully');
-					showNotification('Character saved successfully', 'success');
-					// Emit save event
-					console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
-					eventBus.emit(EVENTS.CHARACTER_SAVED);
-				} catch (error) {
-					console.error('AppInitializer', 'Error saving character', error);
-					showNotification('Error saving character', 'error');
-				}
-			});
-		} else {
-			console.warn('AppInitializer', 'Save button not found');
-		}
-
-		// Level Up modal button
-		const levelUpBtn = document.getElementById('openLevelUpModalBtn');
-		if (levelUpBtn) {
-			let levelUpModalInstance = null;
-			levelUpBtn.addEventListener('click', async () => {
-				console.info('AppInitializer', '[LevelUp] Button clicked');
-				try {
-					const character = AppState.getCurrentCharacter();
-					if (!character) {
-						console.warn('AppInitializer', '[LevelUp] No current character');
-						showNotification('No character selected', 'warning');
-						return;
-					}
-
-					if (!levelUpModalInstance) {
-						console.debug('AppInitializer', '[LevelUp] Importing LevelUpModal');
-						const { LevelUpModal } = await import('../ui/components/level-up/LevelUpModal.js');
-						levelUpModalInstance = new LevelUpModal();
-					}
-					console.debug('AppInitializer', '[LevelUp] Showing modal via controller');
-					await levelUpModalInstance.show();
-				} catch (error) {
-					console.error('AppInitializer', 'Failed to open Level Up modal', error);
-					// Fallback: attempt to open the modal directly if Bootstrap is available and element exists
-					try {
-						const el = document.getElementById('levelUpModal');
-						const bs = window.bootstrap || globalThis.bootstrap;
-						if (el && bs) {
-							console.warn('AppInitializer', '[LevelUp] Falling back to direct Bootstrap.Modal.show()');
-							new bs.Modal(el, { backdrop: true, keyboard: true }).show();
-							showNotification('Level Up modal opened with fallback', 'warning');
-						} else {
-							showNotification('Failed to open Level Up modal', 'error');
-						}
-					} catch (fallbackErr) {
-						console.error('AppInitializer', '[LevelUp] Fallback open failed', fallbackErr);
-						showNotification('Failed to open Level Up modal', 'error');
-					}
-				}
-			});
-		} else {
-			console.warn('AppInitializer', 'Level Up button not found');
-		}
+		_setupUnsavedIndicator();
+		_setupSaveButton();
+		_setupLevelUpButton();
 
 		console.info('AppInitializer', 'UI event handlers set up successfully');
 	} catch (error) {
@@ -727,6 +804,18 @@ export async function initializeAll(_options = {}) {
 		loadingModal.updateDetail('');
 		loadingModal.updateProgress(30);
 		const dataLoadResult = await _loadAllGameData(loadingModal);
+		AppState.setFailedServices(dataLoadResult.failedServices || []);
+		_updateServiceFailureBanner(dataLoadResult.failedServices || []);
+		if (dataLoadResult.failedServices?.length) {
+			showNotification(
+				`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
+				'warning',
+			);
+			addPersistentNotification(
+				`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
+				'warning',
+			);
+		}
 		if (!dataLoadResult.success) {
 			result.errors.push(...dataLoadResult.errors);
 		}

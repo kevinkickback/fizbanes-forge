@@ -4,10 +4,10 @@
  * User reviews all settings before creating the character.
  */
 
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { raceService } from '../../../../services/RaceService.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { raceService } from '../../../services/RaceService.js';
 
-export class Step6Review {
+export class CharacterStepReview {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

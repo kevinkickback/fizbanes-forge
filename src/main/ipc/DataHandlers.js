@@ -203,17 +203,42 @@ export function registerDataHandlers(preferencesManager) {
 	// Initialize path from existing preferences
 	syncDataPathFromPreferences();
 
+	const isJsonFile = (fileName) => fileName.toLowerCase().endsWith('.json');
+
+	const resolveSafePath = (basePath, requested) => {
+		// Normalize separators and strip legacy prefixes
+		let normalized = requested;
+		if (
+			normalized.startsWith('src/data/') ||
+			normalized.startsWith('src/data\\')
+		) {
+			normalized = normalized.slice(9);
+		}
+
+		const candidate = path.resolve(basePath, normalized);
+		// Ensure the resolved path stays under the configured data root
+		if (!candidate.startsWith(path.resolve(basePath))) {
+			return null;
+		}
+		return candidate;
+	};
+
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
 		try {
 			if (DEBUG_MODE) {
-				let normalizedFileName = fileName;
-				if (
-					normalizedFileName.startsWith('src/data/') ||
-					normalizedFileName.startsWith('src/data\\')
-				) {
-					normalizedFileName = normalizedFileName.slice(9);
+				if (!isJsonFile(fileName)) {
+					return {
+						success: false,
+						error: 'Only JSON files may be loaded',
+					};
 				}
-				const filePath = path.join(DEV_DATA_PATH, normalizedFileName);
+				const filePath = resolveSafePath(DEV_DATA_PATH, fileName);
+				if (!filePath) {
+					return {
+						success: false,
+						error: 'Invalid path',
+					};
+				}
 				try {
 					const content = await fs.readFile(filePath, 'utf8');
 					return { success: true, data: JSON.parse(content) };
@@ -234,17 +259,14 @@ export function registerDataHandlers(preferencesManager) {
 				};
 			}
 
-			// Remove leading "src/data/" or "src/data\\" if present (services may still use old paths)
-			let normalizedFileName = fileName;
-			if (
-				normalizedFileName.startsWith('src/data/') ||
-				normalizedFileName.startsWith('src/data\\')
-			) {
-				normalizedFileName = normalizedFileName.slice(9); // Remove "src/data/" or "src/data\\"
+			if (!isJsonFile(fileName)) {
+				return { success: false, error: 'Only JSON files may be loaded' };
 			}
 
-			// Join with dataPath which is now the data/ folder itself
-			const filePath = path.join(currentDataPath, normalizedFileName);
+			const filePath = resolveSafePath(currentDataPath, fileName);
+			if (!filePath) {
+				return { success: false, error: 'Invalid path' };
+			}
 
 			MainLogger.info('DataHandlers', 'Loading JSON:', {
 				fileName,

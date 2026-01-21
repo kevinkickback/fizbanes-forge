@@ -1,5 +1,6 @@
 // Modal for configuring D&D data source (URL or local folder) with validation/download UI.
 
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { showNotification } from '../../../lib/Notifications.js';
 
 export class DataConfigurationModal {
@@ -11,6 +12,7 @@ export class DataConfigurationModal {
 		this.progressUnsub = null;
 		this.resolveCallback = null;
 		this.rejectCallback = null;
+		this._cleanup = DOMCleanup.create();
 	}
 
 	async show() {
@@ -40,6 +42,10 @@ export class DataConfigurationModal {
 				backdrop: 'static',
 				keyboard: false,
 			});
+
+			// Register modal with cleanup to ensure proper disposal
+			this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+
 			this.bootstrapModal.show();
 		});
 	}

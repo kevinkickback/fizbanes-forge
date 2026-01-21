@@ -5,6 +5,11 @@ import { IPC_CHANNELS } from './channels.js';
 export function registerSpellHandlers() {
     MainLogger.info('SpellHandlers', 'Registering spell handlers');
 
+    const notImplemented = (action) => ({
+        success: false,
+        error: `${action} not implemented`,
+    });
+
     // Initialize spellcasting for a class
     ipcMain.handle(
         IPC_CHANNELS.SPELL_INITIALIZE_CLASS,
@@ -25,10 +30,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spellcasting initialized for class',
-                };
+                return notImplemented('Initialize spellcasting');
             } catch (error) {
                 MainLogger.error(
                     'SpellHandlers',
@@ -62,10 +64,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spell added to known spells',
-                };
+                return notImplemented('Add known spell');
             } catch (error) {
                 MainLogger.error('SpellHandlers', 'Add known spell failed:', error);
                 return { success: false, error: error.message };
@@ -95,10 +94,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spell removed from known spells',
-                };
+                return notImplemented('Remove known spell');
             } catch (error) {
                 MainLogger.error(
                     'SpellHandlers',
@@ -132,10 +128,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spell prepared',
-                };
+                return notImplemented('Prepare spell');
             } catch (error) {
                 MainLogger.error(
                     'SpellHandlers',
@@ -169,10 +162,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spell unprepared',
-                };
+                return notImplemented('Unprepare spell');
             } catch (error) {
                 MainLogger.error(
                     'SpellHandlers',
@@ -213,10 +203,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spell slot used',
-                };
+                return notImplemented('Use spell slot');
             } catch (error) {
                 MainLogger.error(
                     'SpellHandlers',
@@ -248,10 +235,7 @@ export function registerSpellHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Spell slots restored',
-                };
+                return notImplemented('Restore spell slots');
             } catch (error) {
                 MainLogger.error(
                     'SpellHandlers',

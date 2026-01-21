@@ -7,10 +7,10 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { skillService } from '../../../services/SkillService.js';
 import { bonusNotesView } from './AbilityScoreBonusNotes.js';
+import { abilityScoreBoxView } from './AbilityScoreBox.js';
 import { abilityChoicesView } from './AbilityScoreChoices.js';
 import { methodControlsView } from './AbilityScoreMethodControls.js';
 import { methodSwitcherView } from './AbilityScoreMethodSwitcher.js';
-import { abilityScoreBoxView } from './AbilityScoreBox.js';
 
 class AbilityScoreCard {
 	constructor() {

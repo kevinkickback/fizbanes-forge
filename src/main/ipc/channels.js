@@ -1,4 +1,8 @@
-/** Central list of IPC channel names shared by main and preload. */
+/** Central list of IPC channel names shared by main and preload. 
+ * 
+ * IMPORTANT: Changes to channel names must be mirrored in src/main/Preload.cjs
+ * due to sandbox restrictions preventing dynamic ESM imports in preload scripts.
+ */
 
 export const IPC_CHANNELS = {
 	// Character operations

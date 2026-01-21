@@ -4,9 +4,9 @@
  * User enters character name, gender, and selects a portrait.
  */
 
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 
-export class Step0Basics {
+export class CharacterStepBasics {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

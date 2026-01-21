@@ -2,10 +2,23 @@ import { dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { MainLogger } from '../Logger.js';
+import { getCharacterSavePath } from '../Settings.js';
 import { IPC_CHANNELS } from './channels.js';
 
 export function registerFileHandlers(windowManager) {
 	MainLogger.info('FileHandlers', 'Registering file handlers');
+
+	const getAllowedRoots = () => {
+		const characterRoot = path.resolve(getCharacterSavePath());
+		const portraitsRoot = path.resolve(path.join(path.dirname(characterRoot), 'portraits'));
+		return { characterRoot, portraitsRoot, allowed: [characterRoot, portraitsRoot, path.dirname(characterRoot)] };
+	};
+
+	const resolveUnderAllowedRoots = (requestedPath) => {
+		const { allowed } = getAllowedRoots();
+		const candidate = path.resolve(requestedPath);
+		return allowed.some((root) => candidate.startsWith(root)) ? candidate : null;
+	};
 
 	// Select folder
 	ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
@@ -28,7 +41,11 @@ export function registerFileHandlers(windowManager) {
 	// Read JSON file
 	ipcMain.handle(IPC_CHANNELS.FILE_READ_JSON, async (_event, filePath) => {
 		try {
-			const content = await fs.readFile(filePath, 'utf8');
+			const safePath = resolveUnderAllowedRoots(filePath);
+			if (!safePath) {
+				return { success: false, error: 'Access to the requested path is denied' };
+			}
+			const content = await fs.readFile(safePath, 'utf8');
 			const data = JSON.parse(content);
 			return { success: true, data };
 		} catch (error) {
@@ -42,7 +59,11 @@ export function registerFileHandlers(windowManager) {
 		IPC_CHANNELS.FILE_WRITE_JSON,
 		async (_event, filePath, data) => {
 			try {
-				await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+				const safePath = resolveUnderAllowedRoots(filePath);
+				if (!safePath) {
+					return { success: false, error: 'Access to the requested path is denied' };
+				}
+				await fs.writeFile(safePath, JSON.stringify(data, null, 2));
 				return { success: true };
 			} catch (error) {
 				MainLogger.error('FileHandlers', 'Write JSON failed:', error);
@@ -54,7 +75,11 @@ export function registerFileHandlers(windowManager) {
 	// Check if file exists
 	ipcMain.handle(IPC_CHANNELS.FILE_EXISTS, async (_event, filePath) => {
 		try {
-			await fs.access(filePath);
+			const safePath = resolveUnderAllowedRoots(filePath);
+			if (!safePath) {
+				return { success: true, exists: false };
+			}
+			await fs.access(safePath);
 			return { success: true, exists: true };
 		} catch (error) {
 			MainLogger.error('FileHandlers', 'File exists check failed:', error);
@@ -80,11 +105,17 @@ export function registerFileHandlers(windowManager) {
 				return { success: false, error: 'Invalid directory path' };
 			}
 
-			const entries = await fs.readdir(dirPath, { withFileTypes: true });
+			const { portraitsRoot } = getAllowedRoots();
+			const safeDir = path.resolve(dirPath);
+			if (!safeDir.startsWith(portraitsRoot)) {
+				return { success: false, error: 'Access to the requested path is denied' };
+			}
+
+			const entries = await fs.readdir(safeDir, { withFileTypes: true });
 			const allowed = new Set(['.webp', '.png', '.jpg', '.jpeg']);
 			const files = entries
 				.filter((d) => d.isFile())
-				.map((d) => path.join(dirPath, d.name))
+				.map((d) => path.join(safeDir, d.name))
 				.filter((p) => allowed.has(path.extname(p).toLowerCase()));
 
 			return { success: true, files };
@@ -106,8 +137,17 @@ export function registerFileHandlers(windowManager) {
 					};
 				}
 
+				const { portraitsRoot } = getAllowedRoots();
+				const safeDir = path.resolve(portraitsDir);
+				if (!safeDir.startsWith(portraitsRoot)) {
+					return {
+						success: false,
+						error: 'Access to the requested path is denied',
+					};
+				}
+
 				// Ensure the portraits directory exists
-				await fs.mkdir(portraitsDir, { recursive: true });
+				await fs.mkdir(safeDir, { recursive: true });
 
 				// Determine file extension from fileName or default to .png
 				let extension = path.extname(fileName).toLowerCase();
@@ -120,7 +160,13 @@ export function registerFileHandlers(windowManager) {
 					.basename(fileName, extension)
 					.replace(/[^a-z0-9_-]/gi, '_');
 				const finalFileName = `${baseName}${extension}`;
-				const filePath = path.join(portraitsDir, finalFileName);
+				const filePath = path.join(safeDir, finalFileName);
+				if (!filePath.startsWith(portraitsRoot)) {
+					return {
+						success: false,
+						error: 'Access to the requested path is denied',
+					};
+				}
 
 				// Handle data URL format (from FileReader.readAsDataURL)
 				let buffer;

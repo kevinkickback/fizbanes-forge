@@ -1,5 +1,7 @@
 // Bootstrap modal components for app initialization and data refresh.
 
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+
 //=============================================================================
 // Loading Modal - Initial app startup
 //=============================================================================
@@ -10,6 +12,7 @@ export class LoadingModal {
         this.bootstrapModal = null;
         this.messageElement = null;
         this.progressBar = null;
+        this._cleanup = DOMCleanup.create();
     }
 
     show(initialMessage = 'Loading...') {
@@ -50,6 +53,10 @@ export class LoadingModal {
             backdrop: 'static',
             keyboard: false,
         });
+
+        // Register modal with cleanup to ensure proper disposal
+        this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+
         this.bootstrapModal.show();
     }
 
@@ -123,6 +130,7 @@ export class RefreshProgressModal {
         this.messageElement = null;
         this.statusElement = null;
         this.confirmButton = null;
+        this._cleanup = DOMCleanup.create();
     }
 
     show() {
@@ -142,7 +150,7 @@ export class RefreshProgressModal {
         this.confirmButton = this.modal.querySelector('.refresh-progress-confirm');
 
         if (this.confirmButton) {
-            this.confirmButton.addEventListener('click', () => this.hide());
+            this._cleanup.on(this.confirmButton, 'click', () => this.hide());
         }
 
         // Create Bootstrap modal instance
@@ -150,6 +158,10 @@ export class RefreshProgressModal {
             backdrop: 'static',
             keyboard: false,
         });
+
+        // Register modal with cleanup to ensure proper disposal
+        this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+
         this.bootstrapModal.show();
     }
 

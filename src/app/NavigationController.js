@@ -39,6 +39,9 @@ class RouterImpl {
 			throw new Error('Character required for this page');
 		}
 
+		// Set navigating flag to prevent spurious CHARACTER_UPDATED events
+		AppState.setState({ isNavigating: true });
+
 		// Update state
 		this.currentRoute = path;
 		AppState.setCurrentPage(path);
@@ -644,6 +647,8 @@ class NavigationControllerImpl {
 				error.message,
 			);
 			this.pageLoader.renderError(`Failed to load page: ${error.message}`);
+			// Clear navigating flag even on error
+			AppState.setState({ isNavigating: false });
 			return;
 		}
 
@@ -663,6 +668,9 @@ class NavigationControllerImpl {
 			`Emitting PAGE_LOADED event for page: "${pageName}"`,
 		);
 		eventBus.emit(EVENTS.PAGE_LOADED, pageName);
+
+		// Clear navigating flag after page is fully loaded
+		AppState.setState({ isNavigating: false });
 	}
 
 	/**

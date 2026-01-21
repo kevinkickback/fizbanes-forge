@@ -75,7 +75,7 @@ app.whenReady().then(() => {
 			setWindowBounds,
 		},
 		rendererPath: rendererRoot,
-		preloadPath: path.join(__dirname, 'preload.cjs'),
+		preloadPath: path.join(__dirname, 'Preload.cjs'),
 		debugMode: DEBUG_MODE,
 	});
 
@@ -99,7 +99,7 @@ app.on('activate', () => {
 				setWindowBounds,
 			},
 			rendererPath: rendererRoot,
-			preloadPath: path.join(__dirname, 'preload.cjs'),
+			preloadPath: path.join(__dirname, 'Preload.cjs'),
 			debugMode: DEBUG_MODE,
 		});
 	}

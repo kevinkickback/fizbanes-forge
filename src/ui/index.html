@@ -155,6 +155,24 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <div id="serviceFailureBanner" class="service-warning-banner" role="alert" aria-hidden="true"
+                style="display: none;">
+                <div class="service-warning-content">
+                    <div class="service-warning-icon">
+                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                    </div>
+                    <div class="service-warning-text">
+                        <div class="service-warning-title">Some game data failed to load</div>
+                        <div id="serviceFailureList" class="service-warning-list"></div>
+                        <div class="service-warning-help">Character creation is disabled until required data loads.
+                        </div>
+                    </div>
+                    <div class="service-warning-actions">
+                        <button id="serviceReloadButton" class="btn btn-sm btn-primary" type="button">Reload
+                            Data</button>
+                    </div>
+                </div>
+            </div>
             <div class="container-fluid">
                 <!-- Page Content -->
                 <div id="pageContent">

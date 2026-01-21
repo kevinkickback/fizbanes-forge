@@ -4,14 +4,14 @@
  * User selects character race and subrace.
  */
 
-import { getSpeedString, SIZE_ABV_TO_FULL, sizeAbvToFull } from '../../../../lib/5eToolsParser.js';
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { textProcessor } from '../../../../lib/TextProcessor.js';
-import { getAbilityData } from '../../../../services/AbilityScoreService.js';
-import { raceService } from '../../../../services/RaceService.js';
-import { sourceService } from '../../../../services/SourceService.js';
+import { getSpeedString, SIZE_ABV_TO_FULL, sizeAbvToFull } from '../../../lib/5eToolsParser.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
+import { getAbilityData } from '../../../services/AbilityScoreService.js';
+import { raceService } from '../../../services/RaceService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
-export class Step2Race {
+export class CharacterStepRace {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

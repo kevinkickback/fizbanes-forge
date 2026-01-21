@@ -1,14 +1,22 @@
 /** Orchestrates character CRUD operations and state management. */
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { showNotification } from '../lib/Notifications.js';
 
+import { CharacterSchema } from '../shared/CharacterSchema.js';
 import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
-import { CharacterSchema } from './CharacterSchema.js';
 
 class CharacterManagerImpl {
 	async createCharacter(name) {
 		console.info('CharacterManager', 'Creating character', { name });
+
+		const failedServices = AppState.getFailedServices();
+		if (Array.isArray(failedServices) && failedServices.length > 0) {
+			const message = `Cannot create characters until data loads (${failedServices.join(', ')}).`;
+			showNotification(message, 'error');
+			throw new Error(message);
+		}
 
 		try {
 			// Create character from schema
@@ -61,6 +69,9 @@ class CharacterManagerImpl {
 		);
 
 		try {
+			// Set loading flag to prevent spurious unsaved change indicators
+			AppState.setState({ isLoadingCharacter: true });
+
 			// Get all characters
 			const listResult = await window.characterStorage.loadCharacters();
 			if (!listResult.success) {
@@ -113,10 +124,14 @@ class CharacterManagerImpl {
 				`✓ Character loaded successfully: ${character.name}`,
 				{ id },
 			);
+
 			return character;
 		} catch (error) {
 			console.error('CharacterManager', 'Load failed', error);
 			throw error;
+		} finally {
+			// Always clear loading flag, even on error
+			AppState.setState({ isLoadingCharacter: false });
 		}
 	}
 

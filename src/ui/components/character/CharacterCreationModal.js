@@ -13,6 +13,7 @@
  * All data is staged in a CharacterCreationSession and only applied on confirmation.
  */
 
+import { AppState } from '../../../app/AppState.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
@@ -38,6 +39,13 @@ export class CharacterCreationModal {
     async show() {
         try {
             console.info('[CharacterCreationModal]', 'Opening character creation wizard');
+
+            const failedServices = AppState.getFailedServices();
+            if (Array.isArray(failedServices) && failedServices.length > 0) {
+                const message = `Cannot create characters until data loads (${failedServices.join(', ')}).`;
+                showNotification(message, 'error');
+                return;
+            }
 
             // Get modal element
             this.modalEl = document.getElementById('newCharacterModal');

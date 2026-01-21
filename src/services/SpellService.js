@@ -1,6 +1,5 @@
 /** Manages spell data and provides access to spells. */
 import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
 import { EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 
@@ -51,7 +50,7 @@ class SpellService extends BaseDataService {
 			},
 			{
 				onLoaded: (data) => {
-					this._spellLookupMap = this._buildLookupMap(data?.spell);
+					this._spellLookupMap = this.buildLookupMap(data?.spell);
 					this._spellClassLookup = data?.classLookup || {};
 				},
 				emitPayload: (data) => data?.spell || [],
@@ -64,16 +63,6 @@ class SpellService extends BaseDataService {
 		);
 
 		return true;
-	}
-
-	_buildLookupMap(spells = []) {
-		const map = new Map();
-		for (const spell of spells) {
-			if (!spell?.name) continue;
-			const key = DataNormalizer.normalizeForLookup(spell.name);
-			map.set(key, spell);
-		}
-		return map;
 	}
 
 	/**
@@ -92,27 +81,7 @@ class SpellService extends BaseDataService {
 	 * @returns {Object|null} Spell object or null if not found
 	 */
 	getSpell(name, source = 'PHB') {
-		if (!this._spellLookupMap) return null;
-
-		// O(1) lookup by name (case-insensitive)
-		const spell = this._spellLookupMap.get(
-			DataNormalizer.normalizeForLookup(name),
-		);
-
-		// If source matters, verify it matches
-		if (spell && spell.source === source) {
-			return spell;
-		}
-
-		// If source doesn't match, fall back to linear search for source-specific spell
-		if (spell && spell.source !== source && this._data?.spell) {
-			return (
-				this._data.spell.find((s) => s.name === name && s.source === source) ||
-				spell
-			); // Return any match if exact source not found
-		}
-
-		return spell || null;
+		return this.lookupByNameAndSource(this._spellLookupMap, name, source);
 	}
 
 	/**

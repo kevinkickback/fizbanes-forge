@@ -50,8 +50,8 @@ class ItemService extends BaseDataService {
 			{
 				onLoaded: (data) => {
 					const merged = data || { item: [], baseItem: [] };
-					this._itemLookupMap = this._buildItemLookup(merged.item);
-					this._baseItemLookupMap = this._buildBaseItemLookup(merged.baseItem);
+					this._itemLookupMap = this.buildLookupMap(merged.item);
+					this._baseItemLookupMap = this.buildLookupMap(merged.baseItem);
 				},
 				emitPayload: (data) => data?.item || [],
 				onError: () => {
@@ -63,26 +63,6 @@ class ItemService extends BaseDataService {
 		);
 
 		return true;
-	}
-
-	_buildItemLookup(items = []) {
-		const map = new Map();
-		for (const item of items) {
-			if (!item?.name) continue;
-			const key = DataNormalizer.normalizeForLookup(item.name);
-			map.set(key, item);
-		}
-		return map;
-	}
-
-	_buildBaseItemLookup(baseItems = []) {
-		const map = new Map();
-		for (const baseItem of baseItems) {
-			if (!baseItem?.name) continue;
-			const key = DataNormalizer.normalizeForLookup(baseItem.name);
-			map.set(key, baseItem);
-		}
-		return map;
 	}
 
 	/**
@@ -108,27 +88,7 @@ class ItemService extends BaseDataService {
 	 * @returns {Object|null} Item object or null if not found
 	 */
 	getItem(name, source = 'DMG') {
-		if (!this._itemLookupMap) return null;
-
-		// O(1) lookup by name (case-insensitive)
-		const item = this._itemLookupMap.get(
-			DataNormalizer.normalizeForLookup(name),
-		);
-
-		// Verify source if found
-		if (item && item.source === source) {
-			return item;
-		}
-
-		// Fall back to linear search if exact source needed
-		if (item && item.source !== source && this._data?.item) {
-			return (
-				this._data.item.find((i) => i.name === name && i.source === source) ||
-				item
-			);
-		}
-
-		return item || null;
+		return this.lookupByNameAndSource(this._itemLookupMap, name, source);
 	}
 
 	/**
@@ -138,28 +98,7 @@ class ItemService extends BaseDataService {
 	 * @returns {Object|null} Base item object or null if not found
 	 */
 	getBaseItem(name, source = 'PHB') {
-		if (!this._baseItemLookupMap) return null;
-
-		// O(1) lookup by name (case-insensitive)
-		const baseItem = this._baseItemLookupMap.get(
-			DataNormalizer.normalizeForLookup(name),
-		);
-
-		// Verify source if found
-		if (baseItem && baseItem.source === source) {
-			return baseItem;
-		}
-
-		// Fall back to linear search if exact source needed
-		if (baseItem && baseItem.source !== source && this._data?.baseItem) {
-			return (
-				this._data.baseItem.find(
-					(bi) => bi.name === name && bi.source === source,
-				) || baseItem
-			);
-		}
-
-		return baseItem || null;
+		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
 	}
 
 	/**

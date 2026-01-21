@@ -371,6 +371,59 @@ body.debug-mode .nav-item.debug-only {
 	box-sizing: border-box;
 }
 
+.service-warning-banner {
+	border: 1px solid var(--accent-color);
+	background: var(--accent-10);
+	color: var(--text-color);
+	border-radius: var(--border-radius-lg);
+	padding: var(--spacing-md);
+	margin: 0 0 var(--spacing-md) 0;
+	box-shadow: var(--shadow-md);
+}
+
+.service-warning-content {
+	display: flex;
+	gap: var(--spacing-md);
+	align-items: flex-start;
+}
+
+.service-warning-icon {
+	color: var(--warning-color);
+	font-size: 1.5rem;
+	line-height: 1;
+}
+
+.service-warning-title {
+	font-weight: 700;
+	margin: 0 0 var(--spacing-xs) 0;
+}
+
+.service-warning-list {
+	margin: 0 0 var(--spacing-xs) 0;
+	font-size: 0.95rem;
+}
+
+.service-warning-help {
+	color: var(--text-muted);
+	font-size: 0.9rem;
+}
+
+.service-warning-actions {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+}
+
+@media (max-width: 768px) {
+	.service-warning-content {
+		flex-direction: column;
+	}
+
+	.service-warning-actions {
+		margin-left: 0;
+	}
+}
+
 /* Cards */
 .card {
 	background: var(--card-background);

@@ -5,11 +5,11 @@
  * Displays ability score boxes with bonuses from race and shows the method being used.
  */
 
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { abilityScoreService, getRaceAbilityData } from '../../../../services/AbilityScoreService.js';
-import { raceService } from '../../../../services/RaceService.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { abilityScoreService, getRaceAbilityData } from '../../../services/AbilityScoreService.js';
+import { raceService } from '../../../services/RaceService.js';
 
-export class Step5AbilityScores {
+export class CharacterStepAbilityScores {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

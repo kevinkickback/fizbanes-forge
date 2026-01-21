@@ -120,27 +120,13 @@ class LevelUpService {
 
     /**
      * Get hit die for a class.
+     * Delegates to ClassService which loads from 5etools data.
      * @param {string} className - Class name
      * @returns {string} Hit die (e.g., "d8", "d10")
      * @private
      */
     _getHitDiceForClass(className) {
-        const hitDice = {
-            'Barbarian': 'd12',
-            'Bard': 'd8',
-            'Cleric': 'd8',
-            'Druid': 'd8',
-            'Fighter': 'd10',
-            'Monk': 'd8',
-            'Paladin': 'd10',
-            'Ranger': 'd10',
-            'Rogue': 'd8',
-            'Sorcerer': 'd6',
-            'Warlock': 'd8',
-            'Wizard': 'd6',
-        };
-
-        return hitDice[className] || 'd8'; // Default to d8
+        return classService.getHitDie(className);
     }
 
     /**

@@ -188,6 +188,51 @@ class ClassService extends BaseDataService {
 	}
 
 	/**
+	 * Get the hit die for a class.
+	 * Sources hit die from 5etools class data (class.hd field).
+	 * @param {string} className - Name of the class
+	 * @param {string} source - Source book
+	 * @returns {string} Hit die as dice notation (e.g., 'd8', 'd10'), or 'd8' as fallback
+	 */
+	getHitDie(className, source = 'PHB') {
+		if (!this._data?.class) return 'd8';
+
+		const classObj = this._data.class.find(
+			(c) => c.name === className && (c.source === source || !source),
+		);
+
+		if (classObj?.hd) {
+			// 5etools stores hit die as number (8, 10, 12) or full die string
+			const hdValue = classObj.hd;
+			if (typeof hdValue === 'number') {
+				return `d${hdValue}`;
+			}
+			if (typeof hdValue === 'string') {
+				// Already in 'd8' format
+				return hdValue.startsWith('d') ? hdValue : `d${hdValue}`;
+			}
+		}
+
+		// Fallback to defaults if not found in class data
+		const defaultHitDice = {
+			Barbarian: 'd12',
+			Bard: 'd8',
+			Cleric: 'd8',
+			Druid: 'd8',
+			Fighter: 'd10',
+			Monk: 'd8',
+			Paladin: 'd10',
+			Ranger: 'd10',
+			Rogue: 'd8',
+			Sorcerer: 'd6',
+			Warlock: 'd8',
+			Wizard: 'd6',
+		};
+
+		return defaultHitDice[className] || 'd8';
+	}
+
+	/**
 	 * Get a specific subclass by name
 	 * @param {string} className - Name of the parent class
 	 * @param {string} subclassName - Name or short name of the subclass

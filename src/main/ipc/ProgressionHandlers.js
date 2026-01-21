@@ -5,6 +5,11 @@ import { IPC_CHANNELS } from './channels.js';
 export function registerProgressionHandlers() {
     MainLogger.info('ProgressionHandlers', 'Registering progression handlers');
 
+    const notImplemented = (action) => ({
+        success: false,
+        error: `${action} not implemented`,
+    });
+
     // Increase level
     ipcMain.handle(
         IPC_CHANNELS.PROGRESSION_INCREASE_LEVEL,
@@ -23,10 +28,7 @@ export function registerProgressionHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Character level increased',
-                };
+                return notImplemented('Increase level');
             } catch (error) {
                 MainLogger.error(
                     'ProgressionHandlers',
@@ -56,10 +58,7 @@ export function registerProgressionHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Character level decreased',
-                };
+                return notImplemented('Decrease level');
             } catch (error) {
                 MainLogger.error(
                     'ProgressionHandlers',
@@ -91,10 +90,7 @@ export function registerProgressionHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Class level added',
-                };
+                return notImplemented('Add class level');
             } catch (error) {
                 MainLogger.error(
                     'ProgressionHandlers',
@@ -126,10 +122,7 @@ export function registerProgressionHandlers() {
                     };
                 }
 
-                return {
-                    success: true,
-                    message: 'Class level removed',
-                };
+                return notImplemented('Remove class level');
             } catch (error) {
                 MainLogger.error(
                     'ProgressionHandlers',
@@ -159,39 +152,7 @@ export function registerProgressionHandlers() {
                     };
                 }
 
-                // TODO: Integrate with LevelUpService for complete HP calculation
-                let totalHP = 0;
-
-                if (classData.level) {
-                    // Base HP is hit die size at level 1, plus CON modifier at each level
-                    const hitDieMap = {
-                        Barbarian: 12,
-                        Bard: 8,
-                        Cleric: 8,
-                        Druid: 8,
-                        Fighter: 10,
-                        Monk: 8,
-                        Paladin: 10,
-                        Ranger: 10,
-                        Rogue: 8,
-                        Sorcerer: 6,
-                        Warlock: 8,
-                        Wizard: 6,
-                    };
-
-                    const hitDie = hitDieMap[classData.name] || 8;
-                    const conMod = classData.conModifier || 0;
-
-                    totalHP = hitDie + conMod;
-                    for (let i = 2; i <= classData.level; i++) {
-                        totalHP += Math.max(1, Math.floor(hitDie / 2) + conMod);
-                    }
-                }
-
-                return {
-                    success: true,
-                    hitPoints: totalHP,
-                };
+                return notImplemented('Calculate HP');
             } catch (error) {
                 MainLogger.error(
                     'ProgressionHandlers',

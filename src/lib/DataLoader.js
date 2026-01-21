@@ -1,10 +1,12 @@
-/** DataLoader.js - Caches and loads game data JSON via IPC or fetch (plain module). */
+/** DataLoader.js - Caches and loads game data JSON via Electron IPC (requires preload bridge). */
 
 const state = {
 	cache: {},
 	loading: {},
 	baseUrl: '', // Base URL now empty since data is at root
 	persisted: null,
+	version: '1', // Cache version for invalidation
+	ttl: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };
 
 const PERSIST_KEY = 'ff:data-cache:v1';
@@ -54,9 +56,38 @@ function _getPersistedEntry(url) {
 	return persisted?.[url] || null;
 }
 
+/**
+ * Check if a cached entry is still valid based on version and TTL.
+ * @param {Object} entry Persisted cache entry with version, timestamp, data
+ * @returns {boolean} True if entry is valid and not expired
+ */
+function _isCacheEntryValid(entry) {
+	if (!entry) return false;
+
+	// Check version mismatch (invalidates all old cache versions)
+	if (entry.version !== state.version) {
+		return false;
+	}
+
+	// Check TTL expiration (default 7 days)
+	if (entry.timestamp) {
+		const age = Date.now() - entry.timestamp;
+		if (age > state.ttl) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 function _setPersistedEntry(url, data, hash) {
 	const persisted = _loadPersistedCache();
-	persisted[url] = { data, hash: hash || null };
+	persisted[url] = {
+		data,
+		hash: hash || null,
+		version: state.version,
+		timestamp: Date.now(),
+	};
 	_savePersistedCache();
 }
 
@@ -69,10 +100,17 @@ async function loadJSON(url) {
 	if (state.cache[url]) return state.cache[url];
 
 	const persisted = _getPersistedEntry(url);
-	if (persisted?.data) {
+	if (_isCacheEntryValid(persisted)) {
 		state.cache[url] = persisted.data;
 		return persisted.data;
 	}
+
+	// Persisted entry is invalid; clear it
+	if (persisted) {
+		delete _loadPersistedCache()[url];
+		_savePersistedCache();
+	}
+
 	if (state.loading[url]) return state.loading[url];
 
 	state.loading[url] = (async () => {
@@ -101,16 +139,11 @@ async function loadJSON(url) {
 					throw electronError;
 				}
 			} else {
-				// Fall back to fetch (browser or Electron without preload)
-				// This will require data to be served via http/https or proper file:// URLs
-				const fullUrl =
-					url.startsWith('http') || url.startsWith('file://') ? url : `/${url}`; // Prepend / to make it root-relative
-
-				const response = await fetch(fullUrl);
-				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-				}
-				data = await response.json();
+				throw new Error(
+					`DataLoader: window.data.loadJSON not available. ` +
+					`This is an Electron app and requires the preload bridge. ` +
+					`Ensure the preload script is properly loaded.`
+				);
 			}
 
 			const hash = await _hashData(data);
@@ -283,7 +316,51 @@ function clearCache() {
 function clearCacheForUrl(url) {
 	delete state.cache[url];
 	delete state.loading[url];
+	const persisted = _loadPersistedCache();
+	delete persisted[url];
+	_savePersistedCache();
 	return dataLoader;
+}
+
+/**
+ * Increment cache version to invalidate all existing cached data.
+ * Useful when data format changes or server data is updated.
+ * @returns {string} New version number
+ */
+function invalidateAllCache() {
+	const oldVersion = state.version;
+	state.version = String(Number(state.version) + 1);
+	console.log(
+		'DataLoader',
+		`Cache invalidated: v${oldVersion} → v${state.version}. All cached data will be reloaded on next access.`,
+	);
+	return state.version;
+}
+
+/**
+ * Set TTL (time-to-live) for cache entries.
+ * @param {number} milliseconds TTL in milliseconds (default 7 days = 604800000ms)
+ * @returns {Object} dataLoader for chaining
+ */
+function setTTL(milliseconds) {
+	if (milliseconds < 0) {
+		console.warn('DataLoader', 'TTL must be non-negative; ignoring');
+		return dataLoader;
+	}
+	state.ttl = milliseconds;
+	return dataLoader;
+}
+
+/**
+ * Get current cache version and TTL settings.
+ * @returns {Object} {version, ttl, ttlDays}
+ */
+function getCacheSettings() {
+	return {
+		version: state.version,
+		ttl: state.ttl,
+		ttlDays: Math.round(state.ttl / (24 * 60 * 60 * 1000)),
+	};
 }
 
 function getCacheStats() {
@@ -323,15 +400,20 @@ const dataLoader = {
 	clearCache,
 	clearCacheForUrl,
 	getCacheStats,
+	invalidateAllCache,
+	setTTL,
+	getCacheSettings,
 };
 
 // Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
 
 export {
-	DataLoader, clearCache,
-	clearCacheForUrl, dataLoader,
+	clearCache,
+	clearCacheForUrl, DataLoader, dataLoader,
+	getCacheSettings,
 	getCacheStats,
+	invalidateAllCache,
 	loadActions,
 	loadBackgrounds,
 	loadBaseItems,
@@ -356,5 +438,6 @@ export {
 	loadTrapsHazards,
 	loadVariantRules,
 	loadVehicles,
-	setBaseUrl
+	setBaseUrl,
+	setTTL
 };

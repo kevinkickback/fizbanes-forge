@@ -4,11 +4,11 @@
  * User selects ability score method, variant rules, and allowed source books.
  */
 
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { sourceService } from '../../../../services/SourceService.js';
-import { SourceCard } from '../../sources/SourceCard.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { sourceService } from '../../../services/SourceService.js';
+import { SourceCard } from '../sources/SourceCard.js';
 
-export class Step1Rules {
+export class CharacterStepRules {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

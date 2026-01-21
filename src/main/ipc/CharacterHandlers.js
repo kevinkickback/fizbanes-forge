@@ -1,12 +1,12 @@
 import { dialog, ipcMain } from 'electron';
-import fssync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
-import { CharacterSchema } from '../../app/CharacterSchema.js';
+import { CharacterImportService } from '../../services/CharacterImportService.js';
+import { CharacterSchema } from '../../shared/CharacterSchema.js';
 
 export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.info('CharacterHandlers', 'Registering character handlers');
@@ -40,8 +40,22 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			// Save using the character ID as filename (simple, predictable)
 			const id = character.id || uuidv4();
 			const filePath = path.join(savePath, `${id}.ffp`);
+			const tempPath = `${filePath}.tmp`;
 
-			await fs.writeFile(filePath, JSON.stringify(character, null, 2));
+			try {
+				// Write to temp file first for atomic safety (process crash during write won't corrupt file)
+				await fs.writeFile(tempPath, JSON.stringify(character, null, 2));
+				// Atomic rename: replaces existing file or creates new one
+				await fs.rename(tempPath, filePath);
+			} catch (writeError) {
+				// Clean up temp file if it exists
+				try {
+					await fs.unlink(tempPath);
+				} catch {
+					// Temp file may not exist; ignore
+				}
+				throw writeError;
+			}
 
 			MainLogger.info('CharacterHandlers', 'Character saved:', filePath);
 			return { success: true, path: filePath };
@@ -118,7 +132,12 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			const savePath = preferencesManager.getCharacterSavePath();
 			const sourceFilePath = path.join(savePath, `${id}.ffp`);
 
-			const result = await dialog.showSaveDialog(windowManager.mainWindow, {
+			const parentWindow =
+				typeof windowManager.getMainWindow === 'function'
+					? windowManager.getMainWindow()
+					: windowManager.mainWindow;
+
+			const result = await dialog.showSaveDialog(parentWindow, {
 				title: 'Export Character',
 				defaultPath: `character-${id}.ffp`,
 				filters: [{ name: 'Fizbane Character', extensions: ['ffp'] }],
@@ -147,13 +166,21 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		try {
 			MainLogger.info('CharacterHandlers', 'Importing character');
 
+			const savePath = preferencesManager.getCharacterSavePath();
+			const importService = new CharacterImportService(savePath);
+
 			let sourceFilePath = userChoice?.sourceFilePath;
 			let character = userChoice?.character;
 			const action = userChoice?.action;
 
 			// If no file selected yet, show dialog
 			if (!sourceFilePath) {
-				const result = await dialog.showOpenDialog(windowManager.mainWindow, {
+				const parentWindow =
+					typeof windowManager.getMainWindow === 'function'
+						? windowManager.getMainWindow()
+						: windowManager.mainWindow;
+
+				const result = await dialog.showOpenDialog(parentWindow, {
 					title: 'Import Character',
 					filters: [{ name: 'Fizbane Character', extensions: ['ffp'] }],
 					properties: ['openFile'],
@@ -165,89 +192,75 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 				sourceFilePath = result.filePaths[0];
 
-				// Validate file extension
-				if (!sourceFilePath.endsWith('.ffp')) {
-					return {
-						success: false,
-						error: 'Invalid file format. Only .ffp files are supported.',
-					};
+				// Use service to read, validate, and check for conflicts
+				const importResult = await importService.importCharacter(sourceFilePath);
+
+				if (!importResult.success) {
+					if (importResult.step === 'conflict') {
+						// Return conflict info for user resolution
+						return {
+							success: false,
+							duplicateId: true,
+							character: importResult.character,
+							existingCharacter: {
+								...importResult.existing,
+								createdAt: importResult.createdAt,
+							},
+							sourceFilePath,
+							message: `A character with ID "${importResult.character.id}" already exists. What would you like to do?`,
+						};
+					}
+					// Other errors (read, validate)
+					return { success: false, error: importResult.error };
 				}
 
-				// Read and parse file
-				const content = await fs.readFile(sourceFilePath, 'utf8');
-				try {
-					character = JSON.parse(content);
-				} catch {
-					return {
-						success: false,
-						error: 'Invalid file content. File does not contain valid JSON.',
-					};
+				// Success, character is ready
+				character = importResult.character;
+			}
+
+			// Handle user's choice for duplicate ID (keepBoth, overwrite, cancel)
+			if (action) {
+				const resolution = importService.processConflictResolution(character, action);
+				if (resolution.canceled) {
+					MainLogger.info('CharacterHandlers', 'Import canceled by user');
+					return { success: false, canceled: true };
 				}
+				character = resolution.character;
 
-				// Validate character data structure
-				const validation = CharacterSchema.validate(character);
-				if (!validation.valid) {
-					return {
-						success: false,
-						error: `Invalid character data: ${validation.errors.join(', ')}`,
-					};
-				}
-
-				const savePath = preferencesManager.getCharacterSavePath();
-				const existingFilePath = path.join(savePath, `${character.id}.ffp`);
-
-				// Check if character with same ID already exists
-				try {
-					await fs.access(existingFilePath);
-					// File exists - read it and get creation time
+				if (action === 'overwrite') {
 					MainLogger.info(
 						'CharacterHandlers',
-						'Character ID already exists:',
+						'Overwriting existing character:',
 						character.id,
 					);
-					const existingContent = await fs.readFile(existingFilePath, 'utf8');
-					const existingCharacter = JSON.parse(existingContent);
-
-					// Get file creation time
-					const stats = fssync.statSync(existingFilePath);
-					const createdAt = stats.birthtime.toISOString();
-
-					return {
-						success: false,
-						duplicateId: true,
-						character,
-						existingCharacter: { ...existingCharacter, createdAt },
-						sourceFilePath,
-						message: `A character with ID "${character.id}" already exists. What would you like to do?`,
-					};
-				} catch {
-					// File doesn't exist, proceed with import
+				} else if (action === 'keepBoth') {
+					MainLogger.info(
+						'CharacterHandlers',
+						'Keeping both - generated new ID:',
+						character.id,
+					);
 				}
 			}
 
-			// Handle user's choice for duplicate ID
-			if (action === 'overwrite') {
-				MainLogger.info(
-					'CharacterHandlers',
-					'Overwriting existing character:',
-					character.id,
-				);
-			} else if (action === 'keepBoth') {
-				MainLogger.info(
-					'CharacterHandlers',
-					'Keeping both - generating new ID',
-				);
-				character.id = uuidv4();
-			} else if (action === 'cancel') {
-				MainLogger.info('CharacterHandlers', 'Import canceled by user');
-				return { success: false, canceled: true };
-			}
-
-			const savePath = preferencesManager.getCharacterSavePath();
+			// Write character atomically
 			const id = character.id;
 			const targetFilePath = path.join(savePath, `${id}.ffp`);
+			const tempPath = `${targetFilePath}.tmp`;
 
-			await fs.writeFile(targetFilePath, JSON.stringify(character, null, 2));
+			try {
+				// Write to temp file first for atomic safety
+				await fs.writeFile(tempPath, JSON.stringify(character, null, 2));
+				// Atomic rename: replaces existing file or creates new one
+				await fs.rename(tempPath, targetFilePath);
+			} catch (writeError) {
+				// Clean up temp file if it exists
+				try {
+					await fs.unlink(tempPath);
+				} catch {
+					// Temp file may not exist; ignore
+				}
+				throw writeError;
+			}
 
 			MainLogger.info('CharacterHandlers', 'Character imported:', character.id);
 			return { success: true, character };

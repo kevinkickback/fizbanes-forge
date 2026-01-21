@@ -4,6 +4,7 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { showNotification } from '../lib/Notifications.js';
+import { AppState } from './AppState.js';
 
 let _instance = null;
 
@@ -96,6 +97,13 @@ export class Modal {
 	async showNewCharacterModal(e) {
 		try {
 			if (e) e.preventDefault();
+
+			const failedServices = AppState.getFailedServices();
+			if (Array.isArray(failedServices) && failedServices.length > 0) {
+				const message = `Cannot create characters until data loads (${failedServices.join(', ')}).`;
+				showNotification(message, 'error');
+				return;
+			}
 
 			// Use new CharacterCreationModal
 			const { CharacterCreationModal } = await import('../ui/components/character/CharacterCreationModal.js');

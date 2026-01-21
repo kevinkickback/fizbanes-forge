@@ -4,7 +4,7 @@
 <!-- High-level layer diagram helps readers place new work correctly. -->
 ## Layered Overview
 - **Main process**: [src/main/Main.js](src/main/Main.js) boots Electron, registers IPC handlers (see [src/main/ipc](src/main/ipc)) and opens the renderer window. It never touches renderer state directly; all interactions flow through IPC and preload bridges.
-- **Preload bridge**: [src/main/preload.cjs](src/main/preload.cjs) (loaded by Main) exposes safe `window.*` APIs (e.g., `window.characterStorage`, `window.app`) consumed by renderer managers/services. Renderer files must treat these as the sole gateway to filesystem and OS.
+- **Preload bridge**: [src/main/preload.cjs](src/main/Preload.cjs) (loaded by Main) exposes safe `window.*` APIs (e.g., `window.characterStorage`, `window.app`) consumed by renderer managers/services. Renderer files must treat these as the sole gateway to filesystem and OS.
 - **Renderer boot**: [src/app/AppInitializer.js](src/app/AppInitializer.js) coordinates data-source validation, service initialization, core controllers, and notification setup before UI rendering. It is the first renderer entry point after preload.
 - **State & events**: [src/app/AppState.js](src/app/AppState.js) holds shared state and emits change events through [src/lib/EventBus.js](src/lib/EventBus.js). UI and services observe events instead of mutating shared objects directly.
 - **Data services**: Files in [src/services](src/services) load 5etools-style JSON via [src/lib/DataLoader.js](src/lib/DataLoader.js), normalize it, cache through AppState, and emit load events. UI must call services instead of fetching JSON directly.
@@ -23,6 +23,122 @@
 - [EventBus](src/lib/EventBus.js) defines canonical event names (navigation, character lifecycle, data loads, proficiency/spell/item actions). Anything emitting cross-component signals should use these constants instead of ad-hoc strings.
 - Common patterns: services emit `DATA_LOADED` variants; Navigation emits `PAGE_CHANGED`/`PAGE_LOADED`; Character flows emit `CHARACTER_SELECTED`/`CHARACTER_UPDATED`/`CHARACTER_SAVED`. UI controllers listen and react, keeping coupling loose.
 
+## AppState Immutability Requirements ⚠️
+
+**CRITICAL PATTERN:** AppState uses an **event-driven change detection system**. To work correctly, state must be treated as **immutable**. This section documents why and how.
+
+### Why Immutability Matters
+
+AppState's change detection works by comparing old and new state objects:
+```javascript
+// Inside setState():
+const oldState = { ...this.state };
+this.state = { ...this.state, ...updates };  // Replace, don't mutate
+eventBus.emit(EVENTS.STATE_CHANGED, this.state, oldState);  // Listeners compare old vs new
+```
+
+If code mutates state directly, listeners never see the change:
+```javascript
+// ❌ WRONG - Mutation bypasses event system
+appState.state.currentCharacter.level = 5;  // Mutate object in place
+// Result: oldState and this.state are identical (shallow copy), listeners see no change
+
+// ✅ CORRECT - Use setState() 
+appState.setState({
+	currentCharacter: { ...currentCharacter, level: 5 }  // New object reference
+});
+// Result: Listeners receive comparison showing currentCharacter changed
+```
+
+### Common Pitfalls and Fixes
+
+**Pitfall 1: Mutating nested character objects**
+```javascript
+// ❌ WRONG
+const char = appState.getCurrentCharacter();
+char.abilities.strength = 20;  // Mutates cached object
+// Events don't fire, listeners remain stale
+
+// ✅ CORRECT - Use Character domain layer
+const updated = Character.applyAbilityScoreIncrease(char, 'strength', 20);
+appState.setState({ currentCharacter: updated });
+// Or use LevelUpService for level-based updates
+const updated = levelUpService.applyLevel(char, newLevel);
+appState.setState({ currentCharacter: updated });
+```
+
+**Pitfall 2: Mutating data arrays directly**
+```javascript
+// ❌ WRONG
+const loadedData = appState.state.loadedData;
+loadedData.spells = newSpells;  // Direct property assignment
+// Events don't fire
+
+// ✅ CORRECT - Full object replacement
+appState.setState({
+	loadedData: {
+		...appState.state.loadedData,
+		spells: newSpells
+	}
+});
+```
+
+**Pitfall 3: Assuming getters return mutable objects**
+```javascript
+// ❌ WRONG
+const chars = appState.getCharacters();
+chars.push(newChar);  // Mutates cache
+// Events might not fire, sync issues possible
+
+// ✅ CORRECT - Go through proper channels
+appState.setCharacters([...appState.state.characters, newChar]);
+// Or CharacterManager.createCharacter(), which handles AppState updates
+```
+
+### Correct Usage Patterns
+
+**Pattern 1: Simple state updates**
+```javascript
+appState.setState({
+	hasUnsavedChanges: true,
+	currentPage: 'build'
+});
+```
+
+**Pattern 2: Character updates (use specialized setter)**
+```javascript
+appState.setCurrentCharacter(newCharacter);
+// Internally: setState({ currentCharacter: newCharacter }) + emit CHARACTER_SELECTED
+```
+
+**Pattern 3: Character property changes (go through domain layer)**
+```javascript
+// Service computes new state
+const updated = levelUpService.applyLevel(currentCharacter, 5);
+// Push complete replacement through AppState
+appState.setState({ currentCharacter: updated });
+eventBus.emit(EVENTS.CHARACTER_UPDATED, updated);  // Notify listeners
+```
+
+**Pattern 4: Nested data replacement**
+```javascript
+appState.setState({
+	loadedData: {
+		...appState.state.loadedData,  // Keep other fields
+		spells: newSpells               // Replace only spells
+	}
+});
+```
+
+### Enforcement and Validation
+
+To catch mutation bugs early:
+- Code review: Flag any direct assignments to `appState.state.*` or `appState.getX()` results
+- Testing: Verify listeners fire when state changes (check EventBus spy count)
+- Patterns: Use Character, LevelUpService, and other domain classes for transformations
+
+Remember: **Always use `setState()` for changes. Never mutate returned objects.**
+
 <!-- Services section clarifies data responsibilities and avoidance of direct file reads. -->
 ## Data Services (renderer)
 - All services extend or follow [BaseDataService](src/services/BaseDataService.js), which provides AppState-backed caching and optional EventBus emissions. They must call `initWithLoader` to respect cache and error handling.
@@ -33,7 +149,7 @@
 <!-- Character section shows IPC + state touch points. -->
 ## Character Lifecycle
 - [CharacterManager](src/app/CharacterManager.js) orchestrates create/load/save/delete via IPC bridges exposed by preload (`window.characterStorage`). It never accesses the filesystem directly.
-- [CharacterSchema](src/app/CharacterSchema.js) validates and stamps character data; [Character](src/app/Character.js) wraps domain behaviors; `serializeCharacter` prepares data for persistence. CharacterManager touches AppState for selection and unsaved flags, then emits EventBus events (created, selected, saved, deleted).
+- [CharacterSchema](src/shared/CharacterSchema.js) validates and stamps character data; [Character](src/app/Character.js) wraps domain behaviors; `serializeCharacter` prepares data for persistence. CharacterManager touches AppState for selection and unsaved flags, then emits EventBus events (created, selected, saved, deleted).
 - Auto-save/save-button flows: AppInitializer wires the save button to `CharacterManager.saveCharacter()`; Titlebar/UI listen for `CHARACTER_SAVED` and `CHARACTER_UPDATED` to update indicators.
 
 <!-- Navigation clarifies template ↔ controller relationships. -->

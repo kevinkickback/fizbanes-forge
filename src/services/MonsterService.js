@@ -20,7 +20,7 @@ class MonsterService extends BaseDataService {
 					console.info('[MonsterService]', 'Monsters loaded successfully', {
 						count: data?.monster?.length,
 					});
-					this._monsterMap = this._buildMonsterMap(data?.monster);
+					this._monsterMap = this.buildLookupMap(data?.monster, { allowMultiple: true });
 				},
 				onError: () => {
 					this._monsterMap = new Map();
@@ -30,17 +30,6 @@ class MonsterService extends BaseDataService {
 		);
 
 		return true;
-	}
-
-	_buildMonsterMap(monsters = []) {
-		const map = new Map();
-		for (const monster of monsters) {
-			if (!monster?.name) continue;
-			const key = DataNormalizer.normalizeForLookup(monster.name);
-			if (!map.has(key)) map.set(key, []);
-			map.get(key).push(monster);
-		}
-		return map;
 	}
 
 	/**
@@ -58,11 +47,7 @@ class MonsterService extends BaseDataService {
 	 * @returns {Object|null} Monster object or null if not found
 	 */
 	getMonster(monsterName) {
-		if (!this._monsterMap) return null;
-		const monsters = this._monsterMap.get(
-			DataNormalizer.normalizeForLookup(monsterName),
-		);
-		return monsters && monsters.length > 0 ? monsters[0] : null;
+		return this.lookupByName(this._monsterMap, monsterName);
 	}
 
 	/**
@@ -71,10 +56,10 @@ class MonsterService extends BaseDataService {
 	 * @returns {Array<Object>} Array of monster objects with that name
 	 */
 	getMonstersByName(monsterName) {
-		if (!this._monsterMap) return [];
-		return (
-			this._monsterMap.get(DataNormalizer.normalizeForLookup(monsterName)) || []
-		);
+		if (!this._monsterMap || !monsterName) return [];
+		const normalized = DataNormalizer.normalizeForLookup(monsterName);
+		const result = this._monsterMap.get(normalized);
+		return Array.isArray(result) ? result : (result ? [result] : []);
 	}
 }
 

@@ -286,3 +286,22 @@ export function markAllAsRead() {
 	});
 	updateNotificationBadge();
 }
+
+// Add a persistent notification entry to the history without showing a toast.
+// Useful for long-lived warnings (e.g., failed service loads) that should appear in the notification center.
+export function addPersistentNotification(message, type = 'warning', options = {}) {
+	const { dedupe = true } = options;
+
+	if (dedupe) {
+		const existing = notificationHistory.find(
+			(n) => n.message === message && n.type === type,
+		);
+		if (existing) {
+			existing.read = false;
+			updateNotificationBadge();
+			return existing;
+		}
+	}
+
+	return addToNotificationHistory(message, type);
+}

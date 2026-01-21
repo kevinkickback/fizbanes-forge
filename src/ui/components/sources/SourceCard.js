@@ -3,7 +3,7 @@
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { sourceService } from '../../../services/SourceService.js';
-import { SourcePickerView } from './Picker.js';
+import { SourcePickerView } from './SourcePickerView.js';
 
 export class SourceCard {
 	constructor() {

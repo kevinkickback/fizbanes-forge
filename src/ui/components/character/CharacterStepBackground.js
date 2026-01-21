@@ -4,12 +4,12 @@
  * User selects character background and views proficiencies, languages, and features.
  */
 
-import { toSentenceCase, toTitleCase } from '../../../../lib/5eToolsParser.js';
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { backgroundService } from '../../../../services/BackgroundService.js';
-import { sourceService } from '../../../../services/SourceService.js';
+import { toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { backgroundService } from '../../../services/BackgroundService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
-export class Step4Background {
+export class CharacterStepBackground {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

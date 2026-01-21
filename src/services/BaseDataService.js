@@ -1,4 +1,5 @@
 import { AppState } from '../app/AppState.js';
+import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus } from '../lib/EventBus.js';
 
 /**
@@ -111,5 +112,76 @@ export class BaseDataService {
 			}
 			throw error;
 		}
+	}
+
+	/**
+	 * Build a lookup map from an array of items by normalized name.
+	 * Supports both single values and arrays of values per name (for name collisions).
+	 * @param {Array<Object>} items Array of items to index
+	 * @param {Object} [options]
+	 * @param {boolean} [options.allowMultiple=false] If true, stores arrays; otherwise single value
+	 * @returns {Map} Map with normalized name keys and item(s) as values
+	 */
+	buildLookupMap(items = [], { allowMultiple = false } = {}) {
+		const map = new Map();
+		for (const item of items) {
+			if (!item?.name) continue;
+			const key = DataNormalizer.normalizeForLookup(item.name);
+			if (allowMultiple) {
+				if (!map.has(key)) map.set(key, []);
+				map.get(key).push(item);
+			} else {
+				map.set(key, item);
+			}
+		}
+		return map;
+	}
+
+	/**
+	 * Lookup a single item by normalized name from a lookup map.
+	 * @param {Map} lookupMap Map from buildLookupMap()
+	 * @param {string} name Item name to look up
+	 * @returns {Object|null} First matching item or null
+	 */
+	lookupByName(lookupMap, name) {
+		if (!lookupMap || !name) return null;
+		const normalized = DataNormalizer.normalizeForLookup(name);
+		const result = lookupMap.get(normalized);
+		// Handle both single items and arrays
+		return Array.isArray(result) ? (result.length > 0 ? result[0] : null) : result || null;
+	}
+
+	/**
+	 * Lookup an item by name and source code.
+	 * Performs O(1) name lookup, then O(n) source verification within matches.
+	 * Falls back to first match if exact source not found.
+	 * @param {Map} lookupMap Map from buildLookupMap()
+	 * @param {string} name Item name
+	 * @param {string} [source=null] Source code to match (optional)
+	 * @returns {Object|null} Matching item or null
+	 */
+	lookupByNameAndSource(lookupMap, name, source = null) {
+		if (!lookupMap || !name) return null;
+		const normalized = DataNormalizer.normalizeForLookup(name);
+		let matches = lookupMap.get(normalized);
+
+		if (!matches) return null;
+
+		// Normalize to array for uniform handling
+		if (!Array.isArray(matches)) {
+			matches = [matches];
+		}
+
+		// If no source specified, return first match
+		if (!source) {
+			return matches.length > 0 ? matches[0] : null;
+		}
+
+		// Find exact source match
+		const exactMatch = matches.find((m) => m.source === source);
+		if (exactMatch) return exactMatch;
+
+		// Fall back to first match if exact source not found
+		return matches.length > 0 ? matches[0] : null;
 	}
 }

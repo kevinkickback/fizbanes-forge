@@ -4,12 +4,12 @@
  * User selects character class and subclass.
  */
 
-import { DOMCleanup } from '../../../../lib/DOMCleanup.js';
-import { textProcessor } from '../../../../lib/TextProcessor.js';
-import { classService } from '../../../../services/ClassService.js';
-import { sourceService } from '../../../../services/SourceService.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { textProcessor } from '../../../lib/TextProcessor.js';
+import { classService } from '../../../services/ClassService.js';
+import { sourceService } from '../../../services/SourceService.js';
 
-export class Step3Class {
+export class CharacterStepClass {
     constructor(session, modal) {
         this.session = session;
         this.modal = modal;

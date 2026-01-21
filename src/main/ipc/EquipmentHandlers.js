@@ -5,6 +5,11 @@ import { IPC_CHANNELS } from './channels.js';
 export function registerEquipmentHandlers() {
     MainLogger.info('EquipmentHandlers', 'Registering equipment handlers');
 
+    const notImplemented = (action) => ({
+        success: false,
+        error: `${action} not implemented`,
+    });
+
     // Add item to inventory
     ipcMain.handle(
         IPC_CHANNELS.EQUIPMENT_ADD_ITEM,
@@ -25,7 +30,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item addition initiated' };
+                return notImplemented('Add item');
             } catch (error) {
                 MainLogger.error('EquipmentHandlers', 'Add item failed:', error);
                 return { success: false, error: error.message };
@@ -53,7 +58,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item removal initiated' };
+                return notImplemented('Remove item');
             } catch (error) {
                 MainLogger.error(
                     'EquipmentHandlers',
@@ -85,7 +90,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item equipped' };
+                return notImplemented('Equip item');
             } catch (error) {
                 MainLogger.error('EquipmentHandlers', 'Equip failed:', error);
                 return { success: false, error: error.message };
@@ -113,7 +118,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item unequipped' };
+                return notImplemented('Unequip item');
             } catch (error) {
                 MainLogger.error('EquipmentHandlers', 'Unequip failed:', error);
                 return { success: false, error: error.message };
@@ -139,7 +144,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item attuned' };
+                return notImplemented('Attune item');
             } catch (error) {
                 MainLogger.error('EquipmentHandlers', 'Attune failed:', error);
                 return { success: false, error: error.message };
@@ -165,7 +170,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                return { success: true, message: 'Item unattuneed' };
+                return notImplemented('Unattune item');
             } catch (error) {
                 MainLogger.error(
                     'EquipmentHandlers',
@@ -194,17 +199,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                let totalWeight = 0;
-                for (const item of inventory) {
-                    const itemWeight = item.weight || 0;
-                    const quantity = item.quantity || 1;
-                    totalWeight += itemWeight * quantity;
-                }
-
-                return {
-                    success: true,
-                    weight: totalWeight,
-                };
+                return notImplemented('Calculate weight');
             } catch (error) {
                 MainLogger.error(
                     'EquipmentHandlers',
@@ -239,24 +234,7 @@ export function registerEquipmentHandlers() {
                     };
                 }
 
-                const carryCapacity = strength * 15;
-                const lightlyEncumbered = carryCapacity;
-                const heavilyEncumbered = carryCapacity * (2 / 3);
-
-                let status = 'normal';
-                if (totalWeight > carryCapacity) {
-                    status = 'encumbered';
-                } else if (totalWeight > heavilyEncumbered) {
-                    status = 'lightly-encumbered';
-                }
-
-                return {
-                    success: true,
-                    status,
-                    carryCapacity,
-                    lightlyEncumbered,
-                    heavilyEncumbered,
-                };
+                return notImplemented('Check encumbrance');
             } catch (error) {
                 MainLogger.error(
                     'EquipmentHandlers',
