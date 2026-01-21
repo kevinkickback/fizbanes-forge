@@ -257,18 +257,21 @@ class CharacterManagerImpl {
 			updates,
 		});
 
-		// Merge updates
-		Object.assign(character, updates);
+		// Clone via serialization to preserve immutability semantics
+		const baseData = serializeCharacter(character);
+		const mergedData = { ...baseData, ...updates };
+		const updatedCharacter = new Character(mergedData);
 
-		// Touch timestamp
-		CharacterSchema.touch(character);
+		// Touch timestamp on the new instance
+		CharacterSchema.touch(updatedCharacter);
 
-		// Update state (triggers event)
-		AppState.setCurrentCharacter(character);
+		// Update state with a new reference so AppState change detection fires
+		AppState.setState({ currentCharacter: updatedCharacter });
 		AppState.setHasUnsavedChanges(true);
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, updatedCharacter);
 
 		console.debug('CharacterManager', 'Character updated', {
-			id: character.id,
+			id: updatedCharacter.id,
 		});
 	}
 

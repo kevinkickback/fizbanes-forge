@@ -50,7 +50,8 @@ class SpellService extends BaseDataService {
 			},
 			{
 				onLoaded: (data) => {
-					this._spellLookupMap = this.buildLookupMap(data?.spell);
+					// Preserve multi-source variants under the same spell name
+					this._spellLookupMap = this.buildLookupMap(data?.spell, { allowMultiple: true });
 					this._spellClassLookup = data?.classLookup || {};
 				},
 				emitPayload: (data) => data?.spell || [],

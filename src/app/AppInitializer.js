@@ -412,26 +412,31 @@ function _setupSaveButton() {
 			const heightInput = document.getElementById('height');
 			const weightInput = document.getElementById('weight');
 			const genderInput = document.getElementById('gender');
+			const alignmentSelect = document.getElementById('alignment');
+			const deityInput = document.getElementById('deity');
 			const backstoryTextarea = document.getElementById('backstory');
 
 			const character = AppState.getCurrentCharacter();
 			if (character) {
-				if (characterNameInput) character.name = characterNameInput.value;
-				if (playerNameInput) character.playerName = playerNameInput.value;
-				if (heightInput) character.height = heightInput.value;
-				if (weightInput) character.weight = weightInput.value;
-				if (genderInput) character.gender = genderInput.value;
-				if (backstoryTextarea)
-					character.backstory = backstoryTextarea.value;
+				const updates = {};
+				if (characterNameInput) updates.name = characterNameInput.value;
+				if (playerNameInput) updates.playerName = playerNameInput.value;
+				if (heightInput) updates.height = heightInput.value;
+				if (weightInput) updates.weight = weightInput.value;
+				if (genderInput) updates.gender = genderInput.value;
+				if (alignmentSelect) updates.alignment = alignmentSelect.value;
+				if (deityInput) updates.deity = deityInput.value;
+				if (backstoryTextarea) updates.backstory = backstoryTextarea.value;
+
+				if (Object.keys(updates).length > 0) {
+					CharacterManager.updateCharacter(updates);
+				}
 			}
 
 			await CharacterManager.saveCharacter();
 
 			console.info('AppInitializer', 'Character saved successfully');
 			showNotification('Character saved successfully', 'success');
-			// Emit save event
-			console.debug('AppInitializer', 'Emitting CHARACTER_SAVED event');
-			eventBus.emit(EVENTS.CHARACTER_SAVED);
 		} catch (error) {
 			console.error('AppInitializer', 'Error saving character', error);
 			showNotification('Error saving character', 'error');

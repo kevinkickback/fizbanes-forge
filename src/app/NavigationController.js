@@ -39,15 +39,9 @@ class RouterImpl {
 			throw new Error('Character required for this page');
 		}
 
-		// Set navigating flag to prevent spurious CHARACTER_UPDATED events
-		AppState.setState({ isNavigating: true });
-
 		// Update state
 		this.currentRoute = path;
 		AppState.setCurrentPage(path);
-
-		// Emit event
-		eventBus.emit(EVENTS.PAGE_CHANGED, path);
 
 		console.info('[Router]', 'Navigation successful', { path });
 		return route;
@@ -418,6 +412,9 @@ class NavigationControllerImpl {
 			`[${new Date().toISOString()}] Navigate to page: "${page}"`,
 		);
 
+		// Mark navigation in progress so listeners can suppress transient updates
+		AppState.setState({ isNavigating: true });
+
 		// Show loading state
 		this.pageLoader.renderLoading();
 
@@ -427,6 +424,7 @@ class NavigationControllerImpl {
 		} catch (error) {
 			console.error('NavigationController', 'Navigation failed', error.message);
 			this.pageLoader.renderError(error.message);
+			AppState.setState({ isNavigating: false });
 			return;
 		}
 
@@ -447,12 +445,51 @@ class NavigationControllerImpl {
 		// Update navigation UI
 		this.updateNavButtons(page);
 
-		// Emit PAGE_CHANGED event
+		// Clear navigating flag after successful render
+		AppState.setState({ isNavigating: false });
+	}
+
+	/**
+	 * Ensure navigating flag is cleared even if load/render throws.
+	 */
+	async loadAndRenderPage(template, pageName) {
 		console.debug(
 			'NavigationController',
-			`Emitting PAGE_CHANGED event for page: "${page}"`,
+			`[${new Date().toISOString()}] Starting loadAndRenderPage: ${pageName}`,
 		);
-		eventBus.emit(EVENTS.PAGE_CHANGED, page);
+
+		try {
+			await this.pageLoader.loadAndRender(template);
+		} catch (error) {
+			console.error(
+				'NavigationController',
+				'Failed to load page',
+				error.message,
+			);
+			this.pageLoader.renderError(`Failed to load page: ${error.message}`);
+			AppState.setState({ isNavigating: false });
+			return;
+		}
+
+		console.info(
+			'NavigationController',
+			`[${new Date().toISOString()}] Page rendered successfully: ${pageName}`,
+			{ template, pageName },
+		);
+
+		// Ensure data-current-page attribute is set (again, for safety)
+		document.body.setAttribute('data-current-page', pageName);
+		console.debug('NavigationController', `Page render complete: ${pageName}`);
+
+		// Emit PAGE_LOADED event so page-specific handlers can initialize
+		console.debug(
+			'NavigationController',
+			`Emitting PAGE_LOADED event for page: "${pageName}"`,
+		);
+		eventBus.emit(EVENTS.PAGE_LOADED, pageName);
+
+		// Clear navigating flag after page is fully loaded
+		AppState.setState({ isNavigating: false });
 	}
 
 	/**
@@ -625,52 +662,6 @@ class NavigationControllerImpl {
 				trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 			}
 		}
-	}
-
-	/**
-	 * Load and render a page template.
-	 * @param {string} template - Template filename
-	 * @param {string} pageName - Name of the page being loaded
-	 */
-	async loadAndRenderPage(template, pageName) {
-		console.debug(
-			'NavigationController',
-			`[${new Date().toISOString()}] Starting loadAndRenderPage: ${pageName}`,
-		);
-
-		try {
-			await this.pageLoader.loadAndRender(template);
-		} catch (error) {
-			console.error(
-				'NavigationController',
-				'Failed to load page',
-				error.message,
-			);
-			this.pageLoader.renderError(`Failed to load page: ${error.message}`);
-			// Clear navigating flag even on error
-			AppState.setState({ isNavigating: false });
-			return;
-		}
-
-		console.info(
-			'NavigationController',
-			`[${new Date().toISOString()}] Page rendered successfully: ${pageName}`,
-			{ template, pageName },
-		);
-
-		// Ensure data-current-page attribute is set (again, for safety)
-		document.body.setAttribute('data-current-page', pageName);
-		console.debug('NavigationController', `Page render complete: ${pageName}`);
-
-		// Emit PAGE_LOADED event so page-specific handlers can initialize
-		console.debug(
-			'NavigationController',
-			`Emitting PAGE_LOADED event for page: "${pageName}"`,
-		);
-		eventBus.emit(EVENTS.PAGE_LOADED, pageName);
-
-		// Clear navigating flag after page is fully loaded
-		AppState.setState({ isNavigating: false });
 	}
 
 	/**
