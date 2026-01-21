@@ -10,6 +10,7 @@ import {
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
 	toTitleCase,
+	unpackUid,
 } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -31,6 +32,9 @@ export class RaceCard {
 
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
+
+		// EventBus listener tracking (BaseCard mixin pattern)
+		this._eventHandlers = {};
 
 		// Track current selection
 		this._selectedRace = null;
@@ -86,31 +90,65 @@ export class RaceCard {
 	}
 
 	_setupEventListeners() {
-		// Store handler references for cleanup
-		this._characterSelectedHandler = () => {
+		// Use BaseCard mixin pattern for EventBus cleanup
+		this.onEventBus(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
-		};
-		this._sourcesChangedHandler = () => {
+		});
+		this.onEventBus('sources:allowed-changed', () => {
 			this._populateRaceList();
 			this._loadSavedRaceSelection();
-		};
-
-		// Listen to EventBus
-		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+		});
 	}
 
 	_cleanupEventListeners() {
-		// Manually remove all eventBus listeners
-		if (this._characterSelectedHandler) {
-			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		}
-		if (this._sourcesChangedHandler) {
-			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
-		}
+		// Remove all eventBus listeners via BaseCard mixin
+		this._cleanupEventBusListeners();
 
 		// Clean up all tracked DOM listeners
 		this._cleanup.cleanup();
+	}
+
+	//-------------------------------------------------------------------------
+	// EventBus Cleanup Mixin (from BaseCard)
+	//-------------------------------------------------------------------------
+
+	/**
+	 * Register an EventBus listener with automatic cleanup tracking.
+	 * Stores handler reference for manual removal via _cleanupEventBusListeners().
+	 */
+	onEventBus(event, handler) {
+		if (typeof handler !== 'function') {
+			console.warn('[RaceCard]', 'Handler must be a function', { event });
+			return;
+		}
+
+		eventBus.on(event, handler);
+
+		// Track handler for cleanup
+		if (!this._eventHandlers[event]) {
+			this._eventHandlers[event] = [];
+		}
+		this._eventHandlers[event].push(handler);
+	}
+
+	/**
+	 * Remove all registered EventBus listeners.
+	 */
+	_cleanupEventBusListeners() {
+		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
+			if (Array.isArray(handlers)) {
+				for (const handler of handlers) {
+					try {
+						eventBus.off(event, handler);
+					} catch (e) {
+						console.warn('[RaceCard]', 'Error removing listener', { event, error: e });
+					}
+				}
+			}
+		}
+
+		this._eventHandlers = {};
+		console.debug('[RaceCard]', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------
@@ -864,7 +902,7 @@ export class RaceCard {
 			for (const [weapon, hasProf] of Object.entries(profObj)) {
 				if (hasProf === true) {
 					// Extract the weapon name without the source using unpackUid
-					const { name: weaponName } = window.api.unpackUid(weapon);
+					const { name: weaponName } = unpackUid(weapon);
 					character.addProficiency('weapons', weaponName, 'Race');
 				}
 			}

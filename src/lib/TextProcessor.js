@@ -22,6 +22,8 @@ class TextProcessor {
 
 	constructor() {
 		this._observer = null;
+		this._pendingNodes = [];
+		this._rafScheduled = false;
 
 		this._defaultOptions = {
 			processReferences: true,
@@ -79,14 +81,42 @@ class TextProcessor {
 				if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
 					for (const node of mutation.addedNodes) {
 						if (node.nodeType === Node.ELEMENT_NODE) {
-							// Pass the element itself as the container
-							this.processPageContent(node);
+							this._pendingNodes.push(node);
 						}
 					}
 				}
 			}
+
+			if (!this._rafScheduled && this._pendingNodes.length > 0) {
+				this._rafScheduled = true;
+				requestAnimationFrame(() => {
+					this._flushPendingNodes();
+				});
+			}
 		} catch (error) {
 			console.error('[TextProcessor]', 'Error handling DOM changes:', error);
+		}
+	}
+
+	_flushPendingNodes() {
+		try {
+			this._rafScheduled = false;
+			if (this._pendingNodes.length === 0) return;
+			const batch = this._pendingNodes;
+			this._pendingNodes = [];
+			// Deduplicate and skip non-HTMLElements
+			const unique = new Set();
+			for (const node of batch) {
+				if (node && node.nodeType === Node.ELEMENT_NODE) {
+					unique.add(node);
+				}
+			}
+			unique.forEach((el) => {
+				// Process without forcing reprocess; element-specific matches handled inside
+				this.processPageContent(el);
+			});
+		} catch (error) {
+			console.error('[TextProcessor]', 'Error flushing pending nodes:', error);
 		}
 	}
 

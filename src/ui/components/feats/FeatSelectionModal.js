@@ -2,6 +2,7 @@
 // Modal for selecting feats valid for the current character using the universal selector
 
 import { AppState } from '../../../app/AppState.js';
+import { Character } from '../../../app/Character.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -512,11 +513,44 @@ export class FeatListView {
 			return;
 		}
 
-		// Remove the feat from character's feats array
-		character.feats = character.feats.filter((f) => f.name !== featName);
+		// Build updated data and clean progression level-ups that recorded this feat
+		const updatedData = {
+			...character,
+			feats: character.feats.filter((f) => f.name !== featName)
+		};
+
+		const levelUps = Array.isArray(character.progression?.levelUps)
+			? character.progression.levelUps.map((lu) => ({ ...lu }))
+			: [];
+
+		const cleanedLevelUps = levelUps
+			.map((lu) => {
+				if (Array.isArray(lu.appliedFeats) && lu.appliedFeats.includes(featName)) {
+					return { ...lu, appliedFeats: lu.appliedFeats.filter((n) => n !== featName) };
+				}
+				return lu;
+			})
+			.filter((lu) => {
+				const noFeat = !lu.appliedFeats || lu.appliedFeats.length === 0;
+				const noASI = !lu.changedAbilities || Object.keys(lu.changedAbilities).length === 0;
+				const noFeatures = !lu.appliedFeatures || lu.appliedFeatures.length === 0;
+				return !(noFeat && noASI && noFeatures);
+			});
+
+		updatedData.progression = {
+			...character.progression,
+			levelUps: cleanedLevelUps,
+		};
+
+		// Create new Character instance with updated data
+		const updatedCharacter = new Character(updatedData);
+
+		// Update AppState with new character instance
+		AppState.setCurrentCharacter(updatedCharacter);
+		AppState.setHasUnsavedChanges(true);
 
 		// Emit character updated event
-		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, updatedCharacter);
 
 		console.info('FeatListView', 'Feat removed', { featName });
 	}

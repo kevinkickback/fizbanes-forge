@@ -6,7 +6,7 @@ import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
-import { toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
+import { toSentenceCase, toTitleCase, unpackUid } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { backgroundService } from '../../../services/BackgroundService.js';
 import { sourceService } from '../../../services/SourceService.js';
@@ -25,6 +25,9 @@ export class BackgroundCard {
 
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
+
+		// EventBus listener tracking (BaseCard mixin pattern)
+		this._eventHandlers = {};
 
 		// Track current selection
 		this._selectedBackground = null;
@@ -75,31 +78,65 @@ export class BackgroundCard {
 	}
 
 	_setupEventListeners() {
-		// Store handler references for cleanup
-		this._characterSelectedHandler = () => {
+		// Use BaseCard mixin pattern for EventBus cleanup
+		this.onEventBus(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
-		};
-		this._sourcesChangedHandler = () => {
+		});
+		this.onEventBus('sources:allowed-changed', () => {
 			this._populateBackgroundList();
 			this._loadSavedBackgroundSelection();
-		};
-
-		// Listen to EventBus
-		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+		});
 	}
 
 	_cleanupEventListeners() {
-		// Manually remove all eventBus listeners
-		if (this._characterSelectedHandler) {
-			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		}
-		if (this._sourcesChangedHandler) {
-			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
-		}
+		// Remove all eventBus listeners via BaseCard mixin
+		this._cleanupEventBusListeners();
 
 		// Clean up all tracked DOM listeners
 		this._cleanup.cleanup();
+	}
+
+	//-------------------------------------------------------------------------
+	// EventBus Cleanup Mixin (from BaseCard)
+	//-------------------------------------------------------------------------
+
+	/**
+	 * Register an EventBus listener with automatic cleanup tracking.
+	 * Stores handler reference for manual removal via _cleanupEventBusListeners().
+	 */
+	onEventBus(event, handler) {
+		if (typeof handler !== 'function') {
+			console.warn('[BackgroundCard]', 'Handler must be a function', { event });
+			return;
+		}
+
+		eventBus.on(event, handler);
+
+		// Track handler for cleanup
+		if (!this._eventHandlers[event]) {
+			this._eventHandlers[event] = [];
+		}
+		this._eventHandlers[event].push(handler);
+	}
+
+	/**
+	 * Remove all registered EventBus listeners.
+	 */
+	_cleanupEventBusListeners() {
+		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
+			if (Array.isArray(handlers)) {
+				for (const handler of handlers) {
+					try {
+						eventBus.off(event, handler);
+					} catch (e) {
+						console.warn('[BackgroundCard]', 'Error removing listener', { event, error: e });
+					}
+				}
+			}
+		}
+
+		this._eventHandlers = {};
+		console.debug('[BackgroundCard]', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------
@@ -1006,7 +1043,7 @@ class BackgroundDetailsView {
 		const itemRef = item.item || '';
 		const name =
 			item.displayName ||
-			(itemRef ? window.api.unpackUid(itemRef).name : '') ||
+			(itemRef ? unpackUid(itemRef).name : '') ||
 			item.name ||
 			item.special ||
 			'';

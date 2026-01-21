@@ -61,7 +61,7 @@ function _getPersistedEntry(url) {
  * @param {Object} entry Persisted cache entry with version, timestamp, data
  * @returns {boolean} True if entry is valid and not expired
  */
-function _isCacheEntryValid(entry) {
+function _isCacheEntryValid(entry, ttlOverride = null) {
 	if (!entry) return false;
 
 	// Check version mismatch (invalidates all old cache versions)
@@ -69,10 +69,11 @@ function _isCacheEntryValid(entry) {
 		return false;
 	}
 
-	// Check TTL expiration (default 7 days)
+	// Check TTL expiration (default 7 days, overrideable per call)
 	if (entry.timestamp) {
 		const age = Date.now() - entry.timestamp;
-		if (age > state.ttl) {
+		const ttlToUse = ttlOverride ?? state.ttl;
+		if (age > ttlToUse) {
 			return false;
 		}
 	}
@@ -96,11 +97,12 @@ function setBaseUrl(url) {
 	return dataLoader;
 }
 
-async function loadJSON(url) {
+async function loadJSON(url, { ttl } = {}) {
 	if (state.cache[url]) return state.cache[url];
 
 	const persisted = _getPersistedEntry(url);
-	if (_isCacheEntryValid(persisted)) {
+	const ttlOverride = typeof ttl === 'number' && ttl > 0 ? ttl : null;
+	if (_isCacheEntryValid(persisted, ttlOverride)) {
 		state.cache[url] = persisted.data;
 		return persisted.data;
 	}
@@ -409,8 +411,8 @@ const dataLoader = {
 const DataLoader = dataLoader;
 
 export {
-	clearCache,
-	clearCacheForUrl, DataLoader, dataLoader,
+	DataLoader, clearCache,
+	clearCacheForUrl, dataLoader,
 	getCacheSettings,
 	getCacheStats,
 	invalidateAllCache,

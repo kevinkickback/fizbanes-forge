@@ -111,6 +111,9 @@ export class ProficiencyCard {
 
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
+
+		// EventBus listener tracking (BaseCard mixin pattern)
+		this._eventHandlers = {};
 	}
 
 	async initialize() {
@@ -293,26 +296,17 @@ export class ProficiencyCard {
 			// Set up click listeners for each proficiency container
 			this._setupContainerClickListeners();
 
-			// Store handler references for cleanup
-			this._characterChangedDocHandler = this._handleCharacterChanged.bind(this);
-			this._characterSelectedHandler = this._handleCharacterChanged.bind(this);
-			this._proficiencyAddedHandler = this._handleProficiencyAdded.bind(this);
-			this._proficiencyRemovedHandler = this._handleProficiencyRemoved.bind(this);
-			this._proficiencyRefundedHandler = this._handleProficiencyRefunded.bind(this);
-			this._proficiencyChangedHandler = this._handleProficiencyChanged.bind(this);
-			this._proficiencyChangedDocHandler = this._handleProficiencyChanged.bind(this);
-
 			// Track document listeners
-			this._cleanup.on(document, 'characterChanged', this._characterChangedDocHandler);
-			this._cleanup.on(document, 'proficiencyChanged', this._proficiencyChangedDocHandler);
+			this._cleanup.on(document, 'characterChanged', this._handleCharacterChanged.bind(this));
+			this._cleanup.on(document, 'proficiencyChanged', this._handleProficiencyChanged.bind(this));
 
-			// Track eventBus listeners (manually since they're not DOM events)
-			eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-			eventBus.on('proficiency:added', this._proficiencyAddedHandler);
-			eventBus.on('proficiency:removedBySource', this._proficiencyRemovedHandler);
-			eventBus.on('proficiency:refunded', this._proficiencyRefundedHandler);
-			eventBus.on('proficiency:optionalSelected', this._proficiencyChangedHandler);
-			eventBus.on('proficiency:optionalDeselected', this._proficiencyChangedHandler);
+			// Track eventBus listeners using BaseCard mixin pattern
+			this.onEventBus(EVENTS.CHARACTER_SELECTED, this._handleCharacterChanged.bind(this));
+			this.onEventBus('proficiency:added', this._handleProficiencyAdded.bind(this));
+			this.onEventBus('proficiency:removedBySource', this._handleProficiencyRemoved.bind(this));
+			this.onEventBus('proficiency:refunded', this._handleProficiencyRefunded.bind(this));
+			this.onEventBus('proficiency:optionalSelected', this._handleProficiencyChanged.bind(this));
+			this.onEventBus('proficiency:optionalDeselected', this._handleProficiencyChanged.bind(this));
 		} catch (error) {
 			console.error(
 				'ProficiencyCard',
@@ -323,23 +317,8 @@ export class ProficiencyCard {
 	}
 
 	_cleanupEventListeners() {
-		// Manually remove eventBus listeners
-		if (this._characterSelectedHandler) {
-			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		}
-		if (this._proficiencyAddedHandler) {
-			eventBus.off('proficiency:added', this._proficiencyAddedHandler);
-		}
-		if (this._proficiencyRemovedHandler) {
-			eventBus.off('proficiency:removedBySource', this._proficiencyRemovedHandler);
-		}
-		if (this._proficiencyRefundedHandler) {
-			eventBus.off('proficiency:refunded', this._proficiencyRefundedHandler);
-		}
-		if (this._proficiencyChangedHandler) {
-			eventBus.off('proficiency:optionalSelected', this._proficiencyChangedHandler);
-			eventBus.off('proficiency:optionalDeselected', this._proficiencyChangedHandler);
-		}
+		// Remove all eventBus listeners via BaseCard mixin
+		this._cleanupEventBusListeners();
 
 		// Clean up all tracked DOM listeners
 		this._cleanup.cleanup();
@@ -348,6 +327,49 @@ export class ProficiencyCard {
 	_setupContainerClickListeners() {
 		// This method is now handled by _setupAccordionClickListeners
 		// Keeping for backward compatibility but doing nothing
+	}
+
+	//-------------------------------------------------------------------------
+	// EventBus Cleanup Mixin (from BaseCard)
+	//-------------------------------------------------------------------------
+
+	/**
+	 * Register an EventBus listener with automatic cleanup tracking.
+	 * Stores handler reference for manual removal via _cleanupEventBusListeners().
+	 */
+	onEventBus(event, handler) {
+		if (typeof handler !== 'function') {
+			console.warn('[ProficiencyCard]', 'Handler must be a function', { event });
+			return;
+		}
+
+		eventBus.on(event, handler);
+
+		// Track handler for cleanup
+		if (!this._eventHandlers[event]) {
+			this._eventHandlers[event] = [];
+		}
+		this._eventHandlers[event].push(handler);
+	}
+
+	/**
+	 * Remove all registered EventBus listeners.
+	 */
+	_cleanupEventBusListeners() {
+		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
+			if (Array.isArray(handlers)) {
+				for (const handler of handlers) {
+					try {
+						eventBus.off(event, handler);
+					} catch (e) {
+						console.warn('[ProficiencyCard]', 'Error removing listener', { event, error: e });
+					}
+				}
+			}
+		}
+
+		this._eventHandlers = {};
+		console.debug('[ProficiencyCard]', 'EventBus cleanup complete');
 	}
 
 	_handleProficiencyAdded(data) {

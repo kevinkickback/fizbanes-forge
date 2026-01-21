@@ -10,15 +10,16 @@ class OptionalFeatureService extends BaseDataService {
     }
 
     async initialize() {
+        const TTL_24_HOURS = 24 * 60 * 60 * 1000;
         await this.initWithLoader(
             async () => {
                 console.info('[OptionalFeatureService]', 'Initializing optional feature data');
 
                 // Load main optionalfeatures data
-                const optionalfeaturesData = await DataLoader.loadJSON('optionalfeatures.json');
+                const optionalfeaturesData = await DataLoader.loadJSON('optionalfeatures.json', { ttl: TTL_24_HOURS });
 
                 // Load fluff data
-                const fluffData = await DataLoader.loadJSON('fluff-optionalfeatures.json');
+                const fluffData = await DataLoader.loadJSON('fluff-optionalfeatures.json', { ttl: TTL_24_HOURS });
 
                 // Merge data
                 const aggregated = {

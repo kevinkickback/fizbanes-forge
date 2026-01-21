@@ -1,5 +1,6 @@
 // Base UI card foundation shared by entity cards (race, class, etc.)
 
+import { eventBus } from '../../lib/EventBus.js';
 import { textProcessor } from '../../lib/TextProcessor.js';
 
 export class BaseCard {
@@ -40,6 +41,13 @@ export class BaseCard {
 		 * @private
 		 */
 		this._details = this._card.querySelector('.details');
+
+		/**
+		 * Track EventBus listeners for cleanup on destruction
+		 * @type {Map<string, Function[]>}
+		 * @private
+		 */
+		this._eventHandlers = {};
 	}
 
 	//-------------------------------------------------------------------------
@@ -225,6 +233,100 @@ export class BaseCard {
 			this._quickDesc &&
 			this._details
 		);
+	}
+
+	//-------------------------------------------------------------------------
+	// EventBus Cleanup Methods
+	//-------------------------------------------------------------------------
+
+	/**
+	 * Register an EventBus listener with automatic cleanup tracking.
+	 * Stores handler reference for manual removal via cleanup().
+	 * 
+	 * @param {string} event - Event name (e.g., EVENTS.CHARACTER_SELECTED)
+	 * @param {Function} handler - Handler function
+	 * @returns {void}
+	 */
+	onEventBus(event, handler) {
+		if (typeof handler !== 'function') {
+			console.warn('[BaseCard]', 'Handler must be a function', { event });
+			return;
+		}
+
+		eventBus.on(event, handler);
+
+		// Track handler for cleanup
+		if (!this._eventHandlers[event]) {
+			this._eventHandlers[event] = [];
+		}
+		this._eventHandlers[event].push(handler);
+	}
+
+	/**
+	 * Unregister a specific EventBus listener.
+	 * 
+	 * @param {string} event - Event name
+	 * @param {Function} handler - Handler function to remove
+	 * @returns {void}
+	 */
+	offEventBus(event, handler) {
+		eventBus.off(event, handler);
+
+		if (this._eventHandlers[event]) {
+			this._eventHandlers[event] = this._eventHandlers[event].filter(
+				(h) => h !== handler
+			);
+			if (this._eventHandlers[event].length === 0) {
+				delete this._eventHandlers[event];
+			}
+		}
+	}
+
+	/**
+	 * Remove all registered EventBus listeners.
+	 * Call this in component teardown/destructor to prevent memory leaks.
+	 * 
+	 * @returns {Object} Summary of cleanup operations (event count, handler count)
+	 */
+	cleanup() {
+		const summary = {
+			eventsCleaned: 0,
+			handlersCleaned: 0,
+		};
+
+		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
+			if (Array.isArray(handlers)) {
+				for (const handler of handlers) {
+					try {
+						eventBus.off(event, handler);
+						summary.handlersCleaned++;
+					} catch (e) {
+						console.warn('[BaseCard]', 'Error removing listener', { event, error: e });
+					}
+				}
+				summary.eventsCleaned++;
+			}
+		}
+
+		this._eventHandlers = {};
+
+		console.debug('[BaseCard]', 'Cleanup complete', summary);
+		return summary;
+	}
+
+	/**
+	 * Get current state for debugging (shows which events have active handlers).
+	 * 
+	 * @returns {Object} Debug info
+	 */
+	getListenerState() {
+		const state = {};
+		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
+			if (Array.isArray(handlers)) {
+				state[event] = handlers.length;
+			}
+		}
+		return state;
 	}
 }
 

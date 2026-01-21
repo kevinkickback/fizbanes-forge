@@ -1,16 +1,16 @@
 /** Orchestrates renderer startup, data loading, and core component initialization. */
 
 // Core imports - NEW ARCHITECTURE
-import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { eventBus } from '../lib/EventBus.js';
 
 import { getNotificationCenter } from '../lib/NotificationCenter.js';
 import { addPersistentNotification, showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
-import { CharacterManager } from './CharacterManager.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
 import { themeManager } from './ThemeManager.js';
 import { titlebarController } from './TitlebarController.js';
+import { setupUiEventHandlers } from './UIHandlersInitializer.js';
 
 // Modal for data configuration
 import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
@@ -41,6 +41,8 @@ const DATA_LOAD_BACKOFF_MAX_MS = 5000; // Max delay cap (5 seconds)
 // Guard against multiple initializations
 let _isInitialized = false;
 let _isInitializing = false;
+// Cleanup function for extracted UI handlers
+let _uiHandlersCleanup = null;
 
 // Track AppInitializer's own EventBus listeners for cleanup
 const _appInitializerListeners = new Map();
@@ -406,232 +408,7 @@ async function _initializeCoreComponents() {
 	}
 }
 
-/**
- * Setup save button with unsaved indicator logic.
- * Handles form field collection and character persistence.
- */
-function _setupSaveButton() {
-	const saveButton = document.getElementById('saveCharacter');
-	if (!saveButton) {
-		console.warn('AppInitializer', 'Save button not found');
-		return;
-	}
-
-	saveButton.addEventListener('click', async () => {
-		try {
-			console.info(
-				'AppInitializer',
-				`[${new Date().toISOString()}] Save button clicked`,
-			);
-
-			// Update character data from form inputs on details page
-			const characterNameInput = document.getElementById('characterName');
-			const playerNameInput = document.getElementById('playerName');
-			const heightInput = document.getElementById('height');
-			const weightInput = document.getElementById('weight');
-			const genderInput = document.getElementById('gender');
-			const alignmentSelect = document.getElementById('alignment');
-			const deityInput = document.getElementById('deity');
-			const backstoryTextarea = document.getElementById('backstory');
-
-			const character = AppState.getCurrentCharacter();
-			if (character) {
-				const updates = {};
-				if (characterNameInput) updates.name = characterNameInput.value;
-				if (playerNameInput) updates.playerName = playerNameInput.value;
-				if (heightInput) updates.height = heightInput.value;
-				if (weightInput) updates.weight = weightInput.value;
-				if (genderInput) updates.gender = genderInput.value;
-				if (alignmentSelect) updates.alignment = alignmentSelect.value;
-				if (deityInput) updates.deity = deityInput.value;
-				if (backstoryTextarea) updates.backstory = backstoryTextarea.value;
-
-				if (Object.keys(updates).length > 0) {
-					CharacterManager.updateCharacter(updates);
-				}
-			}
-
-			await CharacterManager.saveCharacter();
-
-			console.info('AppInitializer', 'Character saved successfully');
-			showNotification('Character saved successfully', 'success');
-		} catch (error) {
-			console.error('AppInitializer', 'Error saving character', error);
-			showNotification('Error saving character', 'error');
-		}
-	});
-}
-
-/**
- * Setup Level Up modal button.
- * Lazy-loads LevelUpModal component on first click.
- */
-function _setupLevelUpButton() {
-	const levelUpBtn = document.getElementById('openLevelUpModalBtn');
-	if (!levelUpBtn) {
-		console.warn('AppInitializer', 'Level Up button not found');
-		return;
-	}
-
-	let levelUpModalInstance = null;
-	levelUpBtn.addEventListener('click', async () => {
-		console.info('AppInitializer', '[LevelUp] Button clicked');
-		try {
-			const character = AppState.getCurrentCharacter();
-			if (!character) {
-				console.warn('AppInitializer', '[LevelUp] No current character');
-				showNotification('No character selected', 'warning');
-				return;
-			}
-
-			if (!levelUpModalInstance) {
-				console.debug('AppInitializer', '[LevelUp] Importing LevelUpModal');
-				const { LevelUpModal } = await import('../ui/components/level-up/LevelUpModal.js');
-				levelUpModalInstance = new LevelUpModal();
-			}
-			console.debug('AppInitializer', '[LevelUp] Showing modal via controller');
-			await levelUpModalInstance.show();
-		} catch (error) {
-			console.error('AppInitializer', 'Failed to open Level Up modal', error);
-			// Fallback: attempt to open the modal directly if Bootstrap is available and element exists
-			try {
-				const el = document.getElementById('levelUpModal');
-				const bs = window.bootstrap || globalThis.bootstrap;
-				if (el && bs) {
-					console.warn('AppInitializer', '[LevelUp] Falling back to direct Bootstrap.Modal.show()');
-					new bs.Modal(el, { backdrop: true, keyboard: true }).show();
-					showNotification('Level Up modal opened with fallback', 'warning');
-				} else {
-					showNotification('Failed to open Level Up modal', 'error');
-				}
-			} catch (fallbackErr) {
-				console.error('AppInitializer', '[LevelUp] Fallback open failed', fallbackErr);
-				showNotification('Failed to open Level Up modal', 'error');
-			}
-		}
-	});
-}
-
-/**
- * Setup unsaved indicator logic and event listeners.
- * Tracks character changes and displays unsaved indicator on relevant pages.
- */
-function _setupUnsavedIndicator() {
-	const PagesShowUnsaved = new Set(['build', 'details']);
-
-	function updateUnsavedIndicator() {
-		try {
-			const hasUnsaved = AppState.get('hasUnsavedChanges');
-			const currentPage = AppState.getCurrentPage();
-			const shouldShow = Boolean(
-				hasUnsaved && PagesShowUnsaved.has(currentPage),
-			);
-
-			// Update titlebar unsaved indicator (already managed by CHARACTER_UPDATED event)
-			console.debug(
-				'AppInitializer',
-				`Unsaved indicator updated: show=${shouldShow}`,
-				{
-					hasUnsaved,
-					currentPage,
-				},
-			);
-		} catch (e) {
-			console.error('AppInitializer', 'Error updating unsaved indicator', e);
-		}
-	}
-
-	// Helper to register and track listeners
-	const registerListener = (event, handler) => {
-		eventBus.on(event, handler);
-		_appInitializerListeners.set(`${event}:${Math.random()}`, handler);
-	};
-
-	// Listen for CHARACTER_UPDATED events to mark unsaved state
-	// Use explicit state flags instead of temporal suppression to avoid race conditions
-	const onCharacterUpdated = () => {
-		// Skip if currently loading a character or navigating
-		if (AppState.get('isLoadingCharacter') || AppState.get('isNavigating')) {
-			console.debug(
-				'AppInitializer',
-				'Ignored CHARACTER_UPDATED - loading or navigating',
-				{
-					isLoadingCharacter: AppState.get('isLoadingCharacter'),
-					isNavigating: AppState.get('isNavigating'),
-				},
-			);
-			return;
-		}
-
-		console.debug(
-			'AppInitializer',
-			`[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED received`,
-		);
-		AppState.setHasUnsavedChanges(true);
-		updateUnsavedIndicator();
-	};
-	registerListener(EVENTS.CHARACTER_UPDATED, onCharacterUpdated);
-
-	// Listen for CHARACTER_SAVED events to clear unsaved state
-	const onCharacterSaved = () => {
-		console.debug(
-			'AppInitializer',
-			`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`,
-		);
-		AppState.setHasUnsavedChanges(false);
-		updateUnsavedIndicator();
-	};
-	registerListener(EVENTS.CHARACTER_SAVED, onCharacterSaved);
-
-	// Clear unsaved indicator when a new character is selected (fresh load)
-	const onCharacterSelected = () => {
-		console.debug(
-			'AppInitializer',
-			`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`,
-		);
-		AppState.setHasUnsavedChanges(false);
-		updateUnsavedIndicator();
-	};
-	registerListener(EVENTS.CHARACTER_SELECTED, onCharacterSelected);
-
-	// Update indicator on page changes (show only on certain pages)
-	const onPageChanged = (page) => {
-		console.debug(
-			'AppInitializer',
-			`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
-		);
-		updateUnsavedIndicator();
-	};
-	registerListener(EVENTS.PAGE_CHANGED, onPageChanged);
-
-	// Listen for explicit AppState changes to hasUnsavedChanges
-	const onHasUnsavedChangesChanged = (newVal) => {
-		console.debug(
-			'AppInitializer',
-			`state:hasUnsavedChanges:changed -> ${newVal}`,
-		);
-		updateUnsavedIndicator();
-	};
-	registerListener('state:hasUnsavedChanges:changed', onHasUnsavedChangesChanged);
-}
-
-function _setupUiEventHandlers() {
-	try {
-		console.info('AppInitializer', 'Setting up UI event handlers');
-
-		_setupUnsavedIndicator();
-		_setupSaveButton();
-		_setupLevelUpButton();
-
-		console.info('AppInitializer', 'UI event handlers set up successfully');
-	} catch (error) {
-		console.error(
-			'AppInitializer',
-			'Error setting up UI event handlers',
-			error,
-		);
-	}
-}
+// UI event handlers extracted to UIHandlersInitializer
 
 //-------------------------------------------------------------------------
 // Public API
@@ -657,6 +434,11 @@ export async function initializeAll(_options = {}) {
 			eventBus.off(event, handler);
 		}
 		_appInitializerListeners.clear();
+		// Clean up extracted UI handlers
+		if (_uiHandlersCleanup) {
+			try { _uiHandlersCleanup(); } catch { }
+			_uiHandlersCleanup = null;
+		}
 		_isInitialized = false;
 	}
 
@@ -870,7 +652,7 @@ export async function initializeAll(_options = {}) {
 		loadingModal.updateDetail('Registering event handlers...');
 		loadingModal.updateProgress(90);
 		try {
-			_setupUiEventHandlers();
+			_uiHandlersCleanup = setupUiEventHandlers();
 		} catch (error) {
 			console.error('AppInitializer', 'Error setting up UI event handlers:', error);
 			result.errors.push(error);

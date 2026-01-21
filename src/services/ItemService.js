@@ -16,8 +16,8 @@ class ItemService extends BaseDataService {
 		await this.initWithLoader(
 			async () => {
 				const results = await Promise.allSettled([
-					DataLoader.loadJSON('items.json'),
-					DataLoader.loadJSON('items-base.json'),
+					DataLoader.loadJSON('items.json', { ttl: 24 * 60 * 60 * 1000 }),
+					DataLoader.loadJSON('items-base.json', { ttl: 24 * 60 * 60 * 1000 }),
 				]);
 
 				const items =

@@ -5,7 +5,7 @@ import { CharacterManager } from '../../app/CharacterManager.js';
 import DataNormalizer from '../../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../lib/EventBus.js';
 
-import { toSentenceCase, toTitleCase } from '../../lib/5eToolsParser.js';
+import { toSentenceCase, toTitleCase, unpackUid } from '../../lib/5eToolsParser.js';
 import { textProcessor } from '../../lib/TextProcessor.js';
 import { backgroundService } from '../../services/BackgroundService.js';
 import { sourceService } from '../../services/SourceService.js';
@@ -1079,7 +1079,7 @@ class BackgroundDetailsView {
 		const itemRef = item.item || '';
 		const name =
 			item.displayName ||
-			(itemRef ? window.api.unpackUid(itemRef).name : '') ||
+			(itemRef ? unpackUid(itemRef).name : '') ||
 			item.name ||
 			item.special ||
 			'';
