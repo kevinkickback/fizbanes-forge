@@ -42,7 +42,7 @@ export class LevelUpModal {
                 return;
             }
 
-            console.info('[LevelUpModal]', 'Opening for character', character.name);
+            console.debug('[LevelUpModal]', 'Opening for character', character.name);
 
             // Get modal element
             this.modalEl = document.getElementById('levelUpModal');

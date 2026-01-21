@@ -1,4 +1,3 @@
-/** Manages race data and operations for the character builder. */
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
@@ -128,10 +127,7 @@ function deriveFromSimpleVersion(version, raceName, source) {
 	};
 }
 
-/**
- * Service for managing character race selection and race data access.
- * Provides O(1) lookup performance for races via an internal index.
- */
+/** O(1) lookup performance via internal index. */
 class RaceService extends BaseDataService {
 	constructor() {
 		super({ cacheKey: 'races', loggerScope: 'RaceService' });
@@ -141,14 +137,11 @@ class RaceService extends BaseDataService {
 		this._raceIndex = null;
 	}
 
-	/**
-	 * Initialize race data by loading from DataUtil
-	 * @returns {Promise<void>}
-	 */
+	/** @returns {Promise<void>} */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
-				console.info('[RaceService]', 'Initializing race data');
+				console.debug('[RaceService]', 'Initializing race data');
 				const races = await DataLoader.loadRaces();
 				if (!races) throw new Error('Race data is null or undefined');
 
@@ -171,7 +164,7 @@ class RaceService extends BaseDataService {
 			{
 				onLoaded: (data, meta) => {
 					this._buildRaceIndex(data);
-					console.info('[RaceService]', 'Races loaded successfully', {
+					console.debug('[RaceService]', 'Races loaded successfully', {
 						count: data?.race?.length,
 						fromCache: meta?.fromCache || false,
 					});
@@ -286,15 +279,6 @@ class RaceService extends BaseDataService {
 
 			const bundle = buildRaceBundle(race, explicitSubraces, raceSource);
 			this._raceIndex.set(key, bundle);
-
-			// Debug logging for Human race
-			if (race.name === 'Human') {
-				console.info('[RaceService]', `Human (${raceSource}) subraces:`, {
-					explicit: explicitSubraces.map((s) => s.name),
-					all: bundle.subraces.map((s) => s.name),
-					baseSubrace: bundle.baseSubrace?.name,
-				});
-			}
 		}
 
 		console.debug('[RaceService]', `Indexed ${this._raceIndex.size} races`);

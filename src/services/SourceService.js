@@ -106,7 +106,7 @@ export class SourceService {
 		}
 
 		try {
-			console.info('[SourceService]', 'Starting initialization');
+			console.debug('[SourceService]', 'Starting initialization');
 			const sourcesData = await DataLoader.loadSources();
 
 			// Handle both direct data and Result-wrapped data
@@ -221,7 +221,7 @@ export class SourceService {
 				}
 
 				this._initialized = true;
-				console.info('[SourceService]', 'Initialization complete', {
+				console.debug('[SourceService]', 'Initialization complete', {
 					sourceCount: this.availableSources.size,
 				});
 

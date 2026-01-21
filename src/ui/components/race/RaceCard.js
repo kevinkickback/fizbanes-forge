@@ -188,7 +188,7 @@ export class RaceCard {
 				await this._createRaceItem(race);
 			}
 
-			console.info('[RaceCard]', `Populated ${sortedRaces.length} races`);
+			console.debug('[RaceCard]', `Populated ${sortedRaces.length} races`);
 		} catch (error) {
 			console.error('RaceCard', 'Error populating race list:', error);
 		}
@@ -406,7 +406,7 @@ export class RaceCard {
 
 			// Find the race item in the list
 			const raceValue = `${character.race.name}_${character.race.source}`;
-			console.info('[RaceCard]', 'Loading saved race:', raceValue);
+			console.debug('[RaceCard]', 'Loading saved race:', raceValue);
 
 			const raceItem = this._raceList?.querySelector(`[data-race="${raceValue}"]`);
 			if (!raceItem) {
@@ -441,7 +441,7 @@ export class RaceCard {
 					const listHeight = this._raceList.offsetHeight;
 					const listScrollBottom = listScrollTop + listHeight;
 
-					console.log('[RaceCard] Scrolling to selected race:', {
+					console.debug('[RaceCard] Scrolling to selected race:', {
 						itemTop,
 						itemBottom,
 						listScrollTop,
@@ -454,18 +454,18 @@ export class RaceCard {
 					if (itemBottom + padding > listScrollBottom) {
 						// Item bottom is below visible area - scroll down with padding
 						const targetScroll = itemBottom + padding - listHeight;
-						console.log('[RaceCard] Item bottom cut off, scrolling to:', targetScroll);
+						console.debug('[RaceCard] Item bottom cut off, scrolling to:', targetScroll);
 						this._raceList.scrollTop = targetScroll;
 					} else if (itemTop - padding < listScrollTop) {
 						// Item top is above visible area - scroll up with padding
 						const targetScroll = Math.max(0, itemTop - padding);
-						console.log('[RaceCard] Item top cut off, scrolling to:', targetScroll);
+						console.debug('[RaceCard] Item top cut off, scrolling to:', targetScroll);
 						this._raceList.scrollTop = targetScroll;
 					}
 
 					// Verify scroll happened
 					setTimeout(() => {
-						console.log('[RaceCard] Scroll complete. New scrollTop:', this._raceList.scrollTop);
+						console.debug('[RaceCard] Scroll complete. New scrollTop:', this._raceList.scrollTop);
 					}, 100);
 				} else {
 					console.warn('[RaceCard] No race list found for scrolling');
@@ -490,7 +490,7 @@ export class RaceCard {
 			let infoId = this.sanitizeId(race.name);
 
 			if (character.race.subrace) {
-				console.info('[RaceCard]', 'Saved subrace found:', character.race.subrace);
+				console.debug('[RaceCard]', 'Saved subrace found:', character.race.subrace);
 
 				// Find and set the subrace dropdown if it exists
 				const subraceSelect = raceItem.querySelector('select');
@@ -507,7 +507,7 @@ export class RaceCard {
 						);
 						this._selectedSubrace = subrace;
 						infoId = this.sanitizeId(`${race.name}-${character.race.subrace}`);
-						console.info('[RaceCard]', 'Subrace restored:', character.race.subrace);
+						console.debug('[RaceCard]', 'Subrace restored:', character.race.subrace);
 					} else {
 						console.warn(
 							'RaceCard',
@@ -520,7 +520,7 @@ export class RaceCard {
 			// Show info panel for this race/subrace
 			this._showInfo(infoId, true);
 
-			console.info('[RaceCard]', 'Saved race selection loaded successfully');
+			console.debug('[RaceCard]', 'Saved race selection loaded successfully');
 		} catch (error) {
 			console.error('RaceCard', 'Error loading saved race selection:', error);
 		}

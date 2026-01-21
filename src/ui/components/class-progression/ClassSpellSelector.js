@@ -293,7 +293,7 @@ export class ClassSpellSelector {
             }
         }
 
-        console.log('[LevelUpSpellSelector] Already known spells:', Array.from(alreadyKnown));
+        console.debug('[LevelUpSpellSelector] Already known spells:', Array.from(alreadyKnown));
 
         // Get all spells from SpellService
         const allSpells = this.spellService.getAllSpells();
@@ -356,7 +356,7 @@ export class ClassSpellSelector {
             return a.name.localeCompare(b.name);
         });
 
-        console.info('[LevelUpSpellSelector]', `Loaded ${availableSpells.length} available spells for ${this.className} at level ${this.currentLevel} (max spell level: ${maxSpellLevel})`);
+        console.debug('[LevelUpSpellSelector]', `Loaded ${availableSpells.length} available spells for ${this.className} at level ${this.currentLevel} (max spell level: ${maxSpellLevel})`);
         return availableSpells;
     }
 
@@ -496,7 +496,7 @@ export class ClassSpellSelector {
             this.maxSpells = newSpells > 0 ? newSpells : 0;
         }
 
-        console.log('[LevelUpSpellSelector]', `Spell limit for ${this.className} level ${this.currentLevel}:`, {
+        console.debug('[LevelUpSpellSelector]', `Spell limit for ${this.className} level ${this.currentLevel}:`, {
             previousCantrips,
             currentCantrips,
             newCantrips: this.maxCantrips,

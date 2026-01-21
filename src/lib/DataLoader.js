@@ -332,7 +332,7 @@ function clearCacheForUrl(url) {
 function invalidateAllCache() {
 	const oldVersion = state.version;
 	state.version = String(Number(state.version) + 1);
-	console.log(
+	console.debug(
 		'DataLoader',
 		`Cache invalidated: v${oldVersion} → v${state.version}. All cached data will be reloaded on next access.`,
 	);

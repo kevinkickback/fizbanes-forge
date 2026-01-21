@@ -1,8 +1,4 @@
 import { AppState } from '../app/AppState.js';
-import { DataLoader } from '../lib/DataLoader.js';
-import { eventBus, EVENTS } from '../lib/EventBus.js';
-
-/** Manages background selection and access to background data. */
 class BackgroundService {
 	constructor() {
 		this._backgroundData = null;
@@ -16,7 +12,7 @@ class BackgroundService {
 			return true;
 		}
 
-		console.info('[BackgroundService]', 'Initializing background data');
+		console.debug('[BackgroundService]', 'Initializing background data');
 
 		try {
 			this._backgroundData = await DataLoader.loadBackgrounds();
@@ -28,7 +24,7 @@ class BackgroundService {
 				);
 			}
 
-			console.info('[BackgroundService]', 'Backgrounds loaded and normalized', {
+			console.debug('[BackgroundService]', 'Backgrounds loaded and normalized', {
 				count: this._backgroundData.background?.length,
 			});
 			AppState.setLoadedData('backgrounds', this._backgroundData.background);
@@ -48,17 +44,12 @@ class BackgroundService {
 		}
 	}
 
-	/**
-	 * Get all available backgrounds (returns raw JSON data)
-	 * @returns {Array<Object>} Array of background objects from JSON
-	 */
+	/** @returns {Array<Object>} Array of background objects from JSON */
 	getAllBackgrounds() {
 		return this._backgroundData?.background || [];
 	}
 
-	/**
-	 * Get a specific background by name and source (returns raw JSON data)
-	 * @param {string} name - Background name
+	/** @param {string} name - Background name
 	 * @param {string} source - Source book
 	 * @returns {Object|null} Background object from JSON or null if not found
 	 */
@@ -72,9 +63,7 @@ class BackgroundService {
 		);
 	}
 
-	/**
-	 * Get fluff data for a background (for descriptions and lore)
-	 * @param {string} backgroundName - Name of the background
+	/** @param {string} backgroundName - Name of the background
 	 * @param {string} source - Source book
 	 * @returns {Object|null} Background fluff object or null if not found
 	 */
@@ -88,9 +77,7 @@ class BackgroundService {
 		);
 	}
 
-	/**
-	 * Select a background (updates selection state)
-	 * @param {string} backgroundName - Name of the background to select
+	/** @param {string} backgroundName - Name of the background to select
 	 * @param {string} source - Source of the background
 	 * @returns {Object|null} The selected background or null if not found
 	 */
@@ -104,17 +91,12 @@ class BackgroundService {
 		return this._selectedBackground;
 	}
 
-	/**
-	 * Get the currently selected background
-	 * @returns {Object|null} Currently selected background
-	 */
+	/** @returns {Object|null} Currently selected background */
 	getSelectedBackground() {
 		return this._selectedBackground;
 	}
 
-	/**
-	 * Clear the currently selected background
-	 */
+	/** Clear the currently selected background */
 	clearSelection() {
 		this._selectedBackground = null;
 		eventBus.emit('background:cleared');

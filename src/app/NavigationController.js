@@ -11,10 +11,7 @@ class RouterImpl {
 	constructor() {
 		this.routes = new Map();
 		this.currentRoute = null;
-		console.info('[Router]', 'Router initialized');
-	}
-
-	register(path, config) {
+		console.debug('[Router]', 'Router initialized');
 		console.info('[Router]', 'Registering route', { path, config });
 		this.routes.set(path, {
 			template: config.template || `${path}.html`,
@@ -24,8 +21,7 @@ class RouterImpl {
 	}
 
 	async navigate(path) {
-		console.info('[Router]', 'Navigating to', { path });
-
+		console.debug('[Router]', 'Navigating to', { path });
 		if (!this.routes.has(path)) {
 			console.error('[Router]', 'Route not found', { path });
 			throw new Error(`Route not found: ${path}`);
@@ -72,10 +68,7 @@ class PageLoaderImpl {
 	constructor() {
 		this.templateCache = new Map();
 		this.contentArea = null;
-		console.info('PageLoader', 'PageLoader initialized');
-	}
-
-	initialize(contentAreaId = 'pageContent') {
+		console.debug('PageLoader', 'PageLoader initialized');
 		this.contentArea = document.getElementById(contentAreaId);
 
 		if (!this.contentArea) {
@@ -112,7 +105,7 @@ class PageLoaderImpl {
 			// Cache the template
 			this.templateCache.set(templateName, html);
 
-			console.info('PageLoader', 'Page loaded and cached', { templateName });
+			console.debug('PageLoader', 'Page loaded and cached', { templateName });
 			return html;
 		} catch (error) {
 			console.error('PageLoader', 'Load failed', {
@@ -139,7 +132,7 @@ class PageLoaderImpl {
 	}
 
 	async loadAndRender(templateName) {
-		console.info('PageLoader', 'Load and render', { templateName });
+		console.debug('PageLoader', 'Load and render', { templateName });
 
 		const html = await this.loadPage(templateName);
 		this.renderPage(html);
@@ -148,7 +141,7 @@ class PageLoaderImpl {
 	clearCache() {
 		const cacheSize = this.templateCache.size;
 		this.templateCache.clear();
-		console.info('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
+		console.debug('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
 	}
 
 	getCacheSize() {
@@ -258,7 +251,7 @@ class NavigationControllerImpl {
 			title: 'Split Card Layout Demo',
 		});
 
-		console.info('[Router]', 'All routes registered', {
+		console.debug('[Router]', 'All routes registered', {
 			routes: this.router.getAllRoutes(),
 		});
 	}
@@ -273,7 +266,7 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		console.info('NavigationController', 'Initializing');
+		console.debug('NavigationController', 'Initializing');
 
 		// Initialize PageLoader
 		try {
@@ -295,7 +288,7 @@ class NavigationControllerImpl {
 		this.navigateTo('home');
 
 		this.isInitialized = true;
-		console.info('NavigationController', 'Initialized successfully');
+		console.debug('NavigationController', 'Initialized successfully');
 	}
 
 	/**
@@ -407,7 +400,7 @@ class NavigationControllerImpl {
 	 * @param {string} page - Page to navigate to
 	 */
 	async navigateTo(page) {
-		console.info(
+		console.debug(
 			'NavigationController',
 			`[${new Date().toISOString()}] Navigate to page: "${page}"`,
 		);
@@ -471,7 +464,7 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		console.info(
+		console.debug(
 			'NavigationController',
 			`[${new Date().toISOString()}] Page rendered successfully: ${pageName}`,
 			{ template, pageName },

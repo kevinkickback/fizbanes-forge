@@ -1,7 +1,5 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
-
-/** Manages variant rule data and provides access to variant rules. */
 class VariantRuleService {
 	constructor() {
 		this._variantRuleData = null;
@@ -15,11 +13,11 @@ class VariantRuleService {
 			return true;
 		}
 
-		console.info('[VariantRuleService]', 'Initializing variant rule data');
+		console.debug('[VariantRuleService]', 'Initializing variant rule data');
 
 		try {
 			this._variantRuleData = await DataLoader.loadVariantRules();
-			console.info(
+			console.debug(
 				'[VariantRuleService]',
 				'Variant rules loaded successfully',
 				{

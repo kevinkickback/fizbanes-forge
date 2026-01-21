@@ -13,7 +13,7 @@ function formatMessage(prefix, ...args) {
 
 export const MainLogger = {
 	info(prefix, ...args) {
-		console.log(formatMessage(`[${prefix}]`, ...args));
+		console.info(formatMessage(`[${prefix}]`, ...args));
 	},
 	warn(prefix, ...args) {
 		console.warn(formatMessage(`[${prefix}]`, ...args));

@@ -132,24 +132,24 @@ export class ClassCard {
 	//-------------------------------------------------------------------------
 
 	async _loadSavedClassSelection() {
-		console.log('[ClassCard] _loadSavedClassSelection called');
+		console.debug('[ClassCard] _loadSavedClassSelection called');
 		try {
 			const character = AppState.getCurrentCharacter();
-			console.log('[ClassCard] Current character:', character ? character.name : 'null');
+			console.debug('[ClassCard] Current character:', character ? character.name : 'null');
 
 			// Check if character has class data in progression
 			if (!character || !character.progression?.classes || character.progression.classes.length === 0) {
-				console.log('[ClassCard] No class progression data found');
+				console.debug('[ClassCard] No class progression data found');
 				await this._renderClassTabsFromProgression();
 				this.resetClassDetails();
 				return; // No class data to load
 			}
 
 			const primaryClass = character.getPrimaryClass();
-			console.log('[ClassCard] Primary class:', primaryClass);
+			console.debug('[ClassCard] Primary class:', primaryClass);
 
 			if (!primaryClass?.name) {
-				console.log('[ClassCard] No primary class found, rendering tabs and returning');
+				console.debug('[ClassCard] No primary class found, rendering tabs and returning');
 				await this._renderClassTabsFromProgression();
 				this.resetClassDetails();
 				return; // No saved class to load
@@ -163,7 +163,7 @@ export class ClassCard {
 			if (classData) {
 				// Get subclass from progression.classes[]
 				const subclassName = primaryClass.subclass || null;
-				console.log('[ClassCard] Subclass name:', subclassName);
+				console.debug('[ClassCard] Subclass name:', subclassName);
 
 				let subclassData = null;
 				if (subclassName) {
@@ -218,7 +218,7 @@ export class ClassCard {
 
 	async _handleLevelUpComplete() {
 		try {
-			console.log('[ClassCard]', 'Level up complete - refreshing class card');
+			console.debug('[ClassCard]', 'Level up complete - refreshing class card');
 
 			// Refresh the entire class selection to pick up new level and choices
 			await this._loadSavedClassSelection();
@@ -814,7 +814,7 @@ export class ClassCard {
 		const sessionKey = `${className}_${level}`;
 		const existingSelections = character.progression?.spellSelections?.[sessionKey] || [];
 
-		console.log('[ClassCard]', '_handleSpellSelection:', {
+		console.debug('[ClassCard]', '_handleSpellSelection:', {
 			className,
 			level,
 			sessionKey,
@@ -902,7 +902,7 @@ export class ClassCard {
 		// Update progression tracking
 		character.progression.spellSelections[sessionKey] = selectedSpells.map(s => s.name);
 
-		console.log('[ClassCard]', 'Updated spell selection:', {
+		console.debug('[ClassCard]', 'Updated spell selection:', {
 			className,
 			level,
 			selectedSpells: selectedSpells.map(s => s.name),
@@ -961,7 +961,7 @@ export class ClassCard {
 		// Always add subclass choice at the appropriate level (even if already selected, so users can see/change it)
 		// This handles classes that get subclass at level 1 (Warlock, Cleric) or level 3 (most others)
 		if (level === effectiveSubclassLevel) {
-			console.log(`[ClassCard] Adding subclass choice for ${className} at level ${level} (subclass level: ${effectiveSubclassLevel})`);
+			console.debug(`[ClassCard] Adding subclass choice for ${className} at level ${level} (subclass level: ${effectiveSubclassLevel})`);
 
 			const availableSubclasses = this._classService.getSubclasses(className, classData.source)
 				.filter((sc) => {
@@ -1910,7 +1910,7 @@ export class ClassCard {
 		const isChanging = oldSubclass && oldSubclass !== subclassName;
 
 		if (isChanging) {
-			console.log(`[ClassCard] Subclass changing from ${oldSubclass} to ${subclassName} - clearing old subclass data`);
+			console.debug(`[ClassCard] Subclass changing from ${oldSubclass} to ${subclassName} - clearing old subclass data`);
 
 			// 1. Clear subclass-specific features from progression.classes[].features
 			if (progressionClass?.features) {
@@ -1949,19 +1949,19 @@ export class ClassCard {
 					// Clear optional feature choices that might be subclass-specific
 					// We'll let the user re-select them for the new subclass
 					if (choices.invocation) {
-						console.log(`[ClassCard] Clearing invocation choices at level ${level}`);
+						console.debug(`[ClassCard] Clearing invocation choices at level ${level}`);
 						delete choices.invocation;
 					}
 					if (choices.metamagic) {
-						console.log(`[ClassCard] Clearing metamagic choices at level ${level}`);
+						console.debug(`[ClassCard] Clearing metamagic choices at level ${level}`);
 						delete choices.metamagic;
 					}
 					if (choices['fighting-style']) {
-						console.log(`[ClassCard] Clearing fighting-style choices at level ${level}`);
+						console.debug(`[ClassCard] Clearing fighting-style choices at level ${level}`);
 						delete choices['fighting-style'];
 					}
 					if (choices.maneuver) {
-						console.log(`[ClassCard] Clearing maneuver choices at level ${level}`);
+						console.debug(`[ClassCard] Clearing maneuver choices at level ${level}`);
 						delete choices.maneuver;
 					}
 
@@ -1979,7 +1979,7 @@ export class ClassCard {
 					for (let level = 1; level <= classLevel; level++) {
 						const sessionKey = `${className}_${level}`;
 						if (character.progression.spellSelections[sessionKey]) {
-							console.log(`[ClassCard] Clearing spell selections at level ${level}`);
+							console.debug(`[ClassCard] Clearing spell selections at level ${level}`);
 							delete character.progression.spellSelections[sessionKey];
 						}
 					}
@@ -1987,7 +1987,7 @@ export class ClassCard {
 
 				// Note: We keep spellsKnown intact for now, but the user can use the spell selection
 				// UI to remove incompatible spells and add new ones
-				console.log(`[ClassCard] Spell selections cleared - user should review and update spells`);
+				console.debug(`[ClassCard] Spell selections cleared - user should review and update spells`);
 			}
 		}
 
@@ -2127,12 +2127,12 @@ export class ClassCard {
 	}
 
 	_updateProficiencies(classData) {
-		console.log('[ClassCard] _updateProficiencies() called');
+		console.debug('[ClassCard] _updateProficiencies() called');
 
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !classData) return;
 
-		console.log('[ClassCard] tools.class BEFORE reset:',
+		console.debug('[ClassCard] tools.class BEFORE reset:',
 			JSON.stringify(character.optionalProficiencies?.tools?.class || {}));
 
 		// Store previous selected proficiencies to restore valid ones later
@@ -2155,7 +2155,7 @@ export class ClassCard {
 		character.optionalProficiencies.tools.class.options = [];
 		character.optionalProficiencies.tools.class.selected = [];
 
-		console.log('[ClassCard] tools.class AFTER reset:',
+		console.debug('[ClassCard] tools.class AFTER reset:',
 			JSON.stringify(character.optionalProficiencies?.tools?.class || {}));
 
 		// Add saving throw proficiencies
@@ -2365,11 +2365,11 @@ export class ClassCard {
 	}
 
 	_processClassToolProficiencies(classData, character) {
-		console.log('[ClassCard] _processClassToolProficiencies() called');
+		console.debug('[ClassCard] _processClassToolProficiencies() called');
 
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
-			console.log('[ClassCard] No toolProficiencies found, returning');
+			console.debug('[ClassCard] No toolProficiencies found, returning');
 			return;
 		}
 
@@ -2417,14 +2417,14 @@ export class ClassCard {
 		}
 
 		// Apply accumulated tool choices if any
-		console.log('[ClassCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
+		console.debug('[ClassCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
 
 		if (maxAllowed > 0) {
 			character.optionalProficiencies.tools.class.allowed = maxAllowed;
 			character.optionalProficiencies.tools.class.options = allOptions;
 			character.optionalProficiencies.tools.class.selected = [];
 
-			console.log('[ClassCard] Set tools.class:', JSON.stringify(character.optionalProficiencies.tools.class));
+			console.debug('[ClassCard] Set tools.class:', JSON.stringify(character.optionalProficiencies.tools.class));
 
 			// Special case: if ONLY "Musical instrument" is offered (like Bard),
 			// auto-populate the selected array so it shows as granted/default
@@ -2434,7 +2434,7 @@ export class ClassCard {
 						'Musical instrument',
 					);
 				}
-				console.log('[ClassCard] Bard detected - populated selected array:', character.optionalProficiencies.tools.class.selected);
+				console.debug('[ClassCard] Bard detected - populated selected array:', character.optionalProficiencies.tools.class.selected);
 			}
 		}
 	}

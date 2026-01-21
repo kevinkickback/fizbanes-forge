@@ -391,13 +391,13 @@ export class ProficiencyCard {
 	}
 
 	_handleCharacterChanged(_event) {
-		console.log('[ProficiencyCard] _handleCharacterChanged() called');
+		console.debug('[ProficiencyCard] _handleCharacterChanged() called');
 
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
 
 			if (this._character) {
-				console.log('[ProficiencyCard] _handleCharacterChanged - optionalProficiencies.tools.class before reinit:',
+				console.debug('[ProficiencyCard] optionalProficiencies.tools.class before reinit:',
 					JSON.stringify(this._character.optionalProficiencies?.tools?.class || {}));
 
 				ProficiencyCore.initializeProficiencyStructures(this._character);
@@ -428,10 +428,10 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_reinitializeClassToolProficiencies() {
-		console.log('[ProficiencyCard] _reinitializeClassToolProficiencies() called');
+		console.debug('[ProficiencyCard] _reinitializeClassToolProficiencies() called');
 
 		if (!this._character?.class) {
-			console.log('[ProficiencyCard] No character or class, returning');
+			console.debug('[ProficiencyCard] No character or class, returning');
 			return;
 		}
 
@@ -440,32 +440,32 @@ export class ProficiencyCard {
 		const currentSelected = this._character.optionalProficiencies?.tools?.class?.selected || [];
 		const currentAllowed = this._character.optionalProficiencies?.tools?.class?.allowed || 0;
 
-		console.log('[ProficiencyCard] Current state: options=', currentOptions, 'selected=', currentSelected, 'allowed=', currentAllowed);
+		console.debug('[ProficiencyCard] Current state: options=', currentOptions, 'selected=', currentSelected, 'allowed=', currentAllowed);
 
 		// If we already have valid data, don't overwrite it
 		if (currentOptions.length > 0 && currentSelected.length > 0 && currentAllowed > 0) {
-			console.log('[ProficiencyCard] Data already populated from save, skipping reinit');
+			console.debug('[ProficiencyCard] Data already populated from save, skipping reinit');
 			return;
 		}
 
 		const classService = window.classService;
 		if (!classService) {
-			console.log('[ProficiencyCard] No classService yet - data should be loaded from save file');
+			console.debug('[ProficiencyCard] No classService yet - data should be loaded from save file');
 			return;
 		}
 
 		const classData = classService.getClassByName(this._character.class);
 		if (!classData) {
-			console.log('[ProficiencyCard] No classData for', this._character.class);
+			console.debug('[ProficiencyCard] No classData for', this._character.class);
 			return;
 		}
 
-		console.log('[ProficiencyCard] Processing class:', this._character.class);
+		console.debug('[ProficiencyCard] Processing class:', this._character.class);
 
 		// Re-process class tool proficiencies using the same logic as ClassCard
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
-			console.log('[ProficiencyCard] No toolProficiencies, returning');
+			console.debug('[ProficiencyCard] No toolProficiencies, returning');
 			return;
 		}
 
@@ -502,7 +502,7 @@ export class ProficiencyCard {
 			}
 		}
 
-		console.log('[ProficiencyCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
+		console.debug('[ProficiencyCard] maxAllowed:', maxAllowed, 'allOptions:', allOptions);
 
 		// Apply accumulated tool choices if any
 		if (maxAllowed > 0) {
@@ -516,7 +516,7 @@ export class ProficiencyCard {
 				const musicalInstrumentCount = (this._character.optionalProficiencies.tools.class.selected || [])
 					.filter(sel => sel === 'Musical instrument').length;
 
-				console.log('[ProficiencyCard] Bard detected - current instrument count:', musicalInstrumentCount, 'maxAllowed:', maxAllowed);
+				console.debug('[ProficiencyCard] Bard detected - current instrument count:', musicalInstrumentCount, 'maxAllowed:', maxAllowed);
 
 				if (musicalInstrumentCount < maxAllowed) {
 					// Ensure selected array exists and has correct entries
@@ -524,7 +524,7 @@ export class ProficiencyCard {
 					for (let i = 0; i < maxAllowed; i++) {
 						this._character.optionalProficiencies.tools.class.selected.push('Musical instrument');
 					}
-					console.log('[ProficiencyCard] Set selected array to:', this._character.optionalProficiencies.tools.class.selected);
+					console.debug('[ProficiencyCard] Set selected array to:', this._character.optionalProficiencies.tools.class.selected);
 				}
 			} else {
 				// For other classes: preserve existing selections if they're still valid
@@ -532,7 +532,7 @@ export class ProficiencyCard {
 				this._character.optionalProficiencies.tools.class.selected = existingSelected.filter(
 					(sel) => allOptions.includes(sel) || allOptions.includes('any')
 				);
-				console.log('[ProficiencyCard] Filtered selected array to:', this._character.optionalProficiencies.tools.class.selected);
+				console.debug('[ProficiencyCard] Filtered selected array to:', this._character.optionalProficiencies.tools.class.selected);
 			}
 		}
 	}
@@ -567,7 +567,7 @@ export class ProficiencyCard {
 	}
 
 	_showRefundNotification(skill) {
-		console.info('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
+		console.debug('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
 	}
 
 	async _populateProficiencyContainers() {
@@ -1005,7 +1005,7 @@ export class ProficiencyCard {
 		if (!toolsContainer) return;
 
 		const slots = this._computeInstrumentSlots();
-		console.log('[ProficiencyCard] Rendering instrument choices with', slots.length, 'slots:', slots);
+		console.debug('[ProficiencyCard] Rendering instrument choices with', slots.length, 'slots:', slots);
 		this._instrumentChoicesView.render(
 			toolsContainer,
 			slots,
@@ -1076,7 +1076,7 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_computeInstrumentSlots() {
-		console.log('[ProficiencyCard] _computeInstrumentSlots() called');
+		console.debug('[ProficiencyCard] _computeInstrumentSlots() called');
 
 		const normalizedInstrument = DataNormalizer.normalizeForLookup(
 			'Musical instrument',
@@ -1093,14 +1093,14 @@ export class ProficiencyCard {
 		for (const { key, label } of sources) {
 			const config = this._character?.optionalProficiencies?.tools?.[key];
 			if (!config) {
-				console.log(`[ProficiencyCard] No config for source: ${key}`);
+				console.debug(`[ProficiencyCard] No config for source: ${key}`);
 				continue;
 			}
 
 			const options = config.options || [];
 			const allowed = config.allowed || 0;
 
-			console.log(`[ProficiencyCard] Source ${key}: options=`, options, 'allowed=', allowed);
+			console.debug(`[ProficiencyCard] Source ${key}: options=`, options, 'allowed=', allowed);
 
 			// Check if this source offers Musical Instrument
 			const offersInstruments = options.some(
@@ -1109,13 +1109,13 @@ export class ProficiencyCard {
 
 			// Check if user explicitly selected Musical Instrument
 			const selected = config.selected || [];
-			console.log(`[ProficiencyCard] Source ${key}: selected=`, selected);
+			console.debug(`[ProficiencyCard] Source ${key}: selected=`, selected);
 
 			const isExplicitlySelected = selected.some(
 				(sel) => DataNormalizer.normalizeForLookup(sel) === normalizedInstrument,
 			);
 
-			console.log(`[ProficiencyCard] Source ${key}: offersInstruments=${offersInstruments}, isExplicitlySelected=${isExplicitlySelected}`);
+			console.debug(`[ProficiencyCard] Source ${key}: offersInstruments=${offersInstruments}, isExplicitlySelected=${isExplicitlySelected}`);
 
 			// Create slots if:
 			// 1. Musical Instrument is the ONLY option (e.g., Bard gets 3 slots automatically), OR
@@ -1123,7 +1123,7 @@ export class ProficiencyCard {
 			const isOnlyOption = options.length === 1 && offersInstruments;
 			const shouldCreateSlots = (isOnlyOption || isExplicitlySelected) && allowed > 0;
 
-			console.log(`[ProficiencyCard] Source ${key}: isOnlyOption=${isOnlyOption}, shouldCreateSlots=${shouldCreateSlots}`);
+			console.debug(`[ProficiencyCard] Source ${key}: isOnlyOption=${isOnlyOption}, shouldCreateSlots=${shouldCreateSlots}`);
 
 			if (shouldCreateSlots) {
 				// Create a slot for each choice allowed by this source
@@ -1593,8 +1593,8 @@ export class ProficiencyCard {
 	}
 
 	_cleanupOptionalProficiencies() {
-		console.log('[ProficiencyCard] _cleanupOptionalProficiencies() called');
-		console.log('[ProficiencyCard] tools.class BEFORE cleanup:',
+		console.debug('[ProficiencyCard] _cleanupOptionalProficiencies() called');
+		console.debug('[ProficiencyCard] tools.class BEFORE cleanup:',
 			JSON.stringify(this._character?.optionalProficiencies?.tools?.class || {}));
 
 		if (!this._character || !this._character.optionalProficiencies) return;
@@ -1624,7 +1624,7 @@ export class ProficiencyCard {
 			});
 		}
 
-		console.log('[ProficiencyCard] tools.class AFTER cleanup:',
+		console.debug('[ProficiencyCard] tools.class AFTER cleanup:',
 			JSON.stringify(this._character?.optionalProficiencies?.tools?.class || {}));
 
 		return changesDetected;

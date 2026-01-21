@@ -63,7 +63,7 @@ class CharacterManagerImpl {
 	}
 
 	async loadCharacter(id) {
-		console.info(
+		console.debug(
 			'CharacterManager',
 			`[${new Date().toISOString()}] Loading character with ID: ${id}`,
 		);
@@ -100,7 +100,7 @@ class CharacterManagerImpl {
 			}
 
 			// Convert to Character instance to enable domain methods
-			console.log('[CharacterManager] Loading character - optionalProficiencies.tools.class:',
+			console.debug('[CharacterManager] Loading character - optionalProficiencies.tools.class:',
 				JSON.stringify(characterData.optionalProficiencies?.tools?.class || {}));
 			const character = new Character(characterData);
 
@@ -119,7 +119,7 @@ class CharacterManagerImpl {
 			);
 			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 
-			console.info(
+			console.debug(
 				'CharacterManager',
 				`✓ Character loaded successfully: ${character.name}`,
 				{ id },
@@ -143,7 +143,7 @@ class CharacterManagerImpl {
 			throw new Error('No character selected');
 		}
 
-		console.info('CharacterManager', 'Saving character', { id: character.id });
+		console.debug('CharacterManager', 'Saving character', { id: character.id });
 
 		try {
 			// Update timestamp

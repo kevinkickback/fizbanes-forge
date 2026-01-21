@@ -72,7 +72,7 @@ export class EquipmentManager {
             return;
         }
 
-        console.info(`[${this.loggerScope}]`, 'Rendering equipment page');
+        console.debug(`[${this.loggerScope}]`, 'Rendering equipment page');
 
         this.renderInventory(character);
         this.renderEquippedItems(character);
@@ -266,7 +266,7 @@ export class EquipmentManager {
 
             const result = await this.equipmentSelectionModal.show();
             if (result) {
-                console.info(`[${this.loggerScope}]`, 'Items added', {
+                console.debug(`[${this.loggerScope}]`, 'Items added', {
                     count: result.length,
                 });
             }

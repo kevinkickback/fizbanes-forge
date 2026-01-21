@@ -1,4 +1,3 @@
-/** Manages spell data and provides access to spells. */
 import { DataLoader } from '../lib/DataLoader.js';
 import { EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
@@ -10,12 +9,7 @@ class SpellService extends BaseDataService {
 		this._spellClassLookup = null; // Lookup for spell-to-class associations
 	}
 
-	/**
-	 * Initialize spell data by loading from DataLoader.
-	 * Loads all spell files and builds a lookup map for fast access.
-	 * Emits SPELLS_LOADED event on success.
-	 * @returns {Promise<boolean>} True if initialization succeeded
-	 */
+	/** @returns {Promise<boolean>} True if initialization succeeded */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
@@ -66,17 +60,12 @@ class SpellService extends BaseDataService {
 		return true;
 	}
 
-	/**
-	 * Get all available spells.
-	 * @returns {Array<Object>} Array of spell objects
-	 */
+	/** @returns {Array<Object>} Array of spell objects */
 	getAllSpells() {
 		return this._data?.spell || [];
 	}
 
-	/**
-	 * Get a specific spell by name and source.
-	 * Performs O(1) lookup by name, then checks source.
+	/** O(1) lookup by name, then checks source.
 	 * @param {string} name - Spell name
 	 * @param {string} [source='PHB'] - Source book
 	 * @returns {Object|null} Spell object or null if not found
@@ -85,9 +74,7 @@ class SpellService extends BaseDataService {
 		return this.lookupByNameAndSource(this._spellLookupMap, name, source);
 	}
 
-	/**
-	 * Get spells by level.
-	 * @param {number} level - Spell level (0-9)
+	/** @param {number} level - Spell level (0-9)
 	 * @returns {Array<Object>} Array of spell objects
 	 */
 	getSpellsByLevel(level) {

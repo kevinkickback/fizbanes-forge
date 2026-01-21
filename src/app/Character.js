@@ -493,7 +493,7 @@ export class Character {
 	}
 
 	toJSON() {
-		console.log('[Character.toJSON] Called - optionalProficiencies.tools.class BEFORE serialization:',
+		console.debug('[Character.toJSON] optionalProficiencies.tools.class before serialization:',
 			JSON.stringify(this.optionalProficiencies?.tools?.class || {}));
 
 		// Helper function to safely convert a Map to an object
@@ -631,7 +631,7 @@ export class Character {
 					tools: this._serializeComplexProficiency('tools'),
 				};
 
-				console.log('[Character.toJSON] Serialized optionalProficiencies.tools.class:',
+				console.debug('[Character.toJSON] Serialized optionalProficiencies.tools.class:',
 					JSON.stringify(serializedData.optionalProficiencies.tools.class));
 			}
 		} catch {

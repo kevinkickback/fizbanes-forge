@@ -1,9 +1,4 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
-import { classService } from './ClassService.js';
-import { raceService } from './RaceService.js';
-
-/** Manages feat data and provides access to feats. */
 class FeatService {
 	constructor() {
 		this._featData = null;
@@ -17,11 +12,11 @@ class FeatService {
 			return true;
 		}
 
-		console.info('[FeatService]', 'Initializing feat data');
+		console.debug('[FeatService]', 'Initializing feat data');
 
 		try {
 			this._featData = await DataLoader.loadFeats();
-			console.info('[FeatService]', 'Feats loaded successfully', {
+			console.debug('[FeatService]', 'Feats loaded successfully', {
 				count: this._featData.feat?.length,
 			});
 
@@ -42,16 +37,12 @@ class FeatService {
 		}
 	}
 
-	/**
-	 * Get all available feats
-	 * @returns {Array<Object>} Array of feat objects
-	 */
+	/** @returns {Array<Object>} Array of feat objects */
 	getAllFeats() {
 		return this._featData?.feat || [];
 	}
 
-	/**
-	 * Get a specific feat by name (case-insensitive)
+	/** Case-insensitive lookup.
 	 * @param {string} featName - Feat name
 	 * @returns {Object|null} Feat object or null if not found
 	 */

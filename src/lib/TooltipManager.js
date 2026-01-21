@@ -271,7 +271,7 @@ async function showReferenceTooltip(type, name, source, x, y) {
 		showTooltip(x, y, `<strong>${name}</strong>`);
 		return;
 	}
-	console.info(
+	console.debug(
 		'TooltipSystem',
 		`[showReferenceTooltip] type:`,
 		type,
@@ -288,30 +288,30 @@ async function showReferenceTooltip(type, name, source, x, y) {
 	const isAlreadyOpen = tooltips.some((t) => {
 		if (!t.referenceKey) return false;
 		const existingKey = t.referenceKey.split(':').slice(0, 2).join(':');
-		console.info(
+		console.debug(
 			'TooltipSystem',
 			`Comparing "${referenceKey}" with "${existingKey}"`,
 		);
 		return existingKey === referenceKey;
 	});
 	if (isAlreadyOpen) {
-		console.info(
+		console.debug(
 			'TooltipSystem',
 			`Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`,
 		);
 		return;
 	}
 	try {
-		console.info('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
+		console.debug('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
 		// Use generic resolver - single dispatch point for all types
 		const data = await referenceResolver.resolve(type, name, source);
-		console.info(
+		console.debug(
 			'TooltipSystem',
 			`[showReferenceTooltip] resolver result:`,
 			data,
 		);
 		const content = _formatTooltip(data);
-		console.info('TooltipSystem', `Resolved ${type}: ${name}`, data);
+		console.debug('TooltipSystem', `Resolved ${type}: ${name}`, data);
 		showTooltip(x, y, content, { referenceKey });
 	} catch (error) {
 		console.error(`[TooltipSystem] Error showing tooltip for ${type}:`, error);
@@ -426,7 +426,7 @@ function _renderGenericTooltip(data) {
 }
 
 export function initializeTooltipListeners() {
-	console.info('TooltipSystem', 'Initializing event listeners');
+	console.debug('TooltipSystem', 'Initializing event listeners');
 	const activeElements = new Map();
 	let currentHoverLink = null;
 	const HoverSelector = '.rd__hover-link, .reference-link';
@@ -474,30 +474,30 @@ export function initializeTooltipListeners() {
 			return;
 		}
 		currentHoverLink = link;
-		console.info('TooltipSystem', `Hovering over: ${hoverType} - ${hoverName}`);
+		console.debug('TooltipSystem', `Hovering over: ${hoverType} - ${hoverName}`);
 		if (parentTooltip) {
-			console.info(
+			console.debug(
 				'TooltipSystem',
 				`Link is in tooltip at index: ${linkTooltipIndex}`,
 			);
 		} else {
-			console.info('TooltipSystem', 'Link is not in a tooltip (base level)');
+			console.debug('TooltipSystem', 'Link is not in a tooltip (base level)');
 		}
-		console.info(
+		console.debug(
 			'TooltipSystem',
 			`Current stack size: ${tooltips.length}, keeping up to index: ${keepUpToIndex}`,
 		);
 		while (tooltips.length > keepUpToIndex) {
 			const lastTooltip = tooltips[tooltips.length - 1];
 			if (lastTooltip.isPinned) {
-				console.info(
+				console.debug(
 					'TooltipSystem',
 					`Stopped removing at pinned tooltip index ${tooltips.length - 1}`,
 				);
 				break;
 			}
 			const removed = tooltips.pop();
-			console.info(
+			console.debug(
 				'TooltipSystem',
 				`Removing tooltip at index ${tooltips.length}`,
 			);
@@ -541,7 +541,7 @@ export function initializeTooltipListeners() {
 					tooltip: newTooltip,
 					timeout: null,
 				});
-				console.info(
+				console.debug(
 					'TooltipSystem',
 					`Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltips.length}`,
 				);
@@ -564,7 +564,7 @@ export function initializeTooltipListeners() {
 					? tooltips.findIndex((t) => t.container === toTooltip)
 					: -1;
 				if (fromIndex > toIndex) {
-					console.info(
+					console.debug(
 						'TooltipSystem',
 						`Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`,
 					);
@@ -590,7 +590,7 @@ export function initializeTooltipListeners() {
 			return;
 		}
 		if (isInTooltipSystem(fromElement) && !isInTooltipSystem(toElement)) {
-			console.info(
+			console.debug(
 				'TooltipSystem',
 				'Left tooltip system, hiding unpinned tooltips',
 			);
@@ -618,7 +618,7 @@ export function initializeTooltipListeners() {
 		const enteringElement = event.target;
 		if (isInTooltipSystem(enteringElement)) {
 			if (globalHideTimeout) {
-				console.info('TooltipSystem', 'Canceling hide timer');
+				console.debug('TooltipSystem', 'Canceling hide timer');
 				clearTimeout(globalHideTimeout);
 				globalHideTimeout = null;
 			}

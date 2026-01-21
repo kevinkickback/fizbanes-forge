@@ -1,8 +1,3 @@
-/**
- * Titlebar Controller
- * Manages the application titlebar UI and interactions
- */
-
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { AppState } from './AppState.js';
 
@@ -14,20 +9,14 @@ export class TitlebarController {
         this.saveBtn = document.getElementById('saveCharacter');
     }
 
-    /**
-     * Initialize the titlebar controller
-     */
     init() {
         this.setupEventListeners();
         this.updateCharacterName();
         this.updateUnsavedIndicator();
         this.updateActionButtons();
-        console.log('[TitlebarController] Initialized');
+        console.debug('[TitlebarController] Initialized');
     }
 
-    /**
-     * Setup event listeners for titlebar interactions
-     */
     setupEventListeners() {
         // Character updates
         eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
@@ -69,9 +58,6 @@ export class TitlebarController {
         }
     }
 
-    /**
-     * Update character name display
-     */
     updateCharacterName() {
         if (!this.characterNameEl) return;
 
@@ -85,9 +71,6 @@ export class TitlebarController {
         }
     }
 
-    /**
-     * Update unsaved changes indicator
-     */
     updateUnsavedIndicator() {
         const hasUnsaved = AppState.get?.('hasUnsavedChanges');
 
@@ -101,32 +84,21 @@ export class TitlebarController {
         }
     }
 
-    /**
-     * Enable/disable action buttons based on current app state
-     */
     updateActionButtons() {
         const character = AppState.getCurrentCharacter?.() || AppState.get?.('currentCharacter');
         const hasUnsaved = AppState.get?.('hasUnsavedChanges');
 
-        // Debug logging
-        console.log('[TitlebarController] updateActionButtons called');
-        console.log('[TitlebarController] Character:', {
-            exists: !!character,
+        console.debug('[TitlebarController] updateActionButtons', {
+            hasCharacter: !!character,
             name: character?.name,
             hasProgression: !!character?.progression,
-            progressionClasses: character?.progression?.classes,
-            classesLength: character?.progression?.classes?.length
+            classCount: character?.progression?.classes?.length || 0,
+            hasUnsaved,
         });
 
         if (this.levelUpBtn) {
             const hasClasses = character?.progression?.classes && character.progression.classes.length > 0;
             this.levelUpBtn.disabled = !character || !hasClasses;
-
-            console.log('[TitlebarController] Level Up Button:', {
-                hasClasses,
-                disabled: this.levelUpBtn.disabled,
-                characterExists: !!character
-            });
 
             // Update tooltip based on state
             if (!character) {

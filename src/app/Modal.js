@@ -564,7 +564,6 @@ export class Modal {
 			const nameInput = document.getElementById('newCharacterName');
 			const levelInput = document.getElementById('newCharacterLevel');
 			const genderInput = document.getElementById('newCharacterGender');
-			// TODO: Remove featVariant logic - optional class features should be handled per-class
 			const featVariant = document.getElementById('featVariant');
 			const averageHitPoints = document.getElementById('averageHitPoints');
 			const abilityScoreMethod = form.querySelector(
@@ -589,9 +588,7 @@ export class Modal {
 				level: Number.parseInt(levelInput.value, 10),
 				gender: genderInput.value,
 				portrait: this._selectedPortrait?.value || 'assets/images/characters/placeholder_char_card.webp',
-				// TODO: Remove - optional class features should be handled per-class
 				feats: featVariant.checked,
-				// TODO: Remove - multiclassing removed from UI
 				multiclassing: true,
 				averageHitPoints: averageHitPoints.checked,
 				abilityScoreMethod: abilityScoreMethod.value,
@@ -650,7 +647,6 @@ export class Modal {
 			character.level = formData.level;
 			character.gender = formData.gender;
 			character.allowedSources = Array.from(selectedSources);
-			// TODO: Remove feats/multiclassing - optional class features should be handled per-class
 			character.variantRules = {
 				feats: formData.feats,
 				multiclassing: formData.multiclassing,

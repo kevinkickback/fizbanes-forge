@@ -12,12 +12,12 @@ class MonsterService extends BaseDataService {
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
-				console.info('[MonsterService]', 'Initializing monster data');
+				console.debug('[MonsterService]', 'Initializing monster data');
 				return DataLoader.loadMonsters();
 			},
 			{
 				onLoaded: (data) => {
-					console.info('[MonsterService]', 'Monsters loaded successfully', {
+					console.debug('[MonsterService]', 'Monsters loaded successfully', {
 						count: data?.monster?.length,
 					});
 					this._monsterMap = this.buildLookupMap(data?.monster, { allowMultiple: true });

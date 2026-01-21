@@ -21,7 +21,7 @@ export function setupUiEventHandlers() {
     if (saveButton) {
         cleanup.on(saveButton, 'click', async () => {
             try {
-                console.info(
+                console.debug(
                     'UIHandlers',
                     `[${new Date().toISOString()}] Save button clicked`,
                 );
@@ -55,7 +55,7 @@ export function setupUiEventHandlers() {
 
                 await CharacterManager.saveCharacter();
 
-                console.info('UIHandlers', 'Character saved successfully');
+                console.debug('UIHandlers', 'Character saved successfully');
                 showNotification('Character saved successfully', 'success');
             } catch (error) {
                 console.error('UIHandlers', 'Error saving character', error);
@@ -71,7 +71,7 @@ export function setupUiEventHandlers() {
     if (levelUpBtn) {
         let levelUpModalInstance = null;
         cleanup.on(levelUpBtn, 'click', async () => {
-            console.info('UIHandlers', '[LevelUp] Button clicked');
+            console.debug('UIHandlers', '[LevelUp] Button clicked');
             try {
                 const character = AppState.getCurrentCharacter();
                 if (!character) {
@@ -179,6 +179,6 @@ export function setupUiEventHandlers() {
         }
         listeners.clear();
         cleanup.cleanup();
-        console.info('UIHandlers', 'Cleaned up UI event handlers');
+        console.debug('UIHandlers', 'Cleaned up UI event handlers');
     };
 }

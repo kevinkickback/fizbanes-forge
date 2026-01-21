@@ -51,7 +51,7 @@ class CharacterValidationServiceImpl {
         // Check if any missing items were found
         report.isValid = Object.values(report.missing).every(arr => arr.length === 0);
 
-        console.info(`[${this.loggerScope}]`, 'Validation complete', {
+        console.debug(`[${this.loggerScope}]`, 'Validation complete', {
             isValid: report.isValid,
             missingCount: Object.values(report.missing).reduce((sum, arr) => sum + arr.length, 0),
         });

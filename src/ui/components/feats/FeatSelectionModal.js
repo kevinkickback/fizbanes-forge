@@ -552,7 +552,7 @@ export class FeatListView {
 		// Emit character updated event
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, updatedCharacter);
 
-		console.info('FeatListView', 'Feat removed', { featName });
+		console.debug('FeatListView', 'Feat removed', { featName });
 	}
 }
 

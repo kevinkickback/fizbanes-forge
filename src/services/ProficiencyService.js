@@ -1,4 +1,3 @@
-/** Manages proficiencies and proficiency bonuses. */
 import { ProficiencyCore } from '../app/Proficiency.js';
 import { SKILL_TO_ABILITY } from '../lib/5eToolsParser.js';
 import { DataLoader } from '../lib/DataLoader.js';
@@ -28,7 +27,7 @@ export class ProficiencyService {
 		}
 
 		try {
-			console.info('[ProficiencyService]', 'Initializing proficiency manager');
+			console.debug('[ProficiencyService]', 'Initializing proficiency manager');
 
 			// Cache commonly used data
 			this._skills = await this.getAvailableSkills();
@@ -36,7 +35,7 @@ export class ProficiencyService {
 			this._languages = await this.getAvailableLanguages();
 
 			this._initialized = true;
-			console.info(
+			console.debug(
 				'[ProficiencyService]',
 				'Proficiency manager initialized successfully',
 				{

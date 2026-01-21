@@ -1,10 +1,7 @@
-/** Manages item data and operations for the character builder. */
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
-
-/** Manages item data and provides access to items. */
 class ItemService extends BaseDataService {
 	constructor() {
 		super({ loadEvent: EVENTS.ITEMS_LOADED, loggerScope: 'ItemService' });
@@ -65,25 +62,17 @@ class ItemService extends BaseDataService {
 		return true;
 	}
 
-	/**
-	 * Get all available items
-	 * @returns {Array<Object>} Array of item objects
-	 */
+	/** @returns {Array<Object>} Array of item objects */
 	getAllItems() {
 		return this._data?.item || [];
 	}
 
-	/**
-	 * Get all base items (weapons, armor, etc.)
-	 * @returns {Array<Object>} Array of base item objects
-	 */
+	/** @returns {Array<Object>} Array of base item objects */
 	getAllBaseItems() {
 		return this._data?.baseItem || [];
 	}
 
-	/**
-	 * Get a specific item by name and source
-	 * @param {string} name - Item name
+	/** @param {string} name - Item name
 	 * @param {string} source - Source book
 	 * @returns {Object|null} Item object or null if not found
 	 */
@@ -91,9 +80,7 @@ class ItemService extends BaseDataService {
 		return this.lookupByNameAndSource(this._itemLookupMap, name, source);
 	}
 
-	/**
-	 * Get a specific base item by name
-	 * @param {string} name - Base item name
+	/** @param {string} name - Base item name
 	 * @param {string} source - Source book
 	 * @returns {Object|null} Base item object or null if not found
 	 */
@@ -101,9 +88,7 @@ class ItemService extends BaseDataService {
 		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
 	}
 
-	/**
-	 * Get items by type
-	 * @param {string} type - Item type (e.g., 'W' for weapon, 'A' for armor)
+	/** @param {string} type - Item type (e.g., 'W' for weapon, 'A' for armor)
 	 * @returns {Array<Object>} Array of item objects
 	 */
 	getItemsByType(type) {
@@ -120,9 +105,7 @@ class ItemService extends BaseDataService {
 		return items;
 	}
 
-	/**
-	 * Get items by rarity
-	 * @param {string} rarity - Item rarity (e.g., 'common', 'uncommon', 'rare')
+	/** @param {string} rarity - Item rarity (e.g., 'common', 'uncommon', 'rare')
 	 * @returns {Array<Object>} Array of item objects
 	 */
 	getItemsByRarity(rarity) {

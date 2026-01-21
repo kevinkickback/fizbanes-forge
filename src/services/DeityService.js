@@ -18,14 +18,14 @@ class DeityService extends BaseDataService {
      * Initialize deity data
      */
     async initialize() {
-        console.info('[DeityService]', 'Initializing deity data');
+        console.debug('[DeityService]', 'Initializing deity data');
 
         try {
             // Try to hydrate from cache first
             const cached = this.hydrateFromCache();
             if (cached) {
                 this.deities = cached.deities || [];
-                console.info('[DeityService]', 'Deities loaded from cache', {
+                console.debug('[DeityService]', 'Deities loaded from cache', {
                     count: this.deities.length,
                 });
                 return;
@@ -44,7 +44,7 @@ class DeityService extends BaseDataService {
             // Cache the data
             this.setData({ deities: this.deities });
 
-            console.info('[DeityService]', 'Deities loaded successfully', {
+            console.debug('[DeityService]', 'Deities loaded successfully', {
                 count: this.deities.length,
                 fromCache: false,
             });

@@ -1,9 +1,6 @@
-/** Manages character class selection and data access. */
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
-
-/** Manages character class selection and provides access to class data. */
 class ClassService extends BaseDataService {
 	constructor() {
 		super({ cacheKey: 'classes', loggerScope: 'ClassService' });
@@ -15,7 +12,7 @@ class ClassService extends BaseDataService {
 		const TTL_24_HOURS = 24 * 60 * 60 * 1000;
 		await this.initWithLoader(
 			async () => {
-				console.info('[ClassService]', 'Initializing class data');
+				console.debug('[ClassService]', 'Initializing class data');
 				const index = await DataLoader.loadJSON('class/index.json', { ttl: TTL_24_HOURS });
 				const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json', { ttl: TTL_24_HOURS });
 
@@ -102,7 +99,7 @@ class ClassService extends BaseDataService {
 						subclassFluff: [],
 					};
 
-					console.info('[ClassService]', 'Class data loaded', {
+					console.debug('[ClassService]', 'Class data loaded', {
 						classes: dataset.class.length,
 						classFeatures: dataset.classFeature.length,
 						subclasses: dataset.subclass.length,
@@ -298,7 +295,7 @@ class ClassService extends BaseDataService {
 		this._selectedSubclass = null;
 
 		if (this._selectedClass) {
-			console.info('[ClassService]', 'Class selected', { className, source });
+			console.debug('[ClassService]', 'Class selected', { className, source });
 			eventBus.emit(EVENTS.CLASS_SELECTED, this._selectedClass);
 		} else {
 			console.warn('ClassService', 'Class not found', { className, source });
@@ -327,7 +324,7 @@ class ClassService extends BaseDataService {
 		);
 
 		if (this._selectedSubclass) {
-			console.info('[ClassService]', 'Subclass selected', { subclassName });
+			console.debug('[ClassService]', 'Subclass selected', { subclassName });
 			eventBus.emit(EVENTS.SUBCLASS_SELECTED, this._selectedSubclass);
 		} else {
 			console.warn('ClassService', 'Subclass not found', { subclassName });

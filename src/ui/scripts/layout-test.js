@@ -17,14 +17,14 @@ export class SplitCardDemo {
     }
 
     async init() {
-        console.log('[SplitCardDemo] Initializing demo with real data...');
+        console.debug('[SplitCardDemo] Initializing demo with real data...');
 
         // Get current character or create demo data
         this.character = AppState.getCurrentCharacter();
 
         // Update data source message
         const dataSourceEl = document.getElementById('dataSource');
-        console.log('[SplitCardDemo] Data source element:', dataSourceEl);
+        console.debug('[SplitCardDemo] Data source element:', dataSourceEl);
 
         if (dataSourceEl) {
             if (this.character) {
@@ -43,28 +43,28 @@ export class SplitCardDemo {
         await this.ensureServicesReady();
 
         // Populate cards with real data
-        console.log('[SplitCardDemo] Populating cards...');
+        console.debug('[SplitCardDemo] Populating cards...');
         await this.populateClassCard();
         await this.populateRaceCard();
         await this.populateFeatCard();
 
         // Set up toggle buttons
-        console.log('[SplitCardDemo] Setting up toggle buttons...');
+        console.debug('[SplitCardDemo] Setting up toggle buttons...');
         this.setupToggleButtons();
 
         // Set up focus-driven info switching
-        console.log('[SplitCardDemo] Setting up focus-driven info...');
+        console.debug('[SplitCardDemo] Setting up focus-driven info...');
         this.setupFocusDrivenInfo();
 
         // Set up clickable choice items
-        console.log('[SplitCardDemo] Setting up clickable choices...');
+        console.debug('[SplitCardDemo] Setting up clickable choices...');
         this.setupClickableChoices();
 
         // Load saved preferences
-        console.log('[SplitCardDemo] Loading preferences...');
+        console.debug('[SplitCardDemo] Loading preferences...');
         this.loadPreferences();
 
-        console.log('[SplitCardDemo] Initialization complete!');
+        console.debug('[SplitCardDemo] Initialization complete!');
     }
 
     async ensureServicesReady() {
@@ -264,7 +264,7 @@ export class SplitCardDemo {
     }
 
     async populateClassCard() {
-        console.log('[SplitCardDemo] Populating class card...');
+        console.debug('[SplitCardDemo] Populating class card...');
 
         const classData = this.character
             ? classService.getClass(this.character.getPrimaryClass()?.name, this.character.getPrimaryClass()?.source)
@@ -444,7 +444,7 @@ export class SplitCardDemo {
     }
 
     async populateRaceCard() {
-        console.log('[SplitCardDemo] Populating race card...');
+        console.debug('[SplitCardDemo] Populating race card...');
 
         const races = raceService.getAllRaces();
         const choicesPanel = document.getElementById('raceChoicesPanel');
@@ -909,7 +909,7 @@ export class SplitCardDemo {
     }
 
     async populateFeatCard() {
-        console.log('[SplitCardDemo] Populating feat card...');
+        console.debug('[SplitCardDemo] Populating feat card...');
 
         const feats = featService.getAllFeats();
         const choicesPanel = document.getElementById('featChoicesPanel');

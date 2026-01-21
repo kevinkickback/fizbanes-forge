@@ -1,10 +1,4 @@
-/** Manages application settings and configuration. */
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-import { showNotification } from '../lib/Notifications.js';
-import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
-import { RefreshProgressModal } from '../ui/components/setup/SetupModals.js';
-
-/** Manages application settings and configuration. */
 export class SettingsService {
 	constructor() {
 		this._initialized = false;
@@ -18,11 +12,11 @@ export class SettingsService {
 		}
 
 		try {
-			console.info('SettingsService', 'Initializing settings manager');
+			console.debug('SettingsService', 'Initializing settings manager');
 
 			this._initialized = true;
 			eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'settings', this);
-			console.info(
+			console.debug(
 				'SettingsService',
 				'Settings manager initialized successfully',
 			);
@@ -241,7 +235,7 @@ export class SettingsService {
 						const modal = new DataConfigurationModal({ allowClose: true });
 						const result = await modal.show();
 
-						console.info(
+						console.debug(
 							'SettingsService',
 							'User reconfigured data source:',
 							result.type,

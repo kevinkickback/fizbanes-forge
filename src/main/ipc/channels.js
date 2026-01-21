@@ -6,7 +6,6 @@
  * due to sandbox restrictions preventing dynamic ESM imports in preload scripts.
  * 
  * AUDIT FIX (2026-01-21): Centralized IPC channel definitions to prevent drift.
- * TODO: Consider build-time generation of Preload.cjs from this file.
  */
 
 export const IPC_CHANNELS = {

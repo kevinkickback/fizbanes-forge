@@ -82,7 +82,7 @@ class EquipmentService extends BaseDataService {
             character.inventory.items.push(itemInstance);
             this._updateInventoryWeight(character);
 
-            console.info('[EquipmentService]', 'Item added', {
+            console.debug('[EquipmentService]', 'Item added', {
                 itemName: itemInstance.name,
                 quantity: itemInstance.quantity,
             });
@@ -136,7 +136,7 @@ class EquipmentService extends BaseDataService {
 
         this._updateInventoryWeight(character);
 
-        console.info('[EquipmentService]', 'Item removed', {
+        console.debug('[EquipmentService]', 'Item removed', {
             itemName: item.name,
             quantityRemoved: Math.min(quantity, item.quantity + quantity),
         });
@@ -186,7 +186,7 @@ class EquipmentService extends BaseDataService {
 
         item.equipped = true;
 
-        console.info('[EquipmentService]', 'Item equipped', {
+        console.debug('[EquipmentService]', 'Item equipped', {
             itemName: item.name,
             slot,
         });
@@ -234,7 +234,7 @@ class EquipmentService extends BaseDataService {
             if (item) {
                 item.equipped = false;
 
-                console.info('[EquipmentService]', 'Item unequipped', {
+                console.debug('[EquipmentService]', 'Item unequipped', {
                     itemName: item.name,
                     slot,
                 });
@@ -280,7 +280,7 @@ class EquipmentService extends BaseDataService {
 
         item.attuned = true;
 
-        console.info('[EquipmentService]', 'Item attuned', {
+        console.debug('[EquipmentService]', 'Item attuned', {
             itemName: item.name,
             attunedCount: character.inventory.attuned.length,
         });
@@ -314,7 +314,7 @@ class EquipmentService extends BaseDataService {
         if (item) {
             item.attuned = false;
 
-            console.info('[EquipmentService]', 'Item unattuned', {
+            console.debug('[EquipmentService]', 'Item unattuned', {
                 itemName: item.name,
                 attunedCount: character.inventory.attuned.length,
             });

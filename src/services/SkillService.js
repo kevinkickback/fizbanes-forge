@@ -1,7 +1,5 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
-
-/** Manages skill data and provides access to skills. */
 class SkillService {
 	constructor() {
 		this._skillData = null;
@@ -15,10 +13,10 @@ class SkillService {
 			return true;
 		}
 
-		console.info('[SkillService]', 'Initializing skill data');
+		console.debug('[SkillService]', 'Initializing skill data');
 		try {
 			this._skillData = await DataLoader.loadSkills();
-			console.info('[SkillService]', 'Skills loaded successfully', {
+			console.debug('[SkillService]', 'Skills loaded successfully', {
 				count: this._skillData.skill?.length,
 			});
 

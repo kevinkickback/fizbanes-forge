@@ -1,4 +1,3 @@
-/** Manages character level progression, multiclass tracking, and feature application. */
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
 import { sourceService } from './SourceService.js';
@@ -9,9 +8,7 @@ class LevelUpService {
         this.loggerScope = 'LevelUpService';
     }
 
-    /**
-     * Initialize progression tracking for a character based on current class.
-     * @param {Object} character - Character object
+    /** @param {Object} character - Character object
      * @returns {void}
      */
     initializeProgression(character) {
@@ -26,8 +23,7 @@ class LevelUpService {
         // No legacy character.class field to sync
     }
 
-    /**
-     * Get total character level (calculated from progression.classes[])
+    /** Calculated from progression.classes[].
      * @param {Object} character - Character object
      * @returns {number} Total character level
      */
@@ -38,9 +34,7 @@ class LevelUpService {
         return character.progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
     }
 
-    /**
-     * Add or increase a class level for multiclassing.
-     * @param {Object} character - Character object
+    /** @param {Object} character - Character object
      * @param {string} className - Class name
      * @param {number} level - Level in that class (default 1)
      * @returns {Object} Class progression entry or null
@@ -61,7 +55,7 @@ class LevelUpService {
             if (source && !classEntry.source) {
                 classEntry.source = source;
             }
-            console.info(`[${this.loggerScope}]`, 'Updated class level', {
+            console.debug(`[${this.loggerScope}]`, 'Updated class level', {
                 className,
                 level,
             });
@@ -83,7 +77,7 @@ class LevelUpService {
         // Initialize spellcasting for this class if applicable
         spellSelectionService.initializeSpellcastingForClass(character, className, level);
 
-        console.info(`[${this.loggerScope}]`, 'Added class level', {
+        console.debug(`[${this.loggerScope}]`, 'Added class level', {
             className,
             level,
         });
@@ -92,9 +86,7 @@ class LevelUpService {
         return classEntry;
     }
 
-    /**
-     * Remove or reduce a class level.
-     * @param {Object} character - Character object
+    /** @param {Object} character - Character object
      * @param {string} className - Class name
      * @returns {boolean} True if successful
      */
@@ -112,7 +104,7 @@ class LevelUpService {
 
         const removed = character.progression.classes.splice(index, 1)[0];
 
-        console.info(`[${this.loggerScope}]`, 'Removed class level', { className });
+        console.debug(`[${this.loggerScope}]`, 'Removed class level', { className });
 
         eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, removed);
         return true;
@@ -288,7 +280,7 @@ class LevelUpService {
 
         character.progression.levelUps.push(levelUpRecord);
 
-        console.info(`[${this.loggerScope}]`, 'Recorded level-up', levelUpRecord);
+        console.debug(`[${this.loggerScope}]`, 'Recorded level-up', levelUpRecord);
     }
 
     /**
@@ -318,7 +310,7 @@ class LevelUpService {
             }
         }
 
-        console.info(`[${this.loggerScope}]`, 'Updated spell slots');
+        console.debug(`[${this.loggerScope}]`, 'Updated spell slots');
     }
 
     /**

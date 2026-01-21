@@ -44,7 +44,7 @@ export class ClassFeatureSelector {
      */
     async show(availableFeatures, currentSelections = [], multiSelect = false, maxSelections = null) {
         try {
-            console.log('[LevelUpFeatureSelector] Starting show', {
+            console.debug('[LevelUpFeatureSelector] Starting show', {
                 className: this.className,
                 featureType: this.featureType,
                 currentFeatureId: this.currentFeatureId,

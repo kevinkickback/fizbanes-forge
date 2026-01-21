@@ -206,7 +206,7 @@ export class UniversalSelectionModal {
             // Load data
             this.state.items = await (this.config.loadItems?.(ctx) || []);
             this.state.filtered = [...this.state.items];
-            console.log('[UniversalSelectionModal]', 'Loaded items:', this.state.items.length, 'items');
+            console.debug('[UniversalSelectionModal]', 'Loaded items:', this.state.items.length, 'items');
             if (this.state.items.length === 0) {
                 console.warn('[UniversalSelectionModal]', 'WARNING: No items loaded!');
             }

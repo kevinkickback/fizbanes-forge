@@ -1,4 +1,3 @@
-/** Manages spell selection, known/prepared spells, and spell slots for characters. */
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
 import { spellService } from './SpellService.js';
@@ -36,7 +35,7 @@ class SpellSelectionService {
             ritualCasting: classInfo.ritualCasting || false,
         };
 
-        console.info(`[${this.loggerScope}]`, 'Initialized spellcasting for', {
+        console.debug(`[${this.loggerScope}]`, 'Initialized spellcasting for', {
             className,
             classLevel,
         });
@@ -270,7 +269,7 @@ class SpellSelectionService {
         // Store full spell object
         classSpellcasting.spellsKnown.push(spellData);
 
-        console.info(`[${this.loggerScope}]`, 'Added known spell', {
+        console.debug(`[${this.loggerScope}]`, 'Added known spell', {
             className,
             spell: spellData.name,
         });
@@ -312,7 +311,7 @@ class SpellSelectionService {
             classSpellcasting.spellsPrepared.splice(preparedIndex, 1);
         }
 
-        console.info(`[${this.loggerScope}]`, 'Removed known spell', {
+        console.debug(`[${this.loggerScope}]`, 'Removed known spell', {
             className,
             spell: spellName,
         });
@@ -367,7 +366,7 @@ class SpellSelectionService {
 
         classSpellcasting.spellsPrepared.push({ ...knownSpell });
 
-        console.info(`[${this.loggerScope}]`, 'Prepared spell', {
+        console.debug(`[${this.loggerScope}]`, 'Prepared spell', {
             className,
             spell: spellName,
         });
@@ -401,7 +400,7 @@ class SpellSelectionService {
 
         const removed = classSpellcasting.spellsPrepared.splice(index, 1)[0];
 
-        console.info(`[${this.loggerScope}]`, 'Unprepared spell', {
+        console.debug(`[${this.loggerScope}]`, 'Unprepared spell', {
             className,
             spell: spellName,
         });
@@ -435,7 +434,7 @@ class SpellSelectionService {
 
         slot.current--;
 
-        console.info(`[${this.loggerScope}]`, 'Used spell slot', {
+        console.debug(`[${this.loggerScope}]`, 'Used spell slot', {
             className,
             spellLevel,
             remaining: slot.current,
@@ -471,7 +470,7 @@ class SpellSelectionService {
             }
         }
 
-        console.info(`[${this.loggerScope}]`, 'Restored spell slots', { classNames: classesToRestore });
+        console.debug(`[${this.loggerScope}]`, 'Restored spell slots', { classNames: classesToRestore });
 
         eventBus.emit(EVENTS.SPELL_SLOTS_RESTORED, character, classesToRestore);
         return true;

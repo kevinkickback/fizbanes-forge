@@ -43,12 +43,11 @@ class PageHandlerImpl {
 		});
 
 		this.isInitialized = true;
-		console.info('PageHandler', 'Initialized successfully');
+		console.debug('PageHandler', 'Initialized successfully');
 	}
 
 	async handlePageLoaded(pageName) {
-		console.info('PageHandler', 'Handling page loaded', { pageName });
-
+		console.debug('PageHandler', 'Handling page loaded', { pageName });
 		try {
 			// Clean up home page listeners when leaving home
 			if (pageName !== 'home') {

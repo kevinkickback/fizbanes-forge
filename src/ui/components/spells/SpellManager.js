@@ -52,7 +52,7 @@ export class SpellsManager {
             return;
         }
 
-        console.info(`[${this.loggerScope}]`, 'Rendering spells page');
+        console.debug(`[${this.loggerScope}]`, 'Rendering spells page');
 
         // Ensure progression and spellcasting are initialized before rendering
         levelUpService.initializeProgression(character);
@@ -379,7 +379,7 @@ export class SpellsManager {
 
             const result = await this.spellSelectionModal.show();
             if (result) {
-                console.info(`[${this.loggerScope}]`, 'Spells added', {
+                console.debug(`[${this.loggerScope}]`, 'Spells added', {
                     count: result.successCount,
                     className: result.className,
                 });

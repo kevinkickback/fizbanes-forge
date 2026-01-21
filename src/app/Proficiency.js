@@ -1,4 +1,3 @@
-/** Business logic for managing character proficiencies with source tracking. */
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
 import DataNormalizer from '../lib/DataNormalizer.js';
@@ -18,10 +17,7 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
  */
 
 export class ProficiencyCore {
-	/**
-	 * Adds a proficiency to a character with source tracking.
-	 * Uses case-insensitive comparison to avoid duplicates with different casing.
-	 */
+	/** Uses case-insensitive comparison to avoid duplicates with different casing. */
 	static addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
 			console.warn('Invalid parameters for addProficiency:', {

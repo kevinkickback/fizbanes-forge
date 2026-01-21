@@ -38,7 +38,7 @@ export class CharacterCreationModal {
      */
     async show() {
         try {
-            console.info('[CharacterCreationModal]', 'Opening character creation wizard');
+            console.debug('[CharacterCreationModal]', 'Opening character creation wizard');
 
             const failedServices = AppState.getFailedServices();
             if (Array.isArray(failedServices) && failedServices.length > 0) {

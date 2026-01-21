@@ -56,7 +56,7 @@ export class CharacterCreationSession {
             },
         };
 
-        console.info('[CharacterCreationSession]', 'Initialized new character creation session');
+        console.debug('[CharacterCreationSession]', 'Initialized new character creation session');
     }
 
     /**

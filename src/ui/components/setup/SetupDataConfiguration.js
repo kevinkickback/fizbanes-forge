@@ -75,7 +75,7 @@ export class DataConfigurationModal {
 			if (result.success) {
 				this.savedType = result.type;
 				this.savedValue = result.value;
-				console.info('DataConfigurationModal', 'Loaded saved configuration:', {
+				console.debug('DataConfigurationModal', 'Loaded saved configuration:', {
 					type: this.savedType,
 					value: this.savedValue,
 				});
@@ -275,7 +275,7 @@ export class DataConfigurationModal {
 		}
 
 		try {
-			console.info(
+			console.debug(
 				'DataConfigurationModal',
 				`Validating ${type} source:`,
 				value,
@@ -287,7 +287,7 @@ export class DataConfigurationModal {
 			});
 
 			if (response.success) {
-				console.info(
+				console.debug(
 					'DataConfigurationModal',
 					'Data source validation successful',
 				);

@@ -176,7 +176,7 @@ export class BackgroundCard {
 				await this._createBackgroundItem(background);
 			}
 
-			console.info('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
+			console.debug('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
 		} catch (error) {
 			console.error('BackgroundCard', 'Error populating background list:', error);
 		}
@@ -403,7 +403,7 @@ export class BackgroundCard {
 
 			// Find the background item in the list
 			const backgroundValue = `${character.background.name}_${character.background.source}`;
-			console.info('[BackgroundCard]', 'Loading saved background:', backgroundValue);
+			console.debug('[BackgroundCard]', 'Loading saved background:', backgroundValue);
 
 			const backgroundItem = this._backgroundList?.querySelector(`[data-background="${backgroundValue}"]`);
 			if (!backgroundItem) {
@@ -444,7 +444,7 @@ export class BackgroundCard {
 			let infoId = this.sanitizeId(background.name);
 
 			if (character.background.variant) {
-				console.info('[BackgroundCard]', 'Saved variant found:', character.background.variant);
+				console.debug('[BackgroundCard]', 'Saved variant found:', character.background.variant);
 
 				// Find and set the variant dropdown if it exists
 				const variantSelect = backgroundItem.querySelector('select');
@@ -457,7 +457,7 @@ export class BackgroundCard {
 						variant = background.variants?.find(v => v.name === character.background.variant);
 						this._selectedVariant = variant;
 						infoId = this.sanitizeId(`${background.name}-${character.background.variant}`);
-						console.info('[BackgroundCard]', 'Variant restored:', character.background.variant);
+						console.debug('[BackgroundCard]', 'Variant restored:', character.background.variant);
 					} else {
 						console.warn(
 							'BackgroundCard',
@@ -470,7 +470,7 @@ export class BackgroundCard {
 			// Show info panel for this background/variant
 			this._showInfo(infoId, true);
 
-			console.info('[BackgroundCard]', 'Saved background selection loaded successfully');
+			console.debug('[BackgroundCard]', 'Saved background selection loaded successfully');
 		} catch (error) {
 			console.error('BackgroundCard', 'Error loading saved background selection:', error);
 		}
