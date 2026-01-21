@@ -16,6 +16,7 @@ export class BaseDataService {
 		this._cacheKey = cacheKey;
 		this._loadEvent = loadEvent;
 		this._loggerScope = loggerScope;
+		this._initPromise = null; // Mutex for preventing concurrent initialization
 	}
 
 	/** Whether data is already initialized. */
@@ -79,7 +80,14 @@ export class BaseDataService {
 	 * @returns {*} Loaded data
 	 */
 	async initWithLoader(loaderFn, { onLoaded, emitPayload, onError } = {}) {
+		// If already initialized, return cached data
 		if (this.isInitialized()) return this._data;
+
+		// If initialization is in progress, wait for it
+		if (this._initPromise) {
+			console.debug(`[${this._loggerScope}]`, 'Initialization already in progress, waiting...');
+			return this._initPromise;
+		}
 
 		const cached = this.hydrateFromCache();
 		if (cached) {
@@ -89,29 +97,37 @@ export class BaseDataService {
 			return cached;
 		}
 
-		try {
-			const data = await loaderFn();
-			this.setData(data);
-			if (onLoaded) onLoaded(data, { fromCache: false });
-			if (emitPayload) this.emitLoaded(emitPayload(data, { fromCache: false }));
-			return data;
-		} catch (error) {
-			console.error(`[${this._loggerScope}]`, 'Initialization failed', error);
-			if (onError) {
-				const fallback = onError(error);
-				if (fallback !== undefined) {
-					this.setData(fallback);
-					if (onLoaded)
-						onLoaded(fallback, { fromCache: false, fromError: true });
-					if (emitPayload)
-						this.emitLoaded(
-							emitPayload(fallback, { fromCache: false, fromError: true }),
-						);
-					return fallback;
+		// Create initialization promise to prevent concurrent calls
+		this._initPromise = (async () => {
+			try {
+				const data = await loaderFn();
+				this.setData(data);
+				if (onLoaded) onLoaded(data, { fromCache: false });
+				if (emitPayload) this.emitLoaded(emitPayload(data, { fromCache: false }));
+				return data;
+			} catch (error) {
+				console.error(`[${this._loggerScope}]`, 'Initialization failed', error);
+				if (onError) {
+					const fallback = onError(error);
+					if (fallback !== undefined) {
+						this.setData(fallback);
+						if (onLoaded)
+							onLoaded(fallback, { fromCache: false, fromError: true });
+						if (emitPayload)
+							this.emitLoaded(
+								emitPayload(fallback, { fromCache: false, fromError: true }),
+							);
+						return fallback;
+					}
 				}
+				throw error;
+			} finally {
+				// Clear promise after completion to allow re-initialization if needed
+				this._initPromise = null;
 			}
-			throw error;
-		}
+		})();
+
+		return this._initPromise;
 	}
 
 	/**

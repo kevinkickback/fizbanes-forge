@@ -1,7 +1,12 @@
 /** Central list of IPC channel names shared by main and preload. 
  * 
+ * ⚠️ CRITICAL: This is the SINGLE SOURCE OF TRUTH for all IPC channel names.
+ * 
  * IMPORTANT: Changes to channel names must be mirrored in src/main/Preload.cjs
  * due to sandbox restrictions preventing dynamic ESM imports in preload scripts.
+ * 
+ * AUDIT FIX (2026-01-21): Centralized IPC channel definitions to prevent drift.
+ * TODO: Consider build-time generation of Preload.cjs from this file.
  */
 
 export const IPC_CHANNELS = {

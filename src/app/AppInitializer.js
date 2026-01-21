@@ -42,6 +42,9 @@ const DATA_LOAD_BACKOFF_MAX_MS = 5000; // Max delay cap (5 seconds)
 let _isInitialized = false;
 let _isInitializing = false;
 
+// Track AppInitializer's own EventBus listeners for cleanup
+const _appInitializerListeners = new Map();
+
 function _sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -205,7 +208,7 @@ async function _loadAllGameData(loadingModal) {
 			loadingModal.updateDetail(`Data source: ${sourceDesc}`);
 		}
 
-		// Initialize all services sequentially to show progress
+		// Initialize all services in parallel for faster loading
 		const services = [
 			{ name: 'spells', init: () => spellService.initialize() },
 			{ name: 'items', init: () => itemService.initialize() },
@@ -222,19 +225,34 @@ async function _loadAllGameData(loadingModal) {
 			{ name: 'optional features', init: () => optionalFeatureService.initialize() },
 		];
 
-		for (const service of services) {
-			const loadResult = await _loadDataWithErrorHandling(
+		// Load all services in parallel using Promise.allSettled
+		const results = await Promise.allSettled(
+			services.map(service => _loadDataWithErrorHandling(
 				service.init(),
 				service.name,
 				loadingModal,
-			);
-			if (!loadResult?.ok) {
-				failedServices.push(service.name);
-				if (loadResult?.error) {
-					errors.push(loadResult.error);
-				} else {
-					errors.push(new Error(`Failed to load ${service.name}`));
+			)),
+		);
+
+		// Process results
+		for (let i = 0; i < results.length; i++) {
+			const result = results[i];
+			const service = services[i];
+
+			if (result.status === 'fulfilled') {
+				const loadResult = result.value;
+				if (!loadResult?.ok) {
+					failedServices.push(service.name);
+					if (loadResult?.error) {
+						errors.push(loadResult.error);
+					} else {
+						errors.push(new Error(`Failed to load ${service.name}`));
+					}
 				}
+			} else {
+				// Promise rejected
+				failedServices.push(service.name);
+				errors.push(result.reason || new Error(`Failed to load ${service.name}`));
 			}
 		}
 
@@ -523,9 +541,15 @@ function _setupUnsavedIndicator() {
 		}
 	}
 
+	// Helper to register and track listeners
+	const registerListener = (event, handler) => {
+		eventBus.on(event, handler);
+		_appInitializerListeners.set(`${event}:${Math.random()}`, handler);
+	};
+
 	// Listen for CHARACTER_UPDATED events to mark unsaved state
 	// Use explicit state flags instead of temporal suppression to avoid race conditions
-	eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+	const onCharacterUpdated = () => {
 		// Skip if currently loading a character or navigating
 		if (AppState.get('isLoadingCharacter') || AppState.get('isNavigating')) {
 			console.debug(
@@ -545,45 +569,50 @@ function _setupUnsavedIndicator() {
 		);
 		AppState.setHasUnsavedChanges(true);
 		updateUnsavedIndicator();
-	});
+	};
+	registerListener(EVENTS.CHARACTER_UPDATED, onCharacterUpdated);
 
 	// Listen for CHARACTER_SAVED events to clear unsaved state
-	eventBus.on(EVENTS.CHARACTER_SAVED, () => {
+	const onCharacterSaved = () => {
 		console.debug(
 			'AppInitializer',
 			`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED received`,
 		);
 		AppState.setHasUnsavedChanges(false);
 		updateUnsavedIndicator();
-	});
+	};
+	registerListener(EVENTS.CHARACTER_SAVED, onCharacterSaved);
 
 	// Clear unsaved indicator when a new character is selected (fresh load)
-	eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+	const onCharacterSelected = () => {
 		console.debug(
 			'AppInitializer',
 			`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED received`,
 		);
 		AppState.setHasUnsavedChanges(false);
 		updateUnsavedIndicator();
-	});
+	};
+	registerListener(EVENTS.CHARACTER_SELECTED, onCharacterSelected);
 
 	// Update indicator on page changes (show only on certain pages)
-	eventBus.on(EVENTS.PAGE_CHANGED, (page) => {
+	const onPageChanged = (page) => {
 		console.debug(
 			'AppInitializer',
 			`[${new Date().toISOString()}] EVENT: PAGE_CHANGED to "${page}"`,
 		);
 		updateUnsavedIndicator();
-	});
+	};
+	registerListener(EVENTS.PAGE_CHANGED, onPageChanged);
 
 	// Listen for explicit AppState changes to hasUnsavedChanges
-	eventBus.on('state:hasUnsavedChanges:changed', (newVal) => {
+	const onHasUnsavedChangesChanged = (newVal) => {
 		console.debug(
 			'AppInitializer',
 			`state:hasUnsavedChanges:changed -> ${newVal}`,
 		);
 		updateUnsavedIndicator();
-	});
+	};
+	registerListener('state:hasUnsavedChanges:changed', onHasUnsavedChangesChanged);
 }
 
 function _setupUiEventHandlers() {
@@ -623,8 +652,11 @@ export async function initializeAll(_options = {}) {
 
 	if (_isInitialized) {
 		console.info('AppInitializer', 'Application already initialized, cleaning up for reload');
-		// Clear event bus to prevent duplicate listeners
-		eventBus.clearAll();
+		// Remove only AppInitializer's listeners to prevent duplicate listeners
+		for (const [event, handler] of _appInitializerListeners) {
+			eventBus.off(event, handler);
+		}
+		_appInitializerListeners.clear();
 		_isInitialized = false;
 	}
 
