@@ -18,7 +18,6 @@ export class TitlebarController {
     }
 
     setupEventListeners() {
-        // Character updates
         eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
             this.updateCharacterName();
             this.updateUnsavedIndicator();
@@ -26,7 +25,6 @@ export class TitlebarController {
         });
 
         eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
-            // Force re-check of character state (including classes) 
             this.updateCharacterName();
             this.updateUnsavedIndicator();
             this.updateActionButtons();
@@ -42,15 +40,11 @@ export class TitlebarController {
             this.updateActionButtons();
         });
 
-        // Listen to hasUnsavedChanges state changes directly
-        // This ensures save button updates even when CHARACTER_UPDATED
-        // listeners fire in different order
         eventBus.on('state:hasUnsavedChanges:changed', () => {
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
 
-        // Settings button
         if (this.settingsBtn) {
             this.settingsBtn.addEventListener('click', () => {
                 eventBus.emit(EVENTS.NAVIGATE_TO_PAGE, { page: 'settings' });
@@ -74,7 +68,6 @@ export class TitlebarController {
     updateUnsavedIndicator() {
         const hasUnsaved = AppState.get?.('hasUnsavedChanges');
 
-        // Visual indicator now lives on the Save button
         if (this.saveBtn) {
             if (hasUnsaved) {
                 this.saveBtn.classList.add('unsaved');
@@ -100,7 +93,6 @@ export class TitlebarController {
             const hasClasses = character?.progression?.classes && character.progression.classes.length > 0;
             this.levelUpBtn.disabled = !character || !hasClasses;
 
-            // Update tooltip based on state
             if (!character) {
                 this.levelUpBtn.title = 'No character loaded';
             } else if (!hasClasses) {

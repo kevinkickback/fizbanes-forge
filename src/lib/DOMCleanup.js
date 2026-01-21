@@ -1,7 +1,4 @@
-/**
- * Utility for managing DOM cleanup, event listeners, and memory management.
- * Prevents listener stacking and memory leaks when components are reused or destroyed.
- */
+/** Utility for managing DOM cleanup, event listeners, and memory management. */
 
 export class DOMCleanup {
     constructor() {
@@ -10,13 +7,6 @@ export class DOMCleanup {
         this._bootstrapModals = new Map(); // Store Bootstrap modal instances
     }
 
-    /**
-     * Safely attach an event listener and track it for cleanup
-     * @param {HTMLElement} element - The element to attach listener to
-     * @param {string} event - The event name (e.g., 'click')
-     * @param {Function} handler - The event handler
-     * @param {Object} options - Optional addEventListener options
-     */
     on(element, event, handler, options = false) {
         if (!element || typeof event !== 'string' || typeof handler !== 'function') {
             console.warn('[DOMCleanup]', 'Invalid arguments to on()', {
@@ -36,13 +26,6 @@ export class DOMCleanup {
         this._listeners.get(element).push({ event, handler, options });
     }
 
-    /**
-     * Safely attach a one-time event listener
-     * @param {HTMLElement} element - The element to attach listener to
-     * @param {string} event - The event name
-     * @param {Function} handler - The event handler
-     * @param {Object} options - Optional addEventListener options
-     */
     once(element, event, handler, options = false) {
         if (!element || typeof event !== 'string' || typeof handler !== 'function') {
             return;
@@ -56,12 +39,6 @@ export class DOMCleanup {
         this.on(element, event, wrappedHandler, options);
     }
 
-    /**
-     * Remove a specific event listener
-     * @param {HTMLElement} element - The element
-     * @param {string} event - The event name
-     * @param {Function} handler - The handler to remove (optional - removes all if not provided)
-     */
     off(element, event, handler = null) {
         if (!element || !this._listeners.has(element)) {
             return;
@@ -82,10 +59,6 @@ export class DOMCleanup {
         }
     }
 
-    /**
-     * Remove all listeners from an element
-     * @param {HTMLElement} element - The element to clean
-     */
     offAll(element) {
         if (!element || !this._listeners.has(element)) {
             return;
@@ -99,34 +72,18 @@ export class DOMCleanup {
         this._listeners.delete(element);
     }
 
-    /**
-     * Track a setTimeout for cleanup
-     * @param {Function} callback - The callback
-     * @param {number} delay - The delay in ms
-     * @returns {number} The timeout ID
-     */
     setTimeout(callback, delay) {
         const id = window.setTimeout(callback, delay);
         this._timers.add(id);
         return id;
     }
 
-    /**
-     * Track a setInterval for cleanup
-     * @param {Function} callback - The callback
-     * @param {number} interval - The interval in ms
-     * @returns {number} The interval ID
-     */
     setInterval(callback, interval) {
         const id = window.setInterval(callback, interval);
         this._timers.add(id);
         return id;
     }
 
-    /**
-     * Clear a specific timer
-     * @param {number} id - The timeout/interval ID
-     */
     clearTimer(id) {
         if (this._timers.has(id)) {
             clearTimeout(id);
@@ -135,11 +92,6 @@ export class DOMCleanup {
         }
     }
 
-    /**
-     * Register a Bootstrap modal instance for cleanup
-     * @param {HTMLElement} element - The modal element
-     * @param {bootstrap.Modal} instance - The Bootstrap Modal instance
-     */
     registerBootstrapModal(element, instance) {
         if (this._bootstrapModals.has(element)) {
             // Dispose old instance if exists
@@ -152,19 +104,10 @@ export class DOMCleanup {
         this._bootstrapModals.set(element, instance);
     }
 
-    /**
-     * Get a tracked Bootstrap modal instance
-     * @param {HTMLElement} element - The modal element
-     * @returns {bootstrap.Modal|null} The instance or null
-     */
     getBootstrapModal(element) {
         return this._bootstrapModals.get(element) || null;
     }
 
-    /**
-     * Cleans up all tracked resources
-     * @returns {Object} Summary of cleanup operations
-     */
     cleanup() {
         const summary = {
             listenersRemoved: 0,
@@ -212,10 +155,6 @@ export class DOMCleanup {
         return summary;
     }
 
-    /**
-     * Get current state for debugging
-     * @returns {Object} Current tracked resources
-     */
     getState() {
         return {
             totalElements: this._listeners.size,
@@ -225,10 +164,6 @@ export class DOMCleanup {
         };
     }
 
-    /**
-     * Static factory to create per-component cleanup manager
-     * @returns {DOMCleanup} New instance
-     */
     static create() {
         return new DOMCleanup();
     }

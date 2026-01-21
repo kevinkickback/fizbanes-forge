@@ -1,29 +1,11 @@
 /** Notifications.js - Temporary user notifications with debouncing and auto-close. */
 
 /**
- * Notification suppression policy - reduces noisy success/info toasts for changes
- * that are already visually evident in the UI.
+ * Suppress noisy success/info toasts for changes already visible in the UI.
+ * Prefer inline feedback when the user can see the result on-screen.
  * 
- * BEST PRACTICE: Prefer inline feedback (highlights, animations, badges) over toasts
- * when the user can already see the result of their action on-screen.
- * 
- * When to SUPPRESS notifications (return true):
- * - Character create/delete/duplicate/rename (card appears/disappears is sufficient)
- * - Single item/spell add/remove (list update is self-evident)
- * - Equipment equip/unequip (visual state change is clear)
- * - Proficiency/feature selections (selection UI shows the change)
- * - Auto-save (use inline badge instead)
- * 
- * When to ALLOW notifications (return false):
- * - Errors and warnings (always notify)
- * - Background/long-running operations that finish off-screen
- * - Cross-context results (action taken on different page/section)
- * - Bulk operations with counts (e.g., "Added 15 items") if target not fully visible
- * - Explicit user commands: Manual Save, Export, Import
- * 
- * @param {string} message - The notification message
- * @param {string} type - success, info, warning, error, danger
- * @returns {boolean} true if notification should be suppressed
+ * SUPPRESS: Character CRUD, single item/spell ops, equipment state, selections, auto-save.
+ * ALLOW: Errors, warnings, background ops, cross-context results, explicit save/export.
  */
 function shouldSuppressNotification(message, type) {
 	if (!message || !type) return false;

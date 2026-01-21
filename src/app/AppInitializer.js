@@ -1,6 +1,3 @@
-/** Orchestrates renderer startup, data loading, and core component initialization. */
-
-// Core imports - NEW ARCHITECTURE
 import { eventBus } from '../lib/EventBus.js';
 
 import { getNotificationCenter } from '../lib/NotificationCenter.js';
@@ -35,16 +32,12 @@ import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
 
 const MAX_DATA_LOAD_ATTEMPTS = 2;
-const DATA_LOAD_BACKOFF_BASE_MS = 250; // Base delay for exponential backoff
-const DATA_LOAD_BACKOFF_MAX_MS = 5000; // Max delay cap (5 seconds)
+const DATA_LOAD_BACKOFF_BASE_MS = 250;
+const DATA_LOAD_BACKOFF_MAX_MS = 5000;
 
-// Guard against multiple initializations
 let _isInitialized = false;
 let _isInitializing = false;
-// Cleanup function for extracted UI handlers
 let _uiHandlersCleanup = null;
-
-// Track AppInitializer's own EventBus listeners for cleanup
 const _appInitializerListeners = new Map();
 
 function _sleep(ms) {
@@ -80,15 +73,8 @@ function _updateServiceFailureBanner(failedServices = []) {
 	}
 }
 
-/**
- * Calculate exponential backoff delay.
- * Formula: base * (2^(attempt-1)), capped at max.
- * @param {number} attempt - Attempt number (1-indexed)
- * @returns {number} Delay in milliseconds
- */
 function _calculateExponentialBackoff(attempt) {
 	if (attempt <= 1) return 0;
-	// base * 2^(attempt-1): 250ms, 500ms, 1000ms, 2000ms, 4000ms, capped at 5000ms
 	const delay = DATA_LOAD_BACKOFF_BASE_MS * 2 ** (attempt - 2);
 	return Math.min(delay, DATA_LOAD_BACKOFF_MAX_MS);
 }
@@ -111,7 +97,7 @@ async function _checkDataFolder() {
 		// Prefer previously configured data source
 		const saved = await window.app.getDataSource();
 		if (saved?.success && saved.type && saved.value) {
-			console.info(
+			console.debug(
 				'AppInitializer',
 				'Using configured data source:',
 				saved.type,
@@ -119,7 +105,6 @@ async function _checkDataFolder() {
 			return true;
 		}
 
-		// No configured source – require user configuration every time
 		console.warn(
 			'AppInitializer',
 			'No data source configured, showing configuration modal',
@@ -132,7 +117,7 @@ async function _checkDataFolder() {
 		const modal = new DataConfigurationModal();
 		const result = await modal.show();
 
-		console.info('AppInitializer', 'User configured data source:', result.type);
+		console.debug('AppInitializer', 'User configured data source:', result.type);
 		return true;
 	} catch (error) {
 		console.error('AppInitializer', 'Error checking data folder:', error);
@@ -345,12 +330,11 @@ async function _initializeCoreComponents() {
 	};
 
 	try {
-		console.info(
+		console.debug(
 			'AppInitializer',
-			'Initializing core components with NEW architecture',
+			'Initializing core components',
 		);
 
-		// Define components and their initialization sequence
 		const components = [
 			{ name: 'text processor', init: () => textProcessor.initialize() },
 			{ name: 'titlebar controller', init: () => titlebarController.init() },
@@ -375,7 +359,7 @@ async function _initializeCoreComponents() {
 
 			if (initResult.success) {
 				result.loadedComponents.push(component.name);
-				console.info('AppInitializer', `✓ ${component.name} initialized`);
+				console.debug('AppInitializer', `✓ ${component.name} initialized`);
 			} else {
 				result.errors.push(initResult.error);
 				console.error(
@@ -386,10 +370,9 @@ async function _initializeCoreComponents() {
 			}
 		}
 
-		// Set overall success based on whether any critical errors occurred
 		result.success = result.errors.length === 0;
 
-		console.info('AppInitializer', 'Core components initialized', {
+		console.debug('AppInitializer', 'Core components initialized', {
 			success: result.success,
 			loaded: result.loadedComponents.length,
 			errors: result.errors.length,
@@ -408,18 +391,6 @@ async function _initializeCoreComponents() {
 	}
 }
 
-// UI event handlers extracted to UIHandlersInitializer
-
-//-------------------------------------------------------------------------
-// Public API
-//-------------------------------------------------------------------------
-
-/**
- * Initializes all core components of the application in the correct order
- * @param {InitializationOptions} [_options={}] - Initialization options
- * @returns {Promise<InitializationResult>} The result of initialization
- * @throws {Error} If initialization fails catastrophically
- */
 export async function initializeAll(_options = {}) {
 	// Prevent multiple simultaneous initializations
 	if (_isInitializing) {
@@ -600,7 +571,7 @@ export async function initializeAll(_options = {}) {
 						throw new Error('Data source update failed');
 					} else {
 						DataLoader.clearCache();
-						console.info(
+						console.debug(
 							'AppInitializer',
 							'Checked data source for updates before load; cleared data cache',
 						);
@@ -611,7 +582,7 @@ export async function initializeAll(_options = {}) {
 					console.warn('AppInitializer', 'Data source update failed', error);
 				}
 			} else {
-				console.info(
+				console.debug(
 					'AppInitializer',
 					'Auto update disabled; skipping data sync',
 				);
@@ -676,7 +647,7 @@ export async function initializeAll(_options = {}) {
 
 		_isInitializing = false;
 		_isInitialized = true;
-		console.info('AppInitializer', 'Initialization complete');
+		console.debug('AppInitializer', 'Initialization complete');
 
 		return result;
 	} catch (error) {

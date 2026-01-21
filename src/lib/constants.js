@@ -1,6 +1,4 @@
-/**
- * D&D 5e Alignment Constants
- */
+/** D&D 5e Alignment Constants */
 
 export const ALIGNMENTS = [
     { value: 'LG', label: 'Lawful Good' },
@@ -16,21 +14,11 @@ export const ALIGNMENTS = [
     { value: 'A', label: 'Any alignment' },
 ];
 
-/**
- * Get alignment label from value
- * @param {string} value - Alignment abbreviation (e.g., 'LG', 'N')
- * @returns {string} Full alignment name
- */
 export function getAlignmentLabel(value) {
     const alignment = ALIGNMENTS.find((a) => a.value === value);
     return alignment ? alignment.label : value;
 }
 
-/**
- * Get alignment value from label
- * @param {string} label - Full alignment name (e.g., 'Lawful Good')
- * @returns {string} Alignment abbreviation
- */
 export function getAlignmentValue(label) {
     const alignment = ALIGNMENTS.find((a) => a.label === label);
     return alignment ? alignment.value : label;

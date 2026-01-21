@@ -56,11 +56,6 @@ function _getPersistedEntry(url) {
 	return persisted?.[url] || null;
 }
 
-/**
- * Check if a cached entry is still valid based on version and TTL.
- * @param {Object} entry Persisted cache entry with version, timestamp, data
- * @returns {boolean} True if entry is valid and not expired
- */
 function _isCacheEntryValid(entry, ttlOverride = null) {
 	if (!entry) return false;
 
@@ -324,11 +319,7 @@ function clearCacheForUrl(url) {
 	return dataLoader;
 }
 
-/**
- * Increment cache version to invalidate all existing cached data.
- * Useful when data format changes or server data is updated.
- * @returns {string} New version number
- */
+/** Increment cache version to invalidate all cached data. */
 function invalidateAllCache() {
 	const oldVersion = state.version;
 	state.version = String(Number(state.version) + 1);
@@ -339,11 +330,6 @@ function invalidateAllCache() {
 	return state.version;
 }
 
-/**
- * Set TTL (time-to-live) for cache entries.
- * @param {number} milliseconds TTL in milliseconds (default 7 days = 604800000ms)
- * @returns {Object} dataLoader for chaining
- */
 function setTTL(milliseconds) {
 	if (milliseconds < 0) {
 		console.warn('DataLoader', 'TTL must be non-negative; ignoring');
@@ -353,10 +339,6 @@ function setTTL(milliseconds) {
 	return dataLoader;
 }
 
-/**
- * Get current cache version and TTL settings.
- * @returns {Object} {version, ttl, ttlDays}
- */
 function getCacheSettings() {
 	return {
 		version: state.version,
@@ -411,8 +393,8 @@ const dataLoader = {
 const DataLoader = dataLoader;
 
 export {
-	DataLoader, clearCache,
-	clearCacheForUrl, dataLoader,
+	clearCache,
+	clearCacheForUrl, DataLoader, dataLoader,
 	getCacheSettings,
 	getCacheStats,
 	invalidateAllCache,

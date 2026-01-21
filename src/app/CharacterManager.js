@@ -1,5 +1,3 @@
-/** Orchestrates character CRUD operations and state management. */
-
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 
@@ -9,7 +7,7 @@ import { Character, serializeCharacter } from './Character.js';
 
 class CharacterManagerImpl {
 	async createCharacter(name) {
-		console.info('CharacterManager', 'Creating character', { name });
+		console.debug('CharacterManager', 'Creating character', { name });
 
 		const failedServices = AppState.getFailedServices();
 		if (Array.isArray(failedServices) && failedServices.length > 0) {
@@ -49,10 +47,9 @@ class CharacterManagerImpl {
 			AppState.setCurrentCharacter(character);
 			AppState.setHasUnsavedChanges(true);
 
-			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_CREATED, character);
 
-			console.info('CharacterManager', 'Character created', {
+			console.debug('CharacterManager', 'Character created', {
 				id: character.id,
 			});
 			return character;
@@ -63,22 +60,17 @@ class CharacterManagerImpl {
 	}
 
 	async loadCharacter(id) {
-		console.debug(
-			'CharacterManager',
-			`[${new Date().toISOString()}] Loading character with ID: ${id}`,
-		);
+		console.debug('CharacterManager', 'Loading character', { id });
 
 		try {
-			// Set loading flag to prevent spurious unsaved change indicators
 			AppState.setState({ isLoadingCharacter: true });
 
-			// Get all characters
 			const listResult = await window.characterStorage.loadCharacters();
 			if (!listResult.success) {
 				throw new Error('Failed to load character list');
 			}
 
-			const characters = listResult.characters || []; // FIX: Use 'characters' not 'data'
+			const characters = listResult.characters || [];
 			const characterData = characters.find((c) => c.id === id);
 
 			if (!characterData) {
@@ -86,7 +78,6 @@ class CharacterManagerImpl {
 				throw new Error('Character not found');
 			}
 
-			// Validate
 			const validation = CharacterSchema.validate(characterData);
 			if (!validation.valid) {
 				console.warn(
@@ -99,38 +90,23 @@ class CharacterManagerImpl {
 				);
 			}
 
-			// Convert to Character instance to enable domain methods
-			console.debug('[CharacterManager] Loading character - optionalProficiencies.tools.class:',
-				JSON.stringify(characterData.optionalProficiencies?.tools?.class || {}));
 			const character = new Character(characterData);
 
-			// Update state
-			console.debug(
-				'CharacterManager',
-				`Setting current character to: ${character.name} (${character.id})`,
-			);
 			AppState.setCurrentCharacter(character);
 			AppState.setHasUnsavedChanges(false);
 
-			// Emit event
-			console.debug(
-				'CharacterManager',
-				`Emitting CHARACTER_SELECTED event for character: ${character.name}`,
-			);
 			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
 
-			console.debug(
-				'CharacterManager',
-				`✓ Character loaded successfully: ${character.name}`,
-				{ id },
-			);
+			console.debug('CharacterManager', 'Character loaded', {
+				id: character.id,
+				name: character.name,
+			});
 
 			return character;
 		} catch (error) {
 			console.error('CharacterManager', 'Load failed', error);
 			throw error;
 		} finally {
-			// Always clear loading flag, even on error
 			AppState.setState({ isLoadingCharacter: false });
 		}
 	}
@@ -146,10 +122,8 @@ class CharacterManagerImpl {
 		console.debug('CharacterManager', 'Saving character', { id: character.id });
 
 		try {
-			// Update timestamp
 			CharacterSchema.touch(character);
 
-			// Validate before saving
 			const validation = CharacterSchema.validate(character);
 			if (!validation.valid) {
 				console.warn(
@@ -160,7 +134,6 @@ class CharacterManagerImpl {
 				throw new Error(`Cannot save: ${validation.errors.join(', ')}`);
 			}
 
-			// Serialize character using centralized utility
 			const serializedCharacter = serializeCharacter(character);
 
 			const saveResult =
@@ -170,13 +143,10 @@ class CharacterManagerImpl {
 				throw new Error(saveResult.error || 'Save failed');
 			}
 
-			// Update state
 			AppState.setHasUnsavedChanges(false);
-
-			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_SAVED, character);
 
-			console.info('CharacterManager', 'Character saved', { id: character.id });
+			console.debug('CharacterManager', 'Character saved', { id: character.id });
 			return true;
 		} catch (error) {
 			console.error('CharacterManager', 'Save failed', error);
@@ -185,30 +155,26 @@ class CharacterManagerImpl {
 	}
 
 	async deleteCharacter(id) {
-		console.info('CharacterManager', 'Deleting character', { id });
+		console.debug('CharacterManager', 'Deleting character', { id });
 
 		try {
-			// Delete via IPC
 			const deleteResult = await window.characterStorage.deleteCharacter(id);
 
 			if (!deleteResult.success) {
 				throw new Error(deleteResult.error || 'Delete failed');
 			}
 
-			// Update state - remove from list
 			const characters = AppState.getCharacters().filter((c) => c.id !== id);
 			AppState.setCharacters(characters);
 
-			// Clear current if it was deleted
 			if (AppState.getCurrentCharacter()?.id === id) {
 				AppState.setCurrentCharacter(null);
 				AppState.setHasUnsavedChanges(false);
 			}
 
-			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_DELETED, id);
 
-			console.info('CharacterManager', 'Character deleted', { id });
+			console.debug('CharacterManager', 'Character deleted', { id });
 			return true;
 		} catch (error) {
 			console.error('CharacterManager', 'Delete failed', error);
@@ -217,7 +183,7 @@ class CharacterManagerImpl {
 	}
 
 	async loadCharacterList() {
-		console.info('CharacterManager', 'Loading character list');
+		console.debug('CharacterManager', 'Loading character list');
 
 		try {
 			const listResult = await window.characterStorage.loadCharacters();
@@ -226,15 +192,13 @@ class CharacterManagerImpl {
 				throw new Error(listResult.error || 'Failed to load list');
 			}
 
-			const charactersData = listResult.characters || []; // FIX: Use 'characters' not 'data'
+			const charactersData = listResult.characters || [];
 
-			// Convert plain objects to Character instances so helper methods work
 			const characters = charactersData.map((data) => new Character(data));
 
-			// Update state
 			AppState.setCharacters(characters);
 
-			console.info('CharacterManager', 'Character list loaded', {
+			console.debug('CharacterManager', 'Character list loaded', {
 				count: characters.length,
 			});
 			return characters;
@@ -257,15 +221,12 @@ class CharacterManagerImpl {
 			updates,
 		});
 
-		// Clone via serialization to preserve immutability semantics
 		const baseData = serializeCharacter(character);
 		const mergedData = { ...baseData, ...updates };
 		const updatedCharacter = new Character(mergedData);
 
-		// Touch timestamp on the new instance
 		CharacterSchema.touch(updatedCharacter);
 
-		// Update state with a new reference so AppState change detection fires
 		AppState.setState({ currentCharacter: updatedCharacter });
 		AppState.setHasUnsavedChanges(true);
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, updatedCharacter);

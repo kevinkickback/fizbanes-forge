@@ -14,9 +14,6 @@ export class NotificationCenter {
         this._listContainer = null;
     }
 
-    /**
-     * Initialize the notification center
-     */
     initialize() {
         const notificationCenterBtn = document.getElementById('notificationCenterBtn');
         if (notificationCenterBtn) {
@@ -31,9 +28,6 @@ export class NotificationCenter {
         this._listContainer = document.getElementById('notificationCenterList');
     }
 
-    /**
-     * Show the notification center modal
-     */
     show() {
         try {
             // Mark all notifications as read when opening center
@@ -62,9 +56,6 @@ export class NotificationCenter {
         }
     }
 
-    /**
-     * Refresh the notification list display
-     */
     refreshList() {
         if (!this._listContainer) {
             this._listContainer = document.getElementById('notificationCenterList');
@@ -91,9 +82,6 @@ export class NotificationCenter {
         });
     }
 
-    /**
-     * Create a notification item element
-     */
     _createNotificationItem(notification) {
         const div = document.createElement('div');
         div.className = `notification-center-item ${notification.type}`;
@@ -144,9 +132,6 @@ export class NotificationCenter {
         return div;
     }
 
-    /**
-     * Format timestamp for display
-     */
     _formatTime(timestamp) {
         const now = new Date();
         const diff = now - timestamp;
@@ -180,17 +165,11 @@ export class NotificationCenter {
         return `${month}/${day}`;
     }
 
-    /**
-     * Clear all notifications
-     */
     clearAll() {
         clearNotificationHistory();
         this.refreshList();
     }
 
-    /**
-     * Cleanup resources
-     */
     dispose() {
         this._cleanup.cleanup();
         if (this._modal) {

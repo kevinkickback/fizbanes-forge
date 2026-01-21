@@ -22,15 +22,8 @@ const ATB_ABV_TO_FULL = {
 	cha: 'Charisma',
 };
 
-/**
- * Ordered list of full ability names
- */
 export const ABILITY_NAMES = ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'];
 
-/**
- * Magic school abbreviations to full names
- * Follows 5etools conventions
- */
 const SPELL_SCHOOLS = {
 	A: 'Abjuration',
 	C: 'Conjuration',
@@ -42,9 +35,6 @@ const SPELL_SCHOOLS = {
 	V: 'Evocation',
 };
 
-/**
- * Ordered list of spell school names
- */
 export const SPELL_SCHOOL_NAMES = [
 	'Abjuration',
 	'Conjuration',
@@ -183,24 +173,11 @@ export function attAbvToFull(abv) {
 	return ATB_ABV_TO_FULL[abv.toLowerCase()] || abv;
 }
 
-/**
- * Get full school name from abbreviation
- * @param {string} code - School abbreviation (A, C, D, E, I, N, T, V)
- * @returns {string} Full school name
- */
 export function getSchoolName(code) {
 	return SPELL_SCHOOLS[code] || code;
 }
 
-/**
- * Convert array of ability abbreviations to "choose from" text
- * @param {string[]} attList - Array of ability abbreviations
- * @returns {string} Human-readable choice text
- *
- * Examples:
- * - ["str"] → "Strength modifier"
- * - ["str", "dex"] → "Strength or Dexterity modifier (your choice)"
- */
+/** Convert array of ability abbreviations to choice text (e.g., "Strength or Dexterity modifier (your choice)"). */
 export function attrChooseToFull(attList) {
 	if (!attList || !Array.isArray(attList) || attList.length === 0) {
 		return '';
@@ -215,16 +192,7 @@ export function attrChooseToFull(attList) {
 	return `${attsTemp.join(' or ')} modifier (your choice)`;
 }
 
-/**
- * Get speed string from entity speed data
- * @param {object|number} ent - Entity with speed property, or speed number
- * @returns {string} Formatted speed string
- *
- * Examples:
- * - 30 returns "30 ft."
- * - {walk: 30, fly: 60} returns "30 ft., fly 60 ft."
- * - {walk: 30, swim: {number: 30, condition: "..."}} returns "30 ft., swim 30 ft. (...)"
- */
+/** Format speed data to string (e.g., "30 ft., fly 60 ft."). */
 export function getSpeedString(ent) {
 	// Handle simple number
 	if (typeof ent === 'number') {
@@ -637,11 +605,8 @@ export {
 	LANGUAGES_SECRET,
 	LANGUAGES_STANDARD,
 	SIZE_ABV_TO_FULL,
-	SKILL_TO_ABILITY,
-	SOURCE_TO_ABV,
-	SOURCE_TO_FULL,
-	SOURCES,
-	SPEED_MODES
+	SKILL_TO_ABILITY, SOURCES, SOURCE_TO_ABV,
+	SOURCE_TO_FULL, SPEED_MODES
 };
 
 export default {

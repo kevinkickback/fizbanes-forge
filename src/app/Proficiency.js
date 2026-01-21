@@ -3,18 +3,9 @@
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
-/**
- * @typedef {Object} ProficiencyWithSources
- * @property {string} name - The name of the proficiency
- * @property {Set<string>} sources - Set of sources that grant this proficiency
- */
+/** @typedef {{ name: string, sources: Set<string> }} ProficiencyWithSources */
 
-/**
- * @typedef {Object} OptionalProficiencyConfig
- * @property {number} allowed - Number of proficiencies allowed to be selected
- * @property {string[]} options - Available proficiency options
- * @property {string[]} selected - Currently selected proficiencies
- */
+/** @typedef {{ allowed: number, options: string[], selected: string[] }} OptionalProficiencyConfig */
 
 export class ProficiencyCore {
 	/** Uses case-insensitive comparison to avoid duplicates with different casing. */
@@ -34,8 +25,6 @@ export class ProficiencyCore {
 		if (!character.proficiencySources[type])
 			character.proficiencySources[type] = new Map();
 
-		// Check if proficiency already exists (case-insensitive)
-		// If found, use the existing casing to maintain consistency
 		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
 		const existingProf = character.proficiencies[type].find(
 			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
@@ -46,19 +35,16 @@ export class ProficiencyCore {
 			character.proficiencies[type].push(proficiency);
 		}
 
-		// Track source (use existing proficiency casing if it exists)
 		const trackKey = existingProf || proficiency;
 		if (!character.proficiencySources[type].has(trackKey)) {
 			character.proficiencySources[type].set(trackKey, new Set());
 		}
 		character.proficiencySources[type].get(trackKey).add(source);
 
-		// Handle skill auto-refund if this is a fixed proficiency
 		if (type === 'skills' && !source.includes('Choice')) {
 			ProficiencyCore._refundOptionalSkill(character, proficiency, source);
 		}
 
-		// Emit event
 		eventBus.emit(EVENTS.PROFICIENCY_ADDED, {
 			type,
 			proficiency,
@@ -81,24 +67,19 @@ export class ProficiencyCore {
 			return removed;
 		}
 
-		// Iterate through each proficiency type
 		for (const type in character.proficiencySources) {
 			removed[type] = [];
 
-			// Iterate through proficiencies of this type
 			for (const [proficiency, sources] of character.proficiencySources[
 				type
 			].entries()) {
-				// Remove this source
 				if (sources.has(source)) {
 					sources.delete(source);
 					removed[type].push(proficiency);
 
-					// If no sources remain, remove the proficiency entirely
 					if (sources.size === 0) {
 						character.proficiencySources[type].delete(proficiency);
 
-						// Remove from proficiencies array
 						if (character.proficiencies[type]) {
 							const index = character.proficiencies[type].indexOf(proficiency);
 							if (index > -1) {
@@ -110,7 +91,6 @@ export class ProficiencyCore {
 			}
 		}
 
-		// Emit event
 		eventBus.emit(EVENTS.PROFICIENCY_REMOVED_BY_SOURCE, {
 			source,
 			removed,
@@ -120,10 +100,7 @@ export class ProficiencyCore {
 		return removed;
 	}
 
-	/**
-	 * Checks if a character has a proficiency (from any source).
-	 * Uses case-insensitive comparison to handle both old (lowercase) and new (original casing) saves.
-	 */
+	/** Uses case-insensitive comparison to handle both old and new character saves. */
 	static hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
 
@@ -173,7 +150,6 @@ export class ProficiencyCore {
 			};
 		}
 
-		// Set configuration for this source
 		const sourceKey = DataNormalizer.normalizeForLookup(source);
 		if (!character.optionalProficiencies[type][sourceKey]) {
 			character.optionalProficiencies[type][sourceKey] = {
@@ -186,10 +162,8 @@ export class ProficiencyCore {
 		character.optionalProficiencies[type][sourceKey].allowed = allowed;
 		character.optionalProficiencies[type][sourceKey].options = [...options];
 
-		// Recalculate combined options and allowed count
 		ProficiencyCore._recalculateOptionalProficiencies(character, type);
 
-		// Emit event
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_CONFIGURED, {
 			type,
 			source: sourceKey,
@@ -206,7 +180,6 @@ export class ProficiencyCore {
 
 		const sourceKey = DataNormalizer.normalizeForLookup(source);
 		if (character.optionalProficiencies[type][sourceKey]) {
-			// Clear selections and remove from character
 			const selected =
 				character.optionalProficiencies[type][sourceKey].selected || [];
 			for (const _proficiency of selected) {
@@ -216,14 +189,12 @@ export class ProficiencyCore {
 				);
 			}
 
-			// Clear the configuration
 			character.optionalProficiencies[type][sourceKey] = {
 				allowed: 0,
 				options: [],
 				selected: [],
 			};
 
-			// Recalculate combined
 			ProficiencyCore._recalculateOptionalProficiencies(character, type);
 		}
 
@@ -248,12 +219,10 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		// Check if already selected
 		if (config.selected.includes(proficiency)) {
 			return false;
 		}
 
-		// Check if there's room for more selections
 		if (config.selected.length >= config.allowed) {
 			console.warn(
 				'Maximum optional proficiencies already selected for',
@@ -262,16 +231,13 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		// Verify proficiency is in options
 		if (!config.options.includes(proficiency)) {
 			console.warn('Proficiency not in available options:', proficiency);
 			return false;
 		}
 
-		// Add to selected
 		config.selected.push(proficiency);
 
-		// Add the proficiency with source tracking
 		ProficiencyCore.addProficiency(
 			character,
 			type,
@@ -279,7 +245,6 @@ export class ProficiencyCore {
 			`${source} Choice`,
 		);
 
-		// Recalculate combined
 		ProficiencyCore._recalculateOptionalProficiencies(character, type);
 
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_SELECTED, {
@@ -304,7 +269,6 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		// Remove from selected
 		const index = config.selected.indexOf(proficiency);
 		if (index === -1) {
 			return false;
@@ -312,7 +276,6 @@ export class ProficiencyCore {
 
 		config.selected.splice(index, 1);
 
-		// Remove the proficiency (only the specific source)
 		ProficiencyCore._removeProficiencyFromSource(
 			character,
 			type,
@@ -320,7 +283,6 @@ export class ProficiencyCore {
 			`${source} Choice`,
 		);
 
-		// Recalculate combined
 		ProficiencyCore._recalculateOptionalProficiencies(character, type);
 
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_DESELECTED, {
@@ -341,14 +303,11 @@ export class ProficiencyCore {
 			return [];
 		}
 
-		// Return options that haven't been selected yet and aren't already granted as fixed proficiencies
 		return config.options.filter((option) => {
-			// Don't show if already selected for this source
 			if (config.selected.includes(option)) {
 				return false;
 			}
 
-			// Don't show if it's a fixed proficiency from any source
 			const sources = ProficiencyCore.getProficiencySources(
 				character,
 				type,
@@ -370,12 +329,10 @@ export class ProficiencyCore {
 		const config = character.optionalProficiencies[type];
 		const sources = ['race', 'class', 'background'];
 
-		// Combine allowed counts
 		config.allowed = sources.reduce((sum, source) => {
 			return sum + (config[source]?.allowed || 0);
 		}, 0);
 
-		// Combine options (unique values)
 		const allOptions = new Set();
 		for (const source of sources) {
 			if (config[source]?.options) {
@@ -386,7 +343,6 @@ export class ProficiencyCore {
 		}
 		config.options = Array.from(allOptions);
 
-		// Combine selected (unique values)
 		const allSelected = new Set();
 		for (const source of sources) {
 			if (config[source]?.selected) {
@@ -409,7 +365,6 @@ export class ProficiencyCore {
 		let refunded = false;
 
 		for (const source of sources) {
-			// Skip the source that's adding the fixed proficiency
 			if (
 				(source === 'race' && newSource === 'Race') ||
 				(source === 'class' && newSource === 'Class') ||
@@ -423,17 +378,14 @@ export class ProficiencyCore {
 				continue;
 			}
 
-			// Check if this proficiency is in the selected list (case-insensitive)
 			const matchingProf = config.selected.find(
 				(s) => DataNormalizer.normalizeForLookup(s) === normalizedProf,
 			);
 
 			if (matchingProf) {
-				// Remove from selected list
 				const index = config.selected.indexOf(matchingProf);
 				config.selected.splice(index, 1);
 
-				// Remove the choice source
 				ProficiencyCore._removeProficiencyFromSource(
 					character,
 					'skills',
@@ -446,10 +398,8 @@ export class ProficiencyCore {
 		}
 
 		if (refunded) {
-			// Recalculate combined
 			ProficiencyCore._recalculateOptionalProficiencies(character, 'skills');
 
-			// Emit event for UI update
 			eventBus.emit(EVENTS.PROFICIENCY_REFUNDED, {
 				type: 'skills',
 				proficiency,
@@ -463,7 +413,6 @@ export class ProficiencyCore {
 			return;
 		}
 
-		// Find the proficiency using case-insensitive lookup
 		const targetLower = DataNormalizer.normalizeForLookup(proficiency);
 		let foundProf = null;
 
@@ -485,7 +434,6 @@ export class ProficiencyCore {
 
 		sources.delete(source);
 
-		// If no sources remain, remove the proficiency entirely
 		if (sources.size === 0) {
 			character.proficiencySources[type].delete(foundProf);
 
@@ -514,7 +462,6 @@ export class ProficiencyCore {
 			'weapons',
 		];
 
-		// Initialize proficiencies
 		if (!character.proficiencies) {
 			character.proficiencies = {};
 		}
@@ -524,7 +471,6 @@ export class ProficiencyCore {
 			}
 		}
 
-		// Initialize proficiency sources
 		if (!character.proficiencySources) {
 			character.proficiencySources = {};
 		}
@@ -534,7 +480,6 @@ export class ProficiencyCore {
 			}
 		}
 
-		// Initialize optional proficiencies for applicable types
 		if (!character.optionalProficiencies) {
 			character.optionalProficiencies = {};
 		}
@@ -551,7 +496,6 @@ export class ProficiencyCore {
 					background: { allowed: 0, options: [], selected: [] },
 				};
 			} else {
-				// Deep-initialize nested properties that might be missing
 				const prof = character.optionalProficiencies[type];
 				if (prof.allowed === undefined) prof.allowed = 0;
 				if (!prof.options) prof.options = [];

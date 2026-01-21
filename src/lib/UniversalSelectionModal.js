@@ -1,16 +1,8 @@
 import { DOMCleanup } from './DOMCleanup.js';
 import { showNotification } from './Notifications.js';
 
-// Shared helper functions for formatting category counters
+/** Format multiple category counters into HTML badges. */
 export function formatCategoryCounters(categories) {
-    /**
-     * Format multiple category counters into HTML badges
-     * Usage: formatCategoryCounters([
-     *   { label: 'Cantrips', selected: 2, max: 2, color: 'bg-info' },
-     *   { label: '1st Spells', selected: 1, max: 2, color: 'bg-success' }
-     * ])
-     * Returns: HTML string with separate badge elements
-     */
     if (!Array.isArray(categories) || categories.length === 0) {
         return '<span class="badge bg-secondary">0 / ∞</span>';
     }
@@ -24,11 +16,6 @@ export function formatCategoryCounters(categories) {
 }
 
 export function formatCounter(category) {
-    /**
-     * Format a single category counter
-     * Usage: formatCounter({ label: 'Items', selected: 2, max: 5 })
-     * Returns: HTML string for a badge
-     */
     const color = category.color || 'bg-info';
     return `<span class="badge ${color}">${category.selected}/${category.max} ${category.label}</span>`;
 }
@@ -82,9 +69,6 @@ export class UniversalSelectionModal {
         };
     }
 
-    /**
-     * Get or create the modal element with proper spell-filter-row structure
-     */
     _getOrCreateModal() {
         let modal = document.getElementById(this.config.modalId);
 
@@ -116,9 +100,6 @@ export class UniversalSelectionModal {
         });
     }
 
-    /**
-     * Generate complete modal HTML using spell-filter-row structure
-     */
     _getModalHTML() {
 
         return `

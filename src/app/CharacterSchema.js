@@ -1,5 +1,3 @@
-/** Schema helpers for creating and validating character data. */
-
 function validateCharacterData(character) {
 	const errors = [];
 	if (!character) {
@@ -9,7 +7,6 @@ function validateCharacterData(character) {
 	if (!character.id) errors.push('Missing character ID');
 	if (!character.name || String(character.name).trim() === '')
 		errors.push('Missing character name');
-	// Note: level is calculated from progression.classes[], no validation needed
 	if (
 		!Array.isArray(character.allowedSources) &&
 		!(character.allowedSources instanceof Set)
@@ -49,10 +46,7 @@ function validateCharacterData(character) {
 }
 
 export const CharacterSchema = {
-	/**
-	 * Create a new character with default values.
-	 * @returns {object} New character object
-	 */
+	/** Create a new character with default values. */
 	create() {
 		return {
 			id: null,
@@ -69,12 +63,8 @@ export const CharacterSchema = {
 				charisma: 10,
 			},
 
-			// Character details
-			// Note: class info stored in progression.classes[], no legacy class field
 			race: null,
 			background: null,
-			// Note: subclass is stored in progression.classes[].subclass, not at root level
-			// Note: total level is calculated from progression.classes[].levels, no legacy level field
 			proficiencies: {
 				armor: [],
 				weapons: [],
@@ -84,10 +74,8 @@ export const CharacterSchema = {
 				savingThrows: [],
 			},
 
-			// Sources
-			allowedSources: [], // Array of source book codes
+			allowedSources: [],
 
-			// Equipment
 			equipment: [],
 
 			// Spells
@@ -121,7 +109,6 @@ export const CharacterSchema = {
 				},
 			},
 
-			// Spellcasting system
 			spellcasting: {
 				classes: {},
 				multiclass: {
@@ -134,30 +121,22 @@ export const CharacterSchema = {
 				},
 			},
 
-			// Progression system (per-class tracking)
 			progression: {
 				classes: [],
 				experiencePoints: 0,
 				levelUps: [],
 			},
 
-			// Progression history (user choices at each level: spells, feats, invocations, etc.)
 			progressionHistory: {},
 
-			// Notes
 			notes: '',
 
-			// Metadata
 			createdAt: new Date().toISOString(),
 			lastModified: new Date().toISOString(),
 		};
 	},
 
-	/**
-	 * Validate character data structure.
-	 * @param {object} character - Character object to validate
-	 * @returns {object} Validation result { valid: boolean, errors: string[] }
-	 */
+	/** Validate character data structure. */
 	validate(character) {
 		const { valid: isValid, errors } = validateCharacterData(character);
 
@@ -175,10 +154,7 @@ export const CharacterSchema = {
 		return { valid: isValid, errors };
 	},
 
-	/**
-	 * Update the lastModified timestamp.
-	 * @param {object} character - Character object
-	 */
+	/** Update the lastModified timestamp. */
 	touch(character) {
 		character.lastModified = new Date().toISOString();
 		console.debug('CharacterSchema', 'Character touched', { id: character.id });

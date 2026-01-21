@@ -8,7 +8,6 @@ export class ThemeManager {
         this.applyTheme(this.currentTheme);
         this.setupToggleButton();
 
-        // Listen for page changes to re-setup buttons
         if (eventBus) {
             eventBus.on('PAGE_CHANGED', () => {
                 this.setupToggleButton();
@@ -20,7 +19,7 @@ export class ThemeManager {
 
     loadTheme() {
         const saved = localStorage.getItem('theme');
-        return saved || 'dark'; // Default to dark theme
+        return saved || 'dark';
     }
 
     saveTheme(theme) {
@@ -45,7 +44,6 @@ export class ThemeManager {
         if (this.themeToggleBtn) {
             this.themeToggleBtn.addEventListener('click', () => {
                 this.toggleTheme();
-                // Blur button after click to ensure it reverts to icon-only mode
                 setTimeout(() => this.themeToggleBtn.blur(), 0);
             });
             this.updateToggleIcon();
@@ -58,8 +56,6 @@ export class ThemeManager {
         const icon = this.themeToggleBtn.querySelector('i');
         const label = this.themeToggleBtn.querySelector('span#themeToggleLabel');
         if (icon) {
-            // Show sun icon in dark mode (to switch to light)
-            // Show moon icon in light mode (to switch to dark)
             if (this.currentTheme === 'dark') {
                 icon.className = 'fas fa-sun';
                 this.themeToggleBtn.title = 'Switch to light theme';

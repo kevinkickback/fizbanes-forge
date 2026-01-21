@@ -1,15 +1,5 @@
-/**
- * InlineFeedback.js - Utility helpers for inline feedback
- * 
- * Prefer these over toasts for routine CRUD operations where the
- * change is already visible in the UI.
- */
+/** Utility helpers for inline feedback. Prefer these over toasts for routine CRUD operations. */
 
-/**
- * Briefly highlight an element to draw attention to a change
- * @param {HTMLElement} element - The element to highlight
- * @param {number} duration - How long to show the highlight (ms)
- */
 export function highlightElement(element, duration = 1000) {
     if (!element) return;
 
@@ -19,12 +9,6 @@ export function highlightElement(element, duration = 1000) {
     }, duration);
 }
 
-/**
- * Show a transient "Saved" badge in the header/status area
- * @param {string} container - Selector for save indicator container
- * @param {string} message - Message to show (default: "✓ Saved")
- * @param {number} duration - How long to show (ms)
- */
 export function showSaveIndicator(
     container = '.save-indicator',
     message = '✓ Saved',
@@ -44,10 +28,6 @@ export function showSaveIndicator(
     }, duration);
 }
 
-/**
- * Animate a counter/badge when a value changes
- * @param {HTMLElement} badge - The badge element
- */
 export function pulseBadge(badge) {
     if (!badge) return;
 
@@ -60,13 +40,6 @@ export function pulseBadge(badge) {
     }, 400);
 }
 
-/**
- * Show an inline "Undo" bar after a delete/remove action
- * @param {string} message - Message to display
- * @param {Function} onUndo - Callback when Undo is clicked
- * @param {number} duration - Auto-hide after this duration (ms)
- * @returns {Function} Cleanup function to remove the bar
- */
 export function showUndoBar(message, onUndo, duration = 5000) {
     // Create undo bar if it doesn't exist
     let undoBar = document.querySelector('.undo-bar');
@@ -122,10 +95,6 @@ export function showUndoBar(message, onUndo, duration = 5000) {
     return hide;
 }
 
-/**
- * Animate an element sliding in (for new items)
- * @param {HTMLElement} element - The element to animate
- */
 export function slideInElement(element) {
     if (!element) return;
 
@@ -135,11 +104,6 @@ export function slideInElement(element) {
     }, 500);
 }
 
-/**
- * Animate an element fading out and sliding away (for removed items)
- * @param {HTMLElement} element - The element to remove
- * @param {Function} onComplete - Callback after animation completes
- */
 export function fadeOutElement(element, onComplete) {
     if (!element) {
         if (onComplete) onComplete();
@@ -155,13 +119,6 @@ export function fadeOutElement(element, onComplete) {
     }, 400);
 }
 
-/**
- * Show inline validation feedback below a form field
- * @param {HTMLElement} container - Container to show feedback in
- * @param {string} message - Feedback message
- * @param {string} type - 'success', 'error', or 'warning'
- * @param {number} duration - Auto-hide after this duration (0 = manual)
- */
 export function showInlineFeedback(
     container,
     message,
@@ -205,11 +162,6 @@ export function showInlineFeedback(
     return feedback;
 }
 
-/**
- * Update an inline progress bar
- * @param {HTMLElement} progressBar - The progress bar element
- * @param {number} percent - Progress percentage (0-100)
- */
 export function updateProgress(progressBar, percent) {
     if (!progressBar) return;
 
@@ -219,11 +171,6 @@ export function updateProgress(progressBar, percent) {
     }
 }
 
-/**
- * Show a selection checkmark on an element
- * @param {HTMLElement} element - The element to mark as selected
- * @param {boolean} selected - Whether to show or hide the indicator
- */
 export function showSelectionIndicator(element, selected = true) {
     if (!element) return;
 
@@ -241,10 +188,6 @@ export function showSelectionIndicator(element, selected = true) {
     }
 }
 
-/**
- * Scroll an element into view smoothly and briefly highlight it
- * @param {HTMLElement} element - The element to focus on
- */
 export function focusElement(element) {
     if (!element) return;
 

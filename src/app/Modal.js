@@ -1,5 +1,3 @@
-/** Modal utility for user interactions and character creation flows. */
-
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { DOMCleanup } from '../lib/DOMCleanup.js';
@@ -26,17 +24,9 @@ export class Modal {
 		_instance = this;
 	}
 
-	//-------------------------------------------------------------------------
-	// Event Handling
-	//-------------------------------------------------------------------------
-
 	setupEventListeners(handlers = {}) {
 		try {
-			// Store event handlers
 			this._eventHandlers = handlers;
-
-			// Button listener setup is now deferred to ensureInitialized()
-			// This is needed because Modal is instantiated before DOM is ready
 		} catch (error) {
 			console.error('Modal', 'Error setting up modal event listeners:', error);
 		}
@@ -90,10 +80,6 @@ export class Modal {
 		}
 	}
 
-	//-------------------------------------------------------------------------
-	// Character Creation Modal
-	//-------------------------------------------------------------------------
-
 	async showNewCharacterModal(e) {
 		try {
 			if (e) e.preventDefault();
@@ -105,7 +91,6 @@ export class Modal {
 				return;
 			}
 
-			// Use new CharacterCreationModal
 			const { CharacterCreationModal } = await import('../ui/components/character/CharacterCreationModal.js');
 			const characterCreationModal = new CharacterCreationModal();
 			await characterCreationModal.show();
@@ -117,13 +102,8 @@ export class Modal {
 	}
 
 	_onNewCharacterModalHidden() {
-		// Cleanup handled by CharacterCreationModal
 		console.debug('Modal', 'Character creation modal hidden');
 	}
-
-	//-------------------------------------------------------------------------
-	// Confirmation Dialog
-	//-------------------------------------------------------------------------
 
 	/**
 			const sections = Array.from(
@@ -637,13 +617,10 @@ export class Modal {
 				return;
 			}
 
-			// Import CharacterManager
 			const { CharacterManager } = await import('./CharacterManager.js');
 
-			// Create character using CharacterManager
 			const character = await CharacterManager.createCharacter(formData.name);
 
-			// Update character with form data
 			character.level = formData.level;
 			character.gender = formData.gender;
 			character.allowedSources = Array.from(selectedSources);
@@ -655,28 +632,22 @@ export class Modal {
 			};
 			character.portrait = formData.portrait;
 
-			// Update SourceService with the selected sources so dropdowns populate correctly
 			const { sourceService } = await import('../services/SourceService.js');
 			sourceService.allowedSources = new Set(selectedSources);
 
-			// Emit the event to trigger dropdown repopulation
 			eventBus.emit(
 				'sources:allowed-changed',
 				Array.from(sourceService.allowedSources),
 			);
 
-			// Save character
 			await CharacterManager.saveCharacter();
 
-			// Close modal and reset form
 			this._closeNewCharacterModal();
 
-			// Call the onCreateCharacter callback if provided
 			if (this._eventHandlers.onCreateCharacter) {
 				await this._eventHandlers.onCreateCharacter(character);
 			}
 
-			// Reload the character list if needed
 			await this._reloadCharacterList();
 
 			showNotification('New character created successfully', 'success');
@@ -698,15 +669,7 @@ export class Modal {
 		}
 	}
 
-	//-------------------------------------------------------------------------
-	// Confirmation Dialog
-	//-------------------------------------------------------------------------
-
-	/**
-	 * Shows a confirmation dialog with customizable options
-	 * @param {ConfirmationOptions} options - Configuration options for the dialog
-	 * @returns {Promise<boolean>} True if confirmed, false if cancelled
-	 */
+	/** Shows a confirmation dialog. Returns true if confirmed. */
 	async showConfirmationModal(options) {
 		try {
 			const {
@@ -725,7 +688,6 @@ export class Modal {
 				return false;
 			}
 
-			// Get modal elements
 			const modalElement = document.getElementById('confirmationModal');
 			const titleElement = document.getElementById('confirmationModalLabel');
 			const messageElement = document.getElementById('confirmationMessage');
@@ -748,20 +710,16 @@ export class Modal {
 				return false;
 			}
 
-			// Set content
 			titleElement.textContent = title;
 			messageElement.textContent = message;
 			confirmButton.textContent = confirmButtonText;
 			cancelButton.textContent = cancelButtonText;
 
-			// Set button class
 			confirmButton.className = `btn ${confirmButtonClass}`;
 
-			// Create modal instance
 			const modal = new bootstrap.Modal(modalElement);
 
 			return new Promise((resolve) => {
-				// Handle button clicks
 				const handleConfirm = () => {
 					cleanup();
 					modal.hide();
@@ -779,7 +737,6 @@ export class Modal {
 					resolve(false);
 				};
 
-				// Clean up event listeners
 				const cleanup = () => {
 					confirmButton.removeEventListener('click', handleConfirm);
 					cancelButton.removeEventListener('click', handleCancel);
@@ -787,13 +744,11 @@ export class Modal {
 					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
 				};
 
-				// Add event listeners
 				confirmButton.addEventListener('click', handleConfirm);
 				cancelButton.addEventListener('click', handleCancel);
 				closeButton.addEventListener('click', handleCancel);
 				modalElement.addEventListener('hidden.bs.modal', handleHidden);
 
-				// Show modal
 				modal.show();
 			});
 		} catch (error) {
@@ -802,15 +757,7 @@ export class Modal {
 		}
 	}
 
-	/**
-	 * Shows a modal for handling duplicate character ID during import
-	 * @param {Object} options - Configuration options
-	 * @param {string} options.characterName - Name of the character being imported
-	 * @param {string} options.characterId - ID of the character that already exists
-	 * @param {string} options.createdAt - Creation date of the existing character
-	 * @param {string} options.lastModified - Last modified date of the existing character
-	 * @returns {Promise<string>} Action chosen: 'overwrite', 'keepBoth', or 'cancel'
-	 */
+	/** Shows modal for handling duplicate character ID during import. Returns 'overwrite', 'keepBoth', or 'cancel'. */
 	async showDuplicateIdModal(options) {
 		try {
 			const { characterName, characterId, createdAt, lastModified } = options;
@@ -823,7 +770,6 @@ export class Modal {
 				return 'cancel';
 			}
 
-			// Get modal elements
 			const modalElement = document.getElementById('confirmationModal');
 			const titleElement = document.getElementById('confirmationModalLabel');
 			const messageElement = document.getElementById('confirmationMessage');
@@ -843,7 +789,6 @@ export class Modal {
 				return 'cancel';
 			}
 
-			// Format the dates
 			const createdDate = createdAt
 				? new Date(createdAt).toLocaleDateString()
 				: 'Unknown';
@@ -851,7 +796,6 @@ export class Modal {
 				? new Date(lastModified).toLocaleDateString()
 				: 'Unknown';
 
-			// Set content with icons
 			titleElement.textContent = 'Character Already Exists';
 			messageElement.innerHTML = `
                 A character with this file ID already exists. What would you like to do?<br><br>
@@ -862,23 +806,18 @@ export class Modal {
             `;
 			confirmButton.textContent = 'Overwrite';
 
-			// Set button classes
 			confirmButton.className = 'btn btn-danger';
 
-			// Create a "Keep Both" button
 			const keepBothButton = document.createElement('button');
 			keepBothButton.type = 'button';
 			keepBothButton.className = 'btn btn-secondary';
 			keepBothButton.textContent = 'Keep Both';
 
-			// Hide the cancel button
 			cancelButton.style.display = 'none';
 
-			// Insert the button where the cancel button was
 			const buttonContainer = cancelButton.parentElement;
 			buttonContainer.insertBefore(keepBothButton, cancelButton);
 
-			// Create modal instance
 			const modal = new bootstrap.Modal(modalElement);
 
 			return new Promise((resolve) => {
@@ -914,13 +853,11 @@ export class Modal {
 					cancelButton.style.display = 'block'; // Restore cancel button for future use
 				};
 
-				// Add event listeners
 				confirmButton.addEventListener('click', handleOverwrite);
 				keepBothButton.addEventListener('click', handleKeepBoth);
 				closeButton.addEventListener('click', handleCloseIcon);
 				modalElement.addEventListener('hidden.bs.modal', handleHidden);
 
-				// Show modal
 				modal.show();
 			});
 		} catch (error) {

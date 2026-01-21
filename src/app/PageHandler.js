@@ -37,7 +37,6 @@ class PageHandlerImpl {
 			return;
 		}
 
-		// Listen for page loaded events
 		eventBus.on(EVENTS.PAGE_LOADED, (pageName) => {
 			this.handlePageLoaded(pageName);
 		});
@@ -49,7 +48,6 @@ class PageHandlerImpl {
 	async handlePageLoaded(pageName) {
 		console.debug('PageHandler', 'Handling page loaded', { pageName });
 		try {
-			// Clean up home page listeners when leaving home
 			if (pageName !== 'home') {
 				if (this._homeCharacterSelectedHandler) {
 					eventBus.off(
@@ -109,14 +107,12 @@ class PageHandlerImpl {
 	}
 
 	async initializeHomePage() {
-		console.info('PageHandler', 'Initializing home page');
+		console.debug('PageHandler', 'Initializing home page');
 
 		try {
-			// Ensure Modal button listeners are initialized (deferred until DOM is ready)
 			const modal = Modal.getInstance();
 			modal.ensureInitialized();
 
-			// Get character list container and setup listeners once
 			const characterList = document.getElementById('characterList');
 			if (characterList) {
 				this.setupCharacterCardListeners(characterList);
@@ -125,16 +121,14 @@ class PageHandlerImpl {
 			const characters = await CharacterManager.loadCharacterList();
 			await this.renderCharacterList(characters);
 
-			// Setup sort select listener
 			const sortSelect = document.getElementById('sortSelect');
 			if (sortSelect) {
-				// Remove any existing listeners
 				const newSortSelect = sortSelect.cloneNode(true);
 				sortSelect.parentNode.replaceChild(newSortSelect, sortSelect);
 
 				newSortSelect.addEventListener('change', async (e) => {
 					const sortOption = e.target.value;
-					console.info('PageHandler', 'Sort option changed', { sortOption });
+					console.debug('PageHandler', 'Sort option changed', { sortOption });
 
 					// Re-render with current characters using new sort order
 					if (this.currentCharacters) {
@@ -149,19 +143,16 @@ class PageHandlerImpl {
 					await modal.showNewCharacterModal(e);
 				},
 				onCreateCharacter: async (character) => {
-					console.info('PageHandler', 'Character created', {
+					console.debug('PageHandler', 'Character created', {
 						id: character.id,
 					});
-					// Reload the character list
 					const reloadCharacters = await CharacterManager.loadCharacterList();
 					await this.renderCharacterList(reloadCharacters);
 				},
 			});
 
-			// Setup import character button
 			const importButton = document.getElementById('importCharacterBtn');
 			if (importButton) {
-				// Remove any existing listeners
 				const newImportButton = importButton.cloneNode(true);
 				importButton.parentNode.replaceChild(newImportButton, importButton);
 
@@ -170,14 +161,11 @@ class PageHandlerImpl {
 				});
 			}
 
-			// Listen for character selection to update the active badge in real-time
-			// Remove any existing listener to avoid duplicates
 			eventBus.off(
 				EVENTS.CHARACTER_SELECTED,
 				this._homeCharacterSelectedHandler,
 			);
 
-			// Store the handler so we can remove it later
 			this._homeCharacterSelectedHandler = async () => {
 				const reloadCharacters = await CharacterManager.loadCharacterList();
 				await this.renderCharacterList(reloadCharacters);
@@ -188,14 +176,11 @@ class PageHandlerImpl {
 				this._homeCharacterSelectedHandler,
 			);
 
-			// Listen for character creation to refresh the list
-			// Remove any existing listener to avoid duplicates
 			eventBus.off(
 				EVENTS.CHARACTER_CREATED,
 				this._homeCharacterCreatedHandler,
 			);
 
-			// Store the handler so we can remove it later
 			this._homeCharacterCreatedHandler = async () => {
 				const reloadCharacters = await CharacterManager.loadCharacterList();
 				await this.renderCharacterList(reloadCharacters);
@@ -211,14 +196,8 @@ class PageHandlerImpl {
 		}
 	}
 
-	/**
-	 * Sort characters based on the selected sorting option
-	 * @param {Array} characters - Array of character objects
-	 * @param {string} sortOption - The sorting option to apply
-	 * @returns {Array} Sorted array of characters
-	 */
 	sortCharacters(characters, sortOption) {
-		const sorted = [...characters]; // Create a copy to avoid mutating original
+		const sorted = [...characters];
 
 		switch (sortOption) {
 			case 'name':
@@ -260,7 +239,6 @@ class PageHandlerImpl {
 				});
 				break;
 			default:
-				// Default to name sort
 				sorted.sort((a, b) =>
 					(a.name || 'Unnamed').localeCompare(b.name || 'Unnamed'),
 				);
@@ -269,10 +247,6 @@ class PageHandlerImpl {
 		return sorted;
 	}
 
-	/**
-	 * Render the character list on the home page
-	 * @param {Array} characters - Array of character objects
-	 */
 	async renderCharacterList(characters) {
 		const characterList = document.getElementById('characterList');
 
@@ -284,7 +258,6 @@ class PageHandlerImpl {
 		if (characters.length === 0) {
 			characterList.classList.add('empty-state-mode');
 			this.showEmptyState(characterList);
-			// Hide the top row with New Character button when there are no characters
 			const topButtonRow = document.querySelector('.row.mb-4');
 			if (topButtonRow) {
 				topButtonRow.style.display = 'none';
@@ -292,22 +265,18 @@ class PageHandlerImpl {
 			return;
 		}
 
-		// Show the top row with New Character button when there are characters
 		const topButtonRow = document.querySelector('.row.mb-4');
 		if (topButtonRow) {
 			topButtonRow.style.display = '';
 		}
 		characterList.classList.remove('empty-state-mode');
 
-		// Get the sort option and apply sorting
 		const sortSelect = document.getElementById('sortSelect');
 		const sortOption = sortSelect ? sortSelect.value : 'name';
 		const sortedCharacters = this.sortCharacters(characters, sortOption);
 
-		// Store characters for later use when sort changes
 		this.currentCharacters = sortedCharacters;
 
-		// Get the currently active character ID
 		const currentCharacter = AppState.getCurrentCharacter();
 		const activeCharacterId = currentCharacter?.id;
 
@@ -326,7 +295,6 @@ class PageHandlerImpl {
 						})
 						.join('<br>')
 					: 'No Class';
-				// Default placeholder portraits
 				const placeholderImages = ['assets/images/characters/placeholder_char_card.webp',
 					'assets/images/characters/placeholder_char_card2.webp',
 					'assets/images/characters/placeholder_char_card3.webp'
@@ -337,15 +305,12 @@ class PageHandlerImpl {
 					character.portrait || character.image || character.avatar || defaultPlaceholder;
 				const portraitUrl = (() => {
 					if (!rawPortrait) return defaultPlaceholder;
-					// Already a data URL or file URL
 					if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
 						return rawPortrait;
 					}
-					// Windows absolute path -> file URL
 					if (/^[A-Za-z]:\\/.test(rawPortrait)) {
 						return `file://${rawPortrait.replace(/\\/g, '/')}`;
 					}
-					// Normalize backslashes to forward slashes for CSS url()
 					return rawPortrait.replace(/\\/g, '/');
 				})();
 				const lastModified = character.lastModified
@@ -404,45 +369,31 @@ class PageHandlerImpl {
 			})
 			.join('');
 
-		console.info('PageHandler', 'Character list rendered', {
+		console.debug('PageHandler', 'Character list rendered', {
 			count: sortedCharacters.length,
 		});
 	}
 
-	/**
-	 * Setup event listeners for character card actions (initialized once)
-	 * @param {HTMLElement} container - The container with character cards
-	 */
 	setupCharacterCardListeners(container) {
 		if (!container || container._listenersAttached) return;
 
 		container._listenersAttached = true;
 
-		// Handle character card clicks to load the character
 		container.addEventListener('click', async (e) => {
 			const card = e.target.closest('.character-card');
 			if (!card) return;
 
-			// Don't load if clicking on action buttons
 			if (e.target.closest('.card-actions')) return;
 
 			const characterId = card.dataset.characterId;
 			if (characterId) {
-				console.debug(
-					'PageHandler',
-					`[${new Date().toISOString()}] Character card clicked: ${characterId}`,
-				);
+				console.debug('PageHandler', 'Character card clicked', { characterId });
 				try {
 					const character = await CharacterManager.loadCharacter(characterId);
-					console.info(
-						'PageHandler',
-						`✓ Character loaded from card: ${characterId}`,
-						{
-							character: character?.name,
-						},
-					);
-
-					// Character loaded successfully
+					console.debug('PageHandler', 'Character loaded from card', {
+						id: characterId,
+						name: character?.name,
+					});
 				} catch (error) {
 					console.error('PageHandler', 'Failed to load character', {
 						id: characterId,
@@ -453,7 +404,6 @@ class PageHandlerImpl {
 			}
 		});
 
-		// Handle export button clicks
 		container.addEventListener('click', async (e) => {
 			const exportBtn = e.target.closest('.export-character');
 			if (!exportBtn) return;
@@ -470,7 +420,6 @@ class PageHandlerImpl {
 			}
 		});
 
-		// Handle delete button clicks
 		container.addEventListener('click', async (e) => {
 			const deleteBtn = e.target.closest('.delete-character');
 			if (!deleteBtn) return;
@@ -518,7 +467,7 @@ class PageHandlerImpl {
 				const reloadCharacters = await CharacterManager.loadCharacterList();
 				await this.renderCharacterList(reloadCharacters);
 			} else if (result.canceled) {
-				console.info('PageHandler', 'Import canceled');
+				console.debug('PageHandler', 'Import canceled');
 				showNotification('Import cancelled', 'info');
 			} else {
 				showNotification('Failed to import character', 'error');
@@ -529,10 +478,6 @@ class PageHandlerImpl {
 		}
 	}
 
-	/**
-	 * Show the empty state when no characters exist
-	 * @param {HTMLElement} container - The container element to show empty state in
-	 */
 	showEmptyState(container) {
 		if (!container) return;
 
@@ -554,7 +499,6 @@ class PageHandlerImpl {
             </div>
         `;
 
-		// Add event listener to the Create Character button
 		const createBtn = container.querySelector('#welcomeCreateCharacterBtn');
 		if (createBtn) {
 			createBtn.addEventListener('click', async (e) => {
@@ -564,7 +508,6 @@ class PageHandlerImpl {
 			});
 		}
 
-		// Add event listener to the Import Character button
 		const importBtn = container.querySelector('#emptyStateImportBtn');
 		if (importBtn) {
 			importBtn.addEventListener('click', async () => {
@@ -573,11 +516,8 @@ class PageHandlerImpl {
 		}
 	}
 
-	/**
-	 * Initialize the settings page
-	 */
 	async initializeSettingsPage() {
-		console.info('PageHandler', 'Initializing settings page');
+		console.debug('PageHandler', 'Initializing settings page');
 
 		try {
 			await settingsService.initializeSettingsPage();
@@ -587,28 +527,21 @@ class PageHandlerImpl {
 		}
 	}
 
-	/**
-	 * Initialize the build page
-	 */
 	async initializeBuildPage() {
-		console.info('PageHandler', 'Initializing build page');
+		console.debug('PageHandler', 'Initializing build page');
 
 		try {
-			// Initialize all build page cards
-			// These components will handle populating dropdowns and fields based on character data
 			new RaceCard();
 			new ClassCard();
 			new BackgroundCard();
 
-			// AbilityScoreCard and ProficiencyCard require explicit initialize() call
-			// Use singleton instance to ensure proper state management across page navigations
 			const abilityScoreCard = AbilityScoreCard.getInstance();
 			await abilityScoreCard.initialize();
 
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
 
-			console.info('PageHandler', 'Build page cards initialized');
+			console.debug('PageHandler', 'Build page cards initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing build page', error);
 			showNotification('Error initializing build page', 'error');
@@ -718,12 +651,10 @@ class PageHandlerImpl {
 			maxFeatsEl.textContent = availability.max ?? 0;
 		}
 
-		// Hide selection counter when no feats are available
 		if (selectionCounter) {
 			selectionCounter.style.display = availability.max > 0 ? '' : 'none';
 		}
 
-		// Always enable Add Feat button to allow unconventional feat sources
 		if (addFeatBtn) {
 			addFeatBtn.disabled = false;
 			addFeatBtn.title = availability.max > 0
@@ -732,11 +663,8 @@ class PageHandlerImpl {
 		}
 	}
 
-	/**
-	 * Initialize the details page
-	 */
 	async initializeDetailsPage() {
-		console.info('PageHandler', 'Initializing details page');
+		console.debug('PageHandler', 'Initializing details page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
@@ -745,14 +673,11 @@ class PageHandlerImpl {
 				return;
 			}
 
-			// Populate alignment dropdown
 			const alignmentInput = document.getElementById('alignment');
 			if (alignmentInput) {
-				// Clear existing options except the first (placeholder)
 				while (alignmentInput.options.length > 1) {
 					alignmentInput.remove(1);
 				}
-				// Populate from constants
 				ALIGNMENTS.forEach((alignment) => {
 					const option = document.createElement('option');
 					option.value = alignment.value;
@@ -762,13 +687,10 @@ class PageHandlerImpl {
 				alignmentInput.value = character.alignment || '';
 			}
 
-			// Populate deity datalist
 			const deityInput = document.getElementById('deity');
 			const deityList = document.getElementById('deityList');
 			if (deityList) {
-				// Clear existing options
 				deityList.innerHTML = '';
-				// Populate from deity service
 				const deityNames = deityService.getDeityNames();
 				deityNames.forEach((name) => {
 					const option = document.createElement('option');
@@ -780,7 +702,6 @@ class PageHandlerImpl {
 				deityInput.value = character.deity || '';
 			}
 
-			// Populate character info fields
 			const characterNameInput = document.getElementById('characterName');
 			const playerNameInput = document.getElementById('playerName');
 			const heightInput = document.getElementById('height');
@@ -796,10 +717,9 @@ class PageHandlerImpl {
 			if (backstoryTextarea)
 				backstoryTextarea.value = character.backstory || '';
 
-			// Set up form change listeners for unsaved changes detection
 			this._setupDetailsPageFormListeners();
 
-			console.info('PageHandler', 'Details page populated with character data');
+			console.debug('PageHandler', 'Details page populated with character data');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing details page', error);
 			showNotification('Error loading details page', 'error');
@@ -825,13 +745,11 @@ class PageHandlerImpl {
 		detailsFields.forEach((fieldId) => {
 			const field = document.getElementById(fieldId);
 			if (field) {
-				// Use input event for real-time change detection
 				field.addEventListener('input', () => {
 					console.debug(
 						'PageHandler',
 						`Form field changed (${fieldId}), emitting CHARACTER_UPDATED`,
 					);
-					// Emit CHARACTER_UPDATED event for form input changes
 					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 						character: AppState.getCurrentCharacter(),
 					});
@@ -840,11 +758,8 @@ class PageHandlerImpl {
 		});
 	}
 
-	/**
-	 * Initialize the feats page
-	 */
 	async initializeFeatsPage() {
-		console.info('PageHandler', 'Initializing feats page');
+		console.debug('PageHandler', 'Initializing feats page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
@@ -853,21 +768,16 @@ class PageHandlerImpl {
 				return;
 			}
 
-			// Set up feat sources footer rendering and listeners
 			this._initializeFeatSources();
 
-			// --- Feat Selection Modal integration ---
-			// Add event listener to the "+ Add Feat" button
 			const addFeatBtn = document.getElementById('addFeatBtn');
 			if (addFeatBtn) {
-				// Remove any existing listeners by replacing the node
 				const newAddFeatBtn = addFeatBtn.cloneNode(true);
 				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
 				newAddFeatBtn.addEventListener('click', async () => {
 					const availability = character.getFeatAvailability?.();
 					const maxFeats = availability?.max || 0;
 
-					// Inform user if they have no standard feat choices, but still allow selection
 					if (maxFeats <= 0) {
 						showNotification(
 							'Adding feats beyond normal choices (from racial features, magic items, etc.)',
@@ -882,19 +792,14 @@ class PageHandlerImpl {
 						maxSelections: maxFeats,
 						onConfirm: async (feats) => {
 							if (feats && feats.length > 0) {
-								// Enrich feats with origin information
-								// Only assign reasons to feats up to the number of available reasons
-								// Additional feats beyond that are marked as "Manual selection"
 								const reasons = availability?.reasons || [];
 								const enrichedFeats = feats.map((feat, idx) => ({
 									...feat,
 									origin: feat.origin || (idx < reasons.length ? this._formatFeatOrigin(reasons[idx]) : 'Manual selection')
 								}));
 
-								// Update character feats
 								character.setFeats(enrichedFeats, 'Manual selection');
 
-								// Update UI
 								this._featListView.update(this._featListContainer, character);
 								this._featSourcesView.update(this._featSourcesContainer, character);
 								this._updateFeatUIState(character);
@@ -910,10 +815,9 @@ class PageHandlerImpl {
 				this._updateFeatUIState(character);
 			}
 
-			// Update feat availability info
 			this._updateFeatAvailabilitySection(character);
 
-			console.info('PageHandler', 'Feats page initialized');
+			console.debug('PageHandler', 'Feats page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing feats page', error);
 			showNotification('Error loading feats page', 'error');
@@ -925,39 +829,27 @@ class PageHandlerImpl {
 
 		if (!character) return;
 
-		// Show/hide feat sources if feats exist
 		if (featSourcesContainer) {
 			featSourcesContainer.style.display = character.feats?.length > 0 ? 'block' : 'none';
 		}
 	}
 
-	/**
-	 * Format feat origin/reason for display
-	 * Extracts the category portion from the reason
-	 * @param {string} reason - Raw reason string from FeatService (e.g., "Race: Human", "Ability Score Improvement at level 4 (Fighter)")
-	 * @returns {string} The category (e.g., "Race", "Ability Score Improvement")
-	 */
+	/** Extracts the category portion from a feat origin reason. */
 	_formatFeatOrigin(reason) {
 		if (!reason) return '';
 
-		// Handle "ASI" abbreviation from level-up
 		if (reason === 'ASI') return 'Ability Score Improvement';
 
-		// Extract "Ability Score Improvement" from full text
 		if (reason.startsWith('Ability Score Improvement')) {
 			return 'Ability Score Improvement';
 		}
 
-		// For other reasons with colons, extract the category prefix
 		const match = reason.match(/^([^:]+):/);
 		return match ? match[1].trim() : reason.trim();
 	}
 
-	/**
-	 * Initialize the equipment page
-	 */
 	async initializeEquipmentPage() {
-		console.info('PageHandler', 'Initializing equipment page');
+		console.debug('PageHandler', 'Initializing equipment page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
@@ -966,14 +858,12 @@ class PageHandlerImpl {
 				return;
 			}
 
-			// Initialize equipment manager component
 			const { EquipmentManager } = await import(
 				'../ui/components/equipment/EquipmentManager.js'
 			);
 			const equipmentManager = new EquipmentManager();
 			equipmentManager.render();
 
-			// Listen for updates and re-render
 			const updateHandler = () => equipmentManager.render();
 			eventBus.on(EVENTS.CHARACTER_UPDATED, updateHandler);
 			eventBus.on(EVENTS.ITEM_ADDED, updateHandler);
@@ -981,7 +871,7 @@ class PageHandlerImpl {
 			eventBus.on(EVENTS.ITEM_EQUIPPED, updateHandler);
 			eventBus.on(EVENTS.ITEM_UNEQUIPPED, updateHandler);
 
-			console.info('PageHandler', 'Equipment page initialized');
+			console.debug('PageHandler', 'Equipment page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing equipment page', error);
 			showNotification('Error loading equipment page', 'error');
@@ -990,11 +880,8 @@ class PageHandlerImpl {
 
 
 
-	/**
-	 * Initialize the preview page
-	 */
 	async initializePreviewPage() {
-		console.info('PageHandler', 'Initializing preview page');
+		console.debug('PageHandler', 'Initializing preview page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
@@ -1003,20 +890,15 @@ class PageHandlerImpl {
 				return;
 			}
 
-			// Preview page components can be initialized here
-			// For now, just log that the page is ready
-			console.info('PageHandler', 'Preview page initialized');
+			console.debug('PageHandler', 'Preview page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing preview page', error);
 			showNotification('Error loading preview page', 'error');
 		}
 	}
 
-	/**
-	 * Initialize the spells page
-	 */
 	async initializeSpellsPage() {
-		console.info('PageHandler', 'Initializing spells page');
+		console.debug('PageHandler', 'Initializing spells page');
 
 		try {
 			const character = AppState.getCurrentCharacter();
@@ -1025,14 +907,12 @@ class PageHandlerImpl {
 				return;
 			}
 
-			// Initialize spells manager component
 			const { SpellsManager } = await import(
 				'../ui/components/spells/SpellManager.js'
 			);
 			const spellsManager = new SpellsManager();
 			spellsManager.render();
 
-			// Listen for updates and re-render
 			const updateHandler = () => spellsManager.render();
 			eventBus.on(EVENTS.CHARACTER_UPDATED, updateHandler);
 			eventBus.on(EVENTS.SPELL_ADDED, updateHandler);
@@ -1042,7 +922,7 @@ class PageHandlerImpl {
 			eventBus.on(EVENTS.SPELL_SLOTS_USED, updateHandler);
 			eventBus.on(EVENTS.SPELL_SLOTS_RESTORED, updateHandler);
 
-			console.info('PageHandler', 'Spells page initialized');
+			console.debug('PageHandler', 'Spells page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing spells page', error);
 			showNotification('Error loading spells page', 'error');
@@ -1050,20 +930,17 @@ class PageHandlerImpl {
 	}
 
 	async initializeLayoutTestPage() {
-		console.info('PageHandler', 'Initializing layout test page');
+		console.debug('PageHandler', 'Initializing layout test page');
 
 		try {
-			// Import and initialize the demo module
 			const { SplitCardDemo } = await import('../ui/scripts/layout-test.js');
 
-			// Create instance and await initialization
 			const demo = new SplitCardDemo();
 			await demo.init();
 
-			// Store for cleanup if needed
 			window._splitCardDemoInstance = demo;
 
-			console.info('PageHandler', 'Layout test page initialized successfully');
+			console.debug('PageHandler', 'Layout test page initialized successfully');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing layout test page', error);
 			showNotification('Error loading layout test page', 'error');

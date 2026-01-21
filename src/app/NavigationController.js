@@ -1,18 +1,13 @@
-/** Handles routing, page loading, and navigation UI. */
-
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { AppState } from './AppState.js';
 
-/**
- * Router implementation - manages route registration and navigation.
- * @private
- */
 class RouterImpl {
 	constructor() {
 		this.routes = new Map();
 		this.currentRoute = null;
-		console.debug('[Router]', 'Router initialized');
-		console.info('[Router]', 'Registering route', { path, config });
+	}
+
+	register(path, config) {
 		this.routes.set(path, {
 			template: config.template || `${path}.html`,
 			requiresCharacter: config.requiresCharacter || false,
@@ -29,17 +24,15 @@ class RouterImpl {
 
 		const route = this.routes.get(path);
 
-		// Check if character required
 		if (route.requiresCharacter && !AppState.getCurrentCharacter()) {
-			console.info('[Router]', 'Route requires character', { path });
+			console.debug('[Router]', 'Route requires character', { path });
 			throw new Error('Character required for this page');
 		}
 
-		// Update state
 		this.currentRoute = path;
 		AppState.setCurrentPage(path);
 
-		console.info('[Router]', 'Navigation successful', { path });
+		console.debug('[Router]', 'Navigation successful', { path });
 		return route;
 	}
 
@@ -60,15 +53,13 @@ class RouterImpl {
 	}
 }
 
-/**
- * PageLoader implementation - caches and loads page templates.
- * @private
- */
 class PageLoaderImpl {
 	constructor() {
 		this.templateCache = new Map();
 		this.contentArea = null;
-		console.debug('PageLoader', 'PageLoader initialized');
+	}
+
+	initialize(contentAreaId) {
 		this.contentArea = document.getElementById(contentAreaId);
 
 		if (!this.contentArea) {
@@ -76,7 +67,7 @@ class PageLoaderImpl {
 			throw new Error('Content area not found');
 		}
 
-		console.info('PageLoader', 'Initialized with content area', {
+		console.debug('PageLoader', 'Initialized with content area', {
 			contentAreaId,
 		});
 	}
@@ -84,14 +75,12 @@ class PageLoaderImpl {
 	async loadPage(templateName) {
 		console.debug('PageLoader', 'Loading page', { templateName });
 
-		// Check cache first
 		if (this.templateCache.has(templateName)) {
 			console.debug('PageLoader', 'Using cached template', { templateName });
 			return this.templateCache.get(templateName);
 		}
 
 		try {
-			// Try to load from pages directory
 			const response = await fetch(`pages/${templateName}`);
 
 			if (!response.ok) {
@@ -102,7 +91,6 @@ class PageLoaderImpl {
 
 			const html = await response.text();
 
-			// Cache the template
 			this.templateCache.set(templateName, html);
 
 			console.debug('PageLoader', 'Page loaded and cached', { templateName });
@@ -173,9 +161,6 @@ class PageLoaderImpl {
 	}
 }
 
-/**
- * NavigationController - Orchestrates routing, page loading, and navigation UI.
- */
 class NavigationControllerImpl {
 	constructor() {
 		this.isInitialized = false;
@@ -185,14 +170,12 @@ class NavigationControllerImpl {
 		this.sectionObserver = null;
 		this.sectionElements = [];
 
-		// Initialize internal router and page loader
 		this.router = new RouterImpl();
 		this.pageLoader = new PageLoaderImpl();
 
-		// Register all application routes
 		this.registerRoutes();
 
-		console.info('NavigationController', 'Controller created');
+		console.debug('NavigationController', 'Controller created');
 	}
 
 	registerRoutes() {
@@ -244,7 +227,6 @@ class NavigationControllerImpl {
 			title: 'Preview',
 		});
 
-		// Register demo/test route (development only)
 		this.router.register('layout-test', {
 			template: 'layout-test.html',
 			requiresCharacter: false,
@@ -256,10 +238,6 @@ class NavigationControllerImpl {
 		});
 	}
 
-	/**
-	 * Initialize the navigation controller.
-	 * @returns {void}
-	 */
 	initialize() {
 		if (this.isInitialized) {
 			console.warn('NavigationController', 'Already initialized');
@@ -277,30 +255,22 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		// Setup event listeners
 		this.setupEventListeners();
 		this.setupNavigationButtons();
 
-		// Initialize navigation state (disable buttons that require character)
 		this.updateNavigationState();
 
-		// Load initial page (home)
 		this.navigateTo('home');
 
 		this.isInitialized = true;
 		console.debug('NavigationController', 'Initialized successfully');
 	}
 
-	/**
-	 * Setup event listeners for navigation events.
-	 */
 	setupEventListeners() {
-		// Listen for page change events
 		eventBus.on(EVENTS.PAGE_CHANGED, async (page) => {
 			await this.handlePageChange(page);
 		});
 
-		// Listen for page load completion to handle deferred scroll targets
 		eventBus.on(EVENTS.PAGE_LOADED, (page) => {
 			if (page === 'build' && this.pendingSectionScroll) {
 				this.scrollToSection(this.pendingSectionScroll);
@@ -315,17 +285,14 @@ class NavigationControllerImpl {
 			}
 		});
 
-		// Listen for character selection events
 		eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
 			this.updateNavigationState();
 		});
 
-		// Listen for character creation events
 		eventBus.on(EVENTS.CHARACTER_CREATED, () => {
 			this.updateNavigationState();
 		});
 
-		// Listen for character deletion events
 		eventBus.on(EVENTS.CHARACTER_DELETED, () => {
 			this.updateNavigationState();
 		});
@@ -333,11 +300,7 @@ class NavigationControllerImpl {
 		console.debug('NavigationController', 'Event listeners setup');
 	}
 
-	/**
-	 * Setup navigation button click handlers.
-	 */
 	setupNavigationButtons() {
-		// Use event delegation for nav buttons and build sub-navigation
 		const handleNavClick = async (e) => {
 			const sectionButton = e.target.closest('[data-section]');
 			if (sectionButton) {
@@ -356,16 +319,12 @@ class NavigationControllerImpl {
 
 		document.addEventListener('click', handleNavClick);
 
-		// Store reference to nav buttons
 		this.cacheNavigationButtons();
 		this.cacheSectionButtons();
 
 		console.debug('NavigationController', 'Navigation buttons setup');
 	}
 
-	/**
-	 * Cache navigation button elements.
-	 */
 	cacheNavigationButtons() {
 		this.navButtons.clear();
 		const buttons = document.querySelectorAll('[data-page]');
@@ -379,9 +338,6 @@ class NavigationControllerImpl {
 		});
 	}
 
-	/**
-	 * Cache build section button elements.
-	 */
 	cacheSectionButtons() {
 		this.sectionButtons.clear();
 		const sectionButtons = document.querySelectorAll('[data-section]');
@@ -395,20 +351,14 @@ class NavigationControllerImpl {
 		});
 	}
 
-	/**
-	 * Navigate to a page.
-	 * @param {string} page - Page to navigate to
-	 */
 	async navigateTo(page) {
 		console.debug(
 			'NavigationController',
 			`[${new Date().toISOString()}] Navigate to page: "${page}"`,
 		);
 
-		// Mark navigation in progress so listeners can suppress transient updates
 		AppState.setState({ isNavigating: true });
 
-		// Show loading state
 		this.pageLoader.renderLoading();
 
 		let route;
@@ -421,7 +371,6 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		// Set data-current-page attribute immediately for CSS selectors
 		document.body.setAttribute('data-current-page', page);
 		console.debug(
 			'NavigationController',
@@ -432,19 +381,13 @@ class NavigationControllerImpl {
 			},
 		);
 
-		// Load and render the page
 		await this.loadAndRenderPage(route.template, page);
 
-		// Update navigation UI
 		this.updateNavButtons(page);
 
-		// Clear navigating flag after successful render
 		AppState.setState({ isNavigating: false });
 	}
 
-	/**
-	 * Ensure navigating flag is cleared even if load/render throws.
-	 */
 	async loadAndRenderPage(template, pageName) {
 		console.debug(
 			'NavigationController',
@@ -470,25 +413,15 @@ class NavigationControllerImpl {
 			{ template, pageName },
 		);
 
-		// Ensure data-current-page attribute is set (again, for safety)
-		document.body.setAttribute('data-current-page', pageName);
 		console.debug('NavigationController', `Page render complete: ${pageName}`);
 
-		// Emit PAGE_LOADED event so page-specific handlers can initialize
-		console.debug(
-			'NavigationController',
-			`Emitting PAGE_LOADED event for page: "${pageName}"`,
-		);
+		document.body.setAttribute('data-current-page', pageName);
+
 		eventBus.emit(EVENTS.PAGE_LOADED, pageName);
 
-		// Clear navigating flag after page is fully loaded
 		AppState.setState({ isNavigating: false });
 	}
 
-	/**
-	 * Handle navigation to a build page section.
-	 * @param {string} sectionId - Target section element id
-	 */
 	async handleSectionNavigation(sectionId) {
 		if (!sectionId) {
 			return;
@@ -519,9 +452,6 @@ class NavigationControllerImpl {
 		this.pendingSectionScroll = null;
 	}
 
-	/**
-	 * Observe build page sections and keep sublink active state in sync with scroll.
-	 */
 	setupBuildSectionObserver() {
 		this.destroyBuildSectionObserver();
 
@@ -577,9 +507,6 @@ class NavigationControllerImpl {
 		});
 	}
 
-	/**
-	 * Disconnect the build section observer.
-	 */
 	destroyBuildSectionObserver() {
 		if (this.sectionObserver) {
 			this.sectionObserver.disconnect();
@@ -588,10 +515,6 @@ class NavigationControllerImpl {
 		this.sectionElements = [];
 	}
 
-	/**
-	 * Smoothly scroll to a build section if it exists.
-	 * @param {string} sectionId - Target section element id
-	 */
 	scrollToSection(sectionId) {
 		if (!sectionId) {
 			return;
@@ -599,25 +522,17 @@ class NavigationControllerImpl {
 
 		const target = document.getElementById(sectionId);
 		if (target) {
-			// Find the scrollable container (main-content, not window)
 			const scrollContainer = document.querySelector('.main-content');
 			if (!scrollContainer) {
 				console.warn('[NavigationController] Could not find scroll container');
 				return;
 			}
 
-			// Scroll the section (not the card) to account for spacing
 			const sectionRect = target.getBoundingClientRect();
 			const containerRect = scrollContainer.getBoundingClientRect();
-
-			// Calculate absolute position of section top relative to scroll container
 			const sectionTop = sectionRect.top - containerRect.top + scrollContainer.scrollTop;
+			const scrollTo = sectionTop - 16;
 
-			// Scroll to position the section at the top with minimal offset
-			// This ensures the entire card is visible and no previous card shows
-			const scrollTo = sectionTop - 16; // Small margin for visual breathing room
-
-			// Scroll to position the section
 			scrollContainer.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
 		} else {
 			console.warn('NavigationController', 'Unable to find section to scroll', {
@@ -626,10 +541,6 @@ class NavigationControllerImpl {
 		}
 	}
 
-	/**
-	 * Update active state for build section links.
-	 * @param {string|null} sectionId - Active section id
-	 */
 	setActiveSection(sectionId) {
 		this.sectionButtons.forEach((button, id) => {
 			const isActive = !!sectionId && id === sectionId;
@@ -642,10 +553,6 @@ class NavigationControllerImpl {
 		});
 	}
 
-	/**
-	 * Toggle visibility/expanded state for the build sub-navigation.
-	 * @param {boolean} isOpen - Whether the build nav should be expanded
-	 */
 	toggleBuildSubnav(isOpen) {
 		const buildNavItem = document.querySelector('[data-nav-group="build"]');
 		if (buildNavItem) {
@@ -657,10 +564,6 @@ class NavigationControllerImpl {
 		}
 	}
 
-	/**
-	 * Update active state of navigation buttons.
-	 * @param {string} activePage - Currently active page
-	 */
 	updateNavButtons(activePage) {
 		this.navButtons.forEach((button, page) => {
 			if (page === activePage) {
@@ -692,7 +595,6 @@ class NavigationControllerImpl {
 			return;
 		}
 
-		// Find or create badge element
 		let badge = button.querySelector('.nav-badge');
 
 		if (count > 0) {
@@ -713,9 +615,6 @@ class NavigationControllerImpl {
 		console.debug('NavigationController', 'Badge updated', { page, count });
 	}
 
-	/**
-	 * Update navigation state based on character availability.
-	 */
 	updateNavigationState() {
 		const hasCharacter = AppState.getCurrentCharacter() !== null;
 
@@ -740,36 +639,20 @@ class NavigationControllerImpl {
 		});
 	}
 
-	/**
-	 * Handle page change events.
-	 * @param {string} page - Page that was navigated to
-	 */
 	async handlePageChange(page) {
 		console.debug('NavigationController', 'Handling page change', { page });
 
-		// Set data-current-page attribute on body for CSS selectors
 		document.body.setAttribute('data-current-page', page);
 
-		// Clean up section observer when leaving build
 		if (page !== 'build') {
 			this.destroyBuildSectionObserver();
 		}
-
-		// Additional logic for page changes can go here
-		// For example: analytics, scroll to top, etc.
 	}
 
-	/**
-	 * Navigate to home page.
-	 */
 	navigateHome() {
 		this.navigateTo('home');
 	}
 
-	/**
-	 * Get current page from router.
-	 * @returns {string|null} Current page
-	 */
 	getCurrentPage() {
 		return this.router.getCurrentRoute();
 	}

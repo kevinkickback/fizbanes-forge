@@ -1,5 +1,4 @@
-// Extracted UI handlers from AppInitializer.js
-// Sets up save button, level-up button, and unsaved indicator listeners with proper cleanup.
+/** UI handlers for save button, level-up button, and unsaved indicator. */
 
 import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
@@ -7,16 +6,11 @@ import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 
-/**
- * Setup UI event handlers and return a cleanup function.
- * Keeps listeners isolated from AppInitializer to reduce file size and complexity.
- * @returns {() => void} cleanup function to remove all listeners
- */
+/** @returns {() => void} cleanup function to remove all listeners */
 export function setupUiEventHandlers() {
     const cleanup = DOMCleanup.create();
     const listeners = new Map();
 
-    // ----------------------------- Save Button -----------------------------
     const saveButton = document.getElementById('saveCharacter');
     if (saveButton) {
         cleanup.on(saveButton, 'click', async () => {
@@ -26,7 +20,6 @@ export function setupUiEventHandlers() {
                     `[${new Date().toISOString()}] Save button clicked`,
                 );
 
-                // Update character data from form inputs on details page
                 const characterNameInput = document.getElementById('characterName');
                 const playerNameInput = document.getElementById('playerName');
                 const heightInput = document.getElementById('height');
@@ -66,7 +59,6 @@ export function setupUiEventHandlers() {
         console.warn('UIHandlers', 'Save button not found');
     }
 
-    // --------------------------- Level Up Button ---------------------------
     const levelUpBtn = document.getElementById('openLevelUpModalBtn');
     if (levelUpBtn) {
         let levelUpModalInstance = null;
@@ -89,7 +81,6 @@ export function setupUiEventHandlers() {
                 await levelUpModalInstance.show();
             } catch (error) {
                 console.error('UIHandlers', 'Failed to open Level Up modal', error);
-                // Fallback: attempt to open the modal directly if Bootstrap is available and element exists
                 try {
                     const el = document.getElementById('levelUpModal');
                     const bs = window.bootstrap || globalThis.bootstrap;
@@ -110,7 +101,6 @@ export function setupUiEventHandlers() {
         console.warn('UIHandlers', 'Level Up button not found');
     }
 
-    // ------------------------- Unsaved Indicator ---------------------------
     const PagesShowUnsaved = new Set(['build', 'details']);
 
     function updateUnsavedIndicator() {
@@ -172,7 +162,6 @@ export function setupUiEventHandlers() {
     };
     addListener('state:hasUnsavedChanges:changed', onHasUnsavedChangesChanged);
 
-    // Return cleanup function
     return () => {
         for (const [event, handler] of listeners) {
             eventBus.off(event, handler);

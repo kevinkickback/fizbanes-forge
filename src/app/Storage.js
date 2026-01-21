@@ -2,16 +2,8 @@
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
-/**
- * Singleton instance for Storage class
- * @type {Storage|null}
- * @private
- */
 let _instance = null;
 
-/**
- * Class responsible for managing character storage operations
- */
 export class Storage {
 	constructor() {
 		if (_instance) {
@@ -61,7 +53,6 @@ export class Storage {
 				return false;
 			}
 
-			// Pre-serialize the character to avoid IPC cloning issues
 			const serializedCharacter = JSON.stringify(character);
 			const result =
 				await window.characterStorage.saveCharacter(serializedCharacter);
@@ -129,10 +120,8 @@ export class Storage {
 
 	async importCharacter() {
 		try {
-			// First call to select and validate the file
 			let result = await window.characterStorage.importCharacter();
 
-			// If duplicate ID found, show modal and ask user what to do
 			if (result?.duplicateId) {
 				const Modal = (await import('./Modal.js')).Modal;
 				const modal = Modal.getInstance();
@@ -151,7 +140,6 @@ export class Storage {
 					};
 				}
 
-				// Call import again with user's choice
 				result = await window.characterStorage.importCharacter({
 					character: result.character,
 					sourceFilePath: result.sourceFilePath,
@@ -184,7 +172,6 @@ export class Storage {
 			return await window.characterStorage.generateUUID();
 		} catch (error) {
 			console.error('Storage', 'Error generating UUID:', error);
-			// Fallback to a simple UUID generation if the IPC call fails
 			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
 				const r = (Math.random() * 16) | 0;
 				const v = c === 'x' ? r : (r & 0x3) | 0x8;

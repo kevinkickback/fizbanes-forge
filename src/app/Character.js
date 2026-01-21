@@ -1,5 +1,3 @@
-/** Character model class with abilities, proficiencies, and features. */
-
 import {
 	DEFAULT_CHARACTER_SIZE,
 	DEFAULT_CHARACTER_SPEED,
@@ -26,10 +24,7 @@ export class Character {
 			this.race.abilityChoices = [];
 		}
 
-		// Note: class info stored in progression.classes[], no legacy character.class field
-		// Note: subclass is stored in progression.classes[].subclass
 		this.background = data.background || '';
-		// Note: total level is calculated from progression.classes[].levels, no legacy character.level field
 		this.createdAt = data.createdAt || new Date().toISOString();
 		this.lastModified = data.lastModified || new Date().toISOString();
 
@@ -65,11 +60,9 @@ export class Character {
 		// Initialize pending ability choices
 		this.pendingAbilityChoices = data.pendingAbilityChoices || [];
 
-		// Initialize size and speed with semantic defaults
 		this.size = data.size || DEFAULT_CHARACTER_SIZE;
 		this.speed = data.speed || { ...DEFAULT_CHARACTER_SPEED };
 
-		// Initialize features
 		this.features = {
 			darkvision: data.features?.darkvision || 0,
 			resistances: new Set(data.features?.resistances || []),
@@ -78,15 +71,12 @@ export class Character {
 			),
 		};
 
-		// Portrait (stored as data URL, file URL, or relative asset path)
 		this.portrait = data.portrait || '';
 
-		// Initialize feats and their sources
 		this.feats = [];
 		this.featSources = new Map();
 		this.setFeats(data.feats || [], 'Imported');
 
-		// Initialize proficiencies
 		this.proficiencies = data.proficiencies || {
 			armor: [],
 			weapons: [],
@@ -96,7 +86,6 @@ export class Character {
 			savingThrows: [],
 		};
 
-		// Initialize proficiency sources
 		this.proficiencySources = {
 			armor: new Map(),
 			weapons: new Map(),
@@ -106,16 +95,13 @@ export class Character {
 			savingThrows: new Map(),
 		};
 
-		// Restore proficiency sources if available in the data
 		if (data.proficiencySources) {
 			for (const type in this.proficiencySources) {
 				if (data.proficiencySources[type]) {
-					// Handle serialized Map data
 					if (typeof data.proficiencySources[type] === 'object') {
 						for (const [key, sourceList] of Object.entries(
 							data.proficiencySources[type],
 						)) {
-							// Convert the source list to a Set
 							if (Array.isArray(sourceList)) {
 								this.proficiencySources[type].set(key, new Set(sourceList));
 							} else {
@@ -127,7 +113,6 @@ export class Character {
 			}
 		}
 
-		// Add structure for optional proficiencies
 		this.optionalProficiencies = data.optionalProficiencies || {
 			armor: { allowed: 0, selected: [] },
 			weapons: { allowed: 0, selected: [] },
@@ -204,7 +189,6 @@ export class Character {
 		this.deity = data.deity || '';
 		this.backstory = data.backstory || '';
 
-		// Initialize instrument choices for specific musical instruments
 		this.instrumentChoices = data.instrumentChoices || [];
 
 		this.equipment = data.equipment || {
@@ -213,20 +197,17 @@ export class Character {
 			items: [],
 		};
 
-		// Initialize hit points
 		this.hitPoints = data.hitPoints || {
 			current: 0,
 			max: 0,
 			temp: 0,
 		};
 
-		// Initialize variant rules with defaults or from data
 		this.variantRules = data.variantRules || {
 			variantfeat: false,
-			abilityScoreMethod: 'custom', // Options: 'custom', 'pointBuy', 'standardArray'
+			abilityScoreMethod: 'custom',
 		};
 
-		// Initialize inventory system
 		this.inventory = data.inventory || {
 			items: [], // Array of { id, name, baseItemId, quantity, equipped, attuned, cost, weight, source, metadata }
 			equipped: {
@@ -247,22 +228,20 @@ export class Character {
 			},
 		};
 
-		// Initialize spellcasting system (tracks spells by class)
 		this.spellcasting = data.spellcasting || {
-			classes: {}, // { "Wizard": { level, spellsKnown, spellsPrepared, spellSlots, ... }, ... }
+			classes: {},
 			multiclass: {
 				isCastingMulticlass: false,
-				combinedSlots: {}, // Combined spell slots for multiclass
+				combinedSlots: {},
 			},
 			other: {
-				spellsKnown: [], // From items, feats, etc.
+				spellsKnown: [],
 				itemSpells: [],
 			},
 		};
 
-		// Initialize character progression (tracks per-class levels and features)
 		this.progression = data.progression || {
-			classes: [], // Array of { name, levels, subclass, hitDice, hitPoints, features, spellSlots }
+			classes: [],
 		};
 
 		// Use ProficiencyCore to initialize proficiency structures
@@ -424,11 +403,7 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Returns how many feat choices the character is allowed to make.
-	 * Currently supports Variant Human (PHB) and the level 4 ASI swap.
-	 * @returns {{used:number,max:number,remaining:number,reasons:string[],blockedReason?:string}}
-	 */
+	/** @returns {{used:number,max:number,remaining:number,reasons:string[],blockedReason?:string}} */
 	getFeatAvailability() {
 		return featService.calculateFeatAvailability(this);
 	}
@@ -493,10 +468,6 @@ export class Character {
 	}
 
 	toJSON() {
-		console.debug('[Character.toJSON] optionalProficiencies.tools.class before serialization:',
-			JSON.stringify(this.optionalProficiencies?.tools?.class || {}));
-
-		// Helper function to safely convert a Map to an object
 		const mapToObject = (map) => {
 			if (!map || typeof map !== 'object') return {};
 
@@ -515,7 +486,6 @@ export class Character {
 			}
 		};
 
-		// Helper function to ensure arrays are safe for serialization
 		const safeArray = (arr) => {
 			if (!arr) return [];
 			if (Array.isArray(arr)) return [...arr];
@@ -523,7 +493,6 @@ export class Character {
 			return [];
 		};
 
-		// Create a clean object with just the data we need
 		const serializedData = {
 			id: this.id,
 			name: this.name,
@@ -540,26 +509,21 @@ export class Character {
 			deity: this.deity || '',
 			backstory: this.backstory || '',
 
-			// Ability scores and bonuses
 			abilityScores: { ...this.abilityScores },
 			abilityBonuses: { ...this.abilityBonuses },
 
-			// Race, class, background
 			race: this.race
 				? { ...this.race }
 				: { name: '', source: '', subrace: '' },
-			// Note: class info stored in progression.classes[], no legacy character.class field
 			background: this.background
 				? typeof this.background === 'object'
 					? { ...this.background }
 					: { name: this.background }
 				: {},
 
-			// Size and speed
 			size: this.size || DEFAULT_CHARACTER_SIZE,
 			speed: this.speed ? { ...this.speed } : { ...DEFAULT_CHARACTER_SPEED },
 
-			// Features and proficiencies
 			features: {
 				darkvision: this.features?.darkvision || 0,
 				resistances: Array.from(this.features?.resistances || []),
@@ -575,7 +539,6 @@ export class Character {
 				savingThrows: safeArray(this.proficiencies?.savingThrows),
 			},
 
-			// Proficiency sources (convert Maps to serializable objects)
 			proficiencySources: {
 				armor: mapToObject(this.proficiencySources?.armor),
 				weapons: mapToObject(this.proficiencySources?.weapons),
@@ -585,7 +548,6 @@ export class Character {
 				savingThrows: mapToObject(this.proficiencySources?.savingThrows),
 			},
 
-			// Feats
 			feats: Array.isArray(this.feats)
 				? this.feats.map((feat) => ({
 					name: feat?.name || '',
@@ -595,7 +557,6 @@ export class Character {
 			featSources: mapToObject(this.featSources),
 		};
 
-		// Handle optional proficiencies separately with careful error handling
 		try {
 			if (this.optionalProficiencies) {
 				serializedData.optionalProficiencies = {
@@ -630,12 +591,8 @@ export class Character {
 					languages: this._serializeComplexProficiency('languages'),
 					tools: this._serializeComplexProficiency('tools'),
 				};
-
-				console.debug('[Character.toJSON] Serialized optionalProficiencies.tools.class:',
-					JSON.stringify(serializedData.optionalProficiencies.tools.class));
 			}
 		} catch {
-			// Provide empty default structure
 			serializedData.optionalProficiencies = {
 				armor: { allowed: 0, selected: [] },
 				weapons: { allowed: 0, selected: [] },
@@ -744,7 +701,6 @@ export class Character {
 	}
 
 	_serializeComplexProficiency(type) {
-		// Helper function to ensure arrays are safe for serialization
 		const safeArray = (arr) => {
 			if (!arr) return [];
 			if (Array.isArray(arr)) return [...arr];
@@ -753,7 +709,6 @@ export class Character {
 		};
 
 		if (!this.optionalProficiencies || !this.optionalProficiencies[type]) {
-			// Return default structure if missing
 			return {
 				allowed: 0,
 				options: [],
@@ -770,7 +725,6 @@ export class Character {
 			selected: safeArray(this.optionalProficiencies[type].selected),
 		};
 
-		// Add source-specific details
 		for (const source of ['race', 'class', 'background']) {
 			if (this.optionalProficiencies[type][source]) {
 				result[source] = {
@@ -797,55 +751,41 @@ export class Character {
 		return this.pendingAbilityChoices;
 	}
 
-	/**
-	 * Clear all racial benefits, bonuses, and proficiencies
-	 * Consolidates cleanup from race changes into a single call
-	 * @returns {void}
-	 */
+	/** Clear all racial benefits, bonuses, and proficiencies. */
 	clearRacialBenefits() {
-		// Clear ability bonuses from race/subrace
 		this.clearAbilityBonuses('Race');
 		this.clearAbilityBonuses('Subrace');
 		this.clearAbilityBonusesByPrefix('Race');
 		this.clearAbilityBonusesByPrefix('Subrace');
 
-		// Clear the character's saved ability choices
 		if (this.race) {
 			this.race.abilityChoices = [];
 		}
 
-		// Clear all pending ability choices
 		this.clearPendingChoicesByType('ability');
 
-		// Clear all proficiencies from race and subrace
 		this.removeProficienciesBySource('Race');
 		this.removeProficienciesBySource('Subrace');
 
-		// Clear all traits from race and subrace
 		this.clearTraits('Race');
 		this.clearTraits('Subrace');
 
-		// Reset racial features
 		this.features.darkvision = 0;
 		this.features.resistances.clear();
 
-		// Clear optional proficiencies for race
 		if (this.optionalProficiencies) {
-			// Clear race skills
 			if (this.optionalProficiencies.skills?.race) {
 				this.optionalProficiencies.skills.race.allowed = 0;
 				this.optionalProficiencies.skills.race.options = [];
 				this.optionalProficiencies.skills.race.selected = [];
 			}
 
-			// Clear race languages
 			if (this.optionalProficiencies.languages?.race) {
 				this.optionalProficiencies.languages.race.allowed = 0;
 				this.optionalProficiencies.languages.race.options = [];
 				this.optionalProficiencies.languages.race.selected = [];
 			}
 
-			// Clear race tools
 			if (this.optionalProficiencies.tools?.race) {
 				this.optionalProficiencies.tools.race.allowed = 0;
 				this.optionalProficiencies.tools.race.options = [];
@@ -854,10 +794,7 @@ export class Character {
 		}
 	}
 
-	/**
-	 * Get total character level (sum of all class levels)
-	 * @returns {number} Total character level
-	 */
+	/** @returns {number} Sum of all class levels */
 	getTotalLevel() {
 		if (!this.progression?.classes || this.progression.classes.length === 0) {
 			return 1;
@@ -865,10 +802,7 @@ export class Character {
 		return this.progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
 	}
 
-	/**
-	 * Get primary class (first class in progression)
-	 * @returns {Object|null} Class entry {name, source, levels, subclass} or null
-	 */
+	/** @returns {Object|null} First class in progression or null */
 	getPrimaryClass() {
 		if (!this.progression?.classes || this.progression.classes.length === 0) {
 			return null;
@@ -876,11 +810,7 @@ export class Character {
 		return this.progression.classes[0];
 	}
 
-	/**
-	 * Get class entry by name
-	 * @param {string} className - Name of the class to find
-	 * @returns {Object|null} Class entry {name, source, levels, subclass} or null
-	 */
+	/** @returns {Object|null} Class entry by name or null */
 	getClassEntry(className) {
 		if (!this.progression?.classes) {
 			return null;
@@ -888,32 +818,18 @@ export class Character {
 		return this.progression.classes.find(c => c.name === className) || null;
 	}
 
-	/**
-	 * Check if character has a specific class
-	 * @param {string} className - Name of the class to check
-	 * @returns {boolean} True if character has this class
-	 */
+	/** @returns {boolean} True if character has the specified class */
 	hasClass(className) {
 		return this.getClassEntry(className) !== null;
 	}
 }
 
-/**
- * Centralized utility to serialize a Character instance
- * Handles Sets/Maps and calls toJSON()
- * @param {Character} character
- * @returns {Object} Serialized character data
- */
+/** Serialize a Character instance for storage. */
 export function serializeCharacter(character) {
 	return character?.toJSON ? character.toJSON() : character;
 }
 
-/**
- * Centralized utility to deserialize character data
- * Handles Sets/Maps and calls Character.fromJSON()
- * @param {Object} data
- * @returns {Character}
- */
+/** Deserialize character data into a Character instance. */
 export function deserializeCharacter(data) {
 	return Character.fromJSON(data);
 }
