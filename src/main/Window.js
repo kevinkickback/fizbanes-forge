@@ -6,11 +6,7 @@ import { MainLogger } from './Logger.js';
 
 let mainWindow = null;
 
-/**
- * Create the main application window.
- * @param {object} options - { preferencesManager, rendererPath, preloadPath, debugMode }
- * @returns {BrowserWindow}
- */
+/** Create the main application window. */
 export function createMainWindow({
 	preferencesManager,
 	rendererPath,
@@ -62,10 +58,6 @@ export function createMainWindow({
 	return mainWindow;
 }
 
-/**
- * Wire window event listeners.
- * @param {object} preferencesManager
- */
 function setupWindowEvents(preferencesManager) {
 	if (!mainWindow) return;
 	// Save window bounds on close
@@ -80,9 +72,6 @@ function setupWindowEvents(preferencesManager) {
 	});
 }
 
-/**
- * Get the current main window instance.
- */
 export function getMainWindow() {
 	return mainWindow;
 }

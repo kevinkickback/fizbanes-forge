@@ -1,4 +1,6 @@
 import { AppState } from '../app/AppState.js';
+import { DataLoader } from '../lib/DataLoader.js';
+import { eventBus, EVENTS } from '../lib/EventBus.js';
 class BackgroundService {
 	constructor() {
 		this._backgroundData = null;

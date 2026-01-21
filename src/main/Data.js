@@ -45,8 +45,6 @@ const ENUMERATION_INDEX_FILES = [
 	'spells/fluff-index.json',
 ];
 
-/** @typedef {{valid: boolean, missing: string[], error?: string}} ValidationResult */
-
 // Convert a repo/server URL to a raw data base URL (GitHub -> raw, others add /data).
 function buildRawDataBaseUrl(url) {
 	const urlObj = new URL(url);
@@ -148,11 +146,7 @@ async function validateJsonStructure(data, fileName) {
 	return { valid: true };
 }
 
-/**
- * Validate a local data directory for required files, indexes, and JSON shape.
- * @param {string} folderPath absolute path to the data folder
- * @returns {Promise<{valid: boolean, missing: string[], missingIndexed?: string[], error?: string}>}
- */
+/** Validate a local data directory for required files, indexes, and JSON shape. */
 export async function validateLocalDataFolder(folderPath) {
 	try {
 		const stats = await fs.stat(folderPath);
@@ -407,7 +401,7 @@ export async function buildDataManifest(remoteUrl) {
 	return Array.from(manifestSet);
 }
 
-/** Fetch plain text from a URL with timeout/error handling. */
+/** Fetch plain text from a URL. */
 function fetchTextFromUrl(urlString, timeout = 10000) {
 	return new Promise((resolve) => {
 		const urlObj = new URL(urlString);
@@ -449,14 +443,7 @@ function fetchTextFromUrl(urlString, timeout = 10000) {
 	});
 }
 
-/**
- * Download manifest files to a target folder (incremental, tolerant of partial failures).
- * @param {string} url remote base URL
- * @param {string} targetDir local directory to write
- * @param {string[]} manifest relative paths to download
- * @param {(progress: {completed: number, total: number, file: string, success: boolean, skipped?: boolean, error?: string}) => void} [onProgress]
- * @returns {Promise<{success: boolean, downloaded: number, skipped?: number, failed?: Array<{file: string, error: string}>, error?: string, warning?: string}>}
- */
+/** Download manifest files to a target folder (incremental, tolerant of partial failures). */
 export async function downloadDataFromUrl(
 	url,
 	targetDir,
@@ -577,11 +564,7 @@ export async function downloadDataFromUrl(
 	}
 }
 
-/**
- * Validate a remote data source URL by fetching and checking races.json.
- * @param {string} url repo/server URL to validate
- * @returns {Promise<{valid: boolean, error?: string}>}
- */
+/** Validate a remote data source URL by fetching and checking races.json. */
 export async function validateDataSourceURL(url) {
 	try {
 		// First validate URL format

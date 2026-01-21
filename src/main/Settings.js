@@ -8,10 +8,7 @@ let preferencesPath;
 let defaults;
 let store;
 
-/**
- * Initialize preferences module with Electron app instance.
- * Call this once at startup.
- */
+/** Initialize preferences module with Electron app instance. */
 export function initPreferences(app) {
 	preferencesPath = path.join(app.getPath('userData'), 'preferences.json');
 	defaults = {
