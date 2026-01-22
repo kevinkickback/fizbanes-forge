@@ -196,9 +196,14 @@ export class CharacterStepReview {
         const race = raceService.getRace(raceName, raceSource);
         if (!race) return 0;
 
-        const subrace = subraceName
-            ? raceService.getSubrace(raceName, subraceName, raceSource)
-            : null;
+        let subrace = null;
+        if (subraceName) {
+            subrace = raceService.getSubrace(raceName, subraceName, raceSource);
+        } else {
+            // Get base (unnamed) subrace if no explicit subrace selected
+            // This handles races like Human where ability bonuses are stored in the base subrace
+            subrace = raceService.getBaseSubrace(raceName, raceSource);
+        }
 
         // Parse ability increases from race and subrace
         const abilityArray = [
@@ -220,6 +225,14 @@ export class CharacterStepReview {
                 if (abilityEntry[shortName]) {
                     bonus += abilityEntry[shortName];
                 }
+            }
+        }
+
+        // Add bonuses from racial ability choices (e.g., Variant Human)
+        const savedChoices = data.race?.abilityChoices || [];
+        for (const choice of savedChoices) {
+            if (choice && choice.ability === ability) {
+                bonus += choice.amount || 1;
             }
         }
 

@@ -1,10 +1,7 @@
 // Step 5: Ability Scores - score assignment based on method from step 1
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
-import {
-    abilityScoreService,
-    getRaceAbilityData,
-} from '../../../services/AbilityScoreService.js';
+import { getRaceAbilityData } from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
 
 export class CharacterStepAbilityScores {
@@ -42,12 +39,12 @@ export class CharacterStepAbilityScores {
                     </div>
                     <div class="card-body">
                         ${method === 'pointBuy' ? this._renderPointBuyInfo() : ''}
-                        ${this._abilityChoiceData.choices.length > 0 ? this._renderAbilityChoices() : ''}
                         <div class="ability-score-container">
                             <div class="ability-score-grid">
                                 ${this._renderAbilityScoreBoxes()}
                             </div>
                         </div>
+                        ${this._abilityChoiceData.choices.length > 0 ? this._renderAbilityChoices() : ''}
                     </div>
                 </div>
             </div>
@@ -69,7 +66,7 @@ export class CharacterStepAbilityScores {
         ];
         const stagedData = this.session.getStagedData();
 
-        // Initialize ability scores in staged data if not present
+        // Initialize ability scores in staged data if not present (basic initialization only)
         if (!stagedData.abilityScores) {
             stagedData.abilityScores = {
                 strength: 8,
@@ -117,30 +114,41 @@ export class CharacterStepAbilityScores {
         const stagedData = this.session.getStagedData();
         const savedChoices = stagedData.race?.abilityChoices || [];
 
+        // Collect all currently selected abilities (to exclude from other dropdowns)
+        const selectedAbilities = new Set();
+        for (const choice of savedChoices) {
+            if (choice?.ability) {
+                selectedAbilities.add(choice.ability);
+            }
+        }
+
         let dropdownsHTML = '';
         let choiceIndex = 0;
 
         for (const choice of this._abilityChoiceData.choices) {
             const count = choice.count || 1;
             const amount = choice.amount || 1;
-            const source = choice.source === 'race' ? 'Race' : 'Subrace';
 
             for (let i = 0; i < count; i++) {
                 const savedChoice = savedChoices[choiceIndex];
                 const selectedAbility = savedChoice?.ability || '';
 
+                // Filter available options: exclude abilities selected in other dropdowns
+                // but always include the currently selected ability for this dropdown
+                const availableAbilities = choice.from.filter(
+                    (ability) => ability === selectedAbility || !selectedAbilities.has(ability),
+                );
+
                 dropdownsHTML += `
-                    <div class="ability-choice-dropdown mb-2">
-                        <label class="form-label">
-                            <strong>${source} Choice ${i + 1}:</strong> +${amount} to
-                        </label>
+                    <div class="ability-choice-dropdown flex-grow-1">
+                        <label class="form-label">Racial Bonus ${i + 1}:</label>
                         <select class="form-select form-select-sm" data-choice-index="${choiceIndex}">
-                            <option value="">Choose an ability...</option>
-                            ${choice.from
+                            <option value="">Choose...</option>
+                            ${availableAbilities
                         .map(
                             (ability) => `
                                 <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
-                                    ${ability.charAt(0).toUpperCase() + ability.slice(1)}
+                                    +${amount} to ${ability.charAt(0).toUpperCase() + ability.slice(1)}
                                 </option>
                             `,
                         )
@@ -153,9 +161,10 @@ export class CharacterStepAbilityScores {
         }
 
         return `
-            <div class="racial-ability-choices mb-3 p-3 border rounded">
-                <h6 class="mb-2"><i class="fas fa-plus-circle"></i> Racial Ability Choices</h6>
-                ${dropdownsHTML}
+            <div class="racial-ability-choices mt-3 pt-3 border-top">
+                <div class="d-flex gap-2 justify-content-center">
+                    ${dropdownsHTML}
+                </div>
             </div>
         `;
     }
@@ -218,9 +227,14 @@ export class CharacterStepAbilityScores {
         const race = raceService.getRace(raceName, raceSource);
         if (!race) return 0;
 
-        const subrace = subraceName
-            ? raceService.getSubrace(raceName, subraceName, raceSource)
-            : null;
+        let subrace = null;
+        if (subraceName) {
+            subrace = raceService.getSubrace(raceName, subraceName, raceSource);
+        } else {
+            // Get base (unnamed) subrace if no explicit subrace selected
+            // This handles races like Human where ability bonuses are stored in the base subrace
+            subrace = raceService.getBaseSubrace(raceName, raceSource);
+        }
 
         // Parse ability increases from race and subrace
         const abilityArray = [
@@ -242,10 +256,14 @@ export class CharacterStepAbilityScores {
                 if (abilityEntry[shortName]) {
                     bonus += abilityEntry[shortName];
                 }
+            }
+        }
 
-                // Choose format: { choose: { from: [...], count: 1, amount: 1 } }
-                // This requires user choice, which we handle elsewhere
-                // For now, we don't add anything for choose abilities
+        // Add bonuses from racial ability choices (e.g., Variant Human)
+        const savedChoices = stagedData.race?.abilityChoices || [];
+        for (const choice of savedChoices) {
+            if (choice && choice.ability === ability) {
+                bonus += choice.amount || 1;
             }
         }
 
@@ -302,8 +320,121 @@ export class CharacterStepAbilityScores {
         const stagedData = this.session.getStagedData();
         const method = stagedData.abilityScoreMethod || 'pointBuy';
 
+        // Attach listeners for ability choice dropdowns (for variant races)
+        this._attachChoiceDropdownListeners();
+
         // Add method-specific controls
         await this._addMethodControls(method);
+    }
+
+    /**
+     * Attach listeners to ability choice dropdowns.
+     * @private
+     */
+    _attachChoiceDropdownListeners() {
+        const dropdowns = document.querySelectorAll('[data-choice-index]');
+        for (const dropdown of dropdowns) {
+            this._cleanup.on(dropdown, 'change', (event) => {
+                const choiceIndex = parseInt(event.target.dataset.choiceIndex, 10);
+                const selectedAbility = event.target.value;
+
+                const stagedData = this.session.getStagedData();
+                if (!stagedData.race) {
+                    console.warn('[Step5AbilityScores]', 'No race selected');
+                    return;
+                }
+
+                // Initialize abilityChoices array if not present
+                if (!stagedData.race.abilityChoices) {
+                    stagedData.race.abilityChoices = [];
+                }
+
+                // Ensure array is large enough
+                while (stagedData.race.abilityChoices.length <= choiceIndex) {
+                    stagedData.race.abilityChoices.push(null);
+                }
+
+                // Update the choice
+                if (selectedAbility) {
+                    stagedData.race.abilityChoices[choiceIndex] = {
+                        ability: selectedAbility,
+                        amount: this._abilityChoiceData.choices[choiceIndex]?.amount || 1,
+                    };
+                } else {
+                    stagedData.race.abilityChoices[choiceIndex] = null;
+                }
+
+                // Re-render ability choices to update available options (exclude selected abilities)
+                this._rerenderChoices();
+
+                // Re-render ability scores to update bonuses
+                this._rerenderAbilityScores();
+            });
+        }
+    }
+
+    /**
+     * Re-render ability choice dropdowns to update available options.
+     * @private
+     */
+    _rerenderChoices() {
+        const choicesContainer = document.querySelector('.racial-ability-choices');
+        if (!choicesContainer) return;
+
+        choicesContainer.outerHTML = this._renderAbilityChoices();
+
+        // Re-attach listeners to the newly rendered dropdowns
+        this._attachChoiceDropdownListeners();
+    }
+
+    /**
+     * Re-render ability scores after a choice changes.
+     * @private
+     */
+    _rerenderAbilityScores() {
+        const abilities = [
+            'strength',
+            'dexterity',
+            'constitution',
+            'intelligence',
+            'wisdom',
+            'charisma',
+        ];
+
+        // Update each ability score display
+        for (const ability of abilities) {
+            const box = document.querySelector(`[data-ability="${ability}"]`);
+            if (!box) continue;
+
+            const baseScore = this.session.getStagedData().abilityScores?.[ability] || 8;
+            const racialBonus = this._getRacialBonus(ability);
+            const totalScore = baseScore + racialBonus;
+            const modifier = this._formatModifier(Math.floor((totalScore - 10) / 2));
+
+            // Update the score display
+            const scoreDisplay = box.querySelector('.score');
+            if (scoreDisplay) {
+                scoreDisplay.textContent = totalScore;
+            }
+
+            // Update the modifier display
+            const modifierDisplay = box.querySelector('.modifier');
+            if (modifierDisplay) {
+                modifierDisplay.textContent = modifier;
+            }
+
+            // Update the bonus display
+            const bonusDisplay = box.querySelector('.bonus');
+            if (bonusDisplay) {
+                if (racialBonus !== 0) {
+                    bonusDisplay.style.display = 'block';
+                    bonusDisplay.textContent = racialBonus >= 0 ? `+${racialBonus}` : `${racialBonus}`;
+                    bonusDisplay.classList.toggle('negative', racialBonus < 0);
+                } else {
+                    bonusDisplay.style.display = 'none';
+                }
+            }
+        }
     }
 
     /**
@@ -320,6 +451,22 @@ export class CharacterStepAbilityScores {
             'charisma',
         ];
 
+        const stagedData = this.session.getStagedData();
+
+        // Initialize standard array values if method is standardArray and all values are at default
+        if (method === 'standardArray') {
+            const allEights = abilities.every(ability => stagedData.abilityScores?.[ability] === 8);
+            if (allEights) {
+                const standardValues = [15, 14, 13, 12, 10, 8];
+                stagedData.abilityScores.strength = standardValues[0];
+                stagedData.abilityScores.dexterity = standardValues[1];
+                stagedData.abilityScores.constitution = standardValues[2];
+                stagedData.abilityScores.intelligence = standardValues[3];
+                stagedData.abilityScores.wisdom = standardValues[4];
+                stagedData.abilityScores.charisma = standardValues[5];
+            }
+        }
+
         for (const ability of abilities) {
             const controlsContainer = document.getElementById(`controls-${ability}`);
             if (!controlsContainer) continue;
@@ -332,6 +479,9 @@ export class CharacterStepAbilityScores {
                 this._addCustomControls(controlsContainer, ability);
             }
         }
+
+        // Refresh display after adding all controls to show correct initial values
+        this._refreshDisplay();
     }
 
     /**
@@ -374,13 +524,9 @@ export class CharacterStepAbilityScores {
 
         const select = document.createElement('select');
         select.className = 'form-select form-select-sm';
+        select.dataset.ability = ability;
 
-        // Add options
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = 'Select...';
-        select.appendChild(placeholder);
-
+        // Show ALL standard array values to allow swapping
         for (const value of standardValues) {
             const option = document.createElement('option');
             option.value = value;
@@ -499,7 +645,6 @@ export class CharacterStepAbilityScores {
             };
         }
 
-        // Check if this value is already assigned
         const abilities = [
             'strength',
             'dexterity',
@@ -508,19 +653,54 @@ export class CharacterStepAbilityScores {
             'wisdom',
             'charisma',
         ];
-        const currentScore = stagedData.abilityScores[ability];
 
+        // Get the current score for the ability being changed
+        const currentAbilityScore = stagedData.abilityScores[ability];
+
+        // Find if the new value is already assigned to another ability
+        let otherAbility = null;
         for (const checkAbility of abilities) {
             if (checkAbility === ability) continue;
             if (stagedData.abilityScores[checkAbility] === value) {
-                // Swap values
-                stagedData.abilityScores[checkAbility] = currentScore;
+                otherAbility = checkAbility;
                 break;
             }
         }
 
+        // If value is already assigned to another ability, swap them
+        if (otherAbility) {
+            stagedData.abilityScores[otherAbility] = currentAbilityScore;
+        }
+
+        // Update the current ability score with the new value
         stagedData.abilityScores[ability] = value;
+
+        // Refresh all standard array dropdowns to reflect new availability
+        this._refreshStandardArrayDropdowns();
+
+        // Refresh the display to show updated scores
         this._refreshDisplay();
+    }
+
+    /**
+     * Refresh all standard array dropdowns to show correct available values.
+     * @private
+     */
+    _refreshStandardArrayDropdowns() {
+        const stagedData = this.session.getStagedData();
+        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
+        // Update each dropdown to reflect current value
+        for (const ability of abilities) {
+            const controlsContainer = document.getElementById(`controls-${ability}`);
+            if (!controlsContainer) continue;
+
+            const select = controlsContainer.querySelector('select');
+            if (!select) continue;
+
+            const currentValue = stagedData.abilityScores?.[ability] || 8;
+            select.value = currentValue;
+        }
     }
 
     /**
@@ -629,9 +809,8 @@ export class CharacterStepAbilityScores {
                 'wisdom',
                 'charisma',
             ];
-            const assignedValues = abilities.map((a) =>
-                abilityScoreService.getBaseScore(a),
-            );
+            const stagedData = this.session.getStagedData();
+            const assignedValues = abilities.map((a) => stagedData.abilityScores?.[a] || 8);
             const standardValues = [15, 14, 13, 12, 10, 8];
 
             // Check if all standard values are used
@@ -642,6 +821,7 @@ export class CharacterStepAbilityScores {
                 console.warn(
                     '[Step5AbilityScores]',
                     'Not all standard array values assigned',
+                    { assignedValues, sortedAssigned, sortedStandard }
                 );
                 return false;
             }

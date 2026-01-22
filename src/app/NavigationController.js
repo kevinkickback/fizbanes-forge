@@ -227,12 +227,6 @@ class NavigationControllerImpl {
 			title: 'Preview',
 		});
 
-		this.router.register('layout-test', {
-			template: 'layout-test.html',
-			requiresCharacter: false,
-			title: 'Split Card Layout Demo',
-		});
-
 		console.debug('[Router]', 'All routes registered', {
 			routes: this.router.getAllRoutes(),
 		});

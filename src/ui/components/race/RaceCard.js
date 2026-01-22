@@ -417,15 +417,30 @@ export class RaceCard {
 			const raceValue = `${character.race.name}_${character.race.source}`;
 			console.debug('[RaceCard]', 'Loading saved race:', raceValue);
 
-			const raceItem = this._raceList?.querySelector(
+			let raceItem = this._raceList?.querySelector(
 				`[data-race="${raceValue}"]`,
 			);
 			if (!raceItem) {
-				console.warn(
-					'RaceCard',
-					`Saved race "${raceValue}" not found in available options. Character might use a source that's not currently allowed.`,
+				// Fallback: try to match by name ignoring source (e.g., PHB vs PHB-2014/XPHB variants)
+				const fallbackItem = this._raceList?.querySelector(
+					`[data-race^="${character.race.name}_"]`,
 				);
-				return;
+				if (fallbackItem) {
+					const fallbackAttr = fallbackItem.getAttribute('data-race');
+					console.warn(
+						'RaceCard',
+						`Saved race "${raceValue}" not found; using available variant "${fallbackAttr}"`,
+					);
+					raceItem = fallbackItem;
+					const [, fallbackSource] = fallbackAttr.split('_');
+					character.race.source = fallbackSource || character.race.source;
+				} else {
+					console.warn(
+						'RaceCard',
+						`Saved race "${raceValue}" not found in available options. Character might use a source that's not currently allowed.`,
+					);
+					return;
+				}
 			}
 
 			// Check the radio button for this race
@@ -549,6 +564,15 @@ export class RaceCard {
 			this._showInfo(infoId, true);
 
 			console.debug('[RaceCard]', 'Saved race selection loaded successfully');
+
+			// Re-apply racial ability bonuses and pending choices
+			this._updateAbilityBonuses(race, subrace);
+
+			// Restore any previously saved racial ability choices
+			const savedChoices = character.race?.abilityChoices || [];
+			if (savedChoices.length > 0) {
+				abilityScoreService.setRacialAbilityChoices(savedChoices);
+			}
 		} catch (error) {
 			console.error('RaceCard', 'Error loading saved race selection:', error);
 		}

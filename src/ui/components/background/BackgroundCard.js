@@ -444,15 +444,30 @@ export class BackgroundCard {
 				backgroundValue,
 			);
 
-			const backgroundItem = this._backgroundList?.querySelector(
+			let backgroundItem = this._backgroundList?.querySelector(
 				`[data-background="${backgroundValue}"]`,
 			);
 			if (!backgroundItem) {
-				console.warn(
-					'BackgroundCard',
-					`Saved background "${backgroundValue}" not found in available options. Character might use a source that's not currently allowed.`,
+				// Fallback: try to match by name ignoring source variants (e.g., PHB vs PHB-2014/XPHB)
+				const fallbackItem = this._backgroundList?.querySelector(
+					`[data-background^="${character.background.name}_"]`,
 				);
-				return;
+				if (fallbackItem) {
+					const fallbackAttr = fallbackItem.getAttribute('data-background');
+					console.warn(
+						'BackgroundCard',
+						`Saved background "${backgroundValue}" not found; using available variant "${fallbackAttr}"`,
+					);
+					backgroundItem = fallbackItem;
+					const [, fallbackSource] = fallbackAttr.split('_');
+					character.background.source = fallbackSource || character.background.source;
+				} else {
+					console.warn(
+						'BackgroundCard',
+						`Saved background "${backgroundValue}" not found in available options. Character might use a source that's not currently allowed.`,
+					);
+					return;
+				}
 			}
 
 			// Check the radio button for this background

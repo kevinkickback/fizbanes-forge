@@ -105,8 +105,18 @@ export function serialize(character) {
         abilityBonuses: { ...character.abilityBonuses },
 
         race: character.race
-            ? { ...character.race }
-            : { name: '', source: '', subrace: '' },
+            ? {
+                name: character.race.name || '',
+                source: character.race.source || '',
+                subrace: character.race.subrace || '',
+                abilityChoices: Array.isArray(character.race.abilityChoices)
+                    ? character.race.abilityChoices.map((choice) => ({ ...choice }))
+                    : [],
+                abilityBonuses: character.race.abilityBonuses
+                    ? { ...character.race.abilityBonuses }
+                    : undefined,
+            }
+            : { name: '', source: '', subrace: '', abilityChoices: [] },
         background: character.background
             ? typeof character.background === 'object'
                 ? { ...character.background }

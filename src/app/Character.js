@@ -20,9 +20,17 @@ export class Character {
 			abilityChoices: [],
 		};
 
+
 		// Ensure abilityChoices exists on race even if loading from old data
 		if (this.race && !Array.isArray(this.race.abilityChoices)) {
-			this.race.abilityChoices = [];
+			if (this.race.abilityChoices && typeof this.race.abilityChoices === 'object') {
+				const entries = Object.entries(this.race.abilityChoices).sort(
+					([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10),
+				);
+				this.race.abilityChoices = entries.map(([, choice]) => choice).filter(Boolean);
+			} else {
+				this.race.abilityChoices = [];
+			}
 		}
 
 		this.background = data.background || '';

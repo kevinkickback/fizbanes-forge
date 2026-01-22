@@ -416,6 +416,14 @@ function initializeDefaultHandlers() {
 		const url = parts[1] || '#';
 		return `<a class="rd__link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
 	});
+
+	// 5etools branding tag (treat as simple text/link to avoid warnings)
+	registerTagHandler('5etools', (text) => {
+		const parts = splitTagByPipe(text || '5etools|https://5e.tools');
+		const label = escapeHtml(parts[0] || '5etools');
+		const url = parts[1] || 'https://5e.tools';
+		return `<a class="rd__link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+	});
 }
 
 export function processString(text) {

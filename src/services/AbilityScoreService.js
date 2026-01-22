@@ -49,8 +49,18 @@ class AbilityScoreService {
 		this._assignedStandardArrayValues = {};
 
 		// Rehydrate stored racial ability choices into the manager/map
-		if (Array.isArray(character.race?.abilityChoices)) {
-			this.setRacialAbilityChoices(character.race.abilityChoices);
+		const abilityChoices = Array.isArray(character.race?.abilityChoices)
+			? character.race.abilityChoices
+			: character.race?.abilityChoices &&
+				typeof character.race.abilityChoices === 'object'
+				? Object.entries(character.race.abilityChoices)
+					.sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
+					.map(([, choice]) => choice)
+					.filter(Boolean)
+				: [];
+
+		if (abilityChoices.length > 0) {
+			this.setRacialAbilityChoices(abilityChoices);
 		}
 
 		// Initialize any ability-related state for the new character
@@ -366,7 +376,7 @@ class AbilityScoreService {
 			type: 'ability',
 			amount: choice.amount || 1,
 			count: choice.count || 1,
-			choices: choice.choices || [],
+			choices: choice.choices || choice.from || [],
 			source: choice.source || 'Race Choice',
 		}));
 

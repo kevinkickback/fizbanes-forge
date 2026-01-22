@@ -383,6 +383,17 @@ export class CharacterCreationModal {
                     source: stagedData.race.source,
                     subrace: stagedData.race.subrace || '',
                 };
+
+                if (stagedData.race.abilityChoices) {
+                    const abilityChoices = Array.isArray(stagedData.race.abilityChoices)
+                        ? [...stagedData.race.abilityChoices]
+                        : Object.entries(stagedData.race.abilityChoices)
+                            .sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
+                            .map(([, choice]) => choice)
+                            .filter(Boolean);
+
+                    character.race.abilityChoices = abilityChoices;
+                }
             }
 
             // Apply class selection (only in progression.classes[], no legacy character.class field)
