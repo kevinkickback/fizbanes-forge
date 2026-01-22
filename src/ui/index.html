@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self';
+        script-src 'self' 'sha256-03hqRYirFQqb8kkzkNAgkErJCP3W4ApUV4ADSad+IGs=';
         style-src 'self' 'unsafe-inline';
         img-src 'self' data:;
         font-src 'self' data:;
@@ -15,6 +15,16 @@
         object-src 'none';
         base-uri 'self'
     " />
+    <!-- Import map for npm packages used in renderer -->
+    <script type="importmap">
+    {
+        "imports": {
+            "eventemitter3": "../../node_modules/eventemitter3/dist/eventemitter3.esm.js",
+            "immer": "../../node_modules/immer/dist/immer.production.mjs",
+            "zod": "../../node_modules/zod/index.js"
+        }
+    }
+    </script>
     <link rel="stylesheet" href="styles/themes.css" />
     <link rel="stylesheet" href="styles/titlebar.css" />
     <link rel="stylesheet" href="styles/main.css" />

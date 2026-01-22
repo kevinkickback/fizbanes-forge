@@ -161,10 +161,13 @@ class PageHandlerImpl {
 				});
 			}
 
-			eventBus.off(
-				EVENTS.CHARACTER_SELECTED,
-				this._homeCharacterSelectedHandler,
-			);
+			// Remove old handler if it exists before adding new one
+			if (this._homeCharacterSelectedHandler) {
+				eventBus.off(
+					EVENTS.CHARACTER_SELECTED,
+					this._homeCharacterSelectedHandler,
+				);
+			}
 
 			this._homeCharacterSelectedHandler = async () => {
 				const reloadCharacters = await CharacterManager.loadCharacterList();
@@ -176,10 +179,13 @@ class PageHandlerImpl {
 				this._homeCharacterSelectedHandler,
 			);
 
-			eventBus.off(
-				EVENTS.CHARACTER_CREATED,
-				this._homeCharacterCreatedHandler,
-			);
+			// Remove old handler if it exists before adding new one
+			if (this._homeCharacterCreatedHandler) {
+				eventBus.off(
+					EVENTS.CHARACTER_CREATED,
+					this._homeCharacterCreatedHandler,
+				);
+			}
 
 			this._homeCharacterCreatedHandler = async () => {
 				const reloadCharacters = await CharacterManager.loadCharacterList();

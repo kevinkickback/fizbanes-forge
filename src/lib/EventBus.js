@@ -1,5 +1,7 @@
 /** Decoupled event bus for renderer components (infrastructure layer). */
 
+import EventEmitter from 'eventemitter3';
+
 export const EVENTS = {
 	// Application lifecycle
 	APP_READY: 'app:ready',
@@ -100,128 +102,84 @@ export const EVENTS = {
 	SERVICE_INITIALIZED: 'service:initialized',
 };
 
-class EventBusImpl {
-	constructor() {
-		this.listeners = new Map();
-		this.onceListeners = new Map();
-	}
-
+// Wrapper class to maintain existing API while using EventEmitter3 internally
+class EventBusImpl extends EventEmitter {
+	// Maintain existing on() behavior with debug logging
 	on(event, handler) {
 		if (typeof handler !== 'function') {
 			console.error('[EventBus]', 'Handler must be a function', { event });
-			return;
+			return this;
 		}
 
-		if (!this.listeners.has(event)) {
-			this.listeners.set(event, []);
-		}
-
-		this.listeners.get(event).push(handler);
+		super.on(event, handler);
 		console.debug('[EventBus]', 'Listener registered', {
 			event,
-			totalListeners: this.listeners.get(event).length,
+			totalListeners: this.listenerCount(event),
 		});
+		return this;
 	}
 
+	// Maintain existing once() behavior with debug logging
 	once(event, handler) {
 		if (typeof handler !== 'function') {
 			console.error('[EventBus]', 'Handler must be a function', { event });
-			return;
+			return this;
 		}
 
-		if (!this.onceListeners.has(event)) {
-			this.onceListeners.set(event, []);
-		}
-
-		this.onceListeners.get(event).push(handler);
+		super.once(event, handler);
 		console.debug('[EventBus]', 'One-time listener registered', { event });
+		return this;
 	}
 
+	// Maintain existing off() behavior with debug logging
+	// IMPORTANT: Require handler to prevent accidentally removing ALL listeners
 	off(event, handler) {
-		if (this.listeners.has(event)) {
-			const handlers = this.listeners.get(event);
-			const index = handlers.indexOf(handler);
-
-			if (index !== -1) {
-				handlers.splice(index, 1);
-				console.debug('[EventBus]', 'Listener removed', {
-					event,
-					remainingListeners: handlers.length,
-				});
-
-				if (handlers.length === 0) {
-					this.listeners.delete(event);
-				}
-			}
+		if (!handler) {
+			console.warn('[EventBus]', 'off() called without handler - ignoring to prevent removing all listeners', { event });
+			return this;
 		}
+
+		const previousCount = this.listenerCount(event);
+		super.off(event, handler);
+		const newCount = this.listenerCount(event);
+
+		if (previousCount !== newCount) {
+			console.debug('[EventBus]', 'Listener removed', {
+				event,
+				remainingListeners: newCount,
+			});
+		}
+		return this;
 	}
 
+	// Maintain existing emit() behavior with debug logging and error handling
 	emit(event, ...args) {
 		console.debug('[EventBus]', 'Event emitted', {
 			event,
 			argsCount: args.length,
 		});
 
-		// Handle regular listeners
-		if (this.listeners.has(event)) {
-			const handlers = [...this.listeners.get(event)];
-
-			for (const handler of handlers) {
-				try {
-					handler(...args);
-				} catch (error) {
-					console.error('[EventBus]', 'Error in event handler', {
-						event,
-						error,
-					});
-				}
-			}
-		}
-
-		// Handle once listeners
-		if (this.onceListeners.has(event)) {
-			const handlers = [...this.onceListeners.get(event)];
-			this.onceListeners.delete(event);
-
-			for (const handler of handlers) {
-				try {
-					handler(...args);
-				} catch (error) {
-					console.error('[EventBus]', 'Error in once handler', {
-						event,
-						error,
-					});
-				}
-			}
+		try {
+			return super.emit(event, ...args);
+		} catch (error) {
+			console.error('[EventBus]', 'Error in event handler', {
+				event,
+				error,
+			});
+			return false;
 		}
 	}
 
+	// Maintain existing clearEvent() method
 	clearEvent(event) {
-		this.listeners.delete(event);
-		this.onceListeners.delete(event);
+		this.removeAllListeners(event);
 		console.debug('[EventBus]', 'Event cleared', { event });
 	}
 
+	// Maintain existing clearAll() method
 	clearAll() {
-		this.listeners.clear();
-		this.onceListeners.clear();
+		this.removeAllListeners();
 		console.debug('[EventBus]', 'All events cleared');
-	}
-
-	listenerCount(event) {
-		const regularCount = this.listeners.has(event)
-			? this.listeners.get(event).length
-			: 0;
-		const onceCount = this.onceListeners.has(event)
-			? this.onceListeners.get(event).length
-			: 0;
-		return regularCount + onceCount;
-	}
-
-	eventNames() {
-		const regular = Array.from(this.listeners.keys());
-		const once = Array.from(this.onceListeners.keys());
-		return [...new Set([...regular, ...once])];
 	}
 }
 

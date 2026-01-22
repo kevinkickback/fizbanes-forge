@@ -14,15 +14,21 @@ class BackgroundService extends BaseDataService {
 
 	async initialize() {
 		return this.initWithLoader(
-			() => DataLoader.loadBackgrounds(),
+			async () => {
+				const data = await DataLoader.loadBackgrounds();
+				// Normalize all backgrounds from legacy to 5etools format before caching
+				if (data?.background) {
+					return {
+						...data,
+						background: data.background.map((bg) =>
+							this._normalizeBackgroundStructure(bg),
+						),
+					};
+				}
+				return data;
+			},
 			{
 				onLoaded: (data) => {
-					// Normalize all backgrounds from legacy to 5etools format
-					if (data?.background) {
-						data.background = data.background.map((bg) =>
-							this._normalizeBackgroundStructure(bg),
-						);
-					}
 					console.debug('[BackgroundService]', 'Backgrounds loaded and normalized', {
 						count: data?.background?.length,
 					});

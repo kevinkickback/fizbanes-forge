@@ -104,6 +104,7 @@ export class DOMCleanup {
             return;
         }
 
+        console.debug('[DOMCleanup]', 'Registering EventBus listener', { event });
         eventBus.on(event, handler);
         this._eventBusListeners.push({ event, handler });
     }

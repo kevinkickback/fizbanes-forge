@@ -1,12 +1,17 @@
 /**
  * Central application state singleton that emits change events.
  * 
- * IMPORTANT: State must be treated as immutable. Always use setState() or
- * specialized setters (setCurrentCharacter, setHasUnsavedChanges).
- * Direct mutation bypasses change detection and breaks event listeners.
+ * Uses Immer for immutable state updates. All state modifications go through
+ * setState() or specialized setters which use Immer's produce() internally.
+ * This eliminates accidental mutation bugs while allowing intuitive "mutative" syntax.
  */
 
+import { produce, setAutoFreeze } from 'immer';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+
+// Disable auto-freeze because we store class instances (Character) in state
+// that have methods and need to remain mutable for their internal operations
+setAutoFreeze(false);
 
 class AppStateImpl {
 	constructor() {
@@ -49,8 +54,9 @@ class AppStateImpl {
 	}
 
 	getState() {
-		return { ...this.state };
+		return this.state;
 	}
+
 	get(key) {
 		const keys = key.split('.');
 		let value = this.state;
@@ -66,23 +72,41 @@ class AppStateImpl {
 	setState(updates) {
 		console.debug('AppState', 'setState called', updates);
 
-		const oldState = { ...this.state };
+		const oldState = this.state;
 
-		// Merge updates
-		this.state = {
-			...this.state,
-			...updates,
-		};
+		// Use Immer to produce new immutable state
+		this.state = produce(this.state, (draft) => {
+			Object.assign(draft, updates);
+		});
 
 		// Emit global state changed event
 		eventBus.emit(EVENTS.STATE_CHANGED, this.state, oldState);
 
 		Object.keys(updates).forEach((key) => {
-			if (oldState[key] !== updates[key]) {
+			if (oldState[key] !== this.state[key]) {
 				const eventName = `state:${key}:changed`;
-				eventBus.emit(eventName, updates[key], oldState[key]);
+				eventBus.emit(eventName, this.state[key], oldState[key]);
 			}
 		});
+	}
+
+	// Update state using an Immer recipe function for complex nested updates
+	updateState(recipe) {
+		console.debug('AppState', 'updateState called with recipe');
+
+		const oldState = this.state;
+		this.state = produce(this.state, recipe);
+
+		// Emit global state changed event
+		eventBus.emit(EVENTS.STATE_CHANGED, this.state, oldState);
+
+		// Emit individual change events for top-level keys that changed
+		for (const key of Object.keys(this.state)) {
+			if (oldState[key] !== this.state[key]) {
+				const eventName = `state:${key}:changed`;
+				eventBus.emit(eventName, this.state[key], oldState[key]);
+			}
+		}
 	}
 
 	setCurrentCharacter(character, options = {}) {
