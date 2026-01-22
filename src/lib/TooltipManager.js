@@ -161,7 +161,7 @@ function _togglePin(tooltipObj) {
 	}
 }
 
-async function _copyTooltipContent() { }
+async function _copyTooltipContent() {}
 
 function _closeTooltip(tooltipObj) {
 	const index = tooltips.indexOf(tooltipObj);
@@ -474,7 +474,10 @@ export function initializeTooltipListeners() {
 			return;
 		}
 		currentHoverLink = link;
-		console.debug('TooltipSystem', `Hovering over: ${hoverType} - ${hoverName}`);
+		console.debug(
+			'TooltipSystem',
+			`Hovering over: ${hoverType} - ${hoverName}`,
+		);
 		if (parentTooltip) {
 			console.debug(
 				'TooltipSystem',

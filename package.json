@@ -7,6 +7,7 @@
 	"type": "module",
 	"scripts": {
 		"start": "electron .",
+		"start:dev": "node -e \"require('fs').rmSync(require('path').join(require('os').homedir(), 'AppData/Roaming/Fizbane\\'s Forge'), {recursive:true,force:true})\" && cross-env FF_DEVTOOLS=true electron .",
 		"debug": "cross-env FF_DEBUG=true FF_ALLOW_DEFAULT_DATA=true electron .",
 		"pack": "electron-builder --dir",
 		"dist": "electron-builder",

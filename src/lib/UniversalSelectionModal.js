@@ -3,106 +3,105 @@ import { showNotification } from './Notifications.js';
 
 /** Format multiple category counters into HTML badges. */
 export function formatCategoryCounters(categories) {
-    if (!Array.isArray(categories) || categories.length === 0) {
-        return '<span class="badge bg-secondary">0 / ∞</span>';
-    }
+	if (!Array.isArray(categories) || categories.length === 0) {
+		return '<span class="badge bg-secondary">0 / ∞</span>';
+	}
 
-    return categories
-        .map(cat => {
-            const color = cat.color || 'bg-secondary';
-            return `<span class="badge ${color}">${cat.selected}/${cat.max} ${cat.label}</span>`;
-        })
-        .join(' ');
+	return categories
+		.map((cat) => {
+			const color = cat.color || 'bg-secondary';
+			return `<span class="badge ${color}">${cat.selected}/${cat.max} ${cat.label}</span>`;
+		})
+		.join(' ');
 }
 
 export function formatCounter(category) {
-    const color = category.color || 'bg-info';
-    return `<span class="badge ${color}">${category.selected}/${category.max} ${category.label}</span>`;
+	const color = category.color || 'bg-info';
+	return `<span class="badge ${color}">${category.selected}/${category.max} ${category.label}</span>`;
 }
 
 export class UniversalSelectionModal {
-    constructor(config = {}) {
-        this.config = {
-            modalId: `modal_${Date.now()}_${Math.random()}`, // Auto-generate unique ID
-            modalTitle: 'Select Items',
-            allowClose: true,
-            pageSize: 50,
-            listContainerSelector: '.spell-list-container',
-            selectedContainerSelector: '.selected-spells-container',
-            searchInputSelector: '.spell-search-input',
-            filterToggleSelector: '.spell-filter-toggle-btn',
-            filterPanelSelector: '.spell-filters-column',
-            confirmSelector: '.btn-confirm',
-            cancelSelector: '.btn-cancel',
-            itemIdAttribute: 'data-item-id',
-            selectionMode: 'multiple',
-            selectionLimit: null,
-            initialSelectedItems: [],
-            getInitialSelection: null,
-            searchMatcher: null,
-            buildFilters: null,
-            // Optional per-item selection control
-            canSelectItem: null, // (item, state) => boolean
-            onSelectBlocked: null, // (item, state) => void
-            // Optional info text to display under search bar
-            prerequisiteNote: null,
-            onError: null,
-            // Description cache support
-            descriptionCache: null,
-            fetchDescription: null,
-            descriptionContainerSelector: null,
-            ...config,
-        };
+	constructor(config = {}) {
+		this.config = {
+			modalId: `modal_${Date.now()}_${Math.random()}`, // Auto-generate unique ID
+			modalTitle: 'Select Items',
+			allowClose: true,
+			pageSize: 50,
+			listContainerSelector: '.spell-list-container',
+			selectedContainerSelector: '.selected-spells-container',
+			searchInputSelector: '.spell-search-input',
+			filterToggleSelector: '.spell-filter-toggle-btn',
+			filterPanelSelector: '.spell-filters-column',
+			confirmSelector: '.btn-confirm',
+			cancelSelector: '.btn-cancel',
+			itemIdAttribute: 'data-item-id',
+			selectionMode: 'multiple',
+			selectionLimit: null,
+			initialSelectedItems: [],
+			getInitialSelection: null,
+			searchMatcher: null,
+			buildFilters: null,
+			// Optional per-item selection control
+			canSelectItem: null, // (item, state) => boolean
+			onSelectBlocked: null, // (item, state) => void
+			// Optional info text to display under search bar
+			prerequisiteNote: null,
+			onError: null,
+			// Description cache support
+			descriptionCache: null,
+			fetchDescription: null,
+			descriptionContainerSelector: null,
+			...config,
+		};
 
-        this.modal = null;
-        this.bootstrapModal = null;
-        this._cleanup = DOMCleanup.create();
-        this._resolvePromise = null;
+		this.modal = null;
+		this.bootstrapModal = null;
+		this._cleanup = DOMCleanup.create();
+		this._resolvePromise = null;
 
-        this.state = {
-            items: [],
-            filtered: [],
-            selectedIds: new Set(),
-            selectedItems: [],
-            searchTerm: '',
-            page: 0,
-        };
-    }
+		this.state = {
+			items: [],
+			filtered: [],
+			selectedIds: new Set(),
+			selectedItems: [],
+			searchTerm: '',
+			page: 0,
+		};
+	}
 
-    _getOrCreateModal() {
-        let modal = document.getElementById(this.config.modalId);
+	_getOrCreateModal() {
+		let modal = document.getElementById(this.config.modalId);
 
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = this.config.modalId;
-            modal.className = 'modal fade';
-            modal.setAttribute('tabindex', '-1');
-            modal.setAttribute('aria-hidden', 'true');
-            modal.setAttribute('data-bs-backdrop', 'static');
-            modal.setAttribute('data-bs-keyboard', 'false');
-            modal.innerHTML = this._getModalHTML();
-            document.body.appendChild(modal);
-        }
+		if (!modal) {
+			modal = document.createElement('div');
+			modal.id = this.config.modalId;
+			modal.className = 'modal fade';
+			modal.setAttribute('tabindex', '-1');
+			modal.setAttribute('aria-hidden', 'true');
+			modal.setAttribute('data-bs-backdrop', 'static');
+			modal.setAttribute('data-bs-keyboard', 'false');
+			modal.innerHTML = this._getModalHTML();
+			document.body.appendChild(modal);
+		}
 
-        this.modal = modal;
+		this.modal = modal;
 
-        // Dispose and recreate Bootstrap modal
-        if (this.bootstrapModal) {
-            try {
-                this.bootstrapModal.dispose();
-            } catch (e) {
-                console.warn('[UniversalSelectionModal]', 'Dispose failed', e);
-            }
-        }
-        this.bootstrapModal = new bootstrap.Modal(modal, {
-            backdrop: this.config.allowClose ? true : 'static',
-            keyboard: this.config.allowClose,
-        });
-    }
+		// Dispose and recreate Bootstrap modal
+		if (this.bootstrapModal) {
+			try {
+				this.bootstrapModal.dispose();
+			} catch (e) {
+				console.warn('[UniversalSelectionModal]', 'Dispose failed', e);
+			}
+		}
+		this.bootstrapModal = new bootstrap.Modal(modal, {
+			backdrop: this.config.allowClose ? true : 'static',
+			keyboard: this.config.allowClose,
+		});
+	}
 
-    _getModalHTML() {
-
-        return `
+	_getModalHTML() {
+		return `
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -116,10 +115,14 @@ export class UniversalSelectionModal {
                     <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; max-height: 100%;">
                         <!-- Search Bar -->
                         <div class="d-flex gap-2 mb-2">
-                            ${this.config.buildFilters ? `<button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
+                            ${
+															this.config.buildFilters
+																? `<button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
                                 title="Toggle filters panel" data-filters-visible="true">
                                 <i class="fas fa-filter"></i>
-                            </button>` : ''}
+                            </button>`
+																: ''
+														}
                             <input type="text" class="form-control spell-search-input flex-grow-1"
                                 placeholder="Search...">
                             <button class="btn btn-outline-secondary" type="button" data-search-clear
@@ -129,16 +132,24 @@ export class UniversalSelectionModal {
                         </div>
                         
                         <!-- Optional prerequisite/info note -->
-                        ${this.config.prerequisiteNote ? `<div class="alert alert-info small mb-2">
+                        ${
+													this.config.prerequisiteNote
+														? `<div class="alert alert-info small mb-2">
                             ${this.config.prerequisiteNote}
-                        </div>` : ''}
+                        </div>`
+														: ''
+												}
                         
                         <!-- Filters and Results (spell-filter-row layout) -->
                         <div class="spell-filter-row" ${this.config.buildFilters ? '' : 'style="grid-template-columns: 1fr;"'}>
                             <!-- Filters Panel (only shown if buildFilters provided) -->
-                            ${this.config.buildFilters ? `<div class="spell-filters-column">
+                            ${
+															this.config.buildFilters
+																? `<div class="spell-filters-column">
                                 <!-- Filters populated by buildFilters callback -->
-                            </div>` : ''}
+                            </div>`
+																: ''
+														}
                             
                             <!-- Results Column -->
                             <div class="spell-results-column">
@@ -176,482 +187,541 @@ export class UniversalSelectionModal {
                 </div>
             </div>
         `;
-    }
+	}
 
-    async show(context = {}) {
-        const ctx = this.config.getContext ? this.config.getContext() : context;
-        try {
-            // Create or get modal element with proper HTML structure
-            this._getOrCreateModal();
+	async show(context = {}) {
+		const ctx = this.config.getContext ? this.config.getContext() : context;
+		try {
+			// Create or get modal element with proper HTML structure
+			this._getOrCreateModal();
 
-            // Load data
-            this.state.items = await (this.config.loadItems?.(ctx) || []);
-            this.state.filtered = [...this.state.items];
-            console.debug('[UniversalSelectionModal]', 'Loaded items:', this.state.items.length, 'items');
-            if (this.state.items.length === 0) {
-                console.warn('[UniversalSelectionModal]', 'WARNING: No items loaded!');
-            }
+			// Load data
+			this.state.items = await (this.config.loadItems?.(ctx) || []);
+			this.state.filtered = [...this.state.items];
+			console.debug(
+				'[UniversalSelectionModal]',
+				'Loaded items:',
+				this.state.items.length,
+				'items',
+			);
+			if (this.state.items.length === 0) {
+				console.warn('[UniversalSelectionModal]', 'WARNING: No items loaded!');
+			}
 
-            // Prime initial selections if provided
-            const initialSelection = this.config.getInitialSelection
-                ? this.config.getInitialSelection(ctx) || []
-                : this.config.initialSelectedItems || [];
-            this._primeSelection(initialSelection);
+			// Prime initial selections if provided
+			const initialSelection = this.config.getInitialSelection
+				? this.config.getInitialSelection(ctx) || []
+				: this.config.initialSelectedItems || [];
+			this._primeSelection(initialSelection);
 
-            // Reset list containers before render
-            this._renderList();
-            this._renderSelected();
-            this._updateConfirmButton(); // Update counter and button state
+			// Reset list containers before render
+			this._renderList();
+			this._renderSelected();
+			this._updateConfirmButton(); // Update counter and button state
 
-            this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
-            this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onHidden());
+			this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
+			this._cleanup.once(this.modal, 'hidden.bs.modal', () => this._onHidden());
 
-            this._setupSearch();
-            this._setupFilterToggle();
-            this._setupConfirmCancel(ctx);
-            this._setupListSelection();
+			this._setupSearch();
+			this._setupFilterToggle();
+			this._setupConfirmCancel(ctx);
+			this._setupListSelection();
 
-            // Allow caller to build custom filters after base hooks are ready
-            if (typeof this.config.buildFilters === 'function') {
-                const panel = this.modal.querySelector(this.config.filterPanelSelector);
-                this.config.buildFilters(ctx, panel, this._cleanup);
-            }
+			// Allow caller to build custom filters after base hooks are ready
+			if (typeof this.config.buildFilters === 'function') {
+				const panel = this.modal.querySelector(this.config.filterPanelSelector);
+				this.config.buildFilters(ctx, panel, this._cleanup);
+			}
 
-            this.bootstrapModal.show();
+			this.bootstrapModal.show();
 
-            this.bootstrapModal.show();
+			this.bootstrapModal.show();
 
-            return new Promise((resolve) => {
-                this._resolvePromise = resolve;
-            });
-        } catch (error) {
-            console.error('[UniversalSelectionModal]', 'Failed to show modal', error);
-            if (this.config.onError) {
-                this.config.onError(error);
-            } else {
-                showNotification('Failed to open selection', 'error');
-            }
-            return null;
-        }
-    }
+			return new Promise((resolve) => {
+				this._resolvePromise = resolve;
+			});
+		} catch (error) {
+			console.error('[UniversalSelectionModal]', 'Failed to show modal', error);
+			if (this.config.onError) {
+				this.config.onError(error);
+			} else {
+				showNotification('Failed to open selection', 'error');
+			}
+			return null;
+		}
+	}
 
-    //-------------------------------------------------------------------------
-    // Setup helpers
-    //-------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
+	// Setup helpers
+	//-------------------------------------------------------------------------
 
-    async _reloadItems() {
-        const ctx = this.config.getContext ? this.config.getContext() : {};
-        this.state.items = await (this.config.loadItems?.(ctx) || []);
-        this.state.page = 0;
-        this._renderList();
-    }
+	async _reloadItems() {
+		const ctx = this.config.getContext ? this.config.getContext() : {};
+		this.state.items = await (this.config.loadItems?.(ctx) || []);
+		this.state.page = 0;
+		this._renderList();
+	}
 
-    _setupSearch() {
-        const searchInput = this.modal.querySelector(this.config.searchInputSelector);
-        if (!searchInput) return;
+	_setupSearch() {
+		const searchInput = this.modal.querySelector(
+			this.config.searchInputSelector,
+		);
+		if (!searchInput) return;
 
-        this._cleanup.on(searchInput, 'input', (e) => {
-            this.state.searchTerm = e.target.value.trim().toLowerCase();
-            this.state.page = 0;
-            this._renderList();
-        });
+		this._cleanup.on(searchInput, 'input', (e) => {
+			this.state.searchTerm = e.target.value.trim().toLowerCase();
+			this.state.page = 0;
+			this._renderList();
+		});
 
-        const clearBtn = this.modal.querySelector('[data-search-clear]');
-        if (clearBtn) {
-            this._cleanup.on(clearBtn, 'click', () => {
-                searchInput.value = '';
-                this.state.searchTerm = '';
-                this.state.page = 0;
-                this._renderList();
-            });
-        }
-    }
+		const clearBtn = this.modal.querySelector('[data-search-clear]');
+		if (clearBtn) {
+			this._cleanup.on(clearBtn, 'click', () => {
+				searchInput.value = '';
+				this.state.searchTerm = '';
+				this.state.page = 0;
+				this._renderList();
+			});
+		}
+	}
 
-    _setupFilterToggle() {
-        const toggle = this.modal.querySelector(this.config.filterToggleSelector);
-        const panel = this.modal.querySelector(this.config.filterPanelSelector);
-        if (!toggle || !panel) return;
+	_setupFilterToggle() {
+		const toggle = this.modal.querySelector(this.config.filterToggleSelector);
+		const panel = this.modal.querySelector(this.config.filterPanelSelector);
+		if (!toggle || !panel) return;
 
-        this._cleanup.on(toggle, 'click', () => {
-            const isCollapsed = panel.classList.toggle('collapsed');
-            toggle.setAttribute('data-filters-visible', (!isCollapsed).toString());
-        });
-    }
+		this._cleanup.on(toggle, 'click', () => {
+			const isCollapsed = panel.classList.toggle('collapsed');
+			toggle.setAttribute('data-filters-visible', (!isCollapsed).toString());
+		});
+	}
 
+	_setupConfirmCancel(ctx) {
+		const confirmBtn = this.modal.querySelector(this.config.confirmSelector);
+		if (confirmBtn) {
+			this._cleanup.on(confirmBtn, 'click', async () => {
+				const selected = this._currentSelection();
 
+				if (
+					this.config.selectionLimit &&
+					selected.length > this.config.selectionLimit
+				) {
+					showNotification(
+						`You can only select ${this.config.selectionLimit} item(s).`,
+						'warning',
+					);
+					return;
+				}
 
-    _setupConfirmCancel(ctx) {
-        const confirmBtn = this.modal.querySelector(this.config.confirmSelector);
-        if (confirmBtn) {
-            this._cleanup.on(confirmBtn, 'click', async () => {
-                const selected = this._currentSelection();
+				try {
+					await this.config.onConfirm?.(selected, ctx);
+				} finally {
+					this._resolveAndHide(selected);
+				}
+			});
+		}
 
-                if (this.config.selectionLimit && selected.length > this.config.selectionLimit) {
-                    showNotification(`You can only select ${this.config.selectionLimit} item(s).`, 'warning');
-                    return;
-                }
+		const cancelBtn = this.modal.querySelector(this.config.cancelSelector);
+		if (cancelBtn) {
+			this._cleanup.on(cancelBtn, 'click', () => {
+				if (this.config.onCancel) this.config.onCancel(ctx);
+				this._resolveAndHide(null);
+			});
+		}
+	}
 
-                try {
-                    await this.config.onConfirm?.(selected, ctx);
-                } finally {
-                    this._resolveAndHide(selected);
-                }
-            });
-        }
+	_setupListSelection() {
+		const list = this.modal.querySelector(this.config.listContainerSelector);
+		if (!list) return;
 
-        const cancelBtn = this.modal.querySelector(this.config.cancelSelector);
-        if (cancelBtn) {
-            this._cleanup.on(cancelBtn, 'click', () => {
-                if (this.config.onCancel) this.config.onCancel(ctx);
-                this._resolveAndHide(null);
-            });
-        }
-    }
+		this._cleanup.on(list, 'click', (e) => {
+			const target = e.target.closest(`[${this.config.itemIdAttribute}]`);
+			if (!target) return;
+			const itemId = target.getAttribute(this.config.itemIdAttribute);
+			const item = this.state.items.find((i) => this._getItemId(i) === itemId);
+			if (!item) return;
 
-    _setupListSelection() {
-        const list = this.modal.querySelector(this.config.listContainerSelector);
-        if (!list) return;
+			// If item is not currently selected, enforce per-item selection rules
+			const alreadySelected = this.state.selectedIds.has(itemId);
+			if (!alreadySelected && this.config.canSelectItem) {
+				try {
+					const allowed = !!this.config.canSelectItem(item, this.state);
+					if (!allowed) {
+						if (typeof this.config.onSelectBlocked === 'function') {
+							this.config.onSelectBlocked(item, this.state);
+						} else {
+							showNotification(
+								'Selection limit reached for this category.',
+								'warning',
+							);
+						}
+						return; // do not toggle selection
+					}
+				} catch (_err) {
+					// Fail-safe: allow selection if callback throws
+				}
+			}
 
-        this._cleanup.on(list, 'click', (e) => {
-            const target = e.target.closest(`[${this.config.itemIdAttribute}]`);
-            if (!target) return;
-            const itemId = target.getAttribute(this.config.itemIdAttribute);
-            const item = this.state.items.find((i) => this._getItemId(i) === itemId);
-            if (!item) return;
+			this._toggleSelection(itemId);
+		});
+	}
 
-            // If item is not currently selected, enforce per-item selection rules
-            const alreadySelected = this.state.selectedIds.has(itemId);
-            if (!alreadySelected && this.config.canSelectItem) {
-                try {
-                    const allowed = !!this.config.canSelectItem(item, this.state);
-                    if (!allowed) {
-                        if (typeof this.config.onSelectBlocked === 'function') {
-                            this.config.onSelectBlocked(item, this.state);
-                        } else {
-                            showNotification('Selection limit reached for this category.', 'warning');
-                        }
-                        return; // do not toggle selection
-                    }
-                } catch (_err) {
-                    // Fail-safe: allow selection if callback throws
-                }
-            }
+	//-------------------------------------------------------------------------
+	// Rendering and selection
+	//-------------------------------------------------------------------------
 
-            this._toggleSelection(itemId);
-        });
-    }
+	_matches(item) {
+		const term = this.state.searchTerm;
+		if (term) {
+			const matchesSearch =
+				typeof this.config.searchMatcher === 'function'
+					? this.config.searchMatcher(item, term)
+					: (item.name || '').toLowerCase().includes(term);
 
-    //-------------------------------------------------------------------------
-    // Rendering and selection
-    //-------------------------------------------------------------------------
+			if (!matchesSearch) return false;
+		}
 
-    _matches(item) {
-        const term = this.state.searchTerm;
-        if (term) {
-            const matchesSearch = typeof this.config.searchMatcher === 'function'
-                ? this.config.searchMatcher(item, term)
-                : (item.name || '').toLowerCase().includes(term);
+		if (typeof this.config.matchItem === 'function') {
+			return this.config.matchItem(item, this.state);
+		}
 
-            if (!matchesSearch) return false;
-        }
+		return true;
+	}
 
-        if (typeof this.config.matchItem === 'function') {
-            return this.config.matchItem(item, this.state);
-        }
+	_renderList() {
+		const container = this.modal?.querySelector(
+			this.config.listContainerSelector,
+		);
+		if (!container) return;
 
-        return true;
-    }
+		this.state.filtered = this.state.items.filter((item) =>
+			this._matches(item),
+		);
 
-    _renderList() {
-        const container = this.modal?.querySelector(this.config.listContainerSelector);
-        if (!container) return;
+		const start = this.state.page * this.config.pageSize;
+		const end = start + this.config.pageSize;
+		const pageItems = this.state.filtered.slice(start, end);
 
-        this.state.filtered = this.state.items.filter((item) => this._matches(item));
+		const rows = pageItems.map(
+			(item) => this.config.renderItem?.(item, this.state) || '',
+		);
 
-        const start = this.state.page * this.config.pageSize;
-        const end = start + this.config.pageSize;
-        const pageItems = this.state.filtered.slice(start, end);
-
-        const rows = pageItems.map((item) => this.config.renderItem?.(item, this.state) || '');
-
-        if (this.state.filtered.length === 0) {
-            container.innerHTML = '<div class="alert alert-info">No results match your filters.</div>';
-        } else {
-            let html = rows.join('');
-            if (end < this.state.filtered.length) {
-                html += `
+		if (this.state.filtered.length === 0) {
+			container.innerHTML =
+				'<div class="alert alert-info">No results match your filters.</div>';
+		} else {
+			let html = rows.join('');
+			if (end < this.state.filtered.length) {
+				html += `
                     <div class="text-center mt-3">
                         <button class="btn btn-sm btn-outline-secondary" data-load-more>
                             Load More (${this.state.filtered.length - end} remaining)
                         </button>
                     </div>
                 `;
-            }
-            container.innerHTML = html;
-        }
+			}
+			container.innerHTML = html;
+		}
 
-        const loadMore = container.querySelector('[data-load-more]');
-        if (loadMore) {
-            this._cleanup.on(loadMore, 'click', () => {
-                this.state.page += 1;
-                this._renderList();
-            });
-        }
+		const loadMore = container.querySelector('[data-load-more]');
+		if (loadMore) {
+			this._cleanup.on(loadMore, 'click', () => {
+				this.state.page += 1;
+				this._renderList();
+			});
+		}
 
-        // Apply selected state styling to list items
-        container.querySelectorAll(`[${this.config.itemIdAttribute}]`).forEach((el) => {
-            const id = el.getAttribute(this.config.itemIdAttribute);
-            el.classList.toggle('selected', this.state.selectedIds.has(id));
+		// Apply selected state styling to list items
+		container
+			.querySelectorAll(`[${this.config.itemIdAttribute}]`)
+			.forEach((el) => {
+				const id = el.getAttribute(this.config.itemIdAttribute);
+				el.classList.toggle('selected', this.state.selectedIds.has(id));
 
-            // Apply blocked/disabled visual if per-item selection says false
-            const item = this.state.items.find((i) => this._getItemId(i) === id);
-            let blocked = false;
-            if (item && this.config.canSelectItem) {
-                try {
-                    // Only block if item is not already selected and cannot be selected
-                    const isSelected = this.state.selectedIds.has(id);
-                    blocked = !isSelected && !this.config.canSelectItem(item, this.state);
-                } catch (_err) {
-                    blocked = false;
-                }
-            }
-            el.classList.toggle('blocked', blocked);
-            if (blocked) {
-                el.style.opacity = '0.6';
-            } else {
-                el.style.opacity = '';
-            }
-        });
+				// Apply blocked/disabled visual if per-item selection says false
+				const item = this.state.items.find((i) => this._getItemId(i) === id);
+				let blocked = false;
+				if (item && this.config.canSelectItem) {
+					try {
+						// Only block if item is not already selected and cannot be selected
+						const isSelected = this.state.selectedIds.has(id);
+						blocked =
+							!isSelected && !this.config.canSelectItem(item, this.state);
+					} catch (_err) {
+						blocked = false;
+					}
+				}
+				el.classList.toggle('blocked', blocked);
+				if (blocked) {
+					el.style.opacity = '0.6';
+				} else {
+					el.style.opacity = '';
+				}
+			});
 
-        if (typeof this.config.onListRendered === 'function') {
-            this.config.onListRendered(this.state);
-        }
+		if (typeof this.config.onListRendered === 'function') {
+			this.config.onListRendered(this.state);
+		}
 
-        // Process descriptions asynchronously
-        this._processDescriptions(pageItems);
+		// Process descriptions asynchronously
+		this._processDescriptions(pageItems);
 
-        this._renderSelected();
-    }
+		this._renderSelected();
+	}
 
-    _renderSelected() {
-        const container = this.modal?.querySelector(this.config.selectedContainerSelector);
-        if (!container) return;
+	_renderSelected() {
+		const container = this.modal?.querySelector(
+			this.config.selectedContainerSelector,
+		);
+		if (!container) return;
 
-        if (this.state.selectedItems.length === 0) {
-            container.innerHTML = '<p class="text-muted small mb-0">No selections</p>';
-            return;
-        }
+		if (this.state.selectedItems.length === 0) {
+			container.innerHTML =
+				'<p class="text-muted small mb-0">No selections</p>';
+			return;
+		}
 
-        const chips = this.state.selectedItems.map((item) => {
-            const id = this._getItemId(item);
-            return `
+		const chips = this.state.selectedItems.map((item) => {
+			const id = this._getItemId(item);
+			return `
                 <span class="badge bg-secondary me-2 mb-2">
                     ${item.name}
                     <button class="btn-close btn-close-white ms-2" data-deselect="${id}" style="font-size: 0.7rem;"></button>
                 </span>
             `;
-        });
+		});
 
-        container.innerHTML = `<div class="d-flex flex-wrap">${chips.join('')}</div>`;
+		container.innerHTML = `<div class="d-flex flex-wrap">${chips.join('')}</div>`;
 
-        const buttons = container.querySelectorAll('[data-deselect]');
-        buttons.forEach((btn) => {
-            this._cleanup.on(btn, 'click', (e) => {
-                e.stopPropagation();
-                const id = btn.getAttribute('data-deselect');
-                this._toggleSelection(id);
-            });
-        });
-    }
+		const buttons = container.querySelectorAll('[data-deselect]');
+		buttons.forEach((btn) => {
+			this._cleanup.on(btn, 'click', (e) => {
+				e.stopPropagation();
+				const id = btn.getAttribute('data-deselect');
+				this._toggleSelection(id);
+			});
+		});
+	}
 
-    _updateConfirmButton() {
-        const confirmBtn = this.modal?.querySelector(this.config.confirmSelector);
-        if (!confirmBtn) return;
+	_updateConfirmButton() {
+		const confirmBtn = this.modal?.querySelector(this.config.confirmSelector);
+		if (!confirmBtn) return;
 
-        confirmBtn.disabled = this.state.selectedIds.size === 0;
+		confirmBtn.disabled = this.state.selectedIds.size === 0;
 
-        // Update selection counter if it exists
-        const countContainer = this.modal?.querySelector('[data-selection-count]');
-        if (countContainer) {
-            // Use custom count function if provided
-            if (typeof this.config.customCountFn === 'function') {
-                countContainer.innerHTML = this.config.customCountFn(this.state.selectedItems);
-            } else {
-                const limit = this.config.selectionLimit === null || this.config.selectionLimit === Infinity
-                    ? '∞'
-                    : this.config.selectionLimit;
-                countContainer.innerHTML = `<span class="badge bg-info">${this.state.selectedIds.size} / ${limit}</span>`;
-            }
-        }
-    }
+		// Update selection counter if it exists
+		const countContainer = this.modal?.querySelector('[data-selection-count]');
+		if (countContainer) {
+			// Use custom count function if provided
+			if (typeof this.config.customCountFn === 'function') {
+				countContainer.innerHTML = this.config.customCountFn(
+					this.state.selectedItems,
+				);
+			} else {
+				const limit =
+					this.config.selectionLimit === null ||
+					this.config.selectionLimit === Infinity
+						? '∞'
+						: this.config.selectionLimit;
+				countContainer.innerHTML = `<span class="badge bg-info">${this.state.selectedIds.size} / ${limit}</span>`;
+			}
+		}
+	}
 
-    _processDescriptions(pageItems) {
-        const hasSupport = this.config.fetchDescription && this.config.descriptionCache && this.config.descriptionContainerSelector;
-        if (!hasSupport || !Array.isArray(pageItems) || pageItems.length === 0) return;
+	_processDescriptions(pageItems) {
+		const hasSupport =
+			this.config.fetchDescription &&
+			this.config.descriptionCache &&
+			this.config.descriptionContainerSelector;
+		if (!hasSupport || !Array.isArray(pageItems) || pageItems.length === 0)
+			return;
 
-        const cache = this.config.descriptionCache;
-        const list = this.modal?.querySelector(this.config.listContainerSelector);
-        if (!list) return;
+		const cache = this.config.descriptionCache;
+		const list = this.modal?.querySelector(this.config.listContainerSelector);
+		if (!list) return;
 
-        const processNext = (index) => {
-            if (index >= pageItems.length) return;
-            const item = pageItems[index];
-            const id = this._getItemId(item);
-            if (!id) {
-                setTimeout(() => processNext(index + 1), 0);
-                return;
-            }
+		const processNext = (index) => {
+			if (index >= pageItems.length) return;
+			const item = pageItems[index];
+			const id = this._getItemId(item);
+			if (!id) {
+				setTimeout(() => processNext(index + 1), 0);
+				return;
+			}
 
-            if (cache.has(id)) {
-                const slot = list.querySelector(`[${this.config.itemIdAttribute}="${id}"] ${this.config.descriptionContainerSelector}`);
-                if (slot) slot.innerHTML = cache.get(id);
-                setTimeout(() => processNext(index + 1), 0);
-                return;
-            }
+			if (cache.has(id)) {
+				const slot = list.querySelector(
+					`[${this.config.itemIdAttribute}="${id}"] ${this.config.descriptionContainerSelector}`,
+				);
+				if (slot) slot.innerHTML = cache.get(id);
+				setTimeout(() => processNext(index + 1), 0);
+				return;
+			}
 
-            Promise.resolve(this.config.fetchDescription(item))
-                .then((desc) => {
-                    const html = desc || '<span class="text-muted small">No description available.</span>';
-                    cache.set(id, html);
-                    const slot = list.querySelector(`[${this.config.itemIdAttribute}="${id}"] ${this.config.descriptionContainerSelector}`);
-                    if (slot) slot.innerHTML = html;
-                })
-                .catch(() => { /* ignore */ })
-                .finally(() => {
-                    setTimeout(() => processNext(index + 1), 0);
-                });
-        };
+			Promise.resolve(this.config.fetchDescription(item))
+				.then((desc) => {
+					const html =
+						desc ||
+						'<span class="text-muted small">No description available.</span>';
+					cache.set(id, html);
+					const slot = list.querySelector(
+						`[${this.config.itemIdAttribute}="${id}"] ${this.config.descriptionContainerSelector}`,
+					);
+					if (slot) slot.innerHTML = html;
+				})
+				.catch(() => {
+					/* ignore */
+				})
+				.finally(() => {
+					setTimeout(() => processNext(index + 1), 0);
+				});
+		};
 
-        processNext(0);
-    }
+		processNext(0);
+	}
 
-    _toggleSelection(itemId) {
-        if (!itemId) return;
+	_toggleSelection(itemId) {
+		if (!itemId) return;
 
-        const item = this.state.items.find((i) => this._getItemId(i) === itemId);
-        if (!item) return;
+		const item = this.state.items.find((i) => this._getItemId(i) === itemId);
+		if (!item) return;
 
-        const alreadySelected = this.state.selectedIds.has(itemId);
+		const alreadySelected = this.state.selectedIds.has(itemId);
 
-        if (this.config.selectionMode === 'single') {
-            this.state.selectedIds = new Set(alreadySelected ? [] : [itemId]);
-            this.state.selectedItems = alreadySelected ? [] : [item];
-        } else {
-            if (alreadySelected) {
-                this.state.selectedIds.delete(itemId);
-                this.state.selectedItems = this.state.selectedItems.filter((i) => this._getItemId(i) !== itemId);
-            } else {
-                // Enforce global selection limit
-                if (this.config.selectionLimit && this.state.selectedIds.size >= this.config.selectionLimit) {
-                    showNotification(`You can only select ${this.config.selectionLimit} item(s).`, 'warning');
-                    return;
-                }
-                // Enforce per-item/category rules if provided
-                if (this.config.canSelectItem) {
-                    try {
-                        const allowed = !!this.config.canSelectItem(item, this.state);
-                        if (!allowed) {
-                            if (typeof this.config.onSelectBlocked === 'function') {
-                                this.config.onSelectBlocked(item, this.state);
-                            } else {
-                                showNotification('Selection limit reached for this category.', 'warning');
-                            }
-                            return;
-                        }
-                    } catch (_err) {
-                        // ignore errors, allow selection
-                    }
-                }
-                this.state.selectedIds.add(itemId);
-                this.state.selectedItems.push(item);
-            }
-        }
+		if (this.config.selectionMode === 'single') {
+			this.state.selectedIds = new Set(alreadySelected ? [] : [itemId]);
+			this.state.selectedItems = alreadySelected ? [] : [item];
+		} else {
+			if (alreadySelected) {
+				this.state.selectedIds.delete(itemId);
+				this.state.selectedItems = this.state.selectedItems.filter(
+					(i) => this._getItemId(i) !== itemId,
+				);
+			} else {
+				// Enforce global selection limit
+				if (
+					this.config.selectionLimit &&
+					this.state.selectedIds.size >= this.config.selectionLimit
+				) {
+					showNotification(
+						`You can only select ${this.config.selectionLimit} item(s).`,
+						'warning',
+					);
+					return;
+				}
+				// Enforce per-item/category rules if provided
+				if (this.config.canSelectItem) {
+					try {
+						const allowed = !!this.config.canSelectItem(item, this.state);
+						if (!allowed) {
+							if (typeof this.config.onSelectBlocked === 'function') {
+								this.config.onSelectBlocked(item, this.state);
+							} else {
+								showNotification(
+									'Selection limit reached for this category.',
+									'warning',
+								);
+							}
+							return;
+						}
+					} catch (_err) {
+						// ignore errors, allow selection
+					}
+				}
+				this.state.selectedIds.add(itemId);
+				this.state.selectedItems.push(item);
+			}
+		}
 
-        if (typeof this.config.onSelectionChange === 'function') {
-            this.config.onSelectionChange({ ...this.state });
-        }
+		if (typeof this.config.onSelectionChange === 'function') {
+			this.config.onSelectionChange({ ...this.state });
+		}
 
-        this._updateConfirmButton();
-        this._renderSelected();
+		this._updateConfirmButton();
+		this._renderSelected();
 
-        // Update UI selection classes in the list
-        const list = this.modal?.querySelector(this.config.listContainerSelector);
-        if (list) {
-            list.querySelectorAll(`[${this.config.itemIdAttribute}]`).forEach((el) => {
-                const id = el.getAttribute(this.config.itemIdAttribute);
-                el.classList.toggle('selected', this.state.selectedIds.has(id));
-                const it = this.state.items.find((i) => this._getItemId(i) === id);
-                let blocked = false;
-                if (it && this.config.canSelectItem) {
-                    try {
-                        const isSelected = this.state.selectedIds.has(id);
-                        blocked = !isSelected && !this.config.canSelectItem(it, this.state);
-                    } catch (_err) {
-                        blocked = false;
-                    }
-                }
-                el.classList.toggle('blocked', blocked);
-                el.style.opacity = blocked ? '0.6' : '';
-            });
-        }
-    }
+		// Update UI selection classes in the list
+		const list = this.modal?.querySelector(this.config.listContainerSelector);
+		if (list) {
+			list
+				.querySelectorAll(`[${this.config.itemIdAttribute}]`)
+				.forEach((el) => {
+					const id = el.getAttribute(this.config.itemIdAttribute);
+					el.classList.toggle('selected', this.state.selectedIds.has(id));
+					const it = this.state.items.find((i) => this._getItemId(i) === id);
+					let blocked = false;
+					if (it && this.config.canSelectItem) {
+						try {
+							const isSelected = this.state.selectedIds.has(id);
+							blocked =
+								!isSelected && !this.config.canSelectItem(it, this.state);
+						} catch (_err) {
+							blocked = false;
+						}
+					}
+					el.classList.toggle('blocked', blocked);
+					el.style.opacity = blocked ? '0.6' : '';
+				});
+		}
+	}
 
-    _currentSelection() {
-        return [...this.state.selectedItems];
-    }
+	_currentSelection() {
+		return [...this.state.selectedItems];
+	}
 
-    _resolveAndHide(value) {
-        if (this._resolvePromise) {
-            this._resolvePromise(value);
-            this._resolvePromise = null;
-        }
-        if (this.bootstrapModal) {
-            this.bootstrapModal.hide();
-        }
-    }
+	_resolveAndHide(value) {
+		if (this._resolvePromise) {
+			this._resolvePromise(value);
+			this._resolvePromise = null;
+		}
+		if (this.bootstrapModal) {
+			this.bootstrapModal.hide();
+		}
+	}
 
-    _onHidden() {
-        if (this._resolvePromise) {
-            this._resolvePromise(null);
-            this._resolvePromise = null;
-        }
+	_onHidden() {
+		if (this._resolvePromise) {
+			this._resolvePromise(null);
+			this._resolvePromise = null;
+		}
 
-        this._cleanup.cleanup();
+		this._cleanup.cleanup();
 
-        this.state = {
-            items: [],
-            filtered: [],
-            selectedIds: new Set(),
-            selectedItems: [],
-            searchTerm: '',
-            selectedSources: new Set(),
-            page: 0,
-        };
-    }
+		this.state = {
+			items: [],
+			filtered: [],
+			selectedIds: new Set(),
+			selectedItems: [],
+			searchTerm: '',
+			selectedSources: new Set(),
+			page: 0,
+		};
+	}
 
-    _primeSelection(initialItems) {
-        if (!Array.isArray(initialItems) || initialItems.length === 0) return;
+	_primeSelection(initialItems) {
+		if (!Array.isArray(initialItems) || initialItems.length === 0) return;
 
-        const resolved = [];
-        const ids = new Set();
+		const resolved = [];
+		const ids = new Set();
 
-        initialItems.forEach((candidate) => {
-            const targetId = typeof candidate === 'string'
-                ? candidate
-                : this._getItemId(candidate);
+		initialItems.forEach((candidate) => {
+			const targetId =
+				typeof candidate === 'string' ? candidate : this._getItemId(candidate);
 
-            if (!targetId) return;
+			if (!targetId) return;
 
-            const match = this.state.items.find((i) => this._getItemId(i) === targetId) || candidate;
-            ids.add(targetId);
-            resolved.push(match);
-        });
+			const match =
+				this.state.items.find((i) => this._getItemId(i) === targetId) ||
+				candidate;
+			ids.add(targetId);
+			resolved.push(match);
+		});
 
-        this.state.selectedIds = ids;
-        this.state.selectedItems = resolved;
-    }
+		this.state.selectedIds = ids;
+		this.state.selectedItems = resolved;
+	}
 
-    _getItemId(item) {
-        return this.config.getItemId?.(item) || item?.id;
-    }
+	_getItemId(item) {
+		return this.config.getItemId?.(item) || item?.id;
+	}
 }

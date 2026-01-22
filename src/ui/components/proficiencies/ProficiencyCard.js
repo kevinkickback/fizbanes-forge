@@ -44,23 +44,23 @@ class InstrumentChoicesView {
 		return `
 			<div class="instrument-choices-grid">
 				${slots
-				.map((slot, index) => {
-					return `
+					.map((slot, index) => {
+						return `
 							<div class="instrument-choice-group">
 								<label class="form-label">${slot.sourceLabel} instrument</label>
 								<select class="form-select form-select-sm instrument-choice-select" data-slot-index="${index}" data-source-label="${slot.sourceLabel}" data-key="${slot.key}">
 									<option value="">Choose...</option>
 									${MUSICAL_INSTRUMENTS.map((inst) => {
-						const isSelected = slot.selection === inst;
-						const isUsedElsewhere =
-							selectedInstruments.has(inst) && !isSelected;
-						return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
-					}).join('')}
+										const isSelected = slot.selection === inst;
+										const isUsedElsewhere =
+											selectedInstruments.has(inst) && !isSelected;
+										return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
+									}).join('')}
 								</select>
 							</div>
 						`;
-				})
-				.join('')}
+					})
+					.join('')}
 			</div>
 		`;
 	}
@@ -116,7 +116,7 @@ export class ProficiencyCard {
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
 
-		// EventBus listener tracking (BaseCard mixin pattern)
+		// EventBus listener tracking
 		this._eventHandlers = {};
 	}
 
@@ -313,7 +313,7 @@ export class ProficiencyCard {
 				this._handleProficiencyChanged.bind(this),
 			);
 
-			// Track eventBus listeners using BaseCard mixin pattern
+			// Track eventBus listeners
 			this.onEventBus(
 				EVENTS.CHARACTER_SELECTED,
 				this._handleCharacterChanged.bind(this),
@@ -348,7 +348,7 @@ export class ProficiencyCard {
 	}
 
 	_cleanupEventListeners() {
-		// Remove all eventBus listeners via BaseCard mixin
+		// Remove all eventBus listeners
 		this._cleanupEventBusListeners();
 
 		// Clean up all tracked DOM listeners
@@ -361,7 +361,7 @@ export class ProficiencyCard {
 	}
 
 	//-------------------------------------------------------------------------
-	// EventBus Cleanup Mixin (from BaseCard)
+	// EventBus Cleanup Helpers
 	//-------------------------------------------------------------------------
 
 	onEventBus(event, handler) {
@@ -1354,7 +1354,7 @@ export class ProficiencyCard {
 			const alreadyHas = this._character.proficiencies?.tools?.some(
 				(p) =>
 					DataNormalizer.normalizeForLookup(p.name || p) ===
-					DataNormalizer.normalizeForLookup(slot.selection) &&
+						DataNormalizer.normalizeForLookup(slot.selection) &&
 					(p.source || '') === `${slot.sourceLabel} Instrument Choice`,
 			);
 
@@ -1677,7 +1677,7 @@ export class ProficiencyCard {
 				if (
 					config.options?.length === 1 &&
 					DataNormalizer.normalizeForLookup(config.options[0]) ===
-					normalizedProf &&
+						normalizedProf &&
 					config.selected?.includes(proficiency)
 				) {
 					return true;

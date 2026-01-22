@@ -67,8 +67,12 @@ export class SettingsService {
 
 	async updateAppDataPathDisplay() {
 		try {
-			const charactersPreviewElement = document.getElementById('charactersPathPreview');
-			const portraitsPreviewElement = document.getElementById('portraitsPathPreview');
+			const charactersPreviewElement = document.getElementById(
+				'charactersPathPreview',
+			);
+			const portraitsPreviewElement = document.getElementById(
+				'portraitsPathPreview',
+			);
 
 			// Get the base app data path from character storage
 			const characterPath = await window.characterStorage.getDefaultSavePath();
@@ -87,8 +91,10 @@ export class SettingsService {
 					portraitsPreviewElement.textContent = `${basePath}${sep}portraits`;
 				}
 			} else {
-				if (charactersPreviewElement) charactersPreviewElement.textContent = 'Using default location';
-				if (portraitsPreviewElement) portraitsPreviewElement.textContent = 'Using default location';
+				if (charactersPreviewElement)
+					charactersPreviewElement.textContent = 'Using default location';
+				if (portraitsPreviewElement)
+					portraitsPreviewElement.textContent = 'Using default location';
 			}
 		} catch (error) {
 			console.error(
@@ -150,8 +156,12 @@ export class SettingsService {
 	initializeEventListeners() {
 		try {
 			// App data path controls
-			const chooseAppDataButton = document.getElementById('chooseAppDataFolderBtn');
-			const resetAppDataButton = document.getElementById('resetAppDataFolderBtn');
+			const chooseAppDataButton = document.getElementById(
+				'chooseAppDataFolderBtn',
+			);
+			const resetAppDataButton = document.getElementById(
+				'resetAppDataFolderBtn',
+			);
 			const reconfigureButton = document.getElementById(
 				'reconfigureDataSourceBtn',
 			);
@@ -178,15 +188,26 @@ export class SettingsService {
 							const sep = result.path.includes('\\') ? '\\' : '/';
 							const charactersPath = `${result.path}${sep}characters`;
 
-							const saveResult = await window.characterStorage.setSavePath(charactersPath);
+							const saveResult =
+								await window.characterStorage.setSavePath(charactersPath);
 							if (saveResult.success) {
-								showNotification('App data path updated successfully', 'success');
+								showNotification(
+									'App data path updated successfully',
+									'success',
+								);
 								await this.updateAppDataPathDisplay();
-								eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_CHANGED, charactersPath);
+								eventBus.emit(
+									EVENTS.SETTINGS_SAVE_PATH_CHANGED,
+									charactersPath,
+								);
 							}
 						}
 					} catch (error) {
-						console.error('SettingsService', 'Error selecting app data folder', error);
+						console.error(
+							'SettingsService',
+							'Error selecting app data folder',
+							error,
+						);
 						showNotification('Error selecting app data folder', 'error');
 					}
 				});
@@ -203,7 +224,11 @@ export class SettingsService {
 							eventBus.emit(EVENTS.SETTINGS_SAVE_PATH_RESET);
 						}
 					} catch (error) {
-						console.error('SettingsService', 'Error resetting app data path', error);
+						console.error(
+							'SettingsService',
+							'Error resetting app data path',
+							error,
+						);
 						showNotification('Error resetting app data path', 'error');
 					}
 				});
@@ -317,6 +342,5 @@ export class SettingsService {
 		}
 	}
 }
-
 
 export const settingsService = new SettingsService();

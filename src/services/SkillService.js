@@ -60,19 +60,19 @@ class SkillService {
 			constitution: 'con',
 			intelligence: 'int',
 			wisdom: 'wis',
-			charisma: 'cha'
+			charisma: 'cha',
 		};
 
 		const normalizedName = abilityName.toLowerCase().trim();
 		const abilityAbbr = abilityMap[normalizedName] || normalizedName;
 
-		return this._skillData.skill.filter(skill => {
+		return this._skillData.skill.filter((skill) => {
 			if (!skill.ability) return false;
 
 			// Handle both string and array formats for ability
 			if (Array.isArray(skill.ability)) {
-				return skill.ability.some(a =>
-					DataNormalizer.normalizeForLookup(a) === abilityAbbr
+				return skill.ability.some(
+					(a) => DataNormalizer.normalizeForLookup(a) === abilityAbbr,
 				);
 			}
 

@@ -13,17 +13,25 @@ class ClassService extends BaseDataService {
 		await this.initWithLoader(
 			async () => {
 				console.debug('[ClassService]', 'Initializing class data');
-				const index = await DataLoader.loadJSON('class/index.json', { ttl: TTL_24_HOURS });
-				const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json', { ttl: TTL_24_HOURS });
+				const index = await DataLoader.loadJSON('class/index.json', {
+					ttl: TTL_24_HOURS,
+				});
+				const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json', {
+					ttl: TTL_24_HOURS,
+				});
 
 				const classFiles = Object.values(index);
 				const allClasses = await Promise.allSettled(
-					classFiles.map((file) => DataLoader.loadJSON(`class/${file}`, { ttl: TTL_24_HOURS })),
+					classFiles.map((file) =>
+						DataLoader.loadJSON(`class/${file}`, { ttl: TTL_24_HOURS }),
+					),
 				);
 
 				const fluffFiles = Object.values(fluffIndex);
 				const allFluff = await Promise.allSettled(
-					fluffFiles.map((file) => DataLoader.loadJSON(`class/${file}`, { ttl: TTL_24_HOURS })),
+					fluffFiles.map((file) =>
+						DataLoader.loadJSON(`class/${file}`, { ttl: TTL_24_HOURS }),
+					),
 				);
 
 				const aggregated = {
@@ -128,7 +136,9 @@ class ClassService extends BaseDataService {
 		if (!this._data?.class) return null;
 
 		// Try to find exact source match first
-		const exactMatch = this._data.class.find((c) => c.name === name && c.source === source);
+		const exactMatch = this._data.class.find(
+			(c) => c.name === name && c.source === source,
+		);
 		if (exactMatch) {
 			return exactMatch;
 		}
@@ -295,13 +305,18 @@ class ClassService extends BaseDataService {
 	}
 
 	/** Get count of optional features available at a specific level. */
-	getOptionalFeatureCountAtLevel(className, level, featureTypes, source = 'PHB') {
+	getOptionalFeatureCountAtLevel(
+		className,
+		level,
+		featureTypes,
+		source = 'PHB',
+	) {
 		const progression = this.getOptionalFeatureProgression(className, source);
 		if (!progression) return 0;
 
 		// Find matching progression entry
-		const entry = progression.find(p =>
-			p.featureType?.some(ft => featureTypes.includes(ft))
+		const entry = progression.find((p) =>
+			p.featureType?.some((ft) => featureTypes.includes(ft)),
 		);
 		if (!entry) return 0;
 
@@ -319,9 +334,25 @@ class ClassService extends BaseDataService {
 	}
 
 	/** Check if a new optional feature is gained at a specific level. */
-	gainsOptionalFeatureAtLevel(className, currentLevel, newLevel, featureTypes, source = 'PHB') {
-		const countAtCurrent = this.getOptionalFeatureCountAtLevel(className, currentLevel, featureTypes, source);
-		const countAtNew = this.getOptionalFeatureCountAtLevel(className, newLevel, featureTypes, source);
+	gainsOptionalFeatureAtLevel(
+		className,
+		currentLevel,
+		newLevel,
+		featureTypes,
+		source = 'PHB',
+	) {
+		const countAtCurrent = this.getOptionalFeatureCountAtLevel(
+			className,
+			currentLevel,
+			featureTypes,
+			source,
+		);
+		const countAtNew = this.getOptionalFeatureCountAtLevel(
+			className,
+			newLevel,
+			featureTypes,
+			source,
+		);
 		return countAtNew > countAtCurrent;
 	}
 
@@ -356,13 +387,13 @@ class ClassService extends BaseDataService {
 	/** Map feature type code to readable feature type name. */
 	mapFeatureType(featureTypeCode) {
 		const typeMap = {
-			'EI': 'invocation',
-			'MM': 'metamagic',
+			EI: 'invocation',
+			MM: 'metamagic',
 			'MV:B': 'maneuver',
 			'FS:F': 'fighting-style',
 			'FS:R': 'fighting-style',
 			'FS:P': 'fighting-style',
-			'PB': 'patron'
+			PB: 'patron',
 		};
 		return typeMap[featureTypeCode] || 'other';
 	}

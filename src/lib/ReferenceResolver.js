@@ -44,7 +44,7 @@ export async function resolve(type, name, source = 'PHB') {
 		if (!getter || typeof getter !== 'function') {
 			console.warn(
 				'[ReferenceResolver]',
-				`Service for ${type} does not have ${method} method`
+				`Service for ${type} does not have ${method} method`,
 			);
 			return { name, error: `Cannot resolve ${type}` };
 		}
@@ -61,7 +61,7 @@ export async function resolve(type, name, source = 'PHB') {
 		console.error(
 			'[ReferenceResolver]',
 			`Error resolving ${type} "${name}":`,
-			error
+			error,
 		);
 		return { name, error: error.message };
 	}
@@ -83,7 +83,8 @@ export const referenceResolver = {
 	resolveBackground: (name, source) => resolve('background', name, source),
 	resolveSkill: (name) => resolveWithoutSource('skill', name),
 	resolveAction: (name, source) => resolve('action', name, source),
-	resolveOptionalFeature: (name) => resolveWithoutSource('optionalfeature', name),
+	resolveOptionalFeature: (name) =>
+		resolveWithoutSource('optionalfeature', name),
 	resolveReward: (name) => resolveWithoutSource('reward', name),
 	resolveTrap: (name) => resolveWithoutSource('trap', name),
 	resolveVehicle: (name) => resolveWithoutSource('vehicle', name),
@@ -102,7 +103,8 @@ export const resolveBackground = (name, source) =>
 	referenceResolver.resolveBackground(name, source);
 export const resolveClass = (name, source) =>
 	referenceResolver.resolveClass(name, source);
-export const resolveCondition = (name) => referenceResolver.resolveCondition(name);
+export const resolveCondition = (name) =>
+	referenceResolver.resolveCondition(name);
 export const resolveFeat = (name, source) =>
 	referenceResolver.resolveFeat(name, source);
 export const resolveItem = (name, source) =>

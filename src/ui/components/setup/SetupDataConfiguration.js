@@ -58,15 +58,26 @@ export class DataConfigurationModal {
 			closeBtn?.classList.remove('d-none');
 			if (subtitle) {
 				subtitle.innerHTML =
-					'Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).';
+					'Visit the <a href="https://wiki.tercept.net/en/home" class="external-link">5e Tools Wiki</a> for link to their source code (github repository).';
 			}
 		} else {
 			closeBtn?.classList.add('d-none');
 			if (subtitle) {
 				subtitle.innerHTML =
-					'D&D data files not found. Please provide a data source.<br>Visit the <a href="https://wiki.tercept.net/en/home" target="_blank">5e Tools Wiki</a> for link to their source code (github repository).';
+					'D&D data files not found. Please provide a data source.<br>Visit the <a href="https://wiki.tercept.net/en/home" class="external-link">5e Tools Wiki</a> for link to their source code (github repository).';
 			}
 		}
+
+		// Handle external links to open in default browser
+		this.modal.querySelectorAll('a.external-link').forEach((link) => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				const url = link.getAttribute('href');
+				if (url && window.app?.openExternal) {
+					window.app.openExternal(url);
+				}
+			});
+		});
 	}
 
 	async _loadSavedConfiguration() {
@@ -228,7 +239,18 @@ export class DataConfigurationModal {
 			barEl.style.width = `${percent}%`;
 			barEl.setAttribute('aria-valuenow', percent);
 
+			if (payload.status === 'verifying') {
+				barEl.classList.add('progress-bar-striped', 'progress-bar-animated');
+				textEl.textContent = 'Verifying data source URL...';
+				return;
+			}
+			if (payload.status === 'building-manifest') {
+				barEl.classList.add('progress-bar-striped', 'progress-bar-animated');
+				textEl.textContent = 'Building download manifest...';
+				return;
+			}
 			if (payload.status === 'start') {
+				barEl.classList.remove('progress-bar-striped', 'progress-bar-animated');
 				textEl.textContent = `Starting download (${total} files)...`;
 				return;
 			}
@@ -239,10 +261,13 @@ export class DataConfigurationModal {
 				return;
 			}
 			if (payload.status === 'error') {
+				barEl.classList.remove('progress-bar-striped', 'progress-bar-animated');
+				barEl.classList.add('bg-danger');
 				textEl.textContent = payload.error || 'Download failed';
 				return;
 			}
 			if (payload.status === 'complete') {
+				barEl.classList.remove('progress-bar-striped', 'progress-bar-animated');
 				textEl.textContent = 'Download complete';
 				barEl.style.width = '100%';
 			}
@@ -270,8 +295,35 @@ export class DataConfigurationModal {
 				type === 'url' ? 'Validating & Downloading...' : 'Validating...';
 		}
 
+		// Show progress area immediately with initial state (for URL type)
+		const statusEl = this.modal.querySelector('.data-download-status');
+		const barEl = this.modal.querySelector('.data-download-progress-bar');
+		const textEl = this.modal.querySelector('.data-download-status-text');
+
 		if (type === 'url') {
 			this.attachProgressListener();
+		}
+
+		// Always show status for feedback
+		if (statusEl && textEl) {
+			statusEl.classList.remove('d-none');
+			statusEl.style.display = 'block'; // Force display in case d-none isn't removed
+			if (barEl) {
+				barEl.style.width = '0%';
+				barEl.classList.add('progress-bar-striped', 'progress-bar-animated');
+			}
+			textEl.textContent =
+				type === 'url'
+					? 'Connecting to data source...'
+					: 'Validating local folder...';
+			console.debug('DataConfigurationModal', 'Status area shown:', statusEl);
+		} else {
+			console.warn('DataConfigurationModal', 'Status elements not found:', {
+				statusEl: !!statusEl,
+				barEl: !!barEl,
+				textEl: !!textEl,
+				modal: !!this.modal,
+			});
 		}
 
 		try {
@@ -297,20 +349,11 @@ export class DataConfigurationModal {
 						: `Data source configured successfully (${type})`;
 				showNotification(successMessage, 'success');
 
-				// Ensure latest data is active and reload app state so DataLoader reinitializes
-				try {
-					await window.app.refreshDataSource();
-				} catch (error) {
-					console.warn(
-						'DataConfigurationModal',
-						'Post-validate refresh failed',
-						error,
-					);
-				}
-				window.location.reload();
-
+				// Reload app to reinitialize with new data source
+				// No need to call refreshDataSource() - the reload will handle initialization
 				this.detachProgressListener();
 				this.bootstrapModal?.hide();
+				window.location.reload();
 				this.resolveCallback?.({ type, value });
 			} else {
 				console.warn(

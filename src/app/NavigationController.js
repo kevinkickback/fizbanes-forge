@@ -129,7 +129,9 @@ class PageLoaderImpl {
 	clearCache() {
 		const cacheSize = this.templateCache.size;
 		this.templateCache.clear();
-		console.debug('PageLoader', 'Cache cleared', { cachedTemplates: cacheSize });
+		console.debug('PageLoader', 'Cache cleared', {
+			cachedTemplates: cacheSize,
+		});
 	}
 
 	getCacheSize() {
@@ -524,10 +526,14 @@ class NavigationControllerImpl {
 
 			const sectionRect = target.getBoundingClientRect();
 			const containerRect = scrollContainer.getBoundingClientRect();
-			const sectionTop = sectionRect.top - containerRect.top + scrollContainer.scrollTop;
+			const sectionTop =
+				sectionRect.top - containerRect.top + scrollContainer.scrollTop;
 			const scrollTo = sectionTop - 16;
 
-			scrollContainer.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
+			scrollContainer.scrollTo({
+				top: Math.max(0, scrollTo),
+				behavior: 'smooth',
+			});
 		} else {
 			console.warn('NavigationController', 'Unable to find section to scroll', {
 				sectionId,
@@ -585,7 +591,9 @@ class NavigationControllerImpl {
 	setBadge(page, count) {
 		const button = this.navButtons.get(page);
 		if (!button) {
-			console.warn('NavigationController', 'Button not found for badge', { page });
+			console.warn('NavigationController', 'Button not found for badge', {
+				page,
+			});
 			return;
 		}
 
@@ -595,7 +603,8 @@ class NavigationControllerImpl {
 			if (!badge) {
 				badge = document.createElement('span');
 				badge.className = 'nav-badge badge rounded-pill';
-				badge.style.cssText = 'background-color: var(--accent-color); margin-left: 5px; font-size: 0.7em;';
+				badge.style.cssText =
+					'background-color: var(--accent-color); margin-left: 5px; font-size: 0.7em;';
 				button.appendChild(badge);
 			}
 			badge.textContent = count.toString();

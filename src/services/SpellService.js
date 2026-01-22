@@ -14,13 +14,19 @@ class SpellService extends BaseDataService {
 		await this.initWithLoader(
 			async () => {
 				const [index, classLookup] = await Promise.all([
-					DataLoader.loadJSON('spells/index.json', { ttl: 24 * 60 * 60 * 1000 }),
-					DataLoader.loadJSON('generated/gendata-spell-source-lookup.json', { ttl: 24 * 60 * 60 * 1000 }),
+					DataLoader.loadJSON('spells/index.json', {
+						ttl: 24 * 60 * 60 * 1000,
+					}),
+					DataLoader.loadJSON('generated/gendata-spell-source-lookup.json', {
+						ttl: 24 * 60 * 60 * 1000,
+					}),
 				]);
 
 				const spellFiles = Object.values(index);
 				const allSpells = await Promise.allSettled(
-					spellFiles.map((file) => DataLoader.loadJSON(`spells/${file}`, { ttl: 24 * 60 * 60 * 1000 })),
+					spellFiles.map((file) =>
+						DataLoader.loadJSON(`spells/${file}`, { ttl: 24 * 60 * 60 * 1000 }),
+					),
 				);
 
 				const aggregated = { spell: [] };
@@ -45,7 +51,9 @@ class SpellService extends BaseDataService {
 			{
 				onLoaded: (data) => {
 					// Preserve multi-source variants under the same spell name
-					this._spellLookupMap = this.buildLookupMap(data?.spell, { allowMultiple: true });
+					this._spellLookupMap = this.buildLookupMap(data?.spell, {
+						allowMultiple: true,
+					});
 					this._spellClassLookup = data?.classLookup || {};
 				},
 				emitPayload: (data) => data?.spell || [],
@@ -117,7 +125,9 @@ class SpellService extends BaseDataService {
 	getSpellsByClass(className) {
 		if (!this._data?.spell) return [];
 
-		return this._data.spell.filter((s) => this.isSpellAvailableForClass(s, className));
+		return this._data.spell.filter((s) =>
+			this.isSpellAvailableForClass(s, className),
+		);
 	}
 }
 

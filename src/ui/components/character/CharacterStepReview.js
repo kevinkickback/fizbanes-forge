@@ -4,64 +4,64 @@ import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { raceService } from '../../../services/RaceService.js';
 
 export class CharacterStepReview {
-    constructor(session, modal) {
-        this.session = session;
-        this.modal = modal;
-        this._cleanup = DOMCleanup.create();
-    }
+	constructor(session, modal) {
+		this.session = session;
+		this.modal = modal;
+		this._cleanup = DOMCleanup.create();
+	}
 
-    async render() {
-        const data = this.session.getStagedData();
+	async render() {
+		const data = this.session.getStagedData();
 
-        const portrait =
-            data.portrait || 'assets/images/characters/placeholder_char_card.webp';
-        const name = data.name || 'Unnamed';
-        const gender = data.gender
-            ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1)
-            : 'Male';
+		const portrait =
+			data.portrait || 'assets/images/characters/placeholder_char_card.webp';
+		const name = data.name || 'Unnamed';
+		const gender = data.gender
+			? data.gender.charAt(0).toUpperCase() + data.gender.slice(1)
+			: 'Male';
 
-        // Format sources as badges
-        const sources = Array.isArray(data.allowedSources)
-            ? data.allowedSources
-            : Array.from(data.allowedSources || []);
-        const sourceBadges =
-            sources.length > 0
-                ? sources
-                    .map((s) => `<span class="badge source-badge">${s}</span>`)
-                    .join(' ')
-                : '<span class="text-muted">None selected</span>';
+		// Format sources as badges
+		const sources = Array.isArray(data.allowedSources)
+			? data.allowedSources
+			: Array.from(data.allowedSources || []);
+		const sourceBadges =
+			sources.length > 0
+				? sources
+						.map((s) => `<span class="badge source-badge">${s}</span>`)
+						.join(' ')
+				: '<span class="text-muted">None selected</span>';
 
-        // Race info
-        const raceName = data.race?.name || 'Not selected';
-        const raceSource = data.race?.source ? ` (${data.race.source})` : '';
-        const subraceName = data.race?.subrace ? ` - ${data.race.subrace}` : '';
-        const raceDisplay = `${raceName}${raceSource}${subraceName}`;
+		// Race info
+		const raceName = data.race?.name || 'Not selected';
+		const raceSource = data.race?.source ? ` (${data.race.source})` : '';
+		const subraceName = data.race?.subrace ? ` - ${data.race.subrace}` : '';
+		const raceDisplay = `${raceName}${raceSource}${subraceName}`;
 
-        // Class info (get subclass from progression if available)
-        const className = data.class?.name || 'Not selected';
-        const classSource = data.class?.source ? ` (${data.class.source})` : '';
-        const progressionClass = data.progression?.classes?.find(
-            (c) => c.name === data.class?.name,
-        );
-        const subclassName = progressionClass?.subclass
-            ? ` - ${progressionClass.subclass}`
-            : '';
-        const classDisplay = `${className}${classSource}${subclassName}`;
+		// Class info (get subclass from progression if available)
+		const className = data.class?.name || 'Not selected';
+		const classSource = data.class?.source ? ` (${data.class.source})` : '';
+		const progressionClass = data.progression?.classes?.find(
+			(c) => c.name === data.class?.name,
+		);
+		const subclassName = progressionClass?.subclass
+			? ` - ${progressionClass.subclass}`
+			: '';
+		const classDisplay = `${className}${classSource}${subclassName}`;
 
-        // Background info
-        const backgroundName = data.background?.name || 'Not selected';
-        const backgroundSource = data.background?.source
-            ? ` (${data.background.source})`
-            : '';
-        const backgroundDisplay = `${backgroundName}${backgroundSource}`;
+		// Background info
+		const backgroundName = data.background?.name || 'Not selected';
+		const backgroundSource = data.background?.source
+			? ` (${data.background.source})`
+			: '';
+		const backgroundDisplay = `${backgroundName}${backgroundSource}`;
 
-        // Ability scores with modifiers
-        const abilityScoresDisplay = this._formatAbilityScores(data);
+		// Ability scores with modifiers
+		const abilityScoresDisplay = this._formatAbilityScores(data);
 
-        // Calculate HP
-        const hp = this._calculateHP(data);
+		// Calculate HP
+		const hp = this._calculateHP(data);
 
-        return `
+		return `
             <div class="step-6-review">
                 <div class="card">
                     <div class="card-body p-3">
@@ -125,165 +125,165 @@ export class CharacterStepReview {
                 </div>
             </div>
         `;
-    }
+	}
 
-    /**
-     * Attach event listeners to rendered content.
-     */
-    attachListeners(_contentArea) {
-        console.debug('[Step3Review]', 'Attaching listeners');
-        // No listeners needed for review step
-    }
+	/**
+	 * Attach event listeners to rendered content.
+	 */
+	attachListeners(_contentArea) {
+		console.debug('[Step3Review]', 'Attaching listeners');
+		// No listeners needed for review step
+	}
 
-    /**
-     * Format ability score method for display.
-     */
-    _formatAbilityScoreMethod(method) {
-        if (!method) return 'Point Buy';
+	/**
+	 * Format ability score method for display.
+	 */
+	_formatAbilityScoreMethod(method) {
+		if (!method) return 'Point Buy';
 
-        // Convert camelCase to Title Case
-        return method
-            .replace(/([A-Z])/g, ' $1')
-            .replace(/^./, (str) => str.toUpperCase())
-            .trim();
-    }
+		// Convert camelCase to Title Case
+		return method
+			.replace(/([A-Z])/g, ' $1')
+			.replace(/^./, (str) => str.toUpperCase())
+			.trim();
+	}
 
-    /**
-     * Format ability scores for display.
-     */
-    _formatAbilityScores(data) {
-        const abilities = [
-            { key: 'strength', label: 'STR' },
-            { key: 'dexterity', label: 'DEX' },
-            { key: 'constitution', label: 'CON' },
-            { key: 'intelligence', label: 'INT' },
-            { key: 'wisdom', label: 'WIS' },
-            { key: 'charisma', label: 'CHA' },
-        ];
+	/**
+	 * Format ability scores for display.
+	 */
+	_formatAbilityScores(data) {
+		const abilities = [
+			{ key: 'strength', label: 'STR' },
+			{ key: 'dexterity', label: 'DEX' },
+			{ key: 'constitution', label: 'CON' },
+			{ key: 'intelligence', label: 'INT' },
+			{ key: 'wisdom', label: 'WIS' },
+			{ key: 'charisma', label: 'CHA' },
+		];
 
-        const scores = abilities
-            .map(({ key, label }) => {
-                const baseScore = data.abilityScores?.[key] || 8;
-                const racialBonus = this._getRacialBonus(key, data);
-                const totalScore = baseScore + racialBonus;
-                const modifier = Math.floor((totalScore - 10) / 2);
-                const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-                return `
+		const scores = abilities
+			.map(({ key, label }) => {
+				const baseScore = data.abilityScores?.[key] || 8;
+				const racialBonus = this._getRacialBonus(key, data);
+				const totalScore = baseScore + racialBonus;
+				const modifier = Math.floor((totalScore - 10) / 2);
+				const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+				return `
                 <div class="ability-score-summary">
                     <span class="ability-label">${label}</span>
                     <span class="ability-score">${totalScore}</span>
                     <span class="ability-modifier">(${modStr})</span>
                 </div>
             `;
-            })
-            .join('');
+			})
+			.join('');
 
-        return `<div class="ability-scores-grid">${scores}</div>`;
-    }
+		return `<div class="ability-scores-grid">${scores}</div>`;
+	}
 
-    /**
-     * Get racial bonus for an ability.
-     * @private
-     */
-    _getRacialBonus(ability, data) {
-        const raceName = data.race?.name;
-        const raceSource = data.race?.source;
-        const subraceName = data.race?.subrace;
+	/**
+	 * Get racial bonus for an ability.
+	 * @private
+	 */
+	_getRacialBonus(ability, data) {
+		const raceName = data.race?.name;
+		const raceSource = data.race?.source;
+		const subraceName = data.race?.subrace;
 
-        if (!raceName || !raceSource) return 0;
+		if (!raceName || !raceSource) return 0;
 
-        // Get race and subrace data from service
-        const race = raceService.getRace(raceName, raceSource);
-        if (!race) return 0;
+		// Get race and subrace data from service
+		const race = raceService.getRace(raceName, raceSource);
+		if (!race) return 0;
 
-        let subrace = null;
-        if (subraceName) {
-            subrace = raceService.getSubrace(raceName, subraceName, raceSource);
-        } else {
-            // Get base (unnamed) subrace if no explicit subrace selected
-            // This handles races like Human where ability bonuses are stored in the base subrace
-            subrace = raceService.getBaseSubrace(raceName, raceSource);
-        }
+		let subrace = null;
+		if (subraceName) {
+			subrace = raceService.getSubrace(raceName, subraceName, raceSource);
+		} else {
+			// Get base (unnamed) subrace if no explicit subrace selected
+			// This handles races like Human where ability bonuses are stored in the base subrace
+			subrace = raceService.getBaseSubrace(raceName, raceSource);
+		}
 
-        // Parse ability increases from race and subrace
-        const abilityArray = [
-            ...(race?.ability || []),
-            ...(subrace?.ability || []),
-        ];
+		// Parse ability increases from race and subrace
+		const abilityArray = [
+			...(race?.ability || []),
+			...(subrace?.ability || []),
+		];
 
-        if (abilityArray.length === 0) return 0;
+		if (abilityArray.length === 0) return 0;
 
-        // Calculate bonus for this specific ability
-        let bonus = 0;
-        for (const abilityEntry of abilityArray) {
-            if (!abilityEntry) continue;
+		// Calculate bonus for this specific ability
+		let bonus = 0;
+		for (const abilityEntry of abilityArray) {
+			if (!abilityEntry) continue;
 
-            // Handle different ability entry formats
-            if (typeof abilityEntry === 'object') {
-                // Direct ability mapping: { str: 2, dex: 1 }
-                const shortName = ability.substring(0, 3);
-                if (abilityEntry[shortName]) {
-                    bonus += abilityEntry[shortName];
-                }
-            }
-        }
+			// Handle different ability entry formats
+			if (typeof abilityEntry === 'object') {
+				// Direct ability mapping: { str: 2, dex: 1 }
+				const shortName = ability.substring(0, 3);
+				if (abilityEntry[shortName]) {
+					bonus += abilityEntry[shortName];
+				}
+			}
+		}
 
-        // Add bonuses from racial ability choices (e.g., Variant Human)
-        const savedChoices = data.race?.abilityChoices || [];
-        for (const choice of savedChoices) {
-            if (choice && choice.ability === ability) {
-                bonus += choice.amount || 1;
-            }
-        }
+		// Add bonuses from racial ability choices (e.g., Variant Human)
+		const savedChoices = data.race?.abilityChoices || [];
+		for (const choice of savedChoices) {
+			if (choice && choice.ability === ability) {
+				bonus += choice.amount || 1;
+			}
+		}
 
-        return bonus;
-    }
+		return bonus;
+	}
 
-    /**
-     * Calculate starting HP.
-     */
-    _calculateHP(data) {
-        const className = data.class?.name;
-        const baseConScore = data.abilityScores?.constitution || 10;
-        const racialConBonus = this._getRacialBonus('constitution', data);
-        const totalConScore = baseConScore + racialConBonus;
-        const conModifier = Math.floor((totalConScore - 10) / 2);
+	/**
+	 * Calculate starting HP.
+	 */
+	_calculateHP(data) {
+		const className = data.class?.name;
+		const baseConScore = data.abilityScores?.constitution || 10;
+		const racialConBonus = this._getRacialBonus('constitution', data);
+		const totalConScore = baseConScore + racialConBonus;
+		const conModifier = Math.floor((totalConScore - 10) / 2);
 
-        // Hit die by class (simplified)
-        const hitDice = {
-            Barbarian: 12,
-            Fighter: 10,
-            Paladin: 10,
-            Ranger: 10,
-            Bard: 8,
-            Cleric: 8,
-            Druid: 8,
-            Monk: 8,
-            Rogue: 8,
-            Warlock: 8,
-            Sorcerer: 6,
-            Wizard: 6,
-        };
+		// Hit die by class (simplified)
+		const hitDice = {
+			Barbarian: 12,
+			Fighter: 10,
+			Paladin: 10,
+			Ranger: 10,
+			Bard: 8,
+			Cleric: 8,
+			Druid: 8,
+			Monk: 8,
+			Rogue: 8,
+			Warlock: 8,
+			Sorcerer: 6,
+			Wizard: 6,
+		};
 
-        const hitDie = hitDice[className] || 8;
-        const baseHP = hitDie + conModifier;
+		const hitDie = hitDice[className] || 8;
+		const baseHP = hitDie + conModifier;
 
-        return Math.max(1, baseHP);
-    }
+		return Math.max(1, baseHP);
+	}
 
-    /**
-     * Validate step data.
-     */
-    async validate() {
-        // All validation already done in previous steps
-        return true;
-    }
+	/**
+	 * Validate step data.
+	 */
+	async validate() {
+		// All validation already done in previous steps
+		return true;
+	}
 
-    /**
-     * Save step data to session.
-     */
-    async save() {
-        // Nothing to save - this is the final review step
-        console.debug('[Step3Review]', 'Final review complete');
-    }
+	/**
+	 * Save step data to session.
+	 */
+	async save() {
+		// Nothing to save - this is the final review step
+		console.debug('[Step3Review]', 'Final review complete');
+	}
 }

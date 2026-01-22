@@ -20,14 +20,18 @@ export class Character {
 			abilityChoices: [],
 		};
 
-
 		// Ensure abilityChoices exists on race even if loading from old data
 		if (this.race && !Array.isArray(this.race.abilityChoices)) {
-			if (this.race.abilityChoices && typeof this.race.abilityChoices === 'object') {
+			if (
+				this.race.abilityChoices &&
+				typeof this.race.abilityChoices === 'object'
+			) {
 				const entries = Object.entries(this.race.abilityChoices).sort(
 					([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10),
 				);
-				this.race.abilityChoices = entries.map(([, choice]) => choice).filter(Boolean);
+				this.race.abilityChoices = entries
+					.map(([, choice]) => choice)
+					.filter(Boolean);
 			} else {
 				this.race.abilityChoices = [];
 			}
@@ -396,10 +400,10 @@ export class Character {
 			const sourceCandidate =
 				typeof feat === 'object'
 					? feat.origin ||
-					feat.grantedBy ||
-					feat.from ||
-					feat.sourceType ||
-					feat.source
+						feat.grantedBy ||
+						feat.from ||
+						feat.sourceType ||
+						feat.source
 					: null;
 			const source = sourceCandidate || defaultSource;
 
@@ -536,7 +540,10 @@ export class Character {
 		if (!this.progression?.classes || this.progression.classes.length === 0) {
 			return 1;
 		}
-		return this.progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
+		return this.progression.classes.reduce(
+			(sum, c) => sum + (c.levels || 0),
+			0,
+		);
 	}
 
 	/** @returns {Object|null} First class in progression or null */
@@ -552,7 +559,7 @@ export class Character {
 		if (!this.progression?.classes) {
 			return null;
 		}
-		return this.progression.classes.find(c => c.name === className) || null;
+		return this.progression.classes.find((c) => c.name === className) || null;
 	}
 
 	/** @returns {boolean} True if character has the specified class */

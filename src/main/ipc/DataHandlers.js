@@ -75,8 +75,13 @@ export function registerDataHandlers(preferencesManager) {
 	};
 
 	const refreshCurrentDataSource = async (event) => {
+		MainLogger.debug('DataHandlers', 'refreshCurrentDataSource called');
 		try {
 			if (DEBUG_MODE) {
+				MainLogger.debug(
+					'DataHandlers',
+					'DEBUG_MODE is true, skipping refresh',
+				);
 				sendDownloadProgress(event, 'complete', {
 					total: 0,
 					completed: 0,
@@ -97,11 +102,16 @@ export function registerDataHandlers(preferencesManager) {
 			syncDataPathFromPreferences();
 			const type = preferencesManager.get('dataSourceType', null);
 			const value = preferencesManager.get('dataSourceValue', null);
+			MainLogger.debug('DataHandlers', 'Retrieved data source for refresh', {
+				type,
+				value: value?.substring(0, 50),
+			});
 			if (!type || !value) {
 				return { success: false, error: 'No data source configured' };
 			}
 
 			if (type === 'url') {
+				MainLogger.debug('DataHandlers', 'Processing URL data source refresh');
 				const cachePath = getCachePathForUrl(value);
 				let cacheExists = false;
 				try {
@@ -111,7 +121,17 @@ export function registerDataHandlers(preferencesManager) {
 					cacheExists = false;
 				}
 
+				MainLogger.debug('DataHandlers', 'Building manifest for URL', {
+					url: value,
+					cachePath,
+					cacheExists,
+				});
 				const manifest = await buildDataManifest(value);
+				MainLogger.debug('DataHandlers', 'Manifest built', {
+					url: value,
+					files: manifest.length,
+					manifestSample: manifest.slice(0, 5),
+				});
 				if (!manifest.length) {
 					return {
 						success: false,
@@ -120,13 +140,18 @@ export function registerDataHandlers(preferencesManager) {
 				}
 
 				// Preflight existing cache to ensure baseline files exist before attempting update
+				// If cache is incomplete, log it but proceed with download to fetch missing files
 				if (cacheExists) {
 					const preCheck = await validateLocalDataFolder(cachePath);
 					if (!preCheck.valid) {
-						return {
-							success: false,
-							error: `Cached data invalid or incomplete: ${preCheck.missing.join(', ')}`,
-						};
+						MainLogger.info(
+							'DataHandlers',
+							'Cache incomplete, will download missing files',
+							{
+								cachePath,
+								missing: preCheck.missing,
+							},
+						);
 					}
 				}
 
@@ -142,6 +167,13 @@ export function registerDataHandlers(preferencesManager) {
 					cachePath,
 					manifest,
 					(progress) => {
+						MainLogger.debug('DataHandlers', 'Download progress', {
+							file: progress.file,
+							completed: progress.completed,
+							total: progress.total,
+							success: progress.success,
+							skipped: progress.skipped,
+						});
 						sendDownloadProgress(event, 'progress', {
 							total: progress.total,
 							completed: progress.completed,
@@ -153,6 +185,13 @@ export function registerDataHandlers(preferencesManager) {
 					},
 				);
 
+				MainLogger.debug('DataHandlers', 'Download completed', {
+					url: value,
+					cachePath,
+					downloaded: downloadResult.downloaded,
+					skipped: downloadResult.skipped,
+					failed: downloadResult.failed?.length || 0,
+				});
 				const cacheValidation = await validateLocalDataFolder(cachePath);
 				if (!cacheValidation.valid) {
 					return {
@@ -182,6 +221,10 @@ export function registerDataHandlers(preferencesManager) {
 			}
 
 			if (type === 'local') {
+				MainLogger.debug(
+					'DataHandlers',
+					'Processing local data source refresh',
+				);
 				const validation = await validateLocalDataFolder(value);
 				if (!validation.valid) {
 					return {
@@ -193,6 +236,7 @@ export function registerDataHandlers(preferencesManager) {
 				return { success: true, downloaded: 0, skipped: 0 };
 			}
 
+			MainLogger.warn('DataHandlers', 'Unknown data source type:', type);
 			return { success: false, error: 'Invalid data source type' };
 		} catch (error) {
 			MainLogger.error('DataHandlers', 'Refresh data source failed:', error);
@@ -268,24 +312,25 @@ export function registerDataHandlers(preferencesManager) {
 				return { success: false, error: 'Invalid path' };
 			}
 
-			MainLogger.info('DataHandlers', 'Loading JSON:', {
+			MainLogger.debug('DataHandlers', 'Loading JSON:', {
 				fileName,
 				filePath,
 				currentDataPath,
 			});
 
-			// Check if file exists first
+			let content;
 			try {
-				await fs.stat(filePath);
-			} catch (statError) {
-				MainLogger.error('DataHandlers', 'File does not exist:', {
-					filePath,
-					error: statError.message,
-				});
-				return { success: false, error: `File not found: ${filePath}` };
+				content = await fs.readFile(filePath, 'utf8');
+			} catch (readError) {
+				if (readError.code === 'ENOENT') {
+					MainLogger.error('DataHandlers', 'File does not exist:', {
+						filePath,
+						error: readError.message,
+					});
+					return { success: false, error: `File not found: ${filePath}` };
+				}
+				throw readError;
 			}
-
-			const content = await fs.readFile(filePath, 'utf8');
 
 			// Validate it looks like JSON before parsing
 			const trimmed = content.trim();
@@ -309,6 +354,30 @@ export function registerDataHandlers(preferencesManager) {
 				stack: error.stack,
 			});
 			return { success: false, error: error.message };
+		}
+	});
+
+	ipcMain.handle(IPC_CHANNELS.DATA_FILE_EXISTS, async (_event, fileName) => {
+		try {
+			// Determine the data path (debug mode or configured)
+			const dataPath = DEBUG_MODE ? DEV_DATA_PATH : currentDataPath;
+			if (!dataPath) {
+				return false;
+			}
+
+			const filePath = resolveSafePath(dataPath, fileName);
+			if (!filePath) {
+				return false;
+			}
+
+			try {
+				await fs.stat(filePath);
+				return true;
+			} catch {
+				return false;
+			}
+		} catch {
+			return false;
 		}
 	});
 
@@ -362,9 +431,10 @@ export function registerDataHandlers(preferencesManager) {
 				// Validate local folder
 				const result = await validateLocalDataFolder(value);
 				if (!result.valid) {
+					MainLogger.debug('DataHandlers', 'Missing files:', result.missing);
 					return {
 						success: false,
-						error: `Missing required files: ${result.missing.join(', ')}`,
+						error: `Folder is missing ${result.missing.length} required data files`,
 					};
 				}
 
@@ -387,15 +457,45 @@ export function registerDataHandlers(preferencesManager) {
 				return { success: true };
 			}
 			if (type === 'url') {
+				// Show verification phase
+				sendDownloadProgress(event, 'verifying', {
+					total: 0,
+					completed: 0,
+					file: null,
+					success: true,
+				});
+
 				// Validate URL format and accessibility
 				const urlValidation = await validateDataSourceURL(value);
 				if (!urlValidation.valid) {
+					sendDownloadProgress(event, 'error', {
+						total: 0,
+						completed: 0,
+						file: null,
+						success: false,
+						error: urlValidation.error,
+					});
 					return { success: false, error: urlValidation.error };
 				}
+
+				// Show manifest building phase
+				sendDownloadProgress(event, 'building-manifest', {
+					total: 0,
+					completed: 0,
+					file: null,
+					success: true,
+				});
 
 				// Build manifest dynamically using remote indexes only (no bundled fallback)
 				const manifest = await buildDataManifest(value);
 				if (!manifest.length) {
+					sendDownloadProgress(event, 'error', {
+						total: 0,
+						completed: 0,
+						file: null,
+						success: false,
+						error: 'No files found to use as download manifest',
+					});
 					return {
 						success: false,
 						error: 'No files found to use as download manifest',
@@ -445,17 +545,22 @@ export function registerDataHandlers(preferencesManager) {
 				const cacheValidation = await validateLocalDataFolder(cachePath);
 				if (!cacheValidation.valid) {
 					// Cache is missing core files - fail
+					MainLogger.debug(
+						'DataHandlers',
+						'Missing files after download:',
+						cacheValidation.missing,
+					);
 					sendDownloadProgress(event, 'error', {
 						total: manifest.length,
 						completed: downloadResult.downloaded,
 						file: null,
 						success: false,
 						failed: cacheValidation.missing,
-						error: `Downloaded data is missing required files: ${cacheValidation.missing.join(', ')}`,
+						error: `Download incomplete: ${cacheValidation.missing.length} required files missing`,
 					});
 					return {
 						success: false,
-						error: `Downloaded data is missing required files: ${cacheValidation.missing.join(', ')}`,
+						error: `Download incomplete: ${cacheValidation.missing.length} required files missing`,
 					};
 				}
 

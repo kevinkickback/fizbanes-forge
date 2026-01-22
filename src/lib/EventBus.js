@@ -135,7 +135,11 @@ class EventBusImpl extends EventEmitter {
 	// IMPORTANT: Require handler to prevent accidentally removing ALL listeners
 	off(event, handler) {
 		if (!handler) {
-			console.warn('[EventBus]', 'off() called without handler - ignoring to prevent removing all listeners', { event });
+			console.warn(
+				'[EventBus]',
+				'off() called without handler - ignoring to prevent removing all listeners',
+				{ event },
+			);
 			return this;
 		}
 

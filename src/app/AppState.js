@@ -1,6 +1,6 @@
 /**
  * Central application state singleton that emits change events.
- * 
+ *
  * Uses Immer for immutable state updates. All state modifications go through
  * setState() or specialized setters which use Immer's produce() internally.
  * This eliminates accidental mutation bugs while allowing intuitive "mutative" syntax.

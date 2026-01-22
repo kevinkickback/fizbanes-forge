@@ -27,6 +27,8 @@ import { createMainWindow, getMainWindow } from './Window.js';
 
 // Debug mode - controlled via environment variable `FF_DEBUG`
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
+// Allow opening DevTools in normal mode with FF_DEVTOOLS env var (separate from debug mode)
+const ENABLE_DEVTOOLS = process.env.FF_DEVTOOLS === 'true';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,6 +79,7 @@ app.whenReady().then(() => {
 		rendererPath: rendererRoot,
 		preloadPath: path.join(__dirname, 'Preload.cjs'),
 		debugMode: DEBUG_MODE,
+		enableDevTools: DEBUG_MODE || ENABLE_DEVTOOLS,
 	});
 
 	MainLogger.info('App', 'Application initialized');
@@ -101,6 +104,7 @@ app.on('activate', () => {
 			rendererPath: rendererRoot,
 			preloadPath: path.join(__dirname, 'Preload.cjs'),
 			debugMode: DEBUG_MODE,
+			enableDevTools: DEBUG_MODE || ENABLE_DEVTOOLS,
 		});
 	}
 });

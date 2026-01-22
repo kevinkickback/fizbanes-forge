@@ -15,28 +15,25 @@ class ActionService extends BaseDataService {
 	}
 
 	async initialize() {
-		await this.initWithLoader(
-			async () => DataLoader.loadJSON('actions.json'),
-			{
-				onLoaded: (data) => {
-					// Build lookup map for O(1) access by name (case-insensitive)
-					this._actionMap = new Map();
-					const actions = data?.action || [];
-					if (Array.isArray(actions)) {
-						for (const action of actions) {
-							if (!action.name) continue;
-							const key = DataNormalizer.normalizeForLookup(action.name);
-							this._actionMap.set(key, action);
-						}
+		await this.initWithLoader(async () => DataLoader.loadJSON('actions.json'), {
+			onLoaded: (data) => {
+				// Build lookup map for O(1) access by name (case-insensitive)
+				this._actionMap = new Map();
+				const actions = data?.action || [];
+				if (Array.isArray(actions)) {
+					for (const action of actions) {
+						if (!action.name) continue;
+						const key = DataNormalizer.normalizeForLookup(action.name);
+						this._actionMap.set(key, action);
 					}
-				},
-				emitPayload: (data) => data?.action || [],
-				onError: () => {
-					this._actionMap = new Map();
-					return { action: [] };
-				},
+				}
 			},
-		);
+			emitPayload: (data) => data?.action || [],
+			onError: () => {
+				this._actionMap = new Map();
+				return { action: [] };
+			},
+		});
 
 		return true;
 	}

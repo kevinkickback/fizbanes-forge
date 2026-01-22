@@ -64,7 +64,10 @@ export class BaseDataService {
 
 		// If initialization is in progress, wait for it
 		if (this._initPromise) {
-			console.debug(`[${this._loggerScope}]`, 'Initialization already in progress, waiting...');
+			console.debug(
+				`[${this._loggerScope}]`,
+				'Initialization already in progress, waiting...',
+			);
 			return this._initPromise;
 		}
 
@@ -82,7 +85,8 @@ export class BaseDataService {
 				const data = await loaderFn();
 				this.setData(data);
 				if (onLoaded) onLoaded(data, { fromCache: false });
-				if (emitPayload) this.emitLoaded(emitPayload(data, { fromCache: false }));
+				if (emitPayload)
+					this.emitLoaded(emitPayload(data, { fromCache: false }));
 				return data;
 			} catch (error) {
 				console.error(`[${this._loggerScope}]`, 'Initialization failed', error);
@@ -131,7 +135,11 @@ export class BaseDataService {
 		const normalized = DataNormalizer.normalizeForLookup(name);
 		const result = lookupMap.get(normalized);
 		// Handle both single items and arrays
-		return Array.isArray(result) ? (result.length > 0 ? result[0] : null) : result || null;
+		return Array.isArray(result)
+			? result.length > 0
+				? result[0]
+				: null
+			: result || null;
 	}
 
 	/** Lookup an item by name and source code with O(1) name lookup. */

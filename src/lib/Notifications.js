@@ -3,7 +3,7 @@
 /**
  * Suppress noisy success/info toasts for changes already visible in the UI.
  * Prefer inline feedback when the user can see the result on-screen.
- * 
+ *
  * SUPPRESS: Character CRUD, single item/spell ops, equipment state, selections, auto-save.
  * ALLOW: Errors, warnings, background ops, cross-context results, explicit save/export.
  */
@@ -30,9 +30,9 @@ function shouldSuppressNotification(message, type) {
 		/^character duplicated/i,
 
 		// Item/spell/equipment operations - list updates are self-evident
-		/^added .+ to .+$/i,              // "Added Fireball to Wizard"
-		/^added \d+ (item|spell)/i,       // "Added 3 items to inventory"
-		/^removed .+ from .+$/i,          // "Removed Longsword from inventory"
+		/^added .+ to .+$/i, // "Added Fireball to Wizard"
+		/^added \d+ (item|spell)/i, // "Added 3 items to inventory"
+		/^removed .+ from .+$/i, // "Removed Longsword from inventory"
 		/^item (added|removed)/i,
 		/^spell (added|removed)/i,
 
@@ -51,7 +51,9 @@ function shouldSuppressNotification(message, type) {
 	if (suppressPatterns.some((re) => re.test(m))) return true;
 
 	// Allow explicit user-initiated save/export commands (has "successfully")
-	if (/saved successfully|exported successfully|imported successfully/i.test(m)) {
+	if (
+		/saved successfully|exported successfully|imported successfully/i.test(m)
+	) {
 		return false;
 	}
 
@@ -83,7 +85,7 @@ function updateNotificationBadge() {
 	const badge = document.getElementById('notificationBadge');
 	if (!badge) return;
 
-	const unreadCount = notificationHistory.filter(n => !n.read).length;
+	const unreadCount = notificationHistory.filter((n) => !n.read).length;
 	if (unreadCount > 0) {
 		badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
 		badge.style.display = 'block';
@@ -255,7 +257,7 @@ export function clearNotificationHistory() {
 }
 
 export function markNotificationAsRead(notificationId) {
-	const notification = notificationHistory.find(n => n.id === notificationId);
+	const notification = notificationHistory.find((n) => n.id === notificationId);
 	if (notification) {
 		notification.read = true;
 		updateNotificationBadge();
@@ -263,7 +265,7 @@ export function markNotificationAsRead(notificationId) {
 }
 
 export function markAllAsRead() {
-	notificationHistory.forEach(n => {
+	notificationHistory.forEach((n) => {
 		n.read = true;
 	});
 	updateNotificationBadge();
@@ -271,7 +273,11 @@ export function markAllAsRead() {
 
 // Add a persistent notification entry to the history without showing a toast.
 // Useful for long-lived warnings (e.g., failed service loads) that should appear in the notification center.
-export function addPersistentNotification(message, type = 'warning', options = {}) {
+export function addPersistentNotification(
+	message,
+	type = 'warning',
+	options = {},
+) {
 	const { dedupe = true } = options;
 
 	if (dedupe) {

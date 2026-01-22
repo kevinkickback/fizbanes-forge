@@ -10,14 +10,22 @@ export function registerFileHandlers(windowManager) {
 
 	const getAllowedRoots = () => {
 		const characterRoot = path.resolve(getCharacterSavePath());
-		const portraitsRoot = path.resolve(path.join(path.dirname(characterRoot), 'portraits'));
-		return { characterRoot, portraitsRoot, allowed: [characterRoot, portraitsRoot, path.dirname(characterRoot)] };
+		const portraitsRoot = path.resolve(
+			path.join(path.dirname(characterRoot), 'portraits'),
+		);
+		return {
+			characterRoot,
+			portraitsRoot,
+			allowed: [characterRoot, portraitsRoot, path.dirname(characterRoot)],
+		};
 	};
 
 	const resolveUnderAllowedRoots = (requestedPath) => {
 		const { allowed } = getAllowedRoots();
 		const candidate = path.resolve(requestedPath);
-		return allowed.some((root) => candidate.startsWith(root)) ? candidate : null;
+		return allowed.some((root) => candidate.startsWith(root))
+			? candidate
+			: null;
 	};
 
 	// Select folder
@@ -43,7 +51,10 @@ export function registerFileHandlers(windowManager) {
 		try {
 			const safePath = resolveUnderAllowedRoots(filePath);
 			if (!safePath) {
-				return { success: false, error: 'Access to the requested path is denied' };
+				return {
+					success: false,
+					error: 'Access to the requested path is denied',
+				};
 			}
 			const content = await fs.readFile(safePath, 'utf8');
 			const data = JSON.parse(content);
@@ -61,7 +72,10 @@ export function registerFileHandlers(windowManager) {
 			try {
 				const safePath = resolveUnderAllowedRoots(filePath);
 				if (!safePath) {
-					return { success: false, error: 'Access to the requested path is denied' };
+					return {
+						success: false,
+						error: 'Access to the requested path is denied',
+					};
 				}
 				await fs.writeFile(safePath, JSON.stringify(data, null, 2));
 				return { success: true };
@@ -98,6 +112,21 @@ export function registerFileHandlers(windowManager) {
 		}
 	});
 
+	// Open URL in default browser
+	ipcMain.handle(IPC_CHANNELS.FILE_OPEN_EXTERNAL, async (_event, url) => {
+		try {
+			// Only allow http/https URLs for security
+			if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+				return { success: false, error: 'Invalid URL' };
+			}
+			await shell.openExternal(url);
+			return { success: true };
+		} catch (error) {
+			MainLogger.error('FileHandlers', 'Open external URL failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
+
 	// List portrait image files from a directory
 	ipcMain.handle(IPC_CHANNELS.PORTRAITS_LIST, async (_event, dirPath) => {
 		try {
@@ -108,7 +137,10 @@ export function registerFileHandlers(windowManager) {
 			const { portraitsRoot } = getAllowedRoots();
 			const safeDir = path.resolve(dirPath);
 			if (!safeDir.startsWith(portraitsRoot)) {
-				return { success: false, error: 'Access to the requested path is denied' };
+				return {
+					success: false,
+					error: 'Access to the requested path is denied',
+				};
 			}
 
 			const entries = await fs.readdir(safeDir, { withFileTypes: true });

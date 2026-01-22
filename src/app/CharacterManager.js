@@ -146,7 +146,9 @@ class CharacterManagerImpl {
 			AppState.setHasUnsavedChanges(false);
 			eventBus.emit(EVENTS.CHARACTER_SAVED, character);
 
-			console.debug('CharacterManager', 'Character saved', { id: character.id });
+			console.debug('CharacterManager', 'Character saved', {
+				id: character.id,
+			});
 			return true;
 		} catch (error) {
 			console.error('CharacterManager', 'Save failed', error);

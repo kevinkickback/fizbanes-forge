@@ -30,7 +30,7 @@ export class BackgroundCard {
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
 
-		// EventBus listener tracking (BaseCard mixin pattern)
+		// EventBus listener tracking
 		this._eventHandlers = {};
 
 		// Track current selection
@@ -82,7 +82,7 @@ export class BackgroundCard {
 	}
 
 	_setupEventListeners() {
-		// Use BaseCard mixin pattern for EventBus cleanup
+		// EventBus cleanup
 		this.onEventBus(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
 		});
@@ -93,7 +93,7 @@ export class BackgroundCard {
 	}
 
 	_cleanupEventListeners() {
-		// Remove all eventBus listeners via BaseCard mixin
+		// Remove all eventBus listeners
 		this._cleanupEventBusListeners();
 
 		// Clean up all tracked DOM listeners
@@ -101,7 +101,7 @@ export class BackgroundCard {
 	}
 
 	//-------------------------------------------------------------------------
-	// EventBus Cleanup Mixin (from BaseCard)
+	// EventBus Cleanup Helpers
 	//-------------------------------------------------------------------------
 
 	onEventBus(event, handler) {
@@ -460,7 +460,8 @@ export class BackgroundCard {
 					);
 					backgroundItem = fallbackItem;
 					const [, fallbackSource] = fallbackAttr.split('_');
-					character.background.source = fallbackSource || character.background.source;
+					character.background.source =
+						fallbackSource || character.background.source;
 				} else {
 					console.warn(
 						'BackgroundCard',
@@ -586,8 +587,8 @@ export class BackgroundCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-			character.background?.source !== background.source ||
-			character.background?.variant !== (variant?.name || null);
+				character.background?.source !== background.source ||
+				character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies
@@ -970,7 +971,6 @@ export class BackgroundCard {
 	}
 }
 
-
 //=============================================================================
 // Background Details View - Proficiencies, equipment, features for info panel
 //=============================================================================
@@ -981,43 +981,51 @@ class BackgroundDetailsView {
 
 		let html = '';
 
-		// Skills section
+		// Skills section - only show if background has skills
 		const skillsHtml = this._formatSkillProficiencies(background);
-		html += `
-			<div class="detail-section mb-2">
-				<h6 class="small mb-1"><strong>Skills</strong></h6>
-				<div class="small text-muted">${skillsHtml}</div>
-			</div>
-		`;
+		if (skillsHtml && skillsHtml !== 'None') {
+			html += `
+				<div class="detail-section mb-2">
+					<h6 class="small mb-1"><strong>Skills</strong></h6>
+					<div class="small text-muted">${skillsHtml}</div>
+				</div>
+			`;
+		}
 
-		// Tools section
+		// Tools section - only show if background has tools
 		const toolsHtml = this._formatToolProficiencies(background);
-		html += `
-			<div class="detail-section mb-2">
-				<h6 class="small mb-1"><strong>Tools</strong></h6>
-				<div class="small text-muted">${toolsHtml}</div>
-			</div>
-		`;
+		if (toolsHtml && toolsHtml !== 'None') {
+			html += `
+				<div class="detail-section mb-2">
+					<h6 class="small mb-1"><strong>Tools</strong></h6>
+					<div class="small text-muted">${toolsHtml}</div>
+				</div>
+			`;
+		}
 
-		// Languages section
+		// Languages section - only show if background has languages
 		const languagesHtml = this._formatLanguages(background);
-		html += `
-			<div class="detail-section mb-2">
-				<h6 class="small mb-1"><strong>Languages</strong></h6>
-				<div class="small text-muted">${languagesHtml}</div>
-			</div>
-		`;
+		if (languagesHtml && languagesHtml !== 'None') {
+			html += `
+				<div class="detail-section mb-2">
+					<h6 class="small mb-1"><strong>Languages</strong></h6>
+					<div class="small text-muted">${languagesHtml}</div>
+				</div>
+			`;
+		}
 
-		// Equipment section
+		// Equipment section - only show if background has equipment
 		const equipmentHtml = this._formatEquipment(background);
-		html += `
-			<div class="detail-section mb-2">
-				<h6 class="small mb-1"><strong>Equipment</strong></h6>
-				<div class="small text-muted">${equipmentHtml}</div>
-			</div>
-		`;
+		if (equipmentHtml && equipmentHtml !== 'None') {
+			html += `
+				<div class="detail-section mb-2">
+					<h6 class="small mb-1"><strong>Equipment</strong></h6>
+					<div class="small text-muted">${equipmentHtml}</div>
+				</div>
+			`;
+		}
 
-		// Feature section
+		// Feature section - only show if background has a feature
 		const feature = this._extractFeature(background);
 		if (feature) {
 			html += `
@@ -1142,9 +1150,9 @@ class BackgroundDetailsView {
 
 		const description = Array.isArray(featureEntry.entries)
 			? featureEntry.entries
-				.map((e) => (typeof e === 'string' ? e : ''))
-				.filter(Boolean)
-				.join(' ')
+					.map((e) => (typeof e === 'string' ? e : ''))
+					.filter(Boolean)
+					.join(' ')
 			: featureEntry.entry || '';
 
 		// Truncate description for compact display

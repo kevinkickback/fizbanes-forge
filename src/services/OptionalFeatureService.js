@@ -3,178 +3,205 @@ import { BaseDataService } from './BaseDataService.js';
 
 /** Service for managing optional class features (Metamagic, Maneuvers, Invocations, etc). */
 class OptionalFeatureService extends BaseDataService {
-    constructor() {
-        super('optionalfeatures');
-    }
+	constructor() {
+		super('optionalfeatures');
+	}
 
-    async initialize() {
-        const TTL_24_HOURS = 24 * 60 * 60 * 1000;
-        await this.initWithLoader(
-            async () => {
-                console.debug('[OptionalFeatureService]', 'Initializing optional feature data');
+	async initialize() {
+		const TTL_24_HOURS = 24 * 60 * 60 * 1000;
+		await this.initWithLoader(
+			async () => {
+				console.debug(
+					'[OptionalFeatureService]',
+					'Initializing optional feature data',
+				);
 
-                // Load main optionalfeatures data
-                const optionalfeaturesData = await DataLoader.loadJSON('optionalfeatures.json', { ttl: TTL_24_HOURS });
+				// Load main optionalfeatures data
+				const optionalfeaturesData = await DataLoader.loadJSON(
+					'optionalfeatures.json',
+					{ ttl: TTL_24_HOURS },
+				);
 
-                // Load fluff data
-                const fluffData = await DataLoader.loadJSON('fluff-optionalfeatures.json', { ttl: TTL_24_HOURS });
+				// Load fluff data
+				const fluffData = await DataLoader.loadJSON(
+					'fluff-optionalfeatures.json',
+					{ ttl: TTL_24_HOURS },
+				);
 
-                // Merge data
-                const aggregated = {
-                    optionalfeature: optionalfeaturesData.optionalfeature || [],
-                    optionalfeatureFluff: fluffData.optionalfeatureFluff || []
-                };
+				// Merge data
+				const aggregated = {
+					optionalfeature: optionalfeaturesData.optionalfeature || [],
+					optionalfeatureFluff: fluffData.optionalfeatureFluff || [],
+				};
 
-                return aggregated;
-            },
-            {
-                emitPayload: (data) => data?.optionalfeature || [],
-            }
-        );
-    }
+				return aggregated;
+			},
+			{
+				emitPayload: (data) => data?.optionalfeature || [],
+			},
+		);
+	}
 
-    getAllOptionalFeatures() {
-        return this._data?.optionalfeature || [];
-    }
+	getAllOptionalFeatures() {
+		return this._data?.optionalfeature || [];
+	}
 
-    /** Get optional features by feature type(s). */
-    getFeaturesByType(featureTypes) {
-        const types = Array.isArray(featureTypes) ? featureTypes : [featureTypes];
-        return this.getAllOptionalFeatures().filter((feature) =>
-            feature.featureType?.some((ft) => types.includes(ft))
-        );
-    }
+	/** Get optional features by feature type(s). */
+	getFeaturesByType(featureTypes) {
+		const types = Array.isArray(featureTypes) ? featureTypes : [featureTypes];
+		return this.getAllOptionalFeatures().filter((feature) =>
+			feature.featureType?.some((ft) => types.includes(ft)),
+		);
+	}
 
-    getEldritchInvocations() {
-        return this.getFeaturesByType('EI');
-    }
+	getEldritchInvocations() {
+		return this.getFeaturesByType('EI');
+	}
 
-    getMetamagicOptions() {
-        return this.getFeaturesByType('MM');
-    }
+	getMetamagicOptions() {
+		return this.getFeaturesByType('MM');
+	}
 
-    getManeuvers() {
-        return this.getFeaturesByType('MV:B');
-    }
+	getManeuvers() {
+		return this.getFeaturesByType('MV:B');
+	}
 
-    /** Get Fighting Styles for a specific class. */
-    getFightingStyles(className) {
-        const typeMap = {
-            Fighter: ['FS:F', 'FS:B'],
-            Ranger: ['FS:R', 'FS:B'],
-            Paladin: ['FS:P', 'FS:B'],
-        };
-        const types = typeMap[className] || ['FS:B'];
-        return this.getFeaturesByType(types);
-    }
+	/** Get Fighting Styles for a specific class. */
+	getFightingStyles(className) {
+		const typeMap = {
+			Fighter: ['FS:F', 'FS:B'],
+			Ranger: ['FS:R', 'FS:B'],
+			Paladin: ['FS:P', 'FS:B'],
+		};
+		const types = typeMap[className] || ['FS:B'];
+		return this.getFeaturesByType(types);
+	}
 
-    getPactBoons() {
-        return this.getFeaturesByType('PB');
-    }
+	getPactBoons() {
+		return this.getFeaturesByType('PB');
+	}
 
-    getArtificerInfusions() {
-        return this.getFeaturesByType('AI');
-    }
+	getArtificerInfusions() {
+		return this.getFeaturesByType('AI');
+	}
 
-    /** Check if an optional feature meets prerequisites. */
-    meetsPrerequisites(feature, character, className = null) {
-        if (!feature.prerequisite) return true;
+	/** Check if an optional feature meets prerequisites. */
+	meetsPrerequisites(feature, character, className = null) {
+		if (!feature.prerequisite) return true;
 
-        // Check each prerequisite (all must be met)
-        for (const prereq of feature.prerequisite) {
-            // Check level requirement
-            if (prereq.level) {
-                // For class-specific features, check the class level, not total level
-                let charLevel = character.getTotalLevel();
-                if (className) {
-                    // Check in progression.classes first (used during level-up)
-                    if (character.progression?.classes) {
-                        const classEntry = character.progression.classes.find(c => c.name === className);
-                        if (classEntry) {
-                            charLevel = classEntry.levels || 1;
-                        }
-                    }
-                    // Fallback to direct classes array (if used elsewhere)
-                    else if (character.classes) {
-                        const classEntry = character.classes.find(c => c.name === className);
-                        if (classEntry) {
-                            charLevel = classEntry.level || classEntry.levels || 1;
-                        }
-                    }
-                }
-                const requiredLevel = typeof prereq.level === 'object' ? (prereq.level.level || 1) : prereq.level;
-                if (charLevel < requiredLevel) return false;
-            }
+		// Check each prerequisite (all must be met)
+		for (const prereq of feature.prerequisite) {
+			// Check level requirement
+			if (prereq.level) {
+				// For class-specific features, check the class level, not total level
+				let charLevel = character.getTotalLevel();
+				if (className) {
+					// Check in progression.classes first (used during level-up)
+					if (character.progression?.classes) {
+						const classEntry = character.progression.classes.find(
+							(c) => c.name === className,
+						);
+						if (classEntry) {
+							charLevel = classEntry.levels || 1;
+						}
+					}
+					// Fallback to direct classes array (if used elsewhere)
+					else if (character.classes) {
+						const classEntry = character.classes.find(
+							(c) => c.name === className,
+						);
+						if (classEntry) {
+							charLevel = classEntry.level || classEntry.levels || 1;
+						}
+					}
+				}
+				const requiredLevel =
+					typeof prereq.level === 'object'
+						? prereq.level.level || 1
+						: prereq.level;
+				if (charLevel < requiredLevel) return false;
+			}
 
-            // Check spell requirement (character must know the spell)
-            if (prereq.spell) {
-                const requiredSpells = Array.isArray(prereq.spell) ? prereq.spell : [prereq.spell];
-                const hasAllSpells = requiredSpells.every(spellRef => {
-                    // Clean spell reference (remove #c suffix and any source markers)
-                    const spellName = spellRef.split('#')[0].split('|')[0].toLowerCase();
+			// Check spell requirement (character must know the spell)
+			if (prereq.spell) {
+				const requiredSpells = Array.isArray(prereq.spell)
+					? prereq.spell
+					: [prereq.spell];
+				const hasAllSpells = requiredSpells.every((spellRef) => {
+					// Clean spell reference (remove #c suffix and any source markers)
+					const spellName = spellRef.split('#')[0].split('|')[0].toLowerCase();
 
-                    // Check in character's spellcasting data
-                    if (character.spellcasting?.classes) {
-                        for (const classSpellcasting of Object.values(character.spellcasting.classes)) {
-                            // Check spells known
-                            if (classSpellcasting.spellsKnown?.some(s =>
-                                s.name.toLowerCase() === spellName
-                            )) {
-                                return true;
-                            }
-                            // Check cantrips
-                            if (classSpellcasting.cantrips?.some(s =>
-                                s.name.toLowerCase() === spellName
-                            )) {
-                                return true;
-                            }
-                            // Check prepared spells
-                            if (classSpellcasting.preparedSpells?.some(s =>
-                                s.name.toLowerCase() === spellName
-                            )) {
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                });
+					// Check in character's spellcasting data
+					if (character.spellcasting?.classes) {
+						for (const classSpellcasting of Object.values(
+							character.spellcasting.classes,
+						)) {
+							// Check spells known
+							if (
+								classSpellcasting.spellsKnown?.some(
+									(s) => s.name.toLowerCase() === spellName,
+								)
+							) {
+								return true;
+							}
+							// Check cantrips
+							if (
+								classSpellcasting.cantrips?.some(
+									(s) => s.name.toLowerCase() === spellName,
+								)
+							) {
+								return true;
+							}
+							// Check prepared spells
+							if (
+								classSpellcasting.preparedSpells?.some(
+									(s) => s.name.toLowerCase() === spellName,
+								)
+							) {
+								return true;
+							}
+						}
+					}
+					return false;
+				});
 
-                if (!hasAllSpells) return false;
-            }
+				if (!hasAllSpells) return false;
+			}
 
-            // Check pact requirement (for invocations)
-            if (prereq.pact) {
-                // Check if character has the required pact boon
-                const hasPact = character.features?.some(f =>
-                    f.name?.toLowerCase().includes(prereq.pact.toLowerCase())
-                );
-                if (!hasPact) return false;
-            }
+			// Check pact requirement (for invocations)
+			if (prereq.pact) {
+				// Check if character has the required pact boon
+				const hasPact = character.features?.some((f) =>
+					f.name?.toLowerCase().includes(prereq.pact.toLowerCase()),
+				);
+				if (!hasPact) return false;
+			}
 
-            // Check patron requirement
-            if (prereq.patron) {
-                if (!hasPatron) return false;
-            }
-        }
+			// Check patron requirement
+			if (prereq.patron) {
+				if (!hasPatron) return false;
+			}
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * Get a specific optional feature by name
-     * @param {string} name - Feature name
-     * @param {string} source - Source book (optional)
-     * @returns {Object|null} Optional feature object or null
-     */
-    getFeatureByName(name, source = null) {
-        const features = this.getAllOptionalFeatures();
-        if (source) {
-            return features.find(
-                (f) => f.name === name && f.source === source
-            ) || features.find((f) => f.name === name);
-        }
-        return features.find((f) => f.name === name);
-    }
+	/**
+	 * Get a specific optional feature by name
+	 * @param {string} name - Feature name
+	 * @param {string} source - Source book (optional)
+	 * @returns {Object|null} Optional feature object or null
+	 */
+	getFeatureByName(name, source = null) {
+		const features = this.getAllOptionalFeatures();
+		if (source) {
+			return (
+				features.find((f) => f.name === name && f.source === source) ||
+				features.find((f) => f.name === name)
+			);
+		}
+		return features.find((f) => f.name === name);
+	}
 }
 
 // Export singleton instance

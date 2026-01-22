@@ -138,8 +138,8 @@ async function loadJSON(url, { ttl } = {}) {
 			} else {
 				throw new Error(
 					`DataLoader: window.data.loadJSON not available. ` +
-					`This is an Electron app and requires the preload bridge. ` +
-					`Ensure the preload script is properly loaded.`
+						`This is an Electron app and requires the preload bridge. ` +
+						`Ensure the preload script is properly loaded.`,
 				);
 			}
 
@@ -187,28 +187,57 @@ async function loadActions() {
 }
 
 async function loadMonsters() {
-	// Aggregate all bestiary files listed in the bestiary index
-	const index = await loadJSON(`${state.baseUrl}bestiary/index.json`);
-	const files = Object.values(index || {});
-
-	// Load all bestiary chunks in parallel
-	const datasets = await Promise.all(
-		files.map((file) => loadJSON(`${state.baseUrl}bestiary/${file}`)),
-	);
-
-	// Merge array fields (primarily `monster`) across datasets
-	const aggregated = {};
-	for (const data of datasets) {
-		if (!data || typeof data !== 'object') continue;
-		for (const [key, value] of Object.entries(data)) {
-			if (Array.isArray(value)) {
-				aggregated[key] = aggregated[key] || [];
-				aggregated[key].push(...value);
-			}
+	// Bestiary is optional - not downloaded by default for performance
+	// Check if bestiary files exist before attempting load to avoid error logs
+	if (typeof window !== 'undefined' && window.data?.fileExists) {
+		const exists = await window.data.fileExists('bestiary/index.json');
+		if (!exists) {
+			console.debug(
+				'[DataLoader]',
+				'Bestiary not available (not downloaded), skipping monster load',
+			);
+			return { monster: [] };
 		}
 	}
 
-	return aggregated;
+	try {
+		const index = await loadJSON(`${state.baseUrl}bestiary/index.json`);
+		if (!index || Object.keys(index).length === 0) {
+			console.debug(
+				'[DataLoader]',
+				'Bestiary index empty or missing, skipping monster load',
+			);
+			return { monster: [] };
+		}
+		const files = Object.values(index);
+
+		// Load all bestiary chunks in parallel, filtering out failures
+		const datasets = await Promise.all(
+			files.map((file) =>
+				loadJSON(`${state.baseUrl}bestiary/${file}`).catch(() => null),
+			),
+		);
+
+		// Merge array fields (primarily `monster`) across datasets
+		const aggregated = {};
+		for (const data of datasets) {
+			if (!data || typeof data !== 'object') continue;
+			for (const [key, value] of Object.entries(data)) {
+				if (Array.isArray(value)) {
+					aggregated[key] = aggregated[key] || [];
+					aggregated[key].push(...value);
+				}
+			}
+		}
+
+		return aggregated;
+	} catch {
+		console.debug(
+			'[DataLoader]',
+			'Bestiary data unavailable, continuing without monsters',
+		);
+		return { monster: [] };
+	}
 }
 
 async function loadRaces() {
@@ -394,7 +423,9 @@ const DataLoader = dataLoader;
 
 export {
 	clearCache,
-	clearCacheForUrl, DataLoader, dataLoader,
+	clearCacheForUrl,
+	DataLoader,
+	dataLoader,
 	getCacheSettings,
 	getCacheStats,
 	invalidateAllCache,
@@ -423,5 +454,5 @@ export {
 	loadVariantRules,
 	loadVehicles,
 	setBaseUrl,
-	setTTL
+	setTTL,
 };

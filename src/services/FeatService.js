@@ -16,26 +16,23 @@ class FeatService extends BaseDataService {
 	}
 
 	async initialize() {
-		return this.initWithLoader(
-			() => DataLoader.loadFeats(),
-			{
-				onLoaded: (data) => {
-					// Build lookup map for O(1) access by name (case-insensitive)
-					this._featMap = new Map();
-					if (data?.feat && Array.isArray(data.feat)) {
-						for (const feat of data.feat) {
-							if (!feat.name) continue;
-							const key = DataNormalizer.normalizeForLookup(feat.name);
-							this._featMap.set(key, feat);
-						}
+		return this.initWithLoader(() => DataLoader.loadFeats(), {
+			onLoaded: (data) => {
+				// Build lookup map for O(1) access by name (case-insensitive)
+				this._featMap = new Map();
+				if (data?.feat && Array.isArray(data.feat)) {
+					for (const feat of data.feat) {
+						if (!feat.name) continue;
+						const key = DataNormalizer.normalizeForLookup(feat.name);
+						this._featMap.set(key, feat);
 					}
-					console.debug('[FeatService]', 'Feats loaded successfully', {
-						count: data?.feat?.length,
-					});
-				},
-				emitPayload: (data) => ['feats', data?.feat || []],
+				}
+				console.debug('[FeatService]', 'Feats loaded successfully', {
+					count: data?.feat?.length,
+				});
 			},
-		);
+			emitPayload: (data) => ['feats', data?.feat || []],
+		});
 	}
 
 	/** @returns {Array<Object>} Array of feat objects */
@@ -194,7 +191,7 @@ class FeatService extends BaseDataService {
 
 		// All prerequisite conditions must be met (AND logic)
 		return feat.prerequisite.every((prereq) =>
-			this._validatePrerequisiteCondition(prereq, character, options)
+			this._validatePrerequisiteCondition(prereq, character, options),
 		);
 	}
 
@@ -260,7 +257,7 @@ class FeatService extends BaseDataService {
 		// Spellcasting requirement
 		if (prereq.spellcasting === true) {
 			const classes = character.progression?.classes || [];
-			const hasSpellcasting = classes.some(cls => {
+			const hasSpellcasting = classes.some((cls) => {
 				const classData = classService?.getClass?.(cls.name, cls.source);
 				return classData?.spellcastingAbility;
 			});

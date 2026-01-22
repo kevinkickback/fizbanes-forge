@@ -20,7 +20,9 @@ class MonsterService extends BaseDataService {
 					console.debug('[MonsterService]', 'Monsters loaded successfully', {
 						count: data?.monster?.length,
 					});
-					this._monsterMap = this.buildLookupMap(data?.monster, { allowMultiple: true });
+					this._monsterMap = this.buildLookupMap(data?.monster, {
+						allowMultiple: true,
+					});
 				},
 				onError: () => {
 					this._monsterMap = new Map();
@@ -46,7 +48,7 @@ class MonsterService extends BaseDataService {
 		if (!this._monsterMap || !monsterName) return [];
 		const normalized = DataNormalizer.normalizeForLookup(monsterName);
 		const result = this._monsterMap.get(normalized);
-		return Array.isArray(result) ? result : (result ? [result] : []);
+		return Array.isArray(result) ? result : result ? [result] : [];
 	}
 }
 

@@ -18,6 +18,7 @@ export const IPC_CHANNELS = {
 	FILE_WRITE_JSON: 'file:writeJson',
 	FILE_EXISTS: 'file:exists',
 	FILE_OPEN: 'file:open',
+	FILE_OPEN_EXTERNAL: 'file:openExternal',
 
 	// Settings operations
 	SETTINGS_GET_PATH: 'settings:getPath',
@@ -32,6 +33,7 @@ export const IPC_CHANNELS = {
 
 	// Data operations (D&D data files)
 	DATA_LOAD_JSON: 'data:loadJson',
+	DATA_FILE_EXISTS: 'data:fileExists',
 	DATA_GET_SOURCE: 'data:getSource',
 	DATA_VALIDATE_SOURCE: 'data:validateSource',
 	DATA_REFRESH_SOURCE: 'data:refreshSource',

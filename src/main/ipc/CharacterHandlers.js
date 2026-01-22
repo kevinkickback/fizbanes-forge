@@ -193,7 +193,8 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				sourceFilePath = result.filePaths[0];
 
 				// Use service to read, validate, and check for conflicts
-				const importResult = await importService.importCharacter(sourceFilePath);
+				const importResult =
+					await importService.importCharacter(sourceFilePath);
 
 				if (!importResult.success) {
 					if (importResult.step === 'conflict') {
@@ -220,7 +221,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 			// Handle user's choice for duplicate ID (keepBoth, overwrite, cancel)
 			if (action) {
-				const resolution = importService.processConflictResolution(character, action);
+				const resolution = importService.processConflictResolution(
+					character,
+					action,
+				);
 				if (resolution.canceled) {
 					MainLogger.info('CharacterHandlers', 'Import canceled by user');
 					return { success: false, canceled: true };

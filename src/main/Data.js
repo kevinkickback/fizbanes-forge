@@ -28,6 +28,10 @@ const CORE_REQUIRED_FILES = [
 	'optionalfeatures.json',
 	'fluff-optionalfeatures.json',
 	'senses.json',
+	'deities.json',
+	'variantrules.json',
+	// Generated lookup files
+	'generated/gendata-spell-source-lookup.json',
 	// Index files for subdirectories
 	'class/index.json',
 	'class/fluff-index.json',
@@ -35,7 +39,7 @@ const CORE_REQUIRED_FILES = [
 	'spells/fluff-index.json',
 ];
 // Core required folders
-const CORE_REQUIRED_FOLDERS = ['class', 'spells'];
+const CORE_REQUIRED_FOLDERS = ['class', 'spells', 'generated'];
 
 // Index files that enumerate additional JSON assets
 const ENUMERATION_INDEX_FILES = [
@@ -368,16 +372,30 @@ export async function buildDataManifest(remoteUrl) {
 
 	// Expand manifest using remote index files (class/spells) to pick up newly added files
 	const baseUrl = buildRawDataBaseUrl(remoteUrl);
+	MainLogger.debug('DataFolderManager', 'Building manifest', {
+		remoteUrl,
+		baseUrl,
+		coreFiles: CORE_REQUIRED_FILES.length,
+		indexFiles: ENUMERATION_INDEX_FILES.length,
+	});
+
 	for (const indexPath of ENUMERATION_INDEX_FILES) {
 		const fullUrl = `${baseUrl}/${indexPath}`;
+		MainLogger.debug('DataFolderManager', 'Fetching index', { fullUrl });
 		const remoteIndex = await fetchJsonFromUrl(fullUrl);
 		if (!remoteIndex.success || !remoteIndex.data) {
 			MainLogger.warn('DataFolderManager', 'Could not fetch remote index', {
 				indexPath,
+				fullUrl,
 				error: remoteIndex.error,
 			});
 			continue;
 		}
+
+		MainLogger.debug('DataFolderManager', 'Index fetched successfully', {
+			indexPath,
+			entriesCount: Object.keys(remoteIndex.data || {}).length,
+		});
 
 		try {
 			const values = Object.values(remoteIndex.data || {});
@@ -398,7 +416,12 @@ export async function buildDataManifest(remoteUrl) {
 		}
 	}
 
-	return Array.from(manifestSet);
+	const manifestArray = Array.from(manifestSet);
+	MainLogger.debug('DataFolderManager', 'Manifest building complete', {
+		totalFiles: manifestArray.length,
+		samplingFirst5: manifestArray.slice(0, 5),
+	});
+	return manifestArray;
 }
 
 /** Fetch plain text from a URL. */
@@ -454,6 +477,13 @@ export async function downloadDataFromUrl(
 	const failed = [];
 	let skippedCount = 0;
 
+	MainLogger.debug('DataFolderManager', 'Starting download', {
+		url,
+		baseUrl,
+		targetDir,
+		filesCount: manifest.length,
+	});
+
 	try {
 		// Check if target directory exists (incremental update case)
 		let targetExists = false;
@@ -465,6 +495,9 @@ export async function downloadDataFromUrl(
 		}
 
 		if (!targetExists) {
+			MainLogger.debug('DataFolderManager', 'Creating cache directory', {
+				targetDir,
+			});
 			await fs.mkdir(targetDir, { recursive: true });
 		}
 
@@ -529,6 +562,13 @@ export async function downloadDataFromUrl(
 		// Allow download to succeed with partial failures (some files may not exist upstream)
 		// Log failures but continue - use what was downloaded
 		const downloadedCount = manifest.length - failed.length - skippedCount;
+		MainLogger.debug('DataFolderManager', 'Download summary', {
+			targetDir,
+			total: manifest.length,
+			downloaded: downloadedCount,
+			skipped: skippedCount,
+			failed: failed.length,
+		});
 		if (failed.length > 0) {
 			MainLogger.info(
 				'DataFolderManager',

@@ -22,7 +22,14 @@ const ATB_ABV_TO_FULL = {
 	cha: 'Charisma',
 };
 
-export const ABILITY_NAMES = ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'];
+export const ABILITY_NAMES = [
+	'Strength',
+	'Dexterity',
+	'Constitution',
+	'Intelligence',
+	'Wisdom',
+	'Charisma',
+];
 
 const SPELL_SCHOOLS = {
 	A: 'Abjuration',
@@ -361,8 +368,8 @@ export function alignmentAbvToFull(alignment) {
 		// Handle complex alignment with chance
 		const alignText = alignment.alignment
 			? alignment.alignment
-				.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
-				.join(' ')
+					.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
+					.join(' ')
 			: '';
 		const chanceText = alignment.chance ? ` (${alignment.chance}%)` : '';
 		const noteText = alignment.note ? ` (${alignment.note})` : '';
@@ -605,8 +612,11 @@ export {
 	LANGUAGES_SECRET,
 	LANGUAGES_STANDARD,
 	SIZE_ABV_TO_FULL,
-	SKILL_TO_ABILITY, SOURCES, SOURCE_TO_ABV,
-	SOURCE_TO_FULL, SPEED_MODES
+	SKILL_TO_ABILITY,
+	SOURCES,
+	SOURCE_TO_ABV,
+	SOURCE_TO_FULL,
+	SPEED_MODES,
 };
 
 export default {

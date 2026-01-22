@@ -39,13 +39,15 @@ class VariantRuleService {
 			}
 
 			return true;
-		} catch (error) {
-			console.error(
-				'VariantRuleService',
-				'Failed to initialize variant rule data',
-				error,
+		} catch {
+			// Gracefully handle missing file - variant rules are optional
+			console.warn(
+				'[VariantRuleService]',
+				'Variant rules unavailable, continuing without them',
 			);
-			return false;
+			this._variantRuleData = { variantrule: [] };
+			this._variantRuleMap = new Map();
+			return true;
 		}
 	}
 

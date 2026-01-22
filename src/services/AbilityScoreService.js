@@ -1,5 +1,9 @@
 import { CharacterManager } from '../app/CharacterManager.js';
-import { attAbvToFull, getAbilityModNumber, numberToWords } from '../lib/5eToolsParser.js';
+import {
+	attAbvToFull,
+	getAbilityModNumber,
+	numberToWords,
+} from '../lib/5eToolsParser.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
@@ -52,11 +56,11 @@ class AbilityScoreService {
 		const abilityChoices = Array.isArray(character.race?.abilityChoices)
 			? character.race.abilityChoices
 			: character.race?.abilityChoices &&
-				typeof character.race.abilityChoices === 'object'
+					typeof character.race.abilityChoices === 'object'
 				? Object.entries(character.race.abilityChoices)
-					.sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
-					.map(([, choice]) => choice)
-					.filter(Boolean)
+						.sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
+						.map(([, choice]) => choice)
+						.filter(Boolean)
 				: [];
 
 		if (abilityChoices.length > 0) {
@@ -293,24 +297,24 @@ class AbilityScoreService {
 		this.abilityChoices.clear();
 		const normalizedChoices = Array.isArray(choices)
 			? choices.filter(Boolean).map((choice, index) => {
-				const ability = this.normalizeAbilityName(
-					choice.ability || choice.abilityScore,
-				);
-				const value = Number.isFinite(choice.value)
-					? choice.value
-					: Number.isFinite(choice.amount)
-						? choice.amount
-						: 1;
-				const source = choice.source?.includes('Choice')
-					? choice.source
-					: `${choice.source || 'Race'} Choice`;
-				return {
-					ability,
-					value,
-					source,
-					index: Number.isFinite(choice.index) ? choice.index : index,
-				};
-			})
+					const ability = this.normalizeAbilityName(
+						choice.ability || choice.abilityScore,
+					);
+					const value = Number.isFinite(choice.value)
+						? choice.value
+						: Number.isFinite(choice.amount)
+							? choice.amount
+							: 1;
+					const source = choice.source?.includes('Choice')
+						? choice.source
+						: `${choice.source || 'Race'} Choice`;
+					return {
+						ability,
+						value,
+						source,
+						index: Number.isFinite(choice.index) ? choice.index : index,
+					};
+				})
 			: [];
 
 		// Persist normalized choices on the character
@@ -717,7 +721,9 @@ export function getRaceAbilityData(race, subrace) {
 				choices.push({
 					count: entry.choose.count || 1,
 					amount: entry.choose.amount || 1,
-					from: (entry.choose.from || ABILITIES).map(normalizeAbilityNameHelper),
+					from: (entry.choose.from || ABILITIES).map(
+						normalizeAbilityNameHelper,
+					),
 					source: 'race',
 				});
 			}
@@ -743,7 +749,9 @@ export function getRaceAbilityData(race, subrace) {
 				choices.push({
 					count: entry.choose.count || 1,
 					amount: entry.choose.amount || 1,
-					from: (entry.choose.from || ABILITIES).map(normalizeAbilityNameHelper),
+					from: (entry.choose.from || ABILITIES).map(
+						normalizeAbilityNameHelper,
+					),
 					source: 'subrace',
 				});
 			}
@@ -1000,7 +1008,6 @@ function capitalizeFirst(str) {
 	if (!str) return '';
 	return str.charAt(0).toUpperCase() + str.slice(1);
 }
-
 
 // Create and export singleton instance
 export const abilityScoreService = new AbilityScoreService();

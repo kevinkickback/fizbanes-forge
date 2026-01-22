@@ -207,7 +207,11 @@ export class ProficiencyService {
 			this._languageData = data?.language || [];
 			return this._languageData;
 		} catch (error) {
-			console.error('[ProficiencyService]', 'Failed to load language data', error);
+			console.error(
+				'[ProficiencyService]',
+				'Failed to load language data',
+				error,
+			);
 			this._languageData = [];
 			return [];
 		}
@@ -221,32 +225,37 @@ export class ProficiencyService {
 
 		// Import sourceService dynamically to avoid circular dependency
 		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(sourceService.getAllowedSources().map(s => s.toUpperCase()));
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
+		);
 
 		// Find the skill - prioritize allowed sources
 		let skill = null;
 
 		// First try XPHB if allowed
 		if (allowedSources.has('XPHB')) {
-			skill = skillData.find(s =>
-				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
-				s.source === 'XPHB'
+			skill = skillData.find(
+				(s) =>
+					DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+					s.source === 'XPHB',
 			);
 		}
 
 		// Then try PHB if allowed and not found
 		if (!skill && allowedSources.has('PHB')) {
-			skill = skillData.find(s =>
-				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
-				s.source === 'PHB'
+			skill = skillData.find(
+				(s) =>
+					DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+					s.source === 'PHB',
 			);
 		}
 
 		// Finally try any allowed source
 		if (!skill) {
-			skill = skillData.find(s =>
-				DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
-				allowedSources.has(s.source?.toUpperCase())
+			skill = skillData.find(
+				(s) =>
+					DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+					allowedSources.has(s.source?.toUpperCase()),
 			);
 		}
 
@@ -258,7 +267,7 @@ export class ProficiencyService {
 			ability: skill.ability,
 			description: skill.entries || [],
 			source: skill.source,
-			page: skill.page
+			page: skill.page,
 		};
 	}
 
@@ -270,32 +279,37 @@ export class ProficiencyService {
 
 		// Import sourceService dynamically to avoid circular dependency
 		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(sourceService.getAllowedSources().map(s => s.toUpperCase()));
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
+		);
 
 		// Find the language - prioritize allowed sources
 		let language = null;
 
 		// First try XPHB if allowed
 		if (allowedSources.has('XPHB')) {
-			language = languageData.find(l =>
-				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
-				l.source === 'XPHB'
+			language = languageData.find(
+				(l) =>
+					DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+					l.source === 'XPHB',
 			);
 		}
 
 		// Then try PHB if allowed and not found
 		if (!language && allowedSources.has('PHB')) {
-			language = languageData.find(l =>
-				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
-				l.source === 'PHB'
+			language = languageData.find(
+				(l) =>
+					DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+					l.source === 'PHB',
 			);
 		}
 
 		// Finally try any allowed source
 		if (!language) {
-			language = languageData.find(l =>
-				DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
-				allowedSources.has(l.source?.toUpperCase())
+			language = languageData.find(
+				(l) =>
+					DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+					allowedSources.has(l.source?.toUpperCase()),
 			);
 		}
 
@@ -308,7 +322,7 @@ export class ProficiencyService {
 			typicalSpeakers: language.typicalSpeakers || [],
 			entries: language.entries || [],
 			source: language.source,
-			page: language.page
+			page: language.page,
 		};
 	}
 
@@ -319,7 +333,7 @@ export class ProficiencyService {
 			return {
 				name: toolName,
 				description: `Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
-				type: 'tool'
+				type: 'tool',
 			};
 		}
 
@@ -327,14 +341,24 @@ export class ProficiencyService {
 
 		// Import sourceService dynamically to avoid circular dependency
 		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(sourceService.getAllowedSources().map(s => s.toUpperCase()));
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
+		);
 
 		// Helper to check if item is a tool (AT=Artisan Tools, T=Tools, GS=Gaming Set, INS=Instrument)
 		const isToolType = (type) => {
 			if (!type) return false;
 			const typeStr = String(type);
-			return typeStr === 'AT' || typeStr === 'T' || typeStr === 'GS' || typeStr === 'INS' ||
-				typeStr.includes('AT') || typeStr.includes('T|') || typeStr.includes('GS') || typeStr.includes('INS');
+			return (
+				typeStr === 'AT' ||
+				typeStr === 'T' ||
+				typeStr === 'GS' ||
+				typeStr === 'INS' ||
+				typeStr.includes('AT') ||
+				typeStr.includes('T|') ||
+				typeStr.includes('GS') ||
+				typeStr.includes('INS')
+			);
 		};
 
 		// Find the tool - prioritize allowed sources
@@ -342,36 +366,41 @@ export class ProficiencyService {
 
 		// First try XPHB if allowed
 		if (allowedSources.has('XPHB')) {
-			tool = items.find(item =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				item.source === 'XPHB' &&
-				isToolType(item.type)
+			tool = items.find(
+				(item) =>
+					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					item.source === 'XPHB' &&
+					isToolType(item.type),
 			);
 		}
 
 		// Then try PHB if allowed and not found
 		if (!tool && allowedSources.has('PHB')) {
-			tool = items.find(item =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				item.source === 'PHB' &&
-				isToolType(item.type)
+			tool = items.find(
+				(item) =>
+					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					item.source === 'PHB' &&
+					isToolType(item.type),
 			);
 		}
 
 		// Finally try any allowed source
 		if (!tool) {
-			tool = items.find(item =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				allowedSources.has(item.source?.toUpperCase()) &&
-				isToolType(item.type)
+			tool = items.find(
+				(item) =>
+					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					allowedSources.has(item.source?.toUpperCase()) &&
+					isToolType(item.type),
 			);
 		}
 
 		if (!tool) {
 			return {
 				name: toolName,
-				description: [`Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`],
-				type: 'tool'
+				description: [
+					`Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
+				],
+				type: 'tool',
 			};
 		}
 
@@ -379,7 +408,9 @@ export class ProficiencyService {
 		let description = tool.entries || tool.additionalEntries || [];
 
 		if (!description || description.length === 0) {
-			description = [`Proficiency with ${tool.name.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`];
+			description = [
+				`Proficiency with ${tool.name.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
+			];
 		}
 
 		return {
@@ -387,7 +418,7 @@ export class ProficiencyService {
 			description,
 			type: 'tool',
 			source: tool.source,
-			page: tool.page
+			page: tool.page,
 		};
 	}
 
@@ -399,7 +430,7 @@ export class ProficiencyService {
 			'Light Armor': 'LA',
 			'Medium Armor': 'MA',
 			'Heavy Armor': 'HA',
-			'Shields': 'S'
+			Shields: 'S',
 		};
 
 		const typeCode = armorCategories[armorName];
@@ -410,33 +441,41 @@ export class ProficiencyService {
 
 			// Return category description with book reference
 			const examples = baseItems
-				.filter(item => (item.type === typeCode || item.type === `${typeCode}|XPHB`) && item.armor)
+				.filter(
+					(item) =>
+						(item.type === typeCode || item.type === `${typeCode}|XPHB`) &&
+						item.armor,
+				)
 				.slice(0, 3)
-				.map(item => item.name);
+				.map((item) => item.name);
 
 			return {
 				name: armorName,
-				description: categoryInfo?.entries || (examples.length > 0
-					? `You are proficient with ${armorName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
-					: `You are proficient with ${armorName.toLowerCase()}.`),
+				description:
+					categoryInfo?.entries ||
+					(examples.length > 0
+						? `You are proficient with ${armorName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
+						: `You are proficient with ${armorName.toLowerCase()}.`),
 				type: 'armor',
 				source: categoryInfo?.source,
-				page: categoryInfo?.page
+				page: categoryInfo?.page,
 			};
 		}
 
 		// Look for specific armor item
 		const normalizedSearch = DataNormalizer.normalizeForLookup(armorName);
-		let armor = baseItems.find(item =>
-			DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-			item.armor &&
-			item.source === 'XPHB'
+		let armor = baseItems.find(
+			(item) =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				item.armor &&
+				item.source === 'XPHB',
 		);
 
 		if (!armor) {
-			armor = baseItems.find(item =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				item.armor
+			armor = baseItems.find(
+				(item) =>
+					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					item.armor,
 			);
 		}
 
@@ -444,18 +483,20 @@ export class ProficiencyService {
 			return {
 				name: armorName,
 				description: `You are proficient with ${armorName.toLowerCase()}.`,
-				type: 'armor'
+				type: 'armor',
 			};
 		}
 
 		return {
 			name: armor.name,
-			description: armor.entries?.join(' ') || `You are proficient with ${armor.name.toLowerCase()}.`,
+			description:
+				armor.entries?.join(' ') ||
+				`You are proficient with ${armor.name.toLowerCase()}.`,
 			ac: armor.ac,
 			weight: armor.weight,
 			type: 'armor',
 			source: armor.source,
-			page: armor.page
+			page: armor.page,
 		};
 	}
 
@@ -469,33 +510,37 @@ export class ProficiencyService {
 
 			const category = weaponName === 'Simple Weapons' ? 'simple' : 'martial';
 			const examples = baseItems
-				.filter(item => item.weaponCategory === category && item.weapon)
+				.filter((item) => item.weaponCategory === category && item.weapon)
 				.slice(0, 5)
-				.map(item => item.name);
+				.map((item) => item.name);
 
 			return {
 				name: weaponName,
-				description: categoryInfo?.entries || (examples.length > 0
-					? `You are proficient with ${weaponName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
-					: `You are proficient with ${weaponName.toLowerCase()}.`),
+				description:
+					categoryInfo?.entries ||
+					(examples.length > 0
+						? `You are proficient with ${weaponName.toLowerCase()}. Examples include: ${examples.join(', ')}.`
+						: `You are proficient with ${weaponName.toLowerCase()}.`),
 				type: 'weapon',
 				source: categoryInfo?.source,
-				page: categoryInfo?.page
+				page: categoryInfo?.page,
 			};
 		}
 
 		// Look for specific weapon
 		const normalizedSearch = DataNormalizer.normalizeForLookup(weaponName);
-		let weapon = baseItems.find(item =>
-			DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-			item.weapon &&
-			item.source === 'XPHB'
+		let weapon = baseItems.find(
+			(item) =>
+				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				item.weapon &&
+				item.source === 'XPHB',
 		);
 
 		if (!weapon) {
-			weapon = baseItems.find(item =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
-				item.weapon
+			weapon = baseItems.find(
+				(item) =>
+					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					item.weapon,
 			);
 		}
 
@@ -503,16 +548,18 @@ export class ProficiencyService {
 			return {
 				name: weaponName,
 				description: `You are proficient with ${weaponName.toLowerCase()}.`,
-				type: 'weapon'
+				type: 'weapon',
 			};
 		}
 
 		const properties = [];
-		if (weapon.dmg1) properties.push(`Damage: ${weapon.dmg1} ${weapon.dmgType}`);
+		if (weapon.dmg1)
+			properties.push(`Damage: ${weapon.dmg1} ${weapon.dmgType}`);
 		if (weapon.range) properties.push(`Range: ${weapon.range}`);
 		if (weapon.weight) properties.push(`Weight: ${weapon.weight} lb.`);
 
-		const description = weapon.entries?.join(' ') ||
+		const description =
+			weapon.entries?.join(' ') ||
 			(properties.length > 0
 				? `${weapon.name} (${properties.join(', ')})`
 				: `You are proficient with ${weapon.name.toLowerCase()}.`);
@@ -525,7 +572,7 @@ export class ProficiencyService {
 			weaponCategory: weapon.weaponCategory,
 			type: 'weapon',
 			source: weapon.source,
-			page: weapon.page
+			page: weapon.page,
 		};
 	}
 
@@ -571,7 +618,7 @@ export class ProficiencyService {
 			name: entry.name,
 			entries: entry.entries || [],
 			source: 'PHB',
-			page: entry.page
+			page: entry.page,
 		};
 	}
 
@@ -580,14 +627,17 @@ export class ProficiencyService {
 		if (!bookData) return null;
 
 		// Weapon proficiency section contains the category info
-		const weaponProfEntry = this._findBookEntry(bookData.data, 'Weapon Proficiency');
+		const weaponProfEntry = this._findBookEntry(
+			bookData.data,
+			'Weapon Proficiency',
+		);
 		if (!weaponProfEntry) return null;
 
 		return {
 			name: categoryName,
 			entries: weaponProfEntry.entries || [],
 			source: 'PHB',
-			page: weaponProfEntry.page
+			page: weaponProfEntry.page,
 		};
 	}
 
@@ -602,7 +652,7 @@ export class ProficiencyService {
 			name: entry.name,
 			entries: entry.entries || [],
 			source: 'PHB',
-			page: entry.page
+			page: entry.page,
 		};
 	}
 }

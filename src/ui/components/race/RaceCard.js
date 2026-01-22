@@ -37,7 +37,7 @@ export class RaceCard {
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
 
-		// EventBus listener tracking (BaseCard mixin pattern)
+		// EventBus listener tracking
 		this._eventHandlers = {};
 
 		// Track current selection
@@ -94,7 +94,7 @@ export class RaceCard {
 	}
 
 	_setupEventListeners() {
-		// Use BaseCard mixin pattern for EventBus cleanup
+		// EventBus cleanup
 		this.onEventBus(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
 		});
@@ -105,7 +105,7 @@ export class RaceCard {
 	}
 
 	_cleanupEventListeners() {
-		// Remove all eventBus listeners via BaseCard mixin
+		// Remove all eventBus listeners
 		this._cleanupEventBusListeners();
 
 		// Clean up all tracked DOM listeners
@@ -113,7 +113,7 @@ export class RaceCard {
 	}
 
 	//-------------------------------------------------------------------------
-	// EventBus Cleanup Mixin (from BaseCard)
+	// EventBus Cleanup Helpers
 	//-------------------------------------------------------------------------
 
 	onEventBus(event, handler) {
@@ -229,6 +229,12 @@ export class RaceCard {
 				);
 			});
 
+			// Check if there's a base/standard race option (e.g., Standard Human vs Variant Human)
+			const baseSubrace = this._raceService.getBaseSubrace(
+				race.name,
+				race.source,
+			);
+
 			// Only create dropdown if there are filtered subraces
 			if (filteredSubraces.length > 0) {
 				const dropdownContainer = document.createElement('div');
@@ -236,6 +242,16 @@ export class RaceCard {
 
 				const select = document.createElement('select');
 				select.className = 'form-select form-select-sm';
+
+				// If there's a base subrace, add "Standard" option first
+				if (baseSubrace) {
+					const standardOption = document.createElement('option');
+					standardOption.value = '__standard__';
+					standardOption.textContent = 'Standard';
+					select.appendChild(standardOption);
+					// Create info panel for the standard/base race using baseSubrace data
+					await this._createRaceInfoPanel(race, baseSubrace, true);
+				}
 
 				// Add subrace options
 				for (const subrace of filteredSubraces) {
@@ -253,6 +269,16 @@ export class RaceCard {
 				// Handle subrace selection
 				this._cleanup.on(select, 'change', () => {
 					const subraceName = select.value;
+
+					// Handle "Standard" selection (base race with baseSubrace data)
+					if (subraceName === '__standard__') {
+						this._selectedSubrace = baseSubrace; // Use baseSubrace for ability data
+						const raceId = this.sanitizeId(race.name);
+						this._showInfo(raceId);
+						this._updateCharacterRace(race, baseSubrace);
+						return;
+					}
+
 					const subraceData = this._raceService.getSubrace(
 						race.name,
 						subraceName,
@@ -263,6 +289,9 @@ export class RaceCard {
 					this._showInfo(subraceId);
 					this._updateCharacterRace(race, subraceData);
 				});
+			} else if (baseSubrace) {
+				// Has base subrace but no named subraces (after filtering) - show base race
+				await this._createRaceInfoPanel(race, null);
 			} else {
 				// No filtered subraces, treat as race without subraces
 				await this._createRaceInfoPanel(race, null);
@@ -291,7 +320,17 @@ export class RaceCard {
 				// If has dropdown with subraces, show first subrace info, otherwise show race info
 				if (select && select.options.length > 0) {
 					const subraceName = select.value;
-					if (subraceName) {
+
+					// Handle "Standard" selection (base race with baseSubrace data)
+					if (subraceName === '__standard__') {
+						const baseSubraceData = this._raceService.getBaseSubrace(
+							race.name,
+							race.source,
+						);
+						this._selectedSubrace = baseSubraceData;
+						this._showInfo(raceId);
+						this._updateCharacterRace(race, baseSubraceData);
+					} else if (subraceName) {
 						const subraceData = this._raceService.getSubrace(
 							race.name,
 							subraceName,
@@ -301,21 +340,11 @@ export class RaceCard {
 						const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
 						this._showInfo(subraceId);
 						this._updateCharacterRace(race, subraceData);
-
-						// Emit event to notify about character update (unsaved changes)
-						eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-							character: CharacterManager.getCurrentCharacter(),
-						});
 					}
 				} else {
 					this._selectedSubrace = null;
 					this._showInfo(raceId);
 					this._updateCharacterRace(race, null);
-
-					// Emit event to notify about character update (unsaved changes)
-					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-						character: CharacterManager.getCurrentCharacter(),
-					});
 				}
 
 				// Remove selected class from all race items
@@ -323,6 +352,11 @@ export class RaceCard {
 					item.classList.remove('selected');
 				});
 				raceItem.classList.add('selected');
+
+				// Emit event to notify about character update (unsaved changes)
+				eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+					character: CharacterManager.getCurrentCharacter(),
+				});
 			}
 		});
 
@@ -333,7 +367,10 @@ export class RaceCard {
 
 			if (select && select.options.length > 0) {
 				const subraceName = select.value;
-				if (subraceName) {
+				// Handle "Standard" selection (base race)
+				if (subraceName === '__standard__' || !subraceName) {
+					this._showInfo(raceId, false);
+				} else {
 					const subraceId = this.sanitizeId(`${race.name}-${subraceName}`);
 					this._showInfo(subraceId, false);
 				}
@@ -364,27 +401,48 @@ export class RaceCard {
 			if (expand) {
 				this._infoPanel.classList.remove('collapsed');
 			}
+		} else {
+			console.warn('[RaceCard]', `Info panel not found for: ${contentId}`);
 		}
 	}
 
-	async _createRaceInfoPanel(race, subrace = null) {
+	async _createRaceInfoPanel(race, subrace = null, isBaseSubrace = false) {
 		if (!this._infoPanel) return;
+
+		// Use combined ID if subrace is provided (and not a base subrace)
+		// Base subraces (like "Standard Human") use just the race name as ID
+		const contentId =
+			subrace && !isBaseSubrace
+				? this.sanitizeId(`${race.name}-${subrace.name}`)
+				: this.sanitizeId(race.name);
+
+		// Check if panel already exists to avoid duplicates
+		const existingPanel = this._infoPanel.querySelector(
+			`[data-for="${contentId}"]`,
+		);
+		if (existingPanel) {
+			console.debug(
+				'[RaceCard]',
+				`Info panel already exists for: ${contentId}`,
+			);
+			return;
+		}
 
 		const infoContent = document.createElement('div');
 		infoContent.className = 'info-content d-none';
-
-		// Use combined ID if subrace is provided
-		const contentId = subrace
-			? this.sanitizeId(`${race.name}-${subrace.name}`)
-			: this.sanitizeId(race.name);
 		infoContent.setAttribute('data-for', contentId);
 
 		// Get fluff for description
 		const fluff = this._raceService.getRaceFluff(race.name, race.source);
 		const intro = fluff?.entries?.[0];
 
-		// Title shows subrace name if provided
-		const title = subrace ? `${race.name} (${subrace.name})` : race.name;
+		// Title shows subrace name if provided (but not for base subraces which have no name)
+		let title = race.name;
+		if (subrace?.name) {
+			title = `${race.name} (${subrace.name})`;
+		} else if (isBaseSubrace) {
+			title = `${race.name} (Standard)`;
+		}
 		let html = `<h6>${title}</h6>`;
 
 		// Add description
@@ -556,6 +614,19 @@ export class RaceCard {
 							'RaceCard',
 							`Saved subrace "${character.race.subrace}" not found in dropdown options.`,
 						);
+					}
+				}
+			} else {
+				// No subrace saved - if there's a dropdown with "Standard" option, select it
+				const subraceSelect = raceItem.querySelector('select');
+				if (subraceSelect) {
+					const standardOption = Array.from(subraceSelect.options).find(
+						(opt) => opt.value === '__standard__',
+					);
+					if (standardOption) {
+						subraceSelect.value = '__standard__';
+						this._selectedSubrace = null;
+						console.debug('[RaceCard]', 'Standard race option selected');
 					}
 				}
 			}

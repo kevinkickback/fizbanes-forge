@@ -10,12 +10,11 @@ export class LoadingModal {
 	constructor() {
 		this.modal = null;
 		this.bootstrapModal = null;
-		this.messageElement = null;
 		this.progressBar = null;
 		this._cleanup = DOMCleanup.create();
 	}
 
-	show(initialMessage = 'Loading...') {
+	show() {
 		// Clean up any leftover modals from previous session
 		const existingBackdrops = document.querySelectorAll('.modal-backdrop');
 		for (const backdrop of existingBackdrops) {
@@ -40,13 +39,8 @@ export class LoadingModal {
 			}
 		}
 
-		this.messageElement = this.modal.querySelector('.loading-message');
 		this.detailElement = this.modal.querySelector('.loading-detail');
 		this.progressBar = this.modal.querySelector('.progress-bar');
-
-		if (this.messageElement) {
-			this.messageElement.textContent = initialMessage;
-		}
 
 		// Create Bootstrap modal instance
 		this.bootstrapModal = new bootstrap.Modal(this.modal, {
@@ -58,12 +52,6 @@ export class LoadingModal {
 		this._cleanup.registerBootstrapModal(this.modal, this.bootstrapModal);
 
 		this.bootstrapModal.show();
-	}
-
-	updateMessage(message) {
-		if (this.messageElement) {
-			this.messageElement.textContent = message;
-		}
 	}
 
 	updateDetail(detail) {

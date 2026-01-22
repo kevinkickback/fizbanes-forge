@@ -12,6 +12,7 @@ export function createMainWindow({
 	rendererPath,
 	preloadPath,
 	debugMode = false,
+	enableDevTools = false,
 }) {
 	MainLogger.info('WindowManager', 'Creating main window');
 
@@ -36,9 +37,9 @@ export function createMainWindow({
 		show: false, // Don't show until ready
 	});
 
-	// Open DevTools immediately in debug mode (before loading)
-	if (debugMode) {
-		MainLogger.info('WindowManager', 'Opening DevTools (debug mode enabled)');
+	// Open DevTools in debug mode or when explicitly enabled (before loading)
+	if (debugMode || enableDevTools) {
+		MainLogger.info('WindowManager', 'Opening DevTools');
 		mainWindow.webContents.openDevTools({ mode: 'detach' });
 	}
 

@@ -89,7 +89,11 @@ export function initPreferences(app) {
 			path: store.path,
 		});
 	} catch (error) {
-		MainLogger.error('PreferencesManager', 'Failed to initialize electron-store, using defaults', error);
+		MainLogger.error(
+			'PreferencesManager',
+			'Failed to initialize electron-store, using defaults',
+			error,
+		);
 		// Fallback: create store without schema validation if it fails
 		store = new Store({
 			name: 'preferences',
@@ -102,7 +106,11 @@ export function setPreference(key, value) {
 	try {
 		store.set(key, value);
 	} catch (error) {
-		MainLogger.error('PreferencesManager', `Error setting preference: ${key}`, error);
+		MainLogger.error(
+			'PreferencesManager',
+			`Error setting preference: ${key}`,
+			error,
+		);
 	}
 }
 
@@ -111,7 +119,11 @@ export function getPreference(key, defaultValue = undefined) {
 		const value = store.get(key);
 		return value !== undefined ? value : defaultValue;
 	} catch (error) {
-		MainLogger.error('PreferencesManager', `Error getting preference: ${key}`, error);
+		MainLogger.error(
+			'PreferencesManager',
+			`Error getting preference: ${key}`,
+			error,
+		);
 		return defaultValue ?? defaults?.[key];
 	}
 }
@@ -120,7 +132,11 @@ export function deletePreference(key) {
 	try {
 		store.delete(key);
 	} catch (error) {
-		MainLogger.error('PreferencesManager', `Error deleting preference: ${key}`, error);
+		MainLogger.error(
+			'PreferencesManager',
+			`Error deleting preference: ${key}`,
+			error,
+		);
 	}
 }
 

@@ -2,8 +2,8 @@ import { AppState } from '../../../app/AppState.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import {
-    UniversalSelectionModal,
-    formatCounter,
+	UniversalSelectionModal,
+	formatCounter,
 } from '../../../lib/UniversalSelectionModal.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
@@ -11,74 +11,74 @@ import { sourceService } from '../../../services/SourceService.js';
 // Feat selector adapter for UniversalSelectionModal with prerequisite checking
 
 export class ClassFeatSelector {
-    constructor(session = null, parentStep = null) {
-        this.session = session;
-        this.parentStep = parentStep;
+	constructor(session = null, parentStep = null) {
+		this.session = session;
+		this.parentStep = parentStep;
 
-        // Service references
-        this.featService = featService;
+		// Service references
+		this.featService = featService;
 
-        // Generic selector instance
-        this._selector = null;
+		// Generic selector instance
+		this._selector = null;
 
-        // Selection constraints
-        this._baseMaxSelections = 1;
-        this._ignoreSelectionLimit = false;
-        this._ignorePrerequisites = false;
+		// Selection constraints
+		this._baseMaxSelections = 1;
+		this._ignoreSelectionLimit = false;
+		this._ignorePrerequisites = false;
 
-        // Description caching
-        this._descriptionCache = new Map();
+		// Description caching
+		this._descriptionCache = new Map();
 
-        // Promise resolver for awaiting selection
-        this._resolveSelection = null;
-    }
+		// Promise resolver for awaiting selection
+		this._resolveSelection = null;
+	}
 
-    /**
-     * Initialize and display the feat selector modal
-     *
-     * @param {Object|null} options - Configuration options (or legacy: currentSelection object)
-     * @param {Array|Object|null} options.currentSelection - Currently selected feat(s)
-     * @param {boolean} options.multiSelect - Allow multiple feat selection (default: false)
-     * @param {number} options.maxSelections - Maximum number of feats to select (default: 1)
-     * @param {Function} options.onConfirm - Callback for confirmation (optional, for feats page)
-     * @param {boolean} options.showPrerequisiteNote - Show prerequisite filtering note (default: true for level-up, false for feats page)
-     *
-     * Returns a Promise that resolves with:
-     * - Single select: feat name or null if cancelled
-     * - Multi select (feats page): array of feat objects
-     */
-    async show(options = {}) {
-        // Support legacy calling convention: show(currentSelection) -> show({ currentSelection })
-        if (
-            options === null ||
-            (options && 'name' in options && !('currentSelection' in options))
-        ) {
-            options = { currentSelection: options };
-        }
+	/**
+	 * Initialize and display the feat selector modal
+	 *
+	 * @param {Object|null} options - Configuration options (or legacy: currentSelection object)
+	 * @param {Array|Object|null} options.currentSelection - Currently selected feat(s)
+	 * @param {boolean} options.multiSelect - Allow multiple feat selection (default: false)
+	 * @param {number} options.maxSelections - Maximum number of feats to select (default: 1)
+	 * @param {Function} options.onConfirm - Callback for confirmation (optional, for feats page)
+	 * @param {boolean} options.showPrerequisiteNote - Show prerequisite filtering note (default: true for level-up, false for feats page)
+	 *
+	 * Returns a Promise that resolves with:
+	 * - Single select: feat name or null if cancelled
+	 * - Multi select (feats page): array of feat objects
+	 */
+	async show(options = {}) {
+		// Support legacy calling convention: show(currentSelection) -> show({ currentSelection })
+		if (
+			options === null ||
+			(options && 'name' in options && !('currentSelection' in options))
+		) {
+			options = { currentSelection: options };
+		}
 
-        const {
-            currentSelection = null,
-            multiSelect = false,
-            maxSelections = 1,
-            onConfirm = null,
-        } = options;
+		const {
+			currentSelection = null,
+			multiSelect = false,
+			maxSelections = 1,
+			onConfirm = null,
+		} = options;
 
-        return new Promise((resolve, reject) => {
-            try {
-                this._resolveSelection = resolve;
-                this._customOnConfirm = onConfirm;
-                this._multiSelect = multiSelect;
-                this._ignorePrerequisites = false;
-                this._ignoreSelectionLimit = false;
-                this._baseMaxSelections = maxSelections;
+		return new Promise((resolve, reject) => {
+			try {
+				this._resolveSelection = resolve;
+				this._customOnConfirm = onConfirm;
+				this._multiSelect = multiSelect;
+				this._ignorePrerequisites = false;
+				this._ignoreSelectionLimit = false;
+				this._baseMaxSelections = maxSelections;
 
-                const character = AppState.getCurrentCharacter();
-                this._loadAndFilterFeats(character);
+				const character = AppState.getCurrentCharacter();
+				this._loadAndFilterFeats(character);
 
-                // Build filters for feats page (only if multiSelect)
-                const buildFilters = multiSelect
-                    ? (_ctx, panel, cleanup) => {
-                        panel.innerHTML = `
+				// Build filters for feats page (only if multiSelect)
+				const buildFilters = multiSelect
+					? (_ctx, panel, cleanup) => {
+							panel.innerHTML = `
                         <div class="card mb-3">
                             <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
                                 data-bs-target="#collapsePrereqs" aria-expanded="true">
@@ -104,131 +104,131 @@ export class ClassFeatSelector {
                         </div>
                     `;
 
-                        // Attach prerequisite filter listeners
-                        const ignorePrereqsCheckbox = panel.querySelector(
-                            '[data-filter-prereq="ignore-prerequisites"]',
-                        );
-                        const ignoreLimitCheckbox = panel.querySelector(
-                            '[data-filter-prereq="ignore-limit"]',
-                        );
+							// Attach prerequisite filter listeners
+							const ignorePrereqsCheckbox = panel.querySelector(
+								'[data-filter-prereq="ignore-prerequisites"]',
+							);
+							const ignoreLimitCheckbox = panel.querySelector(
+								'[data-filter-prereq="ignore-limit"]',
+							);
 
-                        if (ignorePrereqsCheckbox) {
-                            cleanup.on(ignorePrereqsCheckbox, 'change', () => {
-                                this._ignorePrerequisites = ignorePrereqsCheckbox.checked;
-                                this._loadAndFilterFeats(character);
-                                // Trigger filter update
-                                this._selector.state.items = this._filteredFeats;
-                                this._selector._applyFiltersAndSearch();
-                            });
-                        }
+							if (ignorePrereqsCheckbox) {
+								cleanup.on(ignorePrereqsCheckbox, 'change', () => {
+									this._ignorePrerequisites = ignorePrereqsCheckbox.checked;
+									this._loadAndFilterFeats(character);
+									// Trigger filter update
+									this._selector.state.items = this._filteredFeats;
+									this._selector._applyFiltersAndSearch();
+								});
+							}
 
-                        if (ignoreLimitCheckbox) {
-                            cleanup.on(ignoreLimitCheckbox, 'change', () => {
-                                this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
-                                // Update modal's max selections display and refresh item states
-                                this._selector.config.selectionLimit =
-                                    this._getCurrentMaxSelections();
-                                // Trigger re-render of items and counter to reflect new limit state
-                                this._selector._updateConfirmButton();
-                                this._selector._renderList();
-                            });
-                        }
-                    }
-                    : null;
+							if (ignoreLimitCheckbox) {
+								cleanup.on(ignoreLimitCheckbox, 'change', () => {
+									this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
+									// Update modal's max selections display and refresh item states
+									this._selector.config.selectionLimit =
+										this._getCurrentMaxSelections();
+									// Trigger re-render of items and counter to reflect new limit state
+									this._selector._updateConfirmButton();
+									this._selector._renderList();
+								});
+							}
+						}
+					: null;
 
-                this._selector = new UniversalSelectionModal({
-                    modalId: `featSelectorModal_${Date.now()}`,
-                    modalTitle: multiSelect ? 'Select Feats' : 'Select a Feat',
-                    loadItems: () => this._filteredFeats,
-                    selectionMode: multiSelect ? 'multiple' : 'single',
-                    selectionLimit: maxSelections,
-                    initialSelectedItems: this._getInitialSelections(currentSelection),
-                    searchMatcher: (item, searchTerm) => {
-                        if (!searchTerm) return true;
-                        const term = searchTerm.toLowerCase();
-                        return item.name?.toLowerCase().includes(term);
-                    },
-                    buildFilters,
-                    renderItem: (item, state) => this._renderFeatItem(item, state),
-                    getItemId: (item) => item.id || item.name,
-                    matchItem: (item, state) => {
-                        // Already filtered in _filteredFeats, but match search here
-                        if (state.searchTerm) {
-                            const term = state.searchTerm.toLowerCase();
-                            return item.name?.toLowerCase().includes(term);
-                        }
-                        return true;
-                    },
-                    descriptionCache: this._descriptionCache,
-                    fetchDescription: (item) => this._fetchFeatDescription(item),
-                    descriptionContainerSelector: '.feat-description',
-                    canSelectItem: (_item, state) => {
-                        const selectedCount = state.selectedIds.size;
-                        const maxSelections = this._ignoreSelectionLimit
-                            ? Infinity
-                            : this._baseMaxSelections;
-                        return selectedCount < maxSelections;
-                    },
-                    onSelectBlocked: () => {
-                        showNotification('Selection limit reached', 'warning');
-                    },
-                    customCountFn: (selectedItems) =>
-                        formatCounter({
-                            label: 'feat',
-                            selected: selectedItems.length,
-                            max: this._ignoreSelectionLimit ? '∞' : this._baseMaxSelections,
-                            color: 'bg-info',
-                        }),
-                    onConfirm: this._onFeatConfirmed.bind(this),
-                    onCancel: () => {
-                        if (this._resolveSelection) {
-                            this._resolveSelection(null);
-                            this._resolveSelection = null;
-                        }
-                    },
-                });
+				this._selector = new UniversalSelectionModal({
+					modalId: `featSelectorModal_${Date.now()}`,
+					modalTitle: multiSelect ? 'Select Feats' : 'Select a Feat',
+					loadItems: () => this._filteredFeats,
+					selectionMode: multiSelect ? 'multiple' : 'single',
+					selectionLimit: maxSelections,
+					initialSelectedItems: this._getInitialSelections(currentSelection),
+					searchMatcher: (item, searchTerm) => {
+						if (!searchTerm) return true;
+						const term = searchTerm.toLowerCase();
+						return item.name?.toLowerCase().includes(term);
+					},
+					buildFilters,
+					renderItem: (item, state) => this._renderFeatItem(item, state),
+					getItemId: (item) => item.id || item.name,
+					matchItem: (item, state) => {
+						// Already filtered in _filteredFeats, but match search here
+						if (state.searchTerm) {
+							const term = state.searchTerm.toLowerCase();
+							return item.name?.toLowerCase().includes(term);
+						}
+						return true;
+					},
+					descriptionCache: this._descriptionCache,
+					fetchDescription: (item) => this._fetchFeatDescription(item),
+					descriptionContainerSelector: '.feat-description',
+					canSelectItem: (_item, state) => {
+						const selectedCount = state.selectedIds.size;
+						const maxSelections = this._ignoreSelectionLimit
+							? Infinity
+							: this._baseMaxSelections;
+						return selectedCount < maxSelections;
+					},
+					onSelectBlocked: () => {
+						showNotification('Selection limit reached', 'warning');
+					},
+					customCountFn: (selectedItems) =>
+						formatCounter({
+							label: 'feat',
+							selected: selectedItems.length,
+							max: this._ignoreSelectionLimit ? '∞' : this._baseMaxSelections,
+							color: 'bg-info',
+						}),
+					onConfirm: this._onFeatConfirmed.bind(this),
+					onCancel: () => {
+						if (this._resolveSelection) {
+							this._resolveSelection(null);
+							this._resolveSelection = null;
+						}
+					},
+				});
 
-                this._selector.show();
-            } catch (error) {
-                console.error(
-                    '[LevelUpFeatSelector]',
-                    'Error showing feat selector:',
-                    error,
-                );
-                reject(error);
-            }
-        });
-    }
+				this._selector.show();
+			} catch (error) {
+				console.error(
+					'[LevelUpFeatSelector]',
+					'Error showing feat selector:',
+					error,
+				);
+				reject(error);
+			}
+		});
+	}
 
-    _getInitialSelections(currentSelection) {
-        if (!currentSelection) return [];
-        if (Array.isArray(currentSelection)) {
-            return currentSelection
-                .map((sel) =>
-                    this._filteredFeats.find(
-                        (f) => f.id === sel.id || f.name === sel.name,
-                    ),
-                )
-                .filter(Boolean);
-        }
-        const selected = this._filteredFeats.find(
-            (f) => f.id === currentSelection.id || f.name === currentSelection.name,
-        );
-        return selected ? [selected] : [];
-    }
+	_getInitialSelections(currentSelection) {
+		if (!currentSelection) return [];
+		if (Array.isArray(currentSelection)) {
+			return currentSelection
+				.map((sel) =>
+					this._filteredFeats.find(
+						(f) => f.id === sel.id || f.name === sel.name,
+					),
+				)
+				.filter(Boolean);
+		}
+		const selected = this._filteredFeats.find(
+			(f) => f.id === currentSelection.id || f.name === currentSelection.name,
+		);
+		return selected ? [selected] : [];
+	}
 
-    _renderFeatItem(item, state) {
-        const isSelected = state.selectedIds.has(item.id || item.name);
-        const selectedClass = isSelected ? 'selected' : '';
+	_renderFeatItem(item, state) {
+		const isSelected = state.selectedIds.has(item.id || item.name);
+		const selectedClass = isSelected ? 'selected' : '';
 
-        let badgesHtml = '';
-        if (item.source) {
-            badgesHtml += `<span class="badge bg-secondary me-2">${item.source}</span>`;
-        }
+		let badgesHtml = '';
+		if (item.source) {
+			badgesHtml += `<span class="badge bg-secondary me-2">${item.source}</span>`;
+		}
 
-        const description = item.entries?.[0] || 'No description available';
+		const description = item.entries?.[0] || 'No description available';
 
-        return `
+		return `
             <div class="spell-card selector-card ${selectedClass}" data-item-id="${item.id || item.name}">
                 <div class="spell-card-header">
                     <div>
@@ -241,98 +241,98 @@ export class ClassFeatSelector {
                 </div>
             </div>
         `;
-    }
+	}
 
-    /**
-     * Async description fetcher for rich text processing
-     */
-    async _fetchFeatDescription(feat) {
-        const parts = [];
-        if (Array.isArray(feat.entries)) {
-            for (const entry of feat.entries) {
-                if (typeof entry === 'string') {
-                    parts.push(await textProcessor.processString(entry));
-                } else if (Array.isArray(entry?.entries)) {
-                    for (const sub of entry.entries) {
-                        if (typeof sub === 'string') {
-                            parts.push(await textProcessor.processString(sub));
-                        }
-                    }
-                }
-            }
-        } else if (typeof feat.entries === 'string') {
-            parts.push(await textProcessor.processString(feat.entries));
-        }
-        return parts.length
-            ? parts.join(' ')
-            : '<span class="text-muted small">No description available.</span>';
-    }
+	/**
+	 * Async description fetcher for rich text processing
+	 */
+	async _fetchFeatDescription(feat) {
+		const parts = [];
+		if (Array.isArray(feat.entries)) {
+			for (const entry of feat.entries) {
+				if (typeof entry === 'string') {
+					parts.push(await textProcessor.processString(entry));
+				} else if (Array.isArray(entry?.entries)) {
+					for (const sub of entry.entries) {
+						if (typeof sub === 'string') {
+							parts.push(await textProcessor.processString(sub));
+						}
+					}
+				}
+			}
+		} else if (typeof feat.entries === 'string') {
+			parts.push(await textProcessor.processString(feat.entries));
+		}
+		return parts.length
+			? parts.join(' ')
+			: '<span class="text-muted small">No description available.</span>';
+	}
 
-    /**
-     * Load and filter feats based on sources and prerequisites
-     */
-    _loadAndFilterFeats(character) {
-        const allFeats = this.featService.getAllFeats();
+	/**
+	 * Load and filter feats based on sources and prerequisites
+	 */
+	_loadAndFilterFeats(character) {
+		const allFeats = this.featService.getAllFeats();
 
-        this._filteredFeats = allFeats
-            .filter((feat) => sourceService.isSourceAllowed(feat.source))
-            .filter(
-                (feat) =>
-                    this._ignorePrerequisites ||
-                    this.featService.isFeatValidForCharacter(feat, character),
-            )
-            .map((f, index) => ({
-                ...f,
-                id: f.id || `feat-${index}`,
-            }));
-    }
+		this._filteredFeats = allFeats
+			.filter((feat) => sourceService.isSourceAllowed(feat.source))
+			.filter(
+				(feat) =>
+					this._ignorePrerequisites ||
+					this.featService.isFeatValidForCharacter(feat, character),
+			)
+			.map((f, index) => ({
+				...f,
+				id: f.id || `feat-${index}`,
+			}));
+	}
 
-    _getCurrentMaxSelections() {
-        return this._ignoreSelectionLimit ? Infinity : this._baseMaxSelections;
-    }
+	_getCurrentMaxSelections() {
+		return this._ignoreSelectionLimit ? Infinity : this._baseMaxSelections;
+	}
 
-    /**
-     * Handle feat selection confirmation
-     */
-    async _onFeatConfirmed(selectedFeats) {
-        // If custom onConfirm provided (feats page), use it
-        if (this._customOnConfirm) {
-            await this._customOnConfirm(selectedFeats);
-            if (this._resolveSelection) {
-                this._resolveSelection(selectedFeats);
-                this._resolveSelection = null;
-            }
-            return;
-        }
+	/**
+	 * Handle feat selection confirmation
+	 */
+	async _onFeatConfirmed(selectedFeats) {
+		// If custom onConfirm provided (feats page), use it
+		if (this._customOnConfirm) {
+			await this._customOnConfirm(selectedFeats);
+			if (this._resolveSelection) {
+				this._resolveSelection(selectedFeats);
+				this._resolveSelection = null;
+			}
+			return;
+		}
 
-        // Level-up flow: single select, return feat name
-        if (selectedFeats.length > 0) {
-            const selectedFeat = selectedFeats[0];
-            const featName = selectedFeat.name || selectedFeat.id;
+		// Level-up flow: single select, return feat name
+		if (selectedFeats.length > 0) {
+			const selectedFeat = selectedFeats[0];
+			const featName = selectedFeat.name || selectedFeat.id;
 
-            // Update parent step (legacy behavior for compatibility)
-            this.parentStep?.updateFeatSelection?.(featName);
+			// Update parent step (legacy behavior for compatibility)
+			this.parentStep?.updateFeatSelection?.(featName);
 
-            // Resolve the promise with the feat name
-            if (this._resolveSelection) {
-                this._resolveSelection(featName);
-                this._resolveSelection = null;
-            }
-        } else {
-            // No selection made
-            if (this._resolveSelection) {
-                this._resolveSelection(null);
-                this._resolveSelection = null;
-            }
-        }
-    }
+			// Resolve the promise with the feat name
+			if (this._resolveSelection) {
+				this._resolveSelection(featName);
+				this._resolveSelection = null;
+			}
+		} else {
+			// No selection made
+			if (this._resolveSelection) {
+				this._resolveSelection(null);
+				this._resolveSelection = null;
+			}
+		}
+	}
 
-    /**
-     * Cancel selection and cleanup
-     */
-    cancel() {
-        if (this._selector) {
-            this._selector.cancel();
-        }
-    }
+	/**
+	 * Cancel selection and cleanup
+	 */
+	cancel() {
+		if (this._selector) {
+			this._selector.cancel();
+		}
+	}
 }

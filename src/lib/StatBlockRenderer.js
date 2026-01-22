@@ -648,7 +648,6 @@ export function renderMonster(monster) {
 	return html;
 }
 
-
 export function renderTable(table) {
 	if (!table || table.error) {
 		return `<strong>${table?.name || 'Unknown'}</strong><br><small>${table?.error || 'No data'}</small>`;
@@ -912,13 +911,20 @@ export function formatPrerequisite(prerequisite) {
 
 	// Handle array of prerequisite objects (common in 5etools)
 	if (Array.isArray(prerequisite)) {
-		return prerequisite.map(p => formatPrerequisite(p)).filter(Boolean).join(' or ') || '';
+		return (
+			prerequisite
+				.map((p) => formatPrerequisite(p))
+				.filter(Boolean)
+				.join(' or ') || ''
+		);
 	}
 
 	const parts = [];
 	if (prerequisite.level) {
 		const level = prerequisite.level.level || prerequisite.level;
-		const className = prerequisite.level.class ? ` ${prerequisite.level.class.name}` : '';
+		const className = prerequisite.level.class
+			? ` ${prerequisite.level.class.name}`
+			: '';
 		parts.push(`Level ${level}${className}`);
 	}
 	if (prerequisite.ability) {
@@ -933,22 +939,31 @@ export function formatPrerequisite(prerequisite) {
 	if (prerequisite.pact) parts.push(prerequisite.pact);
 	if (prerequisite.patron) parts.push(prerequisite.patron);
 	if (prerequisite.spell) {
-		const spells = Array.isArray(prerequisite.spell) ? prerequisite.spell : [prerequisite.spell];
+		const spells = Array.isArray(prerequisite.spell)
+			? prerequisite.spell
+			: [prerequisite.spell];
 		// Clean up spell names (remove #c suffix and format properly)
-		const spellNames = spells.map(s => {
+		const spellNames = spells.map((s) => {
 			if (typeof s === 'string') {
-				return s.replace(/#[a-z]+$/i, '').split('|')[0].replace(/\{@spell ([^}]+)\}/g, '$1');
+				return s
+					.replace(/#[a-z]+$/i, '')
+					.split('|')[0]
+					.replace(/\{@spell ([^}]+)\}/g, '$1');
 			}
 			return s;
 		});
 		parts.push(...spellNames);
 	}
 	if (prerequisite.feature) {
-		const features = Array.isArray(prerequisite.feature) ? prerequisite.feature : [prerequisite.feature];
+		const features = Array.isArray(prerequisite.feature)
+			? prerequisite.feature
+			: [prerequisite.feature];
 		parts.push(...features);
 	}
 	if (prerequisite.item) {
-		const items = Array.isArray(prerequisite.item) ? prerequisite.item : [prerequisite.item];
+		const items = Array.isArray(prerequisite.item)
+			? prerequisite.item
+			: [prerequisite.item];
 		parts.push(...items);
 	}
 

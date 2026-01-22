@@ -18,13 +18,18 @@ test('Test Description Here', async () => {
 	});
 
 	// Get main renderer window (exclude DevTools)
-	let page = electronApp.windows().find((win) => !win.url().startsWith('devtools://'));
+	let page = electronApp
+		.windows()
+		.find((win) => !win.url().startsWith('devtools://'));
 	if (!page) {
-		page = await electronApp.waitForEvent('window', (win) => !win.url().startsWith('devtools://'));
+		page = await electronApp.waitForEvent(
+			'window',
+			(win) => !win.url().startsWith('devtools://'),
+		);
 	}
 
 	// Set up console capturing
-	page.on('console', msg => {
+	page.on('console', (msg) => {
 		const type = msg.type().toUpperCase();
 		console.log(`[CONSOLE ${type}] ${msg.text()}`);
 	});
@@ -34,7 +39,6 @@ test('Test Description Here', async () => {
 	await page.waitForSelector('#pageContent', { timeout: 60000 });
 
 	// Add your test interactions here using the Playwright Inspector
-
 
 	await electronApp.close();
 });

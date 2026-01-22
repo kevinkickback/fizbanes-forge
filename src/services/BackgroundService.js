@@ -29,9 +29,13 @@ class BackgroundService extends BaseDataService {
 			},
 			{
 				onLoaded: (data) => {
-					console.debug('[BackgroundService]', 'Backgrounds loaded and normalized', {
-						count: data?.background?.length,
-					});
+					console.debug(
+						'[BackgroundService]',
+						'Backgrounds loaded and normalized',
+						{
+							count: data?.background?.length,
+						},
+					);
 				},
 				emitPayload: (data) => ['backgrounds', data?.background || []],
 			},

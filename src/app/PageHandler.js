@@ -10,7 +10,10 @@ import { AbilityScoreCard } from '../ui/components/abilities/AbilityScoreCard.js
 import { BackgroundCard } from '../ui/components/background/BackgroundCard.js';
 import { ClassFeatSelector } from '../ui/components/class-progression/ClassFeatSelector.js';
 import { ClassCard } from '../ui/components/class/ClassSelectionCard.js';
-import { FeatListView, FeatSourcesView } from '../ui/components/feats/FeatSelectionModal.js';
+import {
+	FeatListView,
+	FeatSourcesView,
+} from '../ui/components/feats/FeatSelectionModal.js';
 import { ProficiencyCard } from '../ui/components/proficiencies/ProficiencyCard.js';
 import { RaceCard } from '../ui/components/race/RaceCard.js';
 import { AppState } from './AppState.js';
@@ -189,10 +192,7 @@ class PageHandlerImpl {
 				await this.renderCharacterList(reloadCharacters);
 			};
 
-			eventBus.on(
-				EVENTS.CHARACTER_CREATED,
-				this._homeCharacterCreatedHandler,
-			);
+			eventBus.on(EVENTS.CHARACTER_CREATED, this._homeCharacterCreatedHandler);
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing home page', error);
 			showNotification('Error loading home page', 'error');
@@ -293,22 +293,29 @@ class PageHandlerImpl {
 				const characterLevel = character.getTotalLevel();
 				const classDisplay = progressionClasses.length
 					? progressionClasses
-						.map((cls) => {
-							return cls.name || 'Unknown Class';
-						})
-						.join('<br>')
+							.map((cls) => {
+								return cls.name || 'Unknown Class';
+							})
+							.join('<br>')
 					: 'No Class';
-				const placeholderImages = ['assets/images/characters/placeholder_char_card.webp',
+				const placeholderImages = [
+					'assets/images/characters/placeholder_char_card.webp',
 					'assets/images/characters/placeholder_char_card2.webp',
-					'assets/images/characters/placeholder_char_card3.webp'
+					'assets/images/characters/placeholder_char_card3.webp',
 				];
 				const defaultPlaceholder = placeholderImages[0];
 
 				const rawPortrait =
-					character.portrait || character.image || character.avatar || defaultPlaceholder;
+					character.portrait ||
+					character.image ||
+					character.avatar ||
+					defaultPlaceholder;
 				const portraitUrl = (() => {
 					if (!rawPortrait) return defaultPlaceholder;
-					if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
+					if (
+						rawPortrait.startsWith('data:') ||
+						rawPortrait.startsWith('file://')
+					) {
 						return rawPortrait;
 					}
 					if (/^[A-Za-z]:\\/.test(rawPortrait)) {
@@ -609,7 +616,9 @@ class PageHandlerImpl {
 				character || AppState.getCurrentCharacter(),
 			);
 			this._updateFeatUIState(character || AppState.getCurrentCharacter());
-			this._updateFeatAvailabilitySection(character || AppState.getCurrentCharacter());
+			this._updateFeatAvailabilitySection(
+				character || AppState.getCurrentCharacter(),
+			);
 		};
 
 		this._onCharacterSelectedForFeats = (character) => {
@@ -622,7 +631,9 @@ class PageHandlerImpl {
 				character || AppState.getCurrentCharacter(),
 			);
 			this._updateFeatUIState(character || AppState.getCurrentCharacter());
-			this._updateFeatAvailabilitySection(character || AppState.getCurrentCharacter());
+			this._updateFeatAvailabilitySection(
+				character || AppState.getCurrentCharacter(),
+			);
 		};
 
 		eventBus.on(EVENTS.FEATS_SELECTED, this._onFeatsSelected);
@@ -660,9 +671,10 @@ class PageHandlerImpl {
 
 		if (addFeatBtn) {
 			addFeatBtn.disabled = false;
-			addFeatBtn.title = availability.max > 0
-				? `${availability.remaining} feat choice(s) remaining`
-				: 'Add feats from any source (racial features, magic items, etc.)';
+			addFeatBtn.title =
+				availability.max > 0
+					? `${availability.remaining} feat choice(s) remaining`
+					: 'Add feats from any source (racial features, magic items, etc.)';
 		}
 	}
 
@@ -722,7 +734,10 @@ class PageHandlerImpl {
 
 			this._setupDetailsPageFormListeners();
 
-			console.debug('PageHandler', 'Details page populated with character data');
+			console.debug(
+				'PageHandler',
+				'Details page populated with character data',
+			);
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing details page', error);
 			showNotification('Error loading details page', 'error');
@@ -784,7 +799,7 @@ class PageHandlerImpl {
 					if (maxFeats <= 0) {
 						showNotification(
 							'Adding feats beyond normal choices (from racial features, magic items, etc.)',
-							'info'
+							'info',
 						);
 					}
 
@@ -798,20 +813,30 @@ class PageHandlerImpl {
 								const reasons = availability?.reasons || [];
 								const enrichedFeats = feats.map((feat, idx) => ({
 									...feat,
-									origin: feat.origin || (idx < reasons.length ? this._formatFeatOrigin(reasons[idx]) : 'Manual selection')
+									origin:
+										feat.origin ||
+										(idx < reasons.length
+											? this._formatFeatOrigin(reasons[idx])
+											: 'Manual selection'),
 								}));
 
 								character.setFeats(enrichedFeats, 'Manual selection');
 
 								this._featListView.update(this._featListContainer, character);
-								this._featSourcesView.update(this._featSourcesContainer, character);
+								this._featSourcesView.update(
+									this._featSourcesContainer,
+									character,
+								);
 								this._updateFeatUIState(character);
 								this._updateFeatAvailabilitySection(character);
 
 								eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
-								showNotification(`${feats.length} feat(s) selected!`, 'success');
+								showNotification(
+									`${feats.length} feat(s) selected!`,
+									'success',
+								);
 							}
-						}
+						},
 					});
 				});
 
@@ -833,7 +858,8 @@ class PageHandlerImpl {
 		if (!character) return;
 
 		if (featSourcesContainer) {
-			featSourcesContainer.style.display = character.feats?.length > 0 ? 'block' : 'none';
+			featSourcesContainer.style.display =
+				character.feats?.length > 0 ? 'block' : 'none';
 		}
 	}
 
@@ -880,8 +906,6 @@ class PageHandlerImpl {
 			showNotification('Error loading equipment page', 'error');
 		}
 	}
-
-
 
 	async initializePreviewPage() {
 		console.debug('PageHandler', 'Initializing preview page');

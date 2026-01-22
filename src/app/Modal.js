@@ -86,10 +86,11 @@ export class Modal {
 				return;
 			}
 
-			const { CharacterCreationModal } = await import('../ui/components/character/CharacterCreationModal.js');
+			const { CharacterCreationModal } = await import(
+				'../ui/components/character/CharacterCreationModal.js'
+			);
 			const characterCreationModal = new CharacterCreationModal();
 			await characterCreationModal.show();
-
 		} catch (error) {
 			console.error('Modal', 'Error showing new character modal:', error);
 			showNotification('Could not open new character form', 'error');
