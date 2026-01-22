@@ -409,12 +409,24 @@ export class CharacterCreationModal {
                 character.progression.classes.push(classEntry);
             }
 
-            // Apply background selection
+            // Apply background selection and proficiencies
             if (stagedData.background) {
                 character.background = {
                     name: stagedData.background.name,
                     source: stagedData.background.source,
                 };
+
+                // Apply background proficiencies
+                const { backgroundService } = await import(
+                    '../../../services/BackgroundService.js'
+                );
+                const background = backgroundService.getBackground(
+                    stagedData.background.name,
+                    stagedData.background.source,
+                );
+                if (background) {
+                    this._applyBackgroundProficiencies(character, background);
+                }
             }
 
             // Apply ability scores
@@ -480,5 +492,97 @@ export class CharacterCreationModal {
         }
 
         eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_CLOSED);
+    }
+
+    // Apply background proficiencies to character (fixed and optional)
+    _applyBackgroundProficiencies(character, background) {
+        if (!character || !background) return;
+
+        // Apply fixed skill proficiencies
+        const skillProfs = background?.proficiencies?.skills || [];
+        for (const skillEntry of skillProfs) {
+            if (!skillEntry.choose && skillEntry.skill) {
+                character.addProficiency('skills', skillEntry.skill, 'Background');
+            }
+            // Set up optional skill choices
+            if (skillEntry.choose) {
+                const count = skillEntry.choose.count || 1;
+                const from = skillEntry.choose.from || [];
+                character.optionalProficiencies.skills.background.allowed = count;
+                character.optionalProficiencies.skills.background.options = from;
+                character.optionalProficiencies.skills.background.selected = [];
+            }
+        }
+
+        // Apply fixed tool proficiencies
+        const toolProfs = background?.proficiencies?.tools || [];
+        for (const toolEntry of toolProfs) {
+            if (!toolEntry.choose && toolEntry.tool) {
+                character.addProficiency('tools', toolEntry.tool, 'Background');
+            }
+            // Set up optional tool choices
+            if (toolEntry.choose) {
+                const count = toolEntry.choose.count || 1;
+                character.optionalProficiencies.tools.background.allowed = count;
+                character.optionalProficiencies.tools.background.options = [];
+                character.optionalProficiencies.tools.background.selected = [];
+            }
+        }
+
+        // Apply language proficiencies (fixed and optional)
+        const langProfs = background?.proficiencies?.languages || [];
+        for (const langEntry of langProfs) {
+            // Fixed languages
+            if (!langEntry.choose && langEntry.language) {
+                character.addProficiency('languages', langEntry.language, 'Background');
+            }
+            // Optional language choices
+            if (langEntry.choose) {
+                const count = langEntry.choose.count || 1;
+                const from = langEntry.choose.from || [];
+                const type = langEntry.choose.type || '';
+
+                character.optionalProficiencies.languages.background.allowed = count;
+
+                // If 'any' or 'anystandard', provide all standard languages
+                if (
+                    type === 'any' ||
+                    type === 'anystandard' ||
+                    from.length === 0
+                ) {
+                    character.optionalProficiencies.languages.background.options = [
+                        'Common',
+                        'Dwarvish',
+                        'Elvish',
+                        'Giant',
+                        'Gnomish',
+                        'Goblin',
+                        'Halfling',
+                        'Orc',
+                        'Abyssal',
+                        'Celestial',
+                        'Draconic',
+                        'Deep Speech',
+                        'Infernal',
+                        'Primordial',
+                        'Sylvan',
+                        'Undercommon',
+                    ];
+                } else {
+                    character.optionalProficiencies.languages.background.options = from;
+                }
+                character.optionalProficiencies.languages.background.selected = [];
+            }
+        }
+
+        console.debug(
+            '[CharacterCreationModal]',
+            'Applied background proficiencies',
+            {
+                skills: character.optionalProficiencies.skills.background,
+                languages: character.optionalProficiencies.languages.background,
+                tools: character.optionalProficiencies.tools.background,
+            },
+        );
     }
 }

@@ -1,3 +1,4 @@
+import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { AppState } from './AppState.js';
 
@@ -7,6 +8,7 @@ export class TitlebarController {
         this.settingsBtn = document.getElementById('settingsButton');
         this.levelUpBtn = document.getElementById('openLevelUpModalBtn');
         this.saveBtn = document.getElementById('saveCharacter');
+        this._cleanup = DOMCleanup.create();
     }
 
     init() {
@@ -18,37 +20,43 @@ export class TitlebarController {
     }
 
     setupEventListeners() {
-        eventBus.on(EVENTS.CHARACTER_SELECTED, () => {
+        this._cleanup.onEvent(EVENTS.CHARACTER_SELECTED, () => {
             this.updateCharacterName();
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
 
-        eventBus.on(EVENTS.CHARACTER_UPDATED, () => {
+        this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, () => {
             this.updateCharacterName();
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
 
-        eventBus.on(EVENTS.CHARACTER_SAVED, () => {
+        this._cleanup.onEvent(EVENTS.CHARACTER_SAVED, () => {
             this.updateCharacterName();
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
 
-        eventBus.on(EVENTS.PAGE_CHANGED, () => {
+        this._cleanup.onEvent(EVENTS.PAGE_CHANGED, () => {
             this.updateActionButtons();
         });
 
-        eventBus.on('state:hasUnsavedChanges:changed', () => {
+        this._cleanup.onEvent('state:hasUnsavedChanges:changed', () => {
             this.updateUnsavedIndicator();
             this.updateActionButtons();
         });
 
         if (this.settingsBtn) {
-            this.settingsBtn.addEventListener('click', () => {
+            this._cleanup.on(this.settingsBtn, 'click', () => {
                 eventBus.emit(EVENTS.NAVIGATE_TO_PAGE, { page: 'settings' });
             });
+        }
+    }
+
+    destroy() {
+        if (this._cleanup) {
+            this._cleanup.cleanup();
         }
     }
 

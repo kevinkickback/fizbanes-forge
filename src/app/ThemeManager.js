@@ -1,7 +1,10 @@
+import { DOMCleanup } from '../lib/DOMCleanup.js';
+
 export class ThemeManager {
     constructor() {
         this.currentTheme = this.loadTheme();
         this.themeToggleBtn = null;
+        this._cleanup = DOMCleanup.create();
     }
 
     init(eventBus) {
@@ -9,12 +12,18 @@ export class ThemeManager {
         this.setupToggleButton();
 
         if (eventBus) {
-            eventBus.on('PAGE_CHANGED', () => {
+            this._cleanup.onEvent('PAGE_CHANGED', () => {
                 this.setupToggleButton();
             });
         }
 
         console.debug('[ThemeManager] Initialized with theme:', this.currentTheme);
+    }
+
+    destroy() {
+        if (this._cleanup) {
+            this._cleanup.cleanup();
+        }
     }
 
     loadTheme() {
@@ -42,7 +51,7 @@ export class ThemeManager {
     setupToggleButton() {
         this.themeToggleBtn = document.getElementById('themeToggle');
         if (this.themeToggleBtn) {
-            this.themeToggleBtn.addEventListener('click', () => {
+            this._cleanup.on(this.themeToggleBtn, 'click', () => {
                 this.toggleTheme();
                 setTimeout(() => this.themeToggleBtn.blur(), 0);
             });

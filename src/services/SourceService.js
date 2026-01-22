@@ -2,13 +2,18 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
+import { BaseDataService } from './BaseDataService.js';
 
-export class SourceService {
+export class SourceService extends BaseDataService {
 	constructor() {
+		super({
+			cacheKey: 'sources',
+			loadEvent: EVENTS.SERVICE_INITIALIZED,
+			loggerScope: 'SourceService',
+		});
 		this.availableSources = new Map();
 		this.coreSources = new Set();
 		this.sources = new Set();
-		this._initialized = false;
 		this.characterHandler = null;
 
 		/**
@@ -84,148 +89,144 @@ export class SourceService {
 	}
 
 	async initialize() {
-		if (this._initialized) {
-			return;
-		}
+		return this.initWithLoader(
+			() => DataLoader.loadSources(),
+			{
+				onLoaded: (sourcesData) => {
+					// Handle both direct data and Result-wrapped data
+					const sources = sourcesData.data || sourcesData;
 
-		try {
-			console.debug('[SourceService]', 'Starting initialization');
-			const sourcesData = await DataLoader.loadSources();
+					if (sources.book && Array.isArray(sources.book)) {
+						// Filter and sort sources
+						const validSources = sources.book
+							.filter((source) => {
+								// Filter out banned sources (case insensitive)
+								if (this.isBannedSource(source.id)) {
+									return false;
+								}
 
-			// Handle both direct data and Result-wrapped data
-			const sources = sourcesData.data || sourcesData;
+								// Then check if it has player options
+								const hasOptions = source.contents?.some((content) => {
+									// Check the section name
+									if (
+										[
+											'Races',
+											'Classes',
+											'Backgrounds',
+											'Feats',
+											'Spells',
+											'Equipment',
+											'Magic Items',
+											'Subclasses',
+											'Subraces',
+											'Class Options',
+											'Character Options',
+											'Customization Options',
+											'Multiclassing',
+											'Personality and Background',
+										].some((keyword) =>
+											content.name.toLowerCase().includes(keyword.toLowerCase()),
+										)
+									) {
+										return true;
+									}
 
-			if (sources.book && Array.isArray(sources.book)) {
-				// Filter and sort sources
-				const validSources = sources.book
-					.filter((source) => {
-						// Filter out banned sources (case insensitive)
-						if (this.isBannedSource(source.id)) {
-							return false;
-						}
+									// Check headers if they exist
+									if (content.headers && Array.isArray(content.headers)) {
+										const hasPlayerHeader = content.headers.some((header) => {
+											// Handle both string and object headers
+											const headerText =
+												typeof header === 'string' ? header : header.header;
+											if (!headerText) return false;
 
-						// Then check if it has player options
-						const hasOptions = source.contents?.some((content) => {
-							// Check the section name
-							if (
-								[
-									'Races',
-									'Classes',
-									'Backgrounds',
-									'Feats',
-									'Spells',
-									'Equipment',
-									'Magic Items',
-									'Subclasses',
-									'Subraces',
-									'Class Options',
-									'Character Options',
-									'Customization Options',
-									'Multiclassing',
-									'Personality and Background',
-								].some((keyword) =>
-									content.name.toLowerCase().includes(keyword.toLowerCase()),
-								)
-							) {
-								return true;
-							}
+											return [
+												'Races',
+												'Classes',
+												'Backgrounds',
+												'Feats',
+												'Spells',
+												'Equipment',
+												'Magic Items',
+												'Subclasses',
+												'Subraces',
+												'Class Options',
+												'Character Options',
+												'Customization Options',
+												'Multiclassing',
+												'Personality and Background',
+											].some((keyword) =>
+												headerText.toLowerCase().includes(keyword.toLowerCase()),
+											);
+										});
 
-							// Check headers if they exist
-							if (content.headers && Array.isArray(content.headers)) {
-								const hasPlayerHeader = content.headers.some((header) => {
-									// Handle both string and object headers
-									const headerText =
-										typeof header === 'string' ? header : header.header;
-									if (!headerText) return false;
+										if (hasPlayerHeader) return true;
+									}
 
-									return [
-										'Races',
-										'Classes',
-										'Backgrounds',
-										'Feats',
-										'Spells',
-										'Equipment',
-										'Magic Items',
-										'Subclasses',
-										'Subraces',
-										'Class Options',
-										'Character Options',
-										'Customization Options',
-										'Multiclassing',
-										'Personality and Background',
-									].some((keyword) =>
-										headerText.toLowerCase().includes(keyword.toLowerCase()),
-									);
+									return false;
 								});
 
-								if (hasPlayerHeader) return true;
-							}
+								return hasOptions;
+							})
+							.sort((a, b) => {
+								// PHB and XPHB always first
+								if (a.id === 'PHB') return -1;
+								if (b.id === 'PHB') return 1;
+								if (a.id === 'XPHB') return -1;
+								if (b.id === 'XPHB') return 1;
 
-							return false;
+								// Then sort by group priority: core > setting > supplement
+								const groupPriority = { core: 0, setting: 1, supplement: 2 };
+								return groupPriority[a.group] - groupPriority[b.group];
+							});
+
+						console.debug('SourceService', 'Valid sources after filtering', {
+							sources: validSources.map((s) => s.id),
 						});
 
-						return hasOptions;
-					})
-					.sort((a, b) => {
-						// PHB and XPHB always first
-						if (a.id === 'PHB') return -1;
-						if (b.id === 'PHB') return 1;
-						if (a.id === 'XPHB') return -1;
-						if (b.id === 'XPHB') return 1;
+						// Initialize available sources
+						for (const source of validSources) {
+							this.availableSources.set(source.id, {
+								name: source.name,
+								abbreviation: source.abbreviation,
+								isCore: source.isCore || false,
+								group: source.group,
+								version: source.version,
+								hasErrata: source.hasErrata,
+								targetLanguage: source.targetLanguage,
+								url: source.url,
+								description: source.description,
+								contents: source.contents,
+								isDefault: source.isDefault,
+							});
 
-						// Then sort by group priority: core > setting > supplement
-						const groupPriority = { core: 0, setting: 1, supplement: 2 };
-						return groupPriority[a.group] - groupPriority[b.group];
-					});
+							if (source.isCore) {
+								this.coreSources.add(source.id);
+							}
+						}
 
-				console.debug('SourceService', 'Valid sources after filtering', {
-					sources: validSources.map((s) => s.id),
-				});
-
-				// Initialize available sources
-				for (const source of validSources) {
-					this.availableSources.set(source.id, {
-						name: source.name,
-						abbreviation: source.abbreviation,
-						isCore: source.isCore || false,
-						group: source.group,
-						version: source.version,
-						hasErrata: source.hasErrata,
-						targetLanguage: source.targetLanguage,
-						url: source.url,
-						description: source.description,
-						contents: source.contents,
-						isDefault: source.isDefault,
-					});
-
-					if (source.isCore) {
-						this.coreSources.add(source.id);
+						console.debug('[SourceService]', 'Initialization complete', {
+							sourceCount: this.availableSources.size,
+						});
+					} else {
+						console.error(
+							'SourceService',
+							'Invalid source data format - missing source array',
+							sources,
+						);
+						showNotification(
+							'Error loading source books: Invalid data format',
+							'error',
+						);
 					}
-				}
-
-				this._initialized = true;
-				console.debug('[SourceService]', 'Initialization complete', {
-					sourceCount: this.availableSources.size,
-				});
-
-				// Emit initialization complete event
-				eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'source', this);
-			} else {
-				console.error(
-					'SourceService',
-					'Invalid source data format - missing source array',
-					sources,
-				);
-				showNotification(
-					'Error loading source books: Invalid data format',
-					'error',
-				);
-			}
-		} catch (error) {
-			console.error('SourceService', 'Error during initialization', error);
-			showNotification('Error loading source books', 'error');
-			throw error;
-		}
+				},
+				emitPayload: () => ['source', this],
+				onError: (error) => {
+					console.error('SourceService', 'Error during initialization', error);
+					showNotification('Error loading source books', 'error');
+					throw error;
+				},
+			},
+		);
 	}
 
 	isBannedSource(sourceId) {
@@ -373,9 +374,7 @@ export class SourceService {
 		return expanded;
 	}
 
-	isInitialized() {
-		return this._initialized;
-	}
+	// Use BaseDataService's isInitialized() method (inherited)
 }
 
 export const sourceService = new SourceService();

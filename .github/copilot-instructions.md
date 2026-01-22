@@ -119,6 +119,65 @@ Add new helpers **only if**:
 
 ---
 
+## Documentation & Comments
+
+### File Headers
+- Use **one-line comments** for file purpose: `// Controller for race selection UI`
+- Do **not** use multi-line JSDoc blocks for file descriptions
+
+### JSDoc Usage
+- **Use JSDoc only for**:
+  - Public API methods with complex parameters
+  - Exported utility functions with non-obvious signatures
+  - Complex return types that aren't self-evident
+- **Do not use JSDoc for**:
+  - Private methods (the `_` prefix already indicates private)
+  - Self-explanatory methods like `render()`, `show()`, `hide()`, `initialize()`
+  - Simple getters/setters
+  - `@private` or `@type` annotations on class properties
+
+### Inline Comments
+- Only when code logic isn't self-explanatory
+- Prefer clear variable/method names over comments
+- Remove stale or redundant comments
+
+### Logging
+- Use `console.debug()` for development diagnostics
+- Use `console.error()` for actual errors with context
+- Use `console.warn()` sparingly for recoverable issues
+- Format: `console.debug('[ClassName]', 'message', data)`
+
+### Examples
+```javascript
+// ✅ GOOD - Simple file header
+// Controller for race selection UI, coordinating views and subrace logic.
+
+// ❌ BAD - Verbose file header
+/**
+ * RaceCard - Controller for race selection
+ * 
+ * Handles race list, subrace selection, and details display.
+ * Coordinates with RaceService for data.
+ */
+
+// ✅ GOOD - JSDoc for complex public API
+/**
+ * @param {Object} options - Configuration options
+ * @param {Array} options.currentSelection - Currently selected items
+ * @param {boolean} options.multiSelect - Allow multiple selection
+ */
+async show(options = {}) { ... }
+
+// ❌ BAD - JSDoc for private/obvious methods
+/**
+ * Initialize the component.
+ * @private
+ */
+_initialize() { ... }  // _ prefix already indicates private
+```
+
+---
+
 ## Memory Management & Cleanup (Critical)
 
 ### DOMCleanup

@@ -1149,9 +1149,9 @@ export class ClassCard {
 			const prevCount =
 				level > 1
 					? this._classService.getCountAtLevel(
-							progression.progression,
-							level - 1,
-						)
+						progression.progression,
+						level - 1,
+					)
 					: 0;
 			const newCount = count - prevCount; // Only new selections at this level
 
@@ -1192,9 +1192,9 @@ export class ClassCard {
 				const prevCount =
 					level > 1
 						? this._classService.getCountAtLevel(
-								progression.progression,
-								level - 1,
-							)
+							progression.progression,
+							level - 1,
+						)
 						: 0;
 				const newCount = count - prevCount; // Only new selections at this level
 
@@ -2022,10 +2022,10 @@ export class ClassCard {
 				);
 				return opt
 					? {
-							id: `${opt.name}_${opt.source}`,
-							name: opt.name,
-							source: opt.source,
-						}
+						id: `${opt.name}_${opt.source}`,
+						name: opt.name,
+						source: opt.source,
+					}
 					: { id: selId, name: selId };
 			})
 			.filter(Boolean);
@@ -2283,7 +2283,7 @@ export class ClassCard {
 		// Show notification if subclass was changed
 		if (isChanging) {
 			// Import notification service dynamically to avoid circular dependencies
-			import('../../lib/NotificationCenter.js')
+			import('../../../lib/NotificationCenter.js')
 				.then(({ notificationCenter }) => {
 					notificationCenter.show(
 						`Subclass changed to ${subclassName}. Please review and update your class features, spells, and other subclass-specific choices.`,
@@ -2357,8 +2357,8 @@ export class ClassCard {
 		const hasChanged = !classData
 			? primaryClass?.name || primaryClass?.source
 			: primaryClass?.name !== classData.name ||
-				primaryClass?.source !== classData.source ||
-				currentSubclass !== subclassName;
+			primaryClass?.source !== classData.source ||
+			currentSubclass !== subclassName;
 
 		if (hasChanged) {
 			// Clear previous class proficiencies, ability bonuses, and traits

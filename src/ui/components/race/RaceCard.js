@@ -1033,7 +1033,6 @@ export class RaceCard {
 				);
 		}
 	}
-
 	_updateCombinedProficiencyOptions(character) {
 		if (!character) return;
 

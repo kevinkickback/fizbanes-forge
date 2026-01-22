@@ -1,54 +1,40 @@
-import { AppState } from '../app/AppState.js';
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-class BackgroundService {
+import { BaseDataService } from './BaseDataService.js';
+
+class BackgroundService extends BaseDataService {
 	constructor() {
-		this._backgroundData = null;
+		super({
+			cacheKey: 'backgrounds',
+			loadEvent: EVENTS.DATA_LOADED,
+			loggerScope: 'BackgroundService',
+		});
 		this._selectedBackground = null;
 	}
 
 	async initialize() {
-		// Skip if already initialized
-		if (this._backgroundData) {
-			console.debug('BackgroundService', 'Already initialized');
-			return true;
-		}
-
-		console.debug('[BackgroundService]', 'Initializing background data');
-
-		try {
-			this._backgroundData = await DataLoader.loadBackgrounds();
-
-			// Normalize all backgrounds from legacy to 5etools format
-			if (this._backgroundData.background) {
-				this._backgroundData.background = this._backgroundData.background.map(
-					(bg) => this._normalizeBackgroundStructure(bg),
-				);
-			}
-
-			console.debug('[BackgroundService]', 'Backgrounds loaded and normalized', {
-				count: this._backgroundData.background?.length,
-			});
-			AppState.setLoadedData('backgrounds', this._backgroundData.background);
-			eventBus.emit(
-				EVENTS.DATA_LOADED,
-				'backgrounds',
-				this._backgroundData.background,
-			);
-			return true;
-		} catch (error) {
-			console.error(
-				'BackgroundService',
-				'Failed to initialize background data',
-				error,
-			);
-			return false;
-		}
+		return this.initWithLoader(
+			() => DataLoader.loadBackgrounds(),
+			{
+				onLoaded: (data) => {
+					// Normalize all backgrounds from legacy to 5etools format
+					if (data?.background) {
+						data.background = data.background.map((bg) =>
+							this._normalizeBackgroundStructure(bg),
+						);
+					}
+					console.debug('[BackgroundService]', 'Backgrounds loaded and normalized', {
+						count: data?.background?.length,
+					});
+				},
+				emitPayload: (data) => ['backgrounds', data?.background || []],
+			},
+		);
 	}
 
 	/** @returns {Array<Object>} Array of background objects from JSON */
 	getAllBackgrounds() {
-		return this._backgroundData?.background || [];
+		return this._data?.background || [];
 	}
 
 	/** @param {string} name - Background name
@@ -56,10 +42,10 @@ class BackgroundService {
 	 * @returns {Object|null} Background object from JSON or null if not found
 	 */
 	getBackground(name, source = 'PHB') {
-		if (!this._backgroundData?.background) return null;
+		if (!this._data?.background) return null;
 
 		return (
-			this._backgroundData.background.find(
+			this._data.background.find(
 				(bg) => bg.name === name && bg.source === source,
 			) || null
 		);
@@ -70,10 +56,10 @@ class BackgroundService {
 	 * @returns {Object|null} Background fluff object or null if not found
 	 */
 	getBackgroundFluff(backgroundName, source = 'PHB') {
-		if (!this._backgroundData?.fluff) return null;
+		if (!this._data?.fluff) return null;
 
 		return (
-			this._backgroundData.fluff.find(
+			this._data.fluff.find(
 				(f) => f.name === backgroundName && f.source === source,
 			) || null
 		);

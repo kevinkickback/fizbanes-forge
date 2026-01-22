@@ -1,48 +1,46 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
+import { EVENTS } from '../lib/EventBus.js';
+import { BaseDataService } from './BaseDataService.js';
 import { classService } from './ClassService.js';
 import { raceService } from './RaceService.js';
-class FeatService {
+
+class FeatService extends BaseDataService {
 	constructor() {
-		this._featData = null;
+		super({
+			cacheKey: 'feats',
+			loadEvent: EVENTS.DATA_LOADED,
+			loggerScope: 'FeatService',
+		});
 		this._featMap = null; // Map for O(1) lookups by name (case-insensitive)
 	}
 
 	async initialize() {
-		// Skip if already initialized
-		if (this._featData) {
-			console.debug('FeatService', 'Already initialized');
-			return true;
-		}
-
-		console.debug('[FeatService]', 'Initializing feat data');
-
-		try {
-			this._featData = await DataLoader.loadFeats();
-			console.debug('[FeatService]', 'Feats loaded successfully', {
-				count: this._featData.feat?.length,
-			});
-
-			// Build lookup map for O(1) access by name (case-insensitive)
-			this._featMap = new Map();
-			if (this._featData.feat && Array.isArray(this._featData.feat)) {
-				for (const feat of this._featData.feat) {
-					if (!feat.name) continue;
-					const key = DataNormalizer.normalizeForLookup(feat.name);
-					this._featMap.set(key, feat);
-				}
-			}
-
-			return true;
-		} catch (error) {
-			console.error('[FeatService]', 'Failed to initialize feat data', error);
-			return false;
-		}
+		return this.initWithLoader(
+			() => DataLoader.loadFeats(),
+			{
+				onLoaded: (data) => {
+					// Build lookup map for O(1) access by name (case-insensitive)
+					this._featMap = new Map();
+					if (data?.feat && Array.isArray(data.feat)) {
+						for (const feat of data.feat) {
+							if (!feat.name) continue;
+							const key = DataNormalizer.normalizeForLookup(feat.name);
+							this._featMap.set(key, feat);
+						}
+					}
+					console.debug('[FeatService]', 'Feats loaded successfully', {
+						count: data?.feat?.length,
+					});
+				},
+				emitPayload: (data) => ['feats', data?.feat || []],
+			},
+		);
 	}
 
 	/** @returns {Array<Object>} Array of feat objects */
 	getAllFeats() {
-		return this._featData?.feat || [];
+		return this._data?.feat || [];
 	}
 
 	/** Case-insensitive lookup.

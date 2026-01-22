@@ -1,10 +1,13 @@
 /** Utility for managing DOM cleanup, event listeners, and memory management. */
 
+import { eventBus } from './EventBus.js';
+
 export class DOMCleanup {
     constructor() {
         this._listeners = new Map(); // Store [element, event, handler] tuples for removal
         this._timers = new Set(); // Store timeout/interval IDs for cleanup
         this._bootstrapModals = new Map(); // Store Bootstrap modal instances
+        this._eventBusListeners = []; // Store EventBus listeners for cleanup
     }
 
     on(element, event, handler, options = false) {
@@ -92,6 +95,29 @@ export class DOMCleanup {
         }
     }
 
+    onEvent(event, handler) {
+        if (typeof event !== 'string' || typeof handler !== 'function') {
+            console.warn('[DOMCleanup]', 'Invalid arguments to onEvent()', {
+                eventType: typeof event,
+                handlerType: typeof handler,
+            });
+            return;
+        }
+
+        eventBus.on(event, handler);
+        this._eventBusListeners.push({ event, handler });
+    }
+
+    offEvent(event, handler = null) {
+        for (let i = this._eventBusListeners.length - 1; i >= 0; i--) {
+            const listener = this._eventBusListeners[i];
+            if (listener.event === event && (!handler || listener.handler === handler)) {
+                eventBus.off(listener.event, listener.handler);
+                this._eventBusListeners.splice(i, 1);
+            }
+        }
+    }
+
     registerBootstrapModal(element, instance) {
         if (this._bootstrapModals.has(element)) {
             // Dispose old instance if exists
@@ -113,6 +139,7 @@ export class DOMCleanup {
             listenersRemoved: 0,
             timersCleared: 0,
             modalsDisposed: 0,
+            eventBusListenersRemoved: 0,
         };
 
         // Remove all event listeners
@@ -151,6 +178,17 @@ export class DOMCleanup {
         }
         this._bootstrapModals.clear();
 
+        // Remove all EventBus listeners
+        for (const listener of this._eventBusListeners) {
+            try {
+                eventBus.off(listener.event, listener.handler);
+                summary.eventBusListenersRemoved++;
+            } catch (e) {
+                console.warn('[DOMCleanup]', 'Error removing EventBus listener', e);
+            }
+        }
+        this._eventBusListeners = [];
+
         console.debug('[DOMCleanup]', 'Cleanup complete', summary);
         return summary;
     }
@@ -161,6 +199,7 @@ export class DOMCleanup {
             totalListeners: Array.from(this._listeners.values()).reduce((sum, arr) => sum + arr.length, 0),
             totalTimers: this._timers.size,
             totalModals: this._bootstrapModals.size,
+            totalEventBusListeners: this._eventBusListeners.length,
         };
     }
 

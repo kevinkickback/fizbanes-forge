@@ -135,6 +135,7 @@ export class ProficiencyCard {
 			this._rehydrateInstrumentChoices();
 			await this._populateAccordion();
 			this._setupHoverListeners();
+			this._setupAccordionClickListeners();
 		} catch (error) {
 			console.error('ProficiencyCard', 'Initialization error:', error);
 		}
@@ -646,6 +647,8 @@ export class ProficiencyCard {
 	}
 
 	async _populateProficiencyContainers() {
+		if (!this._character) return;
+
 		// This method now delegates to _populateAccordion for the new UI
 		await this._populateAccordion();
 	}
@@ -765,8 +768,8 @@ export class ProficiencyCard {
 			);
 		}
 
-		// Setup click listeners for the new structure
-		this._setupAccordionClickListeners();
+		// Note: Click listeners are set up once in initialize() via _setupAccordionClickListeners()
+		// They use event delegation on this._accordion, so they work on dynamically added elements
 	}
 
 	_buildProficiencyItemsHtml(type, availableOptions, _availableOptionsMap) {
@@ -860,8 +863,8 @@ export class ProficiencyCard {
 				);
 
 				if (changed) {
-					// Refresh the accordion to reflect changes
-					this._populateAccordion();
+					// Don't call _populateAccordion() here - it will be triggered by the
+					// PROFICIENCY_OPTIONAL_SELECTED/DESELECTED event handler
 
 					// Emit CHARACTER_UPDATED event to signal proficiency change
 					eventBus.emit(EVENTS.CHARACTER_UPDATED, {
@@ -1120,6 +1123,8 @@ export class ProficiencyCard {
 	}
 
 	_renderInstrumentChoices() {
+		if (!this._character) return;
+
 		const toolsContainer = this._proficiencyContainers?.tools;
 		if (!toolsContainer) return;
 
@@ -1278,6 +1283,10 @@ export class ProficiencyCard {
 	}
 
 	_restoreSavedSelections(computedSlots) {
+		if (!this._character) {
+			return computedSlots; // Return empty slots if no character
+		}
+
 		const saved = this._character.instrumentChoices || [];
 		const remaining = [...saved];
 		const result = [];

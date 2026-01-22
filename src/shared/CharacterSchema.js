@@ -57,6 +57,7 @@ export const CharacterSchema = {
         return {
             id: null,
             name: '',
+            playerName: '',
             portrait: '',
 
             // Ability scores
@@ -69,10 +70,56 @@ export const CharacterSchema = {
                 charisma: 10,
             },
 
+            // Ability bonuses (tracked by source)
+            abilityBonuses: {
+                strength: [],
+                dexterity: [],
+                constitution: [],
+                intelligence: [],
+                wisdom: [],
+                charisma: [],
+            },
+
+            // Pending ability score choices
+            pendingAbilityChoices: [],
+
             // Character details
             // Note: class info stored in progression.classes[], no legacy class field
-            race: null,
+            race: {
+                name: '',
+                source: '',
+                subrace: '',
+                abilityChoices: [],
+            },
             background: null,
+            size: 'Medium',
+            speed: {
+                walk: 30,
+                fly: 0,
+                swim: 0,
+                climb: 0,
+                burrow: 0,
+            },
+
+            // Physical characteristics
+            height: '',
+            weight: '',
+            gender: '',
+            alignment: '',
+            deity: '',
+            backstory: '',
+
+            // Features
+            features: {
+                darkvision: 0,
+                resistances: [],
+                traits: {},
+            },
+
+            // Feats
+            feats: [],
+            featSources: {},
+
             // Note: subclass is stored in progression.classes[].subclass, not at root level
             // Note: total level is calculated from progression.classes[].levels, no legacy level field
             proficiencies: {
@@ -84,13 +131,66 @@ export const CharacterSchema = {
                 savingThrows: [],
             },
 
+            // Proficiency sources (tracking where proficiencies came from)
+            proficiencySources: {
+                armor: {},
+                weapons: {},
+                tools: {},
+                skills: {},
+                languages: {},
+                savingThrows: {},
+            },
+
+            // Optional proficiencies (choices during character creation)
+            optionalProficiencies: {
+                armor: { allowed: 0, selected: [] },
+                weapons: { allowed: 0, selected: [] },
+                savingThrows: { allowed: 0, selected: [] },
+                skills: {
+                    allowed: 0,
+                    options: [],
+                    selected: [],
+                    race: { allowed: 0, options: [], selected: [] },
+                    class: { allowed: 0, options: [], selected: [] },
+                    background: { allowed: 0, options: [], selected: [] },
+                },
+                languages: {
+                    allowed: 0,
+                    options: [],
+                    selected: [],
+                    race: { allowed: 0, options: [], selected: [] },
+                    class: { allowed: 0, options: [], selected: [] },
+                    background: { allowed: 0, options: [], selected: [] },
+                },
+                tools: {
+                    allowed: 0,
+                    options: [],
+                    selected: [],
+                    race: { allowed: 0, options: [], selected: [] },
+                    class: { allowed: 0, options: [], selected: [] },
+                    background: { allowed: 0, options: [], selected: [] },
+                },
+            },
+
+            // Pending choices (general)
+            pendingChoices: {},
+
+            // Instrument choices (for musical instruments)
+            instrumentChoices: [],
+
+            // Variant rules configuration
+            variantRules: {
+                feats: true,
+                abilityScoreMethod: 'custom',
+            },
+
             // Sources
             allowedSources: [], // Array of source book codes
 
-            // Equipment
+            // Equipment (legacy)
             equipment: [],
 
-            // Spells
+            // Spells (legacy)
             spells: [],
 
             // Hit points

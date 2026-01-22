@@ -955,6 +955,7 @@ export class BackgroundCard {
 	}
 }
 
+
 //=============================================================================
 // Background Details View - Proficiencies, equipment, features for info panel
 //=============================================================================

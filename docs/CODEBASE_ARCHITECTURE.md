@@ -188,3 +188,9 @@ Remember: **Always use `setState()` for changes. Never mutate returned objects.*
 - Themeable values should rely on CSS variables under [src/ui/styles](src/ui/styles); avoid hardcoded colors.
 - Shared state mutations go through AppState and EventBus; do not mutate global objects directly.
 - Prefer extending existing controllers/services over parallel implementations; consult 5etools upstream if behavior is unclear.
+
+## Documentation Standards
+- **File headers**: Use single-line comments (`// Purpose of this file`), not multi-line JSDoc blocks.
+- **JSDoc**: Reserve for public APIs with complex parameters or non-obvious return types. Avoid for private methods, self-explanatory functions, or `@private`/`@type` annotations.
+- **Inline comments**: Only when code isn't self-explanatory; prefer clear naming over comments.
+- **Logging**: Use `console.debug('[ClassName]', 'message')` for diagnostics, `console.error()` for actual errors.
