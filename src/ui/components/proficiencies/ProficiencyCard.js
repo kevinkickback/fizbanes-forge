@@ -13,6 +13,7 @@ import {
 	MUSICAL_INSTRUMENTS,
 } from '../../../lib/ProficiencyConstants.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
+import { variantRuleService } from '../../../services/VariantRuleService.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
 import { ProficiencySelectionView } from './ProficiencySelection.js';
@@ -44,23 +45,23 @@ class InstrumentChoicesView {
 		return `
 			<div class="instrument-choices-grid">
 				${slots
-					.map((slot, index) => {
-						return `
+				.map((slot, index) => {
+					return `
 							<div class="instrument-choice-group">
 								<label class="form-label">${slot.sourceLabel} instrument</label>
 								<select class="form-select form-select-sm instrument-choice-select" data-slot-index="${index}" data-source-label="${slot.sourceLabel}" data-key="${slot.key}">
 									<option value="">Choose...</option>
 									${MUSICAL_INSTRUMENTS.map((inst) => {
-										const isSelected = slot.selection === inst;
-										const isUsedElsewhere =
-											selectedInstruments.has(inst) && !isSelected;
-										return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
-									}).join('')}
+						const isSelected = slot.selection === inst;
+						const isUsedElsewhere =
+							selectedInstruments.has(inst) && !isSelected;
+						return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
+					}).join('')}
 								</select>
 							</div>
 						`;
-					})
-					.join('')}
+				})
+				.join('')}
 			</div>
 		`;
 	}
@@ -129,6 +130,7 @@ export class ProficiencyCard {
 			}
 
 			this._initializeDomReferences();
+			await this._showDefaultInfoPlaceholder();
 			this._setupToggleButton();
 			this._setupEventListeners();
 			this._initializeCharacterProficiencies();
@@ -681,8 +683,7 @@ export class ProficiencyCard {
 		let html = '';
 
 		for (const type of this._proficiencyTypes) {
-			const isExpanded =
-				expandedItems.size === 0 ? type === 'skills' : expandedItems.has(type);
+			const isExpanded = expandedItems.has(type);
 			const collapseId = `proficiencies${type.charAt(0).toUpperCase() + type.slice(1)}`;
 			const typeLabel = this._displayView.getTypeLabel(type);
 			const iconClass = this._displayView.getIconForType(type);
@@ -873,6 +874,26 @@ export class ProficiencyCard {
 				}
 			}
 		});
+	}
+
+	async _showDefaultInfoPlaceholder() {
+		if (!this._infoPanel) return;
+
+		// Load proficiency description from variant rules JSON
+		const rule = variantRuleService.getVariantRule('Proficiency');
+		const description = rule?.entries?.[0] || 'Proficiency allows you to add your Proficiency Bonus to D20 Tests.';
+
+		this._infoPanel.innerHTML = `
+			<div class="proficiency-info">
+				<h5><i class="fas fa-star me-2"></i>Proficiency</h5>
+				<div class="mt-3">
+					${description}
+				</div>
+				<p class="text-muted small mt-3">Hover over a proficiency to see details.</p>
+			</div>
+		`;
+
+		await textProcessor.processElement(this._infoPanel);
 	}
 
 	_setupHoverListeners() {
@@ -1354,7 +1375,7 @@ export class ProficiencyCard {
 			const alreadyHas = this._character.proficiencies?.tools?.some(
 				(p) =>
 					DataNormalizer.normalizeForLookup(p.name || p) ===
-						DataNormalizer.normalizeForLookup(slot.selection) &&
+					DataNormalizer.normalizeForLookup(slot.selection) &&
 					(p.source || '') === `${slot.sourceLabel} Instrument Choice`,
 			);
 
@@ -1677,7 +1698,7 @@ export class ProficiencyCard {
 				if (
 					config.options?.length === 1 &&
 					DataNormalizer.normalizeForLookup(config.options[0]) ===
-						normalizedProf &&
+					normalizedProf &&
 					config.selected?.includes(proficiency)
 				) {
 					return true;

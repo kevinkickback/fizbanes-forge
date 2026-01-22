@@ -14,7 +14,7 @@ export function createMainWindow({
 	debugMode = false,
 	enableDevTools = false,
 }) {
-	MainLogger.info('WindowManager', 'Creating main window');
+	MainLogger.debug('WindowManager', 'Creating main window');
 
 	// Get saved window bounds
 	const bounds = preferencesManager.getWindowBounds();
@@ -39,7 +39,7 @@ export function createMainWindow({
 
 	// Open DevTools in debug mode or when explicitly enabled (before loading)
 	if (debugMode || enableDevTools) {
-		MainLogger.info('WindowManager', 'Opening DevTools');
+		MainLogger.debug('WindowManager', 'Opening DevTools');
 		mainWindow.webContents.openDevTools({ mode: 'detach' });
 	}
 
@@ -48,14 +48,14 @@ export function createMainWindow({
 
 	// Show window when ready
 	mainWindow.once('ready-to-show', () => {
-		MainLogger.info('WindowManager', 'Window ready to show');
+		MainLogger.debug('WindowManager', 'Window ready to show');
 		mainWindow.show();
 	});
 
 	// Setup window event handlers
 	setupWindowEvents(preferencesManager);
 
-	MainLogger.info('WindowManager', 'Main window created');
+	MainLogger.debug('WindowManager', 'Main window created');
 	return mainWindow;
 }
 

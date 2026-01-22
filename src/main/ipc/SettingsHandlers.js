@@ -16,7 +16,7 @@ const ALLOWED_KEYS = new Set([
 ]);
 
 export function registerSettingsHandlers(preferencesManager) {
-	MainLogger.info('SettingsHandlers', 'Registering settings handlers');
+	MainLogger.debug('SettingsHandlers', 'Registering settings handlers');
 
 	ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_PATH, (_event, key) => {
 		if (!ALLOWED_KEYS.has(key)) {
@@ -49,5 +49,5 @@ export function registerSettingsHandlers(preferencesManager) {
 		return app.getPath('userData');
 	});
 
-	MainLogger.info('SettingsHandlers', 'All settings handlers registered');
+	MainLogger.debug('SettingsHandlers', 'All settings handlers registered');
 }

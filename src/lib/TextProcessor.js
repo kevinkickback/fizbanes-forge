@@ -12,6 +12,8 @@ class TextProcessor {
 	static _TOOLTIP_SELECTORS = [
 		'.description',
 		'.tooltip-content',
+		'.proficiency-info',
+		'.ability-info',
 		'p',
 		'li',
 		'td',

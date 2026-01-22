@@ -82,10 +82,9 @@ export class BackgroundCard {
 	}
 
 	_setupEventListeners() {
-		// EventBus cleanup
-		this.onEventBus(EVENTS.CHARACTER_SELECTED, () => {
-			this._handleCharacterChanged();
-		});
+		// sources:allowed-changed fires after CHARACTER_SELECTED and ensures
+		// the list is populated with correctly filtered sources before loading
+		// the saved selection.
 		this.onEventBus('sources:allowed-changed', () => {
 			this._populateBackgroundList();
 			this._loadSavedBackgroundSelection();
@@ -559,23 +558,6 @@ export class BackgroundCard {
 	}
 
 	//-------------------------------------------------------------------------
-	// Event Handlers
-	//-------------------------------------------------------------------------
-
-	async _handleCharacterChanged() {
-		try {
-			// Reload background selection to match character's background
-			await this._loadSavedBackgroundSelection();
-		} catch (error) {
-			console.error(
-				'BackgroundCard',
-				'Error handling character changed event:',
-				error,
-			);
-		}
-	}
-
-	//-------------------------------------------------------------------------
 	// Character Data Management
 	//-------------------------------------------------------------------------
 
@@ -587,8 +569,8 @@ export class BackgroundCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-				character.background?.source !== background.source ||
-				character.background?.variant !== (variant?.name || null);
+			character.background?.source !== background.source ||
+			character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies
@@ -1150,9 +1132,9 @@ class BackgroundDetailsView {
 
 		const description = Array.isArray(featureEntry.entries)
 			? featureEntry.entries
-					.map((e) => (typeof e === 'string' ? e : ''))
-					.filter(Boolean)
-					.join(' ')
+				.map((e) => (typeof e === 'string' ? e : ''))
+				.filter(Boolean)
+				.join(' ')
 			: featureEntry.entry || '';
 
 		// Truncate description for compact display

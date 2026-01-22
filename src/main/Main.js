@@ -35,7 +35,7 @@ const __dirname = path.dirname(__filename);
 const rendererRoot = path.join(__dirname, '..', 'ui');
 
 app.whenReady().then(() => {
-	MainLogger.info('App', 'Application ready');
+	MainLogger.debug('App', 'Application ready');
 
 	// Initialize preferences
 	initPreferences(app);
@@ -82,18 +82,18 @@ app.whenReady().then(() => {
 		enableDevTools: DEBUG_MODE || ENABLE_DEVTOOLS,
 	});
 
-	MainLogger.info('App', 'Application initialized');
+	MainLogger.debug('App', 'Application initialized');
 });
 
 app.on('window-all-closed', () => {
-	MainLogger.info('App', 'All windows closed');
+	MainLogger.debug('App', 'All windows closed');
 	if (process.platform !== 'darwin') {
 		app.quit();
 	}
 });
 
 app.on('activate', () => {
-	MainLogger.info('App', 'Application activated');
+	MainLogger.debug('App', 'Application activated');
 	const win = getMainWindow();
 	if (!win || win.isDestroyed()) {
 		createMainWindow({
@@ -110,5 +110,5 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-	MainLogger.info('App', 'Application quitting');
+	MainLogger.debug('App', 'Application quitting');
 });

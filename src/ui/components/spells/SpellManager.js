@@ -56,11 +56,32 @@ export class SpellsManager {
 
 		// Ensure progression and spellcasting are initialized before rendering
 		levelUpService.initializeProgression(character);
+		this._ensureSpellcastingInitialized(character);
 
 		this.renderKnownSpells(character);
 		this.renderPreparedSpells(character);
 		this.renderSpellcastingInfo(character);
 		this.renderMulticlassSpellcasting(character);
+	}
+
+	_ensureSpellcastingInitialized(character) {
+		// Initialize spellcasting for each class in progression that is a spellcaster
+		if (!character.progression?.classes) return;
+
+		for (const classEntry of character.progression.classes) {
+			const className = classEntry.name;
+			const classLevel = classEntry.levels || 1;
+
+			// Check if spellcasting is already initialized for this class
+			if (character.spellcasting?.classes?.[className]) continue;
+
+			// Initialize spellcasting for this class if it's a spellcaster
+			spellSelectionService.initializeSpellcastingForClass(
+				character,
+				className,
+				classLevel,
+			);
+		}
 	}
 
 	renderKnownSpells(character) {
@@ -233,24 +254,21 @@ export class SpellsManager {
 			const proficiencyBonus = character.getProficiencyBonus?.() || 2;
 			const spellSaveDC = 8 + abilityMod + proficiencyBonus;
 
-			html += `<div class="spellcasting-class-info mb-3 p-3 bg-light rounded">
-				<h6 class="mb-3">${className}</h6>
-				<div class="row g-3">
-					<div class="col-md-6">
-						<small class="d-block text-muted mb-1">Spellcasting Ability</small>
-						<strong>${this._formatAbilityName(ability)} (${abilityMod > 0 ? '+' : ''}${abilityMod})</strong>
+			html += `<div class="spellcasting-class-info">
+				<h6>${className}</h6>
+				<div class="spellcasting-stats-grid">
+					<div class="spellcasting-stat-item">
+						<div class="stat-label">Spellcasting Ability</div>
+						<div class="stat-value">${this._formatAbilityName(ability)}</div>
+						<div class="text-muted small">(${abilityMod > 0 ? '+' : ''}${abilityMod})</div>
 					</div>
-					<div class="col-md-6">
-						<small class="d-block text-muted mb-1">Spell Save DC</small>
-						<strong>${spellSaveDC}</strong>
+					<div class="spellcasting-stat-item">
+						<div class="stat-label">Spell Save DC</div>
+						<div class="stat-value">${spellSaveDC}</div>
 					</div>
-					<div class="col-md-6">
-						<small class="d-block text-muted mb-1">Spell Attack Bonus</small>
-						<strong>+${abilityMod + proficiencyBonus}</strong>
-					</div>
-					<div class="col-md-6">
-						<small class="d-block text-muted mb-1">Level</small>
-						<strong>${classData.level || 1}</strong>
+					<div class="spellcasting-stat-item">
+						<div class="stat-label">Spell Attack</div>
+						<div class="stat-value">+${abilityMod + proficiencyBonus}</div>
 					</div>
 				</div>`;
 
@@ -260,8 +278,8 @@ export class SpellsManager {
 				Object.keys(classData.spellSlots).length > 0
 			) {
 				html += `<div class="mt-3">
-					<small class="d-block text-muted mb-2">Spell Slots</small>
-					<div class="d-flex flex-wrap gap-2">`;
+					<div class="stat-label mb-2">Spell Slots</div>
+					<div class="spellcasting-slots-grid">`;
 
 				for (let level = 1; level <= 9; level++) {
 					const slotData = classData.spellSlots[level];
@@ -293,8 +311,8 @@ export class SpellsManager {
 			// Add spell counters section
 			if (limitInfo.limit > 0) {
 				html += `<div class="mt-3">
-					<small class="d-block text-muted mb-2">Spell Counters</small>
-					<div class="d-flex flex-wrap gap-2">`;
+					<div class="stat-label mb-2">Spell Counters</div>
+					<div class="spellcasting-slots-grid">`;
 
 				// Add Spells Known badge if applicable
 				if (limitInfo.type === 'known') {
@@ -318,7 +336,7 @@ export class SpellsManager {
 
 		container.innerHTML =
 			html ||
-			'<p style="color: var(--text-color)">No spellcasting ability.</p>';
+			'<p class="text-muted">No spellcasting ability.</p>';
 	}
 
 	renderMulticlassSpellcasting(character) {

@@ -216,7 +216,7 @@ export async function validateLocalDataFolder(folderPath) {
 		// Fail if required/indexed files missing
 		const missing = [...missingCore, ...missingFromIndex];
 		if (missing.length > 0) {
-			MainLogger.info(
+			MainLogger.debug(
 				'DataFolderManager',
 				'Local folder validation: FAIL - missing files',
 				{
@@ -263,7 +263,7 @@ export async function validateLocalDataFolder(folderPath) {
 			};
 		}
 
-		MainLogger.info('DataFolderManager', 'Local folder validation: PASS', {
+		MainLogger.debug('DataFolderManager', 'Local folder validation: PASS', {
 			folderPath,
 		});
 
@@ -297,7 +297,7 @@ export async function hasDefaultDataFolder(defaultDataPath) {
 		// Quick check - just see if races.json exists
 		const racesPath = path.join(defaultDataPath, 'races.json');
 		await fs.stat(racesPath);
-		MainLogger.info('DataFolderManager', 'Default data folder is valid');
+		MainLogger.debug('DataFolderManager', 'Default data folder is valid');
 		return true;
 	} catch {
 		MainLogger.warn(
@@ -570,7 +570,7 @@ export async function downloadDataFromUrl(
 			failed: failed.length,
 		});
 		if (failed.length > 0) {
-			MainLogger.info(
+			MainLogger.debug(
 				'DataFolderManager',
 				`Download completed with ${failed.length} missing file(s)`,
 				{
@@ -581,7 +581,7 @@ export async function downloadDataFromUrl(
 				},
 			);
 		} else if (skippedCount > 0) {
-			MainLogger.info('DataFolderManager', 'Incremental download completed', {
+			MainLogger.debug('DataFolderManager', 'Incremental download completed', {
 				downloaded: downloadedCount,
 				skipped: skippedCount,
 				total: manifest.length,
@@ -617,7 +617,7 @@ export async function validateDataSourceURL(url) {
 		const baseUrl = buildRawDataBaseUrl(url);
 		const racesUrl = `${baseUrl}/races.json`;
 
-		MainLogger.info('DataFolderManager', 'Testing URL:', { url, racesUrl });
+		MainLogger.debug('DataFolderManager', 'Testing URL:', { url, racesUrl });
 
 		// Try to fetch and validate the JSON
 		const result = await fetchJsonFromUrl(racesUrl);
@@ -651,7 +651,7 @@ export async function validateDataSourceURL(url) {
 			};
 		}
 
-		MainLogger.info('DataFolderManager', 'URL validation: PASS', {
+		MainLogger.debug('DataFolderManager', 'URL validation: PASS', {
 			url,
 			racesUrl,
 		});

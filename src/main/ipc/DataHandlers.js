@@ -19,7 +19,7 @@ const DEV_DATA_PATH = DEBUG_MODE
 	: null;
 /** Register all data-related IPC handlers. */
 export function registerDataHandlers(preferencesManager) {
-	MainLogger.info('DataHandlers', 'Registering data handlers');
+	MainLogger.debug('DataHandlers', 'Registering data handlers');
 
 	// Use configured data path when available; no default fallback
 	let currentDataPath = null;
@@ -31,7 +31,7 @@ export function registerDataHandlers(preferencesManager) {
 	// In debug mode, force local src/data without persisting over user settings
 	if (DEBUG_MODE) {
 		currentDataPath = DEV_DATA_PATH;
-		MainLogger.info(
+		MainLogger.debug(
 			'DataHandlers',
 			`Debug mode enabled; using local data folder (non-persisted): ${DEV_DATA_PATH}`,
 		);
@@ -144,7 +144,7 @@ export function registerDataHandlers(preferencesManager) {
 				if (cacheExists) {
 					const preCheck = await validateLocalDataFolder(cachePath);
 					if (!preCheck.valid) {
-						MainLogger.info(
+						MainLogger.debug(
 							'DataHandlers',
 							'Cache incomplete, will download missing files',
 							{
@@ -398,7 +398,7 @@ export function registerDataHandlers(preferencesManager) {
 			const type = preferencesManager.get('dataSourceType', null);
 			const value = preferencesManager.get('dataSourceValue', null);
 
-			MainLogger.info('DataHandlers', 'Retrieved data source config:', {
+			MainLogger.debug('DataHandlers', 'Retrieved data source config:', {
 				type,
 				value,
 			});
@@ -440,7 +440,7 @@ export function registerDataHandlers(preferencesManager) {
 
 				// Warn about missing indexed files if any were noted separately
 				if (result.missingIndexed && result.missingIndexed.length > 0) {
-					MainLogger.info(
+					MainLogger.debug(
 						'DataHandlers',
 						'Local data source missing files referenced in indexes:',
 						result.missingIndexed,
@@ -452,7 +452,7 @@ export function registerDataHandlers(preferencesManager) {
 				preferencesManager.set('dataSourceValue', value);
 				preferencesManager.set('dataSourceCachePath', null);
 				currentDataPath = value;
-				MainLogger.info('DataHandlers', 'Local data source configured:', value);
+				MainLogger.debug('DataHandlers', 'Local data source configured:', value);
 
 				return { success: true };
 			}
@@ -504,7 +504,7 @@ export function registerDataHandlers(preferencesManager) {
 				const cachePath = getCachePathForUrl(value);
 
 				// Check if this is same URL as current config (incremental update)
-				MainLogger.info('DataHandlers', 'Downloading remote data source', {
+				MainLogger.debug('DataHandlers', 'Downloading remote data source', {
 					url: value,
 					cachePath,
 					files: manifest.length,
@@ -535,7 +535,7 @@ export function registerDataHandlers(preferencesManager) {
 
 				// Download succeeded with what's available (some files may be missing upstream)
 				if (downloadResult.warning) {
-					MainLogger.info(
+					MainLogger.debug(
 						'DataHandlers',
 						'Download partially succeeded',
 						downloadResult,
@@ -568,7 +568,7 @@ export function registerDataHandlers(preferencesManager) {
 				preferencesManager.set('dataSourceValue', value);
 				preferencesManager.set('dataSourceCachePath', cachePath);
 				currentDataPath = cachePath;
-				MainLogger.info(
+				MainLogger.debug(
 					'DataHandlers',
 					'URL data source downloaded and cached',
 					{
@@ -596,5 +596,5 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	});
 
-	MainLogger.info('DataHandlers', 'All data handlers registered');
+	MainLogger.debug('DataHandlers', 'All data handlers registered');
 }

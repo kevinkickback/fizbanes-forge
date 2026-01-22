@@ -6,6 +6,7 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { skillService } from '../../../services/SkillService.js';
+import { variantRuleService } from '../../../services/VariantRuleService.js';
 import { bonusNotesView } from './AbilityScoreBonusNotes.js';
 import { abilityScoreBoxView } from './AbilityScoreBox.js';
 import { abilityChoicesView } from './AbilityScoreChoices.js';
@@ -73,6 +74,7 @@ class AbilityScoreCard {
 			// Setup toggle button and hover listeners
 			this._setupToggleButton();
 			this._setupAbilityHoverListeners();
+			await this._showDefaultInfoPlaceholder();
 
 			// Add custom styles
 			this._addStyles();
@@ -145,6 +147,27 @@ class AbilityScoreCard {
 				}
 			});
 		});
+	}
+
+	async _showDefaultInfoPlaceholder() {
+		const infoContent = document.getElementById('abilityScoreInfoContent');
+		if (!infoContent) return;
+
+		// Load description from variant rules JSON
+		const rule = variantRuleService.getVariantRule('Ability Score and Modifier');
+		const description = rule?.entries?.[0] || 'A creature has six ability scores—Strength, Dexterity, Constitution, Intelligence, Wisdom, and Charisma—each of which has a corresponding modifier.';
+
+		infoContent.innerHTML = `
+			<div class="ability-info">
+				<h5><i class="fas fa-dice-d20 me-2"></i>Ability Scores</h5>
+				<div class="mt-3">
+					${description}
+				</div>
+				<p class="text-muted small mt-3">Hover over an ability to see related skills.</p>
+			</div>
+		`;
+
+		await textProcessor.processElement(infoContent);
 	}
 
 	async _showSkillsForAbility(ability) {

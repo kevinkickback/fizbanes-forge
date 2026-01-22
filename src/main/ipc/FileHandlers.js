@@ -6,7 +6,7 @@ import { getCharacterSavePath } from '../Settings.js';
 import { IPC_CHANNELS } from './channels.js';
 
 export function registerFileHandlers(windowManager) {
-	MainLogger.info('FileHandlers', 'Registering file handlers');
+	MainLogger.debug('FileHandlers', 'Registering file handlers');
 
 	const getAllowedRoots = () => {
 		const characterRoot = path.resolve(getCharacterSavePath());
@@ -224,7 +224,7 @@ export function registerFileHandlers(windowManager) {
 				}
 
 				await fs.writeFile(filePath, buffer);
-				MainLogger.info('FileHandlers', 'Portrait saved:', filePath);
+				MainLogger.debug('FileHandlers', 'Portrait saved:', filePath);
 
 				return {
 					success: true,
@@ -238,5 +238,5 @@ export function registerFileHandlers(windowManager) {
 		},
 	);
 
-	MainLogger.info('FileHandlers', 'All file handlers registered');
+	MainLogger.debug('FileHandlers', 'All file handlers registered');
 }

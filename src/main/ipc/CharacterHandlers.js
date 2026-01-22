@@ -9,7 +9,7 @@ import { CharacterImportService } from '../../services/CharacterImportService.js
 import { CharacterSchema } from '../../shared/CharacterSchema.js';
 
 export function registerCharacterHandlers(preferencesManager, windowManager) {
-	MainLogger.info('CharacterHandlers', 'Registering character handlers');
+	MainLogger.debug('CharacterHandlers', 'Registering character handlers');
 
 	// Save character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_SAVE, async (_event, characterData) => {
@@ -28,7 +28,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				};
 			}
 
-			MainLogger.info(
+			MainLogger.debug(
 				'CharacterHandlers',
 				'Saving character:',
 				character.id,
@@ -57,7 +57,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				throw writeError;
 			}
 
-			MainLogger.info('CharacterHandlers', 'Character saved:', filePath);
+			MainLogger.debug('CharacterHandlers', 'Character saved:', filePath);
 			return { success: true, path: filePath };
 		} catch (error) {
 			MainLogger.error('CharacterHandlers', 'Save failed:', error);
@@ -69,7 +69,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_LIST, async () => {
 		try {
 			const savePath = preferencesManager.getCharacterSavePath();
-			MainLogger.info(
+			MainLogger.debug(
 				'CharacterHandlers',
 				'Loading characters from:',
 				savePath,
@@ -94,7 +94,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				}
 			}
 
-			MainLogger.info(
+			MainLogger.debug(
 				'CharacterHandlers',
 				'Loaded characters:',
 				characters.length,
@@ -109,14 +109,14 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 	// Delete character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_DELETE, async (_event, id) => {
 		try {
-			MainLogger.info('CharacterHandlers', 'Deleting character:', id);
+			MainLogger.debug('CharacterHandlers', 'Deleting character:', id);
 
 			const savePath = preferencesManager.getCharacterSavePath();
 			const filePath = path.join(savePath, `${id}.ffp`);
 
 			await fs.unlink(filePath);
 
-			MainLogger.info('CharacterHandlers', 'Character deleted:', filePath);
+			MainLogger.debug('CharacterHandlers', 'Character deleted:', filePath);
 			return { success: true };
 		} catch (error) {
 			MainLogger.error('CharacterHandlers', 'Delete failed:', error);
@@ -127,7 +127,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 	// Export character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT, async (_event, id) => {
 		try {
-			MainLogger.info('CharacterHandlers', 'Exporting character:', id);
+			MainLogger.debug('CharacterHandlers', 'Exporting character:', id);
 
 			const savePath = preferencesManager.getCharacterSavePath();
 			const sourceFilePath = path.join(savePath, `${id}.ffp`);
@@ -149,7 +149,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 			await fs.copyFile(sourceFilePath, result.filePath);
 
-			MainLogger.info(
+			MainLogger.debug(
 				'CharacterHandlers',
 				'Character exported to:',
 				result.filePath,
@@ -164,7 +164,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 	// Import character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async (_event, userChoice) => {
 		try {
-			MainLogger.info('CharacterHandlers', 'Importing character');
+			MainLogger.debug('CharacterHandlers', 'Importing character');
 
 			const savePath = preferencesManager.getCharacterSavePath();
 			const importService = new CharacterImportService(savePath);
@@ -226,19 +226,19 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 					action,
 				);
 				if (resolution.canceled) {
-					MainLogger.info('CharacterHandlers', 'Import canceled by user');
+					MainLogger.debug('CharacterHandlers', 'Import canceled by user');
 					return { success: false, canceled: true };
 				}
 				character = resolution.character;
 
 				if (action === 'overwrite') {
-					MainLogger.info(
+					MainLogger.debug(
 						'CharacterHandlers',
 						'Overwriting existing character:',
 						character.id,
 					);
 				} else if (action === 'keepBoth') {
-					MainLogger.info(
+					MainLogger.debug(
 						'CharacterHandlers',
 						'Keeping both - generated new ID:',
 						character.id,
@@ -266,7 +266,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				throw writeError;
 			}
 
-			MainLogger.info('CharacterHandlers', 'Character imported:', character.id);
+			MainLogger.debug('CharacterHandlers', 'Character imported:', character.id);
 			return { success: true, character };
 		} catch (error) {
 			MainLogger.error('CharacterHandlers', 'Import failed:', error);
@@ -279,5 +279,5 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		return { success: true, data: uuidv4() };
 	});
 
-	MainLogger.info('CharacterHandlers', 'All character handlers registered');
+	MainLogger.debug('CharacterHandlers', 'All character handlers registered');
 }

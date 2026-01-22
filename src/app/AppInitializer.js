@@ -12,6 +12,11 @@ import { themeManager } from './ThemeManager.js';
 import { titlebarController } from './TitlebarController.js';
 import { setupUiEventHandlers } from './UIHandlersInitializer.js';
 
+// Silence console.debug in production (when FF_DEBUG is not set)
+if (!window.FF_DEBUG) {
+	console.debug = () => { };
+}
+
 // Modal for data configuration
 import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
 import { LoadingModal } from '../ui/components/setup/SetupModals.js';
@@ -441,7 +446,7 @@ export async function initializeAll(_options = {}) {
 		if (_uiHandlersCleanup) {
 			try {
 				_uiHandlersCleanup();
-			} catch {}
+			} catch { }
 			_uiHandlersCleanup = null;
 		}
 		_isInitialized = false;

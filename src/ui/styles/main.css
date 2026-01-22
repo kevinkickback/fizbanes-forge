@@ -3316,3 +3316,71 @@ small.text-muted {
 .proficiency-info .small {
 	font-size: 0.875rem;
 }
+
+/* Spellcasting Information Card Styles */
+.spellcasting-info {
+	color: var(--text-color);
+}
+
+.spellcasting-class-info {
+	background: var(--secondary-color) !important;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 1rem;
+	margin-bottom: 1rem;
+}
+
+.spellcasting-class-info h6 {
+	color: var(--text-color);
+	font-weight: 600;
+	border-bottom: 1px solid var(--border-color);
+	padding-bottom: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.spellcasting-class-info .text-muted {
+	color: var(--text-muted) !important;
+}
+
+.spellcasting-class-info strong {
+	color: var(--text-color);
+}
+
+.spellcasting-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1rem;
+}
+
+.spellcasting-stat-item {
+	text-align: center;
+	padding: 0.75rem;
+	background: var(--card-background);
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+}
+
+.spellcasting-stat-item .stat-label {
+	font-size: 0.75rem;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.25rem;
+}
+
+.spellcasting-stat-item .stat-value {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.spellcasting-slots-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.spellcasting-class-info .badge {
+	background: var(--accent-color) !important;
+	color: var(--text-color);
+}

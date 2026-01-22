@@ -94,10 +94,9 @@ export class RaceCard {
 	}
 
 	_setupEventListeners() {
-		// EventBus cleanup
-		this.onEventBus(EVENTS.CHARACTER_SELECTED, () => {
-			this._handleCharacterChanged();
-		});
+		// sources:allowed-changed fires after CHARACTER_SELECTED and ensures
+		// the list is populated with correctly filtered sources before loading
+		// the saved selection.
 		this.onEventBus('sources:allowed-changed', () => {
 			this._populateRaceList();
 			this._loadSavedRaceSelection();
@@ -646,23 +645,6 @@ export class RaceCard {
 			}
 		} catch (error) {
 			console.error('RaceCard', 'Error loading saved race selection:', error);
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Event Handlers
-	//-------------------------------------------------------------------------
-
-	async _handleCharacterChanged() {
-		try {
-			// Reload race selection to match character's race
-			await this._loadSavedRaceSelection();
-		} catch (error) {
-			console.error(
-				'RaceCard',
-				'Error handling character changed event:',
-				error,
-			);
 		}
 	}
 

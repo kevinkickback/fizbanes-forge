@@ -85,7 +85,7 @@ export function initPreferences(app) {
 			clearInvalidConfig: true, // Reset invalid values to defaults
 		});
 
-		MainLogger.info('PreferencesManager', 'electron-store initialized', {
+		MainLogger.debug('PreferencesManager', 'electron-store initialized', {
 			path: store.path,
 		});
 	} catch (error) {

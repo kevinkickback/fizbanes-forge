@@ -3,7 +3,7 @@ import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
 export function registerProgressionHandlers() {
-	MainLogger.info('ProgressionHandlers', 'Registering progression handlers');
+	MainLogger.debug('ProgressionHandlers', 'Registering progression handlers');
 
 	const notImplemented = (action) => ({
 		success: false,
@@ -15,7 +15,7 @@ export function registerProgressionHandlers() {
 		IPC_CHANNELS.PROGRESSION_INCREASE_LEVEL,
 		async (_event, characterId) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'ProgressionHandlers',
 					'Increasing level for character:',
 					characterId,
@@ -45,7 +45,7 @@ export function registerProgressionHandlers() {
 		IPC_CHANNELS.PROGRESSION_DECREASE_LEVEL,
 		async (_event, characterId) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'ProgressionHandlers',
 					'Decreasing level for character:',
 					characterId,
@@ -75,7 +75,7 @@ export function registerProgressionHandlers() {
 		IPC_CHANNELS.PROGRESSION_ADD_CLASS_LEVEL,
 		async (_event, characterId, className) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'ProgressionHandlers',
 					'Adding class level for character:',
 					characterId,
@@ -107,7 +107,7 @@ export function registerProgressionHandlers() {
 		IPC_CHANNELS.PROGRESSION_REMOVE_CLASS_LEVEL,
 		async (_event, characterId, className) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'ProgressionHandlers',
 					'Removing class level for character:',
 					characterId,
@@ -139,7 +139,7 @@ export function registerProgressionHandlers() {
 		IPC_CHANNELS.PROGRESSION_CALCULATE_HP,
 		async (_event, characterId, classData) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'ProgressionHandlers',
 					'Calculating HP for character:',
 					characterId,

@@ -3,7 +3,7 @@ import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
 export function registerEquipmentHandlers() {
-	MainLogger.info('EquipmentHandlers', 'Registering equipment handlers');
+	MainLogger.debug('EquipmentHandlers', 'Registering equipment handlers');
 
 	const notImplemented = (action) => ({
 		success: false,
@@ -15,7 +15,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_ADD_ITEM,
 		async (_event, characterId, itemData) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Adding item to character:',
 					characterId,
@@ -43,7 +43,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_REMOVE_ITEM,
 		async (_event, characterId, itemInstanceId) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Removing item from character:',
 					characterId,
@@ -71,7 +71,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_EQUIP_ITEM,
 		async (_event, characterId, itemInstanceId, slot) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Equipping item for character:',
 					characterId,
@@ -99,7 +99,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_UNEQUIP_ITEM,
 		async (_event, characterId, slot) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Unequipping item for character:',
 					characterId,
@@ -127,7 +127,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_ATTUNE_ITEM,
 		async (_event, characterId, itemInstanceId) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Attuning item for character:',
 					characterId,
@@ -153,7 +153,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_UNATTUNE_ITEM,
 		async (_event, characterId, itemInstanceId) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Unattuneing item for character:',
 					characterId,
@@ -179,7 +179,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_CALCULATE_WEIGHT,
 		async (_event, inventory) => {
 			try {
-				MainLogger.info('EquipmentHandlers', 'Calculating inventory weight');
+				MainLogger.debug('EquipmentHandlers', 'Calculating inventory weight');
 
 				if (!inventory || !Array.isArray(inventory)) {
 					return {
@@ -205,7 +205,7 @@ export function registerEquipmentHandlers() {
 		IPC_CHANNELS.EQUIPMENT_CHECK_ENCUMBRANCE,
 		async (_event, totalWeight, strength) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'EquipmentHandlers',
 					'Checking encumbrance. Weight:',
 					totalWeight,

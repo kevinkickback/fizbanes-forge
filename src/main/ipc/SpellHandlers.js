@@ -3,7 +3,7 @@ import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
 export function registerSpellHandlers() {
-	MainLogger.info('SpellHandlers', 'Registering spell handlers');
+	MainLogger.debug('SpellHandlers', 'Registering spell handlers');
 
 	const notImplemented = (action) => ({
 		success: false,
@@ -15,7 +15,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_INITIALIZE_CLASS,
 		async (_event, characterId, className) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Initializing spellcasting for character:',
 					characterId,
@@ -43,7 +43,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_ADD_KNOWN,
 		async (_event, characterId, className, spellName) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Adding known spell for character:',
 					characterId,
@@ -73,7 +73,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_REMOVE_KNOWN,
 		async (_event, characterId, className, spellName) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Removing known spell for character:',
 					characterId,
@@ -103,7 +103,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_PREPARE_SPELL,
 		async (_event, characterId, className, spellName) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Preparing spell for character:',
 					characterId,
@@ -133,7 +133,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_UNPREPARE_SPELL,
 		async (_event, characterId, className, spellName) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Unpreparing spell for character:',
 					characterId,
@@ -163,7 +163,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_USE_SLOT,
 		async (_event, characterId, className, spellLevel) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Using spell slot for character:',
 					characterId,
@@ -200,7 +200,7 @@ export function registerSpellHandlers() {
 		IPC_CHANNELS.SPELL_RESTORE_SLOTS,
 		async (_event, characterId, className) => {
 			try {
-				MainLogger.info(
+				MainLogger.debug(
 					'SpellHandlers',
 					'Restoring spell slots for character:',
 					characterId,
