@@ -1,25 +1,17 @@
 import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
-import { UniversalSelectionModal, formatCategoryCounters } from '../../../lib/UniversalSelectionModal.js';
+import {
+    UniversalSelectionModal,
+    formatCategoryCounters,
+} from '../../../lib/UniversalSelectionModal.js';
 import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 
-/**
- * LevelUpSpellSelector
- * 
- * Spell-specific adapter for generic LevelUpSelector.
- * Wraps spell-specific configuration and data loading for the level-up wizard.
- * 
- * Features:
- * - Search and filter spells by name, school
- * - Enforce spell slot/known spell limits
- * - Display spell details with ritual/concentration badges
- * - Uses generic LevelUpSelector for consistent UX with other selectors
- */
+// Spell selector adapter for class spell selection with slot/known limits
 
 export class ClassSpellSelector {
     constructor(session, parentStep, className, currentLevel) {
@@ -61,53 +53,114 @@ export class ClassSpellSelector {
 
             // If there are no spells to learn at this level, bail out with a notice
             if (!Array.isArray(spellData) || spellData.length === 0) {
-                const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-                const ordinals = ['', '1st-level', '2nd-level', '3rd-level', '4th-level', '5th-level', '6th-level', '7th-level', '8th-level', '9th-level'];
+                const maxSpellLevel = this._getMaxSpellLevel(
+                    this.className,
+                    this.currentLevel,
+                );
+                const ordinals = [
+                    '',
+                    '1st-level',
+                    '2nd-level',
+                    '3rd-level',
+                    '4th-level',
+                    '5th-level',
+                    '6th-level',
+                    '7th-level',
+                    '8th-level',
+                    '9th-level',
+                ];
                 const levelText = ordinals[maxSpellLevel] || 'level';
-                const msg = this.maxCantrips > 0 || this.maxSpells > 0
-                    ? 'No valid spells found for selection.'
-                    : `No new ${levelText} spells or cantrips to learn at this level.`;
+                const msg =
+                    this.maxCantrips > 0 || this.maxSpells > 0
+                        ? 'No valid spells found for selection.'
+                        : `No new ${levelText} spells or cantrips to learn at this level.`;
                 showNotification(msg, 'info');
                 return;
             }
 
             // Get previously selected spells
             const key = `${this.className}_${this.currentLevel}`;
-            const previousSelections = this.session.stepData.selectedSpells[key] || [];
+            const previousSelections =
+                this.session.stepData.selectedSpells[key] || [];
 
-            const initialSelections = previousSelections.map(prevSpell => {
-                const spellName = typeof prevSpell === 'string' ? prevSpell : prevSpell.name;
-                return spellData.find(spell => spell.name === spellName);
-            }).filter(Boolean);
+            const initialSelections = previousSelections
+                .map((prevSpell) => {
+                    const spellName =
+                        typeof prevSpell === 'string' ? prevSpell : prevSpell.name;
+                    return spellData.find((spell) => spell.name === spellName);
+                })
+                .filter(Boolean);
 
             // Build modal title
             let modalTitle = `Select Spells - ${this.className} (Level ${this.currentLevel})`;
             if (this.maxCantrips > 0 && this.maxSpells > 0) {
-                const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-                const ordinals = ['', '1st-level', '2nd-level', '3rd-level', '4th-level', '5th-level', '6th-level', '7th-level', '8th-level', '9th-level'];
+                const maxSpellLevel = this._getMaxSpellLevel(
+                    this.className,
+                    this.currentLevel,
+                );
+                const ordinals = [
+                    '',
+                    '1st-level',
+                    '2nd-level',
+                    '3rd-level',
+                    '4th-level',
+                    '5th-level',
+                    '6th-level',
+                    '7th-level',
+                    '8th-level',
+                    '9th-level',
+                ];
                 modalTitle = `Learn ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}, ${this.maxSpells} ${ordinals[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
             } else if (this.maxCantrips > 0) {
                 modalTitle = `Learn ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}`;
             } else if (this.maxSpells > 0) {
-                const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-                const ordinals = ['', '1st-level', '2nd-level', '3rd-level', '4th-level', '5th-level', '6th-level', '7th-level', '8th-level', '9th-level'];
+                const maxSpellLevel = this._getMaxSpellLevel(
+                    this.className,
+                    this.currentLevel,
+                );
+                const ordinals = [
+                    '',
+                    '1st-level',
+                    '2nd-level',
+                    '3rd-level',
+                    '4th-level',
+                    '5th-level',
+                    '6th-level',
+                    '7th-level',
+                    '8th-level',
+                    '9th-level',
+                ];
                 modalTitle = `Learn ${this.maxSpells} ${ordinals[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
             }
 
             // Build filter sets using FilterBuilder (same as UniversalSpellModal)
             const buildFilters = (_ctx, panel, cleanup) => {
                 if (!panel) return;
-                const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-                const ordinals = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+                const maxSpellLevel = this._getMaxSpellLevel(
+                    this.className,
+                    this.currentLevel,
+                );
+                const ordinals = [
+                    'Cantrip',
+                    '1st',
+                    '2nd',
+                    '3rd',
+                    '4th',
+                    '5th',
+                    '6th',
+                    '7th',
+                    '8th',
+                    '9th',
+                ];
 
                 const builder = new FilterBuilder(panel, cleanup);
 
                 // Build level options from available spells
-                const availableLevels = [...new Set(spellData.map(s => s.level))]
-                    .filter(l => l <= maxSpellLevel)
+                const availableLevels = [...new Set(spellData.map((s) => s.level))]
+                    .filter((l) => l <= maxSpellLevel)
                     .sort((a, b) => a - b);
 
-                const levelOptions = availableLevels.map(level => ({
+                const levelOptions = availableLevels.map((level) => ({
                     label: ordinals[level],
                     value: String(level),
                 }));
@@ -121,9 +174,11 @@ export class ClassSpellSelector {
                 });
 
                 // Build school options
-                const schoolOptions = Array.from(new Set(spellData.map(s => s.school).filter(Boolean)))
+                const schoolOptions = Array.from(
+                    new Set(spellData.map((s) => s.school).filter(Boolean)),
+                )
                     .sort()
-                    .map(code => ({ label: getSchoolName(code) || code, value: code }));
+                    .map((code) => ({ label: getSchoolName(code) || code, value: code }));
 
                 builder.addCheckboxGroup({
                     title: 'School',
@@ -156,12 +211,18 @@ export class ClassSpellSelector {
                     }
 
                     // Level filter - check this.levelFilters Set
-                    if (this.levelFilters.size > 0 && !this.levelFilters.has(String(item.level))) {
+                    if (
+                        this.levelFilters.size > 0 &&
+                        !this.levelFilters.has(String(item.level))
+                    ) {
                         return false;
                     }
 
                     // School filter - check this.schoolFilters Set
-                    if (this.schoolFilters.size > 0 && !this.schoolFilters.has(item.school)) {
+                    if (
+                        this.schoolFilters.size > 0 &&
+                        !this.schoolFilters.has(item.school)
+                    ) {
                         return false;
                     }
 
@@ -170,34 +231,58 @@ export class ClassSpellSelector {
                 // Block selection per category when limits are reached
                 canSelectItem: (item, state) => {
                     const selectedByLevel = {};
-                    state.selectedItems.forEach(spell => {
+                    state.selectedItems.forEach((spell) => {
                         const lvl = spell.level || 0;
                         selectedByLevel[lvl] = (selectedByLevel[lvl] || 0) + 1;
                     });
                     const selectedCantrips = selectedByLevel[0] || 0;
-                    const selectedLeveled = state.selectedItems.filter(s => (s.level || 0) > 0).length;
+                    const selectedLeveled = state.selectedItems.filter(
+                        (s) => (s.level || 0) > 0,
+                    ).length;
 
                     // Allow deselection always; if already selected, OK
                     const isSelected = state.selectedIds.has(item.id || item.name);
                     if (isSelected) return true;
 
                     if ((item.level || 0) === 0) {
-                        if (this.maxCantrips > 0 && selectedCantrips >= this.maxCantrips) return false;
+                        if (this.maxCantrips > 0 && selectedCantrips >= this.maxCantrips)
+                            return false;
                         return true;
                     } else {
-                        if (this.maxSpells > 0 && selectedLeveled >= this.maxSpells) return false;
+                        if (this.maxSpells > 0 && selectedLeveled >= this.maxSpells)
+                            return false;
                         return true;
                     }
                 },
                 onSelectBlocked: (item) => {
                     const isCantrip = (item.level || 0) === 0;
                     if (isCantrip) {
-                        showNotification('Cantrip limit reached. Deselect a cantrip to add another.', 'warning');
+                        showNotification(
+                            'Cantrip limit reached. Deselect a cantrip to add another.',
+                            'warning',
+                        );
                     } else {
-                        const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-                        const ordinals = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+                        const maxSpellLevel = this._getMaxSpellLevel(
+                            this.className,
+                            this.currentLevel,
+                        );
+                        const ordinals = [
+                            'Cantrip',
+                            '1st',
+                            '2nd',
+                            '3rd',
+                            '4th',
+                            '5th',
+                            '6th',
+                            '7th',
+                            '8th',
+                            '9th',
+                        ];
                         const lvlText = ordinals[maxSpellLevel];
-                        showNotification(`${lvlText} spell limit reached. Deselect a spell to add another.`, 'warning');
+                        showNotification(
+                            `${lvlText} spell limit reached. Deselect a spell to add another.`,
+                            'warning',
+                        );
                     }
                 },
                 // Description caching (optional, improves UX like manager)
@@ -208,12 +293,16 @@ export class ClassSpellSelector {
                 onConfirm: this._onSpellsConfirmed.bind(this),
                 onCancel: () => {
                     // No-op
-                }
+                },
             });
 
             this._selector.show();
         } catch (error) {
-            console.error('[LevelUpSpellSelector]', 'Error showing spell selector:', error);
+            console.error(
+                '[LevelUpSpellSelector]',
+                'Error showing spell selector:',
+                error,
+            );
         }
     }
 
@@ -222,31 +311,37 @@ export class ClassSpellSelector {
      */
     async _loadSpellData() {
         // Get class spellcasting info
-        const classInfo = this.spellSelectionService._getClassSpellcastingInfo(this.className);
+        const classInfo = this.spellSelectionService._getClassSpellcastingInfo(
+            this.className,
+        );
         if (!classInfo) {
             throw new Error(`${this.className} is not a spellcaster`);
         }
 
         // Calculate maximum spell level available at this character level
-        const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
+        const maxSpellLevel = this._getMaxSpellLevel(
+            this.className,
+            this.currentLevel,
+        );
 
         // Collect already-known spells from character and session (across ALL classes)
         const alreadyKnown = new Set();
 
         // 1. Spells from original character's spellcasting data (check all classes)
-        const allClassSpells = this.session.originalCharacter?.spellcasting?.classes;
+        const allClassSpells =
+            this.session.originalCharacter?.spellcasting?.classes;
         if (allClassSpells) {
-            Object.values(allClassSpells).forEach(classData => {
+            Object.values(allClassSpells).forEach((classData) => {
                 // Add cantrips
                 if (classData.cantrips) {
-                    classData.cantrips.forEach(spell => {
+                    classData.cantrips.forEach((spell) => {
                         const spellName = typeof spell === 'string' ? spell : spell.name;
                         if (spellName) alreadyKnown.add(spellName);
                     });
                 }
                 // Add known spells
                 if (classData.spellsKnown) {
-                    classData.spellsKnown.forEach(spell => {
+                    classData.spellsKnown.forEach((spell) => {
                         const spellName = typeof spell === 'string' ? spell : spell.name;
                         if (spellName) alreadyKnown.add(spellName);
                     });
@@ -258,23 +353,28 @@ export class ClassSpellSelector {
         if (this.session.stepData?.selectedSpells) {
             const currentKey = `${this.className}_${this.currentLevel}`;
 
-            Object.entries(this.session.stepData.selectedSpells).forEach(([key, spells]) => {
-                // Skip the current level being edited (so user can modify their current selection)
-                if (key === currentKey) {
-                    return;
-                }
+            Object.entries(this.session.stepData.selectedSpells).forEach(
+                ([key, spells]) => {
+                    // Skip the current level being edited (so user can modify their current selection)
+                    if (key === currentKey) {
+                        return;
+                    }
 
-                // Check spells from ALL classes (not just the current one)
-                spells.forEach(spell => {
-                    const spellName = typeof spell === 'string' ? spell : spell.name;
-                    if (spellName) alreadyKnown.add(spellName);
-                });
-            });
+                    // Check spells from ALL classes (not just the current one)
+                    spells.forEach((spell) => {
+                        const spellName = typeof spell === 'string' ? spell : spell.name;
+                        if (spellName) alreadyKnown.add(spellName);
+                    });
+                },
+            );
         }
 
         // 3. Spells from progression history at OTHER levels (but same class)
         if (this.session.originalCharacter?.progression?.spellSelections) {
-            const progressionClass = this.session.originalCharacter.progression?.classes?.find(c => c.name === this.className);
+            const progressionClass =
+                this.session.originalCharacter.progression?.classes?.find(
+                    (c) => c.name === this.className,
+                );
             const classLevel = progressionClass?.levels || 0;
 
             for (let lvl = 1; lvl <= classLevel; lvl++) {
@@ -284,16 +384,22 @@ export class ClassSpellSelector {
                 }
 
                 const sessionKey = `${this.className}_${lvl}`;
-                const levelSpells = this.session.originalCharacter.progression.spellSelections[sessionKey] || [];
+                const levelSpells =
+                    this.session.originalCharacter.progression.spellSelections[
+                    sessionKey
+                    ] || [];
 
-                levelSpells.forEach(spell => {
+                levelSpells.forEach((spell) => {
                     const spellName = typeof spell === 'string' ? spell : spell.name;
                     if (spellName) alreadyKnown.add(spellName);
                 });
             }
         }
 
-        console.debug('[LevelUpSpellSelector] Already known spells:', Array.from(alreadyKnown));
+        console.debug(
+            '[LevelUpSpellSelector] Already known spells:',
+            Array.from(alreadyKnown),
+        );
 
         // Get all spells from SpellService
         const allSpells = this.spellService.getAllSpells();
@@ -302,14 +408,14 @@ export class ClassSpellSelector {
         const currentKey = `${this.className}_${this.currentLevel}`;
         const currentLevelSelections = new Set();
         if (this.session.stepData?.selectedSpells?.[currentKey]) {
-            this.session.stepData.selectedSpells[currentKey].forEach(spell => {
+            this.session.stepData.selectedSpells[currentKey].forEach((spell) => {
                 const spellName = typeof spell === 'string' ? spell : spell.name;
                 if (spellName) currentLevelSelections.add(spellName);
             });
         }
 
         // Filter by class eligibility, spell level, allowed sources, and exclude already known
-        const availableSpells = allSpells.filter(spell => {
+        const availableSpells = allSpells.filter((spell) => {
             // Check if spell is available for this class
             if (!this.spellService.isSpellAvailableForClass(spell, this.className)) {
                 return false;
@@ -356,7 +462,10 @@ export class ClassSpellSelector {
             return a.name.localeCompare(b.name);
         });
 
-        console.debug('[LevelUpSpellSelector]', `Loaded ${availableSpells.length} available spells for ${this.className} at level ${this.currentLevel} (max spell level: ${maxSpellLevel})`);
+        console.debug(
+            '[LevelUpSpellSelector]',
+            `Loaded ${availableSpells.length} available spells for ${this.className} at level ${this.currentLevel} (max spell level: ${maxSpellLevel})`,
+        );
         return availableSpells;
     }
 
@@ -365,11 +474,22 @@ export class ClassSpellSelector {
      * Example: "2/2 cantrips, 2/2 level 1"
      */
     _getCountDisplay(selectedItems) {
-        const ordinals = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+        const ordinals = [
+            'Cantrip',
+            '1st',
+            '2nd',
+            '3rd',
+            '4th',
+            '5th',
+            '6th',
+            '7th',
+            '8th',
+            '9th',
+        ];
 
         // Count selected spells by level
         const selectedByLevel = {};
-        selectedItems.forEach(spell => {
+        selectedItems.forEach((spell) => {
             const level = spell.level || 0;
             selectedByLevel[level] = (selectedByLevel[level] || 0) + 1;
         });
@@ -384,20 +504,23 @@ export class ClassSpellSelector {
                 label: selectedCantrips === 1 ? 'cantrip' : 'cantrips',
                 selected: selectedCantrips,
                 max: this.maxCantrips,
-                color: 'bg-info'
+                color: 'bg-info',
             });
         }
 
         // Add leveled spells category if applicable
         if (this.maxSpells > 0) {
-            const maxSpellLevel = this._getMaxSpellLevel(this.className, this.currentLevel);
-            const selectedLeveled = selectedItems.filter(s => s.level > 0).length;
+            const maxSpellLevel = this._getMaxSpellLevel(
+                this.className,
+                this.currentLevel,
+            );
+            const selectedLeveled = selectedItems.filter((s) => s.level > 0).length;
             const levelText = ordinals[maxSpellLevel];
             categories.push({
                 label: `${levelText} spell${this.maxSpells === 1 ? '' : 's'}`,
                 selected: selectedLeveled,
                 max: this.maxSpells,
-                color: 'bg-success'
+                color: 'bg-success',
             });
         }
 
@@ -409,7 +532,8 @@ export class ClassSpellSelector {
      * Get the maximum spell level available for a class at a given level
      */
     _getMaxSpellLevel(className, characterLevel) {
-        const classData = this.spellSelectionService._getClassSpellcastingInfo(className);
+        const classData =
+            this.spellSelectionService._getClassSpellcastingInfo(className);
         if (!classData) return 0;
 
         // Get the class data from classService to check caster progression
@@ -459,7 +583,9 @@ export class ClassSpellSelector {
      * Calculate spell slot and known spell limits
      */
     _calculateSpellLimits() {
-        const classData = this.spellSelectionService._getClassSpellcastingInfo(this.className);
+        const classData = this.spellSelectionService._getClassSpellcastingInfo(
+            this.className,
+        );
         if (!classData) {
             this.maxSpells = 0;
             this.maxCantrips = 0;
@@ -470,13 +596,25 @@ export class ClassSpellSelector {
         const previousLevel = this.currentLevel - 1;
 
         // Calculate cantrips
-        const previousCantrips = this.spellSelectionService._getCantripsKnown(this.className, previousLevel);
-        const currentCantrips = this.spellSelectionService._getCantripsKnown(this.className, this.currentLevel);
+        const previousCantrips = this.spellSelectionService._getCantripsKnown(
+            this.className,
+            previousLevel,
+        );
+        const currentCantrips = this.spellSelectionService._getCantripsKnown(
+            this.className,
+            this.currentLevel,
+        );
         this.maxCantrips = currentCantrips - previousCantrips;
 
         // Get spells known at previous level and current level
-        const previousSpellsKnown = this.spellSelectionService._getSpellsKnownLimit(this.className, previousLevel);
-        const currentSpellsKnown = this.spellSelectionService._getSpellsKnownLimit(this.className, this.currentLevel);
+        const previousSpellsKnown = this.spellSelectionService._getSpellsKnownLimit(
+            this.className,
+            previousLevel,
+        );
+        const currentSpellsKnown = this.spellSelectionService._getSpellsKnownLimit(
+            this.className,
+            this.currentLevel,
+        );
 
         // Calculate new spells = difference between levels
         const newSpells = currentSpellsKnown - previousSpellsKnown;
@@ -485,7 +623,9 @@ export class ClassSpellSelector {
         if (this.className === 'Warlock') {
             // Warlocks learn 1 spell per level (except level 1 which gives 2)
             this.maxSpells = this.currentLevel === 1 ? 2 : 1;
-        } else if (['Wizard', 'Sorcerer', 'Bard', 'Ranger'].includes(this.className)) {
+        } else if (
+            ['Wizard', 'Sorcerer', 'Bard', 'Ranger'].includes(this.className)
+        ) {
             // These classes have spellsKnownProgression or learn a fixed number per level
             this.maxSpells = newSpells > 0 ? newSpells : 2; // Default to 2 if progression not found
         } else if (['Cleric', 'Druid', 'Paladin'].includes(this.className)) {
@@ -496,15 +636,19 @@ export class ClassSpellSelector {
             this.maxSpells = newSpells > 0 ? newSpells : 0;
         }
 
-        console.debug('[LevelUpSpellSelector]', `Spell limit for ${this.className} level ${this.currentLevel}:`, {
-            previousCantrips,
-            currentCantrips,
-            newCantrips: this.maxCantrips,
-            previousSpellsKnown,
-            currentSpellsKnown,
-            newSpells,
-            maxSpells: this.maxSpells
-        });
+        console.debug(
+            '[LevelUpSpellSelector]',
+            `Spell limit for ${this.className} level ${this.currentLevel}:`,
+            {
+                previousCantrips,
+                currentCantrips,
+                newCantrips: this.maxCantrips,
+                previousSpellsKnown,
+                currentSpellsKnown,
+                newSpells,
+                maxSpells: this.maxSpells,
+            },
+        );
     }
 
     /**
@@ -517,18 +661,29 @@ export class ClassSpellSelector {
         const level = typeof spell.level === 'number' ? spell.level : 0;
         const levelText = level === 0 ? 'Cantrip' : `${level}-level`;
         const schoolName = getSchoolName(spell.school) || 'Unknown';
-        const ritualBadge = spell.meta?.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : '';
-        const concentrationBadge = spell.duration?.[0]?.concentration ? '<span class="badge bg-warning ms-2">Concentration</span>' : '';
+        const ritualBadge = spell.meta?.ritual
+            ? '<span class="badge bg-info ms-2">Ritual</span>'
+            : '';
+        const concentrationBadge = spell.duration?.[0]?.concentration
+            ? '<span class="badge bg-warning ms-2">Concentration</span>'
+            : '';
 
-        const castingTime = spell.time ? `${spell.time[0]?.number || ''} ${spell.time[0]?.unit || ''}`.trim() : 'N/A';
-        const range = spell.range?.distance ? `${spell.range.distance.amount || ''} ${spell.range.distance.type || ''}`.trim() : (spell.range?.type || 'N/A');
+        const castingTime = spell.time
+            ? `${spell.time[0]?.number || ''} ${spell.time[0]?.unit || ''}`.trim()
+            : 'N/A';
+        const range = spell.range?.distance
+            ? `${spell.range.distance.amount || ''} ${spell.range.distance.type || ''}`.trim()
+            : spell.range?.type || 'N/A';
         const duration = spell.duration?.[0]?.type || 'N/A';
 
         const components = [];
         if (spell.components?.v) components.push('V');
         if (spell.components?.s) components.push('S');
         if (spell.components?.m) {
-            const material = typeof spell.components.m === 'string' ? spell.components.m : (spell.components.m?.text || 'material');
+            const material =
+                typeof spell.components.m === 'string'
+                    ? spell.components.m
+                    : spell.components.m?.text || 'material';
             components.push(`M (${material})`);
         }
         const componentsStr = components.length ? components.join(', ') : 'N/A';
@@ -590,7 +745,9 @@ export class ClassSpellSelector {
         } else if (typeof spell.entries === 'string') {
             parts.push(await textProcessor.processString(spell.entries));
         }
-        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
+        return parts.length
+            ? parts.join(' ')
+            : '<span class="text-muted small">No description available.</span>';
     }
 
     /**
@@ -602,7 +759,7 @@ export class ClassSpellSelector {
             await this.parentStep.updateSpellSelection(
                 this.className,
                 this.currentLevel,
-                selectedSpells
+                selectedSpells,
             );
         }
     }

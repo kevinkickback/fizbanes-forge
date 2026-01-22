@@ -1,7 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
-import { raceService } from './RaceService.js';
 import { classService } from './ClassService.js';
+import { raceService } from './RaceService.js';
 class FeatService {
 	constructor() {
 		this._featData = null;

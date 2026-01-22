@@ -1,10 +1,10 @@
-/**
- * Step 2: Race
- * 
- * User selects character race and subrace.
- */
+// Step 2: Race - character race and subrace selection
 
-import { getSpeedString, SIZE_ABV_TO_FULL, sizeAbvToFull } from '../../../lib/5eToolsParser.js';
+import {
+    getSpeedString,
+    SIZE_ABV_TO_FULL,
+    sizeAbvToFull,
+} from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { getAbilityData } from '../../../services/AbilityScoreService.js';
@@ -19,9 +19,6 @@ export class CharacterStepRace {
         this._raceService = raceService;
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
         return `
             <div class="step-2-race">
@@ -116,7 +113,8 @@ export class CharacterStepRace {
             isArray: Array.isArray(savedSources),
             size: savedSources?.size,
             length: savedSources?.length,
-            values: savedSources instanceof Set ? Array.from(savedSources) : savedSources
+            values:
+                savedSources instanceof Set ? Array.from(savedSources) : savedSources,
         });
 
         if (savedSources && savedSources instanceof Set && savedSources.size > 0) {
@@ -130,10 +128,21 @@ export class CharacterStepRace {
             for (const source of savedSources) {
                 sourceService.addAllowedSource(source);
             }
-            console.debug('[Step2Race]', 'Updated sourceService with saved sources:', Array.from(sourceService.getAllowedSources()));
+            console.debug(
+                '[Step2Race]',
+                'Updated sourceService with saved sources:',
+                Array.from(sourceService.getAllowedSources()),
+            );
         } else {
-            console.warn('[Step2Race]', 'No saved sources or invalid format, using sourceService defaults');
-            console.debug('[Step2Race]', 'Current sourceService sources:', Array.from(sourceService.getAllowedSources()));
+            console.warn(
+                '[Step2Race]',
+                'No saved sources or invalid format, using sourceService defaults',
+            );
+            console.debug(
+                '[Step2Race]',
+                'Current sourceService sources:',
+                Array.from(sourceService.getAllowedSources()),
+            );
         }
 
         // Populate race dropdown
@@ -156,8 +165,12 @@ export class CharacterStepRace {
         }
 
         // Attach event listeners
-        this._cleanup.on(this._raceSelect, 'change', (e) => this._handleRaceChange(e));
-        this._cleanup.on(this._subraceSelect, 'change', (e) => this._handleSubraceChange(e));
+        this._cleanup.on(this._raceSelect, 'change', (e) =>
+            this._handleRaceChange(e),
+        );
+        this._cleanup.on(this._subraceSelect, 'change', (e) =>
+            this._handleSubraceChange(e),
+        );
 
         // Store reference to traits grid for tooltip processing
         this._traitsGrid = contentArea.querySelector('#modalTraits');
@@ -171,13 +184,13 @@ export class CharacterStepRace {
         }
 
         // Filter by allowed sources
-        const filteredRaces = races.filter(race =>
-            sourceService.isSourceAllowed(race.source)
+        const filteredRaces = races.filter((race) =>
+            sourceService.isSourceAllowed(race.source),
         );
 
         // Sort by name
         const sortedRaces = [...filteredRaces].sort((a, b) =>
-            a.name.localeCompare(b.name)
+            a.name.localeCompare(b.name),
         );
 
         // Populate select
@@ -199,15 +212,21 @@ export class CharacterStepRace {
         if (!subraces || subraces.length === 0) return;
 
         // Filter and sort
-        const filteredSubraces = subraces.filter(subrace => {
+        const filteredSubraces = subraces.filter((subrace) => {
             const subraceSource = subrace.source || race.source;
-            return subrace.name && subrace.name.trim() !== '' &&
-                sourceService.isSourceAllowed(subraceSource);
+            return (
+                subrace.name &&
+                subrace.name.trim() !== '' &&
+                sourceService.isSourceAllowed(subraceSource)
+            );
         });
 
         if (filteredSubraces.length === 0) return;
 
-        const isRequired = this._raceService.isSubraceRequired(race.name, race.source);
+        const isRequired = this._raceService.isSubraceRequired(
+            race.name,
+            race.source,
+        );
 
         // Set options
         if (!isRequired) {
@@ -219,7 +238,7 @@ export class CharacterStepRace {
         this._subraceSelect.disabled = false;
 
         const sortedSubraces = [...filteredSubraces].sort((a, b) =>
-            a.name.localeCompare(b.name)
+            a.name.localeCompare(b.name),
         );
 
         for (const subrace of sortedSubraces) {
@@ -291,7 +310,7 @@ export class CharacterStepRace {
         const section = document.getElementById('modalAbilityScores');
         const abilityArray = [
             ...(race?.ability || []),
-            ...(subrace?.ability || [])
+            ...(subrace?.ability || []),
         ];
 
         if (abilityArray.length === 0) {
@@ -300,8 +319,10 @@ export class CharacterStepRace {
         }
 
         const data = getAbilityData(abilityArray);
-        const improvements = (data.asTextShort || data.asText || 'None').split('\n');
-        section.innerHTML = improvements.map(imp => `<li>${imp}</li>`).join('');
+        const improvements = (data.asTextShort || data.asText || 'None').split(
+            '\n',
+        );
+        section.innerHTML = improvements.map((imp) => `<li>${imp}</li>`).join('');
     }
 
     _updateSize(race) {
@@ -310,7 +331,7 @@ export class CharacterStepRace {
 
         if (race?.size) {
             if (Array.isArray(race.size)) {
-                sizeValue = race.size.map(s => sizeAbvToFull(s)).join(' or ');
+                sizeValue = race.size.map((s) => sizeAbvToFull(s)).join(' or ');
             } else {
                 sizeValue = sizeAbvToFull(race.size);
             }
@@ -346,18 +367,26 @@ export class CharacterStepRace {
             speeds.push(getSpeedString(30)); // Default 30 ft.
         }
 
-        section.innerHTML = speeds.map(speed => `<li>${speed}</li>`).join('');
+        section.innerHTML = speeds.map((speed) => `<li>${speed}</li>`).join('');
     }
 
     _updateLanguages(race) {
         const section = document.getElementById('modalLanguages');
         const languages = [];
 
-        if (race?.languageProficiencies && Array.isArray(race.languageProficiencies)) {
+        if (
+            race?.languageProficiencies &&
+            Array.isArray(race.languageProficiencies)
+        ) {
             for (const profObj of race.languageProficiencies) {
                 for (const [key, value] of Object.entries(profObj)) {
                     const keyLower = key.toLowerCase();
-                    if (value === true && keyLower !== 'anystandard' && keyLower !== 'any' && keyLower !== 'choose') {
+                    if (
+                        value === true &&
+                        keyLower !== 'anystandard' &&
+                        keyLower !== 'any' &&
+                        keyLower !== 'choose'
+                    ) {
                         if (keyLower === 'other' && race.name !== 'Common') {
                             languages.push(race.name);
                         } else if (keyLower !== 'other') {
@@ -390,7 +419,11 @@ export class CharacterStepRace {
         // Add race traits
         if (race?.entries) {
             for (const entry of race.entries) {
-                if (entry.type === 'entries' && entry.name && !excludedNames.includes(entry.name)) {
+                if (
+                    entry.type === 'entries' &&
+                    entry.name &&
+                    !excludedNames.includes(entry.name)
+                ) {
                     traits.push(entry);
                 }
             }
@@ -399,29 +432,35 @@ export class CharacterStepRace {
         // Add subrace traits
         if (subrace?.entries) {
             for (const entry of subrace.entries) {
-                if (entry.type === 'entries' && entry.name && !excludedNames.includes(entry.name)) {
+                if (
+                    entry.type === 'entries' &&
+                    entry.name &&
+                    !excludedNames.includes(entry.name)
+                ) {
                     traits.push(entry);
                 }
             }
         }
 
         if (traits.length === 0) {
-            this._traitsGrid.innerHTML = '<span class="trait-tag">No traits available</span>';
+            this._traitsGrid.innerHTML =
+                '<span class="trait-tag">No traits available</span>';
         } else {
             // Build trait tags with hover tooltips
-            const traitTags = traits.map(trait => {
-                const escapedName = this._escapeHtml(trait.name);
+            const traitTags = traits
+                .map((trait) => {
+                    const escapedName = this._escapeHtml(trait.name);
 
-                // Build description from entries
-                let description = '';
-                if (trait.entries && Array.isArray(trait.entries)) {
-                    description = trait.entries
-                        .filter(e => typeof e === 'string')
-                        .map(e => `<p>${this._escapeHtml(e)}</p>`)
-                        .join('');
-                }
+                    // Build description from entries
+                    let description = '';
+                    if (trait.entries && Array.isArray(trait.entries)) {
+                        description = trait.entries
+                            .filter((e) => typeof e === 'string')
+                            .map((e) => `<p>${this._escapeHtml(e)}</p>`)
+                            .join('');
+                    }
 
-                return `
+                    return `
                     <a class="trait-tag rd__hover-link" 
                         data-hover-type="trait" 
                         data-hover-name="${escapedName}"
@@ -429,7 +468,8 @@ export class CharacterStepRace {
                         ${escapedName}
                     </a>
                 `;
-            }).join('');
+                })
+                .join('');
 
             this._traitsGrid.innerHTML = traitTags;
 
@@ -439,12 +479,17 @@ export class CharacterStepRace {
     }
 
     _resetDetails() {
-        document.getElementById('modalAbilityScores').innerHTML = '<li class="placeholder-text">—</li>';
-        document.getElementById('modalSize').innerHTML = '<li class="placeholder-text">—</li>';
-        document.getElementById('modalSpeed').innerHTML = '<li class="placeholder-text">—</li>';
-        document.getElementById('modalLanguages').innerHTML = '<li class="placeholder-text">—</li>';
+        document.getElementById('modalAbilityScores').innerHTML =
+            '<li class="placeholder-text">—</li>';
+        document.getElementById('modalSize').innerHTML =
+            '<li class="placeholder-text">—</li>';
+        document.getElementById('modalSpeed').innerHTML =
+            '<li class="placeholder-text">—</li>';
+        document.getElementById('modalLanguages').innerHTML =
+            '<li class="placeholder-text">—</li>';
         if (this._traitsGrid) {
-            this._traitsGrid.innerHTML = '<span class="trait-tag">No traits available</span>';
+            this._traitsGrid.innerHTML =
+                '<span class="trait-tag">No traits available</span>';
         }
     }
 
@@ -465,11 +510,14 @@ export class CharacterStepRace {
         console.debug('[Step2Race]', 'Validating race:', {
             raceValue,
             raceName,
-            source
+            source,
         });
 
         if (!raceName || !source) {
-            console.error('[Step2Race]', 'Failed to parse race value:', { raceValue, parts });
+            console.error('[Step2Race]', 'Failed to parse race value:', {
+                raceValue,
+                parts,
+            });
             return false;
         }
 
@@ -480,7 +528,7 @@ export class CharacterStepRace {
             raceName,
             source,
             isRequired,
-            subraceValue: this._subraceSelect?.value
+            subraceValue: this._subraceSelect?.value,
         });
 
         if (isRequired) {
@@ -511,7 +559,7 @@ export class CharacterStepRace {
         this.session.set('race', {
             name: raceName,
             source,
-            subrace: subraceValue
+            subrace: subraceValue,
         });
 
         console.debug('[Step2Race]', 'Saved race data:', this.session.get('race'));
@@ -529,9 +577,9 @@ export class CharacterStepRace {
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            "'": '&#039;'
+            "'": '&#039;',
         };
-        return str.replace(/[&<>"']/g, m => map[m]);
+        return str.replace(/[&<>"']/g, (m) => map[m]);
     }
 
     /**

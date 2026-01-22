@@ -43,7 +43,7 @@ export class FeatSelectionModal {
 		if (!this._selectionLimit) {
 			showNotification(
 				this._availability.blockedReason ||
-				'No feat selections available for this character.',
+					'No feat selections available for this character.',
 				'warning',
 			);
 			return null;
@@ -221,7 +221,11 @@ export class FeatSelectionModal {
 					slot.innerHTML = description;
 				}
 			} catch (error) {
-				console.error('[FeatSelectionModal]', 'Failed to process description', error);
+				console.error(
+					'[FeatSelectionModal]',
+					'Failed to process description',
+					error,
+				);
 			}
 
 			setTimeout(() => processNext(index + 1), 0);
@@ -274,10 +278,14 @@ export class FeatSelectionModal {
 
 		const note = document.createElement('div');
 		note.className = 'text-muted small';
-		note.textContent = 'Race requirements can be ignored; other prerequisites remain enforced.';
+		note.textContent =
+			'Race requirements can be ignored; other prerequisites remain enforced.';
 		body.appendChild(note);
 
-		if (Array.isArray(this._availability?.reasons) && this._availability.reasons.length) {
+		if (
+			Array.isArray(this._availability?.reasons) &&
+			this._availability.reasons.length
+		) {
 			const reasonList = document.createElement('div');
 			reasonList.className = 'text-muted small mt-2';
 			reasonList.innerHTML = `Origins: ${this._availability.reasons
@@ -295,9 +303,8 @@ export class FeatSelectionModal {
 		if (okButton) {
 			const count = state?.selectedItems?.length || 0;
 			okButton.disabled = count === 0;
-			okButton.innerHTML = count > 0
-				? `Add ${count} Feat${count > 1 ? 's' : ''}`
-				: 'Add Feats';
+			okButton.innerHTML =
+				count > 0 ? `Add ${count} Feat${count > 1 ? 's' : ''}` : 'Add Feats';
 		}
 
 		this._renderSelectionLimitIndicator(state);
@@ -308,7 +315,8 @@ export class FeatSelectionModal {
 		const indicator = document.getElementById('featSelectionLimitIndicator');
 		if (!indicator) return;
 
-		const total = this._selectionLimit === null ? '∞' : this._selectionLimit || 0;
+		const total =
+			this._selectionLimit === null ? '∞' : this._selectionLimit || 0;
 		const selected = state?.selectedItems?.length || 0;
 		const reasons = this._availability?.reasons || [];
 
@@ -325,8 +333,7 @@ export class FeatSelectionModal {
 		if (!list) return;
 
 		const atLimit =
-			this._selectionLimit &&
-			state?.selectedIds?.size >= this._selectionLimit;
+			this._selectionLimit && state?.selectedIds?.size >= this._selectionLimit;
 
 		list.querySelectorAll('[data-feat-id]').forEach((el) => {
 			const id = el.getAttribute('data-feat-id');
@@ -361,7 +368,10 @@ export class FeatSelectionModal {
 
 		return selected.map((feat, idx) => ({
 			...feat,
-			origin: feat.origin || this._formatOrigin(reasons[idx % reasons.length]) || 'Unknown',
+			origin:
+				feat.origin ||
+				this._formatOrigin(reasons[idx % reasons.length]) ||
+				'Unknown',
 		}));
 	}
 
@@ -516,7 +526,7 @@ export class FeatListView {
 		// Build updated data and clean progression level-ups that recorded this feat
 		const updatedData = {
 			...character,
-			feats: character.feats.filter((f) => f.name !== featName)
+			feats: character.feats.filter((f) => f.name !== featName),
 		};
 
 		const levelUps = Array.isArray(character.progression?.levelUps)
@@ -525,15 +535,23 @@ export class FeatListView {
 
 		const cleanedLevelUps = levelUps
 			.map((lu) => {
-				if (Array.isArray(lu.appliedFeats) && lu.appliedFeats.includes(featName)) {
-					return { ...lu, appliedFeats: lu.appliedFeats.filter((n) => n !== featName) };
+				if (
+					Array.isArray(lu.appliedFeats) &&
+					lu.appliedFeats.includes(featName)
+				) {
+					return {
+						...lu,
+						appliedFeats: lu.appliedFeats.filter((n) => n !== featName),
+					};
 				}
 				return lu;
 			})
 			.filter((lu) => {
 				const noFeat = !lu.appliedFeats || lu.appliedFeats.length === 0;
-				const noASI = !lu.changedAbilities || Object.keys(lu.changedAbilities).length === 0;
-				const noFeatures = !lu.appliedFeatures || lu.appliedFeatures.length === 0;
+				const noASI =
+					!lu.changedAbilities || Object.keys(lu.changedAbilities).length === 0;
+				const noFeatures =
+					!lu.appliedFeatures || lu.appliedFeatures.length === 0;
 				return !(noFeat && noASI && noFeatures);
 			});
 

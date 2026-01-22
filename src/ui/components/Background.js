@@ -5,7 +5,11 @@ import { CharacterManager } from '../../app/CharacterManager.js';
 import DataNormalizer from '../../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../lib/EventBus.js';
 
-import { toSentenceCase, toTitleCase, unpackUid } from '../../lib/5eToolsParser.js';
+import {
+	toSentenceCase,
+	toTitleCase,
+	unpackUid,
+} from '../../lib/5eToolsParser.js';
 import { textProcessor } from '../../lib/TextProcessor.js';
 import { backgroundService } from '../../services/BackgroundService.js';
 import { sourceService } from '../../services/SourceService.js';
@@ -300,8 +304,8 @@ export class BackgroundCard extends BaseCard {
 		const hasChanged = !background
 			? character.background?.name || character.background?.source
 			: character.background?.name !== background.name ||
-			character.background?.source !== background.source ||
-			character.background?.variant !== (variant?.name || null);
+				character.background?.source !== background.source ||
+				character.background?.variant !== (variant?.name || null);
 
 		if (hasChanged) {
 			// Clear previous background proficiencies
@@ -403,9 +407,7 @@ export class BackgroundCard extends BaseCard {
 				);
 				const validSelections = prevBackgroundSkillsSelected.filter(
 					(skill) =>
-						normalizedFrom.includes(
-							DataNormalizer.normalizeForLookup(skill),
-						) &&
+						normalizedFrom.includes(DataNormalizer.normalizeForLookup(skill)) &&
 						!character.proficiencies.skills.includes(skill) &&
 						!fixedProfs.skills.includes(skill),
 				);
@@ -1099,9 +1101,9 @@ class BackgroundDetailsView {
 
 		const description = Array.isArray(featureEntry.entries)
 			? featureEntry.entries
-				.map((e) => (typeof e === 'string' ? e : ''))
-				.filter(Boolean)
-				.join(' ')
+					.map((e) => (typeof e === 'string' ? e : ''))
+					.filter(Boolean)
+					.join(' ')
 			: featureEntry.entry || '';
 
 		return {

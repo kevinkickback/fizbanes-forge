@@ -2,10 +2,7 @@ import { AppState } from '../app/AppState.js';
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus } from '../lib/EventBus.js';
 
-/**
- * Shared helpers for renderer data services.
- * Handles basic caching, initialization guard, and optional event emission.
- */
+/** Shared helpers for renderer data services: caching, initialization, and event emission. */
 export class BaseDataService {
 	constructor({
 		cacheKey = null,
@@ -24,10 +21,7 @@ export class BaseDataService {
 		return Boolean(this._data);
 	}
 
-	/**
-	 * Hydrate service data from AppState cache when available.
-	 * @returns {*} Cached data or null if unavailable
-	 */
+	/** Hydrate service data from AppState cache when available. */
 	hydrateFromCache() {
 		if (!this._cacheKey) return null;
 		const cached = AppState.getLoadedData(this._cacheKey);
@@ -39,11 +33,7 @@ export class BaseDataService {
 		return null;
 	}
 
-	/**
-	 * Persist data locally and optionally into AppState.
-	 * @param {*} data Data object to store
-	 * @returns {*} Stored data
-	 */
+	/** Persist data locally and optionally into AppState. */
 	setData(data) {
 		this._data = data;
 		if (this._cacheKey) {
@@ -52,10 +42,7 @@ export class BaseDataService {
 		return this._data;
 	}
 
-	/**
-	 * Emit the configured load event, if any.
-	 * @param {*} payload Payload to emit (array is spread into args)
-	 */
+	/** Emit the configured load event, if any. */
 	emitLoaded(payload = this._data) {
 		if (!this._loadEvent) return;
 		if (Array.isArray(payload)) {
@@ -70,15 +57,7 @@ export class BaseDataService {
 		this._data = null;
 	}
 
-	/**
-	 * Standardized initialization flow with caching and error handling.
-	 * @param {Function} loaderFn Async loader returning data
-	 * @param {Object} [options]
-	 * @param {Function} [options.onLoaded] Callback invoked with data and meta flags
-	 * @param {Function} [options.emitPayload] Function returning payload for emitLoaded
-	 * @param {Function} [options.onError] Callback invoked on error, should return fallback data
-	 * @returns {*} Loaded data
-	 */
+	/** Standardized initialization flow with caching and error handling. */
 	async initWithLoader(loaderFn, { onLoaded, emitPayload, onError } = {}) {
 		// If already initialized, return cached data
 		if (this.isInitialized()) return this._data;
@@ -130,14 +109,7 @@ export class BaseDataService {
 		return this._initPromise;
 	}
 
-	/**
-	 * Build a lookup map from an array of items by normalized name.
-	 * Supports both single values and arrays of values per name (for name collisions).
-	 * @param {Array<Object>} items Array of items to index
-	 * @param {Object} [options]
-	 * @param {boolean} [options.allowMultiple=false] If true, stores arrays; otherwise single value
-	 * @returns {Map} Map with normalized name keys and item(s) as values
-	 */
+	/** Build a lookup map from an array of items by normalized name. */
 	buildLookupMap(items = [], { allowMultiple = false } = {}) {
 		const map = new Map();
 		for (const item of items) {
@@ -153,12 +125,7 @@ export class BaseDataService {
 		return map;
 	}
 
-	/**
-	 * Lookup a single item by normalized name from a lookup map.
-	 * @param {Map} lookupMap Map from buildLookupMap()
-	 * @param {string} name Item name to look up
-	 * @returns {Object|null} First matching item or null
-	 */
+	/** Lookup a single item by normalized name from a lookup map. */
 	lookupByName(lookupMap, name) {
 		if (!lookupMap || !name) return null;
 		const normalized = DataNormalizer.normalizeForLookup(name);
@@ -167,15 +134,7 @@ export class BaseDataService {
 		return Array.isArray(result) ? (result.length > 0 ? result[0] : null) : result || null;
 	}
 
-	/**
-	 * Lookup an item by name and source code.
-	 * Performs O(1) name lookup, then O(n) source verification within matches.
-	 * Falls back to first match if exact source not found.
-	 * @param {Map} lookupMap Map from buildLookupMap()
-	 * @param {string} name Item name
-	 * @param {string} [source=null] Source code to match (optional)
-	 * @returns {Object|null} Matching item or null
-	 */
+	/** Lookup an item by name and source code with O(1) name lookup. */
 	lookupByNameAndSource(lookupMap, name, source = null) {
 		if (!lookupMap || !name) return null;
 		const normalized = DataNormalizer.normalizeForLookup(name);

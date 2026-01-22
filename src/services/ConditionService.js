@@ -47,19 +47,11 @@ class ConditionService {
 		}
 	}
 
-	/**
-	 * Get all available conditions
-	 * @returns {Array<Object>} Array of condition objects
-	 */
 	getAllConditions() {
 		return this._conditionData?.condition || [];
 	}
 
-	/**
-	 * Get a specific condition by name (case-insensitive)
-	 * @param {string} conditionName - Condition name
-	 * @returns {Object|null} Condition object or null if not found
-	 */
+	/** Get a specific condition by name (case-insensitive). */
 	getCondition(conditionName) {
 		if (!this._conditionMap) return null;
 		return (

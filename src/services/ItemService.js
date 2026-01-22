@@ -118,7 +118,4 @@ class ItemService extends BaseDataService {
 	}
 }
 
-/**
- * Global ItemManager instance
- */
 export const itemService = new ItemService();

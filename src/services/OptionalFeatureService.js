@@ -1,9 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { BaseDataService } from './BaseDataService.js';
 
-/**
- * Service for managing optional class features like Metamagic, Maneuvers, Invocations, Fighting Styles
- */
+/** Service for managing optional class features (Metamagic, Maneuvers, Invocations, etc). */
 class OptionalFeatureService extends BaseDataService {
     constructor() {
         super('optionalfeatures');
@@ -35,19 +33,11 @@ class OptionalFeatureService extends BaseDataService {
         );
     }
 
-    /**
-     * Get all optional features
-     * @returns {Array<Object>} Array of optional feature objects
-     */
     getAllOptionalFeatures() {
         return this._data?.optionalfeature || [];
     }
 
-    /**
-     * Get optional features by feature type(s)
-     * @param {string|Array<string>} featureTypes - Feature type code(s) (EI, MM, MV:B, FS:F, etc.)
-     * @returns {Array<Object>} Array of matching optional feature objects
-     */
+    /** Get optional features by feature type(s). */
     getFeaturesByType(featureTypes) {
         const types = Array.isArray(featureTypes) ? featureTypes : [featureTypes];
         return this.getAllOptionalFeatures().filter((feature) =>
@@ -55,35 +45,19 @@ class OptionalFeatureService extends BaseDataService {
         );
     }
 
-    /**
-     * Get Eldritch Invocations (Warlock)
-     * @returns {Array<Object>} Array of invocation objects
-     */
     getEldritchInvocations() {
         return this.getFeaturesByType('EI');
     }
 
-    /**
-     * Get Metamagic options (Sorcerer)
-     * @returns {Array<Object>} Array of metamagic objects
-     */
     getMetamagicOptions() {
         return this.getFeaturesByType('MM');
     }
 
-    /**
-     * Get Battle Master Maneuvers (Fighter)
-     * @returns {Array<Object>} Array of maneuver objects
-     */
     getManeuvers() {
         return this.getFeaturesByType('MV:B');
     }
 
-    /**
-     * Get Fighting Styles for a specific class
-     * @param {string} className - Class name (Fighter, Ranger, Paladin)
-     * @returns {Array<Object>} Array of fighting style objects
-     */
+    /** Get Fighting Styles for a specific class. */
     getFightingStyles(className) {
         const typeMap = {
             Fighter: ['FS:F', 'FS:B'],
@@ -94,29 +68,15 @@ class OptionalFeatureService extends BaseDataService {
         return this.getFeaturesByType(types);
     }
 
-    /**
-     * Get Pact Boons (Warlock)
-     * @returns {Array<Object>} Array of pact boon objects
-     */
     getPactBoons() {
         return this.getFeaturesByType('PB');
     }
 
-    /**
-     * Get Artificer Infusions
-     * @returns {Array<Object>} Array of infusion objects
-     */
     getArtificerInfusions() {
         return this.getFeaturesByType('AI');
     }
 
-    /**
-     * Check if an optional feature meets prerequisites
-     * @param {Object} feature - The optional feature object
-     * @param {Object} character - Character object with level, class, spells, etc.
-     * @param {string} className - Optional class name for class-specific level checks
-     * @returns {boolean} True if prerequisites are met
-     */
+    /** Check if an optional feature meets prerequisites. */
     meetsPrerequisites(feature, character, className = null) {
         if (!feature.prerequisite) return true;
 

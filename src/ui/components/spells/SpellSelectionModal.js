@@ -10,155 +10,177 @@ import { FilterBuilder } from '../selection/FilterBuilder.js';
 import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
 export class SpellSelectionModal {
-    constructor({ className = null, allowClose = true, ignoreClassRestrictions = false } = {}) {
-        this.className = className;
-        this.allowClose = allowClose;
-        this.ignoreClassRestrictions = !!ignoreClassRestrictions;
-        this.descriptionCache = new Map();
-        this._controller = null;
-    }
+	constructor({
+		className = null,
+		allowClose = true,
+		ignoreClassRestrictions = false,
+	} = {}) {
+		this.className = className;
+		this.allowClose = allowClose;
+		this.ignoreClassRestrictions = !!ignoreClassRestrictions;
+		this.descriptionCache = new Map();
+		this._controller = null;
+	}
 
-    async show() {
-        const character = AppState.getCurrentCharacter();
-        if (!character) {
-            showNotification('No character selected', 'error');
-            return null;
-        }
-        if (!this.className) {
-            showNotification('No class selected for spell selection', 'error');
-            return null;
-        }
+	async show() {
+		const character = AppState.getCurrentCharacter();
+		if (!character) {
+			showNotification('No character selected', 'error');
+			return null;
+		}
+		if (!this.className) {
+			showNotification('No class selected for spell selection', 'error');
+			return null;
+		}
 
-        this._ensureController();
-        const result = await this._controller.show(this._getContext());
-        if (Array.isArray(result)) return result; // selected items
-        return null;
-    }
+		this._ensureController();
+		const result = await this._controller.show(this._getContext());
+		if (Array.isArray(result)) return result; // selected items
+		return null;
+	}
 
-    _getContext() {
-        return {
-            character: AppState.getCurrentCharacter(),
-            className: this.className,
-        };
-    }
+	_getContext() {
+		return {
+			character: AppState.getCurrentCharacter(),
+			className: this.className,
+		};
+	}
 
-    _ensureController() {
-        if (this._controller) return;
+	_ensureController() {
+		if (this._controller) return;
 
-        this._controller = new UniversalSelectionModal({
-            modalId: 'universalSpellSelectionModal',
-            modalTitle: `Add Spell (${this.className})`,
-            allowClose: this.allowClose,
-            pageSize: 50,
-            listContainerSelector: '.spell-list-container',
-            selectedContainerSelector: '.selected-spells-container',
-            searchInputSelector: '.spell-search-input',
-            filterToggleSelector: '.spell-filter-toggle-btn',
-            filterPanelSelector: '.spell-filters-column',
-            confirmSelector: '.btn-confirm',
-            cancelSelector: '.btn-cancel',
-            itemIdAttribute: 'data-spell-id',
-            selectionMode: 'multiple',
-            selectionLimit: null,
-            getContext: () => this._getContext(),
-            getInitialSelection: () => [],
-            loadItems: (ctx) => this._loadValidSpells(ctx),
-            matchItem: (spell, state) => this._spellMatchesFilters(spell, state),
-            renderItem: (spell, state) => this._renderSpellCard(spell, state),
-            getItemId: (spell) => spell.id,
-            onConfirm: (selected) => this._handleConfirm(selected),
-            onCancel: () => this._handleCancel(),
-            buildFilters: (ctx, panel, cleanup) => this._buildFilters(ctx, panel, cleanup),
-            onSelectionChange: (_state) => { },
-            onListRendered: (_state) => { },
-            descriptionCache: this.descriptionCache,
-            fetchDescription: (spell) => this._fetchSpellDescription(spell),
-            descriptionContainerSelector: '.spell-description',
-        });
-    }
+		this._controller = new UniversalSelectionModal({
+			modalId: 'universalSpellSelectionModal',
+			modalTitle: `Add Spell (${this.className})`,
+			allowClose: this.allowClose,
+			pageSize: 50,
+			listContainerSelector: '.spell-list-container',
+			selectedContainerSelector: '.selected-spells-container',
+			searchInputSelector: '.spell-search-input',
+			filterToggleSelector: '.spell-filter-toggle-btn',
+			filterPanelSelector: '.spell-filters-column',
+			confirmSelector: '.btn-confirm',
+			cancelSelector: '.btn-cancel',
+			itemIdAttribute: 'data-spell-id',
+			selectionMode: 'multiple',
+			selectionLimit: null,
+			getContext: () => this._getContext(),
+			getInitialSelection: () => [],
+			loadItems: (ctx) => this._loadValidSpells(ctx),
+			matchItem: (spell, state) => this._spellMatchesFilters(spell, state),
+			renderItem: (spell, state) => this._renderSpellCard(spell, state),
+			getItemId: (spell) => spell.id,
+			onConfirm: (selected) => this._handleConfirm(selected),
+			onCancel: () => this._handleCancel(),
+			buildFilters: (ctx, panel, cleanup) =>
+				this._buildFilters(ctx, panel, cleanup),
+			onSelectionChange: (_state) => {},
+			onListRendered: (_state) => {},
+			descriptionCache: this.descriptionCache,
+			fetchDescription: (spell) => this._fetchSpellDescription(spell),
+			descriptionContainerSelector: '.spell-description',
+		});
+	}
 
-    async _loadValidSpells(ctx) {
-        const allSpells = spellService.getAllSpells();
-        const allowedSources = new Set(sourceService.getAllowedSources().map((s) => (s || '').toLowerCase()));
-        const character = ctx.character;
-        const className = ctx.className;
+	async _loadValidSpells(ctx) {
+		const allSpells = spellService.getAllSpells();
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => (s || '').toLowerCase()),
+		);
+		const character = ctx.character;
+		const className = ctx.className;
 
-        const valid = allSpells
-            .filter((spell) => {
-                const spellSource = (spell.source || '').toLowerCase();
-                if (!allowedSources.has(spellSource)) return false;
-                if (!this.ignoreClassRestrictions) {
-                    if (!spellService.isSpellAvailableForClass(spell, className)) return false;
-                }
-                const classSpellcasting = character.spellcasting?.classes?.[className];
-                if (classSpellcasting?.spellsKnown) {
-                    const isKnown = classSpellcasting.spellsKnown.some(
-                        (s) => s.name === spell.name && s.source === spell.source,
-                    );
-                    if (isKnown) return false;
-                }
-                return true;
-            })
-            .map((spell) => ({
-                ...spell,
-                id: spell.id || `${spell.name}|${spell.source}`.toLowerCase().replace(/\s+/g, '-'),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+		const valid = allSpells
+			.filter((spell) => {
+				const spellSource = (spell.source || '').toLowerCase();
+				if (!allowedSources.has(spellSource)) return false;
+				if (!this.ignoreClassRestrictions) {
+					if (!spellService.isSpellAvailableForClass(spell, className))
+						return false;
+				}
+				const classSpellcasting = character.spellcasting?.classes?.[className];
+				if (classSpellcasting?.spellsKnown) {
+					const isKnown = classSpellcasting.spellsKnown.some(
+						(s) => s.name === spell.name && s.source === spell.source,
+					);
+					if (isKnown) return false;
+				}
+				return true;
+			})
+			.map((spell) => ({
+				...spell,
+				id:
+					spell.id ||
+					`${spell.name}|${spell.source}`.toLowerCase().replace(/\s+/g, '-'),
+			}))
+			.sort((a, b) => a.name.localeCompare(b.name));
 
-        return valid;
-    }
+		return valid;
+	}
 
-    _spellMatchesFilters(spell, state) {
-        const term = (state.searchTerm || '').trim().toLowerCase();
-        if (term) {
-            const name = (spell.name || '').toLowerCase();
-            if (!name.includes(term)) return false;
-        }
-        // Additional filters are attached to DOM via FilterBuilder and stored on instance
-        if (this.levelFilters && this.levelFilters.size > 0) {
-            const lvl = Number(spell.level || 0);
-            if (!this.levelFilters.has(String(lvl))) return false;
-        }
-        if (this.schoolFilters && this.schoolFilters.size > 0) {
-            const school = spell.school || '';
-            if (!this.schoolFilters.has(school)) return false;
-        }
-        if (this.ritualOnly === true) {
-            if (!spell.meta?.ritual) return false;
-        }
-        if (this.concentrationOnly === true) {
-            if (!spell.duration?.[0]?.concentration) return false;
-        }
-        return true;
-    }
+	_spellMatchesFilters(spell, state) {
+		const term = (state.searchTerm || '').trim().toLowerCase();
+		if (term) {
+			const name = (spell.name || '').toLowerCase();
+			if (!name.includes(term)) return false;
+		}
+		// Additional filters are attached to DOM via FilterBuilder and stored on instance
+		if (this.levelFilters && this.levelFilters.size > 0) {
+			const lvl = Number(spell.level || 0);
+			if (!this.levelFilters.has(String(lvl))) return false;
+		}
+		if (this.schoolFilters && this.schoolFilters.size > 0) {
+			const school = spell.school || '';
+			if (!this.schoolFilters.has(school)) return false;
+		}
+		if (this.ritualOnly === true) {
+			if (!spell.meta?.ritual) return false;
+		}
+		if (this.concentrationOnly === true) {
+			if (!spell.duration?.[0]?.concentration) return false;
+		}
+		return true;
+	}
 
-    _renderSpellCard(spell, state) {
-        const isSelected = state?.selectedIds?.has(spell.id);
-        const level = spell.level !== undefined ? spell.level : 0;
-        const levelText = level === 0 ? 'Cantrip' : `${level}-level`;
-        const school = getSchoolName(spell.school) || 'Unknown';
-        const ritual = spell.meta?.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : '';
-        const concentration = spell.duration?.[0]?.concentration ? '<span class="badge bg-warning ms-2">Concentration</span>' : '';
+	_renderSpellCard(spell, state) {
+		const isSelected = state?.selectedIds?.has(spell.id);
+		const level = spell.level !== undefined ? spell.level : 0;
+		const levelText = level === 0 ? 'Cantrip' : `${level}-level`;
+		const school = getSchoolName(spell.school) || 'Unknown';
+		const ritual = spell.meta?.ritual
+			? '<span class="badge bg-info ms-2">Ritual</span>'
+			: '';
+		const concentration = spell.duration?.[0]?.concentration
+			? '<span class="badge bg-warning ms-2">Concentration</span>'
+			: '';
 
-        // Parse spell details
-        const castingTime = spell.time ? `${spell.time[0]?.number || ''} ${spell.time[0]?.unit || ''}`.trim() : 'N/A';
-        const range = spell.range?.distance ? `${spell.range.distance.amount || ''} ${spell.range.distance.type || ''}`.trim() : 'N/A';
-        const duration = spell.duration?.[0]?.type || 'N/A';
+		// Parse spell details
+		const castingTime = spell.time
+			? `${spell.time[0]?.number || ''} ${spell.time[0]?.unit || ''}`.trim()
+			: 'N/A';
+		const range = spell.range?.distance
+			? `${spell.range.distance.amount || ''} ${spell.range.distance.type || ''}`.trim()
+			: 'N/A';
+		const duration = spell.duration?.[0]?.type || 'N/A';
 
-        const components = [];
-        if (spell.components?.v) components.push('V');
-        if (spell.components?.s) components.push('S');
-        if (spell.components?.m) {
-            const material = typeof spell.components.m === 'string' ? spell.components.m : 'material component';
-            components.push(`M (${material})`);
-        }
-        const componentsText = components.length > 0 ? components.join(', ') : 'N/A';
+		const components = [];
+		if (spell.components?.v) components.push('V');
+		if (spell.components?.s) components.push('S');
+		if (spell.components?.m) {
+			const material =
+				typeof spell.components.m === 'string'
+					? spell.components.m
+					: 'material component';
+			components.push(`M (${material})`);
+		}
+		const componentsText =
+			components.length > 0 ? components.join(', ') : 'N/A';
 
-        const desc = this.descriptionCache.has(spell.id)
-            ? this.descriptionCache.get(spell.id)
-            : '<span class="text-muted small">Loading...</span>';
+		const desc = this.descriptionCache.has(spell.id)
+			? this.descriptionCache.get(spell.id)
+			: '<span class="text-muted small">Loading...</span>';
 
-        return `
+		return `
             <div class="spell-card ${isSelected ? 'selected' : ''}" data-spell-id="${spell.id}">
                 <div class="spell-card-header">
                     <div>
@@ -192,132 +214,169 @@ export class SpellSelectionModal {
                 </div>
             </div>
         `;
-    }
+	}
 
-    async _fetchSpellDescription(spell) {
-        const parts = [];
-        if (Array.isArray(spell.entries)) {
-            for (const entry of spell.entries) {
-                if (typeof entry === 'string') {
-                    parts.push(await textProcessor.processString(entry));
-                } else if (Array.isArray(entry?.entries)) {
-                    for (const sub of entry.entries) {
-                        if (typeof sub === 'string') {
-                            parts.push(await textProcessor.processString(sub));
-                        }
-                    }
-                }
-            }
-        } else if (typeof spell.entries === 'string') {
-            parts.push(await textProcessor.processString(spell.entries));
-        }
-        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
-    }
+	async _fetchSpellDescription(spell) {
+		const parts = [];
+		if (Array.isArray(spell.entries)) {
+			for (const entry of spell.entries) {
+				if (typeof entry === 'string') {
+					parts.push(await textProcessor.processString(entry));
+				} else if (Array.isArray(entry?.entries)) {
+					for (const sub of entry.entries) {
+						if (typeof sub === 'string') {
+							parts.push(await textProcessor.processString(sub));
+						}
+					}
+				}
+			}
+		} else if (typeof spell.entries === 'string') {
+			parts.push(await textProcessor.processString(spell.entries));
+		}
+		return parts.length
+			? parts.join(' ')
+			: '<span class="text-muted small">No description available.</span>';
+	}
 
-    _buildFilters(_ctx, panel, cleanup) {
-        if (!panel) return;
-        panel.innerHTML = '';
+	_buildFilters(_ctx, panel, cleanup) {
+		if (!panel) return;
+		panel.innerHTML = '';
 
-        this.levelFilters = this.levelFilters || new Set();
-        this.schoolFilters = this.schoolFilters || new Set();
-        this.ritualOnly = this.ritualOnly ?? null;
-        this.concentrationOnly = this.concentrationOnly ?? null;
+		this.levelFilters = this.levelFilters || new Set();
+		this.schoolFilters = this.schoolFilters || new Set();
+		this.ritualOnly = this.ritualOnly ?? null;
+		this.concentrationOnly = this.concentrationOnly ?? null;
 
-        const builder = new FilterBuilder(panel, cleanup);
+		const builder = new FilterBuilder(panel, cleanup);
 
-        builder.addCheckboxGroup({
-            title: 'Spell Level',
-            options: [
-                { label: 'Cantrip', value: '0' },
-                { label: '1st', value: '1' },
-                { label: '2nd', value: '2' },
-                { label: '3rd', value: '3' },
-                { label: '4th', value: '4' },
-                { label: '5th', value: '5' },
-                { label: '6th', value: '6' },
-                { label: '7th', value: '7' },
-                { label: '8th', value: '8' },
-                { label: '9th', value: '9' },
-            ],
-            stateSet: this.levelFilters,
-            onChange: () => this._controller._renderList(),
-            columns: 2,
-        });
+		builder.addCheckboxGroup({
+			title: 'Spell Level',
+			options: [
+				{ label: 'Cantrip', value: '0' },
+				{ label: '1st', value: '1' },
+				{ label: '2nd', value: '2' },
+				{ label: '3rd', value: '3' },
+				{ label: '4th', value: '4' },
+				{ label: '5th', value: '5' },
+				{ label: '6th', value: '6' },
+				{ label: '7th', value: '7' },
+				{ label: '8th', value: '8' },
+				{ label: '9th', value: '9' },
+			],
+			stateSet: this.levelFilters,
+			onChange: () => this._controller._renderList(),
+			columns: 2,
+		});
 
-        const schoolOptions = Array.from(new Set(spellService.getAllSpells().map(s => s.school).filter(Boolean)))
-            .sort()
-            .map(code => ({ label: getSchoolName(code), value: code }));
+		const schoolOptions = Array.from(
+			new Set(
+				spellService
+					.getAllSpells()
+					.map((s) => s.school)
+					.filter(Boolean),
+			),
+		)
+			.sort()
+			.map((code) => ({ label: getSchoolName(code), value: code }));
 
-        builder.addCheckboxGroup({
-            title: 'School',
-            options: schoolOptions,
-            stateSet: this.schoolFilters,
-            onChange: () => this._controller._renderList(),
-            columns: 2,
-        });
+		builder.addCheckboxGroup({
+			title: 'School',
+			options: schoolOptions,
+			stateSet: this.schoolFilters,
+			onChange: () => this._controller._renderList(),
+			columns: 2,
+		});
 
-        builder.addSwitchGroup({
-            title: 'Flags',
-            switches: [
-                { label: 'Ritual only', checked: this.ritualOnly === true, onChange: (v) => { this.ritualOnly = v ? true : null; this._controller._renderList(); } },
-                { label: 'Concentration only', checked: this.concentrationOnly === true, onChange: (v) => { this.concentrationOnly = v ? true : null; this._controller._renderList(); } },
-                { label: 'Ignore class restrictions', checked: this.ignoreClassRestrictions, onChange: async (v) => { this.ignoreClassRestrictions = !!v; await this._controller._reloadItems(); } },
-            ],
-        });
-    }
+		builder.addSwitchGroup({
+			title: 'Flags',
+			switches: [
+				{
+					label: 'Ritual only',
+					checked: this.ritualOnly === true,
+					onChange: (v) => {
+						this.ritualOnly = v ? true : null;
+						this._controller._renderList();
+					},
+				},
+				{
+					label: 'Concentration only',
+					checked: this.concentrationOnly === true,
+					onChange: (v) => {
+						this.concentrationOnly = v ? true : null;
+						this._controller._renderList();
+					},
+				},
+				{
+					label: 'Ignore class restrictions',
+					checked: this.ignoreClassRestrictions,
+					onChange: async (v) => {
+						this.ignoreClassRestrictions = !!v;
+						await this._controller._reloadItems();
+					},
+				},
+			],
+		});
+	}
 
-    async _handleConfirm(selected) {
-        const character = AppState.getCurrentCharacter();
-        if (!character || !Array.isArray(selected) || selected.length === 0) {
-            return selected;
-        }
+	async _handleConfirm(selected) {
+		const character = AppState.getCurrentCharacter();
+		if (!character || !Array.isArray(selected) || selected.length === 0) {
+			return selected;
+		}
 
-        // Initialize spellcasting for class if not already initialized
-        if (!character.spellcasting?.classes?.[this.className]) {
-            const classLevel = character.class?.name === this.className
-                ? character.level
-                : (character.multiclass?.find(c => c.name === this.className)?.level || 1);
+		// Initialize spellcasting for class if not already initialized
+		if (!character.spellcasting?.classes?.[this.className]) {
+			const classLevel =
+				character.class?.name === this.className
+					? character.level
+					: character.multiclass?.find((c) => c.name === this.className)
+							?.level || 1;
 
-            spellSelectionService.initializeSpellcastingForClass(
-                character,
-                this.className,
-                classLevel
-            );
-        }
+			spellSelectionService.initializeSpellcastingForClass(
+				character,
+				this.className,
+				classLevel,
+			);
+		}
 
-        let successCount = 0;
-        const failedSpells = [];
+		let successCount = 0;
+		const failedSpells = [];
 
-        for (const spell of selected) {
-            const success = spellSelectionService.addKnownSpell(character, this.className, spell);
-            if (success) {
-                successCount++;
-            } else {
-                failedSpells.push(spell.name);
-            }
-        }
+		for (const spell of selected) {
+			const success = spellSelectionService.addKnownSpell(
+				character,
+				this.className,
+				spell,
+			);
+			if (success) {
+				successCount++;
+			} else {
+				failedSpells.push(spell.name);
+			}
+		}
 
-        if (successCount > 0) {
-            const message = successCount === 1
-                ? `Added ${selected[0].name} to ${this.className}`
-                : `Added ${successCount} spell${successCount > 1 ? 's' : ''} to ${this.className}`;
-            showNotification(message, 'success');
-            eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
-        }
+		if (successCount > 0) {
+			const message =
+				successCount === 1
+					? `Added ${selected[0].name} to ${this.className}`
+					: `Added ${successCount} spell${successCount > 1 ? 's' : ''} to ${this.className}`;
+			showNotification(message, 'success');
+			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+		}
 
-        if (failedSpells.length > 0) {
-            showNotification(`Failed to add: ${failedSpells.join(', ')}`, 'error');
-        }
+		if (failedSpells.length > 0) {
+			showNotification(`Failed to add: ${failedSpells.join(', ')}`, 'error');
+		}
 
-        // Return formatted result matching old modal interface
-        return {
-            spells: selected,
-            className: this.className,
-            successCount,
-        };
-    }
+		// Return formatted result matching old modal interface
+		return {
+			spells: selected,
+			className: this.className,
+			successCount,
+		};
+	}
 
-    _handleCancel() {
-        // No-op: allow UniversalSelectionModal to resolve null
-    }
+	_handleCancel() {
+		// No-op: allow UniversalSelectionModal to resolve null
+	}
 }

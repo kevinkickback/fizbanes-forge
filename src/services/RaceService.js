@@ -127,7 +127,6 @@ function deriveFromSimpleVersion(version, raceName, source) {
 	};
 }
 
-/** O(1) lookup performance via internal index. */
 class RaceService extends BaseDataService {
 	constructor() {
 		super({ cacheKey: 'races', loggerScope: 'RaceService' });
@@ -174,31 +173,17 @@ class RaceService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Get all available races (returns raw JSON data)
-	 * @returns {Array<Object>} Array of race objects from JSON
-	 */
 	getAllRaces() {
 		return this._data?.race || [];
 	}
 
-	/**
-	 * Get race by name and source (returns raw JSON data)
-	 * @param {string} name - Race name
-	 * @param {string} source - Race source
-	 * @returns {Object|null} Race object from JSON or null if not found
-	 */
+	/** Get race by name and source. */
 	getRace(name, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(name, source));
 		return bundle?.race || null;
 	}
 
-	/**
-	 * Get subraces for a specific race
-	 * @param {string} raceName - Name of the parent race
-	 * @param {string} source - Source book
-	 * @returns {Array<Object>} Array of subrace objects
-	 */
+	/** Get subraces for a specific race. */
 	getSubraces(raceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle?.subraces || [];
@@ -222,47 +207,20 @@ class RaceService extends BaseDataService {
 		return bundle.subraces.length > 0 && !bundle.baseSubrace;
 	}
 
-	/**
-	 * Get a specific subrace by name
-	 * @param {string} raceName - Name of the parent race
-	 * @param {string} subraceName - Name of the subrace
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Subrace object or null if not found
-	 */
+	/** Get a specific subrace by name. */
 	getSubrace(raceName, subraceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		if (!bundle) return null;
 		return bundle.subraces.find((sr) => sr.name === subraceName) || null;
 	}
 
-	/**
-	 * Get the base (unnamed) subrace for a race, if it exists
-	 * @param {string} raceName - Name of the parent race
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Base subrace object or null if not found
-	 */
+	/** Get the base (unnamed) subrace for a race, if it exists. */
 	getBaseSubrace(raceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle?.baseSubrace || null;
 	}
 
-	/**
-	 * Builds an optimized lookup index for fast race access.
-	 *
-	 * The index structure is:
-	 * Map<"racename:source", {
-	 *   race: Object,           // The base race data
-	 *   subraces: Array,        // All subraces (named + derived variants)
-	 *   baseSubrace: Object     // The unnamed/base subrace if it exists
-	 * }>
-	 *
-	 * This consolidates:
-	 * - Named subraces from the subrace data array
-	 * - Derived variant subraces from race._versions
-	 * - Derived variant subraces from base subrace._versions
-	 *
-	 * @private
-	 */
+	/** Builds an optimized lookup index for fast race access. */
 	_buildRaceIndex(data = this._data) {
 		console.debug('[RaceService]', 'Building race index');
 
@@ -284,12 +242,7 @@ class RaceService extends BaseDataService {
 		console.debug('[RaceService]', `Indexed ${this._raceIndex.size} races`);
 	}
 
-	/**
-	 * Get fluff data for a race (for descriptions and lore)
-	 * @param {string} raceName - Name of the race
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Race fluff object or null if not found
-	 */
+	/** Get fluff data for a race (descriptions and lore). */
 	getRaceFluff(raceName, source = 'PHB') {
 		if (!this._data?.raceFluff) return null;
 
@@ -300,12 +253,7 @@ class RaceService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Select a race (updates selection state)
-	 * @param {string} raceName - Name of the race to select
-	 * @param {string} source - Source of the race
-	 * @returns {Object|null} Selected race or null if not found
-	 */
+	/** Select a race (updates selection state). */
 	selectRace(raceName, source = 'PHB') {
 		this._selectedRace = this.getRace(raceName, source);
 		this._selectedSubrace = null;
@@ -317,11 +265,7 @@ class RaceService extends BaseDataService {
 		return this._selectedRace;
 	}
 
-	/**
-	 * Select a subrace for the currently selected race
-	 * @param {string} subraceName - Name of the subrace to select
-	 * @returns {Object|null} Selected subrace or null if not found
-	 */
+	/** Select a subrace for the currently selected race. */
 	selectSubrace(subraceName) {
 		if (!this._selectedRace) return null;
 
@@ -338,42 +282,22 @@ class RaceService extends BaseDataService {
 		return this._selectedSubrace;
 	}
 
-	/**
-	 * Get currently selected race
-	 * @returns {Object|null} Currently selected race
-	 */
 	getSelectedRace() {
 		return this._selectedRace;
 	}
 
-	/**
-	 * Get currently selected subrace
-	 * @returns {Object|null} Currently selected subrace
-	 */
 	getSelectedSubrace() {
 		return this._selectedSubrace;
 	}
 
-	/**
-	 * Get standard skill proficiency options
-	 * @returns {Array<string>} Array of all standard skill names
-	 */
 	getStandardSkillOptions() {
 		return STANDARD_SKILL_OPTIONS;
 	}
 
-	/**
-	 * Get standard tool proficiency options
-	 * @returns {Array<string>} Array of all standard tool names
-	 */
 	getStandardToolOptions() {
 		return STANDARD_TOOL_OPTIONS;
 	}
 
-	/**
-	 * Get standard language proficiency options
-	 * @returns {Array<string>} Array of all standard language names
-	 */
 	getStandardLanguageOptions() {
 		return STANDARD_LANGUAGE_OPTIONS;
 	}

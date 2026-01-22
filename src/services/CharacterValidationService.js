@@ -1,10 +1,4 @@
-/**
- * CharacterValidationService - Validates character completeness and detects missing choices
- * 
- * Uses 5etools JSON data to dynamically determine what choices are required at each level.
- * No hardcoded checks - all validation is data-driven from class progression tables.
- * Delegates to existing services to avoid code duplication.
- */
+/** Validates character completeness and detects missing choices using 5etools data. */
 
 import { classService } from './ClassService.js';
 import { spellSelectionService } from './SpellSelectionService.js';
@@ -15,11 +9,7 @@ class CharacterValidationServiceImpl {
         this.loggerScope = 'CharacterValidationService';
     }
 
-    /**
-     * Validate character completeness and return detailed report of missing choices
-     * @param {Object} character - Character object
-     * @returns {Object} Validation report with missing choices by category
-     */
+    /** Validate character completeness and return detailed report of missing choices. */
     validateCharacter(character) {
         const report = {
             isValid: true,

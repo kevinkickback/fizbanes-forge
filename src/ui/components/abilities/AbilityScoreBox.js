@@ -71,7 +71,9 @@ class AbilityScoreBoxView {
 		}
 
 		// Remove any divs with mt-2 or ability-controls classes
-		const existingControlDivs = box.querySelectorAll('.mt-2, .ability-controls');
+		const existingControlDivs = box.querySelectorAll(
+			'.mt-2, .ability-controls',
+		);
 		for (const div of existingControlDivs) {
 			div.remove();
 		}

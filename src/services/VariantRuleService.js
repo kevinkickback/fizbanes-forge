@@ -49,19 +49,11 @@ class VariantRuleService {
 		}
 	}
 
-	/**
-	 * Get all available variant rules
-	 * @returns {Array<Object>} Array of variant rule objects
-	 */
 	getAllVariantRules() {
 		return this._variantRuleData?.variantrule || [];
 	}
 
-	/**
-	 * Get a specific variant rule by name (case-insensitive)
-	 * @param {string} ruleName - Variant rule name
-	 * @returns {Object|null} Variant rule object or null if not found
-	 */
+	/** Get a specific variant rule by name (case-insensitive). */
 	getVariantRule(ruleName) {
 		if (!this._variantRuleMap) return null;
 		return (

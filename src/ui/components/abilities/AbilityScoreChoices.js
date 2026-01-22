@@ -42,14 +42,14 @@ class AbilityChoicesView {
                     data-source="${choice.source}">
                     <option value="">Choose...</option>
                     ${availableAbilities
-				.map(
-					(ability) => `
+											.map(
+												(ability) => `
                         <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
                             ${fullAbilityToAbbr(ability).toUpperCase()}
                         </option>
                     `,
-				)
-				.join('')}
+											)
+											.join('')}
                 </select>
             </div>
         `;

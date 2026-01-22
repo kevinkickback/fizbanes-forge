@@ -55,19 +55,10 @@ export class ProficiencyService {
 		}
 	}
 
-	/**
-	 * Calculates the proficiency bonus based on character level
-	 * @param {number} level - Character level
-	 * @returns {number} Proficiency bonus
-	 */
 	calculateProficiencyBonus(level) {
 		return Math.floor((level - 1) / 4) + 2;
 	}
 
-	/**
-	 * Gets all available skills
-	 * @returns {Promise<string[]>} List of all available skills
-	 */
 	async getAvailableSkills() {
 		if (this._skills) {
 			return [...this._skills];
@@ -76,10 +67,6 @@ export class ProficiencyService {
 		return [...STANDARD_SKILL_OPTIONS];
 	}
 
-	/**
-	 * Gets all available tools
-	 * @returns {Promise<string[]>} List of all available tools
-	 */
 	async getAvailableTools() {
 		if (this._tools) {
 			return [...this._tools];
@@ -88,10 +75,6 @@ export class ProficiencyService {
 		return [...STANDARD_TOOL_OPTIONS];
 	}
 
-	/**
-	 * Gets all available languages
-	 * @returns {Promise<string[]>} List of all available languages
-	 */
 	async getAvailableLanguages() {
 		if (this._languages) {
 			return [...this._languages];
@@ -100,11 +83,6 @@ export class ProficiencyService {
 		return [...STANDARD_LANGUAGE_OPTIONS];
 	}
 
-	/**
-	 * Gets the associated ability score for a skill
-	 * @param {string} skill - Skill name
-	 * @returns {string|null} The ability score associated with the skill, or null if invalid
-	 */
 	getSkillAbility(skill) {
 		if (!skill) return null;
 		const normalized = DataNormalizer.normalizeForLookup(skill);
@@ -123,41 +101,20 @@ export class ProficiencyService {
 		return abvToFull[abilityAbv] || null;
 	}
 
-	/**
-	 * Validates if a skill exists
-	 * @param {string} skill - Skill name to validate
-	 * @returns {boolean} True if the skill is valid
-	 */
 	validateSkill(skill) {
 		return this.getSkillAbility(skill) !== null;
 	}
 
-	/**
-	 * Validates if a tool exists
-	 * @param {string} tool - Tool name to validate
-	 * @returns {boolean} True if the tool is valid
-	 */
 	async validateTool(tool) {
 		const tools = await this.getAvailableTools();
 		return tools.includes(tool);
 	}
 
-	/**
-	 * Validates if a language exists
-	 * @param {string} language - Language name to validate
-	 * @returns {boolean} True if the language is valid
-	 */
 	async validateLanguage(language) {
 		const languages = await this.getAvailableLanguages();
 		return languages.includes(language);
 	}
 
-	/**
-	 * Calculates the skill modifier for a character
-	 * @param {Character} character - Character object
-	 * @param {string} skill - Skill name
-	 * @returns {number} The skill modifier
-	 */
 	calculateSkillModifier(character, skill) {
 		const ability = this.getSkillAbility(skill);
 		if (!ability) return 0;
@@ -170,47 +127,20 @@ export class ProficiencyService {
 		return abilityMod + profBonus;
 	}
 
-	/**
-	 * Formats a modifier value with a + or - sign.
-	 * @deprecated Use getAbilityModifier from 5eToolsParser instead.
-	 */
+	/** @deprecated Use getAbilityModifier from 5eToolsParser instead. */
 	formatModifier(value) {
 		return value >= 0 ? `+${value}` : value.toString();
 	}
 
-	/**
-	 * Adds a proficiency to a character with source tracking
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} proficiency - Proficiency name
-	 * @param {string} source - Source granting the proficiency
-	 * @returns {boolean} True if added successfully
-	 */
+	/** Delegates to ProficiencyCore. */
 	addProficiency(character, type, proficiency, source) {
 		return ProficiencyCore.addProficiency(character, type, proficiency, source);
 	}
 
-	/**
-	 * Removes proficiencies from a specific source
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} source - Source to remove proficiencies from
-	 * @returns {Object} Object with arrays of removed proficiencies by type
-	 */
 	removeProficienciesBySource(character, source) {
 		return ProficiencyCore.removeProficienciesBySource(character, source);
 	}
 
-	/**
-	 * Sets up optional proficiency configuration for a source
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier ('race', 'class', 'background')
-	 * @param {number} allowed - Number of proficiencies allowed
-	 * @param {string[]} options - Available proficiency options
-	 */
 	setOptionalProficiencies(character, type, source, allowed, options) {
 		return ProficiencyCore.setOptionalProficiencies(
 			character,
@@ -221,25 +151,10 @@ export class ProficiencyService {
 		);
 	}
 
-	/**
-	 * Clears optional proficiency configuration for a source
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier
-	 */
 	clearOptionalProficiencies(character, type, source) {
 		return ProficiencyCore.clearOptionalProficiencies(character, type, source);
 	}
 
-	/**
-	 * Gets available options for optional proficiency selection
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier
-	 * @returns {string[]} Array of available proficiency names
-	 */
 	getAvailableOptionalProficiencies(character, type, source) {
 		return ProficiencyCore.getAvailableOptionalProficiencies(
 			character,
@@ -248,15 +163,6 @@ export class ProficiencyService {
 		);
 	}
 
-	/**
-	 * Selects an optional proficiency for a character
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier
-	 * @param {string} proficiency - The proficiency to select
-	 * @returns {boolean} True if selection was successful
-	 */
 	selectOptionalProficiency(character, type, source, proficiency) {
 		return ProficiencyCore.selectOptionalProficiency(
 			character,
@@ -266,15 +172,6 @@ export class ProficiencyService {
 		);
 	}
 
-	/**
-	 * Deselects an optional proficiency
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @param {string} source - Source identifier
-	 * @param {string} proficiency - The proficiency to deselect
-	 * @returns {boolean} True if deselection was successful
-	 */
 	deselectOptionalProficiency(character, type, source, proficiency) {
 		return ProficiencyCore.deselectOptionalProficiency(
 			character,
@@ -284,21 +181,10 @@ export class ProficiencyService {
 		);
 	}
 
-	/**
-	 * Gets all proficiencies of a type with their sources
-	 * Delegates to ProficiencyCore
-	 * @param {Object} character - The character object
-	 * @param {string} type - Proficiency type
-	 * @returns {Array<{name: string, sources: Set<string>}>} Array of proficiencies with sources
-	 */
 	getProficienciesWithSources(character, type) {
 		return ProficiencyCore.getProficienciesWithSources(character, type);
 	}
 
-	/**
-	 * Loads skill data from JSON file
-	 * @private
-	 */
 	async _loadSkillData() {
 		if (this._skillData) return this._skillData;
 
@@ -313,10 +199,6 @@ export class ProficiencyService {
 		}
 	}
 
-	/**
-	 * Loads language data from JSON file
-	 * @private
-	 */
 	async _loadLanguageData() {
 		if (this._languageData) return this._languageData;
 
@@ -331,11 +213,6 @@ export class ProficiencyService {
 		}
 	}
 
-	/**
-	 * Gets description for a skill
-	 * @param {string} skillName - Name of the skill
-	 * @returns {Promise<Object|null>} Object with name, ability, and description, or null if not found
-	 */
 	async getSkillDescription(skillName) {
 		const skillData = await this._loadSkillData();
 		if (!skillData || skillData.length === 0) return null;
@@ -385,11 +262,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Gets description for a language
-	 * @param {string} languageName - Name of the language
-	 * @returns {Promise<Object|null>} Object with name, type, script, speakers, and description, or null if not found
-	 */
 	async getLanguageDescription(languageName) {
 		const languageData = await this._loadLanguageData();
 		if (!languageData || languageData.length === 0) return null;
@@ -440,11 +312,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Gets description for a tool proficiency
-	 * @param {string} toolName - Name of the tool
-	 * @returns {Promise<Object|null>} Object with name and description
-	 */
 	async getToolDescription(toolName) {
 		const items = itemService.getAllItems();
 		if (!items || items.length === 0) {
@@ -524,11 +391,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Gets description for armor proficiency
-	 * @param {string} armorName - Name of the armor type
-	 * @returns {Promise<Object|null>} Object with name, description, source, and page
-	 */
 	async getArmorDescription(armorName) {
 		const baseItems = itemService.getAllBaseItems();
 
@@ -597,11 +459,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Gets description for weapon proficiency
-	 * @param {string} weaponName - Name of the weapon type
-	 * @returns {Promise<Object|null>} Object with name, description, source, and page
-	 */
 	async getWeaponDescription(weaponName) {
 		const baseItems = itemService.getAllBaseItems();
 
@@ -672,10 +529,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Load and cache PHB book data for proficiency categories
-	 * @returns {Promise<Object>} Book data
-	 */
 	async _loadBookData() {
 		if (this._bookData) {
 			return this._bookData;
@@ -692,12 +545,6 @@ export class ProficiencyService {
 		}
 	}
 
-	/**
-	 * Find book entry by name (searches recursively through nested entries)
-	 * @param {Array} entries - Array of book entries to search
-	 * @param {string} name - Name to search for
-	 * @returns {Object|null} Found entry or null
-	 */
 	_findBookEntry(entries, name) {
 		if (!entries || !Array.isArray(entries)) return null;
 
@@ -713,11 +560,6 @@ export class ProficiencyService {
 		return null;
 	}
 
-	/**
-	 * Gets armor category information from PHB
-	 * @param {string} categoryName - Category name (e.g., "Light Armor", "Medium Armor")
-	 * @returns {Promise<Object|null>} Category info with entries, source, and page
-	 */
 	async getArmorCategoryInfo(categoryName) {
 		const bookData = await this._loadBookData();
 		if (!bookData) return null;
@@ -733,11 +575,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Gets weapon category information from PHB
-	 * @param {string} categoryName - Category name (e.g., "Simple Weapons", "Martial Weapons")
-	 * @returns {Promise<Object|null>} Category info with entries, source, and page
-	 */
 	async getWeaponCategoryInfo(categoryName) {
 		const bookData = await this._loadBookData();
 		if (!bookData) return null;
@@ -754,10 +591,6 @@ export class ProficiencyService {
 		};
 	}
 
-	/**
-	 * Gets saving throw information from PHB
-	 * @returns {Promise<Object|null>} Saving throw info with entries, source, and page
-	 */
 	async getSavingThrowInfo() {
 		const bookData = await this._loadBookData();
 		if (!bookData) return null;
@@ -774,8 +607,4 @@ export class ProficiencyService {
 	}
 }
 
-/**
- * Export the singleton instance
- * @type {ProficiencyManager}
- */
 export const proficiencyService = new ProficiencyService();

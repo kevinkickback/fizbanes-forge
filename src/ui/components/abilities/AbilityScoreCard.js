@@ -133,7 +133,7 @@ class AbilityScoreCard {
 	_setupAbilityHoverListeners() {
 		const abilityBoxes = document.querySelectorAll('.ability-score-box');
 
-		abilityBoxes.forEach(box => {
+		abilityBoxes.forEach((box) => {
 			this._cleanup.on(box, 'mouseenter', () => {
 				const ability = box.getAttribute('data-ability');
 				if (ability) {
@@ -193,7 +193,7 @@ class AbilityScoreCard {
 		}
 
 		const skillsHTML = Array.from(uniqueSkills.values())
-			.map(skill => {
+			.map((skill) => {
 				const description = skill.entries?.[0] || 'No description available.';
 				return `
 					<div class="skill-info mb-3">
@@ -348,7 +348,6 @@ class AbilityScoreCard {
 			this._handlePointBuyDecrease(button);
 		}
 	}
-
 
 	_handleContainerChangeEvent(event) {
 		if (event.target.classList.contains('ability-choice-select')) {
@@ -637,7 +636,8 @@ class AbilityScoreCard {
 			// Get current method and show/hide point counter accordingly
 			const character = CharacterManager.getCurrentCharacter();
 			if (character) {
-				const currentMethod = character.variantRules?.abilityScoreMethod || 'custom';
+				const currentMethod =
+					character.variantRules?.abilityScoreMethod || 'custom';
 				if (currentMethod === 'pointBuy') {
 					this._methodSwitcherView.showPointBuyCounter();
 				} else {

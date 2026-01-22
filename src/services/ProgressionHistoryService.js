@@ -1,35 +1,12 @@
-/**
- * ProgressionHistoryService
- * 
- * Manages recording and retrieval of character class progression choices.
- * Tracks user-driven selections (spells, feats, invocations, etc.) per class/level.
- * 
- * Reusable across:
- * - Level-Up Modal: Recording choices during level progression
- * - Build Page: Modifying past choices
- * - Character Removal: Cleaning up benefits when levels are removed
- */
-
+/** Manages recording and retrieval of character class progression choices. */
 class ProgressionHistoryService {
-    /**
-     * Initialize or ensure progressionHistory exists on character
-     * @param {Character} character
-     * @returns {void}
-     */
     ensureInitialized(character) {
         if (!character.progressionHistory) {
             character.progressionHistory = {};
         }
     }
 
-    /**
-     * Record user choices for a specific class/level combination
-     * @param {Character} character
-     * @param {string} className - e.g., 'Fighter', 'Rogue'
-     * @param {number} level - The level being recorded
-     * @param {Object} choices - Choice object { features: [], spells: [], fightingStyle: null, ... }
-     * @returns {void}
-     */
+    /** Record user choices for a specific class/level combination. */
     recordChoices(character, className, level, choices) {
         this.ensureInitialized(character);
 
@@ -48,13 +25,7 @@ class ProgressionHistoryService {
         console.debug('[ProgressionHistoryService]', `Recorded choices for ${className} level ${level}`, choices);
     }
 
-    /**
-     * Retrieve recorded choices for a specific class/level
-     * @param {Character} character
-     * @param {string} className
-     * @param {number} level
-     * @returns {Object|null} The choice object, or null if not found
-     */
+    /** Retrieve recorded choices for a specific class/level. */
     getChoices(character, className, level) {
         if (!character.progressionHistory) return null;
 
@@ -67,13 +38,7 @@ class ProgressionHistoryService {
         return entry ? entry.choices : null;
     }
 
-    /**
-     * Remove recorded choices for a specific class/level
-     * @param {Character} character
-     * @param {string} className
-     * @param {number} level
-     * @returns {boolean} True if removed, false if not found
-     */
+    /** Remove recorded choices for a specific class/level. */
     removeChoices(character, className, level) {
         if (!character.progressionHistory) return false;
 
@@ -91,14 +56,7 @@ class ProgressionHistoryService {
         return false;
     }
 
-    /**
-     * Get all recorded choices for a class within a level range
-     * @param {Character} character
-     * @param {string} className
-     * @param {number} fromLevel - Inclusive
-     * @param {number} toLevel - Inclusive
-     * @returns {Object} { level: choices, level: choices, ... }
-     */
+    /** Get all recorded choices for a class within a level range. */
     getChoicesByRange(character, className, fromLevel, toLevel) {
         if (!character.progressionHistory) return {};
 
@@ -117,23 +75,14 @@ class ProgressionHistoryService {
         return result;
     }
 
-    /**
-     * Get entire progression history for a class (all levels)
-     * @param {Character} character
-     * @param {string} className
-     * @returns {Object} { level: { choices, timestamp }, ... }
-     */
+    /** Get entire progression history for a class (all levels). */
     getClassLevelHistory(character, className) {
         if (!character.progressionHistory) return {};
 
         return character.progressionHistory[className] || {};
     }
 
-    /**
-     * Get all classes with recorded progression history
-     * @param {Character} character
-     * @returns {Array<string>} Class names with history
-     */
+    /** Get all classes with recorded progression history. */
     getClassesWithHistory(character) {
         if (!character.progressionHistory) return [];
 
@@ -185,21 +134,12 @@ class ProgressionHistoryService {
         }
     }
 
-    /**
-     * Clear all progression history for the character
-     * @param {Character} character
-     * @returns {void}
-     */
     clearAllHistory(character) {
         character.progressionHistory = {};
         console.debug('[ProgressionHistoryService]', 'Cleared all progression history');
     }
 
-    /**
-     * Get a summary of recorded progression
-     * @param {Character} character
-     * @returns {Object} Summary with class names and level counts
-     */
+    /** Get a summary of recorded progression. */
     getSummary(character) {
         const summary = {};
 

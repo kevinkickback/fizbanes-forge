@@ -1,23 +1,14 @@
 import { AppState } from '../../../app/AppState.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
-import { UniversalSelectionModal, formatCounter } from '../../../lib/UniversalSelectionModal.js';
+import {
+    UniversalSelectionModal,
+    formatCounter,
+} from '../../../lib/UniversalSelectionModal.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
 
-/**
- * LevelUpFeatSelector
- * 
- * Feat-specific adapter for UniversalSelectionModal.
- * Used for selecting feats during level-up, ASI, or on the feats page.
- * 
- * Features:
- * - Search and filter feats by name
- * - Display feat source
- * - Support single or multi-select
- * - Prerequisite checking (level, ability, race, class, etc.)
- * - Uses generic LevelUpSelector for consistent UX
- */
+// Feat selector adapter for UniversalSelectionModal with prerequisite checking
 
 export class ClassFeatSelector {
     constructor(session = null, parentStep = null) {
@@ -44,21 +35,24 @@ export class ClassFeatSelector {
 
     /**
      * Initialize and display the feat selector modal
-     * 
+     *
      * @param {Object|null} options - Configuration options (or legacy: currentSelection object)
      * @param {Array|Object|null} options.currentSelection - Currently selected feat(s)
      * @param {boolean} options.multiSelect - Allow multiple feat selection (default: false)
      * @param {number} options.maxSelections - Maximum number of feats to select (default: 1)
      * @param {Function} options.onConfirm - Callback for confirmation (optional, for feats page)
      * @param {boolean} options.showPrerequisiteNote - Show prerequisite filtering note (default: true for level-up, false for feats page)
-     * 
+     *
      * Returns a Promise that resolves with:
      * - Single select: feat name or null if cancelled
      * - Multi select (feats page): array of feat objects
      */
     async show(options = {}) {
         // Support legacy calling convention: show(currentSelection) -> show({ currentSelection })
-        if (options === null || (options && 'name' in options && !('currentSelection' in options))) {
+        if (
+            options === null ||
+            (options && 'name' in options && !('currentSelection' in options))
+        ) {
             options = { currentSelection: options };
         }
 
@@ -66,7 +60,7 @@ export class ClassFeatSelector {
             currentSelection = null,
             multiSelect = false,
             maxSelections = 1,
-            onConfirm = null
+            onConfirm = null,
         } = options;
 
         return new Promise((resolve, reject) => {
@@ -82,8 +76,9 @@ export class ClassFeatSelector {
                 this._loadAndFilterFeats(character);
 
                 // Build filters for feats page (only if multiSelect)
-                const buildFilters = multiSelect ? (_ctx, panel, cleanup) => {
-                    panel.innerHTML = `
+                const buildFilters = multiSelect
+                    ? (_ctx, panel, cleanup) => {
+                        panel.innerHTML = `
                         <div class="card mb-3">
                             <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
                                 data-bs-target="#collapsePrereqs" aria-expanded="true">
@@ -109,31 +104,37 @@ export class ClassFeatSelector {
                         </div>
                     `;
 
-                    // Attach prerequisite filter listeners
-                    const ignorePrereqsCheckbox = panel.querySelector('[data-filter-prereq="ignore-prerequisites"]');
-                    const ignoreLimitCheckbox = panel.querySelector('[data-filter-prereq="ignore-limit"]');
+                        // Attach prerequisite filter listeners
+                        const ignorePrereqsCheckbox = panel.querySelector(
+                            '[data-filter-prereq="ignore-prerequisites"]',
+                        );
+                        const ignoreLimitCheckbox = panel.querySelector(
+                            '[data-filter-prereq="ignore-limit"]',
+                        );
 
-                    if (ignorePrereqsCheckbox) {
-                        cleanup.on(ignorePrereqsCheckbox, 'change', () => {
-                            this._ignorePrerequisites = ignorePrereqsCheckbox.checked;
-                            this._loadAndFilterFeats(character);
-                            // Trigger filter update
-                            this._selector.state.items = this._filteredFeats;
-                            this._selector._applyFiltersAndSearch();
-                        });
-                    }
+                        if (ignorePrereqsCheckbox) {
+                            cleanup.on(ignorePrereqsCheckbox, 'change', () => {
+                                this._ignorePrerequisites = ignorePrereqsCheckbox.checked;
+                                this._loadAndFilterFeats(character);
+                                // Trigger filter update
+                                this._selector.state.items = this._filteredFeats;
+                                this._selector._applyFiltersAndSearch();
+                            });
+                        }
 
-                    if (ignoreLimitCheckbox) {
-                        cleanup.on(ignoreLimitCheckbox, 'change', () => {
-                            this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
-                            // Update modal's max selections display and refresh item states
-                            this._selector.config.selectionLimit = this._getCurrentMaxSelections();
-                            // Trigger re-render of items and counter to reflect new limit state
-                            this._selector._updateConfirmButton();
-                            this._selector._renderList();
-                        });
+                        if (ignoreLimitCheckbox) {
+                            cleanup.on(ignoreLimitCheckbox, 'change', () => {
+                                this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
+                                // Update modal's max selections display and refresh item states
+                                this._selector.config.selectionLimit =
+                                    this._getCurrentMaxSelections();
+                                // Trigger re-render of items and counter to reflect new limit state
+                                this._selector._updateConfirmButton();
+                                this._selector._renderList();
+                            });
+                        }
                     }
-                } : null;
+                    : null;
 
                 this._selector = new UniversalSelectionModal({
                     modalId: `featSelectorModal_${Date.now()}`,
@@ -163,30 +164,37 @@ export class ClassFeatSelector {
                     descriptionContainerSelector: '.feat-description',
                     canSelectItem: (_item, state) => {
                         const selectedCount = state.selectedIds.size;
-                        const maxSelections = this._ignoreSelectionLimit ? Infinity : this._baseMaxSelections;
+                        const maxSelections = this._ignoreSelectionLimit
+                            ? Infinity
+                            : this._baseMaxSelections;
                         return selectedCount < maxSelections;
                     },
                     onSelectBlocked: () => {
                         showNotification('Selection limit reached', 'warning');
                     },
-                    customCountFn: (selectedItems) => formatCounter({
-                        label: 'feat',
-                        selected: selectedItems.length,
-                        max: this._ignoreSelectionLimit ? '∞' : this._baseMaxSelections,
-                        color: 'bg-info'
-                    }),
+                    customCountFn: (selectedItems) =>
+                        formatCounter({
+                            label: 'feat',
+                            selected: selectedItems.length,
+                            max: this._ignoreSelectionLimit ? '∞' : this._baseMaxSelections,
+                            color: 'bg-info',
+                        }),
                     onConfirm: this._onFeatConfirmed.bind(this),
                     onCancel: () => {
                         if (this._resolveSelection) {
                             this._resolveSelection(null);
                             this._resolveSelection = null;
                         }
-                    }
+                    },
                 });
 
                 this._selector.show();
             } catch (error) {
-                console.error('[LevelUpFeatSelector]', 'Error showing feat selector:', error);
+                console.error(
+                    '[LevelUpFeatSelector]',
+                    'Error showing feat selector:',
+                    error,
+                );
                 reject(error);
             }
         });
@@ -196,10 +204,16 @@ export class ClassFeatSelector {
         if (!currentSelection) return [];
         if (Array.isArray(currentSelection)) {
             return currentSelection
-                .map(sel => this._filteredFeats.find(f => f.id === sel.id || f.name === sel.name))
+                .map((sel) =>
+                    this._filteredFeats.find(
+                        (f) => f.id === sel.id || f.name === sel.name,
+                    ),
+                )
                 .filter(Boolean);
         }
-        const selected = this._filteredFeats.find(f => f.id === currentSelection.id || f.name === currentSelection.name);
+        const selected = this._filteredFeats.find(
+            (f) => f.id === currentSelection.id || f.name === currentSelection.name,
+        );
         return selected ? [selected] : [];
     }
 
@@ -249,7 +263,9 @@ export class ClassFeatSelector {
         } else if (typeof feat.entries === 'string') {
             parts.push(await textProcessor.processString(feat.entries));
         }
-        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
+        return parts.length
+            ? parts.join(' ')
+            : '<span class="text-muted small">No description available.</span>';
     }
 
     /**
@@ -259,11 +275,15 @@ export class ClassFeatSelector {
         const allFeats = this.featService.getAllFeats();
 
         this._filteredFeats = allFeats
-            .filter(feat => sourceService.isSourceAllowed(feat.source))
-            .filter(feat => this._ignorePrerequisites || this.featService.isFeatValidForCharacter(feat, character))
+            .filter((feat) => sourceService.isSourceAllowed(feat.source))
+            .filter(
+                (feat) =>
+                    this._ignorePrerequisites ||
+                    this.featService.isFeatValidForCharacter(feat, character),
+            )
             .map((f, index) => ({
                 ...f,
-                id: f.id || `feat-${index}`
+                id: f.id || `feat-${index}`,
             }));
     }
 

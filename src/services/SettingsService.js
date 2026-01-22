@@ -1,4 +1,7 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { showNotification } from '../lib/Notifications.js';
+import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
+import { RefreshProgressModal } from '../ui/components/setup/SetupModals.js';
 export class SettingsService {
 	constructor() {
 		this._initialized = false;
@@ -31,11 +34,7 @@ export class SettingsService {
 		}
 	}
 
-	/**
-	 * Initializes the settings page UI and event listeners
-	 * Called when the settings page is loaded and rendered
-	 * @returns {Promise<void>}
-	 */
+	/** Called when settings page is loaded and rendered. */
 	async initializeSettingsPage() {
 		try {
 			// Update app data path display
@@ -66,11 +65,6 @@ export class SettingsService {
 		}
 	}
 
-	/**
-	 * Updates the app data path display and derived subpaths in the UI
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async updateAppDataPathDisplay() {
 		try {
 			const charactersPreviewElement = document.getElementById('charactersPathPreview');
@@ -106,11 +100,6 @@ export class SettingsService {
 		}
 	}
 
-	/**
-	 * Updates the data source display in the UI
-	 * @returns {Promise<void>}
-	 * @private
-	 */
 	async updateDataSourceDisplay() {
 		try {
 			const dataSourceDisplay = document.getElementById('dataSourceStatus');
@@ -152,20 +141,12 @@ export class SettingsService {
 		}
 	}
 
-	/**
-	 * Escape HTML special characters for safe display
-	 * @private
-	 */
 	_escapeHtml(text) {
 		const div = document.createElement('div');
 		div.textContent = text;
 		return div.innerHTML;
 	}
 
-	/**
-	 * Initializes event listeners for settings controls
-	 * @private
-	 */
 	initializeEventListeners() {
 		try {
 			// App data path controls

@@ -4,21 +4,13 @@ import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import { CharacterSchema } from '../shared/CharacterSchema.js';
 
-/**
- * Manages character import business logic (file reading, validation, conflict detection).
- * Separated from IPC handler to enable reuse and testing.
- * Does NOT handle dialog, logging, or file persistence (those remain in handler).
- */
+/** Manages character import business logic (reading, validation, conflict detection). */
 export class CharacterImportService {
     constructor(savePath) {
         this.savePath = savePath;
     }
 
-    /**
-     * Read and parse a character file.
-     * @param {string} filePath - Full path to .ffp file
-     * @returns {Promise<{character: Object, error?: string}>} Parsed character or error
-     */
+    /** Read and parse a character file. */
     async readCharacterFile(filePath) {
         if (!filePath.endsWith('.ffp')) {
             return {
@@ -42,11 +34,7 @@ export class CharacterImportService {
         }
     }
 
-    /**
-     * Validate character data structure.
-     * @param {Object} character - Character object
-     * @returns {Promise<{valid: boolean, errors?: string[]}>} Validation result
-     */
+    /** Validate character data structure. */
     async validateCharacter(character) {
         const validation = CharacterSchema.validate(character);
         return {
@@ -55,11 +43,7 @@ export class CharacterImportService {
         };
     }
 
-    /**
-     * Check if a character with the given ID already exists.
-     * @param {string} characterId - Character ID
-     * @returns {Promise<{exists: boolean, existing?: Object, createdAt?: string}>} Conflict info
-     */
+    /** Check if a character with the given ID already exists. */
     async checkForConflict(characterId) {
         const existingFilePath = path.join(this.savePath, `${characterId}.ffp`);
 
@@ -81,12 +65,7 @@ export class CharacterImportService {
         }
     }
 
-    /**
-     * Process user's conflict resolution choice.
-     * @param {Object} character - Character to import
-     * @param {string} action - 'overwrite' | 'keepBoth' | 'cancel'
-     * @returns {{character: Object, canceled: boolean}} Modified character or cancellation
-     */
+    /** Process user's conflict resolution choice. */
     processConflictResolution(character, action) {
         if (action === 'cancel') {
             return { canceled: true };
@@ -100,18 +79,7 @@ export class CharacterImportService {
         return { character };
     }
 
-    /**
-     * Full import flow: read, validate, check conflicts, and return prepared character.
-     * @param {string} filePath - Path to .ffp file
-     * @returns {Promise<{
-     *   step: 'read'|'validate'|'conflict'|'ready',
-     *   success: boolean,
-     *   character?: Object,
-     *   existing?: Object,
-     *   createdAt?: string,
-     *   error?: string
-     * }>} Import status
-     */
+    /** Full import flow: read, validate, check conflicts, and return prepared character. */
     async importCharacter(filePath) {
         // Step 1: Read file
         const readResult = await this.readCharacterFile(filePath);

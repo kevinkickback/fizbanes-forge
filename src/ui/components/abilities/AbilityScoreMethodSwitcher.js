@@ -28,13 +28,14 @@ class MethodSwitcherView {
 			const methods = [
 				{ id: 'pointBuy', label: 'Point Buy', icon: 'fa-calculator' },
 				{ id: 'standardArray', label: 'Standard Array', icon: 'fa-list-ol' },
-				{ id: 'custom', label: 'Custom', icon: 'fa-edit' }
+				{ id: 'custom', label: 'Custom', icon: 'fa-edit' },
 			];
 
-			this._tabsList.innerHTML = methods.map(method => {
-				const isActive = currentMethod === method.id;
+			this._tabsList.innerHTML = methods
+				.map((method) => {
+					const isActive = currentMethod === method.id;
 
-				return `
+					return `
 					<button class="nav-link ${isActive ? 'active' : ''}" 
 							data-method="${method.id}"
 							type="button">
@@ -42,15 +43,16 @@ class MethodSwitcherView {
 						${method.label}
 					</button>
 				`;
-			}).join('');
+				})
+				.join('');
 
 			// Attach event listeners
-			this._tabsList.querySelectorAll('.nav-link').forEach(tab => {
+			this._tabsList.querySelectorAll('.nav-link').forEach((tab) => {
 				tab.addEventListener('click', (e) => {
 					const method = e.currentTarget.getAttribute('data-method');
 					if (method && method !== currentMethod) {
 						// Update active state
-						this._tabsList.querySelectorAll('.nav-link').forEach(t => {
+						this._tabsList.querySelectorAll('.nav-link').forEach((t) => {
 							t.classList.remove('active');
 						});
 						e.currentTarget.classList.add('active');
@@ -79,7 +81,8 @@ class MethodSwitcherView {
 			const status = remainingPoints < 0 ? 'danger' : '';
 			return `<span class="${status}">${usedPoints}/${maxPoints}</span>`;
 		} else if (method === 'standardArray') {
-			const availableValues = abilityScoreService.getAvailableStandardArrayValues();
+			const availableValues =
+				abilityScoreService.getAvailableStandardArrayValues();
 			const usedCount = 6 - availableValues.length;
 			return `${usedCount}/6`;
 		}

@@ -44,10 +44,6 @@ export class SourceService {
 		this._setupEventListeners();
 	}
 
-	/**
-	 * Set up event listeners
-	 * @private
-	 */
 	_setupEventListeners() {
 		// Set up listeners for relevant application events
 		eventBus.on(
@@ -64,10 +60,6 @@ export class SourceService {
 		);
 	}
 
-	/**
-	 * Set the character lifecycle and initialize listeners
-	 * @param {CharacterLifecycle} handler - The character lifecycle instance
-	 */
 	setCharacterHandler(handler) {
 		this.characterHandler = handler;
 		// Subscribe to character changes
@@ -76,11 +68,6 @@ export class SourceService {
 		);
 	}
 
-	/**
-	 * Handles character changes
-	 * @param {Character|null} character - The new character
-	 * @private
-	 */
 	_handleCharacterChange(character) {
 		if (!character) {
 			this.allowedSources = this._expandSourceVariants(new Set(['PHB']));
@@ -96,10 +83,6 @@ export class SourceService {
 		eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
 	}
 
-	/**
-	 * Initialize the source manager with data from the loader
-	 * @returns {Promise<void>}
-	 */
 	async initialize() {
 		if (this._initialized) {
 			return;
@@ -245,53 +228,26 @@ export class SourceService {
 		}
 	}
 
-	/**
-	 * Check if a source is banned
-	 * @param {string} sourceId - Source ID to check
-	 * @returns {boolean} True if the source is banned
-	 */
 	isBannedSource(sourceId) {
 		return this._bannedSources.has(sourceId.toUpperCase());
 	}
 
-	/**
-	 * Get the default sources that all characters begin with
-	 * @returns {string[]} Array of default source IDs
-	 */
 	getDefaultSources() {
 		return Array.from(this._defaultSources);
 	}
 
-	/**
-	 * Get available sources
-	 * @returns {Array<string>} Array of available source codes
-	 */
 	getAvailableSources() {
 		return Array.from(this.availableSources.keys());
 	}
 
-	/**
-	 * Get the set of core source books
-	 * @returns {Set<string>} Set of core source book abbreviations
-	 */
 	getCoreSources() {
 		return this.coreSources;
 	}
 
-	/**
-	 * Check if a source is valid
-	 * @param {string} source - Source code to validate
-	 * @returns {boolean} Whether the source is valid
-	 */
 	isValidSource(source) {
 		return this.availableSources.has(source);
 	}
 
-	/**
-	 * Check if a source is allowed for the current character
-	 * @param {string} source - Source code to check
-	 * @returns {boolean} Whether the source is allowed
-	 */
 	isSourceAllowed(source) {
 		// Check direct and normalized variants
 		if (this.allowedSources.has(source)) return true;
@@ -299,28 +255,14 @@ export class SourceService {
 		return this.allowedSources.has(norm);
 	}
 
-	/**
-	 * Get details for a specific source
-	 * @param {string} source - Source code
-	 * @returns {SourceDetails|null} Source details or null if not found
-	 */
 	getSourceDetails(source) {
 		return this.availableSources.get(source) || null;
 	}
 
-	/**
-	 * Get the list of allowed sources for the current character
-	 * @returns {Array<string>} Array of allowed source codes
-	 */
 	getAllowedSources() {
 		return Array.from(this.allowedSources);
 	}
 
-	/**
-	 * Add a source to the allowed sources for the current character
-	 * @param {string} source - Source code to add
-	 * @returns {boolean} Whether the source was added
-	 */
 	addAllowedSource(source) {
 		if (!this.isValidSource(source)) {
 			return false;
@@ -344,11 +286,6 @@ export class SourceService {
 		return added;
 	}
 
-	/**
-	 * Remove a source from the allowed sources for the current character
-	 * @param {string} source - Source code to remove
-	 * @returns {boolean} Whether the source was removed
-	 */
 	removeAllowedSource(source) {
 		// Don't allow removing PHB
 		if (source === 'PHB') {
@@ -373,18 +310,10 @@ export class SourceService {
 		return removed;
 	}
 
-	/**
-	 * Check if a source is a core rulebook
-	 * @param {string} source - Source code to check
-	 * @returns {boolean} Whether the source is a core rulebook
-	 */
 	isCoreSource(source) {
 		return this.coreSources.has(source);
 	}
 
-	/**
-	 * Reset the allowed sources to the defaults (PHB)
-	 */
 	resetAllowedSources() {
 		this.allowedSources = this._expandSourceVariants(new Set(['PHB']));
 
@@ -399,11 +328,6 @@ export class SourceService {
 		}
 	}
 
-	/**
-	 * Formats a source code into a readable name
-	 * @param {string} source - Source code to format
-	 * @returns {string} Formatted source name
-	 */
 	formatSourceName(source) {
 		// First check if we have this source in our available sources
 		if (this.availableSources.has(source)) {
@@ -429,11 +353,6 @@ export class SourceService {
 		return sourceMap[source] || source.replace(/([A-Z])/g, ' $1').trim();
 	}
 
-	/**
-	 * Normalize source codes to canonical identifiers.
-	 * @param {string} source
-	 * @returns {string}
-	 */
 	_normalizeSource(source) {
 		if (!source) return source;
 		const s = String(source).toUpperCase();
@@ -441,11 +360,6 @@ export class SourceService {
 		return s;
 	}
 
-	/**
-	 * Expand a set of sources to include equivalent variants (e.g., PHB -> PHB, PHB-2014, XPHB).
-	 * @param {Set<string>} sources
-	 * @returns {Set<string>}
-	 */
 	_expandSourceVariants(sources) {
 		const expanded = new Set();
 		for (const src of sources) {
@@ -459,17 +373,9 @@ export class SourceService {
 		return expanded;
 	}
 
-	/**
-	 * Check if the source manager is initialized
-	 * @returns {boolean} Whether the source manager is initialized
-	 */
 	isInitialized() {
 		return this._initialized;
 	}
 }
 
-/**
- * Export a singleton instance of the SourceManager
- * @type {SourceManager}
- */
 export const sourceService = new SourceService();

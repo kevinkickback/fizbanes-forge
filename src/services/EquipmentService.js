@@ -1,7 +1,6 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 
-/** Manages character equipment, inventory, and attunement. */
 class EquipmentService extends BaseDataService {
     constructor() {
         super({
@@ -34,23 +33,11 @@ class EquipmentService extends BaseDataService {
         this.HEAVY_ENCUMBRANCE_MULTIPLIER = 10;
     }
 
-    /**
-     * Generate a unique instance ID for an item in inventory.
-     * @returns {string} Unique ID
-     * @private
-     */
     _generateItemInstanceId() {
         return `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    /**
-     * Add an item to character's inventory.
-     * @param {Object} character - Character object
-     * @param {Object} itemData - Item data from ItemService
-     * @param {number} quantity - Number of items to add
-     * @param {string} source - Source of the item (e.g., "Starting Equipment", "Manual", "Equipment Pack")
-     * @returns {Object} Added item instance
-     */
+    /** Add an item to character's inventory. */
     addItem(character, itemData, quantity = 1, source = 'Manual') {
         if (!character.inventory) {
             console.warn('[EquipmentService]', 'Character missing inventory');
@@ -95,13 +82,7 @@ class EquipmentService extends BaseDataService {
         }
     }
 
-    /**
-     * Remove an item from character's inventory.
-     * @param {Object} character - Character object
-     * @param {string} itemInstanceId - Instance ID of item to remove
-     * @param {number} quantity - Number of items to remove
-     * @returns {boolean} True if successful
-     */
+    /** Remove an item from character's inventory. */
     removeItem(character, itemInstanceId, quantity = 1) {
         if (!character.inventory) return false;
 
@@ -145,13 +126,7 @@ class EquipmentService extends BaseDataService {
         return true;
     }
 
-    /**
-     * Equip an item to a specific slot.
-     * @param {Object} character - Character object
-     * @param {string} itemInstanceId - Instance ID of item
-     * @param {string} slot - Slot to equip to (e.g., 'body', 'hands')
-     * @returns {boolean} True if successful
-     */
+    /** Equip an item to a specific slot. */
     equipItem(character, itemInstanceId, slot) {
         if (!character.inventory || !this.validSlots[slot]) {
             console.warn('[EquipmentService]', 'Invalid slot', { slot });
@@ -195,12 +170,7 @@ class EquipmentService extends BaseDataService {
         return true;
     }
 
-    /**
-     * Unequip an item from its slot.
-     * @param {Object} character - Character object
-     * @param {string} itemInstanceId - Instance ID of item
-     * @returns {boolean} True if successful
-     */
+    /** Unequip an item from its slot. */
     unequipItem(character, itemInstanceId) {
         if (!character.inventory) return false;
 
@@ -250,12 +220,7 @@ class EquipmentService extends BaseDataService {
         return false;
     }
 
-    /**
-     * Attune an item.
-     * @param {Object} character - Character object
-     * @param {string} itemInstanceId - Instance ID of item
-     * @returns {boolean} True if successful
-     */
+    /** Attune an item. */
     attuneItem(character, itemInstanceId) {
         if (!character.inventory) return false;
 
@@ -289,12 +254,7 @@ class EquipmentService extends BaseDataService {
         return true;
     }
 
-    /**
-     * Unattune an item.
-     * @param {Object} character - Character object
-     * @param {string} itemInstanceId - Instance ID of item
-     * @returns {boolean} True if successful
-     */
+    /** Unattune an item. */
     unattueItem(character, itemInstanceId) {
         if (!character.inventory) return false;
 
@@ -325,32 +285,17 @@ class EquipmentService extends BaseDataService {
         return true;
     }
 
-    /**
-     * Check if character can attune more items.
-     * @param {Object} character - Character object
-     * @returns {boolean} True if character has attunement slots available
-     */
     canAttune(character) {
         if (!character.inventory) return false;
         const attunedCount = character.inventory.attuned.length;
         return attunedCount < this.MAX_ATTUNEMENT_SLOTS;
     }
 
-    /**
-     * Get remaining attunement slots.
-     * @param {Object} character - Character object
-     * @returns {number} Number of available slots
-     */
     getRemainingAttunementSlots(character) {
         if (!character.inventory) return 0;
         return this.MAX_ATTUNEMENT_SLOTS - character.inventory.attuned.length;
     }
 
-    /**
-     * Calculate total weight of inventory.
-     * @param {Object} character - Character object
-     * @returns {number} Total weight in pounds
-     */
     calculateTotalWeight(character) {
         if (!character.inventory) return 0;
 
@@ -359,13 +304,7 @@ class EquipmentService extends BaseDataService {
         }, 0);
     }
 
-    /**
-     * Check if character has a feature that modifies carry capacity.
-     * Examples: Powerful Build (races/features that double carry capacity)
-     * @param {Object} character - Character object
-     * @returns {number} Multiplier for carry capacity (1.0 = normal, 2.0 = double, etc.)
-     * @private
-     */
+    /** Get carry capacity modifier based on features like Powerful Build. */
     _getCarryCapacityModifier(character) {
         // Check for Powerful Build feature or trait
         // This would need to be extended if more features modify carry capacity
@@ -382,13 +321,7 @@ class EquipmentService extends BaseDataService {
         return 1; // Default: no modifier
     }
 
-    /**
-     * Calculate character's carry capacity.
-     * Based on D&D 5e rules (PHB p.176): Capacity = Strength × 15 lbs
-     * Supports feature modifiers (e.g., Powerful Build doubles capacity)
-     * @param {Object} character - Character object
-     * @returns {number} Carry capacity in pounds
-     */
+    /** Carry capacity = STR × 15 lbs, modified by Powerful Build etc. */
     calculateCarryCapacity(character) {
         const strength = character.abilityScores?.strength || 10;
         const baseCapacity = strength * this.CARRY_CAPACITY_MULTIPLIER;
@@ -396,14 +329,7 @@ class EquipmentService extends BaseDataService {
         return Math.floor(baseCapacity * modifier);
     }
 
-    /**
-     * Check if character is overencumbered.
-     * Based on D&D 5e rules (PHB p.176):
-     * - Lightly Encumbered at 5 × STR (speed reduced by 10 ft)
-     * - Heavily Encumbered at 10 × STR (speed reduced by 20 ft, disadvantage on attacks/ability checks)
-     * @param {Object} character - Character object
-     * @returns {Object} { encumbered: boolean, heavilyEncumbered: boolean, total: number, capacity: number }
-     */
+    /** Light at 5×STR, heavy at 10×STR (PHB p.176). */
     checkEncumbrance(character) {
         const total = this.calculateTotalWeight(character);
         const capacity = this.calculateCarryCapacity(character);
@@ -419,11 +345,6 @@ class EquipmentService extends BaseDataService {
         };
     }
 
-    /**
-     * Update inventory weight calculations.
-     * @param {Object} character - Character object
-     * @private
-     */
     _updateInventoryWeight(character) {
         if (!character.inventory) return;
 
@@ -436,21 +357,10 @@ class EquipmentService extends BaseDataService {
         }
     }
 
-    /**
-     * Get all items in inventory.
-     * @param {Object} character - Character object
-     * @returns {Array} Array of items
-     */
     getInventoryItems(character) {
         return character.inventory?.items || [];
     }
 
-    /**
-     * Get equipped items for a specific slot (or all if no slot specified).
-     * @param {Object} character - Character object
-     * @param {string} slot - Optional slot name
-     * @returns {Array} Array of equipped item instances or IDs
-     */
     getEquippedItems(character, slot = null) {
         if (!character.inventory) return [];
 
@@ -474,11 +384,6 @@ class EquipmentService extends BaseDataService {
         return allEquipped;
     }
 
-    /**
-     * Get attuned items.
-     * @param {Object} character - Character object
-     * @returns {Array} Array of attuned item instances
-     */
     getAttunedItems(character) {
         if (!character.inventory) return [];
 
@@ -487,12 +392,6 @@ class EquipmentService extends BaseDataService {
         );
     }
 
-    /**
-     * Find an item by instance ID.
-     * @param {Object} character - Character object
-     * @param {string} itemInstanceId - Item instance ID
-     * @returns {Object|null} Item instance or null
-     */
     findItemById(character, itemInstanceId) {
         return character.inventory?.items.find(
             (item) => item.id === itemInstanceId,

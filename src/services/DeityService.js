@@ -1,9 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { BaseDataService } from './BaseDataService.js';
 
-/**
- * DeityService - Manages deity data from 5etools
- */
+/** Manages deity data from 5etools. */
 class DeityService extends BaseDataService {
     constructor() {
         super({
@@ -14,9 +12,6 @@ class DeityService extends BaseDataService {
         this.deities = [];
     }
 
-    /**
-     * Initialize deity data
-     */
     async initialize() {
         console.debug('[DeityService]', 'Initializing deity data');
 
@@ -54,18 +49,11 @@ class DeityService extends BaseDataService {
         }
     }
 
-    /**
-     * Get all deities
-     * @returns {Array} Array of deity objects
-     */
     getAllDeities() {
         return this.deities || [];
     }
 
-    /**
-     * Get unique deity names sorted alphabetically
-     * @returns {Array<string>} Array of unique deity names
-     */
+    /** Get unique deity names sorted alphabetically. */
     getDeityNames() {
         const names = new Set();
         for (const deity of this.deities) {
@@ -76,20 +64,12 @@ class DeityService extends BaseDataService {
         return Array.from(names).sort();
     }
 
-    /**
-     * Get deities by pantheon
-     * @param {string} pantheon - Pantheon name (e.g., "Faerûnian", "Greek", "Norse")
-     * @returns {Array} Array of deity objects
-     */
+    /** Get deities by pantheon. */
     getByPantheon(pantheon) {
         return this.deities.filter((d) => d.pantheon === pantheon);
     }
 
-    /**
-     * Search deities by name
-     * @param {string} query - Search query
-     * @returns {Array} Array of matching deity objects
-     */
+    /** Search deities by name. */
     searchByName(query) {
         if (!query) return [];
         const lowerQuery = query.toLowerCase();
@@ -98,11 +78,7 @@ class DeityService extends BaseDataService {
         );
     }
 
-    /**
-     * Get deity by exact name
-     * @param {string} name - Deity name
-     * @returns {Object|null} Deity object or null
-     */
+    /** Get deity by exact name. */
     getByName(name) {
         return this.deities.find((d) => d.name === name) || null;
     }

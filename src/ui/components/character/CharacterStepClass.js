@@ -1,8 +1,4 @@
-/**
- * Step 3: Class
- * 
- * User selects character class and subclass.
- */
+// Step 3: Class - character class and subclass selection
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -17,9 +13,6 @@ export class CharacterStepClass {
         this._classService = classService;
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
         return `
             <div class="step-3-class">
@@ -134,14 +127,20 @@ export class CharacterStepClass {
             if (savedClass.subclass) {
                 setTimeout(() => {
                     this._subclassSelect.value = savedClass.subclass;
-                    this._handleSubclassChange({ target: { value: savedClass.subclass } });
+                    this._handleSubclassChange({
+                        target: { value: savedClass.subclass },
+                    });
                 }, 100);
             }
         }
 
         // Attach event listeners
-        this._cleanup.on(this._classSelect, 'change', (e) => this._handleClassChange(e));
-        this._cleanup.on(this._subclassSelect, 'change', (e) => this._handleSubclassChange(e));
+        this._cleanup.on(this._classSelect, 'change', (e) =>
+            this._handleClassChange(e),
+        );
+        this._cleanup.on(this._subclassSelect, 'change', (e) =>
+            this._handleSubclassChange(e),
+        );
 
         // Store reference to features grid for tooltip processing
         this._featuresGrid = contentArea.querySelector('#modalFeatures');
@@ -175,13 +174,13 @@ export class CharacterStepClass {
         }
 
         // Filter by allowed sources
-        const filteredClasses = classes.filter(cls =>
-            sourceService.isSourceAllowed(cls.source)
+        const filteredClasses = classes.filter((cls) =>
+            sourceService.isSourceAllowed(cls.source),
         );
 
         // Sort by name
         const sortedClasses = [...filteredClasses].sort((a, b) =>
-            a.name.localeCompare(b.name)
+            a.name.localeCompare(b.name),
         );
 
         // Populate select
@@ -208,24 +207,31 @@ export class CharacterStepClass {
             return;
         }
 
-        const subclasses = this._classService.getSubclasses(classData.name, classData.source);
+        const subclasses = this._classService.getSubclasses(
+            classData.name,
+            classData.source,
+        );
         if (!subclasses || subclasses.length === 0) return;
 
         // Filter and sort
-        const filteredSubclasses = subclasses.filter(subclass => {
+        const filteredSubclasses = subclasses.filter((subclass) => {
             const subclassSource = subclass.source || classData.source;
-            return subclass.name && subclass.name.trim() !== '' &&
-                sourceService.isSourceAllowed(subclassSource);
+            return (
+                subclass.name &&
+                subclass.name.trim() !== '' &&
+                sourceService.isSourceAllowed(subclassSource)
+            );
         });
 
         if (filteredSubclasses.length === 0) return;
 
         // Subclasses are required at level 1 for these classes
-        this._subclassSelect.innerHTML = '<option value="">Select Subclass</option>';
+        this._subclassSelect.innerHTML =
+            '<option value="">Select Subclass</option>';
         this._subclassSelect.disabled = false;
 
         const sortedSubclasses = [...filteredSubclasses].sort((a, b) =>
-            a.name.localeCompare(b.name)
+            a.name.localeCompare(b.name),
         );
 
         for (const subclass of sortedSubclasses) {
@@ -247,7 +253,10 @@ export class CharacterStepClass {
 
         const classData = this._classService.getClass(className, source);
         if (!classData) {
-            console.error('[Step3Class]', `Class not found: ${className} (${source})`);
+            console.error(
+                '[Step3Class]',
+                `Class not found: ${className} (${source})`,
+            );
             return;
         }
 
@@ -360,25 +369,33 @@ export class CharacterStepClass {
         if (!this._featuresGrid) return;
 
         // Get level 1 features from ClassService
-        const features = this._classService.getClassFeatures(classData.name, 1, classData.source);
+        const features = this._classService.getClassFeatures(
+            classData.name,
+            1,
+            classData.source,
+        );
 
         if (!features || features.length === 0) {
-            this._featuresGrid.innerHTML = '<span class="trait-tag">No features available</span>';
+            this._featuresGrid.innerHTML =
+                '<span class="trait-tag">No features available</span>';
         } else {
             // Build feature tags with hover tooltips
-            const featureTags = features.map(feature => {
-                const escapedName = this._escapeHtml(feature.name || 'Unknown Feature');
+            const featureTags = features
+                .map((feature) => {
+                    const escapedName = this._escapeHtml(
+                        feature.name || 'Unknown Feature',
+                    );
 
-                // Build description from entries
-                let description = '';
-                if (feature.entries && Array.isArray(feature.entries)) {
-                    description = feature.entries
-                        .filter(e => typeof e === 'string')
-                        .map(e => `<p>${this._escapeHtml(e)}</p>`)
-                        .join('');
-                }
+                    // Build description from entries
+                    let description = '';
+                    if (feature.entries && Array.isArray(feature.entries)) {
+                        description = feature.entries
+                            .filter((e) => typeof e === 'string')
+                            .map((e) => `<p>${this._escapeHtml(e)}</p>`)
+                            .join('');
+                    }
 
-                return `
+                    return `
                     <a class="trait-tag rd__hover-link" 
                         data-hover-type="feature" 
                         data-hover-name="${escapedName}"
@@ -386,7 +403,8 @@ export class CharacterStepClass {
                         ${escapedName}
                     </a>
                 `;
-            }).join('');
+                })
+                .join('');
 
             this._featuresGrid.innerHTML = featureTags;
 
@@ -396,12 +414,17 @@ export class CharacterStepClass {
     }
 
     _resetDetails() {
-        document.getElementById('modalHitDie').innerHTML = '<li class="placeholder-text">—</li>';
-        document.getElementById('modalPrimaryAbility').innerHTML = '<li class="placeholder-text">—</li>';
-        document.getElementById('modalSavingThrows').innerHTML = '<li class="placeholder-text">—</li>';
-        document.getElementById('modalArmorWeapons').innerHTML = '<li class="placeholder-text">—</li>';
+        document.getElementById('modalHitDie').innerHTML =
+            '<li class="placeholder-text">—</li>';
+        document.getElementById('modalPrimaryAbility').innerHTML =
+            '<li class="placeholder-text">—</li>';
+        document.getElementById('modalSavingThrows').innerHTML =
+            '<li class="placeholder-text">—</li>';
+        document.getElementById('modalArmorWeapons').innerHTML =
+            '<li class="placeholder-text">—</li>';
         if (this._featuresGrid) {
-            this._featuresGrid.innerHTML = '<span class="trait-tag">No features available</span>';
+            this._featuresGrid.innerHTML =
+                '<span class="trait-tag">No features available</span>';
         }
     }
 
@@ -426,7 +449,12 @@ export class CharacterStepClass {
             if (subclassLevel === 1) {
                 const subclassValue = this._subclassSelect?.value;
                 if (!subclassValue) {
-                    console.warn('[Step3Class]', 'Subclass required for', className, 'at level 1');
+                    console.warn(
+                        '[Step3Class]',
+                        'Subclass required for',
+                        className,
+                        'at level 1',
+                    );
                     return false;
                 }
             }
@@ -451,10 +479,14 @@ export class CharacterStepClass {
         this.session.set('class', {
             name: className,
             source,
-            subclass: subclassValue
+            subclass: subclassValue,
         });
 
-        console.debug('[Step3Class]', 'Saved class data:', this.session.get('class'));
+        console.debug(
+            '[Step3Class]',
+            'Saved class data:',
+            this.session.get('class'),
+        );
     }
 
     /**
@@ -469,9 +501,9 @@ export class CharacterStepClass {
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            "'": '&#039;'
+            "'": '&#039;',
         };
-        return str.replace(/[&<>"']/g, m => map[m]);
+        return str.replace(/[&<>"']/g, (m) => map[m]);
     }
 
     /**

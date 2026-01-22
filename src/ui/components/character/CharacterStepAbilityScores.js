@@ -1,12 +1,10 @@
-/**
- * Step 5: Ability Scores
- * 
- * User assigns ability scores based on the method chosen in Step 1 (Rules).
- * Displays ability score boxes with bonuses from race and shows the method being used.
- */
+// Step 5: Ability Scores - score assignment based on method from step 1
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
-import { abilityScoreService, getRaceAbilityData } from '../../../services/AbilityScoreService.js';
+import {
+    abilityScoreService,
+    getRaceAbilityData,
+} from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
 
 export class CharacterStepAbilityScores {
@@ -17,9 +15,6 @@ export class CharacterStepAbilityScores {
         this._abilityChoiceData = null; // Store choice data for dropdowns
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
         const stagedData = this.session.getStagedData();
         const method = stagedData.abilityScoreMethod || 'pointBuy';
@@ -31,7 +26,9 @@ export class CharacterStepAbilityScores {
 
         if (raceName && raceSource) {
             const race = raceService.getRace(raceName, raceSource);
-            const subrace = subraceName ? raceService.getSubrace(raceName, subraceName, raceSource) : null;
+            const subrace = subraceName
+                ? raceService.getSubrace(raceName, subraceName, raceSource)
+                : null;
             this._abilityChoiceData = getRaceAbilityData(race, subrace);
         } else {
             this._abilityChoiceData = { fixed: [], choices: [] };
@@ -62,24 +59,38 @@ export class CharacterStepAbilityScores {
      * @private
      */
     _renderAbilityScoreBoxes() {
-        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+        const abilities = [
+            'strength',
+            'dexterity',
+            'constitution',
+            'intelligence',
+            'wisdom',
+            'charisma',
+        ];
         const stagedData = this.session.getStagedData();
 
         // Initialize ability scores in staged data if not present
         if (!stagedData.abilityScores) {
             stagedData.abilityScores = {
-                strength: 8, dexterity: 8, constitution: 8,
-                intelligence: 8, wisdom: 8, charisma: 8
+                strength: 8,
+                dexterity: 8,
+                constitution: 8,
+                intelligence: 8,
+                wisdom: 8,
+                charisma: 8,
             };
         }
 
-        return abilities.map(ability => {
-            const baseScore = stagedData.abilityScores[ability] || 8;
-            const racialBonus = this._getRacialBonus(ability);
-            const totalScore = baseScore + racialBonus;
-            const modifier = this._formatModifier(Math.floor((totalScore - 10) / 2));
+        return abilities
+            .map((ability) => {
+                const baseScore = stagedData.abilityScores[ability] || 8;
+                const racialBonus = this._getRacialBonus(ability);
+                const totalScore = baseScore + racialBonus;
+                const modifier = this._formatModifier(
+                    Math.floor((totalScore - 10) / 2),
+                );
 
-            return `
+                return `
                 <div class="ability-score-box" data-ability="${ability}">
                     <h6>${ability.toUpperCase()}</h6>
                     <div class="score">${totalScore}</div>
@@ -90,7 +101,8 @@ export class CharacterStepAbilityScores {
                     </div>
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
     }
 
     /**
@@ -124,11 +136,15 @@ export class CharacterStepAbilityScores {
                         </label>
                         <select class="form-select form-select-sm" data-choice-index="${choiceIndex}">
                             <option value="">Choose an ability...</option>
-                            ${choice.from.map(ability => `
+                            ${choice.from
+                        .map(
+                            (ability) => `
                                 <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
                                     ${ability.charAt(0).toUpperCase() + ability.slice(1)}
                                 </option>
-                            `).join('')}
+                            `,
+                        )
+                        .join('')}
                         </select>
                     </div>
                 `;
@@ -167,7 +183,14 @@ export class CharacterStepAbilityScores {
      */
     _calculatePointsUsed() {
         const pointCosts = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
-        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+        const abilities = [
+            'strength',
+            'dexterity',
+            'constitution',
+            'intelligence',
+            'wisdom',
+            'charisma',
+        ];
         const stagedData = this.session.getStagedData();
 
         let total = 0;
@@ -195,12 +218,14 @@ export class CharacterStepAbilityScores {
         const race = raceService.getRace(raceName, raceSource);
         if (!race) return 0;
 
-        const subrace = subraceName ? raceService.getSubrace(raceName, subraceName, raceSource) : null;
+        const subrace = subraceName
+            ? raceService.getSubrace(raceName, subraceName, raceSource)
+            : null;
 
         // Parse ability increases from race and subrace
         const abilityArray = [
             ...(race?.ability || []),
-            ...(subrace?.ability || [])
+            ...(subrace?.ability || []),
         ];
 
         if (abilityArray.length === 0) return 0;
@@ -247,7 +272,7 @@ export class CharacterStepAbilityScores {
             pointBuy: 'Point Buy',
             standardArray: 'Standard Array',
             rolled: 'Rolled',
-            custom: 'Custom'
+            custom: 'Custom',
         };
         return names[method] || 'Point Buy';
     }
@@ -258,10 +283,12 @@ export class CharacterStepAbilityScores {
      */
     _getMethodDescription(method) {
         const descriptions = {
-            pointBuy: ' - Assign ability scores using a pool of 27 points (8-15 range).',
-            standardArray: ' - Assign these values to your abilities: 15, 14, 13, 12, 10, 8.',
+            pointBuy:
+                ' - Assign ability scores using a pool of 27 points (8-15 range).',
+            standardArray:
+                ' - Assign these values to your abilities: 15, 14, 13, 12, 10, 8.',
             rolled: ' - You have rolled for your ability scores.',
-            custom: ' - Enter your ability scores manually.'
+            custom: ' - Enter your ability scores manually.',
         };
         return descriptions[method] || '';
     }
@@ -284,7 +311,14 @@ export class CharacterStepAbilityScores {
      * @private
      */
     async _addMethodControls(method) {
-        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+        const abilities = [
+            'strength',
+            'dexterity',
+            'constitution',
+            'intelligence',
+            'wisdom',
+            'charisma',
+        ];
 
         for (const ability of abilities) {
             const controlsContainer = document.getElementById(`controls-${ability}`);
@@ -318,8 +352,12 @@ export class CharacterStepAbilityScores {
         increaseBtn.textContent = '+';
         increaseBtn.disabled = baseScore >= 15;
 
-        this._cleanup.on(decreaseBtn, 'click', () => this._handlePointBuyDecrease(ability));
-        this._cleanup.on(increaseBtn, 'click', () => this._handlePointBuyIncrease(ability));
+        this._cleanup.on(decreaseBtn, 'click', () =>
+            this._handlePointBuyDecrease(ability),
+        );
+        this._cleanup.on(increaseBtn, 'click', () =>
+            this._handlePointBuyIncrease(ability),
+        );
 
         container.appendChild(decreaseBtn);
         container.appendChild(increaseBtn);
@@ -353,7 +391,9 @@ export class CharacterStepAbilityScores {
             select.appendChild(option);
         }
 
-        this._cleanup.on(select, 'change', (e) => this._handleStandardArrayChange(ability, e.target.value));
+        this._cleanup.on(select, 'change', (e) =>
+            this._handleStandardArrayChange(ability, e.target.value),
+        );
 
         container.appendChild(select);
     }
@@ -373,7 +413,9 @@ export class CharacterStepAbilityScores {
         input.max = 20;
         input.value = baseScore;
 
-        this._cleanup.on(input, 'change', (e) => this._handleCustomInput(ability, e.target.value));
+        this._cleanup.on(input, 'change', (e) =>
+            this._handleCustomInput(ability, e.target.value),
+        );
 
         container.appendChild(input);
     }
@@ -401,8 +443,12 @@ export class CharacterStepAbilityScores {
         // Update staged data
         if (!stagedData.abilityScores) {
             stagedData.abilityScores = {
-                strength: 8, dexterity: 8, constitution: 8,
-                intelligence: 8, wisdom: 8, charisma: 8
+                strength: 8,
+                dexterity: 8,
+                constitution: 8,
+                intelligence: 8,
+                wisdom: 8,
+                charisma: 8,
             };
         }
         stagedData.abilityScores[ability] = currentScore + 1;
@@ -421,8 +467,12 @@ export class CharacterStepAbilityScores {
         // Update staged data
         if (!stagedData.abilityScores) {
             stagedData.abilityScores = {
-                strength: 8, dexterity: 8, constitution: 8,
-                intelligence: 8, wisdom: 8, charisma: 8
+                strength: 8,
+                dexterity: 8,
+                constitution: 8,
+                intelligence: 8,
+                wisdom: 8,
+                charisma: 8,
             };
         }
         stagedData.abilityScores[ability] = currentScore - 1;
@@ -440,13 +490,24 @@ export class CharacterStepAbilityScores {
         const stagedData = this.session.getStagedData();
         if (!stagedData.abilityScores) {
             stagedData.abilityScores = {
-                strength: 8, dexterity: 8, constitution: 8,
-                intelligence: 8, wisdom: 8, charisma: 8
+                strength: 8,
+                dexterity: 8,
+                constitution: 8,
+                intelligence: 8,
+                wisdom: 8,
+                charisma: 8,
             };
         }
 
         // Check if this value is already assigned
-        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+        const abilities = [
+            'strength',
+            'dexterity',
+            'constitution',
+            'intelligence',
+            'wisdom',
+            'charisma',
+        ];
         const currentScore = stagedData.abilityScores[ability];
 
         for (const checkAbility of abilities) {
@@ -473,8 +534,12 @@ export class CharacterStepAbilityScores {
         const stagedData = this.session.getStagedData();
         if (!stagedData.abilityScores) {
             stagedData.abilityScores = {
-                strength: 8, dexterity: 8, constitution: 8,
-                intelligence: 8, wisdom: 8, charisma: 8
+                strength: 8,
+                dexterity: 8,
+                constitution: 8,
+                intelligence: 8,
+                wisdom: 8,
+                charisma: 8,
             };
         }
 
@@ -489,11 +554,20 @@ export class CharacterStepAbilityScores {
      */
     async _refreshDisplay() {
         const stagedData = this.session.getStagedData();
-        const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+        const abilities = [
+            'strength',
+            'dexterity',
+            'constitution',
+            'intelligence',
+            'wisdom',
+            'charisma',
+        ];
 
         // Update each ability box
         for (const ability of abilities) {
-            const box = document.querySelector(`.ability-score-box[data-ability="${ability}"]`);
+            const box = document.querySelector(
+                `.ability-score-box[data-ability="${ability}"]`,
+            );
             if (!box) continue;
 
             const baseScore = stagedData.abilityScores?.[ability] || 8;
@@ -547,8 +621,17 @@ export class CharacterStepAbilityScores {
 
         // For standard array, check if all values are assigned
         if (method === 'standardArray') {
-            const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-            const assignedValues = abilities.map(a => abilityScoreService.getBaseScore(a));
+            const abilities = [
+                'strength',
+                'dexterity',
+                'constitution',
+                'intelligence',
+                'wisdom',
+                'charisma',
+            ];
+            const assignedValues = abilities.map((a) =>
+                abilityScoreService.getBaseScore(a),
+            );
             const standardValues = [15, 14, 13, 12, 10, 8];
 
             // Check if all standard values are used
@@ -556,7 +639,10 @@ export class CharacterStepAbilityScores {
             const sortedStandard = [...standardValues].sort((a, b) => b - a);
 
             if (JSON.stringify(sortedAssigned) !== JSON.stringify(sortedStandard)) {
-                console.warn('[Step5AbilityScores]', 'Not all standard array values assigned');
+                console.warn(
+                    '[Step5AbilityScores]',
+                    'Not all standard array values assigned',
+                );
                 return false;
             }
         }

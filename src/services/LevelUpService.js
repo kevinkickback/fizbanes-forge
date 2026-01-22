@@ -8,9 +8,6 @@ class LevelUpService {
         this.loggerScope = 'LevelUpService';
     }
 
-    /** @param {Object} character - Character object
-     * @returns {void}
-     */
     initializeProgression(character) {
         if (!character.progression) {
             character.progression = {
@@ -23,10 +20,7 @@ class LevelUpService {
         // No legacy character.class field to sync
     }
 
-    /** Calculated from progression.classes[].
-     * @param {Object} character - Character object
-     * @returns {number} Total character level
-     */
+    /** Total level from progression.classes[]. */
     getTotalLevel(character) {
         if (!character?.progression?.classes || character.progression.classes.length === 0) {
             return 1;
@@ -34,11 +28,6 @@ class LevelUpService {
         return character.progression.classes.reduce((sum, c) => sum + (c.levels || 0), 0);
     }
 
-    /** @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {number} level - Level in that class (default 1)
-     * @returns {Object} Class progression entry or null
-     */
     addClassLevel(character, className, level = 1, source = 'PHB') {
         if (!character.progression) {
             this.initializeProgression(character);
@@ -86,10 +75,6 @@ class LevelUpService {
         return classEntry;
     }
 
-    /** @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @returns {boolean} True if successful
-     */
     removeClassLevel(character, className) {
         if (!character.progression) return false;
 
@@ -110,23 +95,10 @@ class LevelUpService {
         return true;
     }
 
-    /**
-     * Get hit die for a class.
-     * Delegates to ClassService which loads from 5etools data.
-     * @param {string} className - Class name
-     * @returns {string} Hit die (e.g., "d8", "d10")
-     * @private
-     */
     _getHitDiceForClass(className) {
         return classService.getHitDie(className);
     }
 
-    /**
-     * Get class features available at a specific level.
-     * @param {string} className - Class name
-     * @param {number} level - Class level
-     * @returns {Array} Array of feature objects
-     */
     getClassFeaturesForLevel(className, level) {
         try {
             // Use ClassService's built-in getClassFeatures which properly handles filtering
@@ -144,13 +116,6 @@ class LevelUpService {
         }
     }
 
-    /**
-     * Get subclass features available at a specific level.
-     * @param {string} className - Parent class name (e.g., "Cleric", "Rogue")
-     * @param {string} subclassName - Subclass name or short name (e.g., "Life", "Thief")
-     * @param {number} level - Class level
-     * @returns {Array} Array of feature objects
-     */
     async getSubclassFeaturesForLevel(className, subclassName, level) {
         try {
             // Get subclass features using ClassService's built-in method
@@ -168,12 +133,7 @@ class LevelUpService {
         }
     }
 
-    /**
-     * Get ASI levels for a specific class by parsing class features from JSON.
-     * @param {string} className - Name of the class
-     * @returns {Array<number>} Array of levels where ASI is available
-     * @private
-     */
+    /** Get ASI levels for class by parsing classFeatures. */
     _getASILevelsForClass(className) {
         const classData = classService.getClass(className);
         if (!classData?.classFeatures) {
@@ -221,12 +181,7 @@ class LevelUpService {
         return [4, 8, 12, 16, 19];
     }
 
-    /**
-     * Get combined ASI levels for a multiclass character.
-     * Returns unique levels where ANY of the character's classes gains an ASI.
-     * @param {Object} character - Character object
-     * @returns {Array<number>} Array of levels where ASI is available
-     */
+    /** Combined ASI levels for multiclass character. */
     getASILevels(character) {
         if (!character?.progression?.classes || character.progression.classes.length === 0) {
             // No classes yet, return standard
@@ -245,25 +200,13 @@ class LevelUpService {
         return Array.from(allASILevels).sort((a, b) => a - b);
     }
 
-    /**
-     * Check if a character has an ASI/feat option available at current level.
-     * @param {Object} character - Character object
-     * @returns {boolean} True if ASI is available at current level
-     */
     hasASIAvailable(character) {
         const currentLevel = this.getTotalLevel(character);
         const asiLevels = this.getASILevels(character);
         return asiLevels.includes(currentLevel);
     }
 
-    /**
-     * Record a level-up event with applied features and choices.
-     * @param {Object} character - Character object
-     * @param {number} fromLevel - Previous level
-     * @param {number} toLevel - New level
-     * @param {Object} changes - Changes applied { appliedFeats, appliedFeatures, changedAbilities }
-     * @returns {void}
-     */
+    /** Record a level-up event with applied features and choices. */
     recordLevelUp(character, fromLevel, toLevel, changes = {}) {
         if (!character.progression) {
             character.progression = { classes: [], experiencePoints: 0, levelUps: [] };
@@ -283,11 +226,6 @@ class LevelUpService {
         console.debug(`[${this.loggerScope}]`, 'Recorded level-up', levelUpRecord);
     }
 
-    /**
-     * Update spell slots for all classes based on current levels.
-     * @param {Object} character - Character object
-     * @returns {void}
-     */
     updateSpellSlots(character) {
         if (!character.spellcasting || !character.progression) return;
 
@@ -313,11 +251,6 @@ class LevelUpService {
         console.debug(`[${this.loggerScope}]`, 'Updated spell slots');
     }
 
-    /**
-     * Calculate maximum hit points based on class levels, constitution, and level-ups.
-     * @param {Object} character - Character object
-     * @returns {number} Maximum hit points
-     */
     calculateMaxHitPoints(character) {
         if (!character.progression || character.progression.classes.length === 0) {
             // Fallback: use level 1 class default
@@ -347,23 +280,11 @@ class LevelUpService {
         return Math.max(1, totalHP);
     }
 
-    /**
-     * Parse a hit die string (e.g., "d8") to numeric value.
-     * @param {string} hitDice - Hit die string
-     * @returns {number} Numeric value
-     * @private
-     */
     _parseHitDice(hitDice) {
         const match = hitDice?.match(/d(\d+)/);
         return match ? parseInt(match[1], 10) : 8;
     }
 
-    /**
-     * Map 5etools ability abbreviations to full names.
-     * @param {string} abbr - Ability abbreviation
-     * @returns {string} Full ability name
-     * @private
-     */
     _mapAbilityAbbreviation(abbr) {
         const abilityMap = {
             'str': 'strength',
@@ -376,12 +297,6 @@ class LevelUpService {
         return abilityMap[abbr] || abbr;
     }
 
-    /**
-     * Get abbreviated ability name for display.
-     * @param {string} ability - Full ability name
-     * @returns {string} Abbreviated name
-     * @private
-     */
     _getAbilityAbbreviation(ability) {
         const abbreviations = {
             strength: 'Str',
@@ -394,11 +309,6 @@ class LevelUpService {
         return abbreviations[ability] || ability;
     }
 
-    /**
-     * Get all available classes from JSON data.
-     * @returns {Array<string>} Array of unique class names
-     * @private
-     */
     _getAllClasses() {
         const classes = classService.getAllClasses();
         // Filter by allowed sources and avoid duplicates
@@ -427,11 +337,7 @@ class LevelUpService {
         return result.sort();
     }
 
-    /**
-     * Return a human-readable requirement string for a class from JSON data.
-     * @param {string} className
-     * @returns {string}
-     */
+    /** Return human-readable multiclass requirement string. */
     getRequirementText(className) {
         const classData = classService.getClass(className);
         if (!classData?.multiclassing?.requirements) {
@@ -463,12 +369,6 @@ class LevelUpService {
         return parts.join(' & ');
     }
 
-    /**
-     * Check if a character meets multiclass requirements for a specific class from JSON data.
-     * @param {Object} character - Character object
-     * @param {string} className - Class name to check
-     * @returns {boolean} True if requirements are met
-     */
     checkMulticlassRequirements(character, className) {
         const classData = classService.getClass(className);
         if (!classData?.multiclassing?.requirements) {
@@ -514,23 +414,11 @@ class LevelUpService {
         return true;
     }
 
-    /**
-     * Get available classes for multiclassing based on character prerequisites.
-     * @param {Object} character - Character object
-     * @param {boolean} ignoreRequirements - If true, skip ability score checks
-     * @returns {Array} Array of available class names
-     */
     getAvailableClassesForMulticlass(character, ignoreRequirements = false) {
         const options = this.getMulticlassOptions(character, ignoreRequirements);
         return options.filter((opt) => opt.meetsRequirements).map((opt) => opt.name);
     }
 
-    /**
-     * Get multiclass options including requirement status and label text.
-     * @param {Object} character
-     * @param {boolean} ignoreRequirements - If true, all classes meet requirements
-     * @returns {Array<{name: string, meetsRequirements: boolean, requirementText: string}>}
-     */
     getMulticlassOptions(character, ignoreRequirements = false) {
         const allClasses = this._getAllClasses();
         const existingClasses = character.progression?.classes?.map((c) => c.name) || [];
@@ -548,12 +436,7 @@ class LevelUpService {
             });
     }
 
-    /**
-     * Get multiclass spell slot combination rules.
-     * Applies D&D 5e multiclass spellcasting rules properly.
-     * @param {Object} character - Character object
-     * @returns {Object} Combined spell slots or empty if not applicable
-     */
+    /** Combine spell slots per D&D 5e multiclass rules. */
     calculateMulticlassSpellSlots(character) {
         if (!character.progression?.classes || character.progression.classes.length <= 1) {
             return {}; // Not multiclassing
@@ -595,14 +478,7 @@ class LevelUpService {
         return combinedSlots;
     }
 
-    /**
-     * Get pending choices for a specific level-up.
-     * Used by build page to detect what choices are needed after leveling up.
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {number} level - Level to check
-     * @returns {Object} Pending choices object with categories
-     */
+    /** Get pending choices needed at a specific level for build page. */
     getPendingChoicesForLevel(character, className, level) {
         const choices = {
             subclass: null,
@@ -676,10 +552,6 @@ class LevelUpService {
         return choices;
     }
 
-    /**
-     * Detect feature type from name
-     * @private
-     */
     _detectFeatureType(featureName) {
         if (featureName.includes('Fighting Style')) return 'fightingStyle';
         if (featureName.includes('Metamagic')) return 'metamagic';

@@ -1,8 +1,4 @@
-/**
- * Step 0: Basics
- * 
- * User enters character name, gender, and selects a portrait.
- */
+// Step 0: Basics - character name, gender, and portrait selection
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 
@@ -14,9 +10,6 @@ export class CharacterStepBasics {
         this.selectedPortrait = null;
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
         const name = this.session.get('name') || '';
         const gender = this.session.get('gender') || 'male';
@@ -203,7 +196,8 @@ export class CharacterStepBasics {
             const basePath = idx > 0 ? characterPath.slice(0, idx) : characterPath;
             const portraitsPath = `${basePath}${sep}portraits`;
 
-            const result = await window.characterStorage?.listPortraits?.(portraitsPath);
+            const result =
+                await window.characterStorage?.listPortraits?.(portraitsPath);
             if (result?.success && Array.isArray(result.files)) {
                 for (const filePath of result.files) {
                     const fileSrc = filePath.startsWith('file://')
@@ -229,7 +223,10 @@ export class CharacterStepBasics {
         try {
             const characterPath = await window.characterStorage?.getDefaultSavePath();
             if (!characterPath || typeof characterPath !== 'string') {
-                console.warn('[Step0Basics]', 'Could not determine portraits directory');
+                console.warn(
+                    '[Step0Basics]',
+                    'Could not determine portraits directory',
+                );
                 return;
             }
 
@@ -248,7 +245,7 @@ export class CharacterStepBasics {
                     const saveResult = await window.characterStorage?.savePortrait(
                         portraitsPath,
                         dataUrl,
-                        file.name
+                        file.name,
                     );
 
                     if (saveResult?.success && saveResult.filePath) {

@@ -1,8 +1,4 @@
-/**
- * Step 1: Rules
- * 
- * User selects ability score method, variant rules, and allowed source books.
- */
+// Step 1: Rules - ability score method, variant rules, and source selection
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { sourceService } from '../../../services/SourceService.js';
@@ -16,13 +12,12 @@ export class CharacterStepRules {
         this._sourceCard = new SourceCard();
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
-        const abilityScoreMethod = this.session.get('abilityScoreMethod') || 'pointBuy';
+        const abilityScoreMethod =
+            this.session.get('abilityScoreMethod') || 'pointBuy';
         const variantfeat = this.session.get('variantRules.variantfeat') ?? false;
-        const averageHitPoints = this.session.get('variantRules.averageHitPoints') ?? false;
+        const averageHitPoints =
+            this.session.get('variantRules.averageHitPoints') ?? false;
 
         return `
             <div class="step-1-rules">
@@ -165,7 +160,8 @@ export class CharacterStepRules {
     _restoreSourceSelection(sources) {
         if (!this._sourceCard.container) return;
 
-        const toggles = this._sourceCard.container.querySelectorAll('.source-toggle');
+        const toggles =
+            this._sourceCard.container.querySelectorAll('.source-toggle');
         for (const toggle of toggles) {
             const source = toggle.getAttribute('data-source')?.toUpperCase();
             if (source && sources.has(source)) {
@@ -180,7 +176,8 @@ export class CharacterStepRules {
     _selectAllSources() {
         if (!this._sourceCard.container) return;
 
-        const toggles = this._sourceCard.container.querySelectorAll('.source-toggle');
+        const toggles =
+            this._sourceCard.container.querySelectorAll('.source-toggle');
         for (const toggle of toggles) {
             toggle.classList.add('selected');
         }
@@ -192,7 +189,8 @@ export class CharacterStepRules {
     _deselectAllSources() {
         if (!this._sourceCard.container) return;
 
-        const toggles = this._sourceCard.container.querySelectorAll('.source-toggle');
+        const toggles =
+            this._sourceCard.container.querySelectorAll('.source-toggle');
         for (const toggle of toggles) {
             toggle.classList.remove('selected');
         }
@@ -202,7 +200,9 @@ export class CharacterStepRules {
      * Validate step data.
      */
     async validate() {
-        const abilityScoreMethod = document.querySelector('input[name="abilityScoreMethod"]:checked');
+        const abilityScoreMethod = document.querySelector(
+            'input[name="abilityScoreMethod"]:checked',
+        );
         if (!abilityScoreMethod) {
             console.error('[Step1Rules]', 'No ability score method selected');
             return false;
@@ -224,7 +224,9 @@ export class CharacterStepRules {
      * Save step data to session.
      */
     async save() {
-        const abilityScoreMethod = document.querySelector('input[name="abilityScoreMethod"]:checked');
+        const abilityScoreMethod = document.querySelector(
+            'input[name="abilityScoreMethod"]:checked',
+        );
         const featVariant = document.getElementById('featVariant');
         const averageHitPoints = document.getElementById('averageHitPoints');
 
@@ -237,7 +239,10 @@ export class CharacterStepRules {
         }
 
         if (averageHitPoints) {
-            this.session.set('variantRules.averageHitPoints', averageHitPoints.checked);
+            this.session.set(
+                'variantRules.averageHitPoints',
+                averageHitPoints.checked,
+            );
         }
 
         // Save source selection
@@ -274,7 +279,9 @@ export class CharacterStepRules {
             return selectedSources;
         }
 
-        const selectedToggles = this._sourceCard.container.querySelectorAll('.source-toggle.selected');
+        const selectedToggles = this._sourceCard.container.querySelectorAll(
+            '.source-toggle.selected',
+        );
         for (const toggle of selectedToggles) {
             const source = toggle.getAttribute('data-source')?.toUpperCase();
             if (source) {

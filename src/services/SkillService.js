@@ -37,19 +37,11 @@ class SkillService {
 		}
 	}
 
-	/**
-	 * Get all available skills
-	 * @returns {Array<Object>} Array of skill objects
-	 */
 	getAllSkills() {
 		return this._skillData?.skill || [];
 	}
 
-	/**
-	 * Get a specific skill by name (case-insensitive)
-	 * @param {string} skillName - Skill name
-	 * @returns {Object|null} Skill object or null if not found
-	 */
+	/** Get a specific skill by name (case-insensitive). */
 	getSkill(skillName) {
 		if (!this._skillMap) return null;
 		return (
@@ -57,11 +49,7 @@ class SkillService {
 		);
 	}
 
-	/**
-	 * Get all skills that use a specific ability score
-	 * @param {string} abilityName - The ability name (e.g., 'strength', 'dexterity')
-	 * @returns {Array<Object>} Array of skill objects that use this ability
-	 */
+	/** Get all skills that use a specific ability score. */
 	getSkillsByAbility(abilityName) {
 		if (!this._skillData?.skill) return [];
 

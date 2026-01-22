@@ -1,8 +1,4 @@
-/**
- * Step 6: Review
- * 
- * User reviews all settings before creating the character.
- */
+// Step 6: Review - final review before character creation
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { raceService } from '../../../services/RaceService.js';
@@ -14,21 +10,26 @@ export class CharacterStepReview {
         this._cleanup = DOMCleanup.create();
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
         const data = this.session.getStagedData();
 
-        const portrait = data.portrait || 'assets/images/characters/placeholder_char_card.webp';
+        const portrait =
+            data.portrait || 'assets/images/characters/placeholder_char_card.webp';
         const name = data.name || 'Unnamed';
-        const gender = data.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : 'Male';
+        const gender = data.gender
+            ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1)
+            : 'Male';
 
         // Format sources as badges
-        const sources = Array.isArray(data.allowedSources) ? data.allowedSources : Array.from(data.allowedSources || []);
-        const sourceBadges = sources.length > 0
-            ? sources.map(s => `<span class="badge source-badge">${s}</span>`).join(' ')
-            : '<span class="text-muted">None selected</span>';
+        const sources = Array.isArray(data.allowedSources)
+            ? data.allowedSources
+            : Array.from(data.allowedSources || []);
+        const sourceBadges =
+            sources.length > 0
+                ? sources
+                    .map((s) => `<span class="badge source-badge">${s}</span>`)
+                    .join(' ')
+                : '<span class="text-muted">None selected</span>';
 
         // Race info
         const raceName = data.race?.name || 'Not selected';
@@ -39,13 +40,19 @@ export class CharacterStepReview {
         // Class info (get subclass from progression if available)
         const className = data.class?.name || 'Not selected';
         const classSource = data.class?.source ? ` (${data.class.source})` : '';
-        const progressionClass = data.progression?.classes?.find(c => c.name === data.class?.name);
-        const subclassName = progressionClass?.subclass ? ` - ${progressionClass.subclass}` : '';
+        const progressionClass = data.progression?.classes?.find(
+            (c) => c.name === data.class?.name,
+        );
+        const subclassName = progressionClass?.subclass
+            ? ` - ${progressionClass.subclass}`
+            : '';
         const classDisplay = `${className}${classSource}${subclassName}`;
 
         // Background info
         const backgroundName = data.background?.name || 'Not selected';
-        const backgroundSource = data.background?.source ? ` (${data.background.source})` : '';
+        const backgroundSource = data.background?.source
+            ? ` (${data.background.source})`
+            : '';
         const backgroundDisplay = `${backgroundName}${backgroundSource}`;
 
         // Ability scores with modifiers
@@ -151,23 +158,25 @@ export class CharacterStepReview {
             { key: 'constitution', label: 'CON' },
             { key: 'intelligence', label: 'INT' },
             { key: 'wisdom', label: 'WIS' },
-            { key: 'charisma', label: 'CHA' }
+            { key: 'charisma', label: 'CHA' },
         ];
 
-        const scores = abilities.map(({ key, label }) => {
-            const baseScore = data.abilityScores?.[key] || 8;
-            const racialBonus = this._getRacialBonus(key, data);
-            const totalScore = baseScore + racialBonus;
-            const modifier = Math.floor((totalScore - 10) / 2);
-            const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-            return `
+        const scores = abilities
+            .map(({ key, label }) => {
+                const baseScore = data.abilityScores?.[key] || 8;
+                const racialBonus = this._getRacialBonus(key, data);
+                const totalScore = baseScore + racialBonus;
+                const modifier = Math.floor((totalScore - 10) / 2);
+                const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+                return `
                 <div class="ability-score-summary">
                     <span class="ability-label">${label}</span>
                     <span class="ability-score">${totalScore}</span>
                     <span class="ability-modifier">(${modStr})</span>
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
 
         return `<div class="ability-scores-grid">${scores}</div>`;
     }
@@ -187,12 +196,14 @@ export class CharacterStepReview {
         const race = raceService.getRace(raceName, raceSource);
         if (!race) return 0;
 
-        const subrace = subraceName ? raceService.getSubrace(raceName, subraceName, raceSource) : null;
+        const subrace = subraceName
+            ? raceService.getSubrace(raceName, subraceName, raceSource)
+            : null;
 
         // Parse ability increases from race and subrace
         const abilityArray = [
             ...(race?.ability || []),
-            ...(subrace?.ability || [])
+            ...(subrace?.ability || []),
         ];
 
         if (abilityArray.length === 0) return 0;
@@ -227,10 +238,18 @@ export class CharacterStepReview {
 
         // Hit die by class (simplified)
         const hitDice = {
-            'Barbarian': 12,
-            'Fighter': 10, 'Paladin': 10, 'Ranger': 10,
-            'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Monk': 8, 'Rogue': 8, 'Warlock': 8,
-            'Sorcerer': 6, 'Wizard': 6
+            Barbarian: 12,
+            Fighter: 10,
+            Paladin: 10,
+            Ranger: 10,
+            Bard: 8,
+            Cleric: 8,
+            Druid: 8,
+            Monk: 8,
+            Rogue: 8,
+            Warlock: 8,
+            Sorcerer: 6,
+            Wizard: 6,
         };
 
         const hitDie = hitDice[className] || 8;

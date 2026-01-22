@@ -6,7 +6,11 @@ import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
-import { toSentenceCase, toTitleCase, unpackUid } from '../../../lib/5eToolsParser.js';
+import {
+	toSentenceCase,
+	toTitleCase,
+	unpackUid,
+} from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { backgroundService } from '../../../services/BackgroundService.js';
 import { sourceService } from '../../../services/SourceService.js';
@@ -100,10 +104,6 @@ export class BackgroundCard {
 	// EventBus Cleanup Mixin (from BaseCard)
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Register an EventBus listener with automatic cleanup tracking.
-	 * Stores handler reference for manual removal via _cleanupEventBusListeners().
-	 */
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
 			console.warn('[BackgroundCard]', 'Handler must be a function', { event });
@@ -112,16 +112,12 @@ export class BackgroundCard {
 
 		eventBus.on(event, handler);
 
-		// Track handler for cleanup
 		if (!this._eventHandlers[event]) {
 			this._eventHandlers[event] = [];
 		}
 		this._eventHandlers[event].push(handler);
 	}
 
-	/**
-	 * Remove all registered EventBus listeners.
-	 */
 	_cleanupEventBusListeners() {
 		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
 			if (Array.isArray(handlers)) {
@@ -129,7 +125,10 @@ export class BackgroundCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('[BackgroundCard]', 'Error removing listener', { event, error: e });
+						console.warn('[BackgroundCard]', 'Error removing listener', {
+							event,
+							error: e,
+						});
 					}
 				}
 			}
@@ -149,7 +148,10 @@ export class BackgroundCard {
 		try {
 			const backgrounds = this._backgroundService.getAllBackgrounds();
 			if (!backgrounds || backgrounds.length === 0) {
-				console.error('BackgroundCard', 'No backgrounds available to populate list');
+				console.error(
+					'BackgroundCard',
+					'No backgrounds available to populate list',
+				);
 				return;
 			}
 
@@ -159,7 +161,10 @@ export class BackgroundCard {
 			);
 
 			if (filteredBackgrounds.length === 0) {
-				console.error('BackgroundCard', 'No backgrounds available after source filtering');
+				console.error(
+					'BackgroundCard',
+					'No backgrounds available after source filtering',
+				);
 				return;
 			}
 
@@ -176,9 +181,16 @@ export class BackgroundCard {
 				await this._createBackgroundItem(background);
 			}
 
-			console.debug('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
+			console.debug(
+				'[BackgroundCard]',
+				`Populated ${sortedBackgrounds.length} backgrounds`,
+			);
 		} catch (error) {
-			console.error('BackgroundCard', 'Error populating background list:', error);
+			console.error(
+				'BackgroundCard',
+				'Error populating background list:',
+				error,
+			);
 		}
 	}
 
@@ -189,7 +201,10 @@ export class BackgroundCard {
 
 		const backgroundItem = document.createElement('div');
 		backgroundItem.className = 'background-item';
-		backgroundItem.setAttribute('data-background', `${background.name}_${background.source}`);
+		backgroundItem.setAttribute(
+			'data-background',
+			`${background.name}_${background.source}`,
+		);
 		backgroundItem.setAttribute('data-info', backgroundId);
 
 		const itemWrapper = document.createElement('div');
@@ -211,7 +226,11 @@ export class BackgroundCard {
 			// Filter variants by source first
 			const filteredVariants = variants.filter((variant) => {
 				const variantSource = variant.source || background.source;
-				return sourceService.isSourceAllowed(variantSource) && variant.name && variant.name.trim() !== '';
+				return (
+					sourceService.isSourceAllowed(variantSource) &&
+					variant.name &&
+					variant.name.trim() !== ''
+				);
 			});
 
 			// Only create dropdown if there are filtered variants
@@ -238,9 +257,11 @@ export class BackgroundCard {
 				// Handle variant selection
 				this._cleanup.on(select, 'change', () => {
 					const variantName = select.value;
-					const variantData = variants.find(v => v.name === variantName);
+					const variantData = variants.find((v) => v.name === variantName);
 					this._selectedVariant = variantData;
-					const variantId = this.sanitizeId(`${background.name}-${variantName}`);
+					const variantId = this.sanitizeId(
+						`${background.name}-${variantName}`,
+					);
 					this._showInfo(variantId);
 					this._updateCharacterBackground(background, variantData);
 				});
@@ -256,7 +277,11 @@ export class BackgroundCard {
 		const radio = itemWrapper.querySelector('input[type="radio"]');
 		this._cleanup.on(backgroundItem, 'click', (e) => {
 			// Don't trigger if clicking on the select itself
-			if (e.target.tagName === 'SELECT' || e.target.closest('.inline-dropdown-container')) return;
+			if (
+				e.target.tagName === 'SELECT' ||
+				e.target.closest('.inline-dropdown-container')
+			)
+				return;
 
 			if (radio) {
 				radio.checked = true;
@@ -269,9 +294,11 @@ export class BackgroundCard {
 				if (select && select.options.length > 0) {
 					const variantName = select.value;
 					if (variantName) {
-						const variantData = variants.find(v => v.name === variantName);
+						const variantData = variants.find((v) => v.name === variantName);
 						this._selectedVariant = variantData;
-						const variantId = this.sanitizeId(`${background.name}-${variantName}`);
+						const variantId = this.sanitizeId(
+							`${background.name}-${variantName}`,
+						);
 						this._showInfo(variantId);
 						this._updateCharacterBackground(background, variantData);
 
@@ -292,9 +319,11 @@ export class BackgroundCard {
 				}
 
 				// Remove selected class from all background items
-				this._backgroundList.querySelectorAll('.background-item').forEach(item => {
-					item.classList.remove('selected');
-				});
+				this._backgroundList
+					.querySelectorAll('.background-item')
+					.forEach((item) => {
+						item.classList.remove('selected');
+					});
 				backgroundItem.classList.add('selected');
 			}
 		});
@@ -307,7 +336,9 @@ export class BackgroundCard {
 			if (select && select.options.length > 0) {
 				const variantName = select.value;
 				if (variantName) {
-					const variantId = this.sanitizeId(`${background.name}-${variantName}`);
+					const variantId = this.sanitizeId(
+						`${background.name}-${variantName}`,
+					);
 					this._showInfo(variantId, false);
 				}
 			} else {
@@ -323,12 +354,14 @@ export class BackgroundCard {
 
 		// Hide all info content
 		const allContent = this._infoPanel.querySelectorAll('.info-content');
-		allContent.forEach(content => {
+		allContent.forEach((content) => {
 			content.classList.add('d-none');
 		});
 
 		// Show the selected content
-		const targetContent = this._infoPanel.querySelector(`[data-for="${contentId}"]`);
+		const targetContent = this._infoPanel.querySelector(
+			`[data-for="${contentId}"]`,
+		);
 		if (targetContent) {
 			targetContent.classList.remove('d-none');
 			// Expand info panel if requested
@@ -354,7 +387,9 @@ export class BackgroundCard {
 		const description = this._extractDescription(variant || background);
 
 		// Title shows variant name if provided
-		const title = variant ? `${background.name} (${variant.name})` : background.name;
+		const title = variant
+			? `${background.name} (${variant.name})`
+			: background.name;
 		let html = `<h6>${title}</h6>`;
 
 		// Add description
@@ -403,9 +438,15 @@ export class BackgroundCard {
 
 			// Find the background item in the list
 			const backgroundValue = `${character.background.name}_${character.background.source}`;
-			console.debug('[BackgroundCard]', 'Loading saved background:', backgroundValue);
+			console.debug(
+				'[BackgroundCard]',
+				'Loading saved background:',
+				backgroundValue,
+			);
 
-			const backgroundItem = this._backgroundList?.querySelector(`[data-background="${backgroundValue}"]`);
+			const backgroundItem = this._backgroundList?.querySelector(
+				`[data-background="${backgroundValue}"]`,
+			);
 			if (!backgroundItem) {
 				console.warn(
 					'BackgroundCard',
@@ -421,9 +462,11 @@ export class BackgroundCard {
 			}
 
 			// Mark the background item as selected
-			this._backgroundList.querySelectorAll('.background-item').forEach(item => {
-				item.classList.remove('selected');
-			});
+			this._backgroundList
+				.querySelectorAll('.background-item')
+				.forEach((item) => {
+					item.classList.remove('selected');
+				});
 			backgroundItem.classList.add('selected');
 
 			// Get the background data
@@ -432,7 +475,11 @@ export class BackgroundCard {
 				character.background.source,
 			);
 			if (!background) {
-				console.error('[BackgroundCard]', 'Could not find background data for:', backgroundValue);
+				console.error(
+					'[BackgroundCard]',
+					'Could not find background data for:',
+					backgroundValue,
+				);
 				return;
 			}
 
@@ -444,7 +491,11 @@ export class BackgroundCard {
 			let infoId = this.sanitizeId(background.name);
 
 			if (character.background.variant) {
-				console.debug('[BackgroundCard]', 'Saved variant found:', character.background.variant);
+				console.debug(
+					'[BackgroundCard]',
+					'Saved variant found:',
+					character.background.variant,
+				);
 
 				// Find and set the variant dropdown if it exists
 				const variantSelect = backgroundItem.querySelector('select');
@@ -454,10 +505,18 @@ export class BackgroundCard {
 					);
 					if (variantOption) {
 						variantSelect.value = character.background.variant;
-						variant = background.variants?.find(v => v.name === character.background.variant);
+						variant = background.variants?.find(
+							(v) => v.name === character.background.variant,
+						);
 						this._selectedVariant = variant;
-						infoId = this.sanitizeId(`${background.name}-${character.background.variant}`);
-						console.debug('[BackgroundCard]', 'Variant restored:', character.background.variant);
+						infoId = this.sanitizeId(
+							`${background.name}-${character.background.variant}`,
+						);
+						console.debug(
+							'[BackgroundCard]',
+							'Variant restored:',
+							character.background.variant,
+						);
 					} else {
 						console.warn(
 							'BackgroundCard',
@@ -470,9 +529,16 @@ export class BackgroundCard {
 			// Show info panel for this background/variant
 			this._showInfo(infoId, true);
 
-			console.debug('[BackgroundCard]', 'Saved background selection loaded successfully');
+			console.debug(
+				'[BackgroundCard]',
+				'Saved background selection loaded successfully',
+			);
 		} catch (error) {
-			console.error('BackgroundCard', 'Error loading saved background selection:', error);
+			console.error(
+				'BackgroundCard',
+				'Error loading saved background selection:',
+				error,
+			);
 		}
 	}
 
@@ -608,9 +674,7 @@ export class BackgroundCard {
 				);
 				const validSelections = prevBackgroundSkillsSelected.filter(
 					(skill) =>
-						normalizedFrom.includes(
-							DataNormalizer.normalizeForLookup(skill),
-						) &&
+						normalizedFrom.includes(DataNormalizer.normalizeForLookup(skill)) &&
 						!character.proficiencies.skills.includes(skill) &&
 						!fixedProfs.skills.includes(skill),
 				);
@@ -896,7 +960,6 @@ export class BackgroundCard {
 //=============================================================================
 
 class BackgroundDetailsView {
-
 	async generateDetailsHTML(background) {
 		if (!background) return '';
 

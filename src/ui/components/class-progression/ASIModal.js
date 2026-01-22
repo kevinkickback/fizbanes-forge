@@ -1,10 +1,4 @@
-/**
- * ASIModal - Ability Score Improvement Selection
- * 
- * Provides interface to choose ability score improvements:
- * - Increase one ability by 2, or
- * - Increase two abilities by 1 each
- */
+// Modal for ability score improvement selection (+2 to one or +1 to two abilities)
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 
@@ -15,7 +9,7 @@ const ABILITY_LABELS = {
     con: 'Constitution',
     int: 'Intelligence',
     wis: 'Wisdom',
-    cha: 'Charisma'
+    cha: 'Charisma',
 };
 
 export class ASIModal {
@@ -31,9 +25,6 @@ export class ASIModal {
         this._selectedAbilities = { ability1: '', ability2: '' };
     }
 
-    /**
-     * Show the modal and return a promise with the result
-     */
     async show() {
         return new Promise((resolve) => {
             this._resolve = resolve;
@@ -99,7 +90,7 @@ export class ASIModal {
         // Create new instance
         this.bootstrapModal = new bootstrap.Modal(this.modalEl, {
             backdrop: 'static',
-            keyboard: false
+            keyboard: false,
         });
 
         // Listen for modal hidden event
@@ -171,8 +162,10 @@ export class ASIModal {
     }
 
     _renderAbilityBoxes() {
-        return ABILITY_NAMES.map(ability => {
-            const isSelected = this._selectedAbilities.ability1 === ability || this._selectedAbilities.ability2 === ability;
+        return ABILITY_NAMES.map((ability) => {
+            const isSelected =
+                this._selectedAbilities.ability1 === ability ||
+                this._selectedAbilities.ability2 === ability;
             const bonus = this._getAbilityBonus(ability);
 
             return `
@@ -196,7 +189,10 @@ export class ASIModal {
         if (this._selectedAbilities.ability1 === ability) {
             return this._asiMode === 'plus2' ? 2 : 1;
         }
-        if (this._selectedAbilities.ability2 === ability && this._asiMode === 'plus1') {
+        if (
+            this._selectedAbilities.ability2 === ability &&
+            this._asiMode === 'plus1'
+        ) {
             return 1;
         }
         return 0;
@@ -239,7 +235,7 @@ export class ASIModal {
     _attachListeners() {
         // ASI mode toggle - re-render entire content to update toggle styles
         const modeToggles = this.modalEl.querySelectorAll('[name="asi_mode"]');
-        modeToggles.forEach(toggle => {
+        modeToggles.forEach((toggle) => {
             this._cleanup.on(toggle, 'change', (e) => {
                 this._asiMode = e.target.value;
 
@@ -254,7 +250,7 @@ export class ASIModal {
 
         // Ability box clicks
         const abilityButtons = this.modalEl.querySelectorAll('[data-ability]');
-        abilityButtons.forEach(btn => {
+        abilityButtons.forEach((btn) => {
             this._cleanup.on(btn, 'click', () => {
                 const ability = btn.dataset.ability;
                 this._handleAbilityClick(ability);
@@ -310,7 +306,7 @@ export class ASIModal {
 
             // Re-attach click listeners for new boxes
             const abilityButtons = boxesContainer.querySelectorAll('[data-ability]');
-            abilityButtons.forEach(btn => {
+            abilityButtons.forEach((btn) => {
                 this._cleanup.on(btn, 'click', () => {
                     const ability = btn.dataset.ability;
                     this._handleAbilityClick(ability);

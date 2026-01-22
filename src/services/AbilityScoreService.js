@@ -41,10 +41,6 @@ class AbilityScoreService {
 		);
 	}
 
-	/**
-	 * Handler for character change events
-	 * @private
-	 */
 	_handleCharacterChanged() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -61,11 +57,6 @@ class AbilityScoreService {
 		this._notifyAbilityScoresChanged();
 	}
 
-	/**
-	 * Normalizes an ability name to lowercase
-	 * @param {string} abilityName - The ability name to normalize
-	 * @returns {string} - The normalized ability name
-	 */
 	normalizeAbilityName(abilityName) {
 		if (typeof abilityName !== 'string') {
 			console.warn(
@@ -78,19 +69,10 @@ class AbilityScoreService {
 		return abilityName ? DataNormalizer.normalizeForLookup(abilityName) : '';
 	}
 
-	/**
-	 * Gets a list of all abilities
-	 * @returns {string[]} - Array of ability names
-	 */
 	getAllAbilities() {
 		return [...this._allAbilities];
 	}
 
-	/**
-	 * Gets the base score for an ability
-	 * @param {string} ability - The ability name
-	 * @returns {number} - The base ability score
-	 */
 	getBaseScore(ability) {
 		const normalizedAbility = this.normalizeAbilityName(ability);
 		const character = CharacterManager.getCurrentCharacter();
@@ -116,11 +98,6 @@ class AbilityScoreService {
 		return 8; // Default fallback
 	}
 
-	/**
-	 * Gets the total score for an ability including all bonuses
-	 * @param {string} ability - The ability name
-	 * @returns {number} - The total ability score
-	 */
 	getTotalScore(ability) {
 		const normalizedAbility = this.normalizeAbilityName(ability);
 		const character = CharacterManager.getCurrentCharacter();
@@ -157,31 +134,16 @@ class AbilityScoreService {
 		return totalScore;
 	}
 
-	/**
-	 * Calculates the ability modifier based on the total score
-	 * @param {string} ability - The ability name
-	 * @returns {number} - The ability modifier
-	 */
 	getModifier(ability) {
 		const totalScore = this.getTotalScore(ability);
 		return getAbilityModNumber(totalScore);
 	}
 
-	/**
-	 * Gets modifier string (e.g., "+3" or "-1")
-	 * @param {string} ability - The ability name
-	 * @returns {string} - The formatted modifier string
-	 */
 	getModifierString(ability) {
 		const mod = this.getModifier(ability);
 		return formatModifier(mod);
 	}
 
-	/**
-	 * Updates the ability score for a character
-	 * @param {string} ability - The ability name
-	 * @param {number} score - The new score value
-	 */
 	updateAbilityScore(ability, score) {
 		const normalizedAbility = this.normalizeAbilityName(ability);
 		const character = CharacterManager.getCurrentCharacter();
@@ -206,28 +168,15 @@ class AbilityScoreService {
 		this._notifyAbilityScoresChanged();
 	}
 
-	/**
-	 * Gets the point cost for a specific ability score
-	 * @param {number} score - The ability score
-	 * @returns {number|null} - The point cost or null if invalid
-	 */
 	getPointCost(score) {
 		const cost = getPointBuyCost(score);
 		return cost > 0 || score === 8 ? cost : null;
 	}
 
-	/**
-	 * Gets an array of valid scores for point buy
-	 * @returns {number[]} - Array of valid scores
-	 */
 	getValidPointBuyScores() {
 		return Array.from(this._pointBuyCosts.keys()).sort((a, b) => a - b);
 	}
 
-	/**
-	 * Calculates total points used in point buy
-	 * @returns {number} - Total points used
-	 */
 	getUsedPoints() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return 0;
@@ -240,45 +189,22 @@ class AbilityScoreService {
 		return calculatePointBuyTotal(scores);
 	}
 
-	/**
-	 * Gets the maximum points allowed for point buy
-	 * @returns {number} - Maximum point buy points
-	 */
 	getMaxPoints() {
 		return POINT_BUY_BUDGET;
 	}
 
-	/**
-	 * Gets remaining points for point buy
-	 * @returns {number} - Remaining point buy points
-	 */
 	getRemainingPoints() {
 		return this.getMaxPoints() - this.getUsedPoints();
 	}
 
-	/**
-	 * Gets the standard array values
-	 * @returns {number[]} - The standard array values
-	 */
 	getStandardArrayValues() {
 		return [...this._standardArrayValues];
 	}
 
-	/**
-	 * Checks if a standard array value is already assigned
-	 * @param {number} value - The value to check
-	 * @returns {boolean} - True if already assigned
-	 */
 	isStandardArrayValueAssigned(value) {
 		return Object.values(this._assignedStandardArrayValues).includes(value);
 	}
 
-	/**
-	 * Assigns a standard array value to an ability
-	 * @param {string} ability - The ability name
-	 * @param {number} value - The standard array value
-	 * @returns {boolean} - True if assignment was successful
-	 */
 	assignStandardArrayValue(ability, value) {
 		const normalizedAbility = this.normalizeAbilityName(ability);
 
@@ -317,9 +243,6 @@ class AbilityScoreService {
 		return true;
 	}
 
-	/**
-	 * Updates the tracking of assigned standard array values based on current character
-	 */
 	updateAssignedStandardArrayValues() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -336,10 +259,6 @@ class AbilityScoreService {
 		}
 	}
 
-	/**
-	 * Notify listeners that ability scores have changed
-	 * @private
-	 */
 	_notifyAbilityScoresChanged() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -350,10 +269,6 @@ class AbilityScoreService {
 		document.dispatchEvent(event);
 	}
 
-	/**
-	 * Sets ability score bonuses from racial choices
-	 * @param {AbilityChoice[]} choices - Array of ability choices
-	 */
 	setRacialAbilityChoices(choices) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character?.race) {
@@ -402,17 +317,10 @@ class AbilityScoreService {
 		this._notifyAbilityScoresChanged();
 	}
 
-	/**
-	 * Clears the manager's stored ability choices.
-	 */
 	clearStoredChoices() {
 		this.abilityChoices.clear();
 	}
 
-	/**
-	 * Get ability score bonuses grouped by source
-	 * @returns {Map<string, Map<string, number>>} Map of bonus groups by source
-	 */
 	getBonusGroups() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) {
@@ -440,10 +348,6 @@ class AbilityScoreService {
 		return groups;
 	}
 
-	/**
-	 * Get pending ability score choices that need to be made
-	 * @returns {Array<Object>} Array of pending ability choices
-	 */
 	getPendingChoices() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !character.getPendingAbilityChoices) {
@@ -469,11 +373,6 @@ class AbilityScoreService {
 		return formattedChoices;
 	}
 
-	/**
-	 * Get available abilities for a choice
-	 * @param {number} currentChoiceIndex - The index of the current choice
-	 * @returns {Array<string>} Array of available ability names
-	 */
 	getAvailableAbilities(currentChoiceIndex) {
 		const allAbilities = [...this._allAbilities];
 		const selectedAbilities = new Set();
@@ -530,13 +429,6 @@ class AbilityScoreService {
 		);
 	}
 
-	/**
-	 * Handle an ability choice selection
-	 * @param {string} ability - The selected ability
-	 * @param {number} choiceIndex - The index of the choice
-	 * @param {number} bonus - The bonus amount
-	 * @param {string} source - The source of the bonus
-	 */
 	handleAbilityChoice(ability, choiceIndex, bonus, source) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -588,34 +480,18 @@ class AbilityScoreService {
 		this._notifyAbilityScoresChanged();
 	}
 
-	/**
-	 * Gets the maximum allowed ability score
-	 * @returns {number} Maximum ability score
-	 */
 	get maxScore() {
 		return 20; // D&D 5e maximum ability score (without magical items)
 	}
 
-	/**
-	 * Gets the minimum allowed ability score
-	 * @returns {number} Minimum ability score
-	 */
 	get minScore() {
 		return 3; // D&D 5e minimum ability score
 	}
 
-	/**
-	 * Gets the maximum points for point buy
-	 * @returns {number} Maximum points
-	 */
 	get maxPoints() {
 		return 27; // Standard D&D 5e point buy limit
 	}
 
-	/**
-	 * Gets available standard array values (that aren't assigned)
-	 * @returns {Array<number>} Array of available values
-	 */
 	getAvailableStandardArrayValues() {
 		const allValues = [...this._standardArrayValues];
 		const usedValues = Object.values(this._assignedStandardArrayValues);
@@ -626,18 +502,11 @@ class AbilityScoreService {
 		return availableValues;
 	}
 
-	/**
-	 * Gets the list of assigned standard array values
-	 * @returns {Array} Array of assigned values
-	 */
 	get assignedStandardValues() {
 		return Object.entries(this._assignedStandardArrayValues);
 	}
 
-	/**
-	 * Resets ability score method-specific state
-	 * Used when switching between ability score methods
-	 */
+	/** Resets ability score method-specific state when switching methods. */
 	resetAbilityScoreMethod() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -696,11 +565,7 @@ class AbilityScoreService {
 /** All ability score abbreviations in order */
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
-/**
- * Formats an ability modifier with proper sign
- * @param {number} modifier - The modifier value
- * @returns {string} Formatted modifier (e.g., "+2", "-1", "+0")
- */
+/** Formats an ability modifier with proper sign (e.g., "+2", "-1"). */
 export function formatModifier(modifier) {
 	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
 		return '+0';
@@ -711,9 +576,6 @@ export function formatModifier(modifier) {
 	return `${modifier}`;
 }
 
-/**
- * Point buy cost mapping for ability scores (8-15)
- */
 const POINT_BUY_COSTS = new Map([
 	[8, 0],
 	[9, 1],
@@ -725,30 +587,14 @@ const POINT_BUY_COSTS = new Map([
 	[15, 9],
 ]);
 
-/**
- * Standard array values available for assignment
- */
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
-/**
- * Default starting point buy budget
- */
 export const POINT_BUY_BUDGET = 27;
 
-/**
- * Gets the point buy cost for a given ability score
- * @param {number} score - The ability score
- * @returns {number} The point cost (0 if invalid)
- */
 export function getPointBuyCost(score) {
 	return POINT_BUY_COSTS.get(score) || 0;
 }
 
-/**
- * Calculates total points spent in point buy system
- * @param {Object<string, number>} scores - Object mapping ability names to scores
- * @returns {number} Total points spent
- */
 export function calculatePointBuyTotal(scores) {
 	if (!scores || typeof scores !== 'object') {
 		return 0;
@@ -763,24 +609,10 @@ export function calculatePointBuyTotal(scores) {
 	return total;
 }
 
-/**
- * Calculates remaining points in point buy system
- * @param {Object<string, number>} scores - Object mapping ability names to scores
- * @param {number} [budget=27] - Total point budget
- * @returns {number} Remaining points
- */
 export function calculateRemainingPoints(scores, budget = POINT_BUY_BUDGET) {
 	return budget - calculatePointBuyTotal(scores);
 }
 
-/**
- * Validates if a point buy score change is allowed
- * @param {Object<string, number>} currentScores - Current ability scores
- * @param {string} ability - Ability to change
- * @param {number} newScore - New score value
- * @param {number} [budget=27] - Total point budget
- * @returns {boolean} True if the change is valid
- */
 export function validatePointBuyChange(
 	currentScores,
 	ability,
@@ -799,11 +631,6 @@ export function validatePointBuyChange(
 	return totalCost <= budget;
 }
 
-/**
- * Validates standard array assignment
- * @param {Object<string, number>} assignments - Object mapping abilities to standard array values
- * @returns {Object} Validation result with isValid and errors
- */
 export function validateStandardArray(assignments) {
 	const result = {
 		isValid: true,
@@ -841,12 +668,6 @@ export function validateStandardArray(assignments) {
 	return result;
 }
 
-/**
- * Calculates total ability score including racial bonuses
- * @param {number} baseScore - Base ability score
- * @param {number} racialBonus - Racial bonus to the ability
- * @returns {number} Total ability score
- */
 export function calculateTotalAbilityScore(baseScore, racialBonus = 0) {
 	return (baseScore || 0) + (racialBonus || 0);
 }
@@ -855,10 +676,6 @@ export function calculateTotalAbilityScore(baseScore, racialBonus = 0) {
 // Helper Functions from AbilityScoreUtils.js
 //=============================================================================
 
-/**
- * Helper: Convert ability abbreviation to lowercase full name
- * @private
- */
 function normalizeAbilityNameHelper(abb) {
 	// attAbvToFull returns capitalized names (e.g., 'Strength')
 	// We need lowercase for internal storage (e.g., 'strength')
@@ -866,18 +683,7 @@ function normalizeAbilityNameHelper(abb) {
 	return fullName ? fullName.toLowerCase() : abb;
 }
 
-/**
- * Parse race/subrace ability data into fixed bonuses and choices
- *
- * @param {Object} race - Race data object
- * @param {Object} subrace - Subrace data object (optional)
- * @returns {object} Parsed ability score data
- *
- * Returns: {
- *   fixed: Array<{ ability, value, source }>,  // Fixed racial bonuses
- *   choices: Array<{ count, amount, from, source }>  // Ability score choices
- * }
- */
+/** Parse race/subrace ability data into fixed bonuses and choices. */
 export function getRaceAbilityData(race, subrace) {
 	const fixed = [];
 	const choices = [];
@@ -937,21 +743,7 @@ export function getRaceAbilityData(race, subrace) {
 	return { fixed, choices };
 }
 
-/**
- * Parse ability score data from a race/subrace ability array
- *
- * @param {Array} abilityArray - The ability array from race data
- * @param {object} options - Parsing options
- * @param {boolean} options.isOnlyShort - Return only short form
- * @param {boolean} options.isCurrentLineage - Is this a Tasha's lineage
- * @returns {object} Parsed ability score data
- *
- * Returns: {
- *   asText: string,           // Full text: "Your Charisma score increases by 2..."
- *   asTextShort: string,      // Short text: "Cha +2, choose two +1"
- *   asCollection: Array<object> // Structured data for programmatic use
- * }
- */
+/** Parse ability array into text and structured data. */
 export function getAbilityData(abilityArray, options = {}) {
 	const { isOnlyShort = false, isCurrentLineage = false } = options;
 
@@ -1012,10 +804,6 @@ export function getAbilityData(abilityArray, options = {}) {
 	};
 }
 
-/**
- * Process a "choose" ability entry (e.g., Variant Human's "+1 to two different abilities")
- * @private
- */
 function processChoose(choose) {
 	const amount = choose.amount || 1;
 	const count = choose.count || 1;
@@ -1069,10 +857,6 @@ function processChoose(choose) {
 	};
 }
 
-/**
- * Process fixed ability scores (e.g., "str: 2, dex: 1")
- * @private
- */
 function processFixed(abilityEntry) {
 	const fixed = {};
 	const parts = [];
@@ -1098,13 +882,7 @@ function processFixed(abilityEntry) {
 	};
 }
 
-/**
- * Get only the fixed ability improvements (no choices)
- * Useful for character sheets and validation
- *
- * @param {Array} abilityArray - The ability array from race data
- * @returns {object} Object with fixed ability scores (e.g., {str: 2, cha: 1})
- */
+/** Get only the fixed ability improvements (no choices). */
 export function getFixedAbilities(abilityArray) {
 	if (!abilityArray || !Array.isArray(abilityArray)) {
 		return {};
@@ -1127,19 +905,7 @@ export function getFixedAbilities(abilityArray) {
 	return fixed;
 }
 
-/**
- * Get ability score choices (for UI selection)
- *
- * @param {Array} abilityArray - The ability array from race data
- * @returns {Array<object>} Array of choice objects
- *
- * Each choice object: {
- *   from: string[],      // Array of ability abbreviations to choose from
- *   count: number,       // How many to choose
- *   amount: number,      // How much to increase by
- *   weighted: object     // Optional weighted choices
- * }
- */
+/** Get ability score choices for UI selection. */
 export function getAbilityChoices(abilityArray) {
 	if (!abilityArray || !Array.isArray(abilityArray)) {
 		return [];
@@ -1162,19 +928,7 @@ export function getAbilityChoices(abilityArray) {
 	return choices;
 }
 
-/**
- * Validate ability score selections against race requirements
- *
- * @param {Array} abilityArray - The ability array from race data
- * @param {object} selections - User's ability score selections
- * @returns {object} Validation result
- *
- * Returns: {
- *   valid: boolean,
- *   errors: string[],
- *   final: object  // Final ability score improvements
- * }
- */
+/** Validate ability score selections against race requirements. */
 export function validateAbilitySelections(abilityArray, selections) {
 	const errors = [];
 	const final = { ...getFixedAbilities(abilityArray) };
@@ -1232,10 +986,6 @@ export function validateAbilitySelections(abilityArray, selections) {
 	};
 }
 
-/**
- * Helper: Capitalize first letter of a string
- * @private
- */
 function capitalizeFirst(str) {
 	if (!str) return '';
 	return str.charAt(0).toUpperCase() + str.slice(1);

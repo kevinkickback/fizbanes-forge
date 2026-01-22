@@ -119,20 +119,11 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Get all available classes (returns raw JSON data)
-	 * @returns {Array<Object>} Array of class objects from JSON
-	 */
 	getAllClasses() {
 		return this._data?.class || [];
 	}
 
-	/**
-	 * Get a specific class by name and source (returns raw JSON data)
-	 * @param {string} name - Class name
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Class object from JSON or null if not found
-	 */
+	/** Get a specific class by name and source. */
 	getClass(name, source = 'PHB') {
 		if (!this._data?.class) return null;
 
@@ -151,13 +142,7 @@ class ClassService extends BaseDataService {
 		return byName.find((c) => c.edition !== 'modern') || byName[0];
 	}
 
-	/**
-	 * Get class features for a specific class up to a given level
-	 * @param {string} className - Name of the class
-	 * @param {number} level - Character level
-	 * @param {string} source - Source book
-	 * @returns {Array<Object>} Array of class feature objects
-	 */
+	/** Get class features for a specific class up to a given level. */
 	getClassFeatures(className, level, source = 'PHB') {
 		if (!this._data?.classFeature) return [];
 
@@ -169,12 +154,7 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Get all subclasses for a specific class
-	 * @param {string} className - Name of the parent class
-	 * @param {string} source - Source book
-	 * @returns {Array<Object>} Array of subclass objects
-	 */
+	/** Get all subclasses for a specific class. */
 	getSubclasses(className, source = 'PHB') {
 		if (!this._data?.subclass) return [];
 
@@ -185,13 +165,7 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Get the hit die for a class.
-	 * Sources hit die from 5etools class data (class.hd field).
-	 * @param {string} className - Name of the class
-	 * @param {string} source - Source book
-	 * @returns {string} Hit die as dice notation (e.g., 'd8', 'd10'), or 'd8' as fallback
-	 */
+	/** Get the hit die for a class from 5etools data. */
 	getHitDie(className, source = 'PHB') {
 		if (!this._data?.class) return 'd8';
 
@@ -230,13 +204,7 @@ class ClassService extends BaseDataService {
 		return defaultHitDice[className] || 'd8';
 	}
 
-	/**
-	 * Get a specific subclass by name
-	 * @param {string} className - Name of the parent class
-	 * @param {string} subclassName - Name or short name of the subclass
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Subclass object or null if not found
-	 */
+	/** Get a specific subclass by name. */
 	getSubclass(className, subclassName, source = 'PHB') {
 		const subclasses = this.getSubclasses(className, source);
 		return (
@@ -246,14 +214,7 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Get subclass features for a specific subclass up to a given level
-	 * @param {string} className - Name of the parent class
-	 * @param {string} subclassShortName - Short name of the subclass
-	 * @param {number} level - Character level
-	 * @param {string} source - Source book
-	 * @returns {Array<Object>} Array of subclass feature objects
-	 */
+	/** Get subclass features for a specific subclass up to a given level. */
 	getSubclassFeatures(className, subclassShortName, level, source = 'PHB') {
 		if (!this._data?.subclassFeature) return [];
 
@@ -266,12 +227,7 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Get fluff data for a class (for descriptions and lore)
-	 * @param {string} className - Name of the class
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Class fluff object or null if not found
-	 */
+	/** Get fluff data for a class (descriptions and lore). */
 	getClassFluff(className, source = 'PHB') {
 		if (!this._data?.classFluff) return null;
 
@@ -282,12 +238,7 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/**
-	 * Select a class (updates selection state)
-	 * @param {string} className - Name of the class to select
-	 * @param {string} source - Source of the class
-	 * @returns {Object|null} The selected class or null if not found
-	 */
+	/** Select a class (updates selection state). */
 	selectClass(className, source = 'PHB') {
 		console.debug('ClassService', 'Selecting class', { className, source });
 
@@ -304,11 +255,7 @@ class ClassService extends BaseDataService {
 		return this._selectedClass;
 	}
 
-	/**
-	 * Select a subclass for the currently selected class
-	 * @param {string} subclassName - Name or short name of the subclass to select
-	 * @returns {Object|null} The selected subclass or null if not found
-	 */
+	/** Select a subclass for the currently selected class. */
 	selectSubclass(subclassName) {
 		if (!this._selectedClass) {
 			console.warn('ClassService', 'Cannot select subclass: no class selected');
@@ -333,41 +280,21 @@ class ClassService extends BaseDataService {
 		return this._selectedSubclass;
 	}
 
-	/**
-	 * Get the currently selected class
-	 * @returns {Object|null} Currently selected class
-	 */
 	getSelectedClass() {
 		return this._selectedClass;
 	}
 
-	/**
-	 * Get the currently selected subclass
-	 * @returns {Object|null} Currently selected subclass
-	 */
 	getSelectedSubclass() {
 		return this._selectedSubclass;
 	}
 
-	/**
-	 * Get optional feature progression for a class
-	 * @param {string} className - Name of the class
-	 * @param {string} source - Source book
-	 * @returns {Array<Object>|null} Optional feature progression array or null
-	 */
+	/** Get optional feature progression for a class. */
 	getOptionalFeatureProgression(className, source = 'PHB') {
 		const classData = this.getClass(className, source);
 		return classData?.optionalfeatureProgression || null;
 	}
 
-	/**
-	 * Get count of optional features available at a specific level
-	 * @param {string} className - Name of the class
-	 * @param {number} level - Character level (1-20)
-	 * @param {Array<string>} featureTypes - Feature type codes to check (e.g., ['EI'], ['MM'])
-	 * @param {string} source - Source book
-	 * @returns {number} Number of features available at this level (0 if none or new ones)
-	 */
+	/** Get count of optional features available at a specific level. */
 	getOptionalFeatureCountAtLevel(className, level, featureTypes, source = 'PHB') {
 		const progression = this.getOptionalFeatureProgression(className, source);
 		if (!progression) return 0;
@@ -391,26 +318,14 @@ class ClassService extends BaseDataService {
 		return 0;
 	}
 
-	/**
-	 * Check if a new optional feature is gained at a specific level
-	 * @param {string} className - Name of the class
-	 * @param {number} currentLevel - Previous level
-	 * @param {number} newLevel - New level
-	 * @param {Array<string>} featureTypes - Feature type codes
-	 * @param {string} source - Source book
-	 * @returns {boolean} True if new feature(s) gained
-	 */
+	/** Check if a new optional feature is gained at a specific level. */
 	gainsOptionalFeatureAtLevel(className, currentLevel, newLevel, featureTypes, source = 'PHB') {
 		const countAtCurrent = this.getOptionalFeatureCountAtLevel(className, currentLevel, featureTypes, source);
 		const countAtNew = this.getOptionalFeatureCountAtLevel(className, newLevel, featureTypes, source);
 		return countAtNew > countAtCurrent;
 	}
 
-	/**
-	 * Get the level at which a class gains its subclass
-	 * @param {Object} classData - Class data object
-	 * @returns {number|null} Level number or null if not found
-	 */
+	/** Get the level at which a class gains its subclass. */
 	getSubclassLevel(classData) {
 		if (!classData?.classFeatures) return null;
 
@@ -427,12 +342,7 @@ class ClassService extends BaseDataService {
 		return null;
 	}
 
-	/**
-	 * Get count from a progression array or object at a specific level
-	 * @param {Array|Object} progression - Progression data (array indexed by level-1, or object with level keys)
-	 * @param {number} level - Character level (1-20)
-	 * @returns {number} Count at this level
-	 */
+	/** Get count from a progression array or object at a specific level. */
 	getCountAtLevel(progression, level) {
 		if (Array.isArray(progression)) {
 			return progression[level - 1] || 0;
@@ -443,11 +353,7 @@ class ClassService extends BaseDataService {
 		return 0;
 	}
 
-	/**
-	 * Map feature type code to readable feature type name
-	 * @param {string} featureTypeCode - Feature type code (e.g., 'EI', 'MM', 'FS:F')
-	 * @returns {string} Readable feature type name
-	 */
+	/** Map feature type code to readable feature type name. */
 	mapFeatureType(featureTypeCode) {
 		const typeMap = {
 			'EI': 'invocation',

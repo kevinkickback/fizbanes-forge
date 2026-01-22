@@ -83,13 +83,7 @@ class SpellService extends BaseDataService {
 		return this._data.spell.filter((s) => s.level === level);
 	}
 
-	/**
-	 * Check if a spell is available for a specific class.
-	 * Uses the generated spell-class lookup data.
-	 * @param {Object} spell - Spell object with name and source
-	 * @param {string} className - Class name (e.g., "Wizard", "Cleric")
-	 * @returns {boolean} True if spell is available for the class
-	 */
+	/** Check if a spell is available for a specific class. */
 	isSpellAvailableForClass(spell, className) {
 		if (!this._spellClassLookup || !spell?.name || !spell?.source) {
 			return false;
@@ -119,11 +113,7 @@ class SpellService extends BaseDataService {
 		return false;
 	}
 
-	/**
-	 * Get spells by class.
-	 * @param {string} className - Class name
-	 * @returns {Array<Object>} Array of spell objects
-	 */
+	/** Get spells by class. */
 	getSpellsByClass(className) {
 		if (!this._data?.spell) return [];
 
@@ -131,8 +121,4 @@ class SpellService extends BaseDataService {
 	}
 }
 
-/**
- * Global SpellService instance
- * @type {SpellService}
- */
 export const spellService = new SpellService();

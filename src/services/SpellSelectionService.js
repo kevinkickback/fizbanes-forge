@@ -43,12 +43,6 @@ class SpellSelectionService {
         return character.spellcasting.classes[className];
     }
 
-    /**
-     * Get class spellcasting info from JSON data.
-     * @param {string} className - Name of the class
-     * @returns {Object|null} Class spellcasting info or null if not a spellcaster
-     * @private
-     */
     _getClassSpellcastingInfo(className) {
         const classData = classService.getClass(className);
         if (!classData || !classData.spellcastingAbility) {
@@ -76,25 +70,12 @@ class SpellSelectionService {
         };
     }
 
-    /**
-     * Check if class has ritual casting capability.
-     * @param {string} className - Name of the class
-     * @returns {boolean} True if class can ritual cast
-     * @private
-     */
     _hasRitualCasting(className) {
         // Classes with ritual casting: Bard, Cleric, Druid, Wizard
         const ritualClasses = ['Bard', 'Cleric', 'Druid', 'Wizard'];
         return ritualClasses.includes(className);
     }
 
-    /**
-     * Get number of cantrips known at a given level for a class from JSON data.
-     * @param {string} className - Class name
-     * @param {number} level - Class level
-     * @returns {number} Number of cantrips known
-     * @private
-     */
     _getCantripsKnown(className, level) {
         const classData = classService.getClass(className);
         if (!classData || !classData.cantripProgression) {
@@ -111,15 +92,7 @@ class SpellSelectionService {
         return classData.cantripProgression[index] || 0;
     }
 
-    /**
-     * Get number of spells known at a given level for a class from JSON data.
-     * Only applies to classes with "known" type (Bard, Sorcerer, Warlock, Ranger).
-     * Classes that prepare spells (Cleric, Druid, Paladin, Wizard) use _getPreparedSpellLimit instead.
-     * @param {string} className - Class name
-     * @param {number} level - Class level
-     * @returns {number} Number of spells known (or 0 if not applicable)
-     * @private
-     */
+    /** Spells known for classes with "known" type (Bard, Sorcerer, Warlock, Ranger). */
     _getSpellsKnownLimit(className, level) {
         const classData = classService.getClass(className);
         if (!classData) return 0;
@@ -140,12 +113,6 @@ class SpellSelectionService {
         return 0;
     }
 
-    /**
-     * Calculate spell slots for a class at a given level.
-     * @param {string} className - Class name
-     * @param {number} level - Class level (1-20)
-     * @returns {Object} Spell slots { 1: { max: n, current: n }, 2: ... 9: ... }
-     */
     calculateSpellSlots(className, level) {
         const classData = classService.getClass(className);
         if (!classData || !classData.casterProgression) {
@@ -169,12 +136,6 @@ class SpellSelectionService {
         return this._getStandardSpellSlots(casterLevel);
     }
 
-    /**
-     * Get standard spell slots for a given caster level.
-     * @param {number} casterLevel - Effective caster level
-     * @returns {Object} Spell slots
-     * @private
-     */
     _getStandardSpellSlots(casterLevel) {
         // Standard D&D 5e spell slot progression table
         const standardSlots = [
@@ -206,12 +167,6 @@ class SpellSelectionService {
         return result;
     }
 
-    /**
-     * Get Warlock pact magic slots (separate from standard spellcasting).
-     * @param {number} level - Warlock level
-     * @returns {Object} Pact magic slots
-     * @private
-     */
     _getPactMagicSlots(level) {
         // Warlock pact magic progression
         const pactSlots = [
@@ -243,13 +198,6 @@ class SpellSelectionService {
         };
     }
 
-    /**
-     * Add a spell to character's known spells for a class.
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {Object} spellData - Spell data from SpellService
-     * @returns {boolean} True if successful
-     */
     addKnownSpell(character, className, spellData) {
         if (!character.spellcasting?.classes?.[className]) {
             console.warn(`[${this.loggerScope}]`, 'Class not initialized', { className });
@@ -278,13 +226,6 @@ class SpellSelectionService {
         return true;
     }
 
-    /**
-     * Remove a spell from character's known spells for a class.
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {string} spellName - Spell name
-     * @returns {boolean} True if successful
-     */
     removeKnownSpell(character, className, spellName) {
         if (!character.spellcasting?.classes?.[className]) {
             console.warn(`[${this.loggerScope}]`, 'Class not initialized', { className });
@@ -320,13 +261,7 @@ class SpellSelectionService {
         return true;
     }
 
-    /**
-     * Prepare a spell (for Cleric, Wizard, Druid, Paladin).
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {string} spellName - Spell name to prepare
-     * @returns {boolean} True if successful
-     */
+    /** Prepare a spell (for Cleric, Wizard, Druid, Paladin). */
     prepareSpell(character, className, spellName) {
         if (!character.spellcasting?.classes?.[className]) {
             console.warn(`[${this.loggerScope}]`, 'Class not initialized', { className });
@@ -375,13 +310,6 @@ class SpellSelectionService {
         return true;
     }
 
-    /**
-     * Unprepare a spell.
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {string} spellName - Spell name
-     * @returns {boolean} True if successful
-     */
     unprepareSpell(character, className, spellName) {
         if (!character.spellcasting?.classes?.[className]) {
             console.warn(`[${this.loggerScope}]`, 'Class not initialized', { className });
@@ -409,13 +337,6 @@ class SpellSelectionService {
         return true;
     }
 
-    /**
-     * Use a spell slot (reduce current by 1).
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {number} spellLevel - Spell level (1-9)
-     * @returns {boolean} True if successful
-     */
     useSpellSlot(character, className, spellLevel) {
         if (!character.spellcasting?.classes?.[className]) {
             console.warn(`[${this.loggerScope}]`, 'Class not initialized', { className });
@@ -444,12 +365,7 @@ class SpellSelectionService {
         return true;
     }
 
-    /**
-     * Restore spell slots (on long rest).
-     * @param {Object} character - Character object
-     * @param {string} className - Class name (or null for all)
-     * @returns {boolean} True if successful
-     */
+    /** Restore spell slots (on long rest). */
     restoreSpellSlots(character, className = null) {
         if (!character.spellcasting?.classes) {
             console.warn(`[${this.loggerScope}]`, 'No spellcasting initialized');
@@ -476,15 +392,7 @@ class SpellSelectionService {
         return true;
     }
 
-    /**
-     * Get prepared spell limit for a class.
-     * Formula: Level + spellcasting ability modifier
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {number} classLevel - Class level
-     * @returns {number} Maximum prepared spells
-     * @private
-     */
+    /** Prepared spell limit: Level + spellcasting ability modifier. */
     _getPreparedSpellLimit(character, className, classLevel) {
         const classInfo = this._getClassSpellcastingInfo(className);
         if (!classInfo) return 0;
@@ -493,11 +401,6 @@ class SpellSelectionService {
         return Math.max(1, classLevel + abilityMod);
     }
 
-    /**
-     * Get all available spells for a class.
-     * @param {string} className - Class name
-     * @returns {Array} Array of available spells
-     */
     getAvailableSpellsForClass(className) {
         const allSpells = spellService.getAllSpells();
 
@@ -509,14 +412,7 @@ class SpellSelectionService {
         });
     }
 
-    /**
-     * Get spell limit info for a class.
-     * Returns different info depending on whether the class uses "known" or "prepared" spells.
-     * @param {Object} character - Character object
-     * @param {string} className - Class name
-     * @param {number} classLevel - Class level
-     * @returns {Object} { type: 'known'|'prepared', limit: number, current: number }
-     */
+    /** Get spell limit info (known vs prepared) for a class. */
     getSpellLimitInfo(character, className, classLevel) {
         const classInfo = this._getClassSpellcastingInfo(className);
         if (!classInfo) return { type: null, limit: 0, current: 0 };

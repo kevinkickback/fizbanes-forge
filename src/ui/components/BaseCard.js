@@ -9,11 +9,6 @@ export class BaseCard {
 			return;
 		}
 
-		/**
-		 * The root element of the card
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._card = document.getElementById(cardId);
 
 		if (!this._card) {
@@ -21,32 +16,9 @@ export class BaseCard {
 			return;
 		}
 
-		/**
-		 * The element displaying the entity image
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._entityImage = this._card.querySelector('.entity-image');
-
-		/**
-		 * The element displaying a quick description of the entity
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._quickDesc = this._card.querySelector('.quick-description');
-
-		/**
-		 * The element containing detailed information about the entity
-		 * @type {HTMLElement}
-		 * @private
-		 */
 		this._details = this._card.querySelector('.details');
-
-		/**
-		 * Track EventBus listeners for cleanup on destruction
-		 * @type {Map<string, Function[]>}
-		 * @private
-		 */
 		this._eventHandlers = {};
 	}
 
@@ -242,7 +214,7 @@ export class BaseCard {
 	/**
 	 * Register an EventBus listener with automatic cleanup tracking.
 	 * Stores handler reference for manual removal via cleanup().
-	 * 
+	 *
 	 * @param {string} event - Event name (e.g., EVENTS.CHARACTER_SELECTED)
 	 * @param {Function} handler - Handler function
 	 * @returns {void}
@@ -264,7 +236,7 @@ export class BaseCard {
 
 	/**
 	 * Unregister a specific EventBus listener.
-	 * 
+	 *
 	 * @param {string} event - Event name
 	 * @param {Function} handler - Handler function to remove
 	 * @returns {void}
@@ -274,7 +246,7 @@ export class BaseCard {
 
 		if (this._eventHandlers[event]) {
 			this._eventHandlers[event] = this._eventHandlers[event].filter(
-				(h) => h !== handler
+				(h) => h !== handler,
 			);
 			if (this._eventHandlers[event].length === 0) {
 				delete this._eventHandlers[event];
@@ -285,7 +257,7 @@ export class BaseCard {
 	/**
 	 * Remove all registered EventBus listeners.
 	 * Call this in component teardown/destructor to prevent memory leaks.
-	 * 
+	 *
 	 * @returns {Object} Summary of cleanup operations (event count, handler count)
 	 */
 	cleanup() {
@@ -301,7 +273,10 @@ export class BaseCard {
 						eventBus.off(event, handler);
 						summary.handlersCleaned++;
 					} catch (e) {
-						console.warn('[BaseCard]', 'Error removing listener', { event, error: e });
+						console.warn('[BaseCard]', 'Error removing listener', {
+							event,
+							error: e,
+						});
 					}
 				}
 				summary.eventsCleaned++;
@@ -316,7 +291,7 @@ export class BaseCard {
 
 	/**
 	 * Get current state for debugging (shows which events have active handlers).
-	 * 
+	 *
 	 * @returns {Object} Debug info
 	 */
 	getListenerState() {

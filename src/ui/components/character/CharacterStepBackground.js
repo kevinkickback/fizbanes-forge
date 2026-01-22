@@ -1,8 +1,4 @@
-/**
- * Step 4: Background
- * 
- * User selects character background and views proficiencies, languages, and features.
- */
+// Step 4: Background - background selection with proficiencies, languages, and features
 
 import { toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
@@ -17,9 +13,6 @@ export class CharacterStepBackground {
         this._backgroundService = backgroundService;
     }
 
-    /**
-     * Render the step HTML.
-     */
     async render() {
         return `
             <div class="step-4-background">
@@ -82,7 +75,9 @@ export class CharacterStepBackground {
         await this._loadBackgrounds();
 
         // Get elements
-        const backgroundSelect = contentArea.querySelector('#modalBackgroundSelect');
+        const backgroundSelect = contentArea.querySelector(
+            '#modalBackgroundSelect',
+        );
 
         if (backgroundSelect) {
             // Populate dropdown
@@ -97,7 +92,9 @@ export class CharacterStepBackground {
             }
 
             // Listen for changes
-            this._cleanup.on(backgroundSelect, 'change', () => this._handleBackgroundChange());
+            this._cleanup.on(backgroundSelect, 'change', () =>
+                this._handleBackgroundChange(),
+            );
         }
     }
 
@@ -147,8 +144,8 @@ export class CharacterStepBackground {
             }
 
             // Filter by allowed sources
-            const filteredBackgrounds = backgrounds.filter(bg =>
-                sourceService.isSourceAllowed(bg.source)
+            const filteredBackgrounds = backgrounds.filter((bg) =>
+                sourceService.isSourceAllowed(bg.source),
             );
 
             // Sort by name
@@ -169,8 +166,10 @@ export class CharacterStepBackground {
                 select.appendChild(option);
             }
 
-            console.debug('[Step4Background]', `Populated ${filteredBackgrounds.length} backgrounds`);
-
+            console.debug(
+                '[Step4Background]',
+                `Populated ${filteredBackgrounds.length} backgrounds`,
+            );
         } catch (error) {
             console.error('[Step4Background]', 'Error populating backgrounds', error);
         }
@@ -203,7 +202,7 @@ export class CharacterStepBackground {
         // Save to session
         this.session.set('background', {
             name: background.name,
-            source: background.source
+            source: background.source,
         });
 
         // Update details display
@@ -364,7 +363,7 @@ export class CharacterStepBackground {
         if (!background?.proficiencies?.skills) return 'None';
 
         const skills = background.proficiencies.skills
-            .map(prof => {
+            .map((prof) => {
                 if (prof.choose) {
                     return `Choose ${prof.choose.count || 1} from: ${prof.choose.from?.map(toTitleCase).join(', ') || 'any'}`;
                 }
@@ -383,7 +382,7 @@ export class CharacterStepBackground {
         if (!background?.proficiencies?.tools) return 'None';
 
         const tools = background.proficiencies.tools
-            .map(prof => {
+            .map((prof) => {
                 if (prof.choose) {
                     return `Choose ${prof.choose.count || 1} tool${prof.choose.count > 1 ? 's' : ''}`;
                 }
@@ -402,11 +401,15 @@ export class CharacterStepBackground {
         if (!background?.proficiencies?.languages) return 'None';
 
         const languages = background.proficiencies.languages
-            .map(prof => {
+            .map((prof) => {
                 if (prof.choose) {
                     const count = prof.choose.count || 1;
-                    const suffix = prof.choose.type === 'anystandard' ? ' (standard)' :
-                        prof.choose.type === 'any' ? ' (any)' : '';
+                    const suffix =
+                        prof.choose.type === 'anystandard'
+                            ? ' (standard)'
+                            : prof.choose.type === 'any'
+                                ? ' (any)'
+                                : '';
                     return `Choose ${count} language${count > 1 ? 's' : ''}${suffix}`;
                 }
                 return prof.language || prof;
@@ -427,7 +430,9 @@ export class CharacterStepBackground {
 
         for (const eq of background.equipment) {
             if (eq.a && eq.b) {
-                equipment.push(`(a) ${this._formatEquipmentList(eq.a)} or (b) ${this._formatEquipmentList(eq.b)}`);
+                equipment.push(
+                    `(a) ${this._formatEquipmentList(eq.a)} or (b) ${this._formatEquipmentList(eq.b)}`,
+                );
             } else if (Array.isArray(eq)) {
                 equipment.push(this._formatEquipmentList(eq));
             } else {
@@ -435,7 +440,7 @@ export class CharacterStepBackground {
             }
         }
 
-        return equipment.map(e => `<li>${e}</li>`).join('') || '<li>None</li>';
+        return equipment.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
     }
 
     /**
@@ -443,7 +448,7 @@ export class CharacterStepBackground {
      * @private
      */
     _formatEquipmentList(items) {
-        return items.map(item => this._formatSingleEquipment(item)).join(', ');
+        return items.map((item) => this._formatSingleEquipment(item)).join(', ');
     }
 
     /**
@@ -466,22 +471,23 @@ export class CharacterStepBackground {
     _extractFeature(background) {
         if (!background?.entries) return null;
 
-        const featureEntry = background.entries.find(entry =>
-            entry.name?.toLowerCase().includes('feature') || entry.data?.isFeature
+        const featureEntry = background.entries.find(
+            (entry) =>
+                entry.name?.toLowerCase().includes('feature') || entry.data?.isFeature,
         );
 
         if (!featureEntry) return null;
 
         const description = Array.isArray(featureEntry.entries)
             ? featureEntry.entries
-                .map(e => typeof e === 'string' ? e : '')
+                .map((e) => (typeof e === 'string' ? e : ''))
                 .filter(Boolean)
                 .join(' ')
             : featureEntry.entry || '';
 
         return {
             name: featureEntry.name || 'Feature',
-            description: description.trim()
+            description: description.trim(),
         };
     }
 

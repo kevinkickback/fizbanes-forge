@@ -1,9 +1,4 @@
-/**
- * CharacterCreationSession manages the character creation wizard flow.
- * 
- * Stages all character data in memory until the user confirms creation.
- * This ensures atomic creation and prevents partial state if the user cancels.
- */
+// Session manager for character creation wizard - stages all data until confirmation
 
 export class CharacterCreationSession {
     constructor() {
@@ -29,20 +24,20 @@ export class CharacterCreationSession {
             race: {
                 name: '',
                 source: '',
-                subrace: ''
+                subrace: '',
             },
 
             // Step 3: Class
             class: {
                 name: '',
                 source: '',
-                subclass: ''
+                subclass: '',
             },
 
             // Step 4: Background
             background: {
                 name: '',
-                source: ''
+                source: '',
             },
 
             // Step 5: Ability Scores
@@ -52,16 +47,19 @@ export class CharacterCreationSession {
                 constitution: 8,
                 intelligence: 8,
                 wisdom: 8,
-                charisma: 8
+                charisma: 8,
             },
         };
 
-        console.debug('[CharacterCreationSession]', 'Initialized new character creation session');
+        console.debug(
+            '[CharacterCreationSession]',
+            'Initialized new character creation session',
+        );
     }
 
     /**
      * Get a value from staged data using dot notation path.
-     * 
+     *
      * @param {string} path - Dot notation path (e.g., "variantRules.feats")
      * @returns {*} Value at path
      */
@@ -71,7 +69,7 @@ export class CharacterCreationSession {
 
     /**
      * Set a value in staged data using dot notation path.
-     * 
+     *
      * @param {string} path - Dot notation path
      * @param {*} value - Value to set
      */

@@ -1,30 +1,29 @@
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
-import { UniversalSelectionModal, formatCounter } from '../../../lib/UniversalSelectionModal.js';
+import {
+    UniversalSelectionModal,
+    formatCounter,
+} from '../../../lib/UniversalSelectionModal.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../services/SourceService.js';
 
-/**
- * LevelUpFeatureSelector
- * 
- * Feature-specific adapter for generic LevelUpSelector.
- * Used for selecting class features like Eldritch Invocations, Metamagic, Maneuvers, etc.
- * 
- * Features:
- * - Search and filter optional features by name, type
- * - Enforce selection limits based on feature availability
- * - Display feature descriptions
- * - Uses generic LevelUpSelector for consistent UX
- */
+// Feature selector adapter for class features (Invocations, Metamagic, Maneuvers, etc.)
 
 export class ClassFeatureSelector {
-    constructor(session, parentStep, className, featureType, requirementLevel, currentFeatureId = null) {
+    constructor(
+        session,
+        parentStep,
+        className,
+        featureType,
+        requirementLevel,
+        currentFeatureId = null,
+    ) {
         this.session = session;
         this.parentStep = parentStep;
         this.className = className;
-        this.featureType = featureType;  // e.g., 'EI' (Eldritch Invocations), 'MM' (Metamagic)
+        this.featureType = featureType; // e.g., 'EI' (Eldritch Invocations), 'MM' (Metamagic)
         this.requirementLevel = requirementLevel;
-        this.currentFeatureId = currentFeatureId;  // The feature choice being edited
+        this.currentFeatureId = currentFeatureId; // The feature choice being edited
 
         // Service references
         this.optionalFeatureService = optionalFeatureService;
@@ -42,23 +41,28 @@ export class ClassFeatureSelector {
     /**
      * Initialize and display the feature selector modal
      */
-    async show(availableFeatures, currentSelections = [], multiSelect = false, maxSelections = null) {
+    async show(
+        availableFeatures,
+        currentSelections = [],
+        multiSelect = false,
+        maxSelections = null,
+    ) {
         try {
             console.debug('[LevelUpFeatureSelector] Starting show', {
                 className: this.className,
                 featureType: this.featureType,
                 currentFeatureId: this.currentFeatureId,
                 availableCount: availableFeatures.length,
-                currentSelectionsCount: currentSelections.length
+                currentSelectionsCount: currentSelections.length,
             });
 
             // Collect already-selected features
             const alreadySelected = new Set();
 
             if (this.session.originalCharacter?.progression?.classes) {
-                this.session.originalCharacter.progression.classes.forEach(cls => {
+                this.session.originalCharacter.progression.classes.forEach((cls) => {
                     if (cls.name === this.className && cls.features) {
-                        cls.features.forEach(feature => {
+                        cls.features.forEach((feature) => {
                             if (feature && typeof feature === 'object') {
                                 const featureName = feature.name || feature.id || feature;
                                 if (featureName && typeof featureName === 'string') {
@@ -73,27 +77,34 @@ export class ClassFeatureSelector {
             }
 
             if (this.session.stepData?.selectedFeatures) {
-                Object.entries(this.session.stepData.selectedFeatures).forEach(([featureId, selection]) => {
-                    if (featureId === this.currentFeatureId) return;
+                Object.entries(this.session.stepData.selectedFeatures).forEach(
+                    ([featureId, selection]) => {
+                        if (featureId === this.currentFeatureId) return;
 
-                    const selections = Array.isArray(selection) ? selection : [selection];
-                    selections.forEach(featureName => {
-                        if (featureName && typeof featureName === 'string') {
-                            alreadySelected.add(featureName);
-                        }
-                    });
-                });
+                        const selections = Array.isArray(selection)
+                            ? selection
+                            : [selection];
+                        selections.forEach((featureName) => {
+                            if (featureName && typeof featureName === 'string') {
+                                alreadySelected.add(featureName);
+                            }
+                        });
+                    },
+                );
             }
 
             // Filter available features
-            const filtered = availableFeatures.filter(feature => {
+            const filtered = availableFeatures.filter((feature) => {
                 if (!sourceService.isSourceAllowed(feature.source)) {
                     return false;
                 }
 
                 const featureId = feature.id || feature.name;
                 const featureName = feature.name;
-                if (alreadySelected.has(featureId) || alreadySelected.has(featureName)) {
+                if (
+                    alreadySelected.has(featureId) ||
+                    alreadySelected.has(featureName)
+                ) {
                     return false;
                 }
 
@@ -120,7 +131,11 @@ export class ClassFeatureSelector {
                 }
                 const originalFeatures = character.features;
                 character.features = featuresArray;
-                const result = this.optionalFeatureService.meetsPrerequisites(feature, character, this.className);
+                const result = this.optionalFeatureService.meetsPrerequisites(
+                    feature,
+                    character,
+                    this.className,
+                );
                 character.features = originalFeatures;
                 return result;
             };
@@ -131,13 +146,18 @@ export class ClassFeatureSelector {
                 loadItems: () => filtered,
                 selectionMode: multiSelect ? 'multiple' : 'single',
                 selectionLimit: this.maxSelections,
-                initialSelectedItems: filtered.filter(f =>
-                    currentSelections.some(sel => this._featureKey(f) === this._featureKey(sel))
+                initialSelectedItems: filtered.filter((f) =>
+                    currentSelections.some(
+                        (sel) => this._featureKey(f) === this._featureKey(sel),
+                    ),
                 ),
                 searchMatcher: (item, searchTerm) => {
                     if (!searchTerm) return true;
                     const term = searchTerm.toLowerCase();
-                    return item.name?.toLowerCase().includes(term) || item.source?.toLowerCase().includes(term);
+                    return (
+                        item.name?.toLowerCase().includes(term) ||
+                        item.source?.toLowerCase().includes(term)
+                    );
                 },
                 buildFilters: null,
                 prerequisiteNote: this._getPrerequisiteNote(),
@@ -147,40 +167,53 @@ export class ClassFeatureSelector {
                     if (!prerequisiteChecker(item)) return false;
                     if (state.searchTerm) {
                         const term = state.searchTerm.toLowerCase();
-                        return item.name?.toLowerCase().includes(term) || item.source?.toLowerCase().includes(term);
+                        return (
+                            item.name?.toLowerCase().includes(term) ||
+                            item.source?.toLowerCase().includes(term)
+                        );
                     }
                     return true;
                 },
                 // Block selection when reaching maxSelections
                 canSelectItem: (_item, state) => {
-                    const isAtCap = this.maxSelections !== null && state.selectedIds.size >= this.maxSelections;
+                    const isAtCap =
+                        this.maxSelections !== null &&
+                        state.selectedIds.size >= this.maxSelections;
                     // Always allow deselection; only block new selections at cap
                     return !isAtCap;
                 },
                 onSelectBlocked: () => {
                     const label = this._getFeatureTypeName();
-                    showNotification(`${label} selection limit reached. Deselect a choice to add another.`, 'warning');
+                    showNotification(
+                        `${label} selection limit reached. Deselect a choice to add another.`,
+                        'warning',
+                    );
                 },
                 // Description caching and rendering
                 descriptionCache: this._descriptionCache,
                 fetchDescription: (feature) => this._fetchFeatureDescription(feature),
                 descriptionContainerSelector: '.feature-description',
                 // Counter rendering
-                customCountFn: (selectedItems) => formatCounter({
-                    label: `choice${this.maxSelections === 1 ? '' : 's'}`,
-                    selected: selectedItems.length,
-                    max: this.maxSelections || selectedItems.length,
-                    color: 'bg-info'
-                }),
+                customCountFn: (selectedItems) =>
+                    formatCounter({
+                        label: `choice${this.maxSelections === 1 ? '' : 's'}`,
+                        selected: selectedItems.length,
+                        max: this.maxSelections || selectedItems.length,
+                        color: 'bg-info',
+                    }),
                 onConfirm: this._onFeaturesConfirmed.bind(this),
                 onCancel: () => {
                     // No-op
-                }
+                },
             });
 
             this._selector.show();
         } catch (error) {
-            console.error('[LevelUpFeatureSelector]', 'Error showing feature selector:', error);
+            console.error(
+                '[LevelUpFeatureSelector]',
+                'Error showing feature selector:',
+                error,
+            );
         }
     }
 
@@ -229,7 +262,9 @@ export class ClassFeatureSelector {
         } else if (typeof feature.entries === 'string') {
             parts.push(await textProcessor.processString(feature.entries));
         }
-        return parts.length ? parts.join(' ') : '<span class="text-muted small">No description available.</span>';
+        return parts.length
+            ? parts.join(' ')
+            : '<span class="text-muted small">No description available.</span>';
     }
 
     /**
@@ -237,13 +272,13 @@ export class ClassFeatureSelector {
      */
     _getFeatureTypeName() {
         const typeNames = {
-            'EI': 'Eldritch Invocation',
-            'MM': 'Metamagic',
+            EI: 'Eldritch Invocation',
+            MM: 'Metamagic',
             'MV:B': 'Battle Maneuver',
             'MV:M': 'Monk Maneuver',
-            'FS': 'Fighting Style',
-            'PB': 'Pact Boon',
-            'AI': 'Artificer Infusion'
+            FS: 'Fighting Style',
+            PB: 'Pact Boon',
+            AI: 'Artificer Infusion',
         };
         return typeNames[this.featureType] || 'Feature';
     }
@@ -253,13 +288,14 @@ export class ClassFeatureSelector {
      */
     _getPrerequisiteNote() {
         const notes = {
-            'invocation': 'Some invocations require you to learn specific spells, pacts, or be high enough level before they unlock.',
-            'EI': 'Some invocations require you to learn specific spells, pacts, or be high enough level before they unlock.',
-            'MM': 'Only metamagic options you qualify for are shown.',
+            invocation:
+                'Some invocations require you to learn specific spells, pacts, or be high enough level before they unlock.',
+            EI: 'Some invocations require you to learn specific spells, pacts, or be high enough level before they unlock.',
+            MM: 'Only metamagic options you qualify for are shown.',
             'MV:B': 'Only battle maneuvers you qualify for are shown.',
             'MV:M': 'Only monk maneuvers you qualify for are shown.',
-            'FS': 'Only fighting styles you qualify for are shown.',
-            'AI': 'Only infusions you qualify for are shown. Some require minimum character levels to unlock.'
+            FS: 'Only fighting styles you qualify for are shown.',
+            AI: 'Only infusions you qualify for are shown. Some require minimum character levels to unlock.',
         };
         return notes[this.featureType] || null; // Return null if no specific note needed
     }
@@ -280,7 +316,7 @@ export class ClassFeatureSelector {
             this.className,
             this.featureType,
             this.requirementLevel,
-            selectedFeatures.map(f => f.name || f.id)
+            selectedFeatures.map((f) => f.name || f.id),
         );
     }
 

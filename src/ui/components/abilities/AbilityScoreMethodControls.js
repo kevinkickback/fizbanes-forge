@@ -29,7 +29,8 @@ class MethodControlsView {
 	renderPointBuyControls(container, ability, baseScore) {
 		// Create button group for +/- controls
 		const buttonGroup = document.createElement('div');
-		buttonGroup.className = 'd-flex align-items-center justify-content-center gap-1';
+		buttonGroup.className =
+			'd-flex align-items-center justify-content-center gap-1';
 
 		// Create decrease button
 		const decreaseBtn = document.createElement('button');

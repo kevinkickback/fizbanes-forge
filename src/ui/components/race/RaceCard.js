@@ -14,7 +14,11 @@ import {
 } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
-import { abilityScoreService, getAbilityData, getRaceAbilityData } from '../../../services/AbilityScoreService.js';
+import {
+	abilityScoreService,
+	getAbilityData,
+	getRaceAbilityData,
+} from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
 import { sourceService } from '../../../services/SourceService.js';
 
@@ -112,10 +116,6 @@ export class RaceCard {
 	// EventBus Cleanup Mixin (from BaseCard)
 	//-------------------------------------------------------------------------
 
-	/**
-	 * Register an EventBus listener with automatic cleanup tracking.
-	 * Stores handler reference for manual removal via _cleanupEventBusListeners().
-	 */
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
 			console.warn('[RaceCard]', 'Handler must be a function', { event });
@@ -124,16 +124,12 @@ export class RaceCard {
 
 		eventBus.on(event, handler);
 
-		// Track handler for cleanup
 		if (!this._eventHandlers[event]) {
 			this._eventHandlers[event] = [];
 		}
 		this._eventHandlers[event].push(handler);
 	}
 
-	/**
-	 * Remove all registered EventBus listeners.
-	 */
 	_cleanupEventBusListeners() {
 		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
 			if (Array.isArray(handlers)) {
@@ -141,7 +137,10 @@ export class RaceCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('[RaceCard]', 'Error removing listener', { event, error: e });
+						console.warn('[RaceCard]', 'Error removing listener', {
+							event,
+							error: e,
+						});
 					}
 				}
 			}
@@ -223,7 +222,11 @@ export class RaceCard {
 			// Filter subraces by source first
 			const filteredSubraces = subraces.filter((subrace) => {
 				const subraceSource = subrace.source || race.source;
-				return sourceService.isSourceAllowed(subraceSource) && subrace.name && subrace.name.trim() !== '';
+				return (
+					sourceService.isSourceAllowed(subraceSource) &&
+					subrace.name &&
+					subrace.name.trim() !== ''
+				);
 			});
 
 			// Only create dropdown if there are filtered subraces
@@ -272,7 +275,11 @@ export class RaceCard {
 		const radio = itemWrapper.querySelector('input[type="radio"]');
 		this._cleanup.on(raceItem, 'click', (e) => {
 			// Don't trigger if clicking on the select itself
-			if (e.target.tagName === 'SELECT' || e.target.closest('.inline-dropdown-container')) return;
+			if (
+				e.target.tagName === 'SELECT' ||
+				e.target.closest('.inline-dropdown-container')
+			)
+				return;
 
 			if (radio) {
 				radio.checked = true;
@@ -312,7 +319,7 @@ export class RaceCard {
 				}
 
 				// Remove selected class from all race items
-				this._raceList.querySelectorAll('.race-item').forEach(item => {
+				this._raceList.querySelectorAll('.race-item').forEach((item) => {
 					item.classList.remove('selected');
 				});
 				raceItem.classList.add('selected');
@@ -343,12 +350,14 @@ export class RaceCard {
 
 		// Hide all info content
 		const allContent = this._infoPanel.querySelectorAll('.info-content');
-		allContent.forEach(content => {
+		allContent.forEach((content) => {
 			content.classList.add('d-none');
 		});
 
 		// Show the selected content
-		const targetContent = this._infoPanel.querySelector(`[data-for="${contentId}"]`);
+		const targetContent = this._infoPanel.querySelector(
+			`[data-for="${contentId}"]`,
+		);
 		if (targetContent) {
 			targetContent.classList.remove('d-none');
 			// Expand info panel if requested
@@ -408,7 +417,9 @@ export class RaceCard {
 			const raceValue = `${character.race.name}_${character.race.source}`;
 			console.debug('[RaceCard]', 'Loading saved race:', raceValue);
 
-			const raceItem = this._raceList?.querySelector(`[data-race="${raceValue}"]`);
+			const raceItem = this._raceList?.querySelector(
+				`[data-race="${raceValue}"]`,
+			);
 			if (!raceItem) {
 				console.warn(
 					'RaceCard',
@@ -424,7 +435,7 @@ export class RaceCard {
 			}
 
 			// Mark the race item as selected
-			this._raceList.querySelectorAll('.race-item').forEach(item => {
+			this._raceList.querySelectorAll('.race-item').forEach((item) => {
 				item.classList.remove('selected');
 			});
 			raceItem.classList.add('selected');
@@ -447,25 +458,34 @@ export class RaceCard {
 						listScrollTop,
 						listScrollBottom,
 						listHeight,
-						padding
+						padding,
 					});
 
 					// Scroll if any part of the item is not visible (with padding buffer)
 					if (itemBottom + padding > listScrollBottom) {
 						// Item bottom is below visible area - scroll down with padding
 						const targetScroll = itemBottom + padding - listHeight;
-						console.debug('[RaceCard] Item bottom cut off, scrolling to:', targetScroll);
+						console.debug(
+							'[RaceCard] Item bottom cut off, scrolling to:',
+							targetScroll,
+						);
 						this._raceList.scrollTop = targetScroll;
 					} else if (itemTop - padding < listScrollTop) {
 						// Item top is above visible area - scroll up with padding
 						const targetScroll = Math.max(0, itemTop - padding);
-						console.debug('[RaceCard] Item top cut off, scrolling to:', targetScroll);
+						console.debug(
+							'[RaceCard] Item top cut off, scrolling to:',
+							targetScroll,
+						);
 						this._raceList.scrollTop = targetScroll;
 					}
 
 					// Verify scroll happened
 					setTimeout(() => {
-						console.debug('[RaceCard] Scroll complete. New scrollTop:', this._raceList.scrollTop);
+						console.debug(
+							'[RaceCard] Scroll complete. New scrollTop:',
+							this._raceList.scrollTop,
+						);
 					}, 100);
 				} else {
 					console.warn('[RaceCard] No race list found for scrolling');
@@ -490,7 +510,11 @@ export class RaceCard {
 			let infoId = this.sanitizeId(race.name);
 
 			if (character.race.subrace) {
-				console.debug('[RaceCard]', 'Saved subrace found:', character.race.subrace);
+				console.debug(
+					'[RaceCard]',
+					'Saved subrace found:',
+					character.race.subrace,
+				);
 
 				// Find and set the subrace dropdown if it exists
 				const subraceSelect = raceItem.querySelector('select');
@@ -507,7 +531,11 @@ export class RaceCard {
 						);
 						this._selectedSubrace = subrace;
 						infoId = this.sanitizeId(`${race.name}-${character.race.subrace}`);
-						console.debug('[RaceCard]', 'Subrace restored:', character.race.subrace);
+						console.debug(
+							'[RaceCard]',
+							'Subrace restored:',
+							character.race.subrace,
+						);
 					} else {
 						console.warn(
 							'RaceCard',
@@ -929,9 +957,10 @@ export class RaceCard {
 				character.optionalProficiencies.tools.race.options =
 					this._raceService.getStandardToolOptions();
 				// Restore valid selections using normalized comparison
-				const normalizedToolOptions = character.optionalProficiencies.tools.race.options.map(
-					(tool) => DataNormalizer.normalizeForLookup(tool),
-				);
+				const normalizedToolOptions =
+					character.optionalProficiencies.tools.race.options.map((tool) =>
+						DataNormalizer.normalizeForLookup(tool),
+					);
 				character.optionalProficiencies.tools.race.selected =
 					previousSelections.filter((tool) =>
 						normalizedToolOptions.includes(
@@ -1090,8 +1119,13 @@ class RaceDetailsView {
 		html += `<div class="mb-3">
             <h6 class="small">Ability Score Increase</h6>
             <ul class="text-muted small mb-0 list-unstyled">`;
-		const abilityImprovements = this._formatAbilityImprovements(race, subrace).split('\n');
-		html += abilityImprovements.map(improvement => `<li>${improvement}</li>`).join('');
+		const abilityImprovements = this._formatAbilityImprovements(
+			race,
+			subrace,
+		).split('\n');
+		html += abilityImprovements
+			.map((improvement) => `<li>${improvement}</li>`)
+			.join('');
 		html += `</ul></div>`;
 
 		// Size section
@@ -1107,7 +1141,7 @@ class RaceDetailsView {
             <h6 class="small">Speed</h6>
             <ul class="text-muted small mb-0 list-unstyled">`;
 		const speeds = this._formatMovementSpeeds(race).split('\n');
-		html += speeds.map(speed => `<li>${speed}</li>`).join('');
+		html += speeds.map((speed) => `<li>${speed}</li>`).join('');
 		html += `</ul></div>`;
 
 		// Languages section
@@ -1115,7 +1149,7 @@ class RaceDetailsView {
             <h6 class="small">Languages</h6>
             <ul class="text-muted small mb-0 list-unstyled">`;
 		const languages = this._formatLanguages(race).split('\n');
-		html += languages.map(lang => `<li>${lang}</li>`).join('');
+		html += languages.map((lang) => `<li>${lang}</li>`).join('');
 		html += `</ul></div>`;
 
 		// Traits section

@@ -1,14 +1,4 @@
-/**
- * LevelUpModal - Simplified level picker for character progression
- * 
- * Provides a simple interface to:
- * - Add levels to existing classes
- * - Add new multiclass
- * - Remove the last level
- * 
- * All changes apply immediately to the character (no session/staging).
- * Choices are made on the Build page after leveling up.
- */
+// Simplified level picker for character progression (changes apply immediately)
 
 import { AppState } from '../../../app/AppState.js';
 import { Modal } from '../../../app/Modal.js';
@@ -26,9 +16,6 @@ export class LevelUpModal {
         console.debug('[LevelUpModal]', 'Constructor initialized');
     }
 
-    /**
-     * Show the modal with current character progression.
-     */
     async show() {
         try {
             const character = AppState.getCurrentCharacter();
@@ -37,7 +24,10 @@ export class LevelUpModal {
                 return;
             }
 
-            if (!character.progression?.classes || character.progression.classes.length === 0) {
+            if (
+                !character.progression?.classes ||
+                character.progression.classes.length === 0
+            ) {
                 showNotification('Character must have at least one class', 'error');
                 return;
             }
@@ -47,7 +37,10 @@ export class LevelUpModal {
             // Get modal element
             this.modalEl = document.getElementById('levelUpModal');
             if (!this.modalEl) {
-                console.error('[LevelUpModal]', 'Modal element #levelUpModal not found in DOM');
+                console.error(
+                    '[LevelUpModal]',
+                    'Modal element #levelUpModal not found in DOM',
+                );
                 showNotification('Could not open level up modal', 'error');
                 return;
             }
@@ -63,7 +56,6 @@ export class LevelUpModal {
 
             // Show modal
             this.bootstrapModal.show();
-
         } catch (error) {
             console.error('[LevelUpModal]', 'Failed to show modal', error);
             showNotification('Failed to open level up modal', 'error');
@@ -78,18 +70,11 @@ export class LevelUpModal {
         this.bootstrapModal.hide();
     }
 
-    /**
-     * Clean up modal and listeners when hidden.
-     */
     _onModalHidden() {
         console.debug('[LevelUpModal]', 'Modal hidden');
         this._cleanup.cleanup();
     }
 
-    /**
-     * Initialize Bootstrap modal instance.
-     * @private
-     */
     _initializeBootstrapModal() {
         // Dispose old instance if exists
         if (this.bootstrapModal) {
@@ -115,13 +100,11 @@ export class LevelUpModal {
         this._cleanup.registerBootstrapModal(this.modalEl, this.bootstrapModal);
 
         // Setup hide listener for cleanup
-        this._cleanup.once(this.modalEl, 'hidden.bs.modal', () => this._onModalHidden());
+        this._cleanup.once(this.modalEl, 'hidden.bs.modal', () =>
+            this._onModalHidden(),
+        );
     }
 
-    /**
-     * Render the level picker UI.
-     * @private
-     */
     async _renderLevelPicker() {
         const character = AppState.getCurrentCharacter();
         const contentArea = this.modalEl.querySelector('.modal-body');
@@ -159,7 +142,10 @@ export class LevelUpModal {
 
         // Get multiclass options - check for ignore restrictions preference
         const ignoreRestrictions = this._ignoreRestrictions || false;
-        const multiclassOptions = levelUpService.getMulticlassOptions(character, ignoreRestrictions);
+        const multiclassOptions = levelUpService.getMulticlassOptions(
+            character,
+            ignoreRestrictions,
+        );
         let multiclassSection = '';
         if (multiclassOptions.length > 0) {
             multiclassSection = `
@@ -175,11 +161,15 @@ export class LevelUpModal {
                         <div class="d-flex gap-2">
                             <select class="form-select" id="multiclassSelect">
                                 <option value="">Choose a class...</option>
-                                ${multiclassOptions.map(opt => `
+                                ${multiclassOptions
+                    .map(
+                        (opt) => `
                                     <option value="${opt.name}" ${!opt.meetsRequirements && !ignoreRestrictions ? 'disabled' : ''}>
                                         ${opt.name}${opt.requirementText ? ` (${opt.requirementText})` : ''}
                                     </option>
-                                `).join('')}
+                                `,
+                    )
+                    .join('')}
                             </select>
                             <button class="btn btn-primary" id="addMulticlassBtn" style="white-space: nowrap;">
                                 <i class="fas fa-plus"></i> Add Class
@@ -203,13 +193,16 @@ export class LevelUpModal {
                     <div class="card-body">
                         ${classBreakdown || '<p class="text-muted text-center mb-0">No classes yet</p>'}
                     </div>
-                    ${classes.length > 0 ? `
+                    ${classes.length > 0
+                ? `
                     <div class="card-footer text-center">
                         <button class="btn btn-outline-danger btn-sm" id="removeLastLevelBtn">
                             <i class="fas fa-minus"></i> Remove Last Level
                         </button>
                     </div>
-                    ` : ''}
+                    `
+                : ''
+            }
                 </div>
                 
                 ${multiclassSection}
@@ -220,14 +213,10 @@ export class LevelUpModal {
         this._attachLevelPickerListeners();
     }
 
-    /**
-     * Attach event listeners to level picker buttons.
-     * @private
-     */
     _attachLevelPickerListeners() {
         // Add level buttons for existing classes
         const addLevelButtons = this.modalEl.querySelectorAll('[data-add-level]');
-        addLevelButtons.forEach(btn => {
+        addLevelButtons.forEach((btn) => {
             const className = btn.dataset.addLevel;
             this._cleanup.on(btn, 'click', async () => {
                 await this._addClassLevel(className);
@@ -235,7 +224,9 @@ export class LevelUpModal {
         });
 
         // Ignore restrictions toggle
-        const ignoreRestrictionsToggle = this.modalEl.querySelector('#ignoreRestrictionsToggle');
+        const ignoreRestrictionsToggle = this.modalEl.querySelector(
+            '#ignoreRestrictionsToggle',
+        );
         if (ignoreRestrictionsToggle) {
             this._cleanup.on(ignoreRestrictionsToggle, 'change', () => {
                 this._ignoreRestrictions = ignoreRestrictionsToggle.checked;
@@ -258,7 +249,9 @@ export class LevelUpModal {
         }
 
         // Remove last level button
-        const removeLastLevelBtn = this.modalEl.querySelector('#removeLastLevelBtn');
+        const removeLastLevelBtn = this.modalEl.querySelector(
+            '#removeLastLevelBtn',
+        );
         if (removeLastLevelBtn) {
             this._cleanup.on(removeLastLevelBtn, 'click', async () => {
                 await this._removeLastLevel();
@@ -266,17 +259,15 @@ export class LevelUpModal {
         }
     }
 
-    /**
-     * Add a level to an existing class.
-     * @private
-     */
     async _addClassLevel(className) {
         const character = AppState.getCurrentCharacter();
         if (!character) return;
 
         try {
             // Find the class in progression
-            const classEntry = character.progression.classes.find(c => c.name === className);
+            const classEntry = character.progression.classes.find(
+                (c) => c.name === className,
+            );
             if (!classEntry) {
                 showNotification(`Class ${className} not found`, 'error');
                 return;
@@ -294,25 +285,26 @@ export class LevelUpModal {
 
             // Re-render picker
             await this._renderLevelPicker();
-
         } catch (error) {
             console.error('[LevelUpModal]', 'Failed to add level', error);
             showNotification(`Failed to add level: ${error.message}`, 'error');
         }
     }
 
-    /**
-     * Add a new multiclass.
-     * @private
-     */
     async _addMulticlass(className) {
         const character = AppState.getCurrentCharacter();
         if (!character) return;
 
         try {
             // Check multiclass requirements (unless ignoring restrictions)
-            if (!this._ignoreRestrictions && !levelUpService.checkMulticlassRequirements(character, className)) {
-                showNotification(`You don't meet the requirements for ${className}`, 'warning');
+            if (
+                !this._ignoreRestrictions &&
+                !levelUpService.checkMulticlassRequirements(character, className)
+            ) {
+                showNotification(
+                    `You don't meet the requirements for ${className}`,
+                    'warning',
+                );
                 return;
             }
 
@@ -340,17 +332,12 @@ export class LevelUpModal {
 
             // Re-render picker
             await this._renderLevelPicker();
-
         } catch (error) {
             console.error('[LevelUpModal]', 'Failed to add multiclass', error);
             showNotification(`Failed to add multiclass: ${error.message}`, 'error');
         }
     }
 
-    /**
-     * Remove the last level from the character.
-     * @private
-     */
     async _removeLastLevel() {
         const character = AppState.getCurrentCharacter();
         if (!character) return;
@@ -359,7 +346,8 @@ export class LevelUpModal {
         const modal = Modal.getInstance();
         const confirmed = await modal.showConfirmationModal({
             title: 'Remove Level',
-            message: 'Are you sure you want to remove the last level? This cannot be undone.',
+            message:
+                'Are you sure you want to remove the last level? This cannot be undone.',
             confirmButtonText: 'Remove',
             cancelButtonText: 'Cancel',
             confirmButtonClass: 'btn-danger',
@@ -385,7 +373,10 @@ export class LevelUpModal {
                     const classHistory = character.progressionHistory[className];
                     for (const level of Object.keys(classHistory)) {
                         const entry = classHistory[level];
-                        if (entry.timestamp && (!lastTimestamp || entry.timestamp > lastTimestamp)) {
+                        if (
+                            entry.timestamp &&
+                            (!lastTimestamp || entry.timestamp > lastTimestamp)
+                        ) {
                             lastTimestamp = entry.timestamp;
                             lastClassName = className;
                             lastLevel = Number.parseInt(level, 10);
@@ -411,7 +402,7 @@ export class LevelUpModal {
                 return;
             }
 
-            const classEntry = classes.find(c => c.name === lastClassName);
+            const classEntry = classes.find((c) => c.name === lastClassName);
             if (!classEntry) {
                 showNotification('Class not found', 'error');
                 return;
@@ -421,7 +412,9 @@ export class LevelUpModal {
             if (character.progressionHistory?.[lastClassName]?.[lastLevel]) {
                 delete character.progressionHistory[lastClassName][lastLevel];
                 // Clean up empty class history
-                if (Object.keys(character.progressionHistory[lastClassName]).length === 0) {
+                if (
+                    Object.keys(character.progressionHistory[lastClassName]).length === 0
+                ) {
                     delete character.progressionHistory[lastClassName];
                 }
             }
@@ -434,7 +427,11 @@ export class LevelUpModal {
                 showNotification(`Removed ${lastClassName} class`, 'success');
             } else {
                 // Just decrement level
-                levelUpService.addClassLevel(character, lastClassName, classEntry.levels - 1);
+                levelUpService.addClassLevel(
+                    character,
+                    lastClassName,
+                    classEntry.levels - 1,
+                );
                 showNotification(`Removed level from ${lastClassName}`, 'success');
             }
 
@@ -444,7 +441,6 @@ export class LevelUpModal {
 
             // Re-render picker
             await this._renderLevelPicker();
-
         } catch (error) {
             console.error('[LevelUpModal]', 'Failed to remove level', error);
             showNotification(`Failed to remove level: ${error.message}`, 'error');

@@ -41,19 +41,11 @@ class ActionService extends BaseDataService {
 		return true;
 	}
 
-	/**
-	 * Get all available actions
-	 * @returns {Array<Object>} Array of action objects
-	 */
 	getAllActions() {
 		return this._data?.action || [];
 	}
 
-	/**
-	 * Get a specific action by name (case-insensitive)
-	 * @param {string} actionName - Action name
-	 * @returns {Object|null} Action object or null if not found
-	 */
+	/** Get a specific action by name (case-insensitive). */
 	getAction(actionName) {
 		if (!this._actionMap) return null;
 		return (
