@@ -12,6 +12,26 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Test outputs
+test-results/
+test-output.txt
+playwright-report/
+playwright/.cache/
+tests/
+
+# Documentation (generated/internal)
+docs/CODEBASE_ARCHITECTURE.md
+docs/CODEBASE_AUDIT.md
+
+# Electron
+*.asar
+
+# Environment
+.env
+.env.local
+.env.*.local
 
 # 5e data files (large JSON files from external source)
 src/data/

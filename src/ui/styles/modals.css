@@ -1366,6 +1366,7 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	position: relative;
 	flex: 0 0 calc(33.333% - 1rem);
 	margin-right: 1rem;
+	padding-right: 0.5rem;
 }
 
 .spell-filters-column.collapsed {
