@@ -1,7 +1,7 @@
 {
 	"name": "fizbanes-forge",
 	"productName": "Fizbane's Forge",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"description": "Fizbane's Forge - A comprehensive Dungeons & Dragons character creator application",
 	"main": "./src/main/Main.js",
 	"type": "module",
@@ -26,7 +26,7 @@
 			"target": "dmg"
 		},
 		"win": {
-			"icon": "./app/img/icon.ico",
+			"icon": "./src/ui/assets/images/icon.ico",
 			"target": "portable"
 		},
 		"linux": {
@@ -35,14 +35,14 @@
 		},
 		"nsis": {
 			"oneClick": false,
-			"installerIcon": "./app/img/icon.ico",
-			"uninstallerIcon": "./app/img/icon.ico",
+			"installerIcon": "./src/ui/assets/images/icon.ico",
+			"uninstallerIcon": "./src/ui/assets/images/icon.ico",
 			"uninstallDisplayName": "Fizbane's Forge",
 			"license": "license.txt",
 			"allowToChangeInstallationDirectory": true
 		},
 		"portable": {
-			"splashImage": "./app/img/splash.bmp"
+			"splashImage": "./src/ui/assets/images/splash.bmp"
 		},
 		"appImage": {
 			"license": "license.txt"

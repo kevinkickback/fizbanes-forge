@@ -55,7 +55,8 @@ function buildRawDataBaseUrl(url) {
 	let dataUrl;
 
 	if (urlObj.hostname.includes('github.com')) {
-		let normalized = url.replace(/\/$/, '');
+		// Remove trailing /releases if present
+		let normalized = url.replace(/\/releases\/?$/, '').replace(/\/$/, '');
 		if (normalized.includes('/tree/')) {
 			// e.g. https://github.com/user/repo/tree/main or /tree/main/data
 			normalized = normalized
