@@ -1600,7 +1600,7 @@ small.text-muted {
 	border-radius: 0.375rem;
 	transition: all 0.2s ease;
 	cursor: pointer;
-	flex: 1;
+	/* Removed flex: 1 to prevent stretching when filtered */
 	min-height: 60px;
 }
 

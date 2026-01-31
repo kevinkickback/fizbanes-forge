@@ -24,6 +24,7 @@ export class BackgroundCard {
 		this._backgroundList = document.getElementById('backgroundList');
 		this._infoPanel = document.getElementById('backgroundInfoPanel');
 		this._toggleBtn = document.getElementById('backgroundInfoToggle');
+		this._searchInput = document.getElementById('backgroundSearchInput');
 
 		this._detailsView = new BackgroundDetailsView();
 
@@ -89,6 +90,13 @@ export class BackgroundCard {
 			this._populateBackgroundList();
 			this._loadSavedBackgroundSelection();
 		});
+
+		// Search input event
+		if (this._searchInput) {
+			this._cleanup.on(this._searchInput, 'input', () => {
+				this._populateBackgroundList();
+			});
+		}
 	}
 
 	_cleanupEventListeners() {
@@ -147,29 +155,32 @@ export class BackgroundCard {
 		try {
 			const backgrounds = this._backgroundService.getAllBackgrounds();
 			if (!backgrounds || backgrounds.length === 0) {
-				console.error(
-					'BackgroundCard',
-					'No backgrounds available to populate list',
-				);
+				console.error('BackgroundCard', 'No backgrounds available to populate list');
 				return;
 			}
 
 			// Filter backgrounds by allowed sources
-			const filteredBackgrounds = backgrounds.filter((background) =>
-				sourceService.isSourceAllowed(background.source),
+			let filteredBackgrounds = backgrounds.filter((background) =>
+				sourceService.isSourceAllowed(background.source)
 			);
 
-			if (filteredBackgrounds.length === 0) {
-				console.error(
-					'BackgroundCard',
-					'No backgrounds available after source filtering',
+			// Apply search filter
+			if (this._searchInput?.value?.trim()) {
+				const query = this._searchInput.value.trim().toLowerCase();
+				filteredBackgrounds = filteredBackgrounds.filter((background) =>
+					background.name.toLowerCase().includes(query)
 				);
+			}
+
+			if (filteredBackgrounds.length === 0) {
+				console.error('BackgroundCard', 'No backgrounds available after filtering');
+				this._backgroundList.innerHTML = '<div class="text-muted px-2">No backgrounds found.</div>';
 				return;
 			}
 
 			// Sort backgrounds by name
 			const sortedBackgrounds = [...filteredBackgrounds].sort((a, b) =>
-				a.name.localeCompare(b.name),
+				a.name.localeCompare(b.name)
 			);
 
 			// Clear existing content
@@ -180,16 +191,9 @@ export class BackgroundCard {
 				await this._createBackgroundItem(background);
 			}
 
-			console.debug(
-				'[BackgroundCard]',
-				`Populated ${sortedBackgrounds.length} backgrounds`,
-			);
+			console.debug('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
 		} catch (error) {
-			console.error(
-				'BackgroundCard',
-				'Error populating background list:',
-				error,
-			);
+			console.error('BackgroundCard', 'Error populating background list:', error);
 		}
 	}
 

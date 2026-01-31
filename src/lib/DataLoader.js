@@ -93,12 +93,17 @@ function setBaseUrl(url) {
 }
 
 async function loadJSON(url, { ttl } = {}) {
-	if (state.cache[url]) return state.cache[url];
+	const start = performance.now();
+	if (state.cache[url]) {
+		console.debug('DataLoader', `Cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
+		return state.cache[url];
+	}
 
 	const persisted = _getPersistedEntry(url);
 	const ttlOverride = typeof ttl === 'number' && ttl > 0 ? ttl : null;
 	if (_isCacheEntryValid(persisted, ttlOverride)) {
 		state.cache[url] = persisted.data;
+		console.debug('DataLoader', `Persisted cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
 		return persisted.data;
 	}
 
@@ -112,6 +117,7 @@ async function loadJSON(url, { ttl } = {}) {
 
 	state.loading[url] = (async () => {
 		try {
+			const loadStart = performance.now();
 			let data;
 
 			// Check if running in Electron with data API available
@@ -138,8 +144,8 @@ async function loadJSON(url, { ttl } = {}) {
 			} else {
 				throw new Error(
 					`DataLoader: window.data.loadJSON not available. ` +
-						`This is an Electron app and requires the preload bridge. ` +
-						`Ensure the preload script is properly loaded.`,
+					`This is an Electron app and requires the preload bridge. ` +
+					`Ensure the preload script is properly loaded.`,
 				);
 			}
 
@@ -147,6 +153,7 @@ async function loadJSON(url, { ttl } = {}) {
 			state.cache[url] = data;
 			_setPersistedEntry(url, data, hash);
 			delete state.loading[url];
+			console.debug('DataLoader', `Loaded ${url} from disk, duration: ${(performance.now() - loadStart).toFixed(2)}ms, total: ${(performance.now() - start).toFixed(2)}ms`);
 			return data;
 		} catch (error) {
 			delete state.loading[url];
@@ -422,10 +429,8 @@ const dataLoader = {
 const DataLoader = dataLoader;
 
 export {
-	clearCache,
-	clearCacheForUrl,
-	DataLoader,
-	dataLoader,
+	DataLoader, clearCache,
+	clearCacheForUrl, dataLoader,
 	getCacheSettings,
 	getCacheStats,
 	invalidateAllCache,
@@ -454,5 +459,5 @@ export {
 	loadVariantRules,
 	loadVehicles,
 	setBaseUrl,
-	setTTL,
+	setTTL
 };

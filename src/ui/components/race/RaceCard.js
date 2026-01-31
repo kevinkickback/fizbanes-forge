@@ -31,6 +31,7 @@ export class RaceCard {
 		this._raceList = document.getElementById('raceList');
 		this._infoPanel = document.getElementById('raceInfoPanel');
 		this._toggleBtn = document.getElementById('raceInfoToggle');
+		this._searchInput = document.getElementById('raceSearchInput');
 
 		this._detailsView = new RaceDetailsView();
 
@@ -101,6 +102,13 @@ export class RaceCard {
 			this._populateRaceList();
 			this._loadSavedRaceSelection();
 		});
+
+		// Search input event
+		if (this._searchInput) {
+			this._cleanup.on(this._searchInput, 'input', () => {
+				this._populateRaceList();
+			});
+		}
 	}
 
 	_cleanupEventListeners() {
@@ -164,18 +172,27 @@ export class RaceCard {
 			}
 
 			// Filter races by allowed sources
-			const filteredRaces = races.filter((race) =>
-				sourceService.isSourceAllowed(race.source),
+			let filteredRaces = races.filter((race) =>
+				sourceService.isSourceAllowed(race.source)
 			);
 
+			// Apply search filter
+			if (this._searchInput?.value?.trim()) {
+				const query = this._searchInput.value.trim().toLowerCase();
+				filteredRaces = filteredRaces.filter((race) =>
+					race.name.toLowerCase().includes(query)
+				);
+			}
+
 			if (filteredRaces.length === 0) {
-				console.error('RaceCard', 'No races available after source filtering');
+				console.error('RaceCard', 'No races available after filtering');
+				this._raceList.innerHTML = '<div class="text-muted px-2">No races found.</div>';
 				return;
 			}
 
 			// Sort races by name
 			const sortedRaces = [...filteredRaces].sort((a, b) =>
-				a.name.localeCompare(b.name),
+				a.name.localeCompare(b.name)
 			);
 
 			// Clear existing content

@@ -226,14 +226,29 @@ async function _loadAllGameData(loadingModal) {
 		// Track progress for the loading modal
 		let completedCount = 0;
 		const totalCount = services.length;
-		const updateProgress = (_serviceName, _success) => {
+		const updateProgress = (serviceName, success) => {
 			completedCount++;
 			if (loadingModal) {
+				const status = success ? 'Loaded' : 'Failed';
 				loadingModal.updateDetail(
-					`Loading game data... (${completedCount}/${totalCount})`,
+					`Loading ${serviceName}... [${completedCount}/${totalCount}]`
 				);
 			}
 		};
+
+		await Promise.all(
+			services.map(async (svc) => {
+				try {
+					if (loadingModal) loadingModal.updateDetail(`Loading ${svc.name}... [${completedCount + 1}/${totalCount}]`);
+					await svc.init();
+					updateProgress(svc.name, true);
+				} catch (err) {
+					updateProgress(svc.name, false);
+					failedServices.push(svc.name);
+					errors.push(err);
+				}
+			})
+		);
 
 		// Show initial loading state
 		if (loadingModal) {
@@ -767,9 +782,21 @@ export async function initializeAll(_options = {}) {
 		result.loadedComponents = componentsResult.loadedComponents;
 		result.errors.push(...componentsResult.errors);
 
+		// Step 2.5: Ensure home page is fully loaded before hiding modal
+		loadingModal.updateDetail('Loading home page...');
+		loadingModal.updateProgress(95);
+		try {
+			if (PageHandler && typeof PageHandler.initializeHomePage === 'function') {
+				await PageHandler.initializeHomePage();
+			}
+		} catch (error) {
+			console.error('AppInitializer', 'Error loading home page:', error);
+			result.errors.push(error);
+		}
+
 		// Step 3: Set up UI event handlers
 		loadingModal.updateDetail('Registering event handlers...');
-		loadingModal.updateProgress(90);
+		loadingModal.updateProgress(99);
 		try {
 			_uiHandlersCleanup = setupUiEventHandlers();
 		} catch (error) {

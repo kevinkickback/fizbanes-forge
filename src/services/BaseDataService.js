@@ -27,7 +27,6 @@ export class BaseDataService {
 		const cached = AppState.getLoadedData(this._cacheKey);
 		if (cached) {
 			this._data = cached;
-			console.debug(`[${this._loggerScope}]`, 'Hydrated from AppState cache');
 			return cached;
 		}
 		return null;
@@ -60,14 +59,12 @@ export class BaseDataService {
 	/** Standardized initialization flow with caching and error handling. */
 	async initWithLoader(loaderFn, { onLoaded, emitPayload, onError } = {}) {
 		// If already initialized, return cached data
-		if (this.isInitialized()) return this._data;
+		if (this.isInitialized()) {
+			return this._data;
+		}
 
 		// If initialization is in progress, wait for it
 		if (this._initPromise) {
-			console.debug(
-				`[${this._loggerScope}]`,
-				'Initialization already in progress, waiting...',
-			);
 			return this._initPromise;
 		}
 

@@ -15,11 +15,19 @@ Thumbs.db
 desktop.ini
 
 # Test outputs
+playwright.config.js
+playwright-report/
 test-results/
 test-output.txt
 playwright-report/
 playwright/.cache/
 tests/
+
+# GitHub Copilot
+.github/copilot-instructions.md
+
+# Ignore workspace settings
+.vscode/
 
 # Documentation (generated/internal)
 docs/CODEBASE_ARCHITECTURE.md
