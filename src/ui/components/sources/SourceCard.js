@@ -69,9 +69,25 @@ export class SourceCard {
 	}
 
 	_preselectDefaultSources() {
-		const phbToggle = this._container.querySelector('[data-source="PHB"]');
-		if (phbToggle) {
-			this._handleSourceClick(phbToggle);
+		const recommendedSources = new Set([
+			'PHB', // Player's Handbook (2014)
+			'TCE', // Tasha's Cauldron of Everything
+			'XGE', // Xanathar's Guide to Everything
+			'SCAG', // Sword Coast Adventurer's Guide
+			'EGW', // Eberron: Rising from the Last War
+			'GGR', // Guildmasters' Guide to Ravnica
+			'MToF', // Mordenkainen's Tome of Foes
+			'VGM', // Volo's Guide to Monsters
+			'AI', // Acquisitions Incorporated
+			'LLK', // Lost Laboratory of Kwalish
+		]);
+
+		const toggles = this._container.querySelectorAll('.source-toggle');
+		for (const toggle of toggles) {
+			const source = toggle.getAttribute('data-source')?.toUpperCase();
+			if (source && recommendedSources.has(source)) {
+				this._handleSourceClick(toggle);
+			}
 		}
 	}
 

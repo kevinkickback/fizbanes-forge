@@ -1,16 +1,7 @@
 // Modal for ability score improvement selection (+2 to one or +1 to two abilities)
 
+import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
-
-const ABILITY_NAMES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-const ABILITY_LABELS = {
-	str: 'Strength',
-	dex: 'Dexterity',
-	con: 'Constitution',
-	int: 'Intelligence',
-	wis: 'Wisdom',
-	cha: 'Charisma',
-};
 
 export class ASIModal {
 	constructor(level, currentASI = {}) {
@@ -162,7 +153,7 @@ export class ASIModal {
 	}
 
 	_renderAbilityBoxes() {
-		return ABILITY_NAMES.map((ability) => {
+		return ABILITY_ABBREVIATIONS.map((ability) => {
 			const isSelected =
 				this._selectedAbilities.ability1 === ability ||
 				this._selectedAbilities.ability2 === ability;
@@ -175,7 +166,7 @@ export class ASIModal {
                         class="btn w-100 ability-select-btn ${isSelected ? 'active' : ''}"
                         data-ability="${ability}"
                     >
-                        <strong>${ABILITY_LABELS[ability]}</strong>
+                        <strong>${attAbvToFull(ability)}</strong>
                         <div class="bonus-display">
                             ${bonus ? `+${bonus}` : '\u00A0'}
                         </div>
@@ -205,14 +196,14 @@ export class ASIModal {
 			return `
                 <div class="alert alert-success mb-0">
                     <i class="fas fa-check me-2"></i>
-                    <strong>Selected:</strong> ${ABILITY_LABELS[ability1]} +2
+                    <strong>Selected:</strong> ${attAbvToFull(ability1)} +2
                 </div>
             `;
 		} else if (this._asiMode === 'plus1' && ability1 && ability2) {
 			return `
                 <div class="alert alert-success mb-0">
                     <i class="fas fa-check me-2"></i>
-                    <strong>Selected:</strong> ${ABILITY_LABELS[ability1]} +1, ${ABILITY_LABELS[ability2]} +1
+                    <strong>Selected:</strong> ${attAbvToFull(ability1)} +1, ${attAbvToFull(ability2)} +1
                 </div>
             `;
 		} else if (this._asiMode === 'plus1' && ability1 && !ability2) {

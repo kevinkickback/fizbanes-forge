@@ -1,4 +1,5 @@
 // View for rendering ability score boxes with scores, modifiers, and bonuses.
+import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { methodControlsView } from './AbilityScoreMethodControls.js';
 
@@ -14,6 +15,9 @@ class AbilityScoreBoxView {
 		onStandardArrayChange,
 	) {
 		try {
+			// Initialize ability labels from 5eTools utilities
+			this._initializeAbilityLabels();
+
 			// Process each ability score
 			for (const ability of abilityScoreService.getAllAbilities()) {
 				this.renderAbilityScoreBox(
@@ -30,6 +34,19 @@ class AbilityScoreBoxView {
 				'Error rendering ability scores:',
 				error,
 			);
+		}
+	}
+
+	_initializeAbilityLabels() {
+		// Populate ability label h6 elements with display-friendly abbreviations
+		for (const ability of abilityScoreService.getAllAbilities()) {
+			const box = this._container.querySelector(`[data-ability="${ability}"]`);
+			if (!box) continue;
+
+			const labelEl = box.querySelector('.ability-label');
+			if (labelEl) {
+				labelEl.textContent = getAbilityAbbrDisplay(ability).toUpperCase();
+			}
 		}
 	}
 

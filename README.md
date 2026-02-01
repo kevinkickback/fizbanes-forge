@@ -84,7 +84,7 @@
 **Prerequisites:** [Node.js](https://nodejs.org/) (LTS recommended)
 
 ```bash
-git clone https://github.com/yourusername/fizbanes-forge.git
+git clone https://github.com/kevinkickback/fizbanes-forge.git
 cd fizbanes-forge
 npm install
 npm start

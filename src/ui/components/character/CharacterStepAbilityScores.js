@@ -1,5 +1,6 @@
 // Step 5: Ability Scores - score assignment based on method from step 1
 
+import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { getRaceAbilityData } from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
@@ -32,13 +33,17 @@ export class CharacterStepAbilityScores {
 		}
 
 		return `
-            <div class="step-5-ability-scores">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-star"></i> Ability Scores
-                    </div>
+			<div class="step-5-ability-scores">
+				<div class="card">
+					<div class="card-header d-flex justify-content-between align-items-center">
+						<div>
+							<i class="fas fa-star"></i> Ability Scores
+						</div>
+						${method === 'pointBuy' ? `<div class="points-remaining-display-header">
+							<strong>Points Remaining:</strong> ${27 - this._calculatePointsUsed()}
+						</div>` : ''}
+					</div>
                     <div class="card-body">
-                        ${method === 'pointBuy' ? this._renderPointBuyInfo() : ''}
                         <div class="ability-score-container">
                             <div class="ability-score-grid">
                                 ${this._renderAbilityScoreBoxes()}
@@ -128,6 +133,7 @@ export class CharacterStepAbilityScores {
 		for (const choice of this._abilityChoiceData.choices) {
 			const count = choice.count || 1;
 			const amount = choice.amount || 1;
+			const source = choice.source || 'Race';
 
 			for (let i = 0; i < count; i++) {
 				const savedChoice = savedChoices[choiceIndex];
@@ -141,19 +147,19 @@ export class CharacterStepAbilityScores {
 				);
 
 				dropdownsHTML += `
-                    <div class="ability-choice-dropdown flex-grow-1">
-                        <label class="form-label">Racial Bonus ${i + 1}:</label>
+				<div class="ability-choice-dropdown">
+                        <label class="form-label">+${amount} bonus (${source})</label>
                         <select class="form-select form-select-sm" data-choice-index="${choiceIndex}">
                             <option value="">Choose...</option>
                             ${availableAbilities
-															.map(
-																(ability) => `
+						.map(
+							(ability) => `
                                 <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
-                                    +${amount} to ${ability.charAt(0).toUpperCase() + ability.slice(1)}
+                                    ${getAbilityAbbrDisplay(ability)}
                                 </option>
                             `,
-															)
-															.join('')}
+						)
+						.join('')}
                         </select>
                     </div>
                 `;
@@ -162,12 +168,12 @@ export class CharacterStepAbilityScores {
 		}
 
 		return `
-            <div class="racial-ability-choices mt-3 pt-3 border-top">
-                <div class="d-flex gap-2 justify-content-center">
-                    ${dropdownsHTML}
-                </div>
-            </div>
-        `;
+			<div class="racial-ability-choices">
+				<div class="d-flex gap-3 justify-content-center">
+					${dropdownsHTML}
+				</div>
+			</div>
+		`;
 	}
 
 	/**
@@ -175,16 +181,8 @@ export class CharacterStepAbilityScores {
 	 * @private
 	 */
 	_renderPointBuyInfo() {
-		const pointsUsed = this._calculatePointsUsed();
-		const pointsRemaining = 27 - pointsUsed;
-
-		return `
-            <div class="mb-3 d-flex justify-content-end">
-                <div class="points-remaining-display px-3 py-2 rounded">
-                    <strong>Points Remaining:</strong> ${pointsRemaining}
-                </div>
-            </div>
-        `;
+		// Points Remaining is now displayed in the card header
+		return '';
 	}
 
 	/**
@@ -787,7 +785,9 @@ export class CharacterStepAbilityScores {
 		}
 
 		// Update point buy info if visible
-		const pointsDisplay = document.querySelector('.points-remaining-display');
+		const pointsDisplay = document.querySelector(
+			'.points-remaining-display-header',
+		);
 		if (pointsDisplay) {
 			const pointsUsed = this._calculatePointsUsed();
 			const pointsRemaining = 27 - pointsUsed;

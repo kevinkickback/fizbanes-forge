@@ -2,7 +2,7 @@
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { ProficiencyCore } from '../../../app/Proficiency.js';
-import { toTitleCase } from '../../../lib/5eToolsParser.js';
+import { ABILITY_NAMES, toTitleCase } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
@@ -1171,14 +1171,7 @@ export class ProficiencyCard {
 				return allSkills;
 			}
 			case 'savingThrows':
-				return [
-					'Strength',
-					'Dexterity',
-					'Constitution',
-					'Intelligence',
-					'Wisdom',
-					'Charisma',
-				];
+				return [...ABILITY_NAMES];  // Use 5eToolsParser canonical list
 			case 'languages': {
 				// Return languages with proper casing from 5etools JSON
 				const availableLanguages = [

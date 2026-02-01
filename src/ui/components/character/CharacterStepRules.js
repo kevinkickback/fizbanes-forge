@@ -97,6 +97,8 @@ export class CharacterStepRules {
                                 <div class="d-flex align-items-center gap-2">
                                     <a href="#" class="text-decoration-none text-accent" id="selectAllSources">Select All</a>
                                     <span class="text-muted">|</span>
+                                    <a href="#" class="text-decoration-none text-accent" id="recommendedSources">Recommended</a>
+                                    <span class="text-muted">|</span>
                                     <a href="#" class="text-decoration-none text-accent" id="deselectAllSources">None</a>
                                 </div>
                             </div>
@@ -144,6 +146,15 @@ export class CharacterStepRules {
 			});
 		}
 
+		// Recommended button
+		const recommendedBtn = contentArea.querySelector('#recommendedSources');
+		if (recommendedBtn) {
+			this._cleanup.on(recommendedBtn, 'click', (e) => {
+				e.preventDefault();
+				this._selectRecommendedSources();
+			});
+		}
+
 		// Deselect All button
 		const deselectAllBtn = contentArea.querySelector('#deselectAllSources');
 		if (deselectAllBtn) {
@@ -180,6 +191,37 @@ export class CharacterStepRules {
 			this._sourceCard.container.querySelectorAll('.source-toggle');
 		for (const toggle of toggles) {
 			toggle.classList.add('selected');
+		}
+	}
+
+	/**
+	 * Select recommended D&D 5e sources for player options.
+	 */
+	_selectRecommendedSources() {
+		if (!this._sourceCard.container) return;
+
+		const recommendedSources = new Set([
+			'PHB', // Player's Handbook (2014)
+			'TCE', // Tasha's Cauldron of Everything
+			'XGE', // Xanathar's Guide to Everything
+			'SCAG', // Sword Coast Adventurer's Guide
+			'EGW', // Eberron: Eberron: Rising from the Last War
+			'GGR', // Guildmasters' Guide to Ravnica
+			'MToF', // Mordenkainen's Tome of Foes
+			'VGM', // Volo's Guide to Monsters
+			'AI', // Acquisitions Incorporated
+			'LLK', // Lost Laboratory of Kwalish
+		]);
+
+		const toggles =
+			this._sourceCard.container.querySelectorAll('.source-toggle');
+		for (const toggle of toggles) {
+			const source = toggle.getAttribute('data-source')?.toUpperCase();
+			if (source && recommendedSources.has(source)) {
+				toggle.classList.add('selected');
+			} else {
+				toggle.classList.remove('selected');
+			}
 		}
 	}
 

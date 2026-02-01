@@ -1,5 +1,5 @@
 // View for rendering ability score bonus notes and explanations.
-import { fullAbilityToAbbr } from '../../../lib/5eToolsParser.js';
+import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
@@ -82,7 +82,7 @@ class BonusNotesView {
 			const formattedBonuses = fixedBonuses
 				.map(
 					(bonus) =>
-						`${fullAbilityToAbbr(bonus.ability).toUpperCase()} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`,
+						`${getAbilityAbbrDisplay(bonus.ability)} ${bonus.value >= 0 ? '+' : ''}${bonus.value}`,
 				)
 				.join(', ');
 			allRaceBonuses.push(formattedBonuses);
@@ -93,7 +93,7 @@ class BonusNotesView {
 			if (source.includes('Choice')) {
 				for (const [ability, value] of bonusMap.entries()) {
 					allRaceBonuses.push(
-						`${fullAbilityToAbbr(ability).toUpperCase()} ${value >= 0 ? '+' : ''}${value} (choice)`,
+						`${getAbilityAbbrDisplay(ability)} ${value >= 0 ? '+' : ''}${value} (choice)`,
 					);
 				}
 			}

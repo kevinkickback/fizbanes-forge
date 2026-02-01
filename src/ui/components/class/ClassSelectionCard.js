@@ -6,6 +6,7 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import {
 	attAbvToFull,
+	getAbilityAbbrDisplay,
 	getSchoolName,
 	toSentenceCase,
 	toTitleCase,
@@ -485,12 +486,12 @@ export class ClassCard {
 								<label class="form-label small">Ability 1</label>
 								<select class="form-select form-select-sm" id="asiAbility1_${classLevel}">
 									<option value="">Select ability...</option>
-									<option value="str">Strength</option>
-									<option value="dex">Dexterity</option>
-									<option value="con">Constitution</option>
-									<option value="int">Intelligence</option>
-									<option value="wis">Wisdom</option>
-									<option value="cha">Charisma</option>
+									<option value="str">${getAbilityAbbrDisplay('str')}</option>
+									<option value="dex">${getAbilityAbbrDisplay('dex')}</option>
+									<option value="con">${getAbilityAbbrDisplay('con')}</option>
+									<option value="int">${getAbilityAbbrDisplay('int')}</option>
+									<option value="wis">${getAbilityAbbrDisplay('wis')}</option>
+									<option value="cha">${getAbilityAbbrDisplay('cha')}</option>
 								</select>
 							</div>
 							<div class="col-md-6">
@@ -506,12 +507,12 @@ export class ClassCard {
 								<label class="form-label small">Ability 2</label>
 								<select class="form-select form-select-sm" id="asiAbility2_${classLevel}">
 									<option value="">Select ability...</option>
-									<option value="str">Strength</option>
-									<option value="dex">Dexterity</option>
-									<option value="con">Constitution</option>
-									<option value="int">Intelligence</option>
-									<option value="wis">Wisdom</option>
-									<option value="cha">Charisma</option>
+									<option value="str">${getAbilityAbbrDisplay('str')}</option>
+									<option value="dex">${getAbilityAbbrDisplay('dex')}</option>
+									<option value="con">${getAbilityAbbrDisplay('con')}</option>
+									<option value="int">${getAbilityAbbrDisplay('int')}</option>
+									<option value="wis">${getAbilityAbbrDisplay('wis')}</option>
+									<option value="cha">${getAbilityAbbrDisplay('cha')}</option>
 								</select>
 							</div>
 							<div class="col-md-6">

@@ -22,6 +22,8 @@ const ATB_ABV_TO_FULL = {
 	cha: 'Charisma',
 };
 
+export const ABILITY_ABBREVIATIONS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
 export const ABILITY_NAMES = [
 	'Strength',
 	'Dexterity',
@@ -368,8 +370,8 @@ export function alignmentAbvToFull(alignment) {
 		// Handle complex alignment with chance
 		const alignText = alignment.alignment
 			? alignment.alignment
-					.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
-					.join(' ')
+				.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
+				.join(' ')
 			: '';
 		const chanceText = alignment.chance ? ` (${alignment.chance}%)` : '';
 		const noteText = alignment.note ? ` (${alignment.note})` : '';
@@ -402,6 +404,13 @@ export function fullAbilityToAbbr(ability) {
 		charisma: 'cha',
 	};
 	return FULL_TO_ABV[abilityLower] || abilityLower.substring(0, 3);
+}
+
+/** Get display-friendly ability abbreviation (Title Case: Str, Dex, Con, etc.). */
+export function getAbilityAbbrDisplay(abilityNameOrAbbr) {
+	if (!abilityNameOrAbbr) return '';
+	const abbr = fullAbilityToAbbr(abilityNameOrAbbr);
+	return abbr.charAt(0).toUpperCase() + abbr.slice(1);
 }
 
 export function levelToProficiencyBonus(level) {
@@ -613,10 +622,10 @@ export {
 	LANGUAGES_STANDARD,
 	SIZE_ABV_TO_FULL,
 	SKILL_TO_ABILITY,
-	SOURCES,
 	SOURCE_TO_ABV,
 	SOURCE_TO_FULL,
-	SPEED_MODES,
+	SOURCES,
+	SPEED_MODES
 };
 
 export default {
@@ -631,6 +640,7 @@ export default {
 	alignmentAbvToFull,
 	getOrdinalForm,
 	fullAbilityToAbbr,
+	getAbilityAbbrDisplay,
 	levelToProficiencyBonus,
 	skillToAbility,
 	abilityToSkills,

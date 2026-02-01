@@ -43,7 +43,7 @@ export class FeatSelectionModal {
 		if (!this._selectionLimit) {
 			showNotification(
 				this._availability.blockedReason ||
-					'No feat selections available for this character.',
+				'No feat selections available for this character.',
 				'warning',
 			);
 			return null;
@@ -245,9 +245,9 @@ export class FeatSelectionModal {
 		const header = document.createElement('div');
 		header.className = 'card-header';
 		header.innerHTML = `
-			<h6 class="mb-0 d-flex align-items-center">
+			<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
 				<span>Prerequisites / Limits</span>
-				<i class="fas fa-chevron-down ms-auto"></i>
+				<i class="fas fa-chevron-down"></i>
 			</h6>
 		`;
 		card.appendChild(header);

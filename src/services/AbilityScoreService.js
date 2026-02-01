@@ -1,5 +1,6 @@
 import { CharacterManager } from '../app/CharacterManager.js';
 import {
+	ABILITY_ABBREVIATIONS,
 	attAbvToFull,
 	getAbilityModNumber,
 	numberToWords,
@@ -10,14 +11,8 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
 /** Manages D&D character ability scores. */
 class AbilityScoreService {
 	constructor() {
-		this._allAbilities = [
-			'strength',
-			'dexterity',
-			'constitution',
-			'intelligence',
-			'wisdom',
-			'charisma',
-		];
+		// Use canonical lowercase abbreviations (str, dex, con, int, wis, cha) from 5eToolsParser
+		this._allAbilities = [...ABILITY_ABBREVIATIONS];
 
 		// Point buy costs for ability scores
 		this._pointBuyCosts = new Map([
@@ -56,11 +51,11 @@ class AbilityScoreService {
 		const abilityChoices = Array.isArray(character.race?.abilityChoices)
 			? character.race.abilityChoices
 			: character.race?.abilityChoices &&
-					typeof character.race.abilityChoices === 'object'
+				typeof character.race.abilityChoices === 'object'
 				? Object.entries(character.race.abilityChoices)
-						.sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
-						.map(([, choice]) => choice)
-						.filter(Boolean)
+					.sort(([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
+					.map(([, choice]) => choice)
+					.filter(Boolean)
 				: [];
 
 		if (abilityChoices.length > 0) {
@@ -297,24 +292,24 @@ class AbilityScoreService {
 		this.abilityChoices.clear();
 		const normalizedChoices = Array.isArray(choices)
 			? choices.filter(Boolean).map((choice, index) => {
-					const ability = this.normalizeAbilityName(
-						choice.ability || choice.abilityScore,
-					);
-					const value = Number.isFinite(choice.value)
-						? choice.value
-						: Number.isFinite(choice.amount)
-							? choice.amount
-							: 1;
-					const source = choice.source?.includes('Choice')
-						? choice.source
-						: `${choice.source || 'Race'} Choice`;
-					return {
-						ability,
-						value,
-						source,
-						index: Number.isFinite(choice.index) ? choice.index : index,
-					};
-				})
+				const ability = this.normalizeAbilityName(
+					choice.ability || choice.abilityScore,
+				);
+				const value = Number.isFinite(choice.value)
+					? choice.value
+					: Number.isFinite(choice.amount)
+						? choice.amount
+						: 1;
+				const source = choice.source?.includes('Choice')
+					? choice.source
+					: `${choice.source || 'Race'} Choice`;
+				return {
+					ability,
+					value,
+					source,
+					index: Number.isFinite(choice.index) ? choice.index : index,
+				};
+			})
 			: [];
 
 		// Persist normalized choices on the character
@@ -854,7 +849,9 @@ function processChoose(choose) {
 		} else {
 			const abilities = from.map(attAbvToFull).join(' or ');
 			text = `increase your ${abilities} score by ${amount}`;
-			textShort = `${from.map((a) => capitalizeFirst(a)).join('/')} +${amount}`;
+			// Use full name format: "Strength or Dexterity +2"
+			const fullNames = from.map(attAbvToFull).join(' or ');
+			textShort = `${fullNames} +${amount}`;
 		}
 	} else {
 		// Choose multiple abilities
@@ -864,7 +861,9 @@ function processChoose(choose) {
 		} else {
 			const abilities = from.map(attAbvToFull).join(', ');
 			text = `increase ${numberToWords(count)} of the following by ${amount}: ${abilities}`;
-			textShort = `choose ${numberToWords(count)} from ${from.map((a) => capitalizeFirst(a)).join('/')} +${amount}`;
+			// Use full name format for choices
+			const fullNames = from.map(attAbvToFull).join(', ');
+			textShort = `choose ${numberToWords(count)} from ${fullNames} +${amount}`;
 		}
 	}
 
@@ -885,7 +884,8 @@ function processFixed(abilityEntry) {
 			const value = abilityEntry[ability];
 			fixed[ability] = value;
 			parts.push(`your ${attAbvToFull(ability)} score increases by ${value}`);
-			shortParts.push(`${capitalizeFirst(ability)} +${value}`);
+			// Use full name format for display: "Strength +2"
+			shortParts.push(`${attAbvToFull(ability)} +${value}`);
 		}
 	}
 

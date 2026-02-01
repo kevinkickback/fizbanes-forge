@@ -35,25 +35,25 @@ export class CharacterStepBackground {
                                 <div class="detail-section">
                                     <h6>Skill Proficiencies</h6>
                                     <ul class="mb-0">
-                                        <li class="text-muted">Select a background to view details</li>
+                                        <li class="placeholder-text">&nbsp;</li>
                                     </ul>
                                 </div>
                                 <div class="detail-section">
                                     <h6>Tool Proficiencies</h6>
                                     <ul class="mb-0">
-                                        <li class="text-muted">Select a background to view details</li>
+                                        <li class="placeholder-text">&nbsp;</li>
                                     </ul>
                                 </div>
                                 <div class="detail-section">
                                     <h6>Languages</h6>
                                     <ul class="mb-0">
-                                        <li class="text-muted">Select a background to view details</li>
+                                        <li class="placeholder-text">&nbsp;</li>
                                     </ul>
                                 </div>
                                 <div class="detail-section">
                                     <h6>Equipment</h6>
                                     <ul class="mb-0">
-                                        <li class="text-muted">Select a background to view details</li>
+                                        <li class="placeholder-text">&nbsp;</li>
                                     </ul>
                                 </div>
                             </div>
@@ -243,25 +243,25 @@ export class CharacterStepBackground {
                 <div class="detail-section">
                     <h6>Skill Proficiencies</h6>
                     <ul class="mb-0">
-                        <li class="text-muted">Select a background to view details</li>
+                        <li class="placeholder-text">&nbsp;</li>
                     </ul>
                 </div>
                 <div class="detail-section">
                     <h6>Tool Proficiencies</h6>
                     <ul class="mb-0">
-                        <li class="text-muted">Select a background to view details</li>
+                        <li class="placeholder-text">&nbsp;</li>
                     </ul>
                 </div>
                 <div class="detail-section">
                     <h6>Languages</h6>
                     <ul class="mb-0">
-                        <li class="text-muted">Select a background to view details</li>
+                        <li class="placeholder-text">&nbsp;</li>
                     </ul>
                 </div>
                 <div class="detail-section">
                     <h6>Equipment</h6>
                     <ul class="mb-0">
-                        <li class="text-muted">Select a background to view details</li>
+                        <li class="placeholder-text">&nbsp;</li>
                     </ul>
                 </div>
             </div>
@@ -412,7 +412,7 @@ export class CharacterStepBackground {
 								: '';
 					return `Choose ${count} language${count > 1 ? 's' : ''}${suffix}`;
 				}
-				return prof.language || prof;
+				return toTitleCase(prof.language || prof);
 			})
 			.filter(Boolean);
 
@@ -480,9 +480,9 @@ export class CharacterStepBackground {
 
 		const description = Array.isArray(featureEntry.entries)
 			? featureEntry.entries
-					.map((e) => (typeof e === 'string' ? e : ''))
-					.filter(Boolean)
-					.join(' ')
+				.map((e) => (typeof e === 'string' ? e : ''))
+				.filter(Boolean)
+				.join(' ')
 			: featureEntry.entry || '';
 
 		return {

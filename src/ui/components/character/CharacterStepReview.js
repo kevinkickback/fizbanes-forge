@@ -1,5 +1,9 @@
 // Step 6: Review - final review before character creation
 
+import {
+	ABILITY_ABBREVIATIONS,
+	attAbvToFull,
+} from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { raceService } from '../../../services/RaceService.js';
 
@@ -27,8 +31,8 @@ export class CharacterStepReview {
 		const sourceBadges =
 			sources.length > 0
 				? sources
-						.map((s) => `<span class="badge source-badge">${s}</span>`)
-						.join(' ')
+					.map((s) => `<span class="badge source-badge">${s}</span>`)
+					.join(' ')
 				: '<span class="text-muted">None selected</span>';
 
 		// Race info
@@ -152,31 +156,22 @@ export class CharacterStepReview {
 	 * Format ability scores for display.
 	 */
 	_formatAbilityScores(data) {
-		const abilities = [
-			{ key: 'strength', label: 'STR' },
-			{ key: 'dexterity', label: 'DEX' },
-			{ key: 'constitution', label: 'CON' },
-			{ key: 'intelligence', label: 'INT' },
-			{ key: 'wisdom', label: 'WIS' },
-			{ key: 'charisma', label: 'CHA' },
-		];
-
-		const scores = abilities
-			.map(({ key, label }) => {
-				const baseScore = data.abilityScores?.[key] || 8;
-				const racialBonus = this._getRacialBonus(key, data);
-				const totalScore = baseScore + racialBonus;
-				const modifier = Math.floor((totalScore - 10) / 2);
-				const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-				return `
+		const scores = ABILITY_ABBREVIATIONS.map((abv) => {
+			const key = attAbvToFull(abv).toLowerCase();
+			const label = attAbvToFull(abv);
+			const baseScore = data.abilityScores?.[key] || 8;
+			const racialBonus = this._getRacialBonus(key, data);
+			const totalScore = baseScore + racialBonus;
+			const modifier = Math.floor((totalScore - 10) / 2);
+			const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+			return `
                 <div class="ability-score-summary">
                     <span class="ability-label">${label}</span>
                     <span class="ability-score">${totalScore}</span>
                     <span class="ability-modifier">(${modStr})</span>
                 </div>
             `;
-			})
-			.join('');
+		}).join('');
 
 		return `<div class="ability-scores-grid">${scores}</div>`;
 	}

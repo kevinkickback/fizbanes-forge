@@ -1,3 +1,4 @@
+import { getAbilityAbbrDisplay } from '../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
 import { sourceService } from './SourceService.js';
@@ -329,18 +330,6 @@ class LevelUpService {
 		return abilityMap[abbr] || abbr;
 	}
 
-	_getAbilityAbbreviation(ability) {
-		const abbreviations = {
-			strength: 'Str',
-			dexterity: 'Dex',
-			constitution: 'Con',
-			intelligence: 'Int',
-			wisdom: 'Wis',
-			charisma: 'Cha',
-		};
-		return abbreviations[ability] || ability;
-	}
-
 	_getAllClasses() {
 		const classes = classService.getAllClasses();
 		// Filter by allowed sources and avoid duplicates
@@ -384,7 +373,7 @@ class LevelUpService {
 			for (const orGroup of req.or) {
 				const abilities = Object.entries(orGroup).map(([abbr, score]) => {
 					const fullName = this._mapAbilityAbbreviation(abbr);
-					return `${this._getAbilityAbbreviation(fullName)} ${score}`;
+					return `${getAbilityAbbrDisplay(fullName)} ${score}`;
 				});
 				orParts.push(abilities.join(' & '));
 			}
@@ -394,7 +383,7 @@ class LevelUpService {
 		// Handle regular AND requirements
 		const parts = Object.entries(req).map(([abbr, score]) => {
 			const fullName = this._mapAbilityAbbreviation(abbr);
-			return `${this._getAbilityAbbreviation(fullName)} ${score}`;
+			return `${getAbilityAbbrDisplay(fullName)} ${score}`;
 		});
 		return parts.join(' & ');
 	}

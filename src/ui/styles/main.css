@@ -1028,6 +1028,10 @@ body.debug-mode .nav-item.debug-only {
 	);
 	border: 1px solid var(--accent-color);
 	color: var(--text-color);
+	padding: 0.35rem 0.85rem;
+	border-radius: 6px;
+	font-size: 0.95rem;
+	white-space: nowrap;
 }
 
 .ability-score-grid {
@@ -1287,6 +1291,10 @@ body.debug-mode .nav-item.debug-only {
 	min-width: 2rem; /* Ensure minimum width */
 	padding: 0.25rem 0.5rem;
 	flex: 0 0 auto; /* Prevent flex shrinking/growing */
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
 }
 
 /* ===== Text Color Contrast Overrides ===== */

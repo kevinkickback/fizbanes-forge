@@ -98,15 +98,6 @@ class MethodSwitcherView {
 			const remainingPoints = abilityScoreService.getRemainingPoints();
 
 			counterDisplay.textContent = `${remainingPoints}`;
-
-			// Change badge color if over budget
-			if (remainingPoints < 0) {
-				counterContainer.classList.remove('bg-primary');
-				counterContainer.classList.add('bg-danger');
-			} else {
-				counterContainer.classList.remove('bg-danger');
-				counterContainer.classList.add('bg-primary');
-			}
 		}
 	}
 

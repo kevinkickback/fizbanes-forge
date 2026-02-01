@@ -1,5 +1,5 @@
 // View for rendering ability choice dropdowns for race/class bonuses.
-import { fullAbilityToAbbr } from '../../../lib/5eToolsParser.js';
+import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
 class AbilityChoicesView {
@@ -42,14 +42,14 @@ class AbilityChoicesView {
                     data-source="${choice.source}">
                     <option value="">Choose...</option>
                     ${availableAbilities
-											.map(
-												(ability) => `
+				.map(
+					(ability) => `
                         <option value="${ability}" ${selectedAbility === ability ? 'selected' : ''}>
-                            ${fullAbilityToAbbr(ability).toUpperCase()}
+                            ${getAbilityAbbrDisplay(ability)}
                         </option>
                     `,
-											)
-											.join('')}
+				)
+				.join('')}
                 </select>
             </div>
         `;

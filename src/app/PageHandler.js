@@ -293,10 +293,10 @@ class PageHandlerImpl {
 				const characterLevel = character.getTotalLevel();
 				const classDisplay = progressionClasses.length
 					? progressionClasses
-							.map((cls) => {
-								return cls.name || 'Unknown Class';
-							})
-							.join('<br>')
+						.map((cls) => {
+							return cls.name || 'Unknown Class';
+						})
+						.join('<br>')
 					: 'No Class';
 				const placeholderImages = [
 					'assets/images/characters/placeholder_char_card.webp',
@@ -796,12 +796,6 @@ class PageHandlerImpl {
 					const availability = character.getFeatAvailability?.();
 					const maxFeats = availability?.max || 0;
 
-					if (maxFeats <= 0) {
-						showNotification(
-							'Adding feats beyond normal choices (from racial features, magic items, etc.)',
-							'info',
-						);
-					}
 
 					const selector = new ClassFeatSelector();
 					await selector.show({

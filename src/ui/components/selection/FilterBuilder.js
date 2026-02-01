@@ -31,11 +31,11 @@ export class FilterBuilder {
 			header.setAttribute('aria-expanded', 'true');
 			header.setAttribute('aria-controls', collapseId);
 			header.innerHTML = `
-                <h6 class="mb-0 d-flex align-items-center">
-                    <span>${title}</span>
-                    <i class="fas fa-chevron-down ms-auto"></i>
-                </h6>
-            `;
+				<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
+					<span>${title}</span>
+					<i class="fas fa-chevron-down"></i>
+				</h6>
+			`;
 			card.appendChild(header);
 
 			const collapseDiv = document.createElement('div');
@@ -159,11 +159,11 @@ export class FilterBuilder {
 			header.setAttribute('aria-expanded', 'true');
 			header.setAttribute('aria-controls', collapseId);
 			header.innerHTML = `
-                <h6 class="mb-0 d-flex align-items-center">
-                    <span>${title}</span>
-                    <i class="fas fa-chevron-down ms-auto"></i>
-                </h6>
-            `;
+				<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
+					<span>${title}</span>
+					<i class="fas fa-chevron-down"></i>
+				</h6>
+			`;
 			card.appendChild(header);
 
 			const collapseDiv = document.createElement('div');

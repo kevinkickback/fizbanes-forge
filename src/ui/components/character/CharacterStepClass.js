@@ -1,5 +1,6 @@
 // Step 3: Class - character class and subclass selection
 
+import { attAbvToFull, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { classService } from '../../../services/ClassService.js';
@@ -42,7 +43,7 @@ export class CharacterStepClass {
                                     <div class="detail-section">
                                         <h6>Hit Die</h6>
                                         <ul id="modalHitDie">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -50,7 +51,7 @@ export class CharacterStepClass {
                                     <div class="detail-section">
                                         <h6>Primary Ability</h6>
                                         <ul id="modalPrimaryAbility">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -58,7 +59,7 @@ export class CharacterStepClass {
                                     <div class="detail-section">
                                         <h6>Saving Throws</h6>
                                         <ul id="modalSavingThrows">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -66,7 +67,7 @@ export class CharacterStepClass {
                                     <div class="detail-section">
                                         <h6>Armor & Weapons</h6>
                                         <ul id="modalArmorWeapons">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -302,7 +303,7 @@ export class CharacterStepClass {
 
 		// Check for spellcasting ability (for casters)
 		if (classData?.spellcastingAbility) {
-			abilities.push(classData.spellcastingAbility.toUpperCase());
+			abilities.push(attAbvToFull(classData.spellcastingAbility));
 		}
 
 		// Check multiclassing prerequisites which indicate primary abilities
@@ -310,7 +311,7 @@ export class CharacterStepClass {
 			const reqs = classData.multiclassing.requirements;
 			for (const [ability, value] of Object.entries(reqs)) {
 				if (typeof value === 'number' && value >= 13) {
-					abilities.push(ability.toUpperCase());
+					abilities.push(attAbvToFull(ability));
 				}
 			}
 		}
@@ -330,7 +331,8 @@ export class CharacterStepClass {
 		if (saves.length === 0) {
 			section.innerHTML = '<li class="placeholder-text">—</li>';
 		} else {
-			section.innerHTML = `<li>${saves.join(', ')}</li>`;
+			const formattedSaves = saves.map((save) => attAbvToFull(save));
+			section.innerHTML = `<li>${formattedSaves.join(', ')}</li>`;
 		}
 	}
 
@@ -341,9 +343,9 @@ export class CharacterStepClass {
 		if (classData?.startingProficiencies?.armor) {
 			for (const armor of classData.startingProficiencies.armor) {
 				if (typeof armor === 'string') {
-					profs.push(armor);
+					profs.push(toTitleCase(armor));
 				} else if (armor.full) {
-					profs.push(armor.full);
+					profs.push(toTitleCase(armor.full));
 				}
 			}
 		}
@@ -351,9 +353,9 @@ export class CharacterStepClass {
 		if (classData?.startingProficiencies?.weapons) {
 			for (const weapon of classData.startingProficiencies.weapons) {
 				if (typeof weapon === 'string') {
-					profs.push(weapon);
+					profs.push(toTitleCase(weapon));
 				} else if (weapon.full) {
-					profs.push(weapon.full);
+					profs.push(toTitleCase(weapon.full));
 				}
 			}
 		}
@@ -415,13 +417,13 @@ export class CharacterStepClass {
 
 	_resetDetails() {
 		document.getElementById('modalHitDie').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		document.getElementById('modalPrimaryAbility').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		document.getElementById('modalSavingThrows').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		document.getElementById('modalArmorWeapons').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		if (this._featuresGrid) {
 			this._featuresGrid.innerHTML =
 				'<span class="trait-tag">No features available</span>';

@@ -4,6 +4,7 @@ import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
+	toTitleCase,
 } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -48,7 +49,7 @@ export class CharacterStepRace {
                                     <div class="detail-section">
                                         <h6>Ability Score Increases</h6>
                                         <ul id="modalAbilityScores">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -56,7 +57,7 @@ export class CharacterStepRace {
                                     <div class="detail-section">
                                         <h6>Size</h6>
                                         <ul id="modalSize">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -64,7 +65,7 @@ export class CharacterStepRace {
                                     <div class="detail-section">
                                         <h6>Speed</h6>
                                         <ul id="modalSpeed">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -72,7 +73,7 @@ export class CharacterStepRace {
                                     <div class="detail-section">
                                         <h6>Languages</h6>
                                         <ul id="modalLanguages">
-                                            <li class="placeholder-text">—</li>
+                                            <li class="placeholder-text">&nbsp;</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -388,9 +389,9 @@ export class CharacterStepRace {
 						keyLower !== 'choose'
 					) {
 						if (keyLower === 'other' && race.name !== 'Common') {
-							languages.push(race.name);
+							languages.push(toTitleCase(race.name));
 						} else if (keyLower !== 'other') {
-							languages.push(key);
+							languages.push(toTitleCase(key));
 						}
 					} else if (keyLower === 'choose' && typeof value === 'object') {
 						const count = value.count || 1;
@@ -480,13 +481,13 @@ export class CharacterStepRace {
 
 	_resetDetails() {
 		document.getElementById('modalAbilityScores').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		document.getElementById('modalSize').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		document.getElementById('modalSpeed').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		document.getElementById('modalLanguages').innerHTML =
-			'<li class="placeholder-text">—</li>';
+			'<li class="placeholder-text">&nbsp;</li>';
 		if (this._traitsGrid) {
 			this._traitsGrid.innerHTML =
 				'<span class="trait-tag">No traits available</span>';
