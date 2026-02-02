@@ -19,7 +19,8 @@ export class SpellSelectionModal {
 		ignoreClassRestrictions = false,
 		initialSpells = [],
 	} = {}) {
-		this.className = className;
+			this.className = className;
+		this.selectedClassName = className; // Track currently selected class for multiclass support
 		this.allowClose = allowClose;
 		this.ignoreClassRestrictions = !!ignoreClassRestrictions;
 		this.initialSpells = initialSpells || [];
@@ -38,7 +39,38 @@ export class SpellSelectionModal {
 			return null;
 		}
 
+		// Reset selectedClassName to initial value
+		this.selectedClassName = this.className;
+
 		this._ensureController();
+		
+		// Wire up class selector after modal is shown
+		setTimeout(() => {
+			// Remove any existing class selector first
+			const existing = document.getElementById('spellClassSelector')?.parentElement;
+			if (existing) {
+				existing.remove();
+			}
+			
+			// Inject class selector into modal body
+			const modalBody = document.querySelector('#universalSpellSelectionModal .modal-body');
+			if (modalBody) {
+				const classSelectorHTML = this._buildClassSelector();
+				if (classSelectorHTML) {
+					const container = document.createElement('div');
+					container.innerHTML = classSelectorHTML;
+					modalBody.insertBefore(container.firstElementChild, modalBody.firstElementChild);
+				}
+			}
+			
+			const selector = document.getElementById('spellClassSelector');
+			if (selector) {
+				selector.addEventListener('change', (e) => {
+					this._handleClassChange(e.target.value);
+				});
+			}
+		}, 100);
+		
 		const result = await this._controller.show(this._getContext());
 		if (Array.isArray(result)) return result; // selected items
 		return null;
@@ -51,13 +83,83 @@ export class SpellSelectionModal {
 		};
 	}
 
-	_getInitialSelectionIds() {
-		// Transform spell objects to spell IDs for initial selection
-		if (!Array.isArray(this.initialSpells) || this.initialSpells.length === 0) {
-			return [];
-		}
+	_buildClassSelector() {
+		const character = AppState.getCurrentCharacter();
+		if (!character) return '';
 
-		return this.initialSpells.map((spell) => {
+		// Get all spellcasting classes
+		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
+		
+		// Always include General option for item spells
+		const options = ['General', ...spellcastingClasses];
+		
+		if (options.length <= 1) return ''; // Only General, no selector needed
+
+		const optionsHtml = options.map(className => 
+			`<option value="${className}" ${className === this.selectedClassName ? 'selected' : ''}>${className}</option>`
+		).join('');
+
+		return `
+			<div class="mb-2 d-flex align-items-center gap-2">
+				<label class="mb-0 text-nowrap"><strong>Add spells to:</strong></label>
+				<select class="form-select form-select-sm" id="spellClassSelector" style="width: auto;">
+					${optionsHtml}
+				</select>
+			</div>
+		`;
+	}
+
+	async _handleClassChange(newClassName) {
+		if (newClassName === this.selectedClassName) return;
+		
+		this.selectedClassName = newClassName;
+		
+		// Update ignore class restrictions if General is selected
+		const wasIgnoringRestrictions = this.ignoreClassRestrictions;
+		if (newClassName === 'General') {
+			this.ignoreClassRestrictions = true;
+		} else if (wasIgnoringRestrictions && this.className !== 'General') {
+			// Restore original setting if switching away from General
+			const toggle = document.getElementById('ignoreClassRestrictionsToggle');
+			if (toggle) {
+				this.ignoreClassRestrictions = toggle.checked;
+			}
+		}
+		
+		// Get new initial selection for the selected class
+		const newInitialIds = this._getInitialSelectionIds();
+		
+		// Update controller's selection state
+		if (this._controller?.state) {
+			this._controller.state.selectedIds = new Set(newInitialIds);
+			this._controller.state.selectedItems = this._controller.state.items.filter(item =>
+				newInitialIds.includes(this._controller.config.getItemId(item))
+			);
+		}
+		
+		// Reload items with new class filter
+		await this._controller._reloadItems();
+		
+		// Update display
+		this._controller._renderList();
+		this._controller._renderSelected();
+		this._controller._updateConfirmButton();
+	}
+
+	_getInitialSelectionIds() {
+		// Load known spells for the currently selected class only
+		const character = AppState.getCurrentCharacter();
+		if (!character) return [];
+		
+		const targetClass = this.selectedClassName || this.className;
+		
+		// Skip for General class
+		if (targetClass === 'General') return [];
+		
+		const classSpellcasting = character.spellcasting?.classes?.[targetClass];
+		const knownSpells = classSpellcasting?.spellsKnown || [];
+
+		return knownSpells.map((spell) => {
 			const id = spell.id || `${spell.name}|${spell.source}`.toLowerCase().replace(/\s+/g, '-');
 			return id;
 		});
@@ -83,7 +185,7 @@ export class SpellSelectionModal {
 			selectionLimit: null,
 			getContext: () => this._getContext(),
 			getInitialSelection: () => this._getInitialSelectionIds(),
-			loadItems: (ctx) => this._loadValidSpells(ctx),
+			loadItems: () => this._loadValidSpells(),
 			matchItem: (spell, state) => this._spellMatchesFilters(spell, state),
 			renderItem: (spell, state) => this._renderSpellCard(spell, state),
 			getItemId: (spell) => spell.id,
@@ -102,12 +204,12 @@ export class SpellSelectionModal {
 		});
 	}
 
-	async _loadValidSpells(ctx) {
+	async _loadValidSpells() {
 		const allSpells = spellService.getAllSpells();
 		const allowedSources = new Set(
 			sourceService.getAllowedSources().map((s) => (s || '').toLowerCase()),
 		);
-		const className = ctx.className;
+		const className = this.selectedClassName;
 
 		const valid = allSpells
 			.filter((spell) => {
@@ -160,9 +262,13 @@ export class SpellSelectionModal {
 		if (this.noMaterial === true) {
 			if (spell.components?.m) return false;
 		}
-		if (this.hideKnownSpells === true) {
-			const character = AppState.getCurrentCharacter();
-			const classSpellcasting = character?.spellcasting?.classes?.[this.className];
+		
+		// Always hide spells known by ANY class to prevent duplicates across multiclass
+		const character = AppState.getCurrentCharacter();
+		const spellcastingClasses = Object.keys(character?.spellcasting?.classes || {});
+		
+		for (const className of spellcastingClasses) {
+			const classSpellcasting = character.spellcasting.classes[className];
 			if (classSpellcasting?.spellsKnown) {
 				const isKnown = classSpellcasting.spellsKnown.some(
 					(s) => s.name === spell.name && s.source === spell.source,
@@ -170,6 +276,7 @@ export class SpellSelectionModal {
 				if (isKnown) return false;
 			}
 		}
+		
 		return true;
 	}
 
@@ -280,7 +387,6 @@ export class SpellSelectionModal {
 		this.noVerbal = this.noVerbal ?? null;
 		this.noSomatic = this.noSomatic ?? null;
 		this.noMaterial = this.noMaterial ?? null;
-		this.hideKnownSpells = this.hideKnownSpells ?? false;
 		this.ignoreSpellLimits = this.ignoreSpellLimits ?? false;
 
 		const builder = new FilterBuilder(panel, cleanup);
@@ -406,17 +512,10 @@ export class SpellSelectionModal {
 				{
 					label: 'Ignore class restrictions',
 					checked: this.ignoreClassRestrictions,
+					id: 'ignoreClassRestrictionsToggle',
 					onChange: async (v) => {
 						this.ignoreClassRestrictions = !!v;
 						await this._controller._reloadItems();
-					},
-				},
-				{
-					label: 'Hide already known',
-					checked: this.hideKnownSpells,
-					onChange: (v) => {
-						this.hideKnownSpells = !!v;
-						this._controller._renderList();
 					},
 				},
 			],
@@ -424,8 +523,11 @@ export class SpellSelectionModal {
 	}
 
 	_getCountDisplay(selectedItems) {
-		// If ignoring limits, show infinite badge
-		if (this.ignoreSpellLimits) {
+		const character = AppState.getCurrentCharacter();
+		if (!character) return '';
+
+		// Show infinite badge for General class
+		if (this.selectedClassName === 'General') {
 			return formatCategoryCounters([
 				{
 					label: 'spells',
@@ -436,64 +538,52 @@ export class SpellSelectionModal {
 			]);
 		}
 
-		const character = AppState.getCurrentCharacter();
-		if (!character) return '';
+		// Get limits for the currently selected class only
+		const targetClass = this.selectedClassName || this.className;
+		
+		const classEntry = character.progression?.classes?.find(
+			(c) => c.name === targetClass,
+		);
+		const classLevel = classEntry?.levels || 1;
 
-		// Get all spellcasting classes and calculate combined totals
-		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
+		const limitInfo = spellSelectionService.getSpellLimitInfo(
+			character,
+			targetClass,
+			classLevel,
+		);
 
-		let totalCantripsMax = 0;
-		let totalSpellsMax = 0;
+		const classSpellcasting = character.spellcasting?.classes?.[targetClass];
+
+		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+		let maxSpells = 0;
+		if (limitInfo.type === 'known') {
+			maxSpells = limitInfo.limit || 0;
+		} else if (limitInfo.type === 'prepared') {
+			maxSpells = limitInfo.spellbookLimit || 0;
+		}
 
 		// Count selected cantrips and leveled spells
 		const selectedCantrips = selectedItems.filter((s) => (s.level || 0) === 0).length;
 		const selectedLeveled = selectedItems.filter((s) => (s.level || 0) > 0).length;
 
-		// Sum up limits across all classes
-		for (const className of spellcastingClasses) {
-			const classEntry = character.progression?.classes?.find(
-				(c) => c.name === className,
-			);
-			const classLevel = classEntry?.levels || 1;
-
-			const limitInfo = spellSelectionService.getSpellLimitInfo(
-				character,
-				className,
-				classLevel,
-			);
-
-			const classSpellcasting = character.spellcasting?.classes?.[className];
-
-			// Add cantrip limits
-			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
-			totalCantripsMax += maxCantrips;
-
-			// Add spell limits
-			if (limitInfo.type === 'known') {
-				totalSpellsMax += limitInfo.limit || 0;
-			} else if (limitInfo.type === 'prepared') {
-				totalSpellsMax += limitInfo.spellbookLimit || 0;
-			}
-		}
-
 		const categories = [];
 
-		// Add combined cantrips category
-		if (totalCantripsMax > 0) {
+		// Add cantrips category
+		if (maxCantrips > 0) {
 			categories.push({
 				label: selectedCantrips === 1 ? 'cantrip' : 'cantrips',
 				selected: selectedCantrips,
-				max: totalCantripsMax,
+				max: maxCantrips,
 				color: 'bg-info',
 			});
 		}
 
-		// Add combined spells category
-		if (totalSpellsMax > 0) {
+		// Add spells category
+		if (maxSpells > 0) {
 			categories.push({
 				label: selectedLeveled === 1 ? 'spell' : 'spells',
 				selected: selectedLeveled,
-				max: totalSpellsMax,
+				max: maxSpells,
 				color: 'bg-success',
 			});
 		}
@@ -508,35 +598,29 @@ export class SpellSelectionModal {
 		const state = this._controller?.state;
 		if (!state) return null;
 
-		// Calculate combined limits across all spellcasting classes
-		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
-		let totalCantripsMax = 0;
-		let totalSpellsMax = 0;
+		// No limits for General class
+		if (this.selectedClassName === 'General') return null;
 
-		for (const className of spellcastingClasses) {
-			const classEntry = character.progression?.classes?.find(
-				(c) => c.name === className,
-			);
-			const classLevel = classEntry?.levels || 1;
+		// Get limits for the selected class only
+		const classEntry = character.progression?.classes?.find(
+			(c) => c.name === this.selectedClassName,
+		);
+		const classLevel = classEntry?.levels || 1;
 
-			const limitInfo = spellSelectionService.getSpellLimitInfo(
-				character,
-				className,
-				classLevel,
-			);
+		const limitInfo = spellSelectionService.getSpellLimitInfo(
+			character,
+			this.selectedClassName,
+			classLevel,
+		);
 
-			const classSpellcasting = character.spellcasting?.classes?.[className];
+		const classSpellcasting = character.spellcasting?.classes?.[this.selectedClassName];
 
-			// Add cantrip limits
-			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
-			totalCantripsMax += maxCantrips;
-
-			// Add spell limits
-			if (limitInfo.type === 'known') {
-				totalSpellsMax += limitInfo.limit || 0;
-			} else if (limitInfo.type === 'prepared') {
-				totalSpellsMax += limitInfo.spellbookLimit || 0;
-			}
+		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+		let maxSpells = 0;
+		if (limitInfo.type === 'known') {
+			maxSpells = limitInfo.limit || 0;
+		} else if (limitInfo.type === 'prepared') {
+			maxSpells = limitInfo.spellbookLimit || 0;
 		}
 
 		// Count selected spells by type
@@ -548,22 +632,22 @@ export class SpellSelectionModal {
 		).length;
 
 		// Check cantrip over-capacity
-		if (totalCantripsMax > 0 && selectedCantrips > totalCantripsMax) {
+		if (maxCantrips > 0 && selectedCantrips > maxCantrips) {
 			return {
 				type: 'cantrips',
-				excess: selectedCantrips - totalCantripsMax,
+				excess: selectedCantrips - maxCantrips,
 				selected: selectedCantrips,
-				max: totalCantripsMax,
+				max: maxCantrips,
 			};
 		}
 
 		// Check leveled spell over-capacity
-		if (totalSpellsMax > 0 && selectedLeveled > totalSpellsMax) {
+		if (maxSpells > 0 && selectedLeveled > maxSpells) {
 			return {
 				type: 'spells',
-				excess: selectedLeveled - totalSpellsMax,
+				excess: selectedLeveled - maxSpells,
 				selected: selectedLeveled,
-				max: totalSpellsMax,
+				max: maxSpells,
 			};
 		}
 
@@ -571,8 +655,8 @@ export class SpellSelectionModal {
 	}
 
 	_canSelectSpell(spell, state) {
-		// If ignoring limits, allow everything
-		if (this.ignoreSpellLimits) return true;
+		// If ignoring limits or General class, allow everything
+		if (this.ignoreSpellLimits || this.selectedClassName === 'General') return true;
 
 		// Always allow deselection
 		const isSelected = state.selectedIds.has(spell.id);
@@ -581,35 +665,26 @@ export class SpellSelectionModal {
 		const character = AppState.getCurrentCharacter();
 		if (!character) return true;
 
-		// Calculate combined limits across all spellcasting classes
-		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
-		let totalCantripsMax = 0;
-		let totalSpellsMax = 0;
+		// Get limits for the selected class only
+		const classEntry = character.progression?.classes?.find(
+			(c) => c.name === this.selectedClassName,
+		);
+		const classLevel = classEntry?.levels || 1;
 
-		for (const className of spellcastingClasses) {
-			const classEntry = character.progression?.classes?.find(
-				(c) => c.name === className,
-			);
-			const classLevel = classEntry?.levels || 1;
+		const limitInfo = spellSelectionService.getSpellLimitInfo(
+			character,
+			this.selectedClassName,
+			classLevel,
+		);
 
-			const limitInfo = spellSelectionService.getSpellLimitInfo(
-				character,
-				className,
-				classLevel,
-			);
+		const classSpellcasting = character.spellcasting?.classes?.[this.selectedClassName];
 
-			const classSpellcasting = character.spellcasting?.classes?.[className];
-
-			// Add cantrip limits
-			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
-			totalCantripsMax += maxCantrips;
-
-			// Add spell limits
-			if (limitInfo.type === 'known') {
-				totalSpellsMax += limitInfo.limit || 0;
-			} else if (limitInfo.type === 'prepared') {
-				totalSpellsMax += limitInfo.spellbookLimit || 0;
-			}
+		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+		let maxSpells = 0;
+		if (limitInfo.type === 'known') {
+			maxSpells = limitInfo.limit || 0;
+		} else if (limitInfo.type === 'prepared') {
+			maxSpells = limitInfo.spellbookLimit || 0;
 		}
 
 		// Count selected spells by type
@@ -622,14 +697,14 @@ export class SpellSelectionModal {
 
 		// Check cantrip limit
 		if ((spell.level || 0) === 0) {
-			if (totalCantripsMax > 0 && selectedCantrips >= totalCantripsMax) {
+			if (maxCantrips > 0 && selectedCantrips >= maxCantrips) {
 				return false;
 			}
 			return true;
 		}
 
 		// Check leveled spell limit
-		if (totalSpellsMax > 0 && selectedLeveled >= totalSpellsMax) {
+		if (maxSpells > 0 && selectedLeveled >= maxSpells) {
 			return false;
 		}
 
@@ -657,32 +732,50 @@ export class SpellSelectionModal {
 			return selected;
 		}
 
-		// Initialize spellcasting for class if not already initialized
-		if (!character.spellcasting?.classes?.[this.className]) {
+		const targetClass = this.selectedClassName;
+
+		// Initialize spellcasting for class if not already initialized (skip for General)
+		if (targetClass !== 'General' && !character.spellcasting?.classes?.[targetClass]) {
 			const classLevel =
-				character.class?.name === this.className
+				character.class?.name === targetClass
 					? character.level
-					: character.multiclass?.find((c) => c.name === this.className)
+					: character.multiclass?.find((c) => c.name === targetClass)
 						?.level || 1;
 
 			spellSelectionService.initializeSpellcastingForClass(
 				character,
-				this.className,
+				targetClass,
 				classLevel,
 			);
 		}
 
+		// Get currently known spells for this class to avoid duplicates
+		const classSpellcasting = character.spellcasting?.classes?.[targetClass];
+		const currentlyKnown = classSpellcasting?.spellsKnown || [];
+		const currentlyKnownSet = new Set(
+			currentlyKnown.map(s => `${s.name}|${s.source}`.toLowerCase())
+		);
+
 		let successCount = 0;
 		const failedSpells = [];
+		const addedSpells = [];
 
 		for (const spell of selected) {
+			const spellKey = `${spell.name}|${spell.source}`.toLowerCase();
+			
+			// Skip if already known
+			if (currentlyKnownSet.has(spellKey)) {
+				continue;
+			}
+			
 			const success = spellSelectionService.addKnownSpell(
 				character,
-				this.className,
+				targetClass,
 				spell,
 			);
 			if (success) {
 				successCount++;
+				addedSpells.push(spell.name);
 			} else {
 				failedSpells.push(spell.name);
 			}
@@ -691,8 +784,8 @@ export class SpellSelectionModal {
 		if (successCount > 0) {
 			const message =
 				successCount === 1
-					? `Added ${selected[0].name} to ${this.className}`
-					: `Added ${successCount} spell${successCount > 1 ? 's' : ''} to ${this.className}`;
+					? `Added ${addedSpells[0]}${targetClass !== 'General' ? ` to ${targetClass}` : ''}`
+					: `Added ${successCount} spell${successCount > 1 ? 's' : ''}${targetClass !== 'General' ? ` to ${targetClass}` : ''}`;
 			showNotification(message, 'success');
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 		}
@@ -704,7 +797,7 @@ export class SpellSelectionModal {
 		// Return formatted result matching old modal interface
 		return {
 			spells: selected,
-			className: this.className,
+			className: targetClass,
 			successCount,
 		};
 	}
