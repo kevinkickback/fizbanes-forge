@@ -128,33 +128,36 @@ export class SpellsManager {
 
 				html += `<div class="spell-level-group mb-3">
 					<h6 class="mb-2">${this._getLevelLabel(level)}</h6>
-					<div class="spell-list">`;
+					<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">`;
 
 				for (const spell of spells) {
 					const isPrepared =
 						classData.spellsPrepared?.some((s) => s.name === spell.name) ||
 						false;
 
-					const prepareBtn =
-						level > 0
-							? `<button class="btn btn-sm btn-outline-secondary" data-prepare-spell="${spell.name}" data-class-name="${className}" title="${isPrepared ? 'Unprepare' : 'Prepare'}">
-						<i class="fas fa-check${isPrepared ? '' : '-circle'}"></i>
-					</button>`
-							: '';
+					const spellSource = spell.source || 'PHB';
 
-					html += `<div class="spell-item card card-sm mb-2">
-						<div class="card-body d-flex justify-content-between align-items-center">
-							<div class="spell-info">
-								<h6 class="mb-1">${spell.name}</h6>
-								<small class="text-muted">${spell.school || 'Abjuration'}</small>
-								${spell.ritual ? '<span class="badge bg-info ms-2">Ritual</span>' : ''}
-								${spell.concentration ? '<span class="badge bg-warning ms-1">Concentration</span>' : ''}
-							</div>
-							<div class="spell-actions">
-								${prepareBtn}
-								<button class="btn btn-sm btn-outline-danger" data-remove-spell="${spell.name}" data-class-name="${className}" title="Remove spell">
-									<i class="fas fa-trash"></i>
-								</button>
+					html += `<div class="col">
+						<div class="spell-item card card-sm h-100">
+							<div class="card-body py-1 px-2 d-flex justify-content-between align-items-center">
+								<div class="spell-info flex-grow-1">
+									<h6 class="mb-0">
+										<a href="#" class="reference-link text-decoration-none" 
+											data-hover-type="spell" 
+											data-hover-name="${spell.name}" 
+											data-hover-source="${spellSource}">${spell.name}</a>
+									</h6>
+									<div class="mt-1">
+										${spell.ritual ? '<span class="badge bg-info">Ritual</span>' : ''}
+										${spell.concentration ? '<span class="badge bg-warning ms-1">Concentration</span>' : ''}
+										${isPrepared ? '<span class="badge bg-success ms-1">Prepared</span>' : ''}
+									</div>
+								</div>
+								<div class="spell-actions ms-2">
+									<button class="btn btn-sm btn-outline-danger" data-remove-spell="${spell.name}" data-class-name="${className}" title="Remove spell">
+										<i class="fas fa-trash"></i>
+									</button>
+								</div>
 							</div>
 						</div>
 					</div>`;
@@ -217,11 +220,14 @@ export class SpellsManager {
 				</div>`;
 			}
 
-			// Calculate prepared spell limit for this class
-			const ability = this._getSpellcastingAbility(className);
-			const abilityMod = character.getAbilityModifier(ability);
+			// Calculate prepared spell limit for this class using the service
 			const classLevel = classData.level || 1;
-			totalLimit += Math.max(1, classLevel + abilityMod);
+			const preparedLimit = spellSelectionService._getPreparedSpellLimit(
+				character,
+				className,
+				classLevel,
+			);
+			totalLimit += preparedLimit;
 		}
 
 		if (html === '') {
@@ -260,7 +266,6 @@ export class SpellsManager {
 					<div class="spellcasting-stat-item">
 						<div class="stat-label">Spellcasting Ability</div>
 						<div class="stat-value">${this._formatAbilityName(ability)}</div>
-						<div class="text-muted small">(${abilityMod > 0 ? '+' : ''}${abilityMod})</div>
 					</div>
 					<div class="spellcasting-stat-item">
 						<div class="stat-label">Spell Save DC</div>
@@ -288,44 +293,6 @@ export class SpellsManager {
 					html += `<div class="badge bg-secondary">
 						${this._getLevelLabel(level)}: ${slotData.max}
 					</div>`;
-				}
-
-				html += `</div></div>`;
-			}
-
-			// Add prepared spell limit for classes that prepare spells
-			const preparedSpellClasses = [
-				'Cleric',
-				'Druid',
-				'Paladin',
-				'Ranger',
-				'Wizard',
-			];
-			const classLevel = classData.level || 1;
-			const limitInfo = spellSelectionService.getSpellLimitInfo(
-				character,
-				className,
-				classLevel,
-			);
-
-			// Add spell counters section
-			if (limitInfo.limit > 0) {
-				html += `<div class="mt-3">
-					<div class="stat-label mb-2">Spell Counters</div>
-					<div class="spellcasting-slots-grid">`;
-
-				// Add Spells Known badge if applicable
-				if (limitInfo.type === 'known') {
-					html += `<div class="badge bg-primary">
-							Spells Known: ${limitInfo.current} / ${limitInfo.limit}
-						</div>`;
-				}
-
-				// Add Prepared Spells badge if applicable
-				if (preparedSpellClasses.includes(className)) {
-					html += `<div class="badge bg-info">
-							Prepared Spells: ${limitInfo.current} / ${limitInfo.limit}
-						</div>`;
 				}
 
 				html += `</div></div>`;
@@ -385,14 +352,20 @@ export class SpellsManager {
 		const primaryClass = character.getPrimaryClass();
 		const className = primaryClass?.name || 'Wizard';
 
+		// Get currently known spells for this class to pre-select them
+		const classSpellcasting = character.spellcasting?.classes?.[className];
+		const knownSpells = classSpellcasting?.spellsKnown || [];
+
 		try {
 			if (!this.spellSelectionModal) {
 				this.spellSelectionModal = new SpellSelectionModal({
 					className,
+					initialSpells: knownSpells,
 				});
 			} else {
-				// Update class name for existing modal
+				// Update class name and initial spells for existing modal
 				this.spellSelectionModal.className = className;
+				this.spellSelectionModal.initialSpells = knownSpells;
 			}
 
 			const result = await this.spellSelectionModal.show();

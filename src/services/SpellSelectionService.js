@@ -100,7 +100,9 @@ class SpellSelectionService {
 		return classData.cantripProgression[index] || 0;
 	}
 
-	/** Spells known for classes with "known" type (Bard, Sorcerer, Warlock, Ranger). */
+	/** Spells known for classes with "known" type (Bard, Sorcerer, Warlock, Ranger). 
+	 * For Wizard, returns total spellbook size (not spells per level).
+	 */
 	_getSpellsKnownLimit(className, level) {
 		const classData = classService.getClass(className);
 		if (!classData) return 0;
@@ -115,16 +117,31 @@ class SpellSelectionService {
 		}
 
 		// Check for spellsKnownProgressionFixed (Wizard - learns X spells per level)
+		// For Wizard, calculate total spellbook size = 6 at level 1, then +2 per level
 		if (classData.spellsKnownProgressionFixed) {
-			// For Wizard, this is spells learned per level, not total
-			const index = Math.max(
-				0,
-				Math.min(level - 1, classData.spellsKnownProgressionFixed.length - 1),
-			);
-			return classData.spellsKnownProgressionFixed[index] || 0;
+			if (level <= 0) return 0;
+
+			// Sum up spells learned from level 1 to current level
+			let totalSpells = 0;
+			for (let i = 0; i < Math.min(level, classData.spellsKnownProgressionFixed.length); i++) {
+				totalSpells += classData.spellsKnownProgressionFixed[i] || 0;
+			}
+			return totalSpells;
 		}
 
 		return 0;
+	}
+
+	/** Get spells learned at a specific level (for Wizard spellbook progression). */
+	_getSpellsLearnedAtLevel(className, level) {
+		const classData = classService.getClass(className);
+		if (!classData?.spellsKnownProgressionFixed) return 0;
+
+		if (level <= 0 || level > classData.spellsKnownProgressionFixed.length) {
+			return 0;
+		}
+
+		return classData.spellsKnownProgressionFixed[level - 1] || 0;
 	}
 
 	calculateSpellSlots(className, level) {
@@ -492,7 +509,9 @@ class SpellSelectionService {
 		});
 	}
 
-	/** Get spell limit info (known vs prepared) for a class. */
+	/** Get spell limit info (known vs prepared) for a class. 
+	 * For prepared casters (Wizard, Cleric, Druid, Paladin), returns both spellbook/known and prepared limits.
+	 */
 	getSpellLimitInfo(character, className, classLevel) {
 		const classInfo = this._getClassSpellcastingInfo(className);
 		if (!classInfo) return { type: null, limit: 0, current: 0 };
@@ -501,16 +520,21 @@ class SpellSelectionService {
 		if (!classSpellcasting) return { type: null, limit: 0, current: 0 };
 
 		if (classInfo.knownType === 'known') {
-			// Classes with fixed spells known
+			// Classes with fixed spells known (Bard, Sorcerer, Warlock, Ranger)
 			return {
 				type: 'known',
 				limit: this._getSpellsKnownLimit(className, classLevel),
 				current: classSpellcasting.spellsKnown.length,
 			};
 		} else {
-			// Classes that prepare spells
+			// Classes that prepare spells (Wizard, Cleric, Druid, Paladin)
 			return {
 				type: 'prepared',
+				spellbookLimit: this._getSpellsKnownLimit(className, classLevel), // Total spells known/in spellbook
+				spellbookCurrent: classSpellcasting.spellsKnown.length,
+				preparedLimit: this._getPreparedSpellLimit(character, className, classLevel), // Prepared from spellbook
+				preparedCurrent: classSpellcasting.spellsPrepared.length,
+				// For backwards compatibility
 				limit: this._getPreparedSpellLimit(character, className, classLevel),
 				current: classSpellcasting.spellsPrepared.length,
 			};

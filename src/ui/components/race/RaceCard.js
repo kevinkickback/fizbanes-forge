@@ -1209,47 +1209,43 @@ class RaceDetailsView {
 		let html = '';
 
 		// Ability Scores section
-		html += `<div class="mb-3">
-            <h6 class="small">Ability Score Increase</h6>
-            <ul class="text-muted small mb-0 list-unstyled">`;
+		html += `<div class="detail-section mb-2">
+            <h6 class="small mb-1"><strong>Ability Score Increase</strong></h6>
+            <div class="small text-muted">`;
 		const abilityImprovements = this._formatAbilityImprovements(
 			race,
 			subrace,
 		).split('\n');
-		html += abilityImprovements
-			.map((improvement) => `<li>${improvement}</li>`)
-			.join('');
-		html += `</ul></div>`;
+		html += abilityImprovements.join('<br>');
+		html += `</div></div>`;
 
 		// Size section
-		html += `<div class="mb-3">
-            <h6 class="small">Size</h6>
-            <ul class="text-muted small mb-0 list-unstyled">
-                <li>${this._formatSize(race)}</li>
-            </ul>
+		html += `<div class="detail-section mb-2">
+            <h6 class="small mb-1"><strong>Size</strong></h6>
+            <div class="small text-muted">${this._formatSize(race)}</div>
         </div>`;
 
 		// Speed section
-		html += `<div class="mb-3">
-            <h6 class="small">Speed</h6>
-            <ul class="text-muted small mb-0 list-unstyled">`;
+		html += `<div class="detail-section mb-2">
+            <h6 class="small mb-1"><strong>Speed</strong></h6>
+            <div class="small text-muted">`;
 		const speeds = this._formatMovementSpeeds(race).split('\n');
-		html += speeds.map((speed) => `<li>${speed}</li>`).join('');
-		html += `</ul></div>`;
+		html += speeds.join('<br>');
+		html += `</div></div>`;
 
 		// Languages section
-		html += `<div class="mb-3">
-            <h6 class="small">Languages</h6>
-            <ul class="text-muted small mb-0 list-unstyled">`;
+		html += `<div class="detail-section mb-2">
+            <h6 class="small mb-1"><strong>Languages</strong></h6>
+            <div class="small text-muted">`;
 		const languages = this._formatLanguages(race).split('\n');
-		html += languages.map((lang) => `<li>${lang}</li>`).join('');
-		html += `</ul></div>`;
+		html += languages.join('<br>');
+		html += `</div></div>`;
 
 		// Traits section
 		const traits = this._getCombinedTraits(race, subrace);
 		if (traits.length > 0) {
-			html += `<div class="mb-3">
-                <h6 class="small">Traits</h6>
+			html += `<div class="detail-section mb-2">
+                <h6 class="small mb-1"><strong>Traits</strong></h6>
                 <div class="traits-grid">`;
 
 			// Process traits to create hover links with descriptions

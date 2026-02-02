@@ -339,6 +339,8 @@ export class ClassCard {
 	async _selectClassByName(className, { skipTabUpdate = false } = {}) {
 		if (!className) return;
 
+		console.debug('[ClassCard] Selecting class:', className);
+
 		// Get character to find class source
 		const character = CharacterManager.getCurrentCharacter();
 		const progressionClass = character?.progression?.classes?.find(
@@ -366,6 +368,8 @@ export class ClassCard {
 			);
 			subclassData = subclasses.find((sc) => sc.name === subclassName);
 		}
+
+		console.debug('[ClassCard] Updating class details for:', className, 'with subclass:', subclassName);
 
 		// Update UI (fluffData is fetched in updateClassDetails now)
 		await this.updateClassDetails(classData, subclassData);
@@ -920,8 +924,19 @@ export class ClassCard {
 
 		// Get existing selections for this level
 		const sessionKey = `${className}_${level}`;
-		const existingSelections =
+
+		// Check progression tracking first (spells selected during level-up)
+		let existingSelections =
 			character.progression?.spellSelections?.[sessionKey] || [];
+
+		// If no progression tracking but this is level 1, also include spells from character.spellcasting
+		// (these might have been added from the Spells page directly)
+		if (existingSelections.length === 0 && level === 1) {
+			const classSpells = character.spellcasting?.classes?.[className]?.spellsKnown || [];
+			existingSelections = classSpells.map((spell) =>
+				typeof spell === 'string' ? spell : spell.name
+			);
+		}
 
 		console.debug('[ClassCard]', '_handleSpellSelection:', {
 			className,
@@ -929,6 +944,7 @@ export class ClassCard {
 			sessionKey,
 			existingSelections,
 			progressionSpellSelections: character.progression?.spellSelections,
+			classSpellcasting: character.spellcasting?.classes?.[className]?.spellsKnown,
 		});
 
 		// Create a mock session for LevelUpSpellSelector
@@ -1395,7 +1411,7 @@ export class ClassCard {
 					<div id="${collapseId}" class="accordion-collapse collapse ${isExpanded ? 'show' : ''}" 
 						aria-labelledby="heading${collapseId}">
 						<div class="accordion-body p-2">
-							${levelChoices.map((choice) => this._renderFeatureChoice(choice)).join('')}
+							${levelChoices.map((choice) => this._renderFeatureChoice(choice, className)).join('')}
 						</div>
 					</div>
 				</div>
@@ -1409,10 +1425,8 @@ export class ClassCard {
 		this._attachClassChoiceListeners(container, className);
 	}
 
-	_renderFeatureChoice(choice) {
+	_renderFeatureChoice(choice, className) {
 		const character = CharacterManager.getCurrentCharacter();
-		const primaryClass = character?.getPrimaryClass();
-		const className = primaryClass?.name;
 
 		// Handle spell selection differently
 		if (choice.type === 'spell') {
@@ -1525,8 +1539,17 @@ export class ClassCard {
 		const character = CharacterManager.getCurrentCharacter();
 
 		const sessionKey = `${className}_${choice.level}`;
-		const levelSpells =
+		let levelSpells =
 			character.progression?.spellSelections?.[sessionKey] || [];
+
+		// If no progression tracking for level 1, also check character.spellcasting
+		// (spells might have been added from the Spells page directly)
+		if (levelSpells.length === 0 && choice.level === 1) {
+			const classSpells = character.spellcasting?.classes?.[className]?.spellsKnown || [];
+			levelSpells = classSpells.map((spell) =>
+				typeof spell === 'string' ? spell : spell.name
+			);
+		}
 
 		// Build display of selected spells
 		let selectedDisplay = 'None selected';
@@ -1563,7 +1586,7 @@ export class ClassCard {
 		`;
 	}
 
-	_renderASIChoice(choice) {
+	_renderASIChoice(choice, _className) {
 		const character = CharacterManager.getCurrentCharacter();
 
 		// Check if ASI was used at this level
@@ -2244,7 +2267,7 @@ export class ClassCard {
 		if (!primaryClass) return;
 
 		// Import ASIModal
-		const { ASIModal } = await import('../level/ASIModal.js');
+		const { ASIModal } = await import('../class-progression/ASIModal.js');
 
 		// Check if ASI was already used at this level
 		const levelUps = character.progression?.levelUps || [];
@@ -3201,6 +3224,8 @@ class ClassDetailsView {
 			return;
 		}
 
+		console.debug('[ClassDetailsView] Updating info panel for:', classData.name);
+
 		// Build the complete info panel content
 		let html = '';
 
@@ -3224,7 +3249,12 @@ class ClassDetailsView {
 		html += '</div>';
 
 		// Set the complete content
-		this._classInfoPanel.innerHTML = html;
+		if (this._classInfoPanel) {
+			this._classInfoPanel.innerHTML = html;
+			console.debug('[ClassDetailsView] Info panel updated successfully');
+		} else {
+			console.warn('[ClassDetailsView] Info panel element not found!');
+		}
 
 		// Process the entire panel at once to resolve all reference tags
 		await textProcessor.processElement(this._classInfoPanel);

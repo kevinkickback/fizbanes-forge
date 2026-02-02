@@ -262,7 +262,10 @@ export class Character {
 	}
 
 	getAbilityScore(ability) {
-		return this.abilityScores[ability] || 0;
+		const baseScore = this.abilityScores[ability] || 0;
+		const bonuses = this.abilityBonuses[ability] || [];
+		const totalBonus = bonuses.reduce((sum, bonus) => sum + (bonus.value || 0), 0);
+		return baseScore + totalBonus;
 	}
 
 	getAbilityModifier(ability) {
@@ -400,10 +403,10 @@ export class Character {
 			const sourceCandidate =
 				typeof feat === 'object'
 					? feat.origin ||
-						feat.grantedBy ||
-						feat.from ||
-						feat.sourceType ||
-						feat.source
+					feat.grantedBy ||
+					feat.from ||
+					feat.sourceType ||
+					feat.source
 					: null;
 			const source = sourceCandidate || defaultSource;
 

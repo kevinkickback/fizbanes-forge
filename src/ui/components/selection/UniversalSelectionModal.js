@@ -10,7 +10,8 @@ export function formatCategoryCounters(categories) {
 	return categories
 		.map((cat) => {
 			const color = cat.color || 'bg-secondary';
-			return `<span class="badge ${color}">${cat.selected}/${cat.max} ${cat.label}</span>`;
+			const maxDisplay = cat.max === Infinity ? '∞' : cat.max;
+			return `<span class="badge ${color}">${cat.selected}/${maxDisplay} ${cat.label}</span>`;
 		})
 		.join(' ');
 }
@@ -70,9 +71,6 @@ export class UniversalSelectionModal {
 		};
 	}
 
-	/**
-	 * Get or create the modal element with proper spell-filter-row structure
-	 */
 	_getOrCreateModal() {
 		let modal = document.getElementById(this.config.modalId);
 
@@ -92,8 +90,12 @@ export class UniversalSelectionModal {
 
 		// Dispose and recreate Bootstrap modal
 		if (this.bootstrapModal) {
+			const existing = this.bootstrapModal;
+			this.bootstrapModal = null;
 			try {
-				this.bootstrapModal.dispose();
+				if (existing?._element) {
+					existing.dispose();
+				}
 			} catch (e) {
 				console.warn('[UniversalSelectionModal]', 'Dispose failed', e);
 			}
@@ -104,9 +106,6 @@ export class UniversalSelectionModal {
 		});
 	}
 
-	/**
-	 * Generate complete modal HTML using spell-filter-row structure
-	 */
 	_getModalHTML() {
 		return `
             <div class="modal-dialog modal-xl">
@@ -122,14 +121,13 @@ export class UniversalSelectionModal {
                     <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; max-height: 100%;">
                         <!-- Search Bar -->
                         <div class="d-flex gap-2 mb-2">
-                            ${
-															this.config.buildFilters
-																? `<button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
+                            ${this.config.buildFilters
+				? `<button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
                                 title="Toggle filters panel" data-filters-visible="true">
                                 <i class="fas fa-filter"></i>
                             </button>`
-																: ''
-														}
+				: ''
+			}
                             <input type="text" class="form-control spell-search-input flex-grow-1"
                                 placeholder="Search...">
                             <button class="btn btn-outline-secondary" type="button" data-search-clear
@@ -139,24 +137,22 @@ export class UniversalSelectionModal {
                         </div>
                         
                         <!-- Optional prerequisite/info note -->
-                        ${
-													this.config.prerequisiteNote
-														? `<div class="alert alert-info small mb-2">
+                        ${this.config.prerequisiteNote
+				? `<div class="alert alert-info small mb-2">
                             ${this.config.prerequisiteNote}
                         </div>`
-														: ''
-												}
+				: ''
+			}
                         
                         <!-- Filters and Results (spell-filter-row layout) -->
                         <div class="spell-filter-row" ${this.config.buildFilters ? '' : 'style="grid-template-columns: 1fr;"'}>
                             <!-- Filters Panel (only shown if buildFilters provided) -->
-                            ${
-															this.config.buildFilters
-																? `<div class="spell-filters-column">
+                            ${this.config.buildFilters
+				? `<div class="spell-filters-column">
                                 <!-- Filters populated by buildFilters callback -->
                             </div>`
-																: ''
-														}
+				: ''
+			}
                             
                             <!-- Results Column -->
                             <div class="spell-results-column">
@@ -527,7 +523,7 @@ export class UniversalSelectionModal {
 			} else {
 				const limit =
 					this.config.selectionLimit === null ||
-					this.config.selectionLimit === Infinity
+						this.config.selectionLimit === Infinity
 						? '∞'
 						: this.config.selectionLimit;
 				countContainer.innerHTML = `<span class="badge bg-info">${this.state.selectedIds.size} / ${limit}</span>`;

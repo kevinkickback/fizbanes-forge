@@ -7,17 +7,22 @@ import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
-import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
+import {
+	formatCategoryCounters,
+	UniversalSelectionModal,
+} from '../selection/UniversalSelectionModal.js';
 
 export class SpellSelectionModal {
 	constructor({
 		className = null,
 		allowClose = true,
 		ignoreClassRestrictions = false,
+		initialSpells = [],
 	} = {}) {
 		this.className = className;
 		this.allowClose = allowClose;
 		this.ignoreClassRestrictions = !!ignoreClassRestrictions;
+		this.initialSpells = initialSpells || [];
 		this.descriptionCache = new Map();
 		this._controller = null;
 	}
@@ -65,17 +70,20 @@ export class SpellSelectionModal {
 			selectionMode: 'multiple',
 			selectionLimit: null,
 			getContext: () => this._getContext(),
-			getInitialSelection: () => [],
+			getInitialSelection: () => this.initialSpells || [],
 			loadItems: (ctx) => this._loadValidSpells(ctx),
 			matchItem: (spell, state) => this._spellMatchesFilters(spell, state),
 			renderItem: (spell, state) => this._renderSpellCard(spell, state),
 			getItemId: (spell) => spell.id,
+			canSelectItem: (spell, state) => this._canSelectSpell(spell, state),
+			onSelectBlocked: (spell) => this._onSpellSelectionBlocked(spell),
 			onConfirm: (selected) => this._handleConfirm(selected),
 			onCancel: () => this._handleCancel(),
 			buildFilters: (ctx, panel, cleanup) =>
 				this._buildFilters(ctx, panel, cleanup),
-			onSelectionChange: (_state) => {},
-			onListRendered: (_state) => {},
+			onSelectionChange: (_state) => { },
+			onListRendered: (_state) => { },
+			customCountFn: (selectedItems) => this._getCountDisplay(selectedItems),
 			descriptionCache: this.descriptionCache,
 			fetchDescription: (spell) => this._fetchSpellDescription(spell),
 			descriptionContainerSelector: '.spell-description',
@@ -87,7 +95,6 @@ export class SpellSelectionModal {
 		const allowedSources = new Set(
 			sourceService.getAllowedSources().map((s) => (s || '').toLowerCase()),
 		);
-		const character = ctx.character;
 		const className = ctx.className;
 
 		const valid = allSpells
@@ -97,13 +104,6 @@ export class SpellSelectionModal {
 				if (!this.ignoreClassRestrictions) {
 					if (!spellService.isSpellAvailableForClass(spell, className))
 						return false;
-				}
-				const classSpellcasting = character.spellcasting?.classes?.[className];
-				if (classSpellcasting?.spellsKnown) {
-					const isKnown = classSpellcasting.spellsKnown.some(
-						(s) => s.name === spell.name && s.source === spell.source,
-					);
-					if (isKnown) return false;
 				}
 				return true;
 			})
@@ -138,6 +138,25 @@ export class SpellSelectionModal {
 		}
 		if (this.concentrationOnly === true) {
 			if (!spell.duration?.[0]?.concentration) return false;
+		}
+		if (this.noVerbal === true) {
+			if (spell.components?.v) return false;
+		}
+		if (this.noSomatic === true) {
+			if (spell.components?.s) return false;
+		}
+		if (this.noMaterial === true) {
+			if (spell.components?.m) return false;
+		}
+		if (this.hideKnownSpells === true) {
+			const character = AppState.getCurrentCharacter();
+			const classSpellcasting = character?.spellcasting?.classes?.[this.className];
+			if (classSpellcasting?.spellsKnown) {
+				const isKnown = classSpellcasting.spellsKnown.some(
+					(s) => s.name === spell.name && s.source === spell.source,
+				);
+				if (isKnown) return false;
+			}
 		}
 		return true;
 	}
@@ -246,6 +265,11 @@ export class SpellSelectionModal {
 		this.schoolFilters = this.schoolFilters || new Set();
 		this.ritualOnly = this.ritualOnly ?? null;
 		this.concentrationOnly = this.concentrationOnly ?? null;
+		this.noVerbal = this.noVerbal ?? null;
+		this.noSomatic = this.noSomatic ?? null;
+		this.noMaterial = this.noMaterial ?? null;
+		this.hideKnownSpells = this.hideKnownSpells ?? false;
+		this.ignoreSpellLimits = this.ignoreSpellLimits ?? false;
 
 		const builder = new FilterBuilder(panel, cleanup);
 
@@ -288,7 +312,7 @@ export class SpellSelectionModal {
 		});
 
 		builder.addSwitchGroup({
-			title: 'Flags',
+			title: 'Type',
 			switches: [
 				{
 					label: 'Ritual only',
@@ -307,6 +331,67 @@ export class SpellSelectionModal {
 					},
 				},
 				{
+					label: 'No verbal',
+					checked: this.noVerbal === true,
+					onChange: (v) => {
+						this.noVerbal = v ? true : null;
+						this._controller._renderList();
+					},
+				},
+				{
+					label: 'No somatic',
+					checked: this.noSomatic === true,
+					onChange: (v) => {
+						this.noSomatic = v ? true : null;
+						this._controller._renderList();
+					},
+				},
+				{
+					label: 'No material',
+					checked: this.noMaterial === true,
+					onChange: (v) => {
+						this.noMaterial = v ? true : null;
+						this._controller._renderList();
+					},
+				},
+			],
+		});
+
+		builder.addSwitchGroup({
+			title: 'Restrictions',
+			switches: [
+				{
+					label: 'Ignore spell limits',
+					checked: this.ignoreSpellLimits,
+					id: 'ignoreSpellLimitsToggle',
+					onChange: (v) => {
+						const wasIgnoring = this.ignoreSpellLimits;
+
+						// If trying to turn limits back on, check if current selection exceeds limits
+						if (wasIgnoring && !v) {
+							const overCapacity = this._checkOverCapacity();
+							if (overCapacity) {
+								// Keep toggle on and show notification
+								showNotification(
+									`You have selected ${overCapacity.excess} too many ${overCapacity.type}. Please deselect some before re-enabling limits.`,
+									'warning',
+								);
+								// Revert the visual toggle state
+								const toggleInput = document.getElementById('ignoreSpellLimitsToggle');
+								if (toggleInput) {
+									toggleInput.checked = true;
+								}
+								return;
+							}
+						}
+
+						// Only update state if we're not over capacity
+						this.ignoreSpellLimits = !!v;
+						this._controller._renderList();
+						this._controller._updateConfirmButton(); // Update badges
+					},
+				},
+				{
 					label: 'Ignore class restrictions',
 					checked: this.ignoreClassRestrictions,
 					onChange: async (v) => {
@@ -314,8 +399,226 @@ export class SpellSelectionModal {
 						await this._controller._reloadItems();
 					},
 				},
+				{
+					label: 'Hide already known',
+					checked: this.hideKnownSpells,
+					onChange: (v) => {
+						this.hideKnownSpells = !!v;
+						this._controller._renderList();
+					},
+				},
 			],
 		});
+	}
+
+	_getCountDisplay(selectedItems) {
+		// If ignoring limits, show infinite badge
+		if (this.ignoreSpellLimits) {
+			return formatCategoryCounters([
+				{
+					label: 'spells',
+					selected: selectedItems.length,
+					max: Infinity,
+					color: 'bg-secondary',
+				},
+			]);
+		}
+
+		const character = AppState.getCurrentCharacter();
+		if (!character) return '';
+
+		// Get spell limit info for this class
+		const classEntry = character.progression?.classes?.find(
+			(c) => c.name === this.className,
+		);
+		const classLevel = classEntry?.levels || 1;
+
+		const limitInfo = spellSelectionService.getSpellLimitInfo(
+			character,
+			this.className,
+			classLevel,
+		);
+
+		// Count selected spells by type
+		const selectedCantrips = selectedItems.filter(
+			(s) => (s.level || 0) === 0,
+		).length;
+		const selectedLeveled = selectedItems.filter(
+			(s) => (s.level || 0) > 0,
+		).length;
+
+		const categories = [];
+
+		// Add cantrips category
+		const classSpellcasting = character.spellcasting?.classes?.[this.className];
+		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+		if (maxCantrips > 0) {
+			categories.push({
+				label: selectedCantrips === 1 ? 'cantrip' : 'cantrips',
+				selected: selectedCantrips,
+				max: maxCantrips,
+				color: 'bg-info',
+			});
+		}
+
+		// Add leveled spells category
+		if (limitInfo.type === 'known') {
+			// Classes with fixed spells known (Bard, Sorcerer, etc.)
+			if (limitInfo.limit > 0) {
+				categories.push({
+					label: selectedLeveled === 1 ? 'spell' : 'spells',
+					selected: selectedLeveled,
+					max: limitInfo.limit,
+					color: 'bg-success',
+				});
+			}
+		} else if (limitInfo.type === 'prepared') {
+			// Classes with spellbook (Wizard) or prepare from full list
+			if (limitInfo.spellbookLimit > 0) {
+				categories.push({
+					label: selectedLeveled === 1 ? 'spell' : 'spells',
+					selected: selectedLeveled,
+					max: limitInfo.spellbookLimit,
+					color: 'bg-success',
+				});
+			}
+		}
+
+		return formatCategoryCounters(categories);
+	}
+
+	_checkOverCapacity() {
+		const character = AppState.getCurrentCharacter();
+		if (!character) return null;
+
+		const state = this._controller?.state;
+		if (!state) return null;
+
+		const classEntry = character.progression?.classes?.find(
+			(c) => c.name === this.className,
+		);
+		const classLevel = classEntry?.levels || 1;
+
+		const limitInfo = spellSelectionService.getSpellLimitInfo(
+			character,
+			this.className,
+			classLevel,
+		);
+
+		// Count selected spells by type
+		const selectedCantrips = state.selectedItems.filter(
+			(s) => (s.level || 0) === 0,
+		).length;
+		const selectedLeveled = state.selectedItems.filter(
+			(s) => (s.level || 0) > 0,
+		).length;
+
+		// Check cantrip over-capacity
+		const classSpellcasting = character.spellcasting?.classes?.[this.className];
+		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+		if (maxCantrips > 0 && selectedCantrips > maxCantrips) {
+			return {
+				type: 'cantrips',
+				excess: selectedCantrips - maxCantrips,
+				selected: selectedCantrips,
+				max: maxCantrips,
+			};
+		}
+
+		// Check leveled spell over-capacity
+		let maxSpells = 0;
+		if (limitInfo.type === 'known') {
+			maxSpells = limitInfo.limit;
+		} else if (limitInfo.type === 'prepared') {
+			maxSpells = limitInfo.spellbookLimit;
+		}
+
+		if (maxSpells > 0 && selectedLeveled > maxSpells) {
+			return {
+				type: 'spells',
+				excess: selectedLeveled - maxSpells,
+				selected: selectedLeveled,
+				max: maxSpells,
+			};
+		}
+
+		return null;
+	}
+
+	_canSelectSpell(spell, state) {
+		// If ignoring limits, allow everything
+		if (this.ignoreSpellLimits) return true;
+
+		// Always allow deselection
+		const isSelected = state.selectedIds.has(spell.id);
+		if (isSelected) return true;
+
+		const character = AppState.getCurrentCharacter();
+		if (!character) return true;
+
+		// Get spell limit info for this class
+		const classEntry = character.progression?.classes?.find(
+			(c) => c.name === this.className,
+		);
+		const classLevel = classEntry?.levels || 1;
+
+		const limitInfo = spellSelectionService.getSpellLimitInfo(
+			character,
+			this.className,
+			classLevel,
+		);
+
+		// Count selected spells by type
+		const selectedCantrips = state.selectedItems.filter(
+			(s) => (s.level || 0) === 0,
+		).length;
+		const selectedLeveled = state.selectedItems.filter(
+			(s) => (s.level || 0) > 0,
+		).length;
+
+		// Check cantrip limit
+		if ((spell.level || 0) === 0) {
+			const classSpellcasting = character.spellcasting?.classes?.[this.className];
+			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+			if (maxCantrips > 0 && selectedCantrips >= maxCantrips) {
+				return false;
+			}
+			return true;
+		}
+
+		// Check leveled spell limit based on class type
+		if (limitInfo.type === 'known') {
+			// Classes with fixed spells known (Bard, Sorcerer, etc.)
+			if (limitInfo.limit > 0 && selectedLeveled >= limitInfo.limit) {
+				return false;
+			}
+		} else if (limitInfo.type === 'prepared') {
+			// Classes with spellbook (Wizard) or prepare from full list (Cleric, Druid)
+			// For spellbook, limit is total spells in spellbook
+			if (
+				limitInfo.spellbookLimit > 0 &&
+				selectedLeveled >= limitInfo.spellbookLimit
+			) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	_onSpellSelectionBlocked(spell) {
+		const isCantrip = (spell.level || 0) === 0;
+		if (isCantrip) {
+			showNotification(
+				'Cantrip limit reached. Deselect a cantrip to add another.',
+				'warning',
+			);
+		} else {
+			showNotification(
+				'Spell limit reached. Deselect a spell to add another, or enable "Ignore spell limits".',
+				'warning',
+			);
+		}
 	}
 
 	async _handleConfirm(selected) {
@@ -330,7 +633,7 @@ export class SpellSelectionModal {
 				character.class?.name === this.className
 					? character.level
 					: character.multiclass?.find((c) => c.name === this.className)
-							?.level || 1;
+						?.level || 1;
 
 			spellSelectionService.initializeSpellcastingForClass(
 				character,

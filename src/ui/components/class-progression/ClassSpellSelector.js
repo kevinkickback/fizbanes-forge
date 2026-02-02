@@ -1,15 +1,15 @@
 import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
-import {
-	UniversalSelectionModal,
-	formatCategoryCounters,
-} from '../../../lib/UniversalSelectionModal.js';
 import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
+import {
+	UniversalSelectionModal,
+	formatCategoryCounters,
+} from '../selection/UniversalSelectionModal.js';
 
 // Spell selector adapter for class spell selection with slot/known limits
 
@@ -32,6 +32,11 @@ export class ClassSpellSelector {
 		// Filter state (to track which filters are active)
 		this.levelFilters = new Set();
 		this.schoolFilters = new Set();
+		this.ritualOnly = null;
+		this.concentrationOnly = null;
+		this.noVerbal = null;
+		this.noSomatic = null;
+		this.noMaterial = null;
 
 		// Generic selector instance
 		this._selector = null;
@@ -83,6 +88,7 @@ export class ClassSpellSelector {
 			const previousSelections =
 				this.session.stepData.selectedSpells[key] || [];
 
+			// Match initialSelections against spellData (which includes current level selections)
 			const initialSelections = previousSelections
 				.map((prevSpell) => {
 					const spellName =
@@ -187,6 +193,52 @@ export class ClassSpellSelector {
 					onChange: () => this._selector._renderList(),
 					columns: 2,
 				});
+
+				builder.addSwitchGroup({
+					title: 'Type',
+					switches: [
+						{
+							label: 'Ritual only',
+							checked: this.ritualOnly === true,
+							onChange: (v) => {
+								this.ritualOnly = v ? true : null;
+								this._selector._renderList();
+							},
+						},
+						{
+							label: 'Concentration only',
+							checked: this.concentrationOnly === true,
+							onChange: (v) => {
+								this.concentrationOnly = v ? true : null;
+								this._selector._renderList();
+							},
+						},
+						{
+							label: 'No verbal',
+							checked: this.noVerbal === true,
+							onChange: (v) => {
+								this.noVerbal = v ? true : null;
+								this._selector._renderList();
+							},
+						},
+						{
+							label: 'No somatic',
+							checked: this.noSomatic === true,
+							onChange: (v) => {
+								this.noSomatic = v ? true : null;
+								this._selector._renderList();
+							},
+						},
+						{
+							label: 'No material',
+							checked: this.noMaterial === true,
+							onChange: (v) => {
+								this.noMaterial = v ? true : null;
+								this._selector._renderList();
+							},
+						},
+					],
+				});
 			};
 
 			this._selector = new UniversalSelectionModal({
@@ -224,6 +276,23 @@ export class ClassSpellSelector {
 						!this.schoolFilters.has(item.school)
 					) {
 						return false;
+					}
+
+					// Type filters
+					if (this.ritualOnly === true) {
+						if (!item.meta?.ritual) return false;
+					}
+					if (this.concentrationOnly === true) {
+						if (!item.duration?.[0]?.concentration) return false;
+					}
+					if (this.noVerbal === true) {
+						if (item.components?.v) return false;
+					}
+					if (this.noSomatic === true) {
+						if (item.components?.s) return false;
+					}
+					if (this.noMaterial === true) {
+						if (item.components?.m) return false;
 					}
 
 					return true;
@@ -327,19 +396,25 @@ export class ClassSpellSelector {
 		// Collect already-known spells from character and session (across ALL classes)
 		const alreadyKnown = new Set();
 
-		// 1. Spells from original character's spellcasting data (check all classes)
+		// 1. Spells from original character's spellcasting data (check all classes EXCEPT current class at current level)
 		const allClassSpells =
 			this.session.originalCharacter?.spellcasting?.classes;
 		if (allClassSpells) {
-			Object.values(allClassSpells).forEach((classData) => {
-				// Add cantrips
+			Object.entries(allClassSpells).forEach(([cls, classData]) => {
+				// Skip spells from the current class (we're editing them)
+				// We only want to exclude spells from OTHER classes or from this class at OTHER levels
+				if (cls === this.className) {
+					return; // Don't mark current class spells as "already known"
+				}
+
+				// Add cantrips from OTHER classes
 				if (classData.cantrips) {
 					classData.cantrips.forEach((spell) => {
 						const spellName = typeof spell === 'string' ? spell : spell.name;
 						if (spellName) alreadyKnown.add(spellName);
 					});
 				}
-				// Add known spells
+				// Add known spells from OTHER classes
 				if (classData.spellsKnown) {
 					classData.spellsKnown.forEach((spell) => {
 						const spellName = typeof spell === 'string' ? spell : spell.name;
@@ -386,7 +461,7 @@ export class ClassSpellSelector {
 				const sessionKey = `${this.className}_${lvl}`;
 				const levelSpells =
 					this.session.originalCharacter.progression.spellSelections[
-						sessionKey
+					sessionKey
 					] || [];
 
 				levelSpells.forEach((spell) => {
@@ -462,10 +537,6 @@ export class ClassSpellSelector {
 			return a.name.localeCompare(b.name);
 		});
 
-		console.debug(
-			'[LevelUpSpellSelector]',
-			`Loaded ${availableSpells.length} available spells for ${this.className} at level ${this.currentLevel} (max spell level: ${maxSpellLevel})`,
-		);
 		return availableSpells;
 	}
 
@@ -517,7 +588,7 @@ export class ClassSpellSelector {
 			const selectedLeveled = selectedItems.filter((s) => s.level > 0).length;
 			const levelText = ordinals[maxSpellLevel];
 			categories.push({
-				label: `${levelText} spell${this.maxSpells === 1 ? '' : 's'}`,
+				label: `${levelText} level`,
 				selected: selectedLeveled,
 				max: this.maxSpells,
 				color: 'bg-success',
@@ -606,6 +677,26 @@ export class ClassSpellSelector {
 		);
 		this.maxCantrips = currentCantrips - previousCantrips;
 
+		// Handle Wizard separately - they learn spells for their spellbook
+		if (this.className === 'Wizard') {
+			// Wizard learns spells to add to spellbook (6 at level 1, 2 per level after)
+			this.maxSpells = this.spellSelectionService._getSpellsLearnedAtLevel(
+				this.className,
+				this.currentLevel,
+			);
+			console.debug(
+				'[LevelUpSpellSelector]',
+				`Wizard spell limit for level ${this.currentLevel}:`,
+				{
+					previousCantrips,
+					currentCantrips,
+					newCantrips: this.maxCantrips,
+					spellsToLearn: this.maxSpells,
+				},
+			);
+			return;
+		}
+
 		// Get spells known at previous level and current level
 		const previousSpellsKnown = this.spellSelectionService._getSpellsKnownLimit(
 			this.className,
@@ -624,13 +715,14 @@ export class ClassSpellSelector {
 			// Warlocks learn 1 spell per level (except level 1 which gives 2)
 			this.maxSpells = this.currentLevel === 1 ? 2 : 1;
 		} else if (
-			['Wizard', 'Sorcerer', 'Bard', 'Ranger'].includes(this.className)
+			['Sorcerer', 'Bard', 'Ranger'].includes(this.className)
 		) {
 			// These classes have spellsKnownProgression or learn a fixed number per level
 			this.maxSpells = newSpells > 0 ? newSpells : 2; // Default to 2 if progression not found
 		} else if (['Cleric', 'Druid', 'Paladin'].includes(this.className)) {
-			// These classes prepare spells - allow selecting all available spells up to their limit
-			this.maxSpells = currentSpellsKnown;
+			// These classes prepare spells - they don't "learn" spells, they prepare from full list
+			// So no spell selection during level-up
+			this.maxSpells = 0;
 		} else {
 			// Default: use the difference in spells known
 			this.maxSpells = newSpells > 0 ? newSpells : 0;

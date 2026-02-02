@@ -1,12 +1,12 @@
 import { AppState } from '../../../app/AppState.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { featService } from '../../../services/FeatService.js';
+import { sourceService } from '../../../services/SourceService.js';
 import {
 	UniversalSelectionModal,
 	formatCounter,
-} from '../../../lib/UniversalSelectionModal.js';
-import { featService } from '../../../services/FeatService.js';
-import { sourceService } from '../../../services/SourceService.js';
+} from '../selection/UniversalSelectionModal.js';
 
 // Feat selector adapter for UniversalSelectionModal with prerequisite checking
 
@@ -78,12 +78,12 @@ export class ClassFeatSelector {
 				// Build filters for feats page (only if multiSelect)
 				const buildFilters = multiSelect
 					? (_ctx, panel, cleanup) => {
-							panel.innerHTML = `
+						panel.innerHTML = `
                         <div class="card mb-3">
                             <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
                                 data-bs-target="#collapsePrereqs" aria-expanded="true">
                                 <h6 class="mb-0 d-flex align-items-center">
-                                    <span>Prerequisites / Limits</span>
+                                    <span>Restrictions</span>
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </h6>
                             </div>
@@ -104,36 +104,37 @@ export class ClassFeatSelector {
                         </div>
                     `;
 
-							// Attach prerequisite filter listeners
-							const ignorePrereqsCheckbox = panel.querySelector(
-								'[data-filter-prereq="ignore-prerequisites"]',
-							);
-							const ignoreLimitCheckbox = panel.querySelector(
-								'[data-filter-prereq="ignore-limit"]',
-							);
+						// Attach prerequisite filter listeners
+						const ignorePrereqsCheckbox = panel.querySelector(
+							'[data-filter-prereq="ignore-prerequisites"]',
+						);
+						const ignoreLimitCheckbox = panel.querySelector(
+							'[data-filter-prereq="ignore-limit"]',
+						);
 
-							if (ignorePrereqsCheckbox) {
-								cleanup.on(ignorePrereqsCheckbox, 'change', () => {
-									this._ignorePrerequisites = ignorePrereqsCheckbox.checked;
-									this._loadAndFilterFeats(character);
-									// Trigger filter update
-									this._selector.state.items = this._filteredFeats;
-									this._selector._applyFiltersAndSearch();
-								});
-							}
-
-							if (ignoreLimitCheckbox) {
-								cleanup.on(ignoreLimitCheckbox, 'change', () => {
-									this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
-									// Update modal's max selections display and refresh item states
-									this._selector.config.selectionLimit =
-										this._getCurrentMaxSelections();
-									// Trigger re-render of items and counter to reflect new limit state
-									this._selector._updateConfirmButton();
-									this._selector._renderList();
-								});
-							}
+						if (ignorePrereqsCheckbox) {
+							cleanup.on(ignorePrereqsCheckbox, 'change', () => {
+								this._ignorePrerequisites = ignorePrereqsCheckbox.checked;
+								this._loadAndFilterFeats(character);
+								// Trigger filter update
+								this._selector.state.items = this._filteredFeats;
+								this._selector.state.page = 0;
+								this._selector._renderList();
+							});
 						}
+
+						if (ignoreLimitCheckbox) {
+							cleanup.on(ignoreLimitCheckbox, 'change', () => {
+								this._ignoreSelectionLimit = ignoreLimitCheckbox.checked;
+								// Update modal's max selections display and refresh item states
+								this._selector.config.selectionLimit =
+									this._getCurrentMaxSelections();
+								// Trigger re-render of items and counter to reflect new limit state
+								this._selector._updateConfirmButton();
+								this._selector._renderList();
+							});
+						}
+					}
 					: null;
 
 				this._selector = new UniversalSelectionModal({

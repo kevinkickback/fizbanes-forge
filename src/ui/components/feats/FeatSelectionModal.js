@@ -246,7 +246,7 @@ export class FeatSelectionModal {
 		header.className = 'card-header';
 		header.innerHTML = `
 			<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
-				<span>Prerequisites / Limits</span>
+				<span>Restrictions</span>
 				<i class="fas fa-chevron-down"></i>
 			</h6>
 		`;

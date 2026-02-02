@@ -32,6 +32,8 @@ class AbilityScoreCard {
 		this._handleContainerClicks = null;
 		this._handleContainerChanges = null;
 		this._debouncedCustomInput = null;
+		this._characterSelectedHandler = null;
+		this._characterUpdatedHandler = null;
 
 		// Initialization tracking
 		this._initializedMethod = false;
@@ -253,6 +255,12 @@ class AbilityScoreCard {
 					this._handleCharacterChanged,
 				);
 			}
+			if (this._characterSelectedHandler) {
+				eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+			}
+			if (this._characterUpdatedHandler) {
+				eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
+			}
 			if (this._raceChangedListener) {
 				document.removeEventListener('raceChanged', this._raceChangedListener);
 			}
@@ -262,6 +270,29 @@ class AbilityScoreCard {
 					this._subraceChangedListener,
 				);
 			}
+
+			// Listen to EventBus CHARACTER_SELECTED (when character is loaded/switched)
+			this._characterSelectedHandler = (character) => {
+				console.debug('AbilityScoreCard', 'CHARACTER_SELECTED event received', {
+					name: character?.name,
+				});
+
+				if (!character) return;
+
+				// Sync with current character first
+				this._syncWithCurrentCharacter();
+
+				// Then render the UI
+				this.render();
+			};
+			eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+
+			// Listen to EventBus CHARACTER_UPDATED (when character data changes)
+			this._characterUpdatedHandler = () => {
+				console.debug('AbilityScoreCard', 'CHARACTER_UPDATED event received');
+				this.update();
+			};
+			eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 
 			// Create ability scores changed listener
 			this._abilityScoresChangedListener = () => {
@@ -274,7 +305,7 @@ class AbilityScoreCard {
 			document.addEventListener(
 				'abilityScoresChanged',
 				this._abilityScoresChangedListener,
-			); // Create character changed listener
+			); // Create character changed listener (for backwards compatibility with DOM events)
 			this._handleCharacterChanged = (_event) => {
 				const character = CharacterManager.getCurrentCharacter();
 				if (!character) return;
@@ -642,6 +673,7 @@ class AbilityScoreCard {
 	//-------------------------------------------------------------------------
 
 	render() {
+		console.debug('[AbilityScoreCard] render() called');
 		try {
 			// Initialize scoring method system if needed
 			this._initializeAbilityScoreMethod();
@@ -685,16 +717,19 @@ class AbilityScoreCard {
 	}
 
 	update() {
+		console.debug('[AbilityScoreCard] update() called');
 		this._updateAbilityScoreValues();
 		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
 		this._bonusNotesView.render();
 	}
 
 	_renderAbilityScores() {
+		console.debug('[AbilityScoreCard] _renderAbilityScores() called');
 		try {
 			// Get the ability score method directly from character
 			const character = CharacterManager.getCurrentCharacter();
 			if (!character) {
+				console.warn('[AbilityScoreCard] No character found in _renderAbilityScores');
 				return;
 			}
 
@@ -727,9 +762,11 @@ class AbilityScoreCard {
 	//-------------------------------------------------------------------------
 
 	_updateAbilityScoreValues() {
+		console.debug('[AbilityScoreCard] _updateAbilityScoreValues() called');
 		const isPointBuy =
 			CharacterManager.getCurrentCharacter()?.variantRules
 				?.abilityScoreMethod === 'pointBuy';
+		console.debug('[AbilityScoreCard] Calling updateAbilityScoreValues on box view');
 		this._abilityScoreBoxView.updateAbilityScoreValues(isPointBuy);
 	}
 
@@ -882,6 +919,14 @@ class AbilityScoreCard {
 				'abilityScoresChanged',
 				this._abilityScoresChangedListener,
 			);
+		}
+
+		if (this._characterSelectedHandler) {
+			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+		}
+
+		if (this._characterUpdatedHandler) {
+			eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 		}
 
 		if (this._container && this._handleContainerClicks) {

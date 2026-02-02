@@ -18,8 +18,11 @@ class AbilityScoreBoxView {
 			// Initialize ability labels from 5eTools utilities
 			this._initializeAbilityLabels();
 
+			// Use full ability names that match the HTML data-ability attributes
+			const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
 			// Process each ability score
-			for (const ability of abilityScoreService.getAllAbilities()) {
+			for (const ability of abilities) {
 				this.renderAbilityScoreBox(
 					ability,
 					isStandardArray,
@@ -38,8 +41,11 @@ class AbilityScoreBoxView {
 	}
 
 	_initializeAbilityLabels() {
+		// Use full ability names that match the HTML data-ability attributes
+		const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
 		// Populate ability label h6 elements with display-friendly abbreviations
-		for (const ability of abilityScoreService.getAllAbilities()) {
+		for (const ability of abilities) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
 			if (!box) continue;
 
@@ -147,12 +153,34 @@ class AbilityScoreBoxView {
 	}
 
 	updateAbilityScoreValues(isPointBuy) {
-		for (const ability of abilityScoreService.getAllAbilities()) {
+		console.debug('[AbilityScoreBox] updateAbilityScoreValues() called, isPointBuy:', isPointBuy);
+
+		if (!this._container) {
+			console.warn('[AbilityScoreBox] No container set, skipping update');
+			return;
+		}
+
+		// Check if boxes have been rendered
+		const firstBox = this._container.querySelector('[data-ability]');
+		if (!firstBox) {
+			console.warn('[AbilityScoreBox] Ability boxes not rendered yet, skipping update');
+			return;
+		}
+
+		// Use full ability names that match the HTML data-ability attributes
+		const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
+		for (const ability of abilities) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
-			if (!box) continue;
+			if (!box) {
+				console.warn('[AbilityScoreBox] Box not found for ability:', ability);
+				continue;
+			}
 
 			const baseScore = abilityScoreService.getBaseScore(ability);
 			const totalScore = abilityScoreService.getTotalScore(ability);
+
+			console.debug('[AbilityScoreBox] Updating', ability, 'base:', baseScore, 'total:', totalScore);
 
 			// Update score and modifier displays
 			box.querySelector('.score').textContent = totalScore;
@@ -206,9 +234,12 @@ class AbilityScoreBoxView {
 
 	updateAllAbilityScores() {
 		try {
+			// Use full ability names that match the HTML data-ability attributes
+			const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
 			// Get the current ability scores from the manager
 			const scores = {};
-			for (const ability of abilityScoreService._allAbilities) {
+			for (const ability of abilities) {
 				scores[ability] = abilityScoreService.getTotalScore(ability);
 			}
 

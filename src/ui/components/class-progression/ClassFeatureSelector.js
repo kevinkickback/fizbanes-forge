@@ -1,11 +1,11 @@
 import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
+import { sourceService } from '../../../services/SourceService.js';
 import {
 	UniversalSelectionModal,
 	formatCounter,
-} from '../../../lib/UniversalSelectionModal.js';
-import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
-import { sourceService } from '../../../services/SourceService.js';
+} from '../selection/UniversalSelectionModal.js';
 
 // Feature selector adapter for class features (Invocations, Metamagic, Maneuvers, etc.)
 
