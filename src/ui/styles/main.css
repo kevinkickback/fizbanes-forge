@@ -1563,6 +1563,27 @@ small.text-muted {
 	transform-origin: right center;
 }
 
+.split-card-body .info-panel::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: url("../assets/images/info-pane-background.svg");
+	background-size: 100% 100%;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.1;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.split-card-body .info-panel > * {
+	position: relative;
+	z-index: 1;
+}
+
 .split-card-body .info-panel.collapsed {
 	opacity: 0;
 	transform: translateX(0) scaleX(0);
