@@ -510,7 +510,9 @@ export class UniversalSelectionModal {
 		const confirmBtn = this.modal?.querySelector(this.config.confirmSelector);
 		if (!confirmBtn) return;
 
-		confirmBtn.disabled = this.state.selectedIds.size === 0;
+		// Don't disable confirm button - allow confirming with 0 selections
+		// (e.g., to unprepare all spells)
+		confirmBtn.disabled = false;
 
 		// Update selection counter if it exists
 		const countContainer = this.modal?.querySelector('[data-selection-count]');

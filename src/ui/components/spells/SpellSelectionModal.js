@@ -51,12 +51,24 @@ export class SpellSelectionModal {
 		};
 	}
 
+	_getInitialSelectionIds() {
+		// Transform spell objects to spell IDs for initial selection
+		if (!Array.isArray(this.initialSpells) || this.initialSpells.length === 0) {
+			return [];
+		}
+
+		return this.initialSpells.map((spell) => {
+			const id = spell.id || `${spell.name}|${spell.source}`.toLowerCase().replace(/\s+/g, '-');
+			return id;
+		});
+	}
+
 	_ensureController() {
 		if (this._controller) return;
 
 		this._controller = new UniversalSelectionModal({
 			modalId: 'universalSpellSelectionModal',
-			modalTitle: `Add Spell (${this.className})`,
+			modalTitle: 'Add Spell',
 			allowClose: this.allowClose,
 			pageSize: 50,
 			listContainerSelector: '.spell-list-container',
@@ -70,7 +82,7 @@ export class SpellSelectionModal {
 			selectionMode: 'multiple',
 			selectionLimit: null,
 			getContext: () => this._getContext(),
-			getInitialSelection: () => this.initialSpells || [],
+			getInitialSelection: () => this._getInitialSelectionIds(),
 			loadItems: (ctx) => this._loadValidSpells(ctx),
 			matchItem: (spell, state) => this._spellMatchesFilters(spell, state),
 			renderItem: (spell, state) => this._renderSpellCard(spell, state),
@@ -427,61 +439,63 @@ export class SpellSelectionModal {
 		const character = AppState.getCurrentCharacter();
 		if (!character) return '';
 
-		// Get spell limit info for this class
-		const classEntry = character.progression?.classes?.find(
-			(c) => c.name === this.className,
-		);
-		const classLevel = classEntry?.levels || 1;
+		// Get all spellcasting classes and calculate combined totals
+		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
 
-		const limitInfo = spellSelectionService.getSpellLimitInfo(
-			character,
-			this.className,
-			classLevel,
-		);
+		let totalCantripsMax = 0;
+		let totalSpellsMax = 0;
 
-		// Count selected spells by type
-		const selectedCantrips = selectedItems.filter(
-			(s) => (s.level || 0) === 0,
-		).length;
-		const selectedLeveled = selectedItems.filter(
-			(s) => (s.level || 0) > 0,
-		).length;
+		// Count selected cantrips and leveled spells
+		const selectedCantrips = selectedItems.filter((s) => (s.level || 0) === 0).length;
+		const selectedLeveled = selectedItems.filter((s) => (s.level || 0) > 0).length;
+
+		// Sum up limits across all classes
+		for (const className of spellcastingClasses) {
+			const classEntry = character.progression?.classes?.find(
+				(c) => c.name === className,
+			);
+			const classLevel = classEntry?.levels || 1;
+
+			const limitInfo = spellSelectionService.getSpellLimitInfo(
+				character,
+				className,
+				classLevel,
+			);
+
+			const classSpellcasting = character.spellcasting?.classes?.[className];
+
+			// Add cantrip limits
+			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+			totalCantripsMax += maxCantrips;
+
+			// Add spell limits
+			if (limitInfo.type === 'known') {
+				totalSpellsMax += limitInfo.limit || 0;
+			} else if (limitInfo.type === 'prepared') {
+				totalSpellsMax += limitInfo.spellbookLimit || 0;
+			}
+		}
 
 		const categories = [];
 
-		// Add cantrips category
-		const classSpellcasting = character.spellcasting?.classes?.[this.className];
-		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
-		if (maxCantrips > 0) {
+		// Add combined cantrips category
+		if (totalCantripsMax > 0) {
 			categories.push({
 				label: selectedCantrips === 1 ? 'cantrip' : 'cantrips',
 				selected: selectedCantrips,
-				max: maxCantrips,
+				max: totalCantripsMax,
 				color: 'bg-info',
 			});
 		}
 
-		// Add leveled spells category
-		if (limitInfo.type === 'known') {
-			// Classes with fixed spells known (Bard, Sorcerer, etc.)
-			if (limitInfo.limit > 0) {
-				categories.push({
-					label: selectedLeveled === 1 ? 'spell' : 'spells',
-					selected: selectedLeveled,
-					max: limitInfo.limit,
-					color: 'bg-success',
-				});
-			}
-		} else if (limitInfo.type === 'prepared') {
-			// Classes with spellbook (Wizard) or prepare from full list
-			if (limitInfo.spellbookLimit > 0) {
-				categories.push({
-					label: selectedLeveled === 1 ? 'spell' : 'spells',
-					selected: selectedLeveled,
-					max: limitInfo.spellbookLimit,
-					color: 'bg-success',
-				});
-			}
+		// Add combined spells category
+		if (totalSpellsMax > 0) {
+			categories.push({
+				label: selectedLeveled === 1 ? 'spell' : 'spells',
+				selected: selectedLeveled,
+				max: totalSpellsMax,
+				color: 'bg-success',
+			});
 		}
 
 		return formatCategoryCounters(categories);
@@ -494,16 +508,36 @@ export class SpellSelectionModal {
 		const state = this._controller?.state;
 		if (!state) return null;
 
-		const classEntry = character.progression?.classes?.find(
-			(c) => c.name === this.className,
-		);
-		const classLevel = classEntry?.levels || 1;
+		// Calculate combined limits across all spellcasting classes
+		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
+		let totalCantripsMax = 0;
+		let totalSpellsMax = 0;
 
-		const limitInfo = spellSelectionService.getSpellLimitInfo(
-			character,
-			this.className,
-			classLevel,
-		);
+		for (const className of spellcastingClasses) {
+			const classEntry = character.progression?.classes?.find(
+				(c) => c.name === className,
+			);
+			const classLevel = classEntry?.levels || 1;
+
+			const limitInfo = spellSelectionService.getSpellLimitInfo(
+				character,
+				className,
+				classLevel,
+			);
+
+			const classSpellcasting = character.spellcasting?.classes?.[className];
+
+			// Add cantrip limits
+			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+			totalCantripsMax += maxCantrips;
+
+			// Add spell limits
+			if (limitInfo.type === 'known') {
+				totalSpellsMax += limitInfo.limit || 0;
+			} else if (limitInfo.type === 'prepared') {
+				totalSpellsMax += limitInfo.spellbookLimit || 0;
+			}
+		}
 
 		// Count selected spells by type
 		const selectedCantrips = state.selectedItems.filter(
@@ -514,31 +548,22 @@ export class SpellSelectionModal {
 		).length;
 
 		// Check cantrip over-capacity
-		const classSpellcasting = character.spellcasting?.classes?.[this.className];
-		const maxCantrips = classSpellcasting?.cantripsKnown || 0;
-		if (maxCantrips > 0 && selectedCantrips > maxCantrips) {
+		if (totalCantripsMax > 0 && selectedCantrips > totalCantripsMax) {
 			return {
 				type: 'cantrips',
-				excess: selectedCantrips - maxCantrips,
+				excess: selectedCantrips - totalCantripsMax,
 				selected: selectedCantrips,
-				max: maxCantrips,
+				max: totalCantripsMax,
 			};
 		}
 
 		// Check leveled spell over-capacity
-		let maxSpells = 0;
-		if (limitInfo.type === 'known') {
-			maxSpells = limitInfo.limit;
-		} else if (limitInfo.type === 'prepared') {
-			maxSpells = limitInfo.spellbookLimit;
-		}
-
-		if (maxSpells > 0 && selectedLeveled > maxSpells) {
+		if (totalSpellsMax > 0 && selectedLeveled > totalSpellsMax) {
 			return {
 				type: 'spells',
-				excess: selectedLeveled - maxSpells,
+				excess: selectedLeveled - totalSpellsMax,
 				selected: selectedLeveled,
-				max: maxSpells,
+				max: totalSpellsMax,
 			};
 		}
 
@@ -556,17 +581,36 @@ export class SpellSelectionModal {
 		const character = AppState.getCurrentCharacter();
 		if (!character) return true;
 
-		// Get spell limit info for this class
-		const classEntry = character.progression?.classes?.find(
-			(c) => c.name === this.className,
-		);
-		const classLevel = classEntry?.levels || 1;
+		// Calculate combined limits across all spellcasting classes
+		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
+		let totalCantripsMax = 0;
+		let totalSpellsMax = 0;
 
-		const limitInfo = spellSelectionService.getSpellLimitInfo(
-			character,
-			this.className,
-			classLevel,
-		);
+		for (const className of spellcastingClasses) {
+			const classEntry = character.progression?.classes?.find(
+				(c) => c.name === className,
+			);
+			const classLevel = classEntry?.levels || 1;
+
+			const limitInfo = spellSelectionService.getSpellLimitInfo(
+				character,
+				className,
+				classLevel,
+			);
+
+			const classSpellcasting = character.spellcasting?.classes?.[className];
+
+			// Add cantrip limits
+			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
+			totalCantripsMax += maxCantrips;
+
+			// Add spell limits
+			if (limitInfo.type === 'known') {
+				totalSpellsMax += limitInfo.limit || 0;
+			} else if (limitInfo.type === 'prepared') {
+				totalSpellsMax += limitInfo.spellbookLimit || 0;
+			}
+		}
 
 		// Count selected spells by type
 		const selectedCantrips = state.selectedItems.filter(
@@ -578,29 +622,15 @@ export class SpellSelectionModal {
 
 		// Check cantrip limit
 		if ((spell.level || 0) === 0) {
-			const classSpellcasting = character.spellcasting?.classes?.[this.className];
-			const maxCantrips = classSpellcasting?.cantripsKnown || 0;
-			if (maxCantrips > 0 && selectedCantrips >= maxCantrips) {
+			if (totalCantripsMax > 0 && selectedCantrips >= totalCantripsMax) {
 				return false;
 			}
 			return true;
 		}
 
-		// Check leveled spell limit based on class type
-		if (limitInfo.type === 'known') {
-			// Classes with fixed spells known (Bard, Sorcerer, etc.)
-			if (limitInfo.limit > 0 && selectedLeveled >= limitInfo.limit) {
-				return false;
-			}
-		} else if (limitInfo.type === 'prepared') {
-			// Classes with spellbook (Wizard) or prepare from full list (Cleric, Druid)
-			// For spellbook, limit is total spells in spellbook
-			if (
-				limitInfo.spellbookLimit > 0 &&
-				selectedLeveled >= limitInfo.spellbookLimit
-			) {
-				return false;
-			}
+		// Check leveled spell limit
+		if (totalSpellsMax > 0 && selectedLeveled >= totalSpellsMax) {
+			return false;
 		}
 
 		return true;

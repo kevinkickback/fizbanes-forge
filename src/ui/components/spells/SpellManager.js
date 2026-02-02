@@ -5,12 +5,14 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
+import { PreparedSpellSelectionModal } from './PreparedSpellSelectionModal.js';
 import { SpellSelectionModal } from './SpellSelectionModal.js';
 
 export class SpellsManager {
 	constructor() {
 		this.loggerScope = 'SpellsManager';
 		this.spellSelectionModal = null;
+		this.preparedSpellSelectionModal = null;
 		this.setupEventListeners();
 	}
 
@@ -20,6 +22,12 @@ export class SpellsManager {
 			const addSpellBtn = e.target.closest('#addSpellBtn');
 			if (addSpellBtn) {
 				this.handleAddSpell();
+				return;
+			}
+
+			const prepareSpellsBtn = e.target.closest('#prepareSpellsBtn');
+			if (prepareSpellsBtn) {
+				this.handlePrepareSpells();
 				return;
 			}
 
@@ -139,8 +147,11 @@ export class SpellsManager {
 
 					html += `<div class="col">
 						<div class="spell-item card card-sm h-100">
-							<div class="card-body py-1 px-2 d-flex justify-content-between align-items-center">
-								<div class="spell-info flex-grow-1">
+							<div class="card-body py-2 px-2 position-relative d-flex align-items-center">
+								<button class="btn btn-sm btn-link text-danger text-decoration-none border-0 position-absolute top-0 end-0 p-1" data-remove-spell="${spell.name}" data-class-name="${className}" title="Remove spell" style="font-size: 1.25rem; line-height: 1;">
+									<i class="fas fa-square-xmark"></i>
+								</button>
+								<div class="spell-info pe-4 flex-grow-1">
 									<h6 class="mb-0">
 										<a href="#" class="reference-link text-decoration-none" 
 											data-hover-type="spell" 
@@ -150,14 +161,9 @@ export class SpellsManager {
 									<div class="mt-1">
 										${spell.ritual ? '<span class="badge bg-info">Ritual</span>' : ''}
 										${spell.concentration ? '<span class="badge bg-warning ms-1">Concentration</span>' : ''}
-										${isPrepared ? '<span class="badge bg-success ms-1">Prepared</span>' : ''}
 									</div>
 								</div>
-								<div class="spell-actions ms-2">
-									<button class="btn btn-sm btn-outline-danger" data-remove-spell="${spell.name}" data-class-name="${className}" title="Remove spell">
-										<i class="fas fa-trash"></i>
-									</button>
-								</div>
+								${isPrepared ? '<div class="position-absolute bottom-0 end-0 m-1"><span class="badge bg-success">Prepared</span></div>' : ''}
 							</div>
 						</div>
 					</div>`;
@@ -181,67 +187,25 @@ export class SpellsManager {
 	}
 
 	renderPreparedSpells(character) {
-		const container = document.getElementById('preparedSpellsList');
-		const section = document.getElementById('preparedSpellsSection');
-		if (!container || !section) return;
+		const preparedClasses = this._getPreparedSpellClasses(character);
+		let hasKnownPreparedSpells = false;
 
-		const spellcasting = character.spellcasting;
-		const classNames = Object.keys(spellcasting?.classes || {});
-		const preparedSpellClasses = [
-			'Cleric',
-			'Druid',
-			'Paladin',
-			'Ranger',
-			'Wizard',
-		];
+		for (const className of preparedClasses) {
+			const classData = character.spellcasting?.classes?.[className];
+			if (!classData) continue;
 
-		let html = '';
-		let totalPrepared = 0;
-		let totalLimit = 0;
-
-		for (const className of classNames) {
-			if (!preparedSpellClasses.includes(className)) continue;
-
-			const classData = spellcasting.classes[className];
-			if (!classData?.spellsPrepared) continue;
-
-			for (const spell of classData.spellsPrepared) {
-				totalPrepared++;
-				html += `<div class="spell-item card card-sm mb-2">
-					<div class="card-body d-flex justify-content-between align-items-center">
-						<div>
-							<h6 class="mb-1">${spell.name}</h6>
-							<small class="text-muted">${className}</small>
-						</div>
-						<button class="btn btn-sm btn-outline-danger" data-prepare-spell="${spell.name}" data-class-name="${className}">
-							<i class="fas fa-times"></i>
-						</button>
-					</div>
-				</div>`;
+			const knownSpells = classData.spellsKnown || [];
+			if (knownSpells.length > 0) {
+				hasKnownPreparedSpells = true;
+				break;
 			}
-
-			// Calculate prepared spell limit for this class using the service
-			const classLevel = classData.level || 1;
-			const preparedLimit = spellSelectionService._getPreparedSpellLimit(
-				character,
-				className,
-				classLevel,
-			);
-			totalLimit += preparedLimit;
 		}
 
-		if (html === '') {
-			html = '<p class="text-muted">No prepared spells.</p>';
+		const prepareSpellsBtn = document.getElementById('prepareSpellsBtn');
+		if (prepareSpellsBtn) {
+			prepareSpellsBtn.disabled =
+				preparedClasses.length === 0 || !hasKnownPreparedSpells;
 		}
-
-		const preparedLimit = document.getElementById('preparedSpellsLimit');
-		if (preparedLimit) {
-			preparedLimit.textContent = `${totalPrepared} / ${totalLimit} prepared`;
-		}
-
-		container.innerHTML = html;
-		section.style.display =
-			totalPrepared > 0 || totalLimit > 0 ? 'block' : 'none';
 	}
 
 	renderSpellcastingInfo(character) {
@@ -381,6 +345,33 @@ export class SpellsManager {
 		}
 	}
 
+	async handlePrepareSpells() {
+		const character = AppState.getCurrentCharacter();
+		if (!character) {
+			showNotification('No character selected', 'error');
+			return;
+		}
+
+		const preparedClasses = this._getPreparedSpellClasses(character);
+		if (preparedClasses.length === 0) {
+			showNotification('No prepared spell classes available', 'warning');
+			return;
+		}
+
+		try {
+			if (!this.preparedSpellSelectionModal) {
+				this.preparedSpellSelectionModal =
+					new PreparedSpellSelectionModal({ classNames: preparedClasses });
+			} else {
+				this.preparedSpellSelectionModal.classNames = preparedClasses;
+			}
+
+			await this.preparedSpellSelectionModal.show();
+		} catch (error) {
+			console.error(`[${this.loggerScope}]`, 'Prepare modal error', error);
+		}
+	}
+
 	handleRemoveSpell(spellName, className = null) {
 		const character = AppState.getCurrentCharacter();
 		if (!character) {
@@ -458,6 +449,20 @@ export class SpellsManager {
 		}
 
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
+	}
+
+	_getPreparedSpellClasses(character) {
+		const classNames = Object.keys(character?.spellcasting?.classes || {});
+		return classNames.filter((className) => {
+			const classData = character.spellcasting.classes[className];
+			const classLevel = classData?.level || 1;
+			const limitInfo = spellSelectionService.getSpellLimitInfo(
+				character,
+				className,
+				classLevel,
+			);
+			return limitInfo?.type === 'prepared';
+		});
 	}
 
 	_getSpellcastingAbility(className) {
