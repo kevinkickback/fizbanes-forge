@@ -1,7 +1,6 @@
 // Controller for proficiency display/selection/notes UI
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import { ProficiencyCore } from '../../../app/Proficiency.js';
 import { ABILITY_NAMES, toTitleCase } from '../../../lib/5eToolsParser.js';
 import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
@@ -434,7 +433,7 @@ export class ProficiencyCard {
 					),
 				);
 
-				ProficiencyCore.initializeProficiencyStructures(this._character);
+				proficiencyService.initializeProficiencyStructures(this._character);
 				this._initializeCharacterProficiencies();
 				this._reinitializeClassToolProficiencies();
 				this._cleanupOptionalProficiencies();
@@ -1319,7 +1318,7 @@ export class ProficiencyCard {
 		// Remove proficiencies for slots that no longer exist
 		for (const orphaned of remaining) {
 			if (orphaned.selection) {
-				ProficiencyCore._removeProficiencyFromSource(
+				proficiencyService._removeProficiencyFromSource(
 					this._character,
 					'tools',
 					orphaned.selection,
@@ -1368,7 +1367,7 @@ export class ProficiencyCard {
 			);
 
 			if (!alreadyHas) {
-				ProficiencyCore.addProficiency(
+				proficiencyService.addProficiency(
 					this._character,
 					'tools',
 					slot.selection,
@@ -1427,7 +1426,7 @@ export class ProficiencyCard {
 
 		// Remove old instrument proficiency if one was selected
 		if (previousSelection) {
-			ProficiencyCore._removeProficiencyFromSource(
+			proficiencyService._removeProficiencyFromSource(
 				this._character,
 				'tools',
 				previousSelection,
@@ -1440,7 +1439,7 @@ export class ProficiencyCard {
 
 		// Add new instrument proficiency if a new one was selected
 		if (newSelection) {
-			ProficiencyCore.addProficiency(
+			proficiencyService.addProficiency(
 				this._character,
 				'tools',
 				newSelection,

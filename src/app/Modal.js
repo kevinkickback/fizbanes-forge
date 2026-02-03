@@ -1,6 +1,5 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
-import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { initializeBootstrapModal } from '../lib/ModalCleanupUtility.js';
 import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
@@ -19,9 +18,6 @@ export class Modal {
 		};
 		this._buttonListenersSetup = false;
 
-		// DOM cleanup manager for this modal instance
-		this._cleanup = DOMCleanup.create();
-
 		_instance = this;
 	}
 
@@ -29,7 +25,7 @@ export class Modal {
 		try {
 			this._eventHandlers = handlers;
 		} catch (error) {
-			console.error('Modal', 'Error setting up modal event listeners:', error);
+			console.error('[Modal]', 'Error setting up modal event listeners:', error);
 		}
 	}
 
@@ -39,7 +35,7 @@ export class Modal {
 			this._buttonListenersSetup = true;
 		} catch (error) {
 			console.error(
-				'Modal',
+				'[Modal]',
 				'Error initializing Modal button listeners:',
 				error,
 			);
@@ -47,7 +43,6 @@ export class Modal {
 	}
 
 	_setupButtonEventListeners() {
-		// Set up new character button
 		this._setupButtonEventListener('newCharacterBtn', (e) => {
 			e.preventDefault();
 			eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_OPENED);
@@ -69,7 +64,7 @@ export class Modal {
 			newButton.addEventListener('click', handler);
 		} catch (error) {
 			console.error(
-				'Modal',
+				'[Modal]',
 				`Error setting up button listener for ${buttonId}:`,
 				error,
 			);
@@ -93,7 +88,7 @@ export class Modal {
 			const characterCreationModal = new CharacterCreationModal();
 			await characterCreationModal.show();
 		} catch (error) {
-			console.error('Modal', 'Error showing new character modal:', error);
+			console.error('[Modal]', 'Error showing new character modal:', error);
 			showNotification('Could not open new character form', 'error');
 		}
 	}
@@ -111,7 +106,7 @@ export class Modal {
 
 			if (!title || !message) {
 				console.error(
-					'Modal',
+					'[Modal]',
 					'Missing required parameters for confirmation dialog',
 				);
 				return false;
@@ -133,7 +128,7 @@ export class Modal {
 				!closeButton
 			) {
 				console.error(
-					'Modal',
+					'[Modal]',
 					'One or more confirmation modal elements not found',
 				);
 				return false;
@@ -146,10 +141,9 @@ export class Modal {
 
 			confirmButton.className = `btn ${confirmButtonClass}`;
 
-			// Use safe modal initialization to prevent backdrop stacking
 			const modal = initializeBootstrapModal(modalElement);
 			if (!modal) {
-				console.error('Modal', 'Failed to initialize confirmation modal');
+				console.error('[Modal]', 'Failed to initialize confirmation modal');
 				return false;
 			}
 
@@ -180,11 +174,11 @@ export class Modal {
 					cancelButton.removeEventListener('click', handleCancel);
 					closeButton.removeEventListener('click', handleCancel);
 					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
-					// Dispose modal instance to clean up backdrops
+
 					try {
 						modal.dispose();
 					} catch (e) {
-						console.warn('Modal', 'Error disposing confirmation modal', e);
+						console.warn('[Modal]', 'Error disposing confirmation modal', e);
 					}
 				};
 
@@ -196,7 +190,7 @@ export class Modal {
 				modal.show();
 			});
 		} catch (error) {
-			console.error('Modal', 'Error showing confirmation dialog:', error);
+			console.error('[Modal]', 'Error showing confirmation dialog:', error);
 			return false;
 		}
 	}
@@ -208,7 +202,7 @@ export class Modal {
 
 			if (!characterName || !characterId) {
 				console.error(
-					'Modal',
+					'[Modal]',
 					'Missing required parameters for duplicate ID modal',
 				);
 				return 'cancel';
@@ -229,7 +223,7 @@ export class Modal {
 				!cancelButton ||
 				!closeButton
 			) {
-				console.error('Modal', 'One or more modal elements not found');
+				console.error('[Modal]', 'One or more modal elements not found');
 				return 'cancel';
 			}
 
@@ -262,10 +256,9 @@ export class Modal {
 			const buttonContainer = cancelButton.parentElement;
 			buttonContainer.insertBefore(keepBothButton, cancelButton);
 
-			// Use safe modal initialization to prevent backdrop stacking
 			const modal = initializeBootstrapModal(modalElement);
 			if (!modal) {
-				console.error('Modal', 'Failed to initialize duplicate ID modal');
+				console.error('[Modal]', 'Failed to initialize duplicate ID modal');
 				return 'cancel';
 			}
 
@@ -298,13 +291,12 @@ export class Modal {
 					keepBothButton.removeEventListener('click', handleKeepBoth);
 					closeButton.removeEventListener('click', handleCloseIcon);
 					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
-					keepBothButton.remove(); // Remove the temporary button
-					cancelButton.style.display = 'block'; // Restore cancel button for future use
-					// Dispose modal instance to clean up backdrops
+					keepBothButton.remove();
+					cancelButton.style.display = 'block';
 					try {
 						modal.dispose();
 					} catch (e) {
-						console.warn('Modal', 'Error disposing duplicate ID modal', e);
+						console.warn('[Modal]', 'Error disposing duplicate ID modal', e);
 					}
 				};
 
@@ -316,7 +308,7 @@ export class Modal {
 				modal.show();
 			});
 		} catch (error) {
-			console.error('Modal', 'Error showing duplicate ID modal:', error);
+			console.error('[Modal]', 'Error showing duplicate ID modal:', error);
 			return 'cancel';
 		}
 	}
@@ -329,5 +321,4 @@ export class Modal {
 	}
 }
 
-// Export a singleton instance
 export const modal = Modal.getInstance();

@@ -92,16 +92,11 @@ npm start
 
 ## 📊 Data Files
 
-> **⚠️ Important:** Fizbane's Forge does **not** include game data. You must provide your own 5etools-compatible JSON data files.
+> **⚠️ Important:** Fizbane's Forge does **not** include D&D game data. You must provide your own compatible JSON files.
 
-This application uses the [5etools](https://wiki.tercept.net/en/home) data format. On first launch, you will be prompted to select a folder/URL containing compatible data files.
+This application uses the [5etools](https://wiki.tercept.net/en/home) data format. On first launch, you will be prompted to select a folder/URL containing compatible JSON files.
 
 
 ## 📄 License
 
 This project is licensed under the GNU General Public License v3.0 - see the [license.txt](license.txt) file for details.
-
-## 🙏 Acknowledgments
-
-- [5etools](https://wiki.tercept.net/en/home) for D&D 5e data schemas and parsing utilities
-- The D&D community for inspiration and feedback

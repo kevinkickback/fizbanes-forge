@@ -76,11 +76,6 @@ export class ThemeManager {
 			}
 		}
 	}
-
-	getTheme() {
-		return this.currentTheme;
-	}
 }
 
-// Create singleton instance
 export const themeManager = new ThemeManager();

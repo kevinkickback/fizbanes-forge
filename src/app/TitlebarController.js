@@ -91,14 +91,6 @@ export class TitlebarController {
 			AppState.getCurrentCharacter?.() || AppState.get?.('currentCharacter');
 		const hasUnsaved = AppState.get?.('hasUnsavedChanges');
 
-		console.debug('[TitlebarController] updateActionButtons', {
-			hasCharacter: !!character,
-			name: character?.name,
-			hasProgression: !!character?.progression,
-			classCount: character?.progression?.classes?.length || 0,
-			hasUnsaved,
-		});
-
 		if (this.levelUpBtn) {
 			const hasClasses =
 				character?.progression?.classes &&
@@ -120,5 +112,4 @@ export class TitlebarController {
 	}
 }
 
-// Create singleton instance
 export const titlebarController = new TitlebarController();

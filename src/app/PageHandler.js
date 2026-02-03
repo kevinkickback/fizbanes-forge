@@ -1,5 +1,3 @@
-/** Handles page-specific initialization after templates render. */
-
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { ALIGNMENTS } from '../lib/constants.js';
@@ -19,7 +17,6 @@ import { RaceCard } from '../ui/components/race/RaceCard.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 import { Modal } from './Modal.js';
-import { storage } from './Storage.js';
 
 class PageHandlerImpl {
 	constructor() {
@@ -36,7 +33,6 @@ class PageHandlerImpl {
 
 	initialize() {
 		if (this.isInitialized) {
-			console.warn('PageHandler', 'Already initialized');
 			return;
 		}
 
@@ -45,11 +41,9 @@ class PageHandlerImpl {
 		});
 
 		this.isInitialized = true;
-		console.debug('PageHandler', 'Initialized successfully');
 	}
 
 	async handlePageLoaded(pageName) {
-		console.debug('PageHandler', 'Handling page loaded', { pageName });
 		try {
 			if (pageName !== 'home') {
 				if (this._homeCharacterSelectedHandler) {
@@ -107,8 +101,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeHomePage() {
-		console.debug('PageHandler', 'Initializing home page');
-
 		try {
 			const modal = Modal.getInstance();
 			modal.ensureInitialized();
@@ -126,14 +118,7 @@ class PageHandlerImpl {
 				const newSortSelect = sortSelect.cloneNode(true);
 				sortSelect.parentNode.replaceChild(newSortSelect, sortSelect);
 
-				newSortSelect.addEventListener('change', async (e) => {
-					const sortOption = e.target.value;
-					console.debug('PageHandler', 'Sort option changed', { sortOption });
-
-					// Re-render with current characters using new sort order
-					if (this.currentCharacters) {
-						await this.renderCharacterList(this.currentCharacters);
-					}
+				newSortSelect.addEventListener('change', async () => {
 				});
 			}
 
@@ -142,10 +127,7 @@ class PageHandlerImpl {
 				onShowModal: async (e) => {
 					await modal.showNewCharacterModal(e);
 				},
-				onCreateCharacter: async (character) => {
-					console.debug('PageHandler', 'Character created', {
-						id: character.id,
-					});
+				onCreateCharacter: async () => {
 					const reloadCharacters = await CharacterManager.loadCharacterList();
 					await this.renderCharacterList(reloadCharacters);
 				},
@@ -179,7 +161,6 @@ class PageHandlerImpl {
 				this._homeCharacterSelectedHandler,
 			);
 
-			// Remove old handler if it exists before adding new one
 			if (this._homeCharacterCreatedHandler) {
 				eventBus.off(
 					EVENTS.CHARACTER_CREATED,
@@ -379,9 +360,6 @@ class PageHandlerImpl {
 			})
 			.join('');
 
-		console.debug('PageHandler', 'Character list rendered', {
-			count: sortedCharacters.length,
-		});
 	}
 
 	setupCharacterCardListeners(container) {
@@ -397,13 +375,8 @@ class PageHandlerImpl {
 
 			const characterId = card.dataset.characterId;
 			if (characterId) {
-				console.debug('PageHandler', 'Character card clicked', { characterId });
 				try {
-					const character = await CharacterManager.loadCharacter(characterId);
-					console.debug('PageHandler', 'Character loaded from card', {
-						id: characterId,
-						name: character?.name,
-					});
+					await CharacterManager.loadCharacter(characterId);
 				} catch (error) {
 					console.error('PageHandler', 'Failed to load character', {
 						id: characterId,
@@ -421,10 +394,15 @@ class PageHandlerImpl {
 			e.stopPropagation();
 			const characterId = exportBtn.dataset.characterId;
 			if (characterId) {
-				const success = await storage.exportCharacter(characterId);
-				if (success) {
-					showNotification('Character exported successfully', 'success');
-				} else {
+				try {
+					const result = await window.characterStorage.exportCharacter(characterId);
+					if (result?.success) {
+						showNotification('Character exported successfully', 'success');
+					} else {
+						showNotification('Failed to export character', 'error');
+					}
+				} catch (error) {
+					console.error('PageHandler', 'Error exporting character', error);
 					showNotification('Failed to export character', 'error');
 				}
 			}
@@ -461,23 +439,37 @@ class PageHandlerImpl {
 		});
 	}
 
-	/**
-	 * Handle import character button click
-	 */
 	async handleImportCharacter() {
 		try {
-			console.info('PageHandler', 'Importing character');
+			let result = await window.characterStorage.importCharacter();
 
-			const result = await storage.importCharacter();
+			if (result?.duplicateId) {
+				const modal = Modal.getInstance();
+				const action = await modal.showDuplicateIdModal({
+					characterName: result.character.name,
+					characterId: result.character.id,
+					createdAt: result.existingCharacter?.createdAt,
+					lastModified: result.existingCharacter?.lastModified,
+				});
 
-			if (result.success && result.character) {
+				if (action === 'cancel') {
+					return;
+				}
+
+				result = await window.characterStorage.importCharacter({
+					character: result.character,
+					sourceFilePath: result.sourceFilePath,
+					action,
+				});
+			}
+
+			if (result?.success && result.character) {
 				showNotification('Character imported successfully', 'success');
 
-				// Reload character list
 				const reloadCharacters = await CharacterManager.loadCharacterList();
 				await this.renderCharacterList(reloadCharacters);
-			} else if (result.canceled) {
-				console.debug('PageHandler', 'Import canceled');
+			} else if (result?.canceled) {
+				// User canceled import
 			} else {
 				showNotification('Failed to import character', 'error');
 			}
@@ -526,8 +518,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeSettingsPage() {
-		console.debug('PageHandler', 'Initializing settings page');
-
 		try {
 			await settingsService.initializeSettingsPage();
 		} catch (error) {
@@ -537,8 +527,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeBuildPage() {
-		console.debug('PageHandler', 'Initializing build page');
-
 		try {
 			new RaceCard();
 			new ClassCard();
@@ -549,8 +537,6 @@ class PageHandlerImpl {
 
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
-
-			console.debug('PageHandler', 'Build page cards initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing build page', error);
 			showNotification('Error initializing build page', 'error');
@@ -575,12 +561,6 @@ class PageHandlerImpl {
 		}
 
 		this._onFeatsSelected = (selectedFeats) => {
-			console.debug('PageHandler', 'FEATS_SELECTED event received', {
-				count: Array.isArray(selectedFeats) ? selectedFeats.length : 0,
-				feats: Array.isArray(selectedFeats)
-					? selectedFeats.map((f) => f.name)
-					: selectedFeats,
-			});
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
 				console.warn('PageHandler', 'No character loaded');
@@ -593,10 +573,6 @@ class PageHandlerImpl {
 				? selectedFeats.slice(0, allowedCount)
 				: [];
 
-			console.debug('PageHandler', 'Setting feats on character', {
-				allowedCount,
-				count: featsToStore.length,
-			});
 			character.setFeats(featsToStore, 'Manual selection');
 			this._featListView.update(this._featListContainer, character);
 			this._featSourcesView.update(this._featSourcesContainer, character);
@@ -678,8 +654,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeDetailsPage() {
-		console.debug('PageHandler', 'Initializing details page');
-
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
@@ -732,21 +706,12 @@ class PageHandlerImpl {
 				backstoryTextarea.value = character.backstory || '';
 
 			this._setupDetailsPageFormListeners();
-
-			console.debug(
-				'PageHandler',
-				'Details page populated with character data',
-			);
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing details page', error);
 			showNotification('Error loading details page', 'error');
 		}
 	}
 
-	/**
-	 * Set up event listeners for form fields on the details page
-	 * @private
-	 */
 	_setupDetailsPageFormListeners() {
 		const detailsFields = [
 			'characterName',
@@ -776,8 +741,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeFeatsPage() {
-		console.debug('PageHandler', 'Initializing feats page');
-
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
@@ -837,8 +800,6 @@ class PageHandlerImpl {
 			}
 
 			this._updateFeatAvailabilitySection(character);
-
-			console.debug('PageHandler', 'Feats page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing feats page', error);
 			showNotification('Error loading feats page', 'error');
@@ -856,7 +817,6 @@ class PageHandlerImpl {
 		}
 	}
 
-	/** Extracts the category portion from a feat origin reason. */
 	_formatFeatOrigin(reason) {
 		if (!reason) return '';
 
@@ -871,8 +831,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeEquipmentPage() {
-		console.debug('PageHandler', 'Initializing equipment page');
-
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
@@ -892,8 +850,6 @@ class PageHandlerImpl {
 			eventBus.on(EVENTS.ITEM_REMOVED, updateHandler);
 			eventBus.on(EVENTS.ITEM_EQUIPPED, updateHandler);
 			eventBus.on(EVENTS.ITEM_UNEQUIPPED, updateHandler);
-
-			console.debug('PageHandler', 'Equipment page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing equipment page', error);
 			showNotification('Error loading equipment page', 'error');
@@ -901,8 +857,6 @@ class PageHandlerImpl {
 	}
 
 	async initializePreviewPage() {
-		console.debug('PageHandler', 'Initializing preview page');
-
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
@@ -910,7 +864,6 @@ class PageHandlerImpl {
 				return;
 			}
 
-			console.debug('PageHandler', 'Preview page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing preview page', error);
 			showNotification('Error loading preview page', 'error');
@@ -918,8 +871,6 @@ class PageHandlerImpl {
 	}
 
 	async initializeSpellsPage() {
-		console.debug('PageHandler', 'Initializing spells page');
-
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
@@ -941,8 +892,6 @@ class PageHandlerImpl {
 			eventBus.on(EVENTS.SPELL_UNPREPARED, updateHandler);
 			eventBus.on(EVENTS.SPELL_SLOTS_USED, updateHandler);
 			eventBus.on(EVENTS.SPELL_SLOTS_RESTORED, updateHandler);
-
-			console.debug('PageHandler', 'Spells page initialized');
 		} catch (error) {
 			console.error('PageHandler', 'Error initializing spells page', error);
 			showNotification('Error loading spells page', 'error');

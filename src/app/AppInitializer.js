@@ -1,29 +1,11 @@
+import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-
 import { cleanupOrphanedBackdrops } from '../lib/ModalCleanupUtility.js';
 import { getNotificationCenter } from '../lib/NotificationCenter.js';
 import {
 	addPersistentNotification,
 	showNotification,
 } from '../lib/Notifications.js';
-import { AppState } from './AppState.js';
-import { NavigationController } from './NavigationController.js';
-import { PageHandler } from './PageHandler.js';
-import { themeManager } from './ThemeManager.js';
-import { titlebarController } from './TitlebarController.js';
-import { setupUiEventHandlers } from './UIHandlersInitializer.js';
-
-// Silence console.debug in production (when FF_DEBUG is not set)
-if (!window.FF_DEBUG) {
-	console.debug = () => { };
-}
-
-// Modal for data configuration
-import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
-import { LoadingModal } from '../ui/components/setup/SetupModals.js';
-
-// Service imports
-import { DataLoader } from '../lib/DataLoader.js';
 import { textProcessor } from '../lib/TextProcessor.js';
 import { actionService } from '../services/ActionService.js';
 import { backgroundService } from '../services/BackgroundService.js';
@@ -39,18 +21,40 @@ import { settingsService } from '../services/SettingsService.js';
 import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
+import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
+import { LoadingModal } from '../ui/components/setup/SetupModals.js';
+import { AppState } from './AppState.js';
+import { NavigationController } from './NavigationController.js';
+import { PageHandler } from './PageHandler.js';
+import { themeManager } from './ThemeManager.js';
+import { titlebarController } from './TitlebarController.js';
+import { setupUiEventHandlers } from './UIHandlersInitializer.js';
 
-const MAX_DATA_LOAD_ATTEMPTS = 2;
-const DATA_LOAD_BACKOFF_BASE_MS = 250;
-const DATA_LOAD_BACKOFF_MAX_MS = 5000;
+if (!window.FF_DEBUG) {
+	console.debug = () => { };
+}
 
 let _isInitialized = false;
 let _isInitializing = false;
 let _uiHandlersCleanup = null;
 const _appInitializerListeners = new Map();
 
-function _sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+function _getDataSourceDescription(type, value) {
+	if (type === 'local') {
+		const parts = value.split(/[\\/]/);
+		const folderName =
+			parts[parts.length - 1] || parts[parts.length - 2] || 'local folder';
+		return `local: ${folderName}`;
+	}
+	if (type === 'url') {
+		try {
+			const url = new URL(value);
+			return `remote: ${url.hostname}`;
+		} catch {
+			return 'remote server';
+		}
+	}
+	return type;
 }
 
 function _updateServiceFailureBanner(failedServices = []) {
@@ -58,9 +62,7 @@ function _updateServiceFailureBanner(failedServices = []) {
 	const list = document.getElementById('serviceFailureList');
 	const reloadButton = document.getElementById('serviceReloadButton');
 
-	if (!banner || !list) {
-		return;
-	}
+	if (!banner || !list) return;
 
 	const hasFailures =
 		Array.isArray(failedServices) && failedServices.length > 0;
@@ -82,53 +84,36 @@ function _updateServiceFailureBanner(failedServices = []) {
 	}
 }
 
-function _calculateExponentialBackoff(attempt) {
-	if (attempt <= 1) return 0;
-	const delay = DATA_LOAD_BACKOFF_BASE_MS * 2 ** (attempt - 2);
-	return Math.min(delay, DATA_LOAD_BACKOFF_MAX_MS);
-}
-
-async function _loadDataWithErrorHandling(promise, component, onComplete) {
+async function _loadDataWithErrorHandling(promise, component) {
 	try {
 		await promise;
-		if (onComplete) onComplete(component, true);
 		return { ok: true, error: null };
 	} catch (error) {
-		console.warn('AppInitializer', `Failed to load ${component} data:`, error);
-		if (onComplete) onComplete(component, false);
+		console.warn('[AppInitializer]', `Failed to load ${component}:`, error);
 		return { ok: false, error };
 	}
 }
 
 async function _checkDataFolder() {
 	try {
-		// Prefer previously configured data source
 		const saved = await window.app.getDataSource();
 		if (saved?.success && saved.type && saved.value) {
-			console.debug(
-				'AppInitializer',
-				'Using configured data source:',
-				saved.type,
-			);
+			console.debug('[AppInitializer]', 'Using data source:', saved.type);
 			return true;
 		}
 
 		console.warn(
-			'AppInitializer',
+			'[AppInitializer]',
 			'No data source configured, showing configuration modal',
 		);
 
 		const modal = new DataConfigurationModal();
 		const result = await modal.show();
 
-		console.debug(
-			'AppInitializer',
-			'User configured data source:',
-			result.type,
-		);
+		console.debug('[AppInitializer]', 'User configured data source:', result.type);
 		return true;
 	} catch (error) {
-		console.error('AppInitializer', 'Error checking data folder:', error);
+		console.error('[AppInitializer]', 'Error checking data folder:', error);
 		showNotification('Error checking data folder. Please try again.', 'error');
 		return false;
 	}
@@ -156,7 +141,7 @@ async function _validateDataSource() {
 
 async function _promptDataSourceFix(errorMessage) {
 	showNotification(
-		`Data source error: ${errorMessage || 'Unknown issue'}. Please reconfigure your data source.`,
+		`Data source error: ${errorMessage || 'Unknown issue'}. Please reconfigure.`,
 		'error',
 	);
 
@@ -164,11 +149,7 @@ async function _promptDataSourceFix(errorMessage) {
 		const modal = new DataConfigurationModal({ allowClose: true });
 		await modal.show();
 	} catch (error) {
-		console.warn(
-			'AppInitializer',
-			'User dismissed data source fix modal',
-			error,
-		);
+		console.warn('[AppInitializer]', 'User dismissed data source fix modal', error);
 		throw error;
 	}
 }
@@ -176,35 +157,19 @@ async function _promptDataSourceFix(errorMessage) {
 async function _loadAllGameData(loadingModal) {
 	const errors = [];
 	const failedServices = [];
-	try {
-		// Get data source info for display
-		const dataSource = await window.app.getDataSource();
-		const sourceType = dataSource?.type || 'unknown';
-		const sourceValue = dataSource?.value || '';
 
-		let sourceDesc = '';
-		if (sourceType === 'local') {
-			// Extract just the folder name for brevity
-			const parts = sourceValue.split(/[\\/]/);
-			const folderName =
-				parts[parts.length - 1] || parts[parts.length - 2] || 'local folder';
-			sourceDesc = `local: ${folderName}`;
-		} else if (sourceType === 'url') {
-			try {
-				const url = new URL(sourceValue);
-				sourceDesc = `remote: ${url.hostname}`;
-			} catch {
-				sourceDesc = 'remote server';
-			}
-		} else {
-			sourceDesc = sourceType;
-		}
+	try {
+		const dataSource = await window.app.getDataSource();
+		const sourceDesc = _getDataSourceDescription(
+			dataSource?.type || 'unknown',
+			dataSource?.value || '',
+		);
 
 		if (loadingModal) {
 			loadingModal.updateDetail(`Data source: ${sourceDesc}`);
+			loadingModal.updateDetail('Loading game data...');
 		}
 
-		// Initialize all services in parallel for faster loading
 		const services = [
 			{ name: 'spells', init: () => spellService.initialize() },
 			{ name: 'items', init: () => itemService.initialize() },
@@ -224,19 +189,12 @@ async function _loadAllGameData(loadingModal) {
 			},
 		];
 
-		// Show initial loading state
-		if (loadingModal) {
-			loadingModal.updateDetail('Loading game data...');
-		}
-
-		// Load all services in parallel using Promise.allSettled
 		const results = await Promise.allSettled(
 			services.map((service) =>
-				_loadDataWithErrorHandling(service.init(), service.name, null),
+				_loadDataWithErrorHandling(service.init(), service.name),
 			),
 		);
 
-		// Process results
 		for (let i = 0; i < results.length; i++) {
 			const result = results[i];
 			const service = services[i];
@@ -252,7 +210,6 @@ async function _loadAllGameData(loadingModal) {
 					}
 				}
 			} else {
-				// Promise rejected
 				failedServices.push(service.name);
 				errors.push(
 					result.reason || new Error(`Failed to load ${service.name}`),
@@ -269,66 +226,13 @@ async function _loadAllGameData(loadingModal) {
 				loadingModal.updateDetail('All game data loaded');
 			}
 		}
+
 		return { success: failedServices.length === 0, errors, failedServices };
 	} catch (error) {
-		console.error('AppInitializer', 'Error during game data loading:', error);
+		console.error('[AppInitializer]', 'Error during game data loading:', error);
 		errors.push(error);
 		return { success: false, errors, failedServices };
 	}
-}
-
-async function _loadAllGameDataWithRetry() {
-	let lastError = null;
-	for (let attempt = 1; attempt <= MAX_DATA_LOAD_ATTEMPTS; attempt++) {
-		const delayMs = _calculateExponentialBackoff(attempt);
-		if (delayMs > 0) {
-			console.debug(
-				'AppInitializer',
-				`Retry attempt ${attempt} in ${delayMs}ms...`,
-			);
-			await _sleep(delayMs);
-		}
-
-		const validation = await _validateDataSource();
-		if (!validation.ok) {
-			lastError = new Error(
-				validation.error || 'Data source validation failed',
-			);
-			if (attempt === MAX_DATA_LOAD_ATTEMPTS) {
-				showNotification(
-					`Data source validation failed: ${lastError.message}`,
-					'error',
-				);
-				await _promptDataSourceFix(lastError.message);
-				return { success: false, errors: [lastError] };
-			}
-			showNotification(
-				`Data source validation failed (attempt ${attempt}/${MAX_DATA_LOAD_ATTEMPTS}). Retrying...`,
-				'warning',
-			);
-			continue;
-		}
-
-		const loadResult = await _loadAllGameData(null);
-		if (loadResult.success) return loadResult;
-
-		lastError = loadResult.errors?.[0] || new Error('Data load failed');
-		if (attempt === MAX_DATA_LOAD_ATTEMPTS) {
-			showNotification(
-				`Failed to load game data: ${lastError.message}`,
-				'error',
-			);
-			await _promptDataSourceFix(lastError.message);
-			return loadResult;
-		}
-
-		showNotification(
-			`Game data load failed (attempt ${attempt}/${MAX_DATA_LOAD_ATTEMPTS}). Retrying...`,
-			'warning',
-		);
-	}
-
-	return { success: false, errors: lastError ? [lastError] : [] };
 }
 
 async function _initializeComponent(name, initFunction) {
@@ -336,7 +240,7 @@ async function _initializeComponent(name, initFunction) {
 		await initFunction();
 		return { success: true, error: null };
 	} catch (error) {
-		console.error('AppInitializer', `Error initializing ${name}:`, error);
+		console.error('[AppInitializer]', `Error initializing ${name}:`, error);
 		return { success: false, error };
 	}
 }
@@ -349,8 +253,6 @@ async function _initializeCoreComponents() {
 	};
 
 	try {
-		console.debug('AppInitializer', 'Initializing core components');
-
 		const components = [
 			{ name: 'text processor', init: () => textProcessor.initialize() },
 			{ name: 'titlebar controller', init: () => titlebarController.init() },
@@ -366,7 +268,6 @@ async function _initializeCoreComponents() {
 			},
 		];
 
-		// Initialize each component in sequence
 		for (const component of components) {
 			const initResult = await _initializeComponent(
 				component.name,
@@ -375,11 +276,11 @@ async function _initializeCoreComponents() {
 
 			if (initResult.success) {
 				result.loadedComponents.push(component.name);
-				console.debug('AppInitializer', `✓ ${component.name} initialized`);
+				console.debug('[AppInitializer]', `✓ ${component.name} initialized`);
 			} else {
 				result.errors.push(initResult.error);
 				console.error(
-					'AppInitializer',
+					'[AppInitializer]',
 					`✗ ${component.name} failed`,
 					initResult.error,
 				);
@@ -388,7 +289,7 @@ async function _initializeCoreComponents() {
 
 		result.success = result.errors.length === 0;
 
-		console.debug('AppInitializer', 'Core components initialized', {
+		console.debug('[AppInitializer]', 'Core components initialized', {
 			success: result.success,
 			loaded: result.loadedComponents.length,
 			errors: result.errors.length,
@@ -397,7 +298,7 @@ async function _initializeCoreComponents() {
 		return result;
 	} catch (error) {
 		console.error(
-			'AppInitializer',
+			'[AppInitializer]',
 			'Unexpected error during core component initialization:',
 			error,
 		);
@@ -407,27 +308,18 @@ async function _initializeCoreComponents() {
 	}
 }
 
-export async function initializeAll(_options = {}) {
-	// Prevent multiple simultaneous initializations
+export async function initializeAll() {
 	if (_isInitializing) {
-		console.warn(
-			'AppInitializer',
-			'Initialization already in progress, skipping',
-		);
+		console.warn('[AppInitializer]', 'Initialization already in progress');
 		return { success: false, errors: ['Initialization already in progress'] };
 	}
 
 	if (_isInitialized) {
-		console.info(
-			'AppInitializer',
-			'Application already initialized, cleaning up for reload',
-		);
-		// Remove only AppInitializer's listeners to prevent duplicate listeners
+		console.info('[AppInitializer]', 'Already initialized, cleaning up for reload');
 		for (const [event, handler] of _appInitializerListeners) {
 			eventBus.off(event, handler);
 		}
 		_appInitializerListeners.clear();
-		// Clean up extracted UI handlers
 		if (_uiHandlersCleanup) {
 			try {
 				_uiHandlersCleanup();
@@ -445,52 +337,20 @@ export async function initializeAll(_options = {}) {
 		errors: [],
 	};
 
-	// Validate required assets before UI loads
-	const REQUIRED_ASSETS = [
-		'assets/bootstrap/dist/css/bootstrap.min.css',
-		'assets/fontawesome/css/all.min.css',
-		'assets/fontawesome/webfonts/fa-solid-900.woff2',
-	];
-	const missingAssets = [];
-	for (const relPath of REQUIRED_ASSETS) {
-		const req = new XMLHttpRequest();
-		req.open('HEAD', relPath, false);
-		try {
-			req.send();
-			if (req.status !== 200) {
-				missingAssets.push(relPath);
-			}
-		} catch {
-			missingAssets.push(relPath);
-		}
-	}
-	if (missingAssets.length > 0) {
-		console.warn('Missing required assets:', missingAssets);
-		if (window.FF_DEBUG) {
-			alert(`Missing required assets: ${missingAssets.join(', ')}`);
-		}
-	}
-	// Mark body with debug class early so debug-only UI is toggled before loading screen
-	try {
-		if (window.FF_DEBUG === true) {
-			document.body.classList.add('debug-mode');
-		} else {
-			document.body.classList.remove('debug-mode');
-		}
-	} catch (error) {
-		console.warn('AppInitializer', 'Unable to set debug body class', error);
+	if (window.FF_DEBUG === true) {
+		document.body.classList.add('debug-mode');
+	} else {
+		document.body.classList.remove('debug-mode');
 	}
 
-	// Initialize theme manager early
 	try {
 		themeManager.init(eventBus);
 		result.loadedComponents.push('ThemeManager');
 	} catch (error) {
-		console.warn('AppInitializer', 'Failed to initialize theme manager', error);
+		console.warn('[AppInitializer]', 'Failed to initialize theme manager', error);
 		result.errors.push(error);
 	}
 
-	// Clean up any leftover loading modal from previous session (e.g., reload)
 	const existingModal = document.getElementById('loadingModal');
 	if (existingModal) {
 		existingModal.classList.remove('show');
@@ -499,16 +359,12 @@ export async function initializeAll(_options = {}) {
 		existingModal.removeAttribute('aria-modal');
 	}
 
-	// Clean up any orphaned modal backdrops from previous session
 	try {
 		cleanupOrphanedBackdrops();
 	} catch (error) {
-		console.warn(
-			'AppInitializer',
-			'Error cleaning up orphaned backdrops',
-			error,
-		);
+		console.warn('[AppInitializer]', 'Error cleaning up backdrops', error);
 	}
+
 	const existingBackdrops = document.querySelectorAll('.modal-backdrop');
 	for (const backdrop of existingBackdrops) {
 		backdrop.remove();
@@ -539,6 +395,7 @@ export async function initializeAll(_options = {}) {
 		if (normalized.includes('optionalfeatures')) return 'optional features';
 		return null;
 	};
+
 	const onDataFileLoading = (payload = {}) => {
 		if (!loadingModal || !isGameDataLoading || !payload.url) return;
 		const label = getLoadLabel(payload.url);
@@ -550,14 +407,11 @@ export async function initializeAll(_options = {}) {
 	_appInitializerListeners.set(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
 
 	try {
-		// Step 0: Check data folder availability
 		loadingModal.updateDetail('Checking data files...');
 		loadingModal.updateProgress(5);
 
-		// Check if data source is configured - if not, hide loading modal first
 		const saved = await window.app.getDataSource();
 		if (!saved?.success || !saved.type || !saved.value) {
-			// Hide loading modal before showing config modal to avoid z-index conflict
 			loadingModal.hide();
 		}
 
@@ -566,42 +420,25 @@ export async function initializeAll(_options = {}) {
 			throw new Error('Data folder not configured');
 		}
 
-		// Re-show loading modal if it was hidden for config
 		if (!saved?.success || !saved.type || !saved.value) {
 			loadingModal.show();
 		}
-		if (!dataReady) {
-			throw new Error('Data folder not configured');
-		}
 
-		// Step 0.5: Check for cached data and auto update setting
 		const config = await window.app.settings.getAll();
 		const cachePath = config.dataSourceCachePath;
-		let hasCache = false;
+		const hasCache =
+			config.dataSourceType === 'local' ||
+			(config.dataSourceType === 'url' && cachePath);
 
-		// If local, treat as cached if valid
-		if (config.dataSourceType === 'local' && config.dataSourceValue) {
-			hasCache = true;
-		} else if (config.dataSourceType === 'url' && cachePath) {
-			// For remote sources, just having cachePath set isn't enough -
-			// we need to verify it has actual files. If validation would fail anyway,
-			// trigger a download instead.
-			hasCache = true; // Assume has cache unless we detect it's empty below
-		}
-
-		console.debug('AppInitializer', 'Data source check:', {
+		console.debug('[AppInitializer]', 'Data source check:', {
 			type: config.dataSourceType,
 			value: config.dataSourceValue,
 			hasCache,
 			cachePath,
 		});
 
-		// If remote source but no cache, download it first
 		if (!hasCache && config.dataSourceType === 'url') {
-			console.info(
-				'AppInitializer',
-				'Remote source configured but no cache found, initiating download',
-			);
+			console.info('[AppInitializer]', 'Remote source with no cache, downloading');
 			loadingModal.updateProgress(15);
 			loadingModal.updateDetail('Connecting to remote server...');
 
@@ -627,13 +464,8 @@ export async function initializeAll(_options = {}) {
 				if (!refreshResult?.success) {
 					throw new Error(refreshResult?.error || 'Failed to download data');
 				}
-				hasCache = true;
 			} catch (error) {
-				console.error(
-					'AppInitializer',
-					'Failed to download remote data:',
-					error,
-				);
+				console.error('[AppInitializer]', 'Failed to download data:', error);
 				showNotification(`Failed to download data: ${error.message}`, 'error');
 				throw error;
 			} finally {
@@ -642,64 +474,40 @@ export async function initializeAll(_options = {}) {
 		}
 
 		if (hasCache && !window.FF_DEBUG) {
-			// Skip refresh/verification in debug mode - uses bundled src/data
 			const autoUpdate = !!config.autoUpdateData;
-			// Only refresh if auto-update is explicitly enabled by user
 			const shouldRefresh = autoUpdate;
 
-			console.debug('AppInitializer', 'Cache check details:', {
+			console.debug('[AppInitializer]', 'Cache check:', {
 				hasCache,
 				autoUpdate,
 				shouldRefresh,
 			});
 
 			if (shouldRefresh) {
-				console.debug(
-					'AppInitializer',
-					'shouldRefresh is true, calling refreshDataSource',
-				);
+				console.debug('[AppInitializer]', 'Calling refreshDataSource');
 				loadingModal.updateProgress(15);
 
-				// Get data source info for display
 				const dataSource = await window.app.getDataSource();
-				const sourceType = dataSource?.type || 'unknown';
-				const sourceValue = dataSource?.value || '';
+				const sourceDesc = _getDataSourceDescription(
+					dataSource?.type || 'unknown',
+					dataSource?.value || '',
+				);
 
-				let sourceDesc = '';
-				if (sourceType === 'local') {
-					const parts = sourceValue.split(/[\\\\/]/);
-					const folderName =
-						parts[parts.length - 1] ||
-						parts[parts.length - 2] ||
-						'local folder';
-					sourceDesc = `local: ${folderName}`;
+				if (dataSource?.type === 'local') {
 					loadingModal.updateDetail(`Checking ${sourceDesc} for changes...`);
-				} else if (sourceType === 'url') {
-					try {
-						const url = new URL(sourceValue);
-						sourceDesc = `remote: ${url.hostname}`;
-						loadingModal.updateDetail(
-							autoUpdate
-								? `Connecting to ${url.hostname}...`
-								: `Downloading from ${url.hostname}...`,
-						);
-					} catch {
-						sourceDesc = 'remote server';
-						loadingModal.updateDetail(
-							autoUpdate
-								? 'Connecting to remote server...'
-								: 'Downloading from remote server...',
-						);
-					}
+				} else if (dataSource?.type === 'url') {
+					loadingModal.updateDetail(
+						autoUpdate
+							? `Connecting to ${sourceDesc.replace('remote: ', '')}...`
+							: `Downloading from ${sourceDesc.replace('remote: ', '')}...`,
+					);
 				}
 
-				// Set up progress listener for download updates
 				const progressListener = (progress) => {
 					if (progress.status === 'start') {
 						loadingModal.updateDetail(`Checking ${progress.total} files...`);
 					} else if (progress.status === 'progress' && progress.file) {
 						const fileName = progress.file.split('/').pop();
-						// Show whether file is being downloaded or just verified
 						if (progress.skipped) {
 							loadingModal.updateDetail(
 								`Verified: ${fileName} (${progress.completed}/${progress.total})`,
@@ -723,24 +531,16 @@ export async function initializeAll(_options = {}) {
 				const unsubscribe = window.app.onDataDownloadProgress(progressListener);
 
 				try {
-					console.debug(
-						'AppInitializer',
-						'About to call window.app.refreshDataSource()',
-					);
+					console.debug('[AppInitializer]', 'Calling refreshDataSource');
 					const refreshResult = await window.app.refreshDataSource();
-					console.debug(
-						'AppInitializer',
-						'refreshDataSource returned:',
-						refreshResult,
-					);
+					console.debug('[AppInitializer]', 'refreshDataSource result:', refreshResult);
 
-					// Clean up listener
 					unsubscribe();
 
 					if (!refreshResult?.success) {
 						console.warn(
-							'AppInitializer',
-							`Data source update skipped/failed: ${refreshResult?.error || 'Unknown error'}`,
+							'[AppInitializer]',
+							`Data source update failed: ${refreshResult?.error || 'Unknown error'}`,
 						);
 						await _promptDataSourceFix(
 							refreshResult?.error || 'Data source is invalid',
@@ -748,31 +548,25 @@ export async function initializeAll(_options = {}) {
 						throw new Error('Data source update failed');
 					} else {
 						DataLoader.clearCache();
-						console.debug(
-							'AppInitializer',
-							'Checked/updated data source; cleared data cache',
-						);
+						console.debug('[AppInitializer]', 'Checked/updated data source');
 					}
 				} catch (error) {
-					// Clean up listener on error
 					unsubscribe();
-					console.warn('AppInitializer', 'Data source update failed', error);
+					console.warn('[AppInitializer]', 'Data source update failed', error);
 				}
 			} else {
-				console.debug(
-					'AppInitializer',
-					'shouldRefresh is false, skipping data source refresh',
-				);
+				console.debug('[AppInitializer]', 'Skipping data source refresh');
 			}
 		}
 
-		// Step 1: Load all game data
 		loadingModal.updateProgress(30);
 		isGameDataLoading = true;
 		const dataLoadResult = await _loadAllGameData(loadingModal);
 		isGameDataLoading = false;
+
 		AppState.setFailedServices(dataLoadResult.failedServices || []);
 		_updateServiceFailureBanner(dataLoadResult.failedServices || []);
+
 		if (dataLoadResult.failedServices?.length) {
 			showNotification(
 				`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
@@ -783,18 +577,17 @@ export async function initializeAll(_options = {}) {
 				'warning',
 			);
 		}
+
 		if (!dataLoadResult.success) {
 			result.errors.push(...dataLoadResult.errors);
 		}
 
-		// Step 2: Initialize core components
 		loadingModal.updateDetail('Setting up UI controllers...');
 		loadingModal.updateProgress(70);
 		const componentsResult = await _initializeCoreComponents();
 		result.loadedComponents = componentsResult.loadedComponents;
 		result.errors.push(...componentsResult.errors);
 
-		// Step 2.5: Ensure home page is fully loaded before hiding modal
 		loadingModal.updateDetail('Loading home page...');
 		loadingModal.updateProgress(95);
 		try {
@@ -802,62 +595,46 @@ export async function initializeAll(_options = {}) {
 				await PageHandler.initializeHomePage();
 			}
 		} catch (error) {
-			console.error('AppInitializer', 'Error loading home page:', error);
+			console.error('[AppInitializer]', 'Error loading home page:', error);
 			result.errors.push(error);
 		}
 
-		// Step 3: Set up UI event handlers
 		loadingModal.updateDetail('Registering event handlers...');
 		loadingModal.updateProgress(99);
 		try {
 			_uiHandlersCleanup = setupUiEventHandlers();
 		} catch (error) {
-			console.error(
-				'AppInitializer',
-				'Error setting up UI event handlers:',
-				error,
-			);
+			console.error('[AppInitializer]', 'Error setting up UI handlers:', error);
 			result.errors.push(error);
 		}
 
-		// Set overall success based on whether any critical errors occurred
 		result.success = result.errors.length === 0;
 
-		// Hide loading modal before showing any notifications
 		loadingModal.updateProgress(100);
 		loadingModal.updateDetail('Ready');
 		setTimeout(() => loadingModal.hide(), 200);
 
 		if (!result.success) {
-			console.warn(
-				'AppInitializer',
-				'Application initialized with errors:',
-				result.errors,
-			);
+			console.warn('[AppInitializer]', 'Initialized with errors:', result.errors);
 		}
 
 		_isInitializing = false;
 		_isInitialized = true;
-		console.debug('AppInitializer', 'Initialization complete');
+		console.debug('[AppInitializer]', 'Initialization complete');
 
 		return result;
 	} catch (error) {
 		loadingModal.hide();
 		_isInitializing = false;
-		console.error(
-			'AppInitializer',
-			'Fatal error during application initialization:',
-			error,
-		);
+		console.error('[AppInitializer]', 'Fatal initialization error:', error);
 		result.success = false;
 		result.errors.push(error);
 		throw error;
 	}
 }
 
-// Initialize when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
 	initializeAll().catch((error) => {
-		console.error('AppInitializer', 'Error during initialization:', error);
+		console.error('[AppInitializer]', 'Error during initialization:', error);
 	});
 });

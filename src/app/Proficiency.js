@@ -3,15 +3,10 @@
 import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
-/** @typedef {{ name: string, sources: Set<string> }} ProficiencyWithSources */
-
-/** @typedef {{ allowed: number, options: string[], selected: string[] }} OptionalProficiencyConfig */
-
 export class ProficiencyCore {
-	/** Uses case-insensitive comparison to avoid duplicates with different casing. */
 	static addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			console.warn('Invalid parameters for addProficiency:', {
+			console.warn('[ProficiencyCore]', 'Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -57,7 +52,7 @@ export class ProficiencyCore {
 
 	static removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			console.warn('Invalid parameters for removeProficienciesBySource');
+			console.warn('[ProficiencyCore]', 'Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -100,7 +95,6 @@ export class ProficiencyCore {
 		return removed;
 	}
 
-	/** Uses case-insensitive comparison to handle both old and new character saves. */
 	static hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
 
@@ -131,7 +125,7 @@ export class ProficiencyCore {
 
 	static setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			console.warn('Invalid parameters for setOptionalProficiencies');
+			console.warn('[ProficiencyCore]', 'Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -200,14 +194,14 @@ export class ProficiencyCore {
 
 		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_CLEARED, {
 			type,
-			source: sourceLower,
+			source: sourceKey,
 			character,
 		});
 	}
 
 	static selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
-			console.warn('Optional proficiencies not initialized for type:', type);
+			console.warn('[ProficiencyCore]', 'Optional proficiencies not initialized for type:', type);
 			return false;
 		}
 
@@ -215,7 +209,7 @@ export class ProficiencyCore {
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
-			console.warn('No optional proficiency configuration for source:', source);
+			console.warn('[ProficiencyCore]', 'No optional proficiency configuration for source:', source);
 			return false;
 		}
 
@@ -225,6 +219,7 @@ export class ProficiencyCore {
 
 		if (config.selected.length >= config.allowed) {
 			console.warn(
+				'[ProficiencyCore]',
 				'Maximum optional proficiencies already selected for',
 				source,
 			);
@@ -232,7 +227,7 @@ export class ProficiencyCore {
 		}
 
 		if (!config.options.includes(proficiency)) {
-			console.warn('Proficiency not in available options:', proficiency);
+			console.warn('[ProficiencyCore]', 'Proficiency not in available options:', proficiency);
 			return false;
 		}
 
@@ -354,7 +349,6 @@ export class ProficiencyCore {
 		config.selected = Array.from(allSelected);
 	}
 
-	/** Automatically refunds a skill selection if it's now granted as a fixed proficiency. */
 	static _refundOptionalSkill(character, proficiency, newSource) {
 		if (!character?.optionalProficiencies?.skills) {
 			return;

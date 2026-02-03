@@ -34,11 +34,6 @@ export const EVENTS = {
 	// Error events
 	ERROR_OCCURRED: 'error:occurred',
 
-	// Storage events
-	STORAGE_CHARACTER_LOADED: 'storage:characterLoaded',
-	STORAGE_CHARACTER_SAVED: 'storage:characterSaved',
-	STORAGE_CHARACTER_DELETED: 'storage:characterDeleted',
-
 	// Proficiency events
 	PROFICIENCY_ADDED: 'proficiency:added',
 	PROFICIENCY_REMOVED_BY_SOURCE: 'proficiency:removedBySource',

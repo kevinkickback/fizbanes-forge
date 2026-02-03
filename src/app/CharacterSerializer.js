@@ -106,16 +106,16 @@ export function serialize(character) {
 
 		race: character.race
 			? {
-					name: character.race.name || '',
-					source: character.race.source || '',
-					subrace: character.race.subrace || '',
-					abilityChoices: Array.isArray(character.race.abilityChoices)
-						? character.race.abilityChoices.map((choice) => ({ ...choice }))
-						: [],
-					abilityBonuses: character.race.abilityBonuses
-						? { ...character.race.abilityBonuses }
-						: undefined,
-				}
+				name: character.race.name || '',
+				source: character.race.source || '',
+				subrace: character.race.subrace || '',
+				abilityChoices: Array.isArray(character.race.abilityChoices)
+					? character.race.abilityChoices.map((choice) => ({ ...choice }))
+					: [],
+				abilityBonuses: character.race.abilityBonuses
+					? { ...character.race.abilityBonuses }
+					: undefined,
+			}
 			: { name: '', source: '', subrace: '', abilityChoices: [] },
 		background: character.background
 			? typeof character.background === 'object'
@@ -154,9 +154,9 @@ export function serialize(character) {
 
 		feats: Array.isArray(character.feats)
 			? character.feats.map((feat) => ({
-					name: feat?.name || '',
-					source: feat?.source || 'Unknown',
-				}))
+				name: feat?.name || '',
+				source: feat?.source || 'Unknown',
+			}))
 			: [],
 		featSources: mapToObject(character.featSources),
 	};
@@ -168,30 +168,30 @@ export function serialize(character) {
 				// Simple types
 				armor: character.optionalProficiencies.armor
 					? {
-							allowed: character.optionalProficiencies.armor.allowed || 0,
-							selected: safeArray(
-								character.optionalProficiencies.armor.selected,
-							),
-						}
+						allowed: character.optionalProficiencies.armor.allowed || 0,
+						selected: safeArray(
+							character.optionalProficiencies.armor.selected,
+						),
+					}
 					: { allowed: 0, selected: [] },
 
 				weapons: character.optionalProficiencies.weapons
 					? {
-							allowed: character.optionalProficiencies.weapons.allowed || 0,
-							selected: safeArray(
-								character.optionalProficiencies.weapons.selected,
-							),
-						}
+						allowed: character.optionalProficiencies.weapons.allowed || 0,
+						selected: safeArray(
+							character.optionalProficiencies.weapons.selected,
+						),
+					}
 					: { allowed: 0, selected: [] },
 
 				savingThrows: character.optionalProficiencies.savingThrows
 					? {
-							allowed:
-								character.optionalProficiencies.savingThrows.allowed || 0,
-							selected: safeArray(
-								character.optionalProficiencies.savingThrows.selected,
-							),
-						}
+						allowed:
+							character.optionalProficiencies.savingThrows.allowed || 0,
+						selected: safeArray(
+							character.optionalProficiencies.savingThrows.selected,
+						),
+					}
 					: { allowed: 0, selected: [] },
 
 				// Complex types with source-specific details
@@ -291,9 +291,9 @@ export function serialize(character) {
 		multiclass: character.spellcasting?.multiclass
 			? { ...character.spellcasting.multiclass }
 			: {
-					isCastingMulticlass: false,
-					combinedSlots: {},
-				},
+				isCastingMulticlass: false,
+				combinedSlots: {},
+			},
 		other: {
 			spellsKnown: safeArray(character.spellcasting?.other?.spellsKnown),
 			itemSpells: safeArray(character.spellcasting?.other?.itemSpells),
@@ -334,5 +334,5 @@ export function serialize(character) {
  */
 export function deserialize(data) {
 	if (!data) return null;
-	return Character.fromJSON(data);
+	return new Character(data);
 }

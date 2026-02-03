@@ -1,12 +1,9 @@
-/** UI handlers for save button, level-up button, and unsaved indicator. */
-
 import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 
-/** @returns {() => void} cleanup function to remove all listeners */
 export function setupUiEventHandlers() {
 	const cleanup = DOMCleanup.create();
 	const listeners = new Map();
@@ -15,11 +12,6 @@ export function setupUiEventHandlers() {
 	if (saveButton) {
 		cleanup.on(saveButton, 'click', async () => {
 			try {
-				console.debug(
-					'UIHandlers',
-					`[${new Date().toISOString()}] Save button clicked`,
-				);
-
 				const characterNameInput = document.getElementById('characterName');
 				const playerNameInput = document.getElementById('playerName');
 				const heightInput = document.getElementById('height');
@@ -48,7 +40,6 @@ export function setupUiEventHandlers() {
 
 				await CharacterManager.saveCharacter();
 
-				console.debug('UIHandlers', 'Character saved successfully');
 				showNotification('Character saved successfully', 'success');
 			} catch (error) {
 				console.error('UIHandlers', 'Error saving character', error);
@@ -63,7 +54,6 @@ export function setupUiEventHandlers() {
 	if (levelUpBtn) {
 		let levelUpModalInstance = null;
 		cleanup.on(levelUpBtn, 'click', async () => {
-			console.debug('UIHandlers', '[LevelUp] Button clicked');
 			try {
 				const character = AppState.getCurrentCharacter();
 				if (!character) {
@@ -73,13 +63,11 @@ export function setupUiEventHandlers() {
 				}
 
 				if (!levelUpModalInstance) {
-					console.debug('UIHandlers', '[LevelUp] Importing LevelUpModal');
 					const { LevelUpModal } = await import(
 						'../ui/components/level-up/LevelUpModal.js'
 					);
 					levelUpModalInstance = new LevelUpModal();
 				}
-				console.debug('UIHandlers', '[LevelUp] Showing modal via controller');
 				await levelUpModalInstance.show();
 			} catch (error) {
 				console.error('UIHandlers', 'Failed to open Level Up modal', error);
@@ -110,28 +98,6 @@ export function setupUiEventHandlers() {
 		console.warn('UIHandlers', 'Level Up button not found');
 	}
 
-	const PagesShowUnsaved = new Set(['build', 'details']);
-
-	function updateUnsavedIndicator() {
-		try {
-			const hasUnsaved = AppState.get('hasUnsavedChanges');
-			const currentPage = AppState.getCurrentPage();
-			const shouldShow = Boolean(
-				hasUnsaved && PagesShowUnsaved.has(currentPage),
-			);
-			console.debug(
-				'UIHandlers',
-				`Unsaved indicator updated: show=${shouldShow}`,
-				{
-					hasUnsaved,
-					currentPage,
-				},
-			);
-		} catch (e) {
-			console.error('UIHandlers', 'Error updating unsaved indicator', e);
-		}
-	}
-
 	const addListener = (event, handler) => {
 		eventBus.on(event, handler);
 		listeners.set(event, handler);
@@ -139,59 +105,21 @@ export function setupUiEventHandlers() {
 
 	const onCharacterUpdated = () => {
 		if (AppState.get('isLoadingCharacter') || AppState.get('isNavigating')) {
-			console.debug(
-				'UIHandlers',
-				'Ignored CHARACTER_UPDATED - loading or navigating',
-				{
-					isLoadingCharacter: AppState.get('isLoadingCharacter'),
-					isNavigating: AppState.get('isNavigating'),
-				},
-			);
 			return;
 		}
-		console.debug(
-			'UIHandlers',
-			`[${new Date().toISOString()}] EVENT: CHARACTER_UPDATED`,
-		);
 		AppState.setHasUnsavedChanges(true);
-		updateUnsavedIndicator();
 	};
 	addListener(EVENTS.CHARACTER_UPDATED, onCharacterUpdated);
 
 	const onCharacterSaved = () => {
-		console.debug(
-			'UIHandlers',
-			`[${new Date().toISOString()}] EVENT: CHARACTER_SAVED`,
-		);
 		AppState.setHasUnsavedChanges(false);
-		updateUnsavedIndicator();
 	};
 	addListener(EVENTS.CHARACTER_SAVED, onCharacterSaved);
 
 	const onCharacterSelected = () => {
-		console.debug(
-			'UIHandlers',
-			`[${new Date().toISOString()}] EVENT: CHARACTER_SELECTED`,
-		);
 		AppState.setHasUnsavedChanges(false);
-		updateUnsavedIndicator();
 	};
 	addListener(EVENTS.CHARACTER_SELECTED, onCharacterSelected);
-
-	const onPageChanged = () => {
-		console.debug(
-			'UIHandlers',
-			`[${new Date().toISOString()}] EVENT: PAGE_CHANGED`,
-		);
-		updateUnsavedIndicator();
-	};
-	addListener(EVENTS.PAGE_CHANGED, onPageChanged);
-
-	const onHasUnsavedChangesChanged = () => {
-		console.debug('UIHandlers', 'state:hasUnsavedChanges:changed');
-		updateUnsavedIndicator();
-	};
-	addListener('state:hasUnsavedChanges:changed', onHasUnsavedChangesChanged);
 
 	return () => {
 		for (const [event, handler] of listeners) {
@@ -199,6 +127,5 @@ export function setupUiEventHandlers() {
 		}
 		listeners.clear();
 		cleanup.cleanup();
-		console.debug('UIHandlers', 'Cleaned up UI event handlers');
 	};
 }

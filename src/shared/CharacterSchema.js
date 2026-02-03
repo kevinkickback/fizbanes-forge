@@ -49,10 +49,6 @@ function validateCharacterData(character) {
 }
 
 export const CharacterSchema = {
-	/**
-	 * Create a new character with default values.
-	 * @returns {object} New character object
-	 */
 	create() {
 		return {
 			id: null,
@@ -253,21 +249,12 @@ export const CharacterSchema = {
 		};
 	},
 
-	/**
-	 * Validate character data structure.
-	 * @param {object} character - Character object to validate
-	 * @returns {object} Validation result { valid: boolean, errors: string[] }
-	 */
 	validate(character) {
 		const { valid: isValid, errors } = validateCharacterData(character);
 
 		if (!isValid) {
-			console.warn('CharacterSchema', 'Validation failed', {
+			console.warn('[CharacterSchema]', 'Validation failed:', {
 				errors,
-				characterId: character.id,
-			});
-		} else {
-			console.debug('CharacterSchema', 'Validation passed', {
 				characterId: character.id,
 			});
 		}
@@ -275,12 +262,7 @@ export const CharacterSchema = {
 		return { valid: isValid, errors };
 	},
 
-	/**
-	 * Update the lastModified timestamp.
-	 * @param {object} character - Character object
-	 */
 	touch(character) {
 		character.lastModified = new Date().toISOString();
-		console.debug('CharacterSchema', 'Character touched', { id: character.id });
 	},
 };

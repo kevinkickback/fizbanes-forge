@@ -30,6 +30,7 @@ tests/
 .vscode/
 
 # Documentation (generated/internal)
+docs/AUDIT.md
 docs/CODEBASE_ARCHITECTURE.md
 docs/CODEBASE_AUDIT.md
 

@@ -3,9 +3,8 @@ import {
 	DEFAULT_CHARACTER_SPEED,
 	getAbilityModNumber,
 } from '../lib/5eToolsParser.js';
-import { featService } from '../services/FeatService.js';
+import { proficiencyService } from '../services/ProficiencyService.js';
 import * as CharacterSerializer from './CharacterSerializer.js';
-import { ProficiencyCore } from './Proficiency.js';
 
 export class Character {
 	constructor(data = {}) {
@@ -20,7 +19,6 @@ export class Character {
 			abilityChoices: [],
 		};
 
-		// Ensure abilityChoices exists on race even if loading from old data
 		if (this.race && !Array.isArray(this.race.abilityChoices)) {
 			if (
 				this.race.abilityChoices &&
@@ -41,7 +39,6 @@ export class Character {
 		this.createdAt = data.createdAt || new Date().toISOString();
 		this.lastModified = data.lastModified || new Date().toISOString();
 
-		// Initialize allowed sources with PHB by default, or from data
 		this.allowedSources = new Set(
 			Array.isArray(data.allowedSources)
 				? data.allowedSources
@@ -50,7 +47,6 @@ export class Character {
 					: ['PHB'],
 		);
 
-		// Initialize ability scores
 		this.abilityScores = data.abilityScores || {
 			strength: 8,
 			dexterity: 8,
@@ -60,7 +56,6 @@ export class Character {
 			charisma: 8,
 		};
 
-		// Initialize ability bonuses
 		this.abilityBonuses = data.abilityBonuses || {
 			strength: [],
 			dexterity: [],
@@ -222,7 +217,7 @@ export class Character {
 		};
 
 		this.inventory = data.inventory || {
-			items: [], // Array of { id, name, baseItemId, quantity, equipped, attuned, cost, weight, source, metadata }
+			items: [],
 			equipped: {
 				head: null,
 				body: null,
@@ -234,10 +229,10 @@ export class Character {
 				fingers: [],
 				waist: null,
 			},
-			attuned: [], // Array of item instance IDs
+			attuned: [],
 			weight: {
 				current: 0,
-				capacity: 0, // Calculated as strength * 15
+				capacity: 0,
 			},
 		};
 
@@ -257,8 +252,7 @@ export class Character {
 			classes: [],
 		};
 
-		// Use ProficiencyCore to initialize proficiency structures
-		ProficiencyCore.initializeProficiencyStructures(this);
+		proficiencyService.initializeProficiencyStructures(this);
 	}
 
 	getAbilityScore(ability) {
@@ -276,14 +270,30 @@ export class Character {
 	addAbilityBonus(ability, value, source) {
 		if (!ability) {
 			console.warn(
-				'Character',
-				`Attempted to add ability bonus with undefined ability name (value: ${value}, source: ${source})`,
+				'[Character]',
+				`Attempted to add ability bonus with undefined ability (value: ${value}, source: ${source})`,
 			);
 			return;
 		}
 
-		// Normalize the ability name
-		const normalizedAbility = ability
+		const normalizedAbility = this._normalizeAbility(ability);
+
+		if (!this.abilityBonuses[normalizedAbility]) {
+			this.abilityBonuses[normalizedAbility] = [];
+		}
+
+		const existingBonus = this.abilityBonuses[normalizedAbility].find(
+			(bonus) => bonus.source === source,
+		);
+		if (existingBonus) {
+			existingBonus.value = value;
+		} else {
+			this.abilityBonuses[normalizedAbility].push({ value, source });
+		}
+	}
+
+	_normalizeAbility(ability) {
+		return ability
 			.toLowerCase()
 			.replace(/^str$/, 'strength')
 			.replace(/^dex$/, 'dexterity')
@@ -291,27 +301,13 @@ export class Character {
 			.replace(/^int$/, 'intelligence')
 			.replace(/^wis$/, 'wisdom')
 			.replace(/^cha$/, 'charisma');
-
-		if (!this.abilityBonuses[normalizedAbility]) {
-			this.abilityBonuses[normalizedAbility] = [];
-		}
-
-		// Check if a bonus from this source already exists
-		const existingBonus = this.abilityBonuses[normalizedAbility].find(
-			(bonus) => bonus.source === source,
-		);
-		if (existingBonus) {
-			// Update existing bonus
-			existingBonus.value = value;
-		} else {
-			// Add new bonus
-			this.abilityBonuses[normalizedAbility].push({ value, source });
-		}
 	}
 
 	removeAbilityBonus(ability, value, source) {
-		const normalizedAbility = ability?.toLowerCase();
-		if (!normalizedAbility || !this.abilityBonuses[normalizedAbility]) return;
+		if (!ability) return;
+
+		const normalizedAbility = this._normalizeAbility(ability);
+		if (!this.abilityBonuses[normalizedAbility]) return;
 
 		this.abilityBonuses[normalizedAbility] = this.abilityBonuses[
 			normalizedAbility
@@ -340,19 +336,11 @@ export class Character {
 		}
 	}
 
-	addPendingChoice(type, choice) {
-		if (!this.pendingChoices.has(type)) {
-			this.pendingChoices.set(type, []);
-		}
-		this.pendingChoices.get(type).push(choice);
-
-		// Also add to ability choices if it's an ability choice
-		if (type === 'ability') {
-			this.pendingAbilityChoices.push(choice);
-		}
+	addPendingAbilityChoice(choice) {
+		this.pendingAbilityChoices.push(choice);
 	}
 
-	getSimplePendingAbilityChoices() {
+	getPendingAbilityChoices() {
 		return this.pendingAbilityChoices;
 	}
 
@@ -360,30 +348,12 @@ export class Character {
 		this.pendingAbilityChoices = [];
 	}
 
-	getPendingChoicesByType(type) {
-		return this.pendingChoices.get(type) || [];
-	}
-
-	clearPendingChoicesByType(type) {
-		if (type === 'ability') {
-			// Clear ability choices array
-			this.pendingAbilityChoices = [];
-		} else if (type) {
-			// Clear specific type from pendingChoices Map
-			this.pendingChoices.delete(type);
-		} else {
-			// Clear all choices
-			this.pendingChoices.clear();
-			this.pendingAbilityChoices = [];
-		}
-	}
-
 	addProficiency(type, proficiency, source) {
-		return ProficiencyCore.addProficiency(this, type, proficiency, source);
+		return proficiencyService.addProficiency(this, type, proficiency, source);
 	}
 
 	removeProficienciesBySource(source) {
-		return ProficiencyCore.removeProficienciesBySource(this, source);
+		return proficiencyService.removeProficienciesBySource(this, source);
 	}
 
 	setFeats(feats, defaultSource = 'Unknown') {
@@ -399,7 +369,6 @@ export class Character {
 					: feat?.name || feat?.id || feat?.feat || null;
 			if (!name) continue;
 
-			// Priority: use origin field (where feat came from in character), then fall back to 5etools source
 			const sourceCandidate =
 				typeof feat === 'object'
 					? feat.origin ||
@@ -419,24 +388,11 @@ export class Character {
 		}
 	}
 
-	/** @returns {{used:number,max:number,remaining:number,reasons:string[],blockedReason?:string}} */
-	getFeatAvailability() {
-		return featService.calculateFeatAvailability(this);
-	}
-
-	addLanguage(language, source) {
-		return this.addProficiency('languages', language, source);
-	}
-
-	removeLanguagesBySource(source) {
-		return this.removeProficienciesBySource(source);
-	}
-
-	addResistance(resistance, _source) {
+	addResistance(resistance) {
 		this.features.resistances.add(resistance);
 	}
 
-	clearResistances(_source) {
+	clearResistances() {
 		this.features.resistances.clear();
 	}
 
@@ -465,10 +421,7 @@ export class Character {
 	}
 
 	isSourceAllowed(source) {
-		const isAllowed = source
-			? this.allowedSources.has(source.toUpperCase())
-			: false;
-		return isAllowed;
+		return source ? this.allowedSources.has(source.toUpperCase()) : false;
 	}
 
 	setAllowedSources(sources) {
@@ -479,23 +432,10 @@ export class Character {
 		return new Set(this.allowedSources);
 	}
 
-	static fromJSON(data) {
-		return new Character(data);
-	}
-
 	toJSON() {
 		return CharacterSerializer.serialize(this);
 	}
 
-	addPendingAbilityChoice(choice) {
-		this.pendingAbilityChoices.push(choice);
-	}
-
-	getPendingAbilityChoices() {
-		return this.pendingAbilityChoices;
-	}
-
-	/** Clear all racial benefits, bonuses, and proficiencies. */
 	clearRacialBenefits() {
 		this.clearAbilityBonuses('Race');
 		this.clearAbilityBonuses('Subrace');
@@ -506,7 +446,7 @@ export class Character {
 			this.race.abilityChoices = [];
 		}
 
-		this.clearPendingChoicesByType('ability');
+		this.clearPendingAbilityChoices();
 
 		this.removeProficienciesBySource('Race');
 		this.removeProficienciesBySource('Subrace');
@@ -538,7 +478,6 @@ export class Character {
 		}
 	}
 
-	/** @returns {number} Sum of all class levels */
 	getTotalLevel() {
 		if (!this.progression?.classes || this.progression.classes.length === 0) {
 			return 1;
@@ -549,7 +488,6 @@ export class Character {
 		);
 	}
 
-	/** @returns {Object|null} First class in progression or null */
 	getPrimaryClass() {
 		if (!this.progression?.classes || this.progression.classes.length === 0) {
 			return null;
@@ -557,7 +495,6 @@ export class Character {
 		return this.progression.classes[0];
 	}
 
-	/** @returns {Object|null} Class entry by name or null */
 	getClassEntry(className) {
 		if (!this.progression?.classes) {
 			return null;
@@ -565,18 +502,15 @@ export class Character {
 		return this.progression.classes.find((c) => c.name === className) || null;
 	}
 
-	/** @returns {boolean} True if character has the specified class */
 	hasClass(className) {
 		return this.getClassEntry(className) !== null;
 	}
 }
 
-/** Serialize a Character instance for storage. */
 export function serializeCharacter(character) {
 	return CharacterSerializer.serialize(character);
 }
 
-/** Deserialize character data into a Character instance. */
 export function deserializeCharacter(data) {
 	return CharacterSerializer.deserialize(data);
 }
