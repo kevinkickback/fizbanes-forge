@@ -6,6 +6,7 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
+import { ClassSwitcher } from '../selection/ClassSwitcher.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 import {
 	formatCategoryCounters,
@@ -19,12 +20,13 @@ export class SpellSelectionModal {
 		ignoreClassRestrictions = false,
 		initialSpells = [],
 	} = {}) {
-			this.className = className;
+		this.className = className;
 		this.selectedClassName = className; // Track currently selected class for multiclass support
 		this.allowClose = allowClose;
 		this.ignoreClassRestrictions = !!ignoreClassRestrictions;
 		this.initialSpells = initialSpells || [];
 		this.descriptionCache = new Map();
+		this.classSwitcher = null;
 		this._controller = null;
 	}
 
@@ -39,38 +41,39 @@ export class SpellSelectionModal {
 			return null;
 		}
 
-		// Reset selectedClassName to initial value
-		this.selectedClassName = this.className;
+		// Reset selectedClassName to initial value, or default to Bonus if no spellcasting classes
+		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
+		if (spellcastingClasses.length === 0) {
+			this.selectedClassName = 'Bonus';
+			this.ignoreClassRestrictions = true;
+		} else {
+			this.selectedClassName = this.className;
+		}
 
 		this._ensureController();
-		
-		// Wire up class selector after modal is shown
-		setTimeout(() => {
-			// Remove any existing class selector first
-			const existing = document.getElementById('spellClassSelector')?.parentElement;
-			if (existing) {
-				existing.remove();
-			}
-			
-			// Inject class selector into modal body
-			const modalBody = document.querySelector('#universalSpellSelectionModal .modal-body');
-			if (modalBody) {
-				const classSelectorHTML = this._buildClassSelector();
-				if (classSelectorHTML) {
-					const container = document.createElement('div');
-					container.innerHTML = classSelectorHTML;
-					modalBody.insertBefore(container.firstElementChild, modalBody.firstElementChild);
+
+		// Wire up class switcher after modal is shown
+		const options = ['Bonus', ...spellcastingClasses];
+
+		if (options.length > 1) {
+			setTimeout(() => {
+				const modal = document.getElementById('universalSpellSelectionModal');
+				if (modal) {
+					const footer = modal.querySelector('.modal-footer');
+					if (footer) {
+						this.classSwitcher = new ClassSwitcher({
+							container: footer,
+							classes: options,
+							selectedClass: this.selectedClassName,
+							onChange: (newClassName) => this._handleClassChange(newClassName),
+							selectorId: 'spellClassSelector',
+						});
+						this.classSwitcher.render();
+					}
 				}
-			}
-			
-			const selector = document.getElementById('spellClassSelector');
-			if (selector) {
-				selector.addEventListener('change', (e) => {
-					this._handleClassChange(e.target.value);
-				});
-			}
-		}, 100);
-		
+			}, 100);
+		}
+
 		const result = await this._controller.show(this._getContext());
 		if (Array.isArray(result)) return result; // selected items
 		return null;
@@ -83,52 +86,26 @@ export class SpellSelectionModal {
 		};
 	}
 
-	_buildClassSelector() {
-		const character = AppState.getCurrentCharacter();
-		if (!character) return '';
-
-		// Get all spellcasting classes
-		const spellcastingClasses = Object.keys(character.spellcasting?.classes || {});
-		
-		// Always include General option for item spells
-		const options = ['General', ...spellcastingClasses];
-		
-		if (options.length <= 1) return ''; // Only General, no selector needed
-
-		const optionsHtml = options.map(className => 
-			`<option value="${className}" ${className === this.selectedClassName ? 'selected' : ''}>${className}</option>`
-		).join('');
-
-		return `
-			<div class="mb-2 d-flex align-items-center gap-2">
-				<label class="mb-0 text-nowrap"><strong>Add spells to:</strong></label>
-				<select class="form-select form-select-sm" id="spellClassSelector" style="width: auto;">
-					${optionsHtml}
-				</select>
-			</div>
-		`;
-	}
-
 	async _handleClassChange(newClassName) {
 		if (newClassName === this.selectedClassName) return;
-		
+
 		this.selectedClassName = newClassName;
-		
-		// Update ignore class restrictions if General is selected
+
+		// Update ignore class restrictions if Bonus is selected
 		const wasIgnoringRestrictions = this.ignoreClassRestrictions;
-		if (newClassName === 'General') {
+		if (newClassName === 'Bonus') {
 			this.ignoreClassRestrictions = true;
-		} else if (wasIgnoringRestrictions && this.className !== 'General') {
+		} else if (wasIgnoringRestrictions && this.className !== 'Bonus') {
 			// Restore original setting if switching away from General
 			const toggle = document.getElementById('ignoreClassRestrictionsToggle');
 			if (toggle) {
 				this.ignoreClassRestrictions = toggle.checked;
 			}
 		}
-		
+
 		// Get new initial selection for the selected class
 		const newInitialIds = this._getInitialSelectionIds();
-		
+
 		// Update controller's selection state
 		if (this._controller?.state) {
 			this._controller.state.selectedIds = new Set(newInitialIds);
@@ -136,10 +113,10 @@ export class SpellSelectionModal {
 				newInitialIds.includes(this._controller.config.getItemId(item))
 			);
 		}
-		
+
 		// Reload items with new class filter
 		await this._controller._reloadItems();
-		
+
 		// Update display
 		this._controller._renderList();
 		this._controller._renderSelected();
@@ -150,12 +127,12 @@ export class SpellSelectionModal {
 		// Load known spells for the currently selected class only
 		const character = AppState.getCurrentCharacter();
 		if (!character) return [];
-		
+
 		const targetClass = this.selectedClassName || this.className;
-		
-		// Skip for General class
-		if (targetClass === 'General') return [];
-		
+
+		// Skip for Bonus class
+		if (targetClass === 'Bonus') return [];
+
 		const classSpellcasting = character.spellcasting?.classes?.[targetClass];
 		const knownSpells = classSpellcasting?.spellsKnown || [];
 
@@ -262,11 +239,11 @@ export class SpellSelectionModal {
 		if (this.noMaterial === true) {
 			if (spell.components?.m) return false;
 		}
-		
+
 		// Always hide spells known by ANY class to prevent duplicates across multiclass
 		const character = AppState.getCurrentCharacter();
 		const spellcastingClasses = Object.keys(character?.spellcasting?.classes || {});
-		
+
 		for (const className of spellcastingClasses) {
 			const classSpellcasting = character.spellcasting.classes[className];
 			if (classSpellcasting?.spellsKnown) {
@@ -276,7 +253,7 @@ export class SpellSelectionModal {
 				if (isKnown) return false;
 			}
 		}
-		
+
 		return true;
 	}
 
@@ -378,7 +355,6 @@ export class SpellSelectionModal {
 
 	_buildFilters(_ctx, panel, cleanup) {
 		if (!panel) return;
-		panel.innerHTML = '';
 
 		this.levelFilters = this.levelFilters || new Set();
 		this.schoolFilters = this.schoolFilters || new Set();
@@ -389,136 +365,68 @@ export class SpellSelectionModal {
 		this.noMaterial = this.noMaterial ?? null;
 		this.ignoreSpellLimits = this.ignoreSpellLimits ?? false;
 
-		const builder = new FilterBuilder(panel, cleanup);
+		FilterBuilder.buildSpellFilters({
+			panel,
+			cleanup,
+			levelFilters: this.levelFilters,
+			schoolFilters: this.schoolFilters,
+			ritualOnly: this.ritualOnly,
+			concentrationOnly: this.concentrationOnly,
+			noVerbal: this.noVerbal,
+			noSomatic: this.noSomatic,
+			noMaterial: this.noMaterial,
+			onFilterChange: (value, filterType) => {
+				if (filterType) {
+					// Type filters (switches)
+					this[filterType] = value ? true : null;
+				}
+				this._controller._renderList();
+			},
+			additionalSwitches: {
+				title: 'Restrictions',
+				switches: [
+					{
+						label: 'Ignore spell limits',
+						checked: this.ignoreSpellLimits,
+						id: 'ignoreSpellLimitsToggle',
+						onChange: (v) => {
+							const wasIgnoring = this.ignoreSpellLimits;
 
-		builder.addCheckboxGroup({
-			title: 'Spell Level',
-			options: [
-				{ label: 'Cantrip', value: '0' },
-				{ label: '1st', value: '1' },
-				{ label: '2nd', value: '2' },
-				{ label: '3rd', value: '3' },
-				{ label: '4th', value: '4' },
-				{ label: '5th', value: '5' },
-				{ label: '6th', value: '6' },
-				{ label: '7th', value: '7' },
-				{ label: '8th', value: '8' },
-				{ label: '9th', value: '9' },
-			],
-			stateSet: this.levelFilters,
-			onChange: () => this._controller._renderList(),
-			columns: 2,
-		});
-
-		const schoolOptions = Array.from(
-			new Set(
-				spellService
-					.getAllSpells()
-					.map((s) => s.school)
-					.filter(Boolean),
-			),
-		)
-			.sort()
-			.map((code) => ({ label: getSchoolName(code), value: code }));
-
-		builder.addCheckboxGroup({
-			title: 'School',
-			options: schoolOptions,
-			stateSet: this.schoolFilters,
-			onChange: () => this._controller._renderList(),
-			columns: 2,
-		});
-
-		builder.addSwitchGroup({
-			title: 'Type',
-			switches: [
-				{
-					label: 'Ritual only',
-					checked: this.ritualOnly === true,
-					onChange: (v) => {
-						this.ritualOnly = v ? true : null;
-						this._controller._renderList();
-					},
-				},
-				{
-					label: 'Concentration only',
-					checked: this.concentrationOnly === true,
-					onChange: (v) => {
-						this.concentrationOnly = v ? true : null;
-						this._controller._renderList();
-					},
-				},
-				{
-					label: 'No verbal',
-					checked: this.noVerbal === true,
-					onChange: (v) => {
-						this.noVerbal = v ? true : null;
-						this._controller._renderList();
-					},
-				},
-				{
-					label: 'No somatic',
-					checked: this.noSomatic === true,
-					onChange: (v) => {
-						this.noSomatic = v ? true : null;
-						this._controller._renderList();
-					},
-				},
-				{
-					label: 'No material',
-					checked: this.noMaterial === true,
-					onChange: (v) => {
-						this.noMaterial = v ? true : null;
-						this._controller._renderList();
-					},
-				},
-			],
-		});
-
-		builder.addSwitchGroup({
-			title: 'Restrictions',
-			switches: [
-				{
-					label: 'Ignore spell limits',
-					checked: this.ignoreSpellLimits,
-					id: 'ignoreSpellLimitsToggle',
-					onChange: (v) => {
-						const wasIgnoring = this.ignoreSpellLimits;
-
-						// If trying to turn limits back on, check if current selection exceeds limits
-						if (wasIgnoring && !v) {
-							const overCapacity = this._checkOverCapacity();
-							if (overCapacity) {
-								// Keep toggle on and show notification
-								showNotification(
-									`You have selected ${overCapacity.excess} too many ${overCapacity.type}. Please deselect some before re-enabling limits.`,
-									'warning',
-								);
-								// Revert the visual toggle state
-								const toggleInput = document.getElementById('ignoreSpellLimitsToggle');
-								if (toggleInput) {
-									toggleInput.checked = true;
+							// If trying to turn limits back on, check if current selection exceeds limits
+							if (wasIgnoring && !v) {
+								const overCapacity = this._checkOverCapacity();
+								if (overCapacity) {
+									// Keep toggle on and show notification
+									showNotification(
+										`You have selected ${overCapacity.excess} too many ${overCapacity.type}. Please deselect some before re-enabling limits.`,
+										'warning',
+									);
+									// Revert the visual toggle state
+									const toggleInput = document.getElementById('ignoreSpellLimitsToggle');
+									if (toggleInput) {
+										toggleInput.checked = true;
+									}
+									return;
 								}
-								return;
 							}
-						}
 
-						// Only update state if we're not over capacity
-						this.ignoreSpellLimits = !!v;
-						this._controller._renderList();
-						this._controller._updateConfirmButton(); // Update badges
+							// Only update state if we're not over capacity
+							this.ignoreSpellLimits = !!v;
+							this._controller._renderList();
+							this._controller._updateConfirmButton(); // Update badges
+						},
 					},
-				},
-				{
-					label: 'Ignore class restrictions',
-					checked: this.ignoreClassRestrictions,
-					id: 'ignoreClassRestrictionsToggle',
-					onChange: async (v) => {
-						this.ignoreClassRestrictions = !!v;
-						await this._controller._reloadItems();
+					{
+						label: 'Ignore class restrictions',
+						checked: this.ignoreClassRestrictions,
+						id: 'ignoreClassRestrictionsToggle',
+						onChange: async (v) => {
+							this.ignoreClassRestrictions = !!v;
+							await this._controller._reloadItems();
+						},
 					},
-				},
-			],
+				],
+			},
 		});
 	}
 
@@ -526,8 +434,8 @@ export class SpellSelectionModal {
 		const character = AppState.getCurrentCharacter();
 		if (!character) return '';
 
-		// Show infinite badge for General class
-		if (this.selectedClassName === 'General') {
+		// Show infinite badge for Bonus class
+		if (this.selectedClassName === 'Bonus') {
 			return formatCategoryCounters([
 				{
 					label: 'spells',
@@ -540,7 +448,7 @@ export class SpellSelectionModal {
 
 		// Get limits for the currently selected class only
 		const targetClass = this.selectedClassName || this.className;
-		
+
 		const classEntry = character.progression?.classes?.find(
 			(c) => c.name === targetClass,
 		);
@@ -598,8 +506,8 @@ export class SpellSelectionModal {
 		const state = this._controller?.state;
 		if (!state) return null;
 
-		// No limits for General class
-		if (this.selectedClassName === 'General') return null;
+		// No limits for Bonus class
+		if (this.selectedClassName === 'Bonus') return null;
 
 		// Get limits for the selected class only
 		const classEntry = character.progression?.classes?.find(
@@ -655,8 +563,8 @@ export class SpellSelectionModal {
 	}
 
 	_canSelectSpell(spell, state) {
-		// If ignoring limits or General class, allow everything
-		if (this.ignoreSpellLimits || this.selectedClassName === 'General') return true;
+		// If ignoring limits or Bonus class, allow everything
+		if (this.ignoreSpellLimits || this.selectedClassName === 'Bonus') return true;
 
 		// Always allow deselection
 		const isSelected = state.selectedIds.has(spell.id);
@@ -734,8 +642,8 @@ export class SpellSelectionModal {
 
 		const targetClass = this.selectedClassName;
 
-		// Initialize spellcasting for class if not already initialized (skip for General)
-		if (targetClass !== 'General' && !character.spellcasting?.classes?.[targetClass]) {
+		// Initialize spellcasting for class if not already initialized (skip for Bonus)
+		if (targetClass !== 'Bonus' && !character.spellcasting?.classes?.[targetClass]) {
 			const classLevel =
 				character.class?.name === targetClass
 					? character.level
@@ -762,12 +670,12 @@ export class SpellSelectionModal {
 
 		for (const spell of selected) {
 			const spellKey = `${spell.name}|${spell.source}`.toLowerCase();
-			
+
 			// Skip if already known
 			if (currentlyKnownSet.has(spellKey)) {
 				continue;
 			}
-			
+
 			const success = spellSelectionService.addKnownSpell(
 				character,
 				targetClass,
@@ -784,8 +692,8 @@ export class SpellSelectionModal {
 		if (successCount > 0) {
 			const message =
 				successCount === 1
-					? `Added ${addedSpells[0]}${targetClass !== 'General' ? ` to ${targetClass}` : ''}`
-					: `Added ${successCount} spell${successCount > 1 ? 's' : ''}${targetClass !== 'General' ? ` to ${targetClass}` : ''}`;
+					? `Added ${addedSpells[0]}${targetClass !== 'Bonus' ? ` to ${targetClass}` : ''}`
+					: `Added ${successCount} spell${successCount > 1 ? 's' : ''}${targetClass !== 'Bonus' ? ` to ${targetClass}` : ''}`;
 			showNotification(message, 'success');
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 		}

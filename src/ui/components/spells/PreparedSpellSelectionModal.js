@@ -1,18 +1,20 @@
 // Modal for preparing known spells using the universal selection modal.
 
 import { AppState } from '../../../app/AppState.js';
-import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
-import { spellService } from '../../../services/SpellService.js';
+import { ClassSwitcher } from '../selection/ClassSwitcher.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 import { formatCategoryCounters, UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
 export class PreparedSpellSelectionModal {
     constructor({ classNames = [] } = {}) {
         this.classNames = Array.isArray(classNames) ? classNames : [];
+        this.selectedClassName = null; // Track currently selected class for switcher
+        this.classSwitcher = null;
         this._controller = null;
+        this._sessionSelections = new Map(); // Track selections per class during modal session
     }
 
     async show() {
@@ -29,7 +31,47 @@ export class PreparedSpellSelectionModal {
         }
 
         this.classNames = eligibleClasses;
+
+        // Initialize session selections with current prepared spells for each class
+        this._sessionSelections.clear();
+        for (const className of eligibleClasses) {
+            const classData = character?.spellcasting?.classes?.[className];
+            const prepared = classData?.spellsPrepared || [];
+            const ids = new Set(
+                prepared
+                    .filter(spell => spell.level !== 0) // Exclude cantrips
+                    .map(spell => this._buildItemId(className, spell))
+            );
+            this._sessionSelections.set(className, ids);
+        }
+
+        // Initialize selectedClassName to first eligible class
+        if (!this.selectedClassName || !eligibleClasses.includes(this.selectedClassName)) {
+            this.selectedClassName = eligibleClasses[0];
+        }
+
         this._ensureController();
+
+        // Wire up class switcher after modal is shown (for multiclass)
+        if (this.classNames.length > 1) {
+            setTimeout(() => {
+                const modal = document.getElementById('preparedSpellSelectionModal');
+                if (modal) {
+                    const footer = modal.querySelector('.modal-footer');
+                    if (footer) {
+                        this.classSwitcher = new ClassSwitcher({
+                            container: footer,
+                            classes: this.classNames,
+                            selectedClass: this.selectedClassName,
+                            onChange: (newClassName) => this._handleClassChange(newClassName),
+                            selectorId: 'preparedSpellClassSelector',
+                            label: 'Current Class:',
+                        });
+                        this.classSwitcher.render();
+                    }
+                }
+            }, 100);
+        }
 
         return await this._controller.show(this._getContext());
     }
@@ -38,7 +80,41 @@ export class PreparedSpellSelectionModal {
         return {
             character: AppState.getCurrentCharacter(),
             classNames: this.classNames,
+            selectedClassName: this.selectedClassName,
         };
+    }
+
+    async _handleClassChange(newClassName) {
+        if (newClassName === this.selectedClassName) return;
+
+        // Save current class's selections before switching
+        if (this.selectedClassName && this._controller?.state?.selectedIds) {
+            this._sessionSelections.set(
+                this.selectedClassName,
+                new Set(this._controller.state.selectedIds)
+            );
+        }
+
+        this.selectedClassName = newClassName;
+
+        // Get selections for the new class from session cache
+        const cachedSelectionIds = this._sessionSelections.get(newClassName) || new Set();
+
+        // Update controller's selection state with cached selections
+        if (this._controller?.state) {
+            this._controller.state.selectedIds = new Set(cachedSelectionIds);
+            this._controller.state.selectedItems = this._controller.state.items.filter(item =>
+                cachedSelectionIds.has(this._controller.config.getItemId(item))
+            );
+        }
+
+        // Reload items with new class filter
+        await this._controller._reloadItems();
+
+        // Update display
+        this._controller._renderList();
+        this._controller._renderSelected();
+        this._controller._updateConfirmButton();
     }
 
     _ensureController() {
@@ -65,6 +141,8 @@ export class PreparedSpellSelectionModal {
             matchItem: (item, state) => this._matchItem(item, state),
             renderItem: (item, state) => this._renderSpellCard(item, state),
             getItemId: (item) => item.id,
+            canSelectItem: (item, state) => this._canSelectItem(item, state),
+            onSelectBlocked: (item) => this._onSelectBlocked(item),
             onConfirm: (selected, ctx) => this._handleConfirm(selected, ctx),
             onCancel: () => { },
             buildFilters: (ctx, panel, cleanup) =>
@@ -96,11 +174,17 @@ export class PreparedSpellSelectionModal {
         const character = ctx.character;
         const items = [];
 
-        for (const className of ctx.classNames) {
+        // Filter to show only selected class if switcher is active
+        const targetClasses = ctx.selectedClassName ? [ctx.selectedClassName] : ctx.classNames;
+
+        for (const className of targetClasses) {
             const classData = character?.spellcasting?.classes?.[className];
             const known = classData?.spellsKnown || [];
 
             for (const spell of known) {
+                // Skip cantrips (level 0) - they're always prepared
+                if (spell.level === 0) continue;
+
                 items.push({
                     id: this._buildItemId(className, spell),
                     name: spell.name,
@@ -121,10 +205,15 @@ export class PreparedSpellSelectionModal {
         const character = ctx.character;
         const selectedIds = [];
 
-        for (const className of ctx.classNames) {
+        // Filter to show only selected class if switcher is active
+        const targetClasses = ctx.selectedClassName ? [ctx.selectedClassName] : ctx.classNames;
+
+        for (const className of targetClasses) {
             const classData = character?.spellcasting?.classes?.[className];
             const prepared = classData?.spellsPrepared || [];
             for (const spell of prepared) {
+                // Skip cantrips - they're always prepared
+                if (spell.level === 0) continue;
                 selectedIds.push(this._buildItemId(className, spell));
             }
         }
@@ -241,7 +330,9 @@ export class PreparedSpellSelectionModal {
 
     _getCountDisplay(selectedItems) {
         const character = AppState.getCurrentCharacter();
-        const categories = this.classNames.map((className) => {
+        // If a class is selected via switcher, show only that class's count
+        const targetClasses = this.selectedClassName ? [this.selectedClassName] : this.classNames;
+        const categories = targetClasses.map((className) => {
             const classData = character?.spellcasting?.classes?.[className];
             const classLevel = classData?.level || 1;
             const max = spellSelectionService._getPreparedSpellLimit(
@@ -266,17 +357,41 @@ export class PreparedSpellSelectionModal {
         ).length;
     }
 
-    _handleConfirm(selected, ctx) {
+    _handleConfirm(_selected, ctx) {
         const character = ctx.character;
         if (!character) return;
 
-        const byClass = new Map();
-        for (const item of selected || []) {
-            if (!byClass.has(item.className)) byClass.set(item.className, []);
-            byClass.get(item.className).push(item);
+        // Save final selections for current class before confirming
+        if (this.selectedClassName && this._controller?.state?.selectedIds) {
+            this._sessionSelections.set(
+                this.selectedClassName,
+                new Set(this._controller.state.selectedIds)
+            );
         }
 
-        for (const className of ctx.classNames) {
+        // Build a map of class -> spell items from session selections
+        // Need to load all known spells for all classes to reconstruct the items
+        const byClass = new Map();
+        for (const className of this.classNames) {
+            byClass.set(className, []);
+            const classData = character?.spellcasting?.classes?.[className];
+            const known = classData?.spellsKnown || [];
+            const selectedIds = this._sessionSelections.get(className) || new Set();
+
+            // Reconstruct spell items from known spells that match selected IDs
+            for (const spell of known) {
+                const itemId = this._buildItemId(className, spell);
+                if (selectedIds.has(itemId)) {
+                    byClass.get(className).push({
+                        name: spell.name,
+                        className,
+                    });
+                }
+            }
+        }
+
+        // Use all classNames to save across all classes
+        for (const className of this.classNames) {
             const classData = character.spellcasting?.classes?.[className];
             if (!classData) continue;
 
@@ -338,7 +453,6 @@ export class PreparedSpellSelectionModal {
 
     _buildFilters(_ctx, panel, cleanup) {
         if (!panel) return;
-        panel.innerHTML = '';
 
         this.levelFilters = this.levelFilters || new Set();
         this.schoolFilters = this.schoolFilters || new Set();
@@ -348,90 +462,23 @@ export class PreparedSpellSelectionModal {
         this.noSomatic = this.noSomatic ?? null;
         this.noMaterial = this.noMaterial ?? null;
 
-        const builder = new FilterBuilder(panel, cleanup);
-
-        builder.addCheckboxGroup({
-            title: 'Spell Level',
-            options: [
-                { label: 'Cantrip', value: '0' },
-                { label: '1st', value: '1' },
-                { label: '2nd', value: '2' },
-                { label: '3rd', value: '3' },
-                { label: '4th', value: '4' },
-                { label: '5th', value: '5' },
-                { label: '6th', value: '6' },
-                { label: '7th', value: '7' },
-                { label: '8th', value: '8' },
-                { label: '9th', value: '9' },
-            ],
-            stateSet: this.levelFilters,
-            onChange: () => this._controller._renderList(),
-            columns: 2,
-        });
-
-        const schoolOptions = Array.from(
-            new Set(
-                spellService
-                    .getAllSpells()
-                    .map((s) => s.school)
-                    .filter(Boolean),
-            ),
-        )
-            .sort()
-            .map((code) => ({ label: getSchoolName(code), value: code }));
-
-        builder.addCheckboxGroup({
-            title: 'School',
-            options: schoolOptions,
-            stateSet: this.schoolFilters,
-            onChange: () => this._controller._renderList(),
-            columns: 2,
-        });
-
-        builder.addSwitchGroup({
-            title: 'Type',
-            switches: [
-                {
-                    label: 'Ritual only',
-                    checked: this.ritualOnly === true,
-                    onChange: (v) => {
-                        this.ritualOnly = v ? true : null;
-                        this._controller._renderList();
-                    },
-                },
-                {
-                    label: 'Concentration only',
-                    checked: this.concentrationOnly === true,
-                    onChange: (v) => {
-                        this.concentrationOnly = v ? true : null;
-                        this._controller._renderList();
-                    },
-                },
-                {
-                    label: 'No verbal',
-                    checked: this.noVerbal === true,
-                    onChange: (v) => {
-                        this.noVerbal = v ? true : null;
-                        this._controller._renderList();
-                    },
-                },
-                {
-                    label: 'No somatic',
-                    checked: this.noSomatic === true,
-                    onChange: (v) => {
-                        this.noSomatic = v ? true : null;
-                        this._controller._renderList();
-                    },
-                },
-                {
-                    label: 'No material',
-                    checked: this.noMaterial === true,
-                    onChange: (v) => {
-                        this.noMaterial = v ? true : null;
-                        this._controller._renderList();
-                    },
-                },
-            ],
+        FilterBuilder.buildSpellFilters({
+            panel,
+            cleanup,
+            levelFilters: this.levelFilters,
+            schoolFilters: this.schoolFilters,
+            ritualOnly: this.ritualOnly,
+            concentrationOnly: this.concentrationOnly,
+            noVerbal: this.noVerbal,
+            noSomatic: this.noSomatic,
+            noMaterial: this.noMaterial,
+            onFilterChange: (value, filterType) => {
+                if (filterType) {
+                    // Type filters (switches)
+                    this[filterType] = value ? true : null;
+                }
+                this._controller._renderList();
+            },
         });
     }
 }

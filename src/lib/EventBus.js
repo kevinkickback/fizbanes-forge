@@ -25,6 +25,7 @@ export const EVENTS = {
 	// Data events
 	DATA_LOADED: 'data:loaded',
 	DATA_ERROR: 'data:error',
+	DATA_FILE_LOADING: 'data:fileLoading',
 
 	// UI events
 	MODAL_OPENED: 'modal:opened',

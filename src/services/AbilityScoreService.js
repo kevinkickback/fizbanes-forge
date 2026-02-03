@@ -75,7 +75,13 @@ class AbilityScoreService {
 			);
 			return '';
 		}
-		return abilityName ? DataNormalizer.normalizeForLookup(abilityName) : '';
+
+		const trimmedName = abilityName.trim();
+		if (!trimmedName) return '';
+
+		// Normalize abbreviations (str, dex, etc.) to full names before lookup
+		const fullName = attAbvToFull(trimmedName);
+		return DataNormalizer.normalizeForLookup(fullName);
 	}
 
 	getAllAbilities() {

@@ -1,12 +1,12 @@
-<div class="row">
+<div class="spells-container">
     <!-- Pending Spell Choices Alert -->
-    <div class="col-12 mb-3" id="pendingSpellChoicesAlert" style="display: none;">
-        <div class="alert alert-warning">
+    <div class="mb-2" id="pendingSpellChoicesAlert" style="display: none;">
+        <div class="alert alert-warning alert-sm">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <strong>Spell Selection Required</strong>
-                    <div id="pendingSpellChoicesContent" class="mt-2">
+                    <div id="pendingSpellChoicesContent" class="mt-1">
                         <!-- Pending spell choices will be listed here -->
                     </div>
                 </div>
@@ -14,52 +14,40 @@
         </div>
     </div>
 
-    <!-- Known Spells by Level -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Known Spells</h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary btn-sm" id="prepareSpellsBtn">
-                        <i class="fas fa-book"></i> Prepare Spells
-                    </button>
-                    <button class="btn btn-primary btn-sm" id="addSpellBtn">
-                        <i class="fas fa-plus"></i> Add Spell
-                    </button>
-                </div>
+    <!-- Spell List Card -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h5 class="mb-0 flex-shrink-0">Spell List</h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary" id="prepareSpellsBtn">
+                    <i class="fas fa-book"></i> Prepare Spells
+                </button>
+                <button class="btn btn-primary" id="addSpellBtn">
+                    <i class="fas fa-plus"></i> Add Spell
+                </button>
             </div>
-            <div class="card-body">
+        </div>
+
+        <div class="card-body p-0">
+            <div class="spell-list-container">
                 <div id="knownSpellsList" class="known-spells-list">
-                    <!-- Known spells will be populated by spell level here -->
+                    <!-- Known spells will be populated here -->
+                </div>
+                <div id="multiclassSpellsList" class="multiclass-spells-info" style="display: none;">
+                    <!-- Multiclass info shown inline -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Spellcasting Info -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header py-2">
-                <h5 class="mb-0">Spellcasting Information</h5>
-            </div>
-            <div class="card-body">
-                <div id="spellcastingInfo" class="spellcasting-info">
-                    <!-- Spellcasting details (ability mod, DC, save, etc.) will be shown here -->
-                </div>
-            </div>
+    <!-- Spellcasting Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Spellcasting Details</h5>
         </div>
-    </div>
-
-    <!-- Multiclass Spellcasting (if applicable) -->
-    <div class="col-12 mb-4" id="multiclassSpellsSection" style="display: none;">
-        <div class="card">
-            <div class="card-header py-2">
-                <h5 class="mb-0">Multiclass Spellcasting</h5>
-            </div>
-            <div class="card-body">
-                <div id="multiclassSpellsList" class="multiclass-spells-list">
-                    <!-- Multiclass spellcasting information will be shown here -->
-                </div>
+        <div class="card-body">
+            <div id="spellcastingInfo" class="spellcasting-info">
+                <!-- Spellcasting details will be shown here -->
             </div>
         </div>
     </div>

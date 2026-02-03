@@ -1,5 +1,7 @@
 /** DataLoader.js - Caches and loads game data JSON via Electron IPC (requires preload bridge). */
 
+import { eventBus, EVENTS } from './EventBus.js';
+
 const state = {
 	cache: {},
 	loading: {},
@@ -119,6 +121,8 @@ async function loadJSON(url, { ttl } = {}) {
 		try {
 			const loadStart = performance.now();
 			let data;
+
+			eventBus.emit(EVENTS.DATA_FILE_LOADING, { url });
 
 			// Check if running in Electron with data API available
 			if (
@@ -429,8 +433,8 @@ const dataLoader = {
 const DataLoader = dataLoader;
 
 export {
-	DataLoader, clearCache,
-	clearCacheForUrl, dataLoader,
+	clearCache,
+	clearCacheForUrl, DataLoader, dataLoader,
 	getCacheSettings,
 	getCacheStats,
 	invalidateAllCache,

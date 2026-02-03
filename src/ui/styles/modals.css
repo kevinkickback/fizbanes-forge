@@ -2677,3 +2677,24 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	margin-top: auto;
 	flex-shrink: 0;
 }
+
+/* Spell Selection Modal - Footer Layout with Class Selector */
+#universalSpellSelectionModal .modal-footer {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+#universalSpellSelectionModal .modal-footer > div:first-child {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-right: auto;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+#universalSpellSelectionModal .modal-footer .form-select-sm {
+	min-width: 120px;
+	flex-shrink: 0;
+}

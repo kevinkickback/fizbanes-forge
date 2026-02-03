@@ -77,7 +77,9 @@ class ItemService extends BaseDataService {
 	 * @returns {Object|null} Item object or null if not found
 	 */
 	getItem(name, source = 'DMG') {
-		return this.lookupByNameAndSource(this._itemLookupMap, name, source);
+		const item = this.lookupByNameAndSource(this._itemLookupMap, name, source);
+		if (item) return item;
+		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
 	}
 
 	/** @param {string} name - Base item name

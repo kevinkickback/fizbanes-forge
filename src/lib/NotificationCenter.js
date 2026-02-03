@@ -45,10 +45,14 @@ export class NotificationCenter {
 				if (bs) {
 					const existingModal = bs.Modal.getInstance(modalElement);
 					if (existingModal) {
+						// Reuse existing modal instance
+						this._modal = existingModal;
 						existingModal.show();
 					} else {
+						// Create new modal instance and register with cleanup
 						const newModal = new bs.Modal(modalElement);
 						this._modal = newModal;
+						this._cleanup.registerBootstrapModal(modalElement, newModal);
 						newModal.show();
 					}
 				}

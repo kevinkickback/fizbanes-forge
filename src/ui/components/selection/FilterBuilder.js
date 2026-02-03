@@ -1,6 +1,8 @@
 // Small helper to build checkbox/radio/switch filter groups with DOMCleanup tracking.
 
+import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { spellService } from '../../../services/SpellService.js';
 
 export class FilterBuilder {
 	constructor(container, cleanup) {
@@ -216,5 +218,126 @@ export class FilterBuilder {
 		}
 
 		this.container.appendChild(card);
+	}
+
+	/**
+	 * Builds standard spell filters (level, school, type)
+	 * @param {Object} options
+	 * @param {HTMLElement} options.panel - Panel element to render filters into
+	 * @param {DOMCleanup} options.cleanup - DOMCleanup instance for listener management
+	 * @param {Set} options.levelFilters - Set for level filter state
+	 * @param {Set} options.schoolFilters - Set for school filter state
+	 * @param {boolean|null} options.ritualOnly - Ritual filter state
+	 * @param {boolean|null} options.concentrationOnly - Concentration filter state
+	 * @param {boolean|null} options.noVerbal - No verbal component filter state
+	 * @param {boolean|null} options.noSomatic - No somatic component filter state
+	 * @param {boolean|null} options.noMaterial - No material component filter state
+	 * @param {Function} options.onFilterChange - Callback when any filter changes
+	 * @param {Object} [options.additionalSwitches] - Additional switch groups to add
+	 */
+	static buildSpellFilters({
+		panel,
+		cleanup,
+		levelFilters,
+		schoolFilters,
+		ritualOnly,
+		concentrationOnly,
+		noVerbal,
+		noSomatic,
+		noMaterial,
+		onFilterChange,
+		additionalSwitches = null,
+	}) {
+		if (!panel) return;
+		panel.innerHTML = '';
+
+		const builder = new FilterBuilder(panel, cleanup);
+
+		// Level filters
+		builder.addCheckboxGroup({
+			title: 'Spell Level',
+			options: [
+				{ label: 'Cantrip', value: '0' },
+				{ label: '1st', value: '1' },
+				{ label: '2nd', value: '2' },
+				{ label: '3rd', value: '3' },
+				{ label: '4th', value: '4' },
+				{ label: '5th', value: '5' },
+				{ label: '6th', value: '6' },
+				{ label: '7th', value: '7' },
+				{ label: '8th', value: '8' },
+				{ label: '9th', value: '9' },
+			],
+			stateSet: levelFilters,
+			onChange: onFilterChange,
+			columns: 2,
+		});
+
+		// School filters
+		const schoolOptions = Array.from(
+			new Set(
+				spellService
+					.getAllSpells()
+					.map((s) => s.school)
+					.filter(Boolean),
+			),
+		)
+			.sort()
+			.map((code) => ({ label: getSchoolName(code), value: code }));
+
+		builder.addCheckboxGroup({
+			title: 'School',
+			options: schoolOptions,
+			stateSet: schoolFilters,
+			onChange: onFilterChange,
+			columns: 2,
+		});
+
+		// Type filters (ritual, concentration, components)
+		builder.addSwitchGroup({
+			title: 'Type',
+			switches: [
+				{
+					label: 'Ritual only',
+					checked: ritualOnly === true,
+					onChange: (v) => {
+						onFilterChange(v, 'ritualOnly');
+					},
+				},
+				{
+					label: 'Concentration only',
+					checked: concentrationOnly === true,
+					onChange: (v) => {
+						onFilterChange(v, 'concentrationOnly');
+					},
+				},
+				{
+					label: 'No verbal',
+					checked: noVerbal === true,
+					onChange: (v) => {
+						onFilterChange(v, 'noVerbal');
+					},
+				},
+				{
+					label: 'No somatic',
+					checked: noSomatic === true,
+					onChange: (v) => {
+						onFilterChange(v, 'noSomatic');
+					},
+				},
+				{
+					label: 'No material',
+					checked: noMaterial === true,
+					onChange: (v) => {
+						onFilterChange(v, 'noMaterial');
+					},
+				},
+			],
+		});
+
+		// Add additional switch groups if provided
+		if (additionalSwitches) {
+			builder.addSwitchGroup(additionalSwitches);
+		}
 	}
 }

@@ -110,7 +110,6 @@ export class ProficiencyDisplayView {
 		isProficiencyAvailable,
 		combinedSlotsAvailable,
 		getIconForType,
-		proficiencyManager,
 	) {
 		let containerHtml = '';
 
@@ -152,7 +151,6 @@ export class ProficiencyDisplayView {
 				type,
 				isOptionallySelected,
 				getIconForType,
-				proficiencyManager,
 			);
 		}
 
@@ -188,14 +186,9 @@ export class ProficiencyDisplayView {
 		type,
 		isOptionallySelected,
 		getIconForType,
-		proficiencyManager,
 	) {
 		const iconClass = getIconForType(type);
 		const optionalClass = isOptionallySelected ? 'optional' : '';
-		const abilityDisplay =
-			type === 'skills'
-				? `<span class="ability">(${proficiencyManager.getSkillAbility(item)})</span>`
-				: '';
 		const unselectHint = isOptionallySelected
 			? '<span class="unselect-hint"><i class="fas fa-times"></i></span>'
 			: '';
@@ -207,7 +200,6 @@ export class ProficiencyDisplayView {
 		return (
 			`<div class="${cssClasses.join(' ')}" data-proficiency="${item}" data-type="${type}">` +
 			`<i class="fas ${iconClass} ${optionalClass}"></i>${displayName}` +
-			abilityDisplay +
 			unselectHint +
 			'</div>'
 		);

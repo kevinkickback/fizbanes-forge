@@ -478,7 +478,6 @@ class PageHandlerImpl {
 				await this.renderCharacterList(reloadCharacters);
 			} else if (result.canceled) {
 				console.debug('PageHandler', 'Import canceled');
-				showNotification('Import cancelled', 'info');
 			} else {
 				showNotification('Failed to import character', 'error');
 			}

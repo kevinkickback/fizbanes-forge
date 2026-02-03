@@ -69,7 +69,6 @@ export class SpellsManager {
 		this.renderKnownSpells(character);
 		this.renderPreparedSpells(character);
 		this.renderSpellcastingInfo(character);
-		this.renderMulticlassSpellcasting(character);
 	}
 
 	_ensureSpellcastingInitialized(character) {
@@ -99,25 +98,45 @@ export class SpellsManager {
 		const spellcasting = character.spellcasting;
 		const classNames = Object.keys(spellcasting?.classes || {});
 		const isMulticlass = classNames.length > 1;
+		const preparedClasses = new Set(this._getPreparedSpellClasses(character));
 		let html = '';
 
 		for (const className of classNames) {
 			const classData = spellcasting.classes[className];
 			if (!classData || !classData.spellsKnown) continue;
 
+			html += `<div class="spell-class-group" data-class="${className}" data-multiclass="${isMulticlass}">`;
+
 			// Get spell limit info for this class
-			const classLevel = classData.level || 1;
+			const classEntry = character.progression?.classes?.find(
+				(c) => c.name === className,
+			);
+			const classLevel = classEntry?.levels || classData.level || 1;
 			const limitInfo = spellSelectionService.getSpellLimitInfo(
 				character,
 				className,
 				classLevel,
 			);
+			const isPreparedCaster = preparedClasses.has(className);
+			const preparedCount = classData.spellsPrepared?.length || 0;
+			const preparedMax = limitInfo?.limit || 0;
 
-			// Add class header with spell limit (if multiclass or has limit)
+			// Add class header (if multiclass or has limit) - spans all columns
 			if (isMulticlass || limitInfo.limit > 0) {
-				html += `<div class="class-spell-section mb-4">
-                    <h5 class="mb-2">${className}</h5>`;
+				html += `<div class="spell-class-divider" data-class="${className}">
+                    <button class="spell-class-header" data-toggle-spells="${className}">
+                        <span class="spell-class-name">${className}</span>
+                        ${isPreparedCaster && preparedMax > 0
+						? `<span class="spell-class-prepared-count">Prepared: ${preparedCount}/${preparedMax}</span>`
+						: ''
+					}
+                        <span class="spell-class-count">Total: ${classData.spellsKnown.length}</span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>`;
 			}
+
+			html += '<div class="spell-class-levels">';
 
 			// Group spells by level
 			const spellsByLevel = {};
@@ -129,61 +148,118 @@ export class SpellsManager {
 				spellsByLevel[level].push(spell);
 			}
 
-			// Render spells by level
+			// Get column count based on viewport
+			const columnCount = this._getColumnCount();
+
+			// Group levels into rows and find max per row
+			const levelArray = [];
+			for (let level = 0; level <= 9; level++) {
+				const spells = spellsByLevel[level] || [];
+				if (spells.length > 0) {
+					levelArray.push({ level, spells });
+				}
+			}
+
+			// Calculate max spells per row
+			const rowMaxCounts = [];
+			for (let i = 0; i < levelArray.length; i += columnCount) {
+				const rowLevels = levelArray.slice(i, i + columnCount);
+				const maxInRow = Math.max(...rowLevels.map(l => l.spells.length));
+				rowMaxCounts.push(maxInRow);
+			}
+
+			// Render spells by level in compact list format
+			let levelIndex = 0;
 			for (let level = 0; level <= 9; level++) {
 				const spells = spellsByLevel[level] || [];
 				if (spells.length === 0) continue;
 
-				html += `<div class="spell-level-group mb-3">
-					<h6 class="mb-2">${this._getLevelLabel(level)}</h6>
-					<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">`;
+				const rowIndex = Math.floor(levelIndex / columnCount);
+				const maxForThisRow = rowMaxCounts[rowIndex] || 0;
+
+				html += `<div class="spell-level-section" data-level="${level}">
+					<div class="spell-level-label">${this._getLevelLabel(level)} (${spells.length})</div>
+					<div class="spell-items-list">`;
 
 				for (const spell of spells) {
+					// Cantrips are always prepared
+					// Known spells (Sorcerer, Bard, Warlock) are always available
+					const isCantrip = level === 0;
+					const knownSpellClasses = ['Sorcerer', 'Bard', 'Warlock'];
+					const isKnownSpellClass = knownSpellClasses.includes(className);
 					const isPrepared =
+						isCantrip ||
+						isKnownSpellClass ||
 						classData.spellsPrepared?.some((s) => s.name === spell.name) ||
 						false;
 
 					const spellSource = spell.source || 'PHB';
+					const ritualClass = spell.ritual ? 'is-ritual' : '';
+					const concentrationClass = spell.concentration ? 'is-concentration' : '';
+					const preparedClass = isPrepared ? 'is-prepared' : '';
 
-					html += `<div class="col">
-						<div class="spell-item card card-sm h-100">
-							<div class="card-body py-2 px-2 position-relative d-flex align-items-center">
-								<button class="btn btn-sm btn-link text-danger text-decoration-none border-0 position-absolute top-0 end-0 p-1" data-remove-spell="${spell.name}" data-class-name="${className}" title="Remove spell" style="font-size: 1.25rem; line-height: 1;">
-									<i class="fas fa-square-xmark"></i>
-								</button>
-								<div class="spell-info pe-4 flex-grow-1">
-									<h6 class="mb-0">
-										<a href="#" class="reference-link text-decoration-none" 
-											data-hover-type="spell" 
-											data-hover-name="${spell.name}" 
-											data-hover-source="${spellSource}">${spell.name}</a>
-									</h6>
-									<div class="mt-1">
-										${spell.ritual ? '<span class="badge bg-info">Ritual</span>' : ''}
-										${spell.concentration ? '<span class="badge bg-warning ms-1">Concentration</span>' : ''}
-									</div>
-								</div>
-								${isPrepared ? '<div class="position-absolute bottom-0 end-0 m-1"><span class="badge bg-success">Prepared</span></div>' : ''}
-							</div>
+					html += `<div class="spell-item-compact ${ritualClass} ${concentrationClass} ${preparedClass}">
+						<a href="#" class="spell-item-name reference-link" 
+							data-hover-type="spell" 
+							data-hover-name="${spell.name}" 
+							data-hover-source="${spellSource}">${spell.name}</a>
+						<div class="spell-item-actions">
+							${spell.ritual ? '<i class="fas fa-ring text-info" title="Ritual"></i>' : ''}
+							${spell.concentration ? '<i class="fas fa-hourglass-half text-warning" title="Concentration"></i>' : ''}
+							<button class="btn-spell-remove" data-remove-spell="${spell.name}" data-class-name="${className}" title="Remove">
+								<i class="fas fa-xmark"></i>
+							</button>
 						</div>
 					</div>`;
 				}
 
+				// Add empty filler items to match tallest column in this row only
+				const fillersNeeded = maxForThisRow - spells.length;
+				for (let i = 0; i < fillersNeeded; i++) {
+					html += `<div class="spell-item-filler"></div>`;
+				}
+
 				html += `</div></div>`;
+				levelIndex++;
 			}
 
-			// Close class section if we added one
-			if (isMulticlass || limitInfo.limit > 0) {
-				html += `</div>`;
-			}
+			html += '</div></div>';
 		}
 
 		if (html === '') {
 			html =
-				'<p class="text-muted">No known spells. Click "Add Spell" to select spells.</p>';
+				'<p class="text-muted px-2 py-2">No known spells. Click "Add Spell" to select spells.</p>';
 		}
 
 		container.innerHTML = html;
+		this._setupSpellClassToggle();
+	}
+
+	_setupSpellClassToggle() {
+		document.querySelectorAll('[data-toggle-spells]').forEach((btn) => {
+			btn.addEventListener('click', (e) => {
+				e.preventDefault();
+				const group = btn.closest('.spell-class-group');
+				if (!group) return;
+				const isCollapsed = btn.classList.toggle('collapsed');
+				group.classList.toggle('collapsed', isCollapsed);
+				group.classList.toggle('expanded', !isCollapsed);
+			});
+
+			// Set initial state: expanded for single class, collapsed for multiclass
+			const group = btn.closest('.spell-class-group');
+			if (group) {
+				const isMulticlass = group.dataset.multiclass === 'true';
+				if (isMulticlass) {
+					// Multiclass: start collapsed
+					btn.classList.add('collapsed');
+					group.classList.add('collapsed');
+				} else {
+					// Single class: start expanded
+					group.classList.add('expanded');
+				}
+			}
+		});
 	}
 
 	renderPreparedSpells(character) {
@@ -215,95 +291,77 @@ export class SpellsManager {
 		const spellcasting = character.spellcasting;
 		const classNames = Object.keys(spellcasting?.classes || {});
 
-		let html = '';
+		if (classNames.length === 0) {
+			container.innerHTML =
+				'<p class="text-muted px-2 py-1">No spellcasting ability.</p>';
+			return;
+		}
+
+		let html = '<div class="spellcasting-info"><div class="spellcasting-classes-grid">';
 
 		for (const className of classNames) {
-			const classData = spellcasting.classes[className];
-			const ability = this._getSpellcastingAbility(className);
+			const classSpellcasting = spellcasting.classes[className];
+			const ability =
+				classSpellcasting?.spellcastingAbility ||
+				this._getSpellcastingAbility(className);
 			const abilityMod = character.getAbilityModifier(ability);
 			const proficiencyBonus = character.getProficiencyBonus?.() || 2;
 			const spellSaveDC = 8 + abilityMod + proficiencyBonus;
+			const spellAttack = abilityMod + proficiencyBonus;
 
 			html += `<div class="spellcasting-class-info">
 				<h6>${className}</h6>
 				<div class="spellcasting-stats-grid">
-					<div class="spellcasting-stat-item">
-						<div class="stat-label">Spellcasting Ability</div>
-						<div class="stat-value">${this._formatAbilityName(ability)}</div>
-					</div>
 					<div class="spellcasting-stat-item">
 						<div class="stat-label">Spell Save DC</div>
 						<div class="stat-value">${spellSaveDC}</div>
 					</div>
 					<div class="spellcasting-stat-item">
 						<div class="stat-label">Spell Attack</div>
-						<div class="stat-value">+${abilityMod + proficiencyBonus}</div>
+						<div class="stat-value">+${spellAttack}</div>
 					</div>
-				</div>`;
+					<div class="spellcasting-stat-item">
+						<div class="stat-label">Spellcasting Ability</div>
+						<div class="stat-value">${this._formatAbilityName(ability)} (${abilityMod >= 0 ? '+' : ''}${abilityMod})</div>
+					</div>
+				</div>
+			</div>`;
+		}
 
-			// Add spell slots information
-			if (
-				classData?.spellSlots &&
-				Object.keys(classData.spellSlots).length > 0
-			) {
-				html += `<div class="mt-3">
-					<div class="stat-label mb-2">Spell Slots</div>
-					<div class="spellcasting-slots-grid">`;
+		// Add spell slots - recalculate from class level to ensure accuracy
+		const isMulticlass = classNames.length > 1;
+		let slotsToDisplay = null;
 
-				for (let level = 1; level <= 9; level++) {
-					const slotData = classData.spellSlots[level];
-					if (!slotData) continue;
-
-					html += `<div class="badge bg-secondary">
-						${this._getLevelLabel(level)}: ${slotData.max}
-					</div>`;
-				}
-
-				html += `</div></div>`;
+		if (isMulticlass) {
+			// Use combined multiclass slots
+			slotsToDisplay = levelUpService.calculateMulticlassSpellSlots(character);
+		} else if (classNames.length === 1) {
+			// Recalculate spell slots based on current class level
+			const className = classNames[0];
+			const classEntry = character.progression?.classes?.find(c => c.name === className);
+			if (classEntry) {
+				slotsToDisplay = spellSelectionService.calculateSpellSlots(className, classEntry.levels || 1);
 			}
-
-			html += `</div>`;
 		}
 
-		container.innerHTML =
-			html ||
-			'<p class="text-muted">No spellcasting ability.</p>';
-	}
-
-	renderMulticlassSpellcasting(character) {
-		const container = document.getElementById('multiclassSpellsList');
-		const section = document.getElementById('multiclassSpellsSection');
-		if (!container || !section) return;
-
-		const spellcasting = character.spellcasting;
-		const classCount = Object.keys(spellcasting?.classes || {}).length;
-
-		if (classCount <= 1) {
-			section.style.display = 'none';
-			return;
-		}
-
-		let html =
-			'<p class="text-info mb-3">Multiclass spellcasting rules apply. Spell slots are combined across classes.</p>';
-
-		const multiclassSlots = spellcasting?.multiclass || {};
-		if (Object.keys(multiclassSlots).length > 0) {
-			html += '<div class="multiclass-slots">';
+		if (slotsToDisplay && Object.keys(slotsToDisplay).length > 0) {
+			html += '<div class="spellcasting-class-info">';
+			html += `<h6>${isMulticlass ? 'Combined Spell Slots' : 'Spell Slots'}</h6>`;
+			html += '<div class="spellcasting-slots-grid">';
 			for (let level = 1; level <= 9; level++) {
-				const slots = multiclassSlots[level];
-				if (!slots) continue;
-
-				html += `<div class="mb-2">
-					<small class="text-muted">${this._getLevelLabel(level)}:</small>
-					<strong>${slots.current} / ${slots.max}</strong>
-				</div>`;
+				const slotData = slotsToDisplay[level];
+				if (!slotData) continue;
+				const levelLabel = this._getLevelLabel(level).replace(' Level', '');
+				html += `<span class="badge" title="${this._getLevelLabel(level)} slots">${levelLabel} Slots: ${slotData.max}</span>`;
 			}
-			html += '</div>';
+			html += '</div></div>';
 		}
 
+		html += '</div></div>';
 		container.innerHTML = html;
-		section.style.display = 'block';
 	}
+
+
 
 	async handleAddSpell() {
 		const character = AppState.getCurrentCharacter();
@@ -386,6 +444,7 @@ export class SpellsManager {
 
 		for (const cls of classesToCheck) {
 			const classData = spellcasting.classes[cls];
+			if (!classData) continue;
 
 			// Remove from known spells
 			const knownIndex = classData.spellsKnown?.findIndex(
@@ -393,14 +452,14 @@ export class SpellsManager {
 			);
 			if (knownIndex !== -1) {
 				classData.spellsKnown.splice(knownIndex, 1);
-			}
-
-			// Remove from prepared spells
-			const preparedIndex = classData.spellsPrepared?.findIndex(
-				(s) => s.name === spellName,
-			);
-			if (preparedIndex !== -1) {
-				classData.spellsPrepared.splice(preparedIndex, 1);
+				// Also remove from prepared if present
+				const preparedIndex = classData.spellsPrepared?.findIndex(
+					(s) => s.name === spellName,
+				);
+				if (preparedIndex !== -1) {
+					classData.spellsPrepared.splice(preparedIndex, 1);
+				}
+				break; // Spell found and removed, no need to check other classes
 			}
 		}
 
@@ -426,6 +485,12 @@ export class SpellsManager {
 			);
 
 			if (knownSpell) {
+				// Cantrips cannot be unprepared - they're always prepared
+				if (knownSpell.level === 0) {
+					showNotification(`${spellName} is a cantrip and is always prepared`, 'info');
+					break;
+				}
+
 				const isPrepared =
 					classData.spellsPrepared?.some((s) => s.name === spellName) || false;
 
@@ -488,5 +553,13 @@ export class SpellsManager {
 		if (level === 0) return 'Cantrips';
 		const suffixes = ['', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];
 		return `${level}${suffixes[level]} Level`;
+	}
+
+	_getColumnCount() {
+		const width = window.innerWidth;
+		if (width >= 1600) return 4;
+		if (width >= 1200) return 3;
+		if (width >= 900) return 2;
+		return 1;
 	}
 }

@@ -7,6 +7,8 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 
+const MAX_CHARACTER_LEVEL = 20;
+
 export class LevelUpModal {
 	constructor() {
 		this.modalEl = null;
@@ -114,6 +116,7 @@ export class LevelUpModal {
 		}
 
 		const totalLevel = levelUpService.getTotalLevel(character);
+		const isAtLevelCap = totalLevel >= MAX_CHARACTER_LEVEL;
 		const classes = character.progression?.classes || [];
 
 		// Build class breakdown with cards in two columns
@@ -130,9 +133,9 @@ export class LevelUpModal {
                                     <small class="text-muted">Class Level ${cls.levels || 0}</small>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-primary" data-add-level="${cls.name}">
-                                <i class="fas fa-plus"></i> Add Level
-                            </button>
+							<button class="btn btn-sm btn-primary" data-add-level="${cls.name}" ${isAtLevelCap ? 'disabled' : ''}>
+								<i class="fas fa-plus"></i> Add Level
+							</button>
                         </div>
                     </div>
                 `;
@@ -147,7 +150,13 @@ export class LevelUpModal {
 			ignoreRestrictions,
 		);
 		let multiclassSection = '';
-		if (multiclassOptions.length > 0) {
+		if (isAtLevelCap) {
+			multiclassSection = `
+                <div class="alert alert-warning mb-0">
+                    Character is already level ${MAX_CHARACTER_LEVEL}. Remove a level to add more.
+                </div>
+            `;
+		} else if (multiclassOptions.length > 0) {
 			multiclassSection = `
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -162,14 +171,14 @@ export class LevelUpModal {
                             <select class="form-select" id="multiclassSelect">
                                 <option value="">Choose a class...</option>
                                 ${multiclassOptions
-																	.map(
-																		(opt) => `
+					.map(
+						(opt) => `
                                     <option value="${opt.name}" ${!opt.meetsRequirements && !ignoreRestrictions ? 'disabled' : ''}>
                                         ${opt.name}${opt.requirementText ? ` (${opt.requirementText})` : ''}
                                     </option>
                                 `,
-																	)
-																	.join('')}
+					)
+					.join('')}
                             </select>
                             <button class="btn btn-primary" id="addMulticlassBtn" style="white-space: nowrap;">
                                 <i class="fas fa-plus"></i> Add Class
@@ -193,17 +202,16 @@ export class LevelUpModal {
                     <div class="card-body">
                         ${classBreakdown || '<p class="text-muted text-center mb-0">No classes yet</p>'}
                     </div>
-                    ${
-											classes.length > 0
-												? `
+                    ${classes.length > 0
+				? `
                     <div class="card-footer text-center">
                         <button class="btn btn-outline-danger btn-sm" id="removeLastLevelBtn">
                             <i class="fas fa-minus"></i> Remove Last Level
                         </button>
                     </div>
                     `
-												: ''
-										}
+				: ''
+			}
                 </div>
                 
                 ${multiclassSection}
@@ -260,9 +268,45 @@ export class LevelUpModal {
 		}
 	}
 
+	_updateLevelDisplays(character, className) {
+		// Update the character level badge
+		const totalLevel = levelUpService.getTotalLevel(character);
+		const levelBadge = this.modalEl.querySelector('.badge.bg-primary');
+		if (levelBadge) {
+			levelBadge.textContent = totalLevel;
+		}
+
+		// Update the specific class level display
+		const classEntry = character.progression.classes.find(
+			(c) => c.name === className,
+		);
+		if (classEntry) {
+			// Find the card for this class
+			const cards = this.modalEl.querySelectorAll('.class-level-card');
+			for (const card of cards) {
+				const cardName = card.querySelector('.class-name')?.textContent;
+				if (cardName === className) {
+					const levelText = card.querySelector('.text-muted');
+					if (levelText) {
+						levelText.textContent = `Class Level ${classEntry.levels || 0}`;
+					}
+					break;
+				}
+			}
+		}
+	}
+
 	async _addClassLevel(className) {
 		const character = AppState.getCurrentCharacter();
 		if (!character) return;
+
+		if (levelUpService.getTotalLevel(character) >= MAX_CHARACTER_LEVEL) {
+			showNotification(
+				`Character is already level ${MAX_CHARACTER_LEVEL}. Remove a level to add more.`,
+				'warning',
+			);
+			return;
+		}
 
 		try {
 			// Find the class in progression
@@ -282,10 +326,8 @@ export class LevelUpModal {
 			AppState.setCurrentCharacter(character, { skipEvent: true });
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 
-			showNotification(`Added level to ${className}!`, 'success');
-
-			// Re-render picker
-			await this._renderLevelPicker();
+			// Update only the affected class level and character level display
+			this._updateLevelDisplays(character, className);
 		} catch (error) {
 			console.error('[LevelUpModal]', 'Failed to add level', error);
 			showNotification(`Failed to add level: ${error.message}`, 'error');
@@ -295,6 +337,14 @@ export class LevelUpModal {
 	async _addMulticlass(className) {
 		const character = AppState.getCurrentCharacter();
 		if (!character) return;
+
+		if (levelUpService.getTotalLevel(character) >= MAX_CHARACTER_LEVEL) {
+			showNotification(
+				`Character is already level ${MAX_CHARACTER_LEVEL}. Remove a level to add more.`,
+				'warning',
+			);
+			return;
+		}
 
 		try {
 			// Check multiclass requirements (unless ignoring restrictions)
@@ -329,7 +379,6 @@ export class LevelUpModal {
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 			eventBus.emit(EVENTS.MULTICLASS_ADDED, character, { name: className });
 
-			showNotification(`Added ${className} class!`, 'success');
 
 			// Re-render picker
 			await this._renderLevelPicker();

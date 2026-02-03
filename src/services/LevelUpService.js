@@ -482,20 +482,22 @@ class LevelUpService {
 				continue; // Non-spellcaster
 			}
 
+			const levels = classEntry.levels || 0;
+
 			const progression = classData.casterProgression;
 
 			if (progression === 'pact') {
 				// Warlock pact magic doesn't combine - track separately
-				warlockLevels.push(classEntry.level);
+				warlockLevels.push(levels);
 			} else if (progression === 'full') {
 				// Full casters contribute full level
-				totalCasterLevel += classEntry.level;
+				totalCasterLevel += levels;
 			} else if (progression === '1/2') {
 				// Half casters contribute half level (rounded down)
-				totalCasterLevel += Math.floor(classEntry.level / 2);
+				totalCasterLevel += Math.floor(levels / 2);
 			} else if (progression === '1/3') {
 				// Third casters contribute third level (rounded down)
-				totalCasterLevel += Math.floor(classEntry.level / 3);
+				totalCasterLevel += Math.floor(levels / 3);
 			}
 		}
 

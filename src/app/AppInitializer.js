@@ -1,5 +1,6 @@
-import { eventBus } from '../lib/EventBus.js';
+import { eventBus, EVENTS } from '../lib/EventBus.js';
 
+import { cleanupOrphanedBackdrops } from '../lib/ModalCleanupUtility.js';
 import { getNotificationCenter } from '../lib/NotificationCenter.js';
 import {
 	addPersistentNotification,
@@ -223,46 +224,15 @@ async function _loadAllGameData(loadingModal) {
 			},
 		];
 
-		// Track progress for the loading modal
-		let completedCount = 0;
-		const totalCount = services.length;
-		const updateProgress = (serviceName, success) => {
-			completedCount++;
-			if (loadingModal) {
-				const status = success ? 'Loaded' : 'Failed';
-				loadingModal.updateDetail(
-					`Loading ${serviceName}... [${completedCount}/${totalCount}]`
-				);
-			}
-		};
-
-		await Promise.all(
-			services.map(async (svc) => {
-				try {
-					if (loadingModal) loadingModal.updateDetail(`Loading ${svc.name}... [${completedCount + 1}/${totalCount}]`);
-					await svc.init();
-					updateProgress(svc.name, true);
-				} catch (err) {
-					updateProgress(svc.name, false);
-					failedServices.push(svc.name);
-					errors.push(err);
-				}
-			})
-		);
-
 		// Show initial loading state
 		if (loadingModal) {
-			loadingModal.updateDetail(`Loading game data... (0/${totalCount})`);
+			loadingModal.updateDetail('Loading game data...');
 		}
 
 		// Load all services in parallel using Promise.allSettled
 		const results = await Promise.allSettled(
 			services.map((service) =>
-				_loadDataWithErrorHandling(
-					service.init(),
-					service.name,
-					updateProgress,
-				),
+				_loadDataWithErrorHandling(service.init(), service.name, null),
 			),
 		);
 
@@ -528,6 +498,17 @@ export async function initializeAll(_options = {}) {
 		existingModal.setAttribute('aria-hidden', 'true');
 		existingModal.removeAttribute('aria-modal');
 	}
+
+	// Clean up any orphaned modal backdrops from previous session
+	try {
+		cleanupOrphanedBackdrops();
+	} catch (error) {
+		console.warn(
+			'AppInitializer',
+			'Error cleaning up orphaned backdrops',
+			error,
+		);
+	}
 	const existingBackdrops = document.querySelectorAll('.modal-backdrop');
 	for (const backdrop of existingBackdrops) {
 		backdrop.remove();
@@ -538,6 +519,35 @@ export async function initializeAll(_options = {}) {
 
 	const loadingModal = new LoadingModal();
 	loadingModal.show();
+
+	let isGameDataLoading = false;
+	const getLoadLabel = (url = '') => {
+		const normalized = String(url).toLowerCase();
+		if (!normalized) return null;
+		if (normalized.includes('spells/')) return 'spells';
+		if (normalized.includes('items')) return 'items';
+		if (normalized.includes('class/')) return 'classes';
+		if (normalized.includes('races')) return 'races';
+		if (normalized.includes('backgrounds')) return 'backgrounds';
+		if (normalized.includes('conditionsdiseases')) return 'conditions';
+		if (normalized.includes('bestiary')) return 'monsters';
+		if (normalized.includes('feats')) return 'feats';
+		if (normalized.includes('skills')) return 'skills';
+		if (normalized.includes('actions')) return 'actions';
+		if (normalized.includes('deities')) return 'deities';
+		if (normalized.includes('variantrules')) return 'variant rules';
+		if (normalized.includes('optionalfeatures')) return 'optional features';
+		return null;
+	};
+	const onDataFileLoading = (payload = {}) => {
+		if (!loadingModal || !isGameDataLoading || !payload.url) return;
+		const label = getLoadLabel(payload.url);
+		if (label) {
+			loadingModal.updateDetail(`Loading ${label}...`);
+		}
+	};
+	eventBus.on(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
+	_appInitializerListeners.set(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
 
 	try {
 		// Step 0: Check data folder availability
@@ -758,7 +768,9 @@ export async function initializeAll(_options = {}) {
 
 		// Step 1: Load all game data
 		loadingModal.updateProgress(30);
+		isGameDataLoading = true;
 		const dataLoadResult = await _loadAllGameData(loadingModal);
+		isGameDataLoading = false;
 		AppState.setFailedServices(dataLoadResult.failedServices || []);
 		_updateServiceFailureBanner(dataLoadResult.failedServices || []);
 		if (dataLoadResult.failedServices?.length) {

@@ -1,6 +1,7 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { DOMCleanup } from '../lib/DOMCleanup.js';
+import { initializeBootstrapModal } from '../lib/ModalCleanupUtility.js';
 import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 
@@ -145,24 +146,33 @@ export class Modal {
 
 			confirmButton.className = `btn ${confirmButtonClass}`;
 
-			const modal = new bootstrap.Modal(modalElement);
+			// Use safe modal initialization to prevent backdrop stacking
+			const modal = initializeBootstrapModal(modalElement);
+			if (!modal) {
+				console.error('Modal', 'Failed to initialize confirmation modal');
+				return false;
+			}
 
 			return new Promise((resolve) => {
+				let resolved = false;
+				let resolveValue = false;
+
 				const handleConfirm = () => {
-					cleanup();
+					resolveValue = true;
 					modal.hide();
-					resolve(true);
 				};
 
 				const handleCancel = () => {
-					cleanup();
+					resolveValue = false;
 					modal.hide();
-					resolve(false);
 				};
 
 				const handleHidden = () => {
 					cleanup();
-					resolve(false);
+					if (!resolved) {
+						resolved = true;
+						resolve(resolveValue);
+					}
 				};
 
 				const cleanup = () => {
@@ -170,6 +180,12 @@ export class Modal {
 					cancelButton.removeEventListener('click', handleCancel);
 					closeButton.removeEventListener('click', handleCancel);
 					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+					// Dispose modal instance to clean up backdrops
+					try {
+						modal.dispose();
+					} catch (e) {
+						console.warn('Modal', 'Error disposing confirmation modal', e);
+					}
 				};
 
 				confirmButton.addEventListener('click', handleConfirm);
@@ -246,7 +262,12 @@ export class Modal {
 			const buttonContainer = cancelButton.parentElement;
 			buttonContainer.insertBefore(keepBothButton, cancelButton);
 
-			const modal = new bootstrap.Modal(modalElement);
+			// Use safe modal initialization to prevent backdrop stacking
+			const modal = initializeBootstrapModal(modalElement);
+			if (!modal) {
+				console.error('Modal', 'Failed to initialize duplicate ID modal');
+				return 'cancel';
+			}
 
 			return new Promise((resolve) => {
 				const handleOverwrite = () => {
@@ -279,6 +300,12 @@ export class Modal {
 					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
 					keepBothButton.remove(); // Remove the temporary button
 					cancelButton.style.display = 'block'; // Restore cancel button for future use
+					// Dispose modal instance to clean up backdrops
+					try {
+						modal.dispose();
+					} catch (e) {
+						console.warn('Modal', 'Error disposing duplicate ID modal', e);
+					}
 				};
 
 				confirmButton.addEventListener('click', handleOverwrite);

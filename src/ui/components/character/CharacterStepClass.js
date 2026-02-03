@@ -340,23 +340,41 @@ export class CharacterStepClass {
 		const section = document.getElementById('modalArmorWeapons');
 		const profs = [];
 
+		const armorLabels = {
+			light: 'Light Armor',
+			medium: 'Medium Armor',
+			heavy: 'Heavy Armor',
+			shield: 'Shields',
+		};
+		const weaponLabels = {
+			simple: 'Simple Weapons',
+			martial: 'Martial Weapons',
+		};
+
+		const formatEntry = (entry, labels) => {
+			if (!entry) return null;
+			if (typeof entry === 'string') {
+				if (entry.includes('{@')) return entry;
+				return labels?.[entry] || toTitleCase(entry);
+			}
+			if (entry.full) {
+				if (entry.full.includes('{@')) return entry.full;
+				return labels?.[entry.full] || toTitleCase(entry.full);
+			}
+			return null;
+		};
+
 		if (classData?.startingProficiencies?.armor) {
 			for (const armor of classData.startingProficiencies.armor) {
-				if (typeof armor === 'string') {
-					profs.push(toTitleCase(armor));
-				} else if (armor.full) {
-					profs.push(toTitleCase(armor.full));
-				}
+				const formatted = formatEntry(armor, armorLabels);
+				if (formatted) profs.push(formatted);
 			}
 		}
 
 		if (classData?.startingProficiencies?.weapons) {
 			for (const weapon of classData.startingProficiencies.weapons) {
-				if (typeof weapon === 'string') {
-					profs.push(toTitleCase(weapon));
-				} else if (weapon.full) {
-					profs.push(toTitleCase(weapon.full));
-				}
+				const formatted = formatEntry(weapon, weaponLabels);
+				if (formatted) profs.push(formatted);
 			}
 		}
 

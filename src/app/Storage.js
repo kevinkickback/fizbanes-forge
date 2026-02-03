@@ -137,6 +137,7 @@ export class Storage {
 					return {
 						success: false,
 						character: null,
+						canceled: true,
 					};
 				}
 
@@ -157,6 +158,7 @@ export class Storage {
 			return {
 				success: false,
 				character: null,
+				canceled: result?.canceled || false,
 			};
 		} catch (error) {
 			console.error('Storage', 'Error importing character:', error);

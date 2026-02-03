@@ -823,10 +823,6 @@ export class ProficiencyCard {
 
 			const iconClass = this._displayView.getIconForType(type);
 			const optionalClass = isOptionallySelected ? 'optional' : '';
-			const abilityDisplay =
-				type === 'skills'
-					? `<span class="ability">(${this._proficiencyManager.getSkillAbility(item)})</span>`
-					: '';
 			const unselectHint = isOptionallySelected
 				? '<span class="unselect-hint"><i class="fas fa-times"></i></span>'
 				: '';
@@ -837,7 +833,6 @@ export class ProficiencyCard {
 			itemsHtml +=
 				`<div class="${cssClasses.join(' ')}" data-proficiency="${item}" data-type="${type}">` +
 				`<i class="fas ${iconClass} ${optionalClass}"></i>${displayName}` +
-				abilityDisplay +
 				unselectHint +
 				'</div>';
 		}
