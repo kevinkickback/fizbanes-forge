@@ -135,7 +135,7 @@ export class CharacterStepReview {
 	 * Attach event listeners to rendered content.
 	 */
 	attachListeners(_contentArea) {
-		console.debug('[Step3Review]', 'Attaching listeners');
+		console.debug('Step3Review', 'Attaching listeners');
 		// No listeners needed for review step
 	}
 
@@ -279,6 +279,6 @@ export class CharacterStepReview {
 	 */
 	async save() {
 		// Nothing to save - this is the final review step
-		console.debug('[Step3Review]', 'Final review complete');
+		console.debug('Step3Review', 'Final review complete');
 	}
 }

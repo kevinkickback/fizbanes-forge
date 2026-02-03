@@ -84,7 +84,7 @@ export class CharacterStepBasics {
 	 * Attach event listeners to rendered content.
 	 */
 	attachListeners(contentArea) {
-		console.debug('[Step0Basics]', 'Attaching listeners');
+		console.debug('Step0Basics', 'Attaching listeners');
 
 		// Initialize portrait selector
 		this._initPortraitSelector(contentArea);
@@ -209,7 +209,7 @@ export class CharacterStepBasics {
 				}
 			}
 		} catch (error) {
-			console.warn('[Step0Basics]', 'Failed to load user portraits', error);
+			console.warn('Step0Basics', 'Failed to load user portraits', error);
 		}
 	}
 
@@ -270,12 +270,12 @@ export class CharacterStepBasics {
 						}
 					}
 				} catch (error) {
-					console.error('[Step0Basics]', 'Error saving portrait:', error);
+					console.error('Step0Basics', 'Error saving portrait:', error);
 				}
 			};
 			reader.readAsDataURL(file);
 		} catch (error) {
-			console.error('[Step0Basics]', 'Error handling portrait upload:', error);
+			console.error('Step0Basics', 'Error handling portrait upload:', error);
 		}
 	}
 
@@ -287,7 +287,7 @@ export class CharacterStepBasics {
 		const genderSelect = document.getElementById('characterGender');
 
 		if (!nameInput || !genderSelect) {
-			console.error('[Step0Basics]', 'Form fields not found');
+			console.error('Step0Basics', 'Form fields not found');
 			return false;
 		}
 
@@ -318,7 +318,7 @@ export class CharacterStepBasics {
 			this.session.set('portrait', this.selectedPortrait);
 		}
 
-		console.debug('[Step0Basics]', 'Saved data:', {
+		console.debug('Step0Basics', 'Saved data:', {
 			name: this.session.get('name'),
 			gender: this.session.get('gender'),
 			portrait: this.session.get('portrait'),

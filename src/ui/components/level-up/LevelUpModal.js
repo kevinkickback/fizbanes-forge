@@ -4,6 +4,7 @@ import { AppState } from '../../../app/AppState.js';
 import { Modal } from '../../../app/Modal.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 
@@ -15,7 +16,7 @@ export class LevelUpModal {
 		this.bootstrapModal = null;
 		this._cleanup = DOMCleanup.create();
 
-		console.debug('[LevelUpModal]', 'Constructor initialized');
+		console.debug('LevelUpModal', 'Constructor initialized');
 	}
 
 	async show() {
@@ -34,7 +35,7 @@ export class LevelUpModal {
 				return;
 			}
 
-			console.debug('[LevelUpModal]', 'Opening for character', character.name);
+			console.debug('LevelUpModal', 'Opening for character', character.name);
 
 			// Get modal element
 			this.modalEl = document.getElementById('levelUpModal');
@@ -59,7 +60,7 @@ export class LevelUpModal {
 			// Show modal
 			this.bootstrapModal.show();
 		} catch (error) {
-			console.error('[LevelUpModal]', 'Failed to show modal', error);
+			console.error('LevelUpModal', 'Failed to show modal', error);
 			showNotification('Failed to open level up modal', 'error');
 		}
 	}
@@ -69,34 +70,32 @@ export class LevelUpModal {
 	 */
 	async hide() {
 		if (!this.bootstrapModal) return;
-		this.bootstrapModal.hide();
+
+		// Use centralized hide utility
+		await hideBootstrapModal(this.bootstrapModal, this.modalEl);
+
+		// Clean up component references
+		this._cleanup.cleanup();
+		this.bootstrapModal = null;
 	}
 
 	_onModalHidden() {
-		console.debug('[LevelUpModal]', 'Modal hidden');
+		console.debug('LevelUpModal', 'Modal hidden');
 		this._cleanup.cleanup();
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
 	}
 
 	_initializeBootstrapModal() {
 		// Dispose old instance if exists
-		if (this.bootstrapModal) {
-			try {
-				if (typeof this.bootstrapModal.dispose === 'function') {
-					this.bootstrapModal.dispose();
-				}
-			} catch (e) {
-				console.warn('[LevelUpModal]', 'Error disposing old modal', e);
-			}
-			this.bootstrapModal = null;
-		}
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
 
-		// Create new instance
-		const bs = window.bootstrap || globalThis.bootstrap;
-		if (!bs) {
-			throw new Error('Bootstrap not found on window');
+		// Create new instance using centralized utility
+		this.bootstrapModal = initializeBootstrapModal(this.modalEl);
+		if (!this.bootstrapModal) {
+			throw new Error('Failed to initialize Bootstrap modal');
 		}
-
-		this.bootstrapModal = new bs.Modal(this.modalEl);
 
 		// Register cleanup
 		this._cleanup.registerBootstrapModal(this.modalEl, this.bootstrapModal);
@@ -111,7 +110,7 @@ export class LevelUpModal {
 		const character = AppState.getCurrentCharacter();
 		const contentArea = this.modalEl.querySelector('.modal-body');
 		if (!contentArea) {
-			console.warn('[LevelUpModal]', 'Modal body not found');
+			console.warn('LevelUpModal', 'Modal body not found');
 			return;
 		}
 
@@ -329,7 +328,7 @@ export class LevelUpModal {
 			// Update only the affected class level and character level display
 			this._updateLevelDisplays(character, className);
 		} catch (error) {
-			console.error('[LevelUpModal]', 'Failed to add level', error);
+			console.error('LevelUpModal', 'Failed to add level', error);
 			showNotification(`Failed to add level: ${error.message}`, 'error');
 		}
 	}
@@ -383,7 +382,7 @@ export class LevelUpModal {
 			// Re-render picker
 			await this._renderLevelPicker();
 		} catch (error) {
-			console.error('[LevelUpModal]', 'Failed to add multiclass', error);
+			console.error('LevelUpModal', 'Failed to add multiclass', error);
 			showNotification(`Failed to add multiclass: ${error.message}`, 'error');
 		}
 	}
@@ -492,7 +491,7 @@ export class LevelUpModal {
 			// Re-render picker
 			await this._renderLevelPicker();
 		} catch (error) {
-			console.error('[LevelUpModal]', 'Failed to remove level', error);
+			console.error('LevelUpModal', 'Failed to remove level', error);
 			showNotification(`Failed to remove level: ${error.message}`, 'error');
 		}
 	}

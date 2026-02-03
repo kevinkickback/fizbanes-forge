@@ -125,7 +125,7 @@ export class RaceCard {
 
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
-			console.warn('[RaceCard]', 'Handler must be a function', { event });
+			console.warn('RaceCard', 'Handler must be a function', { event });
 			return;
 		}
 
@@ -144,7 +144,7 @@ export class RaceCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('[RaceCard]', 'Error removing listener', {
+						console.warn('RaceCard', 'Error removing listener', {
 							event,
 							error: e,
 						});
@@ -154,7 +154,7 @@ export class RaceCard {
 		}
 
 		this._eventHandlers = {};
-		console.debug('[RaceCard]', 'EventBus cleanup complete');
+		console.debug('RaceCard', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------
@@ -203,7 +203,7 @@ export class RaceCard {
 				await this._createRaceItem(race);
 			}
 
-			console.debug('[RaceCard]', `Populated ${sortedRaces.length} races`);
+			console.debug('RaceCard', `Populated ${sortedRaces.length} races`);
 		} catch (error) {
 			console.error('RaceCard', 'Error populating race list:', error);
 		}
@@ -418,7 +418,7 @@ export class RaceCard {
 				this._infoPanel.classList.remove('collapsed');
 			}
 		} else {
-			console.warn('[RaceCard]', `Info panel not found for: ${contentId}`);
+			console.warn('RaceCard', `Info panel not found for: ${contentId}`);
 		}
 	}
 
@@ -489,7 +489,7 @@ export class RaceCard {
 
 			// Find the race item in the list
 			const raceValue = `${character.race.name}_${character.race.source}`;
-			console.debug('[RaceCard]', 'Loading saved race:', raceValue);
+			console.debug('RaceCard', 'Loading saved race:', raceValue);
 
 			let raceItem = this._raceList?.querySelector(
 				`[data-race="${raceValue}"]`,
@@ -541,7 +541,7 @@ export class RaceCard {
 					const listHeight = this._raceList.offsetHeight;
 					const listScrollBottom = listScrollTop + listHeight;
 
-					console.debug('[RaceCard] Scrolling to selected race:', {
+					console.debug('RaceCard Scrolling to selected race:', {
 						itemTop,
 						itemBottom,
 						listScrollTop,
@@ -577,7 +577,7 @@ export class RaceCard {
 						);
 					}, 100);
 				} else {
-					console.warn('[RaceCard] No race list found for scrolling');
+					console.warn('RaceCard No race list found for scrolling');
 				}
 			});
 
@@ -587,7 +587,7 @@ export class RaceCard {
 				character.race.source,
 			);
 			if (!race) {
-				console.error('[RaceCard]', 'Could not find race data for:', raceValue);
+				console.error('RaceCard', 'Could not find race data for:', raceValue);
 				return;
 			}
 
@@ -642,7 +642,7 @@ export class RaceCard {
 					if (standardOption) {
 						subraceSelect.value = '__standard__';
 						this._selectedSubrace = null;
-						console.debug('[RaceCard]', 'Standard race option selected');
+						console.debug('RaceCard', 'Standard race option selected');
 					}
 				}
 			}
@@ -650,7 +650,7 @@ export class RaceCard {
 			// Show info panel for this race/subrace
 			this._showInfo(infoId, true);
 
-			console.debug('[RaceCard]', 'Saved race selection loaded successfully');
+			console.debug('RaceCard', 'Saved race selection loaded successfully');
 
 			// Re-apply racial ability bonuses and pending choices
 			this._updateAbilityBonuses(race, subrace);
@@ -1387,7 +1387,7 @@ class RaceDetailsView {
 			speedSection.innerHTML =
 				speeds.map((speed) => `<li>${speed}</li>`).join('') || '<li>None</li>';
 		} catch (error) {
-			console.error('[RaceDetails]', 'Error updating size and speed:', error);
+			console.error('RaceDetails', 'Error updating size and speed:', error);
 
 			// Set default values if there's an error
 			const sizeSection = this._raceDetails.querySelector(

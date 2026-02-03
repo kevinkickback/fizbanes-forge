@@ -10,7 +10,7 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import {
 	ARTISAN_TOOLS,
 	MUSICAL_INSTRUMENTS,
-} from '../../../lib/ProficiencyConstants.js';
+} from '../../../lib/5eToolsParser.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { variantRuleService } from '../../../services/VariantRuleService.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
@@ -367,7 +367,7 @@ export class ProficiencyCard {
 
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
-			console.warn('[ProficiencyCard]', 'Handler must be a function', {
+			console.warn('ProficiencyCard', 'Handler must be a function', {
 				event,
 			});
 			return;
@@ -388,7 +388,7 @@ export class ProficiencyCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('[ProficiencyCard]', 'Error removing listener', {
+						console.warn('ProficiencyCard', 'Error removing listener', {
 							event,
 							error: e,
 						});
@@ -398,7 +398,7 @@ export class ProficiencyCard {
 		}
 
 		this._eventHandlers = {};
-		console.debug('[ProficiencyCard]', 'EventBus cleanup complete');
+		console.debug('ProficiencyCard', 'EventBus cleanup complete');
 	}
 
 	_handleProficiencyAdded(data) {
@@ -420,7 +420,7 @@ export class ProficiencyCard {
 	}
 
 	_handleCharacterChanged(_event) {
-		console.debug('[ProficiencyCard] _handleCharacterChanged() called');
+		console.debug('ProficiencyCard _handleCharacterChanged() called');
 
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
@@ -466,7 +466,7 @@ export class ProficiencyCard {
 		);
 
 		if (!this._character?.class) {
-			console.debug('[ProficiencyCard] No character or class, returning');
+			console.debug('ProficiencyCard No character or class, returning');
 			return;
 		}
 
@@ -516,12 +516,12 @@ export class ProficiencyCard {
 			return;
 		}
 
-		console.debug('[ProficiencyCard] Processing class:', this._character.class);
+		console.debug('ProficiencyCard Processing class:', this._character.class);
 
 		// Re-process class tool proficiencies using the same logic as ClassCard
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
-			console.debug('[ProficiencyCard] No toolProficiencies, returning');
+			console.debug('ProficiencyCard No toolProficiencies, returning');
 			return;
 		}
 
@@ -1213,7 +1213,7 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_computeInstrumentSlots() {
-		console.debug('[ProficiencyCard] _computeInstrumentSlots() called');
+		console.debug('ProficiencyCard _computeInstrumentSlots() called');
 
 		const normalizedInstrument =
 			DataNormalizer.normalizeForLookup('Musical instrument');
@@ -1749,7 +1749,7 @@ export class ProficiencyCard {
 	}
 
 	_cleanupOptionalProficiencies() {
-		console.debug('[ProficiencyCard] _cleanupOptionalProficiencies() called');
+		console.debug('ProficiencyCard _cleanupOptionalProficiencies() called');
 		console.debug(
 			'[ProficiencyCard] tools.class BEFORE cleanup:',
 			JSON.stringify(

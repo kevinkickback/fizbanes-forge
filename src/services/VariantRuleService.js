@@ -13,7 +13,7 @@ class VariantRuleService {
 			return true;
 		}
 
-		console.debug('[VariantRuleService]', 'Initializing variant rule data');
+		console.debug('VariantRuleService', 'Initializing variant rule data');
 
 		try {
 			this._variantRuleData = await DataLoader.loadVariantRules();

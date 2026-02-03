@@ -9,14 +9,14 @@ class SkillService {
 	async initialize() {
 		// Skip if already initialized
 		if (this._skillData) {
-			console.debug('[SkillService]', 'Already initialized');
+			console.debug('SkillService', 'Already initialized');
 			return true;
 		}
 
-		console.debug('[SkillService]', 'Initializing skill data');
+		console.debug('SkillService', 'Initializing skill data');
 		try {
 			this._skillData = await DataLoader.loadSkills();
-			console.debug('[SkillService]', 'Skills loaded successfully', {
+			console.debug('SkillService', 'Skills loaded successfully', {
 				count: this._skillData.skill?.length,
 			});
 
@@ -32,7 +32,7 @@ class SkillService {
 
 			return true;
 		} catch (error) {
-			console.error('[SkillService]', 'Failed to initialize skill data', error);
+			console.error('SkillService', 'Failed to initialize skill data', error);
 			return false;
 		}
 	}

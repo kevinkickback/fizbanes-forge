@@ -13,14 +13,14 @@ class DeityService extends BaseDataService {
 	}
 
 	async initialize() {
-		console.debug('[DeityService]', 'Initializing deity data');
+		console.debug('DeityService', 'Initializing deity data');
 
 		try {
 			// Try to hydrate from cache first
 			const cached = this.hydrateFromCache();
 			if (cached) {
 				this.deities = cached.deities || [];
-				console.debug('[DeityService]', 'Deities loaded from cache', {
+				console.debug('DeityService', 'Deities loaded from cache', {
 					count: this.deities.length,
 				});
 				return;
@@ -29,7 +29,7 @@ class DeityService extends BaseDataService {
 			// Load from JSON
 			const data = await DataLoader.loadJSON('deities.json');
 			if (!data?.deity) {
-				console.warn('[DeityService]', 'No deity data found');
+				console.warn('DeityService', 'No deity data found');
 				return;
 			}
 
@@ -39,7 +39,7 @@ class DeityService extends BaseDataService {
 			// Cache the data
 			this.setData({ deities: this.deities });
 
-			console.debug('[DeityService]', 'Deities loaded successfully', {
+			console.debug('DeityService', 'Deities loaded successfully', {
 				count: this.deities.length,
 				fromCache: false,
 			});

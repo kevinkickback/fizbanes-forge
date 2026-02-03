@@ -122,7 +122,7 @@ class AbilityScoreService {
 		// Start with base score
 		let totalScore = this.getBaseScore(normalizedAbility);
 
-		console.debug('[AbilityScoreService] getTotalScore for', normalizedAbility, 'base:', totalScore);
+		console.debug('AbilityScoreService getTotalScore for', normalizedAbility, 'base:', totalScore);
 
 		// Add racial bonuses
 		if (
@@ -130,7 +130,7 @@ class AbilityScoreService {
 			typeof character.race.abilityBonuses[normalizedAbility] === 'number'
 		) {
 			totalScore += character.race.abilityBonuses[normalizedAbility];
-			console.debug('[AbilityScoreService] Added racial bonus:', character.race.abilityBonuses[normalizedAbility]);
+			console.debug('AbilityScoreService Added racial bonus:', character.race.abilityBonuses[normalizedAbility]);
 		}
 
 		// Add class bonuses
@@ -142,7 +142,7 @@ class AbilityScoreService {
 			Array.isArray(character.abilityBonuses[normalizedAbility])
 		) {
 			const bonuses = character.abilityBonuses[normalizedAbility];
-			console.debug('[AbilityScoreService] Ability bonuses for', normalizedAbility, ':', bonuses);
+			console.debug('AbilityScoreService Ability bonuses for', normalizedAbility, ':', bonuses);
 			for (const bonus of bonuses) {
 				if (typeof bonus.value === 'number') {
 					totalScore += bonus.value;
@@ -150,7 +150,7 @@ class AbilityScoreService {
 			}
 		}
 
-		console.debug('[AbilityScoreService] Final total for', normalizedAbility, ':', totalScore);
+		console.debug('AbilityScoreService Final total for', normalizedAbility, ':', totalScore);
 		return totalScore;
 	}
 

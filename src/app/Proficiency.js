@@ -6,7 +6,7 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
 export class ProficiencyCore {
 	static addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for addProficiency:', {
+			console.warn('ProficiencyCore', 'Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -52,7 +52,7 @@ export class ProficiencyCore {
 
 	static removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for removeProficienciesBySource');
+			console.warn('ProficiencyCore', 'Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -125,7 +125,7 @@ export class ProficiencyCore {
 
 	static setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for setOptionalProficiencies');
+			console.warn('ProficiencyCore', 'Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -201,7 +201,7 @@ export class ProficiencyCore {
 
 	static selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
-			console.warn('[ProficiencyCore]', 'Optional proficiencies not initialized for type:', type);
+			console.warn('ProficiencyCore', 'Optional proficiencies not initialized for type:', type);
 			return false;
 		}
 
@@ -209,7 +209,7 @@ export class ProficiencyCore {
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
-			console.warn('[ProficiencyCore]', 'No optional proficiency configuration for source:', source);
+			console.warn('ProficiencyCore', 'No optional proficiency configuration for source:', source);
 			return false;
 		}
 
@@ -227,7 +227,7 @@ export class ProficiencyCore {
 		}
 
 		if (!config.options.includes(proficiency)) {
-			console.warn('[ProficiencyCore]', 'Proficiency not in available options:', proficiency);
+			console.warn('ProficiencyCore', 'Proficiency not in available options:', proficiency);
 			return false;
 		}
 

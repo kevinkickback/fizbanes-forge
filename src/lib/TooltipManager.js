@@ -1,9 +1,20 @@
-/** TooltipManager.js - Manages displaying and hiding D&D reference tooltips as a plain module. */
+// Manages displaying and hiding D&D reference tooltips as a plain module
 
+import { actionService } from '../services/ActionService.js';
+import { backgroundService } from '../services/BackgroundService.js';
+import { classService } from '../services/ClassService.js';
+import { conditionService } from '../services/ConditionService.js';
+import { featService } from '../services/FeatService.js';
+import { itemService } from '../services/ItemService.js';
+import { monsterService } from '../services/MonsterService.js';
+import { optionalFeatureService } from '../services/OptionalFeatureService.js';
+import { raceService } from '../services/RaceService.js';
+import { skillService } from '../services/SkillService.js';
+import { spellService } from '../services/SpellService.js';
+import { variantRuleService } from '../services/VariantRuleService.js';
 import { DEFAULT_SOURCE } from './5eToolsParser.js';
 import { Renderer5etools } from './5eToolsRenderer.js';
 import DataNormalizer from './DataNormalizer.js';
-import { getReferenceResolver } from './ReferenceResolver.js';
 import {
 	renderAction,
 	renderBackground,
@@ -24,9 +35,62 @@ import {
 	renderVehicle,
 } from './StatBlockRenderer.js';
 
+// Type-to-service mapping for reference resolution
+const typeServiceMap = {
+	action: { service: actionService, method: 'getAction' },
+	background: { service: backgroundService, method: 'getBackground' },
+	class: { service: classService, method: 'getClass' },
+	condition: { service: conditionService, method: 'getCondition' },
+	feat: { service: featService, method: 'getFeat' },
+	feature: { service: optionalFeatureService, method: 'getFeatureByName' },
+	item: { service: itemService, method: 'getItem' },
+	creature: { service: monsterService, method: 'getMonster' },
+	monster: { service: monsterService, method: 'getMonster' },
+	race: { service: raceService, method: 'getRace' },
+	skill: { service: skillService, method: 'getSkill' },
+	spell: { service: spellService, method: 'getSpell' },
+	variantrule: { service: variantRuleService, method: 'getVariantRule' },
+};
+
+function _resolveReference(type, name, source = 'PHB') {
+	const config = typeServiceMap[type];
+
+	if (!config) {
+		console.warn('TooltipManager', `Unknown reference type: ${type}`);
+		return { name, error: `Unknown reference type: ${type}` };
+	}
+
+	try {
+		const { service, method } = config;
+		const getter = service[method];
+
+		if (!getter || typeof getter !== 'function') {
+			console.warn(
+				'TooltipManager',
+				`Service for ${type} does not have ${method} method`,
+			);
+			return { name, error: `Cannot resolve ${type}` };
+		}
+
+		const data = getter.call(service, name, source);
+
+		if (!data) {
+			return { name, error: `${type} not found` };
+		}
+
+		return data;
+	} catch (error) {
+		console.error(
+			'TooltipManager',
+			`Error resolving ${type} "${name}":`,
+			error,
+		);
+		return { name, error: error.message };
+	}
+}
+
 // Internal state
 let tooltips = [];
-const referenceResolver = getReferenceResolver();
 
 // Module initialization
 _initTooltipManager();
@@ -161,7 +225,7 @@ function _togglePin(tooltipObj) {
 	}
 }
 
-async function _copyTooltipContent() {}
+async function _copyTooltipContent() { }
 
 function _closeTooltip(tooltipObj) {
 	const index = tooltips.indexOf(tooltipObj);
@@ -304,7 +368,7 @@ async function showReferenceTooltip(type, name, source, x, y) {
 	try {
 		console.debug('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
 		// Use generic resolver - single dispatch point for all types
-		const data = await referenceResolver.resolve(type, name, source);
+		const data = await _resolveReference(type, name, source);
 		console.debug(
 			'TooltipSystem',
 			`[showReferenceTooltip] resolver result:`,
@@ -673,7 +737,6 @@ export function initializeTooltips(root = document) {
 }
 
 // Exported API (functional, no singleton)
-export { getReferenceResolver } from './ReferenceResolver.js';
 export { hideAllTooltips, hideTooltip, showReferenceTooltip, showTooltip };
 export function getStringRenderer() {
 	return { render: Renderer5etools.processString };

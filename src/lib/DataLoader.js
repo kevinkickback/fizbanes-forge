@@ -1,5 +1,3 @@
-/** DataLoader.js - Caches and loads game data JSON via Electron IPC (requires preload bridge). */
-
 import { eventBus, EVENTS } from './EventBus.js';
 
 const state = {
@@ -204,7 +202,7 @@ async function loadMonsters() {
 		const exists = await window.data.fileExists('bestiary/index.json');
 		if (!exists) {
 			console.debug(
-				'[DataLoader]',
+				'DataLoader',
 				'Bestiary not available (not downloaded), skipping monster load',
 			);
 			return { monster: [] };
@@ -215,7 +213,7 @@ async function loadMonsters() {
 		const index = await loadJSON(`${state.baseUrl}bestiary/index.json`);
 		if (!index || Object.keys(index).length === 0) {
 			console.debug(
-				'[DataLoader]',
+				'DataLoader',
 				'Bestiary index empty or missing, skipping monster load',
 			);
 			return { monster: [] };
@@ -244,7 +242,7 @@ async function loadMonsters() {
 		return aggregated;
 	} catch {
 		console.debug(
-			'[DataLoader]',
+			'DataLoader',
 			'Bestiary data unavailable, continuing without monsters',
 		);
 		return { monster: [] };
@@ -359,7 +357,6 @@ function clearCacheForUrl(url) {
 	return dataLoader;
 }
 
-/** Increment cache version to invalidate all cached data. */
 function invalidateAllCache() {
 	const oldVersion = state.version;
 	state.version = String(Number(state.version) + 1);

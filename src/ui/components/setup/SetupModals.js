@@ -1,6 +1,7 @@
 // Bootstrap modal components for app initialization and data refresh.
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 
 //=============================================================================
 // Loading Modal - Initial app startup
@@ -31,19 +32,14 @@ export class LoadingModal {
 		}
 
 		// Dispose of any existing Bootstrap modal instance
-		if (this.bootstrapModal) {
-			try {
-				this.bootstrapModal.dispose();
-			} catch {
-				// Silently continue
-			}
-		}
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
 
 		this.detailElement = this.modal.querySelector('.loading-detail');
 		this.progressBar = this.modal.querySelector('.progress-bar');
 
 		// Create Bootstrap modal instance
-		this.bootstrapModal = new bootstrap.Modal(this.modal, {
+		this.bootstrapModal = initializeBootstrapModal(this.modal, {
 			backdrop: 'static',
 			keyboard: false,
 		});
@@ -68,40 +64,19 @@ export class LoadingModal {
 		}
 	}
 
-	hide() {
+	async hide() {
 		if (!this.bootstrapModal && !this.modal) {
 			return;
 		}
 
-		try {
-			if (this.bootstrapModal) {
-				this.bootstrapModal.hide();
-			}
+		// Use centralized hide utility
+		await hideBootstrapModal(this.bootstrapModal, this.modal);
 
-			// Immediate cleanup - no setTimeout to avoid timing issues on reload
-			const backdrops = document.querySelectorAll('.modal-backdrop');
-			for (const backdrop of backdrops) {
-				backdrop.remove();
-			}
-			document.body.classList.remove('modal-open');
-			document.body.style.overflow = '';
-			document.body.style.paddingRight = '';
-
-			// Force hide the modal element itself
-			if (this.modal) {
-				this.modal.classList.remove('show');
-				this.modal.style.display = 'none';
-				this.modal.setAttribute('aria-hidden', 'true');
-				this.modal.removeAttribute('aria-modal');
-			}
-		} catch (e) {
-			console.error('LoadingModal', 'Error hiding modal:', e);
-		}
-
-		// Clean up references
+		// Clean up component references
+		this._cleanup.cleanup();
 		this.modal = null;
 		this.bootstrapModal = null;
-		this.messageElement = null;
+		this.detailElement = null;
 		this.progressBar = null;
 	}
 }
@@ -142,7 +117,7 @@ export class RefreshProgressModal {
 		}
 
 		// Create Bootstrap modal instance
-		this.bootstrapModal = new bootstrap.Modal(this.modal, {
+		this.bootstrapModal = initializeBootstrapModal(this.modal, {
 			backdrop: 'static',
 			keyboard: false,
 		});
@@ -178,14 +153,16 @@ export class RefreshProgressModal {
 		}
 	}
 
-	hide() {
+	async hide() {
 		if (!this.bootstrapModal) {
 			return;
 		}
 
-		this.bootstrapModal.hide();
+		// Use centralized hide utility
+		await hideBootstrapModal(this.bootstrapModal, this.modal);
 
-		// Clean up references
+		// Clean up component references
+		this._cleanup.cleanup();
 		this.modal = null;
 		this.bootstrapModal = null;
 		this.progressBar = null;

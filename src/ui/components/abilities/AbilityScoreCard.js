@@ -673,7 +673,7 @@ class AbilityScoreCard {
 	//-------------------------------------------------------------------------
 
 	render() {
-		console.debug('[AbilityScoreCard] render() called');
+		console.debug('AbilityScoreCard render() called');
 		try {
 			// Initialize scoring method system if needed
 			this._initializeAbilityScoreMethod();
@@ -717,19 +717,19 @@ class AbilityScoreCard {
 	}
 
 	update() {
-		console.debug('[AbilityScoreCard] update() called');
+		console.debug('AbilityScoreCard update() called');
 		this._updateAbilityScoreValues();
 		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
 		this._bonusNotesView.render();
 	}
 
 	_renderAbilityScores() {
-		console.debug('[AbilityScoreCard] _renderAbilityScores() called');
+		console.debug('AbilityScoreCard _renderAbilityScores() called');
 		try {
 			// Get the ability score method directly from character
 			const character = CharacterManager.getCurrentCharacter();
 			if (!character) {
-				console.warn('[AbilityScoreCard] No character found in _renderAbilityScores');
+				console.warn('AbilityScoreCard No character found in _renderAbilityScores');
 				return;
 			}
 
@@ -762,11 +762,11 @@ class AbilityScoreCard {
 	//-------------------------------------------------------------------------
 
 	_updateAbilityScoreValues() {
-		console.debug('[AbilityScoreCard] _updateAbilityScoreValues() called');
+		console.debug('AbilityScoreCard _updateAbilityScoreValues() called');
 		const isPointBuy =
 			CharacterManager.getCurrentCharacter()?.variantRules
 				?.abilityScoreMethod === 'pointBuy';
-		console.debug('[AbilityScoreCard] Calling updateAbilityScoreValues on box view');
+		console.debug('AbilityScoreCard Calling updateAbilityScoreValues on box view');
 		this._abilityScoreBoxView.updateAbilityScoreValues(isPointBuy);
 	}
 

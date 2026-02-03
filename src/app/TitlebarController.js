@@ -16,7 +16,7 @@ export class TitlebarController {
 		this.updateCharacterName();
 		this.updateUnsavedIndicator();
 		this.updateActionButtons();
-		console.debug('[TitlebarController] Initialized');
+		console.debug('TitlebarController Initialized');
 	}
 
 	setupEventListeners() {

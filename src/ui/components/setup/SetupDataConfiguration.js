@@ -38,7 +38,7 @@ export class DataConfigurationModal {
 			this._attachEventListeners();
 
 			// Create Bootstrap modal instance
-			this.bootstrapModal = new bootstrap.Modal(this.modal, {
+			this.bootstrapModal = initializeBootstrapModal(this.modal, {
 				backdrop: 'static',
 				keyboard: false,
 			});

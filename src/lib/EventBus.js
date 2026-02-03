@@ -1,5 +1,3 @@
-/** Decoupled event bus for renderer components (infrastructure layer). */
-
 import EventEmitter from 'eventemitter3';
 
 export const EVENTS = {
@@ -103,12 +101,12 @@ class EventBusImpl extends EventEmitter {
 	// Maintain existing on() behavior with debug logging
 	on(event, handler) {
 		if (typeof handler !== 'function') {
-			console.error('[EventBus]', 'Handler must be a function', { event });
+			console.error('EventBus', 'Handler must be a function', { event });
 			return this;
 		}
 
 		super.on(event, handler);
-		console.debug('[EventBus]', 'Listener registered', {
+		console.debug('EventBus', 'Listener registered', {
 			event,
 			totalListeners: this.listenerCount(event),
 		});
@@ -118,12 +116,12 @@ class EventBusImpl extends EventEmitter {
 	// Maintain existing once() behavior with debug logging
 	once(event, handler) {
 		if (typeof handler !== 'function') {
-			console.error('[EventBus]', 'Handler must be a function', { event });
+			console.error('EventBus', 'Handler must be a function', { event });
 			return this;
 		}
 
 		super.once(event, handler);
-		console.debug('[EventBus]', 'One-time listener registered', { event });
+		console.debug('EventBus', 'One-time listener registered', { event });
 		return this;
 	}
 
@@ -132,7 +130,7 @@ class EventBusImpl extends EventEmitter {
 	off(event, handler) {
 		if (!handler) {
 			console.warn(
-				'[EventBus]',
+				'EventBus',
 				'off() called without handler - ignoring to prevent removing all listeners',
 				{ event },
 			);
@@ -144,7 +142,7 @@ class EventBusImpl extends EventEmitter {
 		const newCount = this.listenerCount(event);
 
 		if (previousCount !== newCount) {
-			console.debug('[EventBus]', 'Listener removed', {
+			console.debug('EventBus', 'Listener removed', {
 				event,
 				remainingListeners: newCount,
 			});
@@ -154,7 +152,7 @@ class EventBusImpl extends EventEmitter {
 
 	// Maintain existing emit() behavior with debug logging and error handling
 	emit(event, ...args) {
-		console.debug('[EventBus]', 'Event emitted', {
+		console.debug('EventBus', 'Event emitted', {
 			event,
 			argsCount: args.length,
 		});
@@ -162,7 +160,7 @@ class EventBusImpl extends EventEmitter {
 		try {
 			return super.emit(event, ...args);
 		} catch (error) {
-			console.error('[EventBus]', 'Error in event handler', {
+			console.error('EventBus', 'Error in event handler', {
 				event,
 				error,
 			});
@@ -173,13 +171,13 @@ class EventBusImpl extends EventEmitter {
 	// Maintain existing clearEvent() method
 	clearEvent(event) {
 		this.removeAllListeners(event);
-		console.debug('[EventBus]', 'Event cleared', { event });
+		console.debug('EventBus', 'Event cleared', { event });
 	}
 
 	// Maintain existing clearAll() method
 	clearAll() {
 		this.removeAllListeners();
-		console.debug('[EventBus]', 'All events cleared');
+		console.debug('EventBus', 'All events cleared');
 	}
 }
 

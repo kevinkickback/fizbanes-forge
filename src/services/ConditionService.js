@@ -15,11 +15,11 @@ class ConditionService {
 			return true;
 		}
 
-		console.debug('[ConditionService]', 'Initializing condition data');
+		console.debug('ConditionService', 'Initializing condition data');
 
 		try {
 			this._conditionData = await DataLoader.loadConditions();
-			console.debug('[ConditionService]', 'Conditions loaded successfully', {
+			console.debug('ConditionService', 'Conditions loaded successfully', {
 				count: this._conditionData.condition?.length,
 			});
 

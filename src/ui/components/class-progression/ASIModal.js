@@ -2,6 +2,7 @@
 
 import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 
 export class ASIModal {
 	constructor(level, currentASI = {}) {
@@ -68,18 +69,11 @@ export class ASIModal {
 
 	_initializeBootstrapModal() {
 		// Dispose old instance if exists
-		if (this.bootstrapModal) {
-			try {
-				if (typeof this.bootstrapModal.dispose === 'function') {
-					this.bootstrapModal.dispose();
-				}
-			} catch (e) {
-				console.debug('[ASIModal] Error disposing old modal:', e);
-			}
-		}
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
 
-		// Create new instance
-		this.bootstrapModal = new bootstrap.Modal(this.modalEl, {
+		// Create new instance using centralized utility
+		this.bootstrapModal = initializeBootstrapModal(this.modalEl, {
 			backdrop: 'static',
 			keyboard: false,
 		});
@@ -350,6 +344,8 @@ export class ASIModal {
 
 	_onModalHidden() {
 		this._cleanup.cleanup();
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
 
 		// Resolve promise with result
 		if (this._resolve) {
@@ -358,9 +354,14 @@ export class ASIModal {
 		}
 	}
 
-	hide() {
-		if (this.bootstrapModal) {
-			this.bootstrapModal.hide();
-		}
+	async hide() {
+		if (!this.bootstrapModal) return;
+
+		// Use centralized hide utility
+		await hideBootstrapModal(this.bootstrapModal, this.modalEl);
+
+		// Clean up component references
+		this._cleanup.cleanup();
+		this.bootstrapModal = null;
 	}
 }

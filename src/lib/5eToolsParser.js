@@ -1,5 +1,3 @@
-/** Selected utility functions extracted from 5etools for parsing D&D data. */
-
 const SIZE_ABV_TO_FULL = {
 	F: 'Fine',
 	D: 'Diminutive',
@@ -102,10 +100,108 @@ const LANGUAGES_EXOTIC = [
 
 const LANGUAGES_SECRET = ['Druidic', "Thieves' Cant"];
 
-/** Default character size (Medium). */
+export const ALIGNMENTS = [
+	{ value: 'LG', label: 'Lawful Good' },
+	{ value: 'NG', label: 'Neutral Good' },
+	{ value: 'CG', label: 'Chaotic Good' },
+	{ value: 'LN', label: 'Lawful Neutral' },
+	{ value: 'N', label: 'True Neutral' },
+	{ value: 'CN', label: 'Chaotic Neutral' },
+	{ value: 'LE', label: 'Lawful Evil' },
+	{ value: 'NE', label: 'Neutral Evil' },
+	{ value: 'CE', label: 'Chaotic Evil' },
+	{ value: 'U', label: 'Unaligned' },
+	{ value: 'A', label: 'Any alignment' },
+];
+
+export const STANDARD_SKILL_OPTIONS = Object.freeze([
+	'Acrobatics',
+	'Animal Handling',
+	'Arcana',
+	'Athletics',
+	'Deception',
+	'History',
+	'Insight',
+	'Intimidation',
+	'Investigation',
+	'Medicine',
+	'Nature',
+	'Perception',
+	'Performance',
+	'Persuasion',
+	'Religion',
+	'Sleight of Hand',
+	'Stealth',
+	'Survival',
+]);
+
+export const STANDARD_LANGUAGE_OPTIONS = Object.freeze([
+	...LANGUAGES_STANDARD,
+	...LANGUAGES_EXOTIC,
+]);
+
+export const STANDARD_TOOL_OPTIONS = Object.freeze([
+	"Alchemist's supplies",
+	"Brewer's supplies",
+	"Calligrapher's supplies",
+	"Carpenter's tools",
+	"Cartographer's tools",
+	"Cobbler's tools",
+	"Cook's utensils",
+	"Glassblower's tools",
+	"Jeweler's tools",
+	"Leatherworker's tools",
+	"Mason's tools",
+	"Painter's supplies",
+	"Potter's tools",
+	"Smith's tools",
+	"Tinker's tools",
+	"Weaver's tools",
+	"Woodcarver's tools",
+	'Disguise kit',
+	'Forgery kit',
+	'Herbalism kit',
+	"Navigator's tools",
+	"Poisoner's kit",
+	"Thieves' tools",
+	'Musical instrument',
+]);
+
+export const MUSICAL_INSTRUMENTS = Object.freeze([
+	'Bagpipes',
+	'Drum',
+	'Dulcimer',
+	'Flute',
+	'Lute',
+	'Lyre',
+	'Horn',
+	'Pan flute',
+	'Shawm',
+	'Viol',
+]);
+
+export const ARTISAN_TOOLS = Object.freeze([
+	"Alchemist's supplies",
+	"Brewer's supplies",
+	"Calligrapher's supplies",
+	"Carpenter's tools",
+	"Cartographer's tools",
+	"Cobbler's tools",
+	"Cook's utensils",
+	"Glassblower's tools",
+	"Jeweler's tools",
+	"Leatherworker's tools",
+	"Mason's tools",
+	"Painter's supplies",
+	"Potter's tools",
+	"Smith's tools",
+	"Tinker's tools",
+	"Weaver's tools",
+	"Woodcarver's tools",
+]);
+
 export const DEFAULT_CHARACTER_SIZE = ['M'];
 
-/** Default character speed (30 ft. walking). */
 export const DEFAULT_CHARACTER_SPEED = { walk: 30 };
 
 const DEFAULT_SOURCE = 'PHB';
@@ -186,7 +282,6 @@ export function getSchoolName(code) {
 	return SPELL_SCHOOLS[code] || code;
 }
 
-/** Convert array of ability abbreviations to choice text (e.g., "Strength or Dexterity modifier (your choice)"). */
 export function attrChooseToFull(attList) {
 	if (!attList || !Array.isArray(attList) || attList.length === 0) {
 		return '';
@@ -201,7 +296,6 @@ export function attrChooseToFull(attList) {
 	return `${attsTemp.join(' or ')} modifier (your choice)`;
 }
 
-/** Format speed data to string (e.g., "30 ft., fly 60 ft."). */
 export function getSpeedString(ent) {
 	// Handle simple number
 	if (typeof ent === 'number') {
@@ -406,7 +500,6 @@ export function fullAbilityToAbbr(ability) {
 	return FULL_TO_ABV[abilityLower] || abilityLower.substring(0, 3);
 }
 
-/** Get display-friendly ability abbreviation (Title Case: Str, Dex, Con, etc.). */
 export function getAbilityAbbrDisplay(abilityNameOrAbbr) {
 	if (!abilityNameOrAbbr) return '';
 	const abbr = fullAbilityToAbbr(abilityNameOrAbbr);
@@ -612,6 +705,28 @@ export function ascSortByProp(prop) {
 
 export function ascSortByPropLower(prop) {
 	return (a, b) => ascSortLower(a[prop], b[prop]);
+}
+
+export function getAlignmentLabel(value) {
+	const alignment = ALIGNMENTS.find((a) => a.value === value);
+	return alignment ? alignment.label : value;
+}
+
+export function getAlignmentValue(label) {
+	const alignment = ALIGNMENTS.find((a) => a.label === label);
+	return alignment ? alignment.value : label;
+}
+
+export function isValidSkill(skillName) {
+	return STANDARD_SKILL_OPTIONS.includes(skillName);
+}
+
+export function isValidTool(toolName) {
+	return STANDARD_TOOL_OPTIONS.includes(toolName);
+}
+
+export function isValidLanguage(languageName) {
+	return STANDARD_LANGUAGE_OPTIONS.includes(languageName);
 }
 
 // Export additional constants for external use

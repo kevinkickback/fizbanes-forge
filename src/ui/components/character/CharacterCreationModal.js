@@ -3,6 +3,7 @@
 import { AppState } from '../../../app/AppState.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { CharacterCreationSession } from './CharacterCreationSession.js';
 
@@ -16,7 +17,7 @@ export class CharacterCreationModal {
 		// Step components (lazy loaded)
 		this._stepComponents = {};
 
-		console.debug('[CharacterCreationModal]', 'Constructor initialized');
+		console.debug('CharacterCreationModal', 'Constructor initialized');
 	}
 
 	async show() {
@@ -62,14 +63,20 @@ export class CharacterCreationModal {
 			// Show modal
 			this.bootstrapModal.show();
 		} catch (error) {
-			console.error('[CharacterCreationModal]', 'Failed to show modal', error);
+			console.error('CharacterCreationModal', 'Failed to show modal', error);
 			showNotification('Failed to open character creation form', 'error');
 		}
 	}
 
 	async hide() {
 		if (!this.bootstrapModal) return;
-		this.bootstrapModal.hide();
+
+		// Use centralized hide utility
+		await hideBootstrapModal(this.bootstrapModal, this.modalEl);
+
+		// Clean up component references
+		this._cleanup.cleanup();
+		this.bootstrapModal = null;
 	}
 
 	async nextStep() {
@@ -111,22 +118,8 @@ export class CharacterCreationModal {
 	}
 
 	_initializeBootstrapModal() {
-		// Dispose old modal instance if exists
-		const existing = bootstrap.Modal.getInstance(this.modalEl);
-		if (existing) {
-			try {
-				existing.dispose();
-			} catch (e) {
-				console.warn(
-					'[CharacterCreationModal]',
-					'Error disposing existing modal',
-					e,
-				);
-			}
-		}
-
-		// Create new Bootstrap modal instance
-		this.bootstrapModal = new bootstrap.Modal(this.modalEl, {
+		// Create new Bootstrap modal instance using centralized utility
+		this.bootstrapModal = initializeBootstrapModal(this.modalEl, {
 			backdrop: 'static',
 			keyboard: false,
 		});
@@ -163,12 +156,12 @@ export class CharacterCreationModal {
 
 	async _renderStep(stepIndex) {
 		try {
-			console.debug('[CharacterCreationModal]', 'Rendering step', stepIndex);
+			console.debug('CharacterCreationModal', 'Rendering step', stepIndex);
 
 			// Get content area
 			const contentArea = this.modalEl.querySelector('[data-step-content]');
 			if (!contentArea) {
-				console.error('[CharacterCreationModal]', 'Content area not found');
+				console.error('CharacterCreationModal', 'Content area not found');
 				return;
 			}
 
@@ -388,11 +381,11 @@ export class CharacterCreationModal {
 					const abilityChoices = Array.isArray(stagedData.race.abilityChoices)
 						? [...stagedData.race.abilityChoices]
 						: Object.entries(stagedData.race.abilityChoices)
-								.sort(
-									([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10),
-								)
-								.map(([, choice]) => choice)
-								.filter(Boolean);
+							.sort(
+								([a], [b]) => Number.parseInt(a, 10) - Number.parseInt(b, 10),
+							)
+							.map(([, choice]) => choice)
+							.filter(Boolean);
 
 					character.race.abilityChoices = abilityChoices;
 				}
@@ -475,7 +468,7 @@ export class CharacterCreationModal {
 	}
 
 	_onModalHidden() {
-		console.debug('[CharacterCreationModal]', 'Modal hidden, cleaning up');
+		console.debug('CharacterCreationModal', 'Modal hidden, cleaning up');
 
 		// Cleanup all step components
 		for (const step of Object.values(this._stepComponents)) {
@@ -495,14 +488,8 @@ export class CharacterCreationModal {
 		}
 
 		// Dispose Bootstrap modal
-		if (this.bootstrapModal) {
-			try {
-				this.bootstrapModal.dispose();
-			} catch (e) {
-				console.warn('[CharacterCreationModal]', 'Error disposing modal', e);
-			}
-			this.bootstrapModal = null;
-		}
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
 
 		eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_CLOSED);
 	}

@@ -1,6 +1,6 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
-import { ALIGNMENTS } from '../lib/constants.js';
+import { ALIGNMENTS } from '../lib/5eToolsParser.js';
 import { showNotification } from '../lib/Notifications.js';
 import { deityService } from '../services/DeityService.js';
 import { settingsService } from '../services/SettingsService.js';

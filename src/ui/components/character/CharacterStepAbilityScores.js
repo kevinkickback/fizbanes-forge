@@ -314,7 +314,7 @@ export class CharacterStepAbilityScores {
 	 * Attach event listeners after render.
 	 */
 	async attachListeners() {
-		console.debug('[Step5AbilityScores]', 'Attaching listeners');
+		console.debug('Step5AbilityScores', 'Attaching listeners');
 
 		const stagedData = this.session.getStagedData();
 		const method = stagedData.abilityScoreMethod || 'pointBuy';
@@ -339,7 +339,7 @@ export class CharacterStepAbilityScores {
 
 				const stagedData = this.session.getStagedData();
 				if (!stagedData.race) {
-					console.warn('[Step5AbilityScores]', 'No race selected');
+					console.warn('Step5AbilityScores', 'No race selected');
 					return;
 				}
 
@@ -585,7 +585,7 @@ export class CharacterStepAbilityScores {
 		const costDifference = nextCost - currentCost;
 
 		if (pointsUsed + costDifference > 27) {
-			console.warn('[Step5AbilityScores]', 'Not enough points remaining');
+			console.warn('Step5AbilityScores', 'Not enough points remaining');
 			return;
 		}
 
@@ -806,7 +806,7 @@ export class CharacterStepAbilityScores {
 		if (method === 'pointBuy') {
 			const pointsUsed = this._calculatePointsUsed();
 			if (pointsUsed > 27) {
-				console.warn('[Step5AbilityScores]', 'Too many points used');
+				console.warn('Step5AbilityScores', 'Too many points used');
 				return false;
 			}
 		}
@@ -850,7 +850,7 @@ export class CharacterStepAbilityScores {
 	async save() {
 		// Ability scores are managed by abilityScoreService and automatically
 		// saved to the character, so nothing to do here
-		console.debug('[Step5AbilityScores]', 'Ability scores saved');
+		console.debug('Step5AbilityScores', 'Ability scores saved');
 	}
 
 	/**

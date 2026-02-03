@@ -1,12 +1,6 @@
-/** Notifications.js - Temporary user notifications with debouncing and auto-close. */
+// Temporary user notifications with debouncing and auto-close
 
-/**
- * Suppress noisy success/info toasts for changes already visible in the UI.
- * Prefer inline feedback when the user can see the result on-screen.
- *
- * SUPPRESS: Character CRUD, single item/spell ops, equipment state, selections, auto-save.
- * ALLOW: Errors, warnings, background ops, cross-context results, explicit save/export.
- */
+// Suppress noisy success/info toasts for changes already visible in the UI
 function shouldSuppressNotification(message, type) {
 	if (!message || !type) return false;
 

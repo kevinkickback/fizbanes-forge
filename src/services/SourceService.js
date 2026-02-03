@@ -202,7 +202,7 @@ export class SourceService extends BaseDataService {
 						}
 					}
 
-					console.debug('[SourceService]', 'Initialization complete', {
+					console.debug('SourceService', 'Initialization complete', {
 						sourceCount: this.availableSources.size,
 					});
 				} else {

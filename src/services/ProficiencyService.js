@@ -6,7 +6,7 @@ import {
 	STANDARD_LANGUAGE_OPTIONS,
 	STANDARD_SKILL_OPTIONS,
 	STANDARD_TOOL_OPTIONS,
-} from '../lib/ProficiencyConstants.js';
+} from '../lib/5eToolsParser.js';
 import { itemService } from './ItemService.js';
 
 export class ProficiencyService {
@@ -26,7 +26,7 @@ export class ProficiencyService {
 		}
 
 		try {
-			console.debug('[ProficiencyService]', 'Initializing proficiency manager');
+			console.debug('ProficiencyService', 'Initializing proficiency manager');
 
 			// Cache commonly used data
 			this._skills = await this.getAvailableSkills();
@@ -133,7 +133,7 @@ export class ProficiencyService {
 
 	addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for addProficiency:', {
+			console.warn('ProficiencyCore', 'Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -179,7 +179,7 @@ export class ProficiencyService {
 
 	removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for removeProficienciesBySource');
+			console.warn('ProficiencyCore', 'Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -252,7 +252,7 @@ export class ProficiencyService {
 
 	setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for setOptionalProficiencies');
+			console.warn('ProficiencyCore', 'Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -327,7 +327,7 @@ export class ProficiencyService {
 
 	selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
-			console.warn('[ProficiencyCore]', 'Optional proficiencies not initialized for type:', type);
+			console.warn('ProficiencyCore', 'Optional proficiencies not initialized for type:', type);
 			return false;
 		}
 
@@ -335,7 +335,7 @@ export class ProficiencyService {
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
-			console.warn('[ProficiencyCore]', 'No optional proficiency configuration for source:', source);
+			console.warn('ProficiencyCore', 'No optional proficiency configuration for source:', source);
 			return false;
 		}
 
@@ -353,7 +353,7 @@ export class ProficiencyService {
 		}
 
 		if (!config.options.includes(proficiency)) {
-			console.warn('[ProficiencyCore]', 'Proficiency not in available options:', proficiency);
+			console.warn('ProficiencyCore', 'Proficiency not in available options:', proficiency);
 			return false;
 		}
 
@@ -651,7 +651,7 @@ export class ProficiencyService {
 			this._skillData = data?.skill || [];
 			return this._skillData;
 		} catch (error) {
-			console.error('[ProficiencyService]', 'Failed to load skill data', error);
+			console.error('ProficiencyService', 'Failed to load skill data', error);
 			this._skillData = [];
 			return [];
 		}
@@ -787,7 +787,7 @@ export class ProficiencyService {
 	async getToolDescription(toolName) {
 		const items = itemService.getAllItems();
 		if (!items || items.length === 0) {
-			console.warn('[ProficiencyService] No items available for tool lookup');
+			console.warn('ProficiencyService No items available for tool lookup');
 			return {
 				name: toolName,
 				description: `Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,

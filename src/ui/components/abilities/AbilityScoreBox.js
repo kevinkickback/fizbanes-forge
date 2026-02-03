@@ -153,17 +153,17 @@ class AbilityScoreBoxView {
 	}
 
 	updateAbilityScoreValues(isPointBuy) {
-		console.debug('[AbilityScoreBox] updateAbilityScoreValues() called, isPointBuy:', isPointBuy);
+		console.debug('AbilityScoreBox updateAbilityScoreValues() called, isPointBuy:', isPointBuy);
 
 		if (!this._container) {
-			console.warn('[AbilityScoreBox] No container set, skipping update');
+			console.warn('AbilityScoreBox No container set, skipping update');
 			return;
 		}
 
 		// Check if boxes have been rendered
 		const firstBox = this._container.querySelector('[data-ability]');
 		if (!firstBox) {
-			console.warn('[AbilityScoreBox] Ability boxes not rendered yet, skipping update');
+			console.warn('AbilityScoreBox Ability boxes not rendered yet, skipping update');
 			return;
 		}
 
@@ -173,14 +173,14 @@ class AbilityScoreBoxView {
 		for (const ability of abilities) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
 			if (!box) {
-				console.warn('[AbilityScoreBox] Box not found for ability:', ability);
+				console.warn('AbilityScoreBox Box not found for ability:', ability);
 				continue;
 			}
 
 			const baseScore = abilityScoreService.getBaseScore(ability);
 			const totalScore = abilityScoreService.getTotalScore(ability);
 
-			console.debug('[AbilityScoreBox] Updating', ability, 'base:', baseScore, 'total:', totalScore);
+			console.debug('AbilityScoreBox Updating', ability, 'base:', baseScore, 'total:', totalScore);
 
 			// Update score and modifier displays
 			box.querySelector('.score').textContent = totalScore;

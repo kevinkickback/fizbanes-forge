@@ -166,6 +166,6 @@ export class CharacterCreationSession {
 			allowedSources: new Set(),
 		};
 
-		console.debug('[CharacterCreationSession]', 'Session reset');
+		console.debug('CharacterCreationSession', 'Session reset');
 	}
 }

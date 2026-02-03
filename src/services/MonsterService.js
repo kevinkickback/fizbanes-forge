@@ -17,7 +17,7 @@ class MonsterService extends BaseDataService {
 		// Optionally, load a summary file if available, else build summary from index
 		// For now, just build a summary with ids and file names
 		this._monsterSummary = Object.entries(this._monsterIndex).map(([id, file]) => ({ id, file }));
-		console.debug('[MonsterService]', `Loaded monster index with ${this._monsterSummary.length} entries`);
+		console.debug('MonsterService', `Loaded monster index with ${this._monsterSummary.length} entries`);
 		return true;
 	}
 
@@ -45,7 +45,7 @@ class MonsterService extends BaseDataService {
 			this._monsterDetailsCache.set(id, details);
 			return details;
 		} catch (err) {
-			console.error('[MonsterService]', `Failed to load monster details for ${id}:`, err);
+			console.error('MonsterService', `Failed to load monster details for ${id}:`, err);
 			return null;
 		}
 	}

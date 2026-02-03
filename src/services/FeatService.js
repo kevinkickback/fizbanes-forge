@@ -27,7 +27,7 @@ class FeatService extends BaseDataService {
 						this._featMap.set(key, feat);
 					}
 				}
-				console.debug('[FeatService]', 'Feats loaded successfully', {
+				console.debug('FeatService', 'Feats loaded successfully', {
 					count: data?.feat?.length,
 				});
 			},

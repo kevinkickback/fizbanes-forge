@@ -96,7 +96,7 @@ class TextProcessor {
 				});
 			}
 		} catch (error) {
-			console.error('[TextProcessor]', 'Error handling DOM changes:', error);
+			console.error('TextProcessor', 'Error handling DOM changes:', error);
 		}
 	}
 
@@ -118,7 +118,7 @@ class TextProcessor {
 				this.processPageContent(el);
 			});
 		} catch (error) {
-			console.error('[TextProcessor]', 'Error flushing pending nodes:', error);
+			console.error('TextProcessor', 'Error flushing pending nodes:', error);
 		}
 	}
 
@@ -177,7 +177,7 @@ class TextProcessor {
 			// Force reprocess when called directly on an element
 			await this.processPageContent(element, {}, true);
 		} catch (error) {
-			console.error('[TextProcessor]', 'Error processing formatting:', error);
+			console.error('TextProcessor', 'Error processing formatting:', error);
 		}
 	}
 
@@ -235,7 +235,7 @@ class TextProcessor {
 			// Mark as processed to avoid reprocessing by the MutationObserver unless forced
 			element.setAttribute('data-processed', 'true');
 		} catch (error) {
-			console.warn('[TextProcessor]', 'Error processing text element', {
+			console.warn('TextProcessor', 'Error processing text element', {
 				error,
 				element,
 			});
@@ -262,7 +262,7 @@ class TextProcessor {
 
 			return processedText;
 		} catch (error) {
-			console.error('[TextProcessor] Error processing string:', error);
+			console.error('TextProcessor Error processing string:', error);
 			return text || ''; // Return original text on error
 		}
 	}
@@ -293,7 +293,7 @@ class TextProcessor {
 			}
 			return formattedText;
 		} catch (error) {
-			console.error('[TextProcessor] Error processing formatting:', error);
+			console.error('TextProcessor Error processing formatting:', error);
 			return input; // Return original input on error
 		}
 	}

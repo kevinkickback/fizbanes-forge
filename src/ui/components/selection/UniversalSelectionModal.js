@@ -1,4 +1,5 @@
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 import { showNotification } from '../../../lib/Notifications.js';
 
 // Format multiple category counters into HTML badges
@@ -89,18 +90,10 @@ export class UniversalSelectionModal {
 		this.modal = modal;
 
 		// Dispose and recreate Bootstrap modal
-		if (this.bootstrapModal) {
-			const existing = this.bootstrapModal;
-			this.bootstrapModal = null;
-			try {
-				if (existing?._element) {
-					existing.dispose();
-				}
-			} catch (e) {
-				console.warn('[UniversalSelectionModal]', 'Dispose failed', e);
-			}
-		}
-		this.bootstrapModal = new bootstrap.Modal(modal, {
+		disposeBootstrapModal(this.bootstrapModal);
+		this.bootstrapModal = null;
+
+		this.bootstrapModal = initializeBootstrapModal(modal, {
 			backdrop: this.config.allowClose ? true : 'static',
 			keyboard: this.config.allowClose,
 		});
@@ -208,7 +201,7 @@ export class UniversalSelectionModal {
 				'items',
 			);
 			if (this.state.items.length === 0) {
-				console.warn('[UniversalSelectionModal]', 'WARNING: No items loaded!');
+				console.warn('UniversalSelectionModal', 'WARNING: No items loaded!');
 			}
 
 			// Prime initial selections if provided
@@ -244,7 +237,7 @@ export class UniversalSelectionModal {
 				this._resolvePromise = resolve;
 			});
 		} catch (error) {
-			console.error('[UniversalSelectionModal]', 'Failed to show modal', error);
+			console.error('UniversalSelectionModal', 'Failed to show modal', error);
 			if (this.config.onError) {
 				this.config.onError(error);
 			} else {
@@ -674,13 +667,15 @@ export class UniversalSelectionModal {
 		return [...this.state.selectedItems];
 	}
 
-	_resolveAndHide(value) {
+	async _resolveAndHide(value) {
 		if (this._resolvePromise) {
 			this._resolvePromise(value);
 			this._resolvePromise = null;
 		}
-		if (this.bootstrapModal) {
-			this.bootstrapModal.hide();
+		if (this.bootstrapModal && this.modalEl) {
+			await hideBootstrapModal(this.bootstrapModal, this.modalEl);
+			this._cleanup.cleanup();
+			this.bootstrapModal = null;
 		}
 	}
 

@@ -1,5 +1,3 @@
-/** Utility for managing DOM cleanup, event listeners, and memory management. */
-
 import { eventBus } from './EventBus.js';
 
 export class DOMCleanup {
@@ -16,7 +14,7 @@ export class DOMCleanup {
 			typeof event !== 'string' ||
 			typeof handler !== 'function'
 		) {
-			console.warn('[DOMCleanup]', 'Invalid arguments to on()', {
+			console.warn('DOMCleanup', 'Invalid arguments to on()', {
 				hasElement: !!element,
 				eventType: typeof event,
 				handlerType: typeof handler,
@@ -116,14 +114,14 @@ export class DOMCleanup {
 
 	onEvent(event, handler) {
 		if (typeof event !== 'string' || typeof handler !== 'function') {
-			console.warn('[DOMCleanup]', 'Invalid arguments to onEvent()', {
+			console.warn('DOMCleanup', 'Invalid arguments to onEvent()', {
 				eventType: typeof event,
 				handlerType: typeof handler,
 			});
 			return;
 		}
 
-		console.debug('[DOMCleanup]', 'Registering EventBus listener', { event });
+		console.debug('DOMCleanup', 'Registering EventBus listener', { event });
 		eventBus.on(event, handler);
 		this._eventBusListeners.push({ event, handler });
 	}
@@ -147,7 +145,7 @@ export class DOMCleanup {
 			try {
 				this._bootstrapModals.get(element).dispose();
 			} catch (e) {
-				console.warn('[DOMCleanup]', 'Error disposing old Bootstrap modal', e);
+				console.warn('DOMCleanup', 'Error disposing old Bootstrap modal', e);
 			}
 		}
 		this._bootstrapModals.set(element, instance);
@@ -176,7 +174,7 @@ export class DOMCleanup {
 					);
 					summary.listenersRemoved++;
 				} catch (e) {
-					console.warn('[DOMCleanup]', 'Error removing listener', e);
+					console.warn('DOMCleanup', 'Error removing listener', e);
 				}
 			}
 		}
@@ -189,7 +187,7 @@ export class DOMCleanup {
 				clearInterval(id);
 				summary.timersCleared++;
 			} catch (e) {
-				console.warn('[DOMCleanup]', 'Error clearing timer', e);
+				console.warn('DOMCleanup', 'Error clearing timer', e);
 			}
 		}
 		this._timers.clear();
@@ -200,7 +198,7 @@ export class DOMCleanup {
 				modal.dispose();
 				summary.modalsDisposed++;
 			} catch (e) {
-				console.warn('[DOMCleanup]', 'Error disposing Bootstrap modal', e);
+				console.warn('DOMCleanup', 'Error disposing Bootstrap modal', e);
 			}
 		}
 		this._bootstrapModals.clear();
@@ -211,12 +209,12 @@ export class DOMCleanup {
 				eventBus.off(listener.event, listener.handler);
 				summary.eventBusListenersRemoved++;
 			} catch (e) {
-				console.warn('[DOMCleanup]', 'Error removing EventBus listener', e);
+				console.warn('DOMCleanup', 'Error removing EventBus listener', e);
 			}
 		}
 		this._eventBusListeners = [];
 
-		console.debug('[DOMCleanup]', 'Cleanup complete', summary);
+		console.debug('DOMCleanup', 'Cleanup complete', summary);
 		return summary;
 	}
 

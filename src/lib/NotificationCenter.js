@@ -1,6 +1,7 @@
-/** NotificationCenter.js - Manages the notification center modal and history */
+// Manages the notification center modal and history
 
 import { DOMCleanup } from './DOMCleanup.js';
+import { initializeBootstrapModal } from './ModalCleanupUtility.js';
 import {
 	clearNotificationHistory,
 	getNotificationHistory,
@@ -32,10 +33,8 @@ export class NotificationCenter {
 
 	show() {
 		try {
-			// Mark all notifications as read when opening center
 			markAllAsRead();
 
-			// Refresh the notification list
 			this.refreshList();
 
 			// Get or create Bootstrap modal instance
@@ -49,11 +48,13 @@ export class NotificationCenter {
 						this._modal = existingModal;
 						existingModal.show();
 					} else {
-						// Create new modal instance and register with cleanup
-						const newModal = new bs.Modal(modalElement);
-						this._modal = newModal;
-						this._cleanup.registerBootstrapModal(modalElement, newModal);
-						newModal.show();
+						// Create new modal instance using utility
+						const newModal = initializeBootstrapModal(modalElement);
+						if (newModal) {
+							this._modal = newModal;
+							this._cleanup.registerBootstrapModal(modalElement, newModal);
+							newModal.show();
+						}
 					}
 				}
 			}
@@ -121,7 +122,6 @@ export class NotificationCenter {
 			</button>
 		`;
 
-		// Add close button handler
 		const closeBtn = div.querySelector('.notification-center-close');
 		if (closeBtn) {
 			this._cleanup.on(closeBtn, 'click', (e) => {
@@ -189,7 +189,6 @@ export class NotificationCenter {
 	}
 }
 
-// Create singleton instance
 let _instance = null;
 
 export function getNotificationCenter() {

@@ -12,7 +12,7 @@ class ClassService extends BaseDataService {
 		const TTL_24_HOURS = 24 * 60 * 60 * 1000;
 		await this.initWithLoader(
 			async () => {
-				console.debug('[ClassService]', 'Initializing class data');
+				console.debug('ClassService', 'Initializing class data');
 				const index = await DataLoader.loadJSON('class/index.json', {
 					ttl: TTL_24_HOURS,
 				});
@@ -107,7 +107,7 @@ class ClassService extends BaseDataService {
 						subclassFluff: [],
 					};
 
-					console.debug('[ClassService]', 'Class data loaded', {
+					console.debug('ClassService', 'Class data loaded', {
 						classes: dataset.class.length,
 						classFeatures: dataset.classFeature.length,
 						subclasses: dataset.subclass.length,
@@ -256,7 +256,7 @@ class ClassService extends BaseDataService {
 		this._selectedSubclass = null;
 
 		if (this._selectedClass) {
-			console.debug('[ClassService]', 'Class selected', { className, source });
+			console.debug('ClassService', 'Class selected', { className, source });
 			eventBus.emit(EVENTS.CLASS_SELECTED, this._selectedClass);
 		} else {
 			console.warn('ClassService', 'Class not found', { className, source });
@@ -281,7 +281,7 @@ class ClassService extends BaseDataService {
 		);
 
 		if (this._selectedSubclass) {
-			console.debug('[ClassService]', 'Subclass selected', { subclassName });
+			console.debug('ClassService', 'Subclass selected', { subclassName });
 			eventBus.emit(EVENTS.SUBCLASS_SELECTED, this._selectedSubclass);
 		} else {
 			console.warn('ClassService', 'Subclass not found', { subclassName });

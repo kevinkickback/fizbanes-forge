@@ -1,11 +1,5 @@
-/** Utility for cleaning up orphaned modal backdrops and preventing z-index stacking issues */
+// Utility for cleaning up orphaned modal backdrops and preventing z-index stacking issues
 
-/**
- * Removes any orphaned modal backdrops from the DOM.
- * Orphaned backdrops can occur when modals are closed improperly or when
- * multiple modal instances are created without proper disposal.
- * This should be called when modal backdrop issues are detected.
- */
 export function cleanupOrphanedBackdrops() {
     try {
         const backdrops = document.querySelectorAll('.modal-backdrop');
@@ -14,7 +8,7 @@ export function cleanupOrphanedBackdrops() {
         // If there are more backdrops than open modals, remove the extras
         if (backdrops.length > openModals.length) {
             console.debug(
-                '[ModalCleanup]',
+                'ModalCleanup',
                 `Found ${backdrops.length} backdrops but only ${openModals.length} open modals. Cleaning up orphaned backdrops.`
             );
 
@@ -30,7 +24,7 @@ export function cleanupOrphanedBackdrops() {
         // If there are no open modals, remove all backdrops
         if (openModals.length === 0 && backdrops.length > 0) {
             console.debug(
-                '[ModalCleanup]',
+                'ModalCleanup',
                 `No open modals found. Removing all ${backdrops.length} backdrops.`
             );
             for (const backdrop of backdrops) {
@@ -43,62 +37,91 @@ export function cleanupOrphanedBackdrops() {
             document.body.style.paddingRight = '';
         }
     } catch (error) {
-        console.error('[ModalCleanup]', 'Error cleaning up orphaned backdrops', error);
+        console.error('ModalCleanup', 'Error cleaning up orphaned backdrops', error);
     }
 }
 
-/**
- * Ensures proper disposal of a Bootstrap modal instance.
- * This handles the full cleanup: hiding, disposing, and removing orphaned backdrops.
- * 
- * @param {HTMLElement} modalElement - The modal DOM element
- */
-export function disposeBootstrapModal(modalElement) {
-    if (!modalElement) return;
+export function disposeBootstrapModal(modalInstance) {
+    if (!modalInstance) return;
 
     try {
-        const bs = window.bootstrap || globalThis.bootstrap;
-        if (!bs) return;
-
-        const instance = bs.Modal.getInstance(modalElement);
-        if (instance) {
-            // Hide first, then dispose
-            instance.hide();
-
-            // Wait for hide animation to complete before disposing
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                try {
-                    instance.dispose();
-                    // Clean up any orphaned backdrops after disposal
-                    cleanupOrphanedBackdrops();
-                } catch (e) {
-                    console.warn('[ModalCleanup]', 'Error disposing modal instance', e);
-                }
-            }, { once: true });
+        // Check if already disposed by checking internal state
+        if (typeof modalInstance.dispose === 'function' && modalInstance._element) {
+            modalInstance.dispose();
         }
     } catch (error) {
-        console.error('[ModalCleanup]', 'Error in disposeBootstrapModal', error);
+        // Silently handle already-disposed modals
+        if (error.message && !error.message.includes('Cannot read properties of null')) {
+            console.warn('ModalCleanup', 'Error disposing modal instance', error);
+        }
     }
 }
 
-/**
- * Safe modal initialization that checks for and disposes of existing instances.
- * This prevents multiple Bootstrap modal instances on the same element.
- * 
- * @param {HTMLElement} modalElement - The modal DOM element
- * @param {Object} options - Bootstrap modal options
- * @returns {bootstrap.Modal|null} - The modal instance or null if failed
- */
+export function hideBootstrapModal(modalInstance, modalElement) {
+    if (!modalInstance && !modalElement) {
+        console.warn('ModalCleanup', 'Cannot hide modal: no instance or element provided');
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        let cleaned = false;
+
+        const performCleanup = () => {
+            if (cleaned) return;
+            cleaned = true;
+
+            // Clean up backdrops
+            cleanupOrphanedBackdrops();
+
+            // Force hide the modal element
+            if (modalElement) {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+            }
+
+            resolve();
+        };
+
+        try {
+            if (modalInstance && modalElement) {
+                // Wait for Bootstrap's hide event
+                modalElement.addEventListener('hidden.bs.modal', () => {
+                    performCleanup();
+                }, { once: true });
+
+                // Fallback timeout in case event doesn't fire
+                setTimeout(() => {
+                    if (!cleaned) {
+                        console.debug('ModalCleanup', 'Forcing modal cleanup after timeout');
+                        performCleanup();
+                    }
+                }, 500);
+
+                // Trigger Bootstrap hide
+                modalInstance.hide();
+            } else {
+                // No Bootstrap instance, clean up immediately
+                performCleanup();
+            }
+        } catch (error) {
+            console.error('ModalCleanup', 'Error hiding modal', error);
+            performCleanup();
+        }
+    });
+}
+
 export function initializeBootstrapModal(modalElement, options = {}) {
     if (!modalElement) {
-        console.error('[ModalCleanup]', 'Cannot initialize modal: element is null');
+        console.error('ModalCleanup', 'Cannot initialize modal: element is null');
         return null;
     }
 
     try {
         const bs = window.bootstrap || globalThis.bootstrap;
         if (!bs) {
-            console.error('[ModalCleanup]', 'Bootstrap not available');
+            console.error('ModalCleanup', 'Bootstrap not available');
             return null;
         }
 
@@ -108,18 +131,18 @@ export function initializeBootstrapModal(modalElement, options = {}) {
         // Check for and dispose of existing instance
         const existing = bs.Modal.getInstance(modalElement);
         if (existing) {
-            console.debug('[ModalCleanup]', 'Disposing existing modal instance before creating new one');
+            console.debug('ModalCleanup', 'Disposing existing modal instance before creating new one');
             try {
                 existing.dispose();
             } catch (e) {
-                console.warn('[ModalCleanup]', 'Error disposing existing modal', e);
+                console.warn('ModalCleanup', 'Error disposing existing modal', e);
             }
         }
 
         // Create and return new instance
         return new bs.Modal(modalElement, options);
     } catch (error) {
-        console.error('[ModalCleanup]', 'Error initializing Bootstrap modal', error);
+        console.error('ModalCleanup', 'Error initializing Bootstrap modal', error);
         return null;
     }
 }

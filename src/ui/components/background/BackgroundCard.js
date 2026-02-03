@@ -113,7 +113,7 @@ export class BackgroundCard {
 
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
-			console.warn('[BackgroundCard]', 'Handler must be a function', { event });
+			console.warn('BackgroundCard', 'Handler must be a function', { event });
 			return;
 		}
 
@@ -132,7 +132,7 @@ export class BackgroundCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('[BackgroundCard]', 'Error removing listener', {
+						console.warn('BackgroundCard', 'Error removing listener', {
 							event,
 							error: e,
 						});
@@ -142,7 +142,7 @@ export class BackgroundCard {
 		}
 
 		this._eventHandlers = {};
-		console.debug('[BackgroundCard]', 'EventBus cleanup complete');
+		console.debug('BackgroundCard', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------
@@ -191,7 +191,7 @@ export class BackgroundCard {
 				await this._createBackgroundItem(background);
 			}
 
-			console.debug('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
+			console.debug('BackgroundCard', `Populated ${sortedBackgrounds.length} backgrounds`);
 		} catch (error) {
 			console.error('BackgroundCard', 'Error populating background list:', error);
 		}

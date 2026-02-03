@@ -40,12 +40,12 @@ class EquipmentService extends BaseDataService {
 	/** Add an item to character's inventory. */
 	addItem(character, itemData, quantity = 1, source = 'Manual') {
 		if (!character.inventory) {
-			console.warn('[EquipmentService]', 'Character missing inventory');
+			console.warn('EquipmentService', 'Character missing inventory');
 			return null;
 		}
 
 		if (!itemData || !itemData.name) {
-			console.warn('[EquipmentService]', 'Invalid item data');
+			console.warn('EquipmentService', 'Invalid item data');
 			return null;
 		}
 
@@ -69,7 +69,7 @@ class EquipmentService extends BaseDataService {
 			character.inventory.items.push(itemInstance);
 			this._updateInventoryWeight(character);
 
-			console.debug('[EquipmentService]', 'Item added', {
+			console.debug('EquipmentService', 'Item added', {
 				itemName: itemInstance.name,
 				quantity: itemInstance.quantity,
 			});
@@ -77,7 +77,7 @@ class EquipmentService extends BaseDataService {
 			eventBus.emit(EVENTS.ITEM_ADDED, character, itemInstance);
 			return itemInstance;
 		} catch (error) {
-			console.error('[EquipmentService]', 'Failed to add item', error);
+			console.error('EquipmentService', 'Failed to add item', error);
 			return null;
 		}
 	}
@@ -91,7 +91,7 @@ class EquipmentService extends BaseDataService {
 		);
 
 		if (itemIndex === -1) {
-			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId });
+			console.warn('EquipmentService', 'Item not found', { itemInstanceId });
 			return false;
 		}
 
@@ -117,7 +117,7 @@ class EquipmentService extends BaseDataService {
 
 		this._updateInventoryWeight(character);
 
-		console.debug('[EquipmentService]', 'Item removed', {
+		console.debug('EquipmentService', 'Item removed', {
 			itemName: item.name,
 			quantityRemoved: Math.min(quantity, item.quantity + quantity),
 		});
@@ -129,14 +129,14 @@ class EquipmentService extends BaseDataService {
 	/** Equip an item to a specific slot. */
 	equipItem(character, itemInstanceId, slot) {
 		if (!character.inventory || !this.validSlots[slot]) {
-			console.warn('[EquipmentService]', 'Invalid slot', { slot });
+			console.warn('EquipmentService', 'Invalid slot', { slot });
 			return false;
 		}
 
 		const item = character.inventory.items.find((i) => i.id === itemInstanceId);
 
 		if (!item) {
-			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId });
+			console.warn('EquipmentService', 'Item not found', { itemInstanceId });
 			return false;
 		}
 
@@ -159,7 +159,7 @@ class EquipmentService extends BaseDataService {
 
 		item.equipped = true;
 
-		console.debug('[EquipmentService]', 'Item equipped', {
+		console.debug('EquipmentService', 'Item equipped', {
 			itemName: item.name,
 			slot,
 		});
@@ -202,7 +202,7 @@ class EquipmentService extends BaseDataService {
 			if (item) {
 				item.equipped = false;
 
-				console.debug('[EquipmentService]', 'Item unequipped', {
+				console.debug('EquipmentService', 'Item unequipped', {
 					itemName: item.name,
 					slot,
 				});
@@ -212,7 +212,7 @@ class EquipmentService extends BaseDataService {
 			return true;
 		}
 
-		console.warn('[EquipmentService]', 'Item not found in equipped slots', {
+		console.warn('EquipmentService', 'Item not found in equipped slots', {
 			itemInstanceId,
 		});
 		return false;
@@ -225,13 +225,13 @@ class EquipmentService extends BaseDataService {
 		const item = character.inventory.items.find((i) => i.id === itemInstanceId);
 
 		if (!item) {
-			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId });
+			console.warn('EquipmentService', 'Item not found', { itemInstanceId });
 			return false;
 		}
 
 		// Check attunement slots
 		if (!this.canAttune(character)) {
-			console.warn('[EquipmentService]', 'No attunement slots available');
+			console.warn('EquipmentService', 'No attunement slots available');
 			return false;
 		}
 
@@ -241,7 +241,7 @@ class EquipmentService extends BaseDataService {
 
 		item.attuned = true;
 
-		console.debug('[EquipmentService]', 'Item attuned', {
+		console.debug('EquipmentService', 'Item attuned', {
 			itemName: item.name,
 			attunedCount: character.inventory.attuned.length,
 		});
@@ -257,7 +257,7 @@ class EquipmentService extends BaseDataService {
 		const index = character.inventory.attuned.indexOf(itemInstanceId);
 
 		if (index === -1) {
-			console.warn('[EquipmentService]', 'Item not attuned', {
+			console.warn('EquipmentService', 'Item not attuned', {
 				itemInstanceId,
 			});
 			return false;
@@ -270,7 +270,7 @@ class EquipmentService extends BaseDataService {
 		if (item) {
 			item.attuned = false;
 
-			console.debug('[EquipmentService]', 'Item unattuned', {
+			console.debug('EquipmentService', 'Item unattuned', {
 				itemName: item.name,
 				attunedCount: character.inventory.attuned.length,
 			});

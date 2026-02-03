@@ -404,7 +404,7 @@ export class FeatSelectionModal {
 	}
 
 	_onError(err) {
-		console.error('[FeatSelectionModal]', err);
+		console.error('FeatSelectionModal', err);
 		showNotification('Failed to open feat selection modal', 'error');
 	}
 }

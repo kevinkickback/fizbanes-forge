@@ -97,7 +97,7 @@ export class CharacterStepRace {
 	 * Attach event listeners to rendered content.
 	 */
 	async attachListeners(contentArea) {
-		console.debug('[Step2Race]', 'Attaching listeners');
+		console.debug('Step2Race', 'Attaching listeners');
 
 		this._raceSelect = contentArea.querySelector('#modalRaceSelect');
 		this._subraceSelect = contentArea.querySelector('#modalSubraceSelect');
@@ -107,7 +107,7 @@ export class CharacterStepRace {
 
 		// Restore allowed sources from session if available
 		const savedSources = this.session.get('allowedSources');
-		console.debug('[Step2Race]', 'Saved sources from session:', {
+		console.debug('Step2Race', 'Saved sources from session:', {
 			savedSources,
 			type: typeof savedSources,
 			isSet: savedSources instanceof Set,
@@ -180,7 +180,7 @@ export class CharacterStepRace {
 	async _populateRaceSelect() {
 		const races = this._raceService.getAllRaces();
 		if (!races || races.length === 0) {
-			console.error('[Step2Race]', 'No races available');
+			console.error('Step2Race', 'No races available');
 			return;
 		}
 
@@ -267,7 +267,7 @@ export class CharacterStepRace {
 
 		const race = this._raceService.getRace(raceName, source);
 		if (!race) {
-			console.error('[Step2Race]', `Race not found: ${raceName} (${source})`);
+			console.error('Step2Race', `Race not found: ${raceName} (${source})`);
 			return;
 		}
 
@@ -500,7 +500,7 @@ export class CharacterStepRace {
 	async validate() {
 		const raceValue = this._raceSelect?.value;
 		if (!raceValue || raceValue === '') {
-			console.warn('[Step2Race]', 'No race selected');
+			console.warn('Step2Race', 'No race selected');
 			return false;
 		}
 
@@ -508,14 +508,14 @@ export class CharacterStepRace {
 		const raceName = parts[0];
 		const source = parts[1];
 
-		console.debug('[Step2Race]', 'Validating race:', {
+		console.debug('Step2Race', 'Validating race:', {
 			raceValue,
 			raceName,
 			source,
 		});
 
 		if (!raceName || !source) {
-			console.error('[Step2Race]', 'Failed to parse race value:', {
+			console.error('Step2Race', 'Failed to parse race value:', {
 				raceValue,
 				parts,
 			});
@@ -525,7 +525,7 @@ export class CharacterStepRace {
 		// Check if subrace is required
 		const isRequired = this._raceService.isSubraceRequired(raceName, source);
 
-		console.debug('[Step2Race]', 'Subrace validation:', {
+		console.debug('Step2Race', 'Subrace validation:', {
 			raceName,
 			source,
 			isRequired,
@@ -535,12 +535,12 @@ export class CharacterStepRace {
 		if (isRequired) {
 			const subraceValue = this._subraceSelect?.value;
 			if (!subraceValue) {
-				console.warn('[Step2Race]', 'Subrace required but not selected');
+				console.warn('Step2Race', 'Subrace required but not selected');
 				return false;
 			}
 		}
 
-		console.debug('[Step2Race]', 'Validation passed');
+		console.debug('Step2Race', 'Validation passed');
 		return true;
 	}
 
@@ -563,7 +563,7 @@ export class CharacterStepRace {
 			subrace: subraceValue,
 		});
 
-		console.debug('[Step2Race]', 'Saved race data:', this.session.get('race'));
+		console.debug('Step2Race', 'Saved race data:', this.session.get('race'));
 	}
 
 	/**

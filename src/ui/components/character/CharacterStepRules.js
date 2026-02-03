@@ -122,7 +122,7 @@ export class CharacterStepRules {
 	 * Attach event listeners to rendered content.
 	 */
 	async attachListeners(contentArea) {
-		console.debug('[Step1Rules]', 'Attaching listeners');
+		console.debug('Step1Rules', 'Attaching listeners');
 
 		// Initialize source card
 		const container = contentArea.querySelector('#sourceBookSelection');
@@ -246,7 +246,7 @@ export class CharacterStepRules {
 			'input[name="abilityScoreMethod"]:checked',
 		);
 		if (!abilityScoreMethod) {
-			console.error('[Step1Rules]', 'No ability score method selected');
+			console.error('Step1Rules', 'No ability score method selected');
 			return false;
 		}
 
@@ -255,7 +255,7 @@ export class CharacterStepRules {
 		const isValid = this._sourceCard.validateSourceSelection(selectedSources);
 
 		if (!isValid) {
-			console.warn('[Step1Rules]', 'Source validation failed');
+			console.warn('Step1Rules', 'Source validation failed');
 			return false;
 		}
 
@@ -304,7 +304,7 @@ export class CharacterStepRules {
 			sourceService.addAllowedSource(source);
 		}
 
-		console.debug('[Step1Rules]', 'Saved data:', {
+		console.debug('Step1Rules', 'Saved data:', {
 			abilityScoreMethod: this.session.get('abilityScoreMethod'),
 			variantRules: this.session.get('variantRules'),
 			allowedSources: Array.from(selectedSources),
