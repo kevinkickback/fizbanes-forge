@@ -253,7 +253,7 @@ export const CharacterSchema = {
 		const { valid: isValid, errors } = validateCharacterData(character);
 
 		if (!isValid) {
-			console.warn('CharacterSchema', 'Validation failed:', {
+			console.warn('[CharacterSchema]', 'Validation failed:', {
 				errors,
 				characterId: character.id,
 			});

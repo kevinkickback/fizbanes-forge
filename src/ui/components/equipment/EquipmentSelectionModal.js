@@ -346,7 +346,7 @@ export class EquipmentSelectionModal {
 					failedItems.push(item.name);
 				}
 			} catch (error) {
-				console.error('UniversalEquipmentModal', 'Error adding item:', error);
+				console.error('[UniversalEquipmentModal]', 'Error adding item:', error);
 				failedItems.push(item.name);
 			}
 		}

@@ -25,7 +25,7 @@ export class Modal {
 		try {
 			this._eventHandlers = handlers;
 		} catch (error) {
-			console.error('Modal', 'Error setting up modal event listeners:', error);
+			console.error('[Modal]', 'Error setting up modal event listeners:', error);
 		}
 	}
 
@@ -88,7 +88,7 @@ export class Modal {
 			const characterCreationModal = new CharacterCreationModal();
 			await characterCreationModal.show();
 		} catch (error) {
-			console.error('Modal', 'Error showing new character modal:', error);
+			console.error('[Modal]', 'Error showing new character modal:', error);
 			showNotification('Could not open new character form', 'error');
 		}
 	}
@@ -143,7 +143,7 @@ export class Modal {
 
 			const modal = initializeBootstrapModal(modalElement);
 			if (!modal) {
-				console.error('Modal', 'Failed to initialize confirmation modal');
+				console.error('[Modal]', 'Failed to initialize confirmation modal');
 				return false;
 			}
 
@@ -178,7 +178,7 @@ export class Modal {
 					try {
 						modal.dispose();
 					} catch (e) {
-						console.warn('Modal', 'Error disposing confirmation modal', e);
+						console.warn('[Modal]', 'Error disposing confirmation modal', e);
 					}
 				};
 
@@ -190,7 +190,7 @@ export class Modal {
 				modal.show();
 			});
 		} catch (error) {
-			console.error('Modal', 'Error showing confirmation dialog:', error);
+			console.error('[Modal]', 'Error showing confirmation dialog:', error);
 			return false;
 		}
 	}
@@ -223,7 +223,7 @@ export class Modal {
 				!cancelButton ||
 				!closeButton
 			) {
-				console.error('Modal', 'One or more modal elements not found');
+				console.error('[Modal]', 'One or more modal elements not found');
 				return 'cancel';
 			}
 
@@ -258,7 +258,7 @@ export class Modal {
 
 			const modal = initializeBootstrapModal(modalElement);
 			if (!modal) {
-				console.error('Modal', 'Failed to initialize duplicate ID modal');
+				console.error('[Modal]', 'Failed to initialize duplicate ID modal');
 				return 'cancel';
 			}
 
@@ -296,7 +296,7 @@ export class Modal {
 					try {
 						modal.dispose();
 					} catch (e) {
-						console.warn('Modal', 'Error disposing duplicate ID modal', e);
+						console.warn('[Modal]', 'Error disposing duplicate ID modal', e);
 					}
 				};
 
@@ -308,7 +308,7 @@ export class Modal {
 				modal.show();
 			});
 		} catch (error) {
-			console.error('Modal', 'Error showing duplicate ID modal:', error);
+			console.error('[Modal]', 'Error showing duplicate ID modal:', error);
 			return 'cancel';
 		}
 	}

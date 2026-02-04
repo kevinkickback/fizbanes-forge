@@ -24,7 +24,7 @@ class AppStateImpl {
 			},
 		};
 
-		console.debug('AppState', 'Initialized');
+		console.debug('[AppState]', 'Initialized');
 	}
 
 	getState() {
@@ -60,7 +60,7 @@ class AppStateImpl {
 	}
 
 	setCurrentCharacter(character, options = {}) {
-		console.debug('AppState', 'Setting current character:', character?.id);
+		console.debug('[AppState]', 'Setting current character:', character?.id);
 		this.setState({ currentCharacter: character });
 		if (!options.skipEvent) {
 			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
@@ -122,7 +122,7 @@ class AppStateImpl {
 	}
 
 	clear() {
-		console.warn('AppState', 'Clearing all state');
+		console.warn('[AppState]', 'Clearing all state');
 		const initialState = new AppStateImpl().state;
 		this.state = initialState;
 		eventBus.emit(EVENTS.STATE_CHANGED, this.state, {});

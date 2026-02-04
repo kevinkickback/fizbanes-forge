@@ -140,7 +140,7 @@ class RaceService extends BaseDataService {
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
-				console.debug('RaceService', 'Initializing race data');
+				console.debug('[RaceService]', 'Initializing race data');
 				const races = await DataLoader.loadRaces();
 				if (!races) throw new Error('Race data is null or undefined');
 
@@ -163,7 +163,7 @@ class RaceService extends BaseDataService {
 			{
 				onLoaded: (data, meta) => {
 					this._buildRaceIndex(data);
-					console.debug('RaceService', 'Races loaded successfully', {
+					console.debug('[RaceService]', 'Races loaded successfully', {
 						count: data?.race?.length,
 						fromCache: meta?.fromCache || false,
 					});
@@ -222,7 +222,7 @@ class RaceService extends BaseDataService {
 
 	/** Builds an optimized lookup index for fast race access. */
 	_buildRaceIndex(data = this._data) {
-		console.debug('RaceService', 'Building race index');
+		console.debug('[RaceService]', 'Building race index');
 
 		this._raceIndex = new Map();
 		const races = data?.race || [];
@@ -239,7 +239,7 @@ class RaceService extends BaseDataService {
 			this._raceIndex.set(key, bundle);
 		}
 
-		console.debug('RaceService', `Indexed ${this._raceIndex.size} races`);
+		console.debug('[RaceService]', `Indexed ${this._raceIndex.size} races`);
 	}
 
 	/** Get fluff data for a race (descriptions and lore). */

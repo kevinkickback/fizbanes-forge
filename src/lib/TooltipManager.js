@@ -1,4 +1,4 @@
-// Manages displaying and hiding D&D reference tooltips as a plain module
+// Manages displaying and hiding D&D reference tooltips.
 
 import { actionService } from '../services/ActionService.js';
 import { backgroundService } from '../services/BackgroundService.js';
@@ -13,8 +13,7 @@ import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
 import { DEFAULT_SOURCE } from './5eToolsParser.js';
-import { Renderer5etools } from './5eToolsRenderer.js';
-import DataNormalizer from './DataNormalizer.js';
+import TextProcessor from './TextProcessor.js';
 import {
 	renderAction,
 	renderBackground,
@@ -35,7 +34,7 @@ import {
 	renderVehicle,
 } from './StatBlockRenderer.js';
 
-// Type-to-service mapping for reference resolution
+
 const typeServiceMap = {
 	action: { service: actionService, method: 'getAction' },
 	background: { service: backgroundService, method: 'getBackground' },
@@ -56,7 +55,7 @@ function _resolveReference(type, name, source = 'PHB') {
 	const config = typeServiceMap[type];
 
 	if (!config) {
-		console.warn('TooltipManager', `Unknown reference type: ${type}`);
+		console.warn('[TooltipManager]', `Unknown reference type: ${type}`);
 		return { name, error: `Unknown reference type: ${type}` };
 	}
 
@@ -66,7 +65,7 @@ function _resolveReference(type, name, source = 'PHB') {
 
 		if (!getter || typeof getter !== 'function') {
 			console.warn(
-				'TooltipManager',
+				'[TooltipManager]',
 				`Service for ${type} does not have ${method} method`,
 			);
 			return { name, error: `Cannot resolve ${type}` };
@@ -81,7 +80,7 @@ function _resolveReference(type, name, source = 'PHB') {
 		return data;
 	} catch (error) {
 		console.error(
-			'TooltipManager',
+			'[TooltipManager]',
 			`Error resolving ${type} "${name}":`,
 			error,
 		);
@@ -89,10 +88,8 @@ function _resolveReference(type, name, source = 'PHB') {
 	}
 }
 
-// Internal state
 let tooltips = [];
 
-// Module initialization
 _initTooltipManager();
 
 function _initTooltipManager() {
@@ -109,7 +106,6 @@ function _createTooltip() {
 	const tooltip = document.createElement('div');
 	tooltip.className = 'tooltip';
 
-	// Add action buttons
 	const actions = document.createElement('div');
 	actions.className = 'tooltip-actions';
 	actions.innerHTML = `
@@ -139,15 +135,12 @@ function _createTooltip() {
 	tooltip.appendChild(actions);
 	container.appendChild(tooltip);
 
-	// Append to modal if one is open, otherwise to body
-	// This prevents Bootstrap from adding a backdrop for tooltips
 	const openModal = document.querySelector('.modal.show');
 	const appendTarget = openModal || document.body;
 	appendTarget.appendChild(container);
 
 	const tooltipObj = { container, tooltip, isPinned: false };
 
-	// Add event listeners to action buttons
 	actions.querySelector('.tooltip-pin-btn').addEventListener('click', (e) => {
 		e.stopPropagation();
 		_togglePin(tooltipObj);
@@ -157,7 +150,6 @@ function _createTooltip() {
 		_closeTooltip(tooltipObj);
 	});
 
-	// Allow pinned tooltips to be dragged via the drag handle
 	const dragHandle = actions.querySelector('.tooltip-drag-handle');
 	if (dragHandle) {
 		tooltipObj.dragHandle = dragHandle;
@@ -191,7 +183,6 @@ function _makeDraggable(tooltipObj, handleElement) {
 	};
 
 	handleElement.addEventListener('mousedown', (event) => {
-		// Only left-click drag on pinned tooltips; ignore clicks on interactive elements
 		if (event.button !== 0) return;
 		if (!tooltipObj.isPinned) return;
 		if (event.target.closest('button, a')) return;
@@ -224,8 +215,6 @@ function _togglePin(tooltipObj) {
 		if (dragHandle) dragHandle.style.display = 'none';
 	}
 }
-
-async function _copyTooltipContent() { }
 
 function _closeTooltip(tooltipObj) {
 	const index = tooltips.indexOf(tooltipObj);
@@ -331,54 +320,24 @@ function _setupKeyboardShortcuts() {
 }
 
 async function showReferenceTooltip(type, name, source, x, y) {
-	if (!referenceResolver) {
-		showTooltip(x, y, `<strong>${name}</strong>`);
-		return;
-	}
-	console.debug(
-		'TooltipSystem',
-		`[showReferenceTooltip] type:`,
-		type,
-		'name:',
-		name,
-		'source:',
-		source,
-	);
-	// Normalize name for reference lookup using shared helper (case-insensitive)
-	const normalizedName = DataNormalizer.normalizeForLookup(name)
+	const normalizedName = TextProcessor.normalizeForLookup(name)
 		.replace(/['']/g, "'")
 		.trim();
 	const referenceKey = `${type}:${normalizedName}`;
 	const isAlreadyOpen = tooltips.some((t) => {
 		if (!t.referenceKey) return false;
 		const existingKey = t.referenceKey.split(':').slice(0, 2).join(':');
-		console.debug(
-			'TooltipSystem',
-			`Comparing "${referenceKey}" with "${existingKey}"`,
-		);
 		return existingKey === referenceKey;
 	});
 	if (isAlreadyOpen) {
-		console.debug(
-			'TooltipSystem',
-			`Circular reference detected: ${type} - ${name} is already open in the chain, ignoring hover`,
-		);
 		return;
 	}
 	try {
-		console.debug('TooltipSystem', `[Loading ${type}: ${name} (${source})]`);
-		// Use generic resolver - single dispatch point for all types
 		const data = await _resolveReference(type, name, source);
-		console.debug(
-			'TooltipSystem',
-			`[showReferenceTooltip] resolver result:`,
-			data,
-		);
 		const content = _formatTooltip(data);
-		console.debug('TooltipSystem', `Resolved ${type}: ${name}`, data);
 		showTooltip(x, y, content, { referenceKey });
 	} catch (error) {
-		console.error(`[TooltipSystem] Error showing tooltip for ${type}:`, error);
+		console.error('[TooltipManager]', `Error showing tooltip for ${type}:`, error);
 		showTooltip(
 			x,
 			y,
@@ -395,53 +354,47 @@ function _formatTooltip(data) {
 		return `<strong>${data.name}</strong><br><small>${data.error}</small>`;
 	}
 
-	// Detect entity type based on key properties (5etools approach)
-	// This is auto-scaling: new entity types work automatically
 	const entityType = _detectEntityType(data);
-
-	// Dispatch to appropriate renderer
 	const renderer = _getRenderer(entityType);
 	if (renderer) {
 		return renderer(data);
 	}
 
-	// Fallback: generic rendering for unknown types
 	return _renderGenericTooltip(data);
 }
 
 function _detectEntityType(data) {
-	// Check specific properties that uniquely identify entity types
-	if (data.cr !== undefined) return 'monster'; // Bestiary entries
+	if (data.cr !== undefined) return 'monster';
 	if (data.level !== undefined && !data.hd && !data.skillProficiencies) {
-		return 'spell'; // Has level but not class features or background
+		return 'spell';
 	}
-	if (data.hd) return 'class'; // Has hit dice = class or monster
-	if (data.prerequisite && !data.skillProficiencies) return 'feat'; // Has prerequisite = feat
-	if (data.skillProficiencies) return 'background'; // Has skill proficiencies = background
-	if ((data.size || data.speed) && !data.weapon && !data.hd) return 'race'; // Size/speed without weapon = race
-	if (data.type || data.weapon || data.armor || data.rarity) return 'item'; // Item-specific properties
+	if (data.hd) return 'class';
+	if (data.prerequisite && !data.skillProficiencies) return 'feat';
+	if (data.skillProficiencies) return 'background';
+	if ((data.size || data.speed) && !data.weapon && !data.hd) return 'race';
+	if (data.type || data.weapon || data.armor || data.rarity) return 'item';
 	if (data.ability && typeof data.ability === 'string' && !data.hd)
-		return 'skill'; // Ability string = skill
-	if (data.time && Array.isArray(data.time)) return 'action'; // Time array = action
-	if (data.featureType) return 'optionalfeature'; // Optional feature marker
+		return 'skill';
+	if (data.time && Array.isArray(data.time)) return 'action';
+	if (data.featureType) return 'optionalfeature';
 	if (
 		data.type &&
 		(data.type.includes('Charm') ||
 			data.type.includes('Piety') ||
 			data.type.includes('Blessing'))
 	) {
-		return 'reward'; // Reward-type
+		return 'reward';
 	}
-	if (data.trapHazType) return 'trap'; // Trap/hazard
-	if (data.vehicleType) return 'vehicle'; // Vehicle
-	if (data.ac && data.hp && !data.cr) return 'object'; // Object (AC and HP but no CR)
+	if (data.trapHazType) return 'trap';
+	if (data.vehicleType) return 'vehicle';
+	if (data.ac && data.hp && !data.cr) return 'object';
 	if (data.ruleType || (data.type === 'variantrule' && data.entries)) {
-		return 'variantrule'; // Variant rule
+		return 'variantrule';
 	}
-	if (data.colLabels && data.rows) return 'table'; // Table
-	if (data.entries) return 'condition'; // Fallback: has entries = condition/general
+	if (data.colLabels && data.rows) return 'table';
+	if (data.entries) return 'condition';
 
-	return 'generic'; // Unknown type
+	return 'generic';
 }
 
 function _getRenderer(type) {
@@ -490,7 +443,6 @@ function _renderGenericTooltip(data) {
 }
 
 export function initializeTooltipListeners() {
-	console.debug('TooltipSystem', 'Initializing event listeners');
 	const activeElements = new Map();
 	let currentHoverLink = null;
 	const HoverSelector = '.rd__hover-link, .reference-link';
@@ -538,36 +490,12 @@ export function initializeTooltipListeners() {
 			return;
 		}
 		currentHoverLink = link;
-		console.debug(
-			'TooltipSystem',
-			`Hovering over: ${hoverType} - ${hoverName}`,
-		);
-		if (parentTooltip) {
-			console.debug(
-				'TooltipSystem',
-				`Link is in tooltip at index: ${linkTooltipIndex}`,
-			);
-		} else {
-			console.debug('TooltipSystem', 'Link is not in a tooltip (base level)');
-		}
-		console.debug(
-			'TooltipSystem',
-			`Current stack size: ${tooltips.length}, keeping up to index: ${keepUpToIndex}`,
-		);
 		while (tooltips.length > keepUpToIndex) {
 			const lastTooltip = tooltips[tooltips.length - 1];
 			if (lastTooltip.isPinned) {
-				console.debug(
-					'TooltipSystem',
-					`Stopped removing at pinned tooltip index ${tooltips.length - 1}`,
-				);
 				break;
 			}
 			const removed = tooltips.pop();
-			console.debug(
-				'TooltipSystem',
-				`Removing tooltip at index ${tooltips.length}`,
-			);
 			if (removed.container.parentNode) {
 				removed.container.parentNode.removeChild(removed.container);
 			}
@@ -608,10 +536,6 @@ export function initializeTooltipListeners() {
 					tooltip: newTooltip,
 					timeout: null,
 				});
-				console.debug(
-					'TooltipSystem',
-					`Added tooltip at depth ${newTooltipDepth}, stack size now: ${tooltips.length}`,
-				);
 			}
 		}
 	});
@@ -631,10 +555,6 @@ export function initializeTooltipListeners() {
 					? tooltips.findIndex((t) => t.container === toTooltip)
 					: -1;
 				if (fromIndex > toIndex) {
-					console.debug(
-						'TooltipSystem',
-						`Moving from tooltip ${fromIndex} to ${toIndex}, removing deeper tooltips`,
-					);
 					const keepUpToIndex = toIndex + 1;
 					setTimeout(() => {
 						while (tooltips.length > keepUpToIndex) {
@@ -657,10 +577,6 @@ export function initializeTooltipListeners() {
 			return;
 		}
 		if (isInTooltipSystem(fromElement) && !isInTooltipSystem(toElement)) {
-			console.debug(
-				'TooltipSystem',
-				'Left tooltip system, hiding unpinned tooltips',
-			);
 			globalHideTimeout = setTimeout(() => {
 				currentHoverLink = null;
 				activeElements.clear();
@@ -685,7 +601,6 @@ export function initializeTooltipListeners() {
 		const enteringElement = event.target;
 		if (isInTooltipSystem(enteringElement)) {
 			if (globalHideTimeout) {
-				console.debug('TooltipSystem', 'Canceling hide timer');
 				clearTimeout(globalHideTimeout);
 				globalHideTimeout = null;
 			}
@@ -693,51 +608,4 @@ export function initializeTooltipListeners() {
 	});
 }
 
-export function initializeTooltips(root = document) {
-	initializeTooltipListeners();
-	const upgraded = [];
-	if (root?.querySelectorAll) {
-		root.querySelectorAll('.reference-link').forEach((link) => {
-			// Add rd__hover-link class for styling/compatibility
-			if (!link.classList.contains('rd__hover-link')) {
-				link.classList.add('rd__hover-link');
-			}
-			// Copy data-tooltip-type/name to data-hover-type/name if not present
-			if (
-				!link.hasAttribute('data-hover-type') &&
-				link.hasAttribute('data-tooltip-type')
-			) {
-				link.setAttribute(
-					'data-hover-type',
-					link.getAttribute('data-tooltip-type'),
-				);
-			}
-			if (
-				!link.hasAttribute('data-hover-name') &&
-				link.hasAttribute('data-tooltip-name')
-			) {
-				link.setAttribute(
-					'data-hover-name',
-					link.getAttribute('data-tooltip-name'),
-				);
-			}
-			if (
-				!link.hasAttribute('data-hover-source') &&
-				link.hasAttribute('data-tooltip-source')
-			) {
-				link.setAttribute(
-					'data-hover-source',
-					link.getAttribute('data-tooltip-source'),
-				);
-			}
-			upgraded.push(link);
-		});
-	}
-	return { upgraded };
-}
-
-// Exported API (functional, no singleton)
 export { hideAllTooltips, hideTooltip, showReferenceTooltip, showTooltip };
-export function getStringRenderer() {
-	return { render: Renderer5etools.processString };
-}

@@ -201,7 +201,7 @@ export class UniversalSelectionModal {
 				'items',
 			);
 			if (this.state.items.length === 0) {
-				console.warn('UniversalSelectionModal', 'WARNING: No items loaded!');
+				console.warn('[UniversalSelectionModal]', 'WARNING: No items loaded!');
 			}
 
 			// Prime initial selections if provided
@@ -237,7 +237,7 @@ export class UniversalSelectionModal {
 				this._resolvePromise = resolve;
 			});
 		} catch (error) {
-			console.error('UniversalSelectionModal', 'Failed to show modal', error);
+			console.error('[UniversalSelectionModal]', 'Failed to show modal', error);
 			if (this.config.onError) {
 				this.config.onError(error);
 			} else {
@@ -672,8 +672,8 @@ export class UniversalSelectionModal {
 			this._resolvePromise(value);
 			this._resolvePromise = null;
 		}
-		if (this.bootstrapModal && this.modalEl) {
-			await hideBootstrapModal(this.bootstrapModal, this.modalEl);
+		if (this.bootstrapModal && this.modal) {
+			await hideBootstrapModal(this.bootstrapModal, this.modal);
 			this._cleanup.cleanup();
 			this.bootstrapModal = null;
 		}

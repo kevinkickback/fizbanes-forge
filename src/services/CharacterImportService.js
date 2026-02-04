@@ -4,13 +4,11 @@ import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import { CharacterSchema } from '../shared/CharacterSchema.js';
 
-/** Manages character import business logic (reading, validation, conflict detection). */
 export class CharacterImportService {
 	constructor(savePath) {
 		this.savePath = savePath;
 	}
 
-	/** Read and parse a character file. */
 	async readCharacterFile(filePath) {
 		if (!filePath.endsWith('.ffp')) {
 			return {
@@ -34,7 +32,6 @@ export class CharacterImportService {
 		}
 	}
 
-	/** Validate character data structure. */
 	async validateCharacter(character) {
 		const validation = CharacterSchema.validate(character);
 		return {
@@ -43,13 +40,11 @@ export class CharacterImportService {
 		};
 	}
 
-	/** Check if a character with the given ID already exists. */
 	async checkForConflict(characterId) {
 		const existingFilePath = path.join(this.savePath, `${characterId}.ffp`);
 
 		try {
 			await fs.access(existingFilePath);
-			// File exists
 			const existingContent = await fs.readFile(existingFilePath, 'utf8');
 			const existingCharacter = JSON.parse(existingContent);
 			const stats = fssync.statSync(existingFilePath);
@@ -60,12 +55,10 @@ export class CharacterImportService {
 				createdAt: stats.birthtime.toISOString(),
 			};
 		} catch {
-			// File doesn't exist
 			return { exists: false };
 		}
 	}
 
-	/** Process user's conflict resolution choice. */
 	processConflictResolution(character, action) {
 		if (action === 'cancel') {
 			return { canceled: true };
@@ -75,13 +68,10 @@ export class CharacterImportService {
 			character.id = uuidv4();
 		}
 
-		// 'overwrite' or unknown action: keep original ID
 		return { character };
 	}
 
-	/** Full import flow: read, validate, check conflicts, and return prepared character. */
 	async importCharacter(filePath) {
-		// Step 1: Read file
 		const readResult = await this.readCharacterFile(filePath);
 		if (readResult.error) {
 			return { step: 'read', success: false, error: readResult.error };
@@ -89,7 +79,6 @@ export class CharacterImportService {
 
 		const character = readResult.character;
 
-		// Step 2: Validate structure
 		const validationResult = await this.validateCharacter(character);
 		if (!validationResult.valid) {
 			return {
@@ -99,7 +88,6 @@ export class CharacterImportService {
 			};
 		}
 
-		// Step 3: Check for conflicts
 		const conflictResult = await this.checkForConflict(character.id);
 		if (conflictResult.exists) {
 			return {
@@ -111,7 +99,6 @@ export class CharacterImportService {
 			};
 		}
 
-		// Ready for save
 		return {
 			step: 'ready',
 			success: true,

@@ -23,7 +23,7 @@ export function registerTagHandler(tag, handler) {
 export function renderTag(tag, content) {
 	const handler = tagHandlers[tag];
 	if (!handler) {
-		console.warn('Renderer5etools Unknown tag:', tag);
+		console.warn('[Renderer5etools Unknown tag:]', tag);
 		return escapeHtml(content.split('|')[0]);
 	}
 	return handler(content);

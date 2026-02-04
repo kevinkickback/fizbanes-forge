@@ -1,7 +1,7 @@
 // Handles proficiency selection/deselection with source-specific tracking
 
-import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import TextProcessor from '../../../lib/TextProcessor.js';
 
 export class ProficiencySelectionView {
 	toggleOptionalProficiency(profItem, character) {
@@ -74,20 +74,20 @@ export class ProficiencySelectionView {
 		// Data is already normalized from DataLoader
 		const skillOptions = character.optionalProficiencies.skills;
 		const normalizedProficiency =
-			DataNormalizer.normalizeForLookup(proficiency);
+			TextProcessor.normalizeForLookup(proficiency);
 
 		// Get source options and check for 'any'
 		const raceOptions = skillOptions.race?.options || [];
 		const classOptions = skillOptions.class?.options || [];
 		const backgroundOptions = skillOptions.background?.options || [];
 		const normalizedRaceOptions = raceOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 		const normalizedClassOptions = classOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 		const normalizedBackgroundOptions = backgroundOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 
 		const raceAllowsAny = normalizedRaceOptions.includes('any');
@@ -152,7 +152,7 @@ export class ProficiencySelectionView {
 	) {
 		let removedFromSource = false;
 		const matches = (value) =>
-			DataNormalizer.normalizeForLookup(value) === normalizedProficiency;
+			TextProcessor.normalizeForLookup(value) === normalizedProficiency;
 
 		// Remove from the appropriate source selection
 		if (raceSelected.some(matches)) {
@@ -270,19 +270,19 @@ export class ProficiencySelectionView {
 		// Data is already normalized from DataLoader
 		const languageOptions = character.optionalProficiencies.languages;
 		const normalizedProficiency =
-			DataNormalizer.normalizeForLookup(proficiency);
+			TextProcessor.normalizeForLookup(proficiency);
 
 		const raceOptions = languageOptions.race?.options || [];
 		const classOptions = languageOptions.class?.options || [];
 		const backgroundOptions = languageOptions.background?.options || [];
 		const normalizedRaceOptions = raceOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 		const normalizedClassOptions = classOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 		const normalizedBackgroundOptions = backgroundOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 
 		const raceAllowsAny = normalizedRaceOptions.includes('any');
@@ -346,7 +346,7 @@ export class ProficiencySelectionView {
 	) {
 		let removedFromSource = false;
 		const matches = (value) =>
-			DataNormalizer.normalizeForLookup(value) === normalizedProficiency;
+			TextProcessor.normalizeForLookup(value) === normalizedProficiency;
 
 		if (raceSelected.some(matches)) {
 			languageOptions.race.selected = raceSelected.filter((p) => !matches(p));
@@ -456,19 +456,19 @@ export class ProficiencySelectionView {
 		// Data is already normalized from DataLoader
 		const toolOptions = character.optionalProficiencies.tools;
 		const normalizedProficiency =
-			DataNormalizer.normalizeForLookup(proficiency);
+			TextProcessor.normalizeForLookup(proficiency);
 
 		const raceOptions = toolOptions.race?.options || [];
 		const classOptions = toolOptions.class?.options || [];
 		const backgroundOptions = toolOptions.background?.options || [];
 		const normalizedRaceOptions = raceOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 		const normalizedClassOptions = classOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 		const normalizedBackgroundOptions = backgroundOptions.map((o) =>
-			DataNormalizer.normalizeForLookup(o),
+			TextProcessor.normalizeForLookup(o),
 		);
 
 		const raceAllowsAny = normalizedRaceOptions.includes('any');
@@ -532,7 +532,7 @@ export class ProficiencySelectionView {
 	) {
 		let removedFromSource = false;
 		const matches = (value) =>
-			DataNormalizer.normalizeForLookup(value) === normalizedProficiency;
+			TextProcessor.normalizeForLookup(value) === normalizedProficiency;
 
 		if (raceSelected.some(matches)) {
 			toolOptions.race.selected = raceSelected.filter((p) => !matches(p));

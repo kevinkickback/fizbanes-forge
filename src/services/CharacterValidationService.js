@@ -54,10 +54,6 @@ class CharacterValidationServiceImpl {
 		return report;
 	}
 
-	/**
-	 * Validate a single class progression by reading from 5etools data
-	 * @private
-	 */
 	_validateClassProgression(character, classEntry, report) {
 		const className = classEntry.name;
 		const classLevel = classEntry.levels || 0;
@@ -86,10 +82,6 @@ class CharacterValidationServiceImpl {
 		this._checkASIsFromData(character, classEntry, classData, report);
 	}
 
-	/**
-	 * Check subclass selection from class data
-	 * @private
-	 */
 	_checkSubclassFromData(_character, classEntry, classData, report) {
 		const className = classEntry.name;
 		const classLevel = classEntry.levels || 0;
@@ -128,10 +120,6 @@ class CharacterValidationServiceImpl {
 		}
 	}
 
-	/**
-	 * Check spell selection from class spellcasting progression
-	 * @private
-	 */
 	_checkSpellsFromData(character, classEntry, classData, report) {
 		const className = classEntry.name;
 		const classLevel = classEntry.levels || 0;
@@ -192,11 +180,7 @@ class CharacterValidationServiceImpl {
 		}
 	}
 
-	/**
-	 * Check class features from 5etools JSON data to find choices
-	 * Uses ClassService.getClassFeatures to avoid duplication
-	 * @private
-	 */
+	// Uses ClassService.getClassFeatures to avoid duplication
 	_checkClassFeaturesFromData(character, classEntry, classData, report) {
 		const className = classEntry.name;
 		const classLevel = classEntry.levels || 0;
@@ -220,10 +204,6 @@ class CharacterValidationServiceImpl {
 		}
 	}
 
-	/**
-	 * Check if a specific feature requires a choice
-	 * @private
-	 */
 	_checkFeatureChoice(character, classEntry, feature, level, report) {
 		const className = classEntry.name;
 		const featureName = feature.name || '';
@@ -311,12 +291,7 @@ class CharacterValidationServiceImpl {
 		}
 	}
 
-	/**
-	 * Check ASI/Feat choices from class table
-	 * Uses ClassService.getClassFeatures to find ASI levels
-	 * Checks progression.levelUps to see if ASI was actually used
-	 * @private
-	 */
+	// Checks progression.levelUps to see if ASI was actually used
 	_checkASIsFromData(character, classEntry, classData, report) {
 		const className = classEntry.name;
 		const classLevel = classEntry.levels || 0;
@@ -372,10 +347,6 @@ class CharacterValidationServiceImpl {
 		}
 	}
 
-	/**
-	 * Parse feature data to determine how many choices are required
-	 * @private
-	 */
 	_parseChoiceCount(feature) {
 		const text = JSON.stringify(feature).toLowerCase();
 
@@ -403,10 +374,7 @@ class CharacterValidationServiceImpl {
 		return 0;
 	}
 
-	/**
-	 * Get spells known from class table using SpellSelectionService
-	 * @private
-	 */
+	// Delegates to SpellSelectionService to avoid duplication
 	_getSpellsKnownFromClassTable(classData, level) {
 		// Delegate to SpellSelectionService which already parses class progression
 		const spellsKnown = spellSelectionService._getSpellsKnownLimit(
@@ -416,10 +384,7 @@ class CharacterValidationServiceImpl {
 		return spellsKnown > 0 ? spellsKnown : null;
 	}
 
-	/**
-	 * Get cantrips known from class table using SpellSelectionService
-	 * @private
-	 */
+	// Delegates to SpellSelectionService to avoid duplication
 	_getCantripsKnownFromClassTable(classData, level) {
 		// Delegate to SpellSelectionService which already parses cantrip progression
 		const cantripsKnown = spellSelectionService._getCantripsKnown(
@@ -429,11 +394,7 @@ class CharacterValidationServiceImpl {
 		return cantripsKnown > 0 ? cantripsKnown : null;
 	}
 
-	/**
-	 * Get a human-readable summary of missing choices
-	 * @param {Object} report - Validation report
-	 * @returns {string[]} Array of summary messages
-	 */
+	/** @returns {string[]} Array of summary messages */
 	getSummary(report) {
 		const messages = [];
 
@@ -478,12 +439,7 @@ class CharacterValidationServiceImpl {
 		return messages;
 	}
 
-	/**
-	 * Get pending choices summary for display in UI
-	 * Returns user-friendly summary with counts
-	 * @param {Object} character - Character object
-	 * @returns {Object} Summary with counts and messages
-	 */
+	/** @returns {Object} Summary with counts and messages */
 	getPendingChoicesSummary(character) {
 		const report = this.validateCharacter(character);
 
@@ -562,13 +518,7 @@ class CharacterValidationServiceImpl {
 		return summary;
 	}
 
-	/**
-	 * Get missing choices for a specific class
-	 * Used by build page to show pending choices for each class card
-	 * @param {Object} character - Character object
-	 * @param {string} className - Class name to check
-	 * @returns {Object} Missing choices scoped to this class
-	 */
+	/** Used by build page to show pending choices for each class card */
 	getMissingChoicesForClass(character, className) {
 		const report = this.validateCharacter(character);
 

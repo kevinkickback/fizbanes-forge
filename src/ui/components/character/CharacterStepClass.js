@@ -91,7 +91,7 @@ export class CharacterStepClass {
 	 * Attach event listeners to rendered content.
 	 */
 	async attachListeners(contentArea) {
-		console.debug('Step3Class', 'Attaching listeners');
+		console.debug('[Step3Class]', 'Attaching listeners');
 
 		this._classSelect = contentArea.querySelector('#modalClassSelect');
 		this._subclassSelect = contentArea.querySelector('#modalSubclassSelect');
@@ -170,7 +170,7 @@ export class CharacterStepClass {
 	async _populateClassSelect() {
 		const classes = this._classService.getAllClasses();
 		if (!classes || classes.length === 0) {
-			console.error('Step3Class', 'No classes available');
+			console.error('[Step3Class]', 'No classes available');
 			return;
 		}
 
@@ -454,7 +454,7 @@ export class CharacterStepClass {
 	async validate() {
 		const classValue = this._classSelect?.value;
 		if (!classValue) {
-			console.warn('Step3Class', 'No class selected');
+			console.warn('[Step3Class]', 'No class selected');
 			return false;
 		}
 

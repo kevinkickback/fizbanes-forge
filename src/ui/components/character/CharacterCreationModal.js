@@ -17,7 +17,7 @@ export class CharacterCreationModal {
 		// Step components (lazy loaded)
 		this._stepComponents = {};
 
-		console.debug('CharacterCreationModal', 'Constructor initialized');
+		console.debug('[CharacterCreationModal]', 'Constructor initialized');
 	}
 
 	async show() {
@@ -63,7 +63,7 @@ export class CharacterCreationModal {
 			// Show modal
 			this.bootstrapModal.show();
 		} catch (error) {
-			console.error('CharacterCreationModal', 'Failed to show modal', error);
+			console.error('[CharacterCreationModal]', 'Failed to show modal', error);
 			showNotification('Failed to open character creation form', 'error');
 		}
 	}
@@ -156,12 +156,12 @@ export class CharacterCreationModal {
 
 	async _renderStep(stepIndex) {
 		try {
-			console.debug('CharacterCreationModal', 'Rendering step', stepIndex);
+			console.debug('[CharacterCreationModal]', 'Rendering step', stepIndex);
 
 			// Get content area
 			const contentArea = this.modalEl.querySelector('[data-step-content]');
 			if (!contentArea) {
-				console.error('CharacterCreationModal', 'Content area not found');
+				console.error('[CharacterCreationModal]', 'Content area not found');
 				return;
 			}
 
@@ -468,7 +468,7 @@ export class CharacterCreationModal {
 	}
 
 	_onModalHidden() {
-		console.debug('CharacterCreationModal', 'Modal hidden, cleaning up');
+		console.debug('[CharacterCreationModal]', 'Modal hidden, cleaning up');
 
 		// Cleanup all step components
 		for (const step of Object.values(this._stepComponents)) {

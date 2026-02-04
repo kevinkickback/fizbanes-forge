@@ -23,13 +23,13 @@ export class SourceCard {
 	async initializeSourceSelection() {
 		try {
 			if (!this._container) {
-				console.error('SourceCard', 'Source selection container not found');
+				console.error('[SourceCard]', 'Source selection container not found');
 				return;
 			}
 
 			this._headerContainer = document.getElementById('sourceBookHeader');
 			if (!this._headerContainer) {
-				console.error('SourceCard', 'Source book header container not found');
+				console.error('[SourceCard]', 'Source book header container not found');
 				return;
 			}
 
@@ -110,7 +110,7 @@ export class SourceCard {
 
 			this._validateSourceSelection();
 		} catch (error) {
-			console.error('SourceCard', 'Error handling source click:', error);
+			console.error('[SourceCard]', 'Error handling source click:', error);
 		}
 	}
 
@@ -121,7 +121,7 @@ export class SourceCard {
 				this._handleSourceClick(toggle);
 			}
 		} catch (error) {
-			console.error('SourceCard', 'Error selecting all sources:', error);
+			console.error('[SourceCard]', 'Error selecting all sources:', error);
 		}
 	}
 
@@ -132,7 +132,7 @@ export class SourceCard {
 				this._handleSourceClick(toggle);
 			}
 		} catch (error) {
-			console.error('SourceCard', 'Error deselecting all sources:', error);
+			console.error('[SourceCard]', 'Error deselecting all sources:', error);
 		}
 	}
 
@@ -163,7 +163,7 @@ export class SourceCard {
 		try {
 			return await this._sourceManager.loadSources();
 		} catch (error) {
-			console.error('SourceCard', 'Error loading sources:', error);
+			console.error('[SourceCard]', 'Error loading sources:', error);
 			showNotification('Error loading sources', 'error');
 			return [];
 		}
@@ -174,7 +174,7 @@ export class SourceCard {
 			this._selectedSources.add(sourceId);
 			this._sourceManager.addSource(sourceId);
 		} catch (error) {
-			console.error('SourceCard', 'Error adding source:', error);
+			console.error('[SourceCard]', 'Error adding source:', error);
 		}
 	}
 
@@ -187,7 +187,7 @@ export class SourceCard {
 			}
 			return false;
 		} catch (error) {
-			console.error('SourceCard', 'Error removing source:', error);
+			console.error('[SourceCard]', 'Error removing source:', error);
 			return false;
 		}
 	}
@@ -197,7 +197,7 @@ export class SourceCard {
 			this._selectedSources.clear();
 			this._sourceManager.clearSources();
 		} catch (error) {
-			console.error('SourceCard', 'Error clearing sources:', error);
+			console.error('[SourceCard]', 'Error clearing sources:', error);
 		}
 	}
 

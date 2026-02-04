@@ -86,7 +86,7 @@ export class DataConfigurationModal {
 			if (result.success) {
 				this.savedType = result.type;
 				this.savedValue = result.value;
-				console.debug('DataConfigurationModal', 'Loaded saved configuration:', {
+				console.debug('[DataConfigurationModal]', 'Loaded saved configuration:', {
 					type: this.savedType,
 					value: this.savedValue,
 				});
@@ -316,9 +316,9 @@ export class DataConfigurationModal {
 				type === 'url'
 					? 'Connecting to data source...'
 					: 'Validating local folder...';
-			console.debug('DataConfigurationModal', 'Status area shown:', statusEl);
+			console.debug('[DataConfigurationModal]', 'Status area shown:', statusEl);
 		} else {
-			console.warn('DataConfigurationModal', 'Status elements not found:', {
+			console.warn('[DataConfigurationModal]', 'Status elements not found:', {
 				statusEl: !!statusEl,
 				barEl: !!barEl,
 				textEl: !!textEl,

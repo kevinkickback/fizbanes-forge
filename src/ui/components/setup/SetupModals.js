@@ -27,7 +27,7 @@ export class LoadingModal {
 
 		this.modal = document.getElementById('loadingModal');
 		if (!this.modal) {
-			console.error('LoadingModal', 'Modal element not found in DOM');
+			console.error('[LoadingModal]', 'Modal element not found in DOM');
 			return;
 		}
 
@@ -103,7 +103,7 @@ export class RefreshProgressModal {
 
 		this.modal = document.getElementById('refreshProgressModal');
 		if (!this.modal) {
-			console.error('RefreshProgressModal', 'Modal element not found in DOM');
+			console.error('[RefreshProgressModal]', 'Modal element not found in DOM');
 			return;
 		}
 

@@ -2,7 +2,7 @@
 
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import DataNormalizer from '../../../lib/DataNormalizer.js';
+import TextProcessor from '../../../lib/TextProcessor.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
@@ -113,7 +113,7 @@ export class BackgroundCard {
 
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
-			console.warn('BackgroundCard', 'Handler must be a function', { event });
+			console.warn('[BackgroundCard]', 'Handler must be a function', { event });
 			return;
 		}
 
@@ -132,7 +132,7 @@ export class BackgroundCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('BackgroundCard', 'Error removing listener', {
+						console.warn('[BackgroundCard]', 'Error removing listener', {
 							event,
 							error: e,
 						});
@@ -142,7 +142,7 @@ export class BackgroundCard {
 		}
 
 		this._eventHandlers = {};
-		console.debug('BackgroundCard', 'EventBus cleanup complete');
+		console.debug('[BackgroundCard]', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------
@@ -155,7 +155,7 @@ export class BackgroundCard {
 		try {
 			const backgrounds = this._backgroundService.getAllBackgrounds();
 			if (!backgrounds || backgrounds.length === 0) {
-				console.error('BackgroundCard', 'No backgrounds available to populate list');
+				console.error('[BackgroundCard]', 'No backgrounds available to populate list');
 				return;
 			}
 
@@ -173,7 +173,7 @@ export class BackgroundCard {
 			}
 
 			if (filteredBackgrounds.length === 0) {
-				console.error('BackgroundCard', 'No backgrounds available after filtering');
+				console.error('[BackgroundCard]', 'No backgrounds available after filtering');
 				this._backgroundList.innerHTML = '<div class="text-muted px-2">No backgrounds found.</div>';
 				return;
 			}
@@ -191,9 +191,9 @@ export class BackgroundCard {
 				await this._createBackgroundItem(background);
 			}
 
-			console.debug('BackgroundCard', `Populated ${sortedBackgrounds.length} backgrounds`);
+			console.debug('[BackgroundCard]', `Populated ${sortedBackgrounds.length} backgrounds`);
 		} catch (error) {
-			console.error('BackgroundCard', 'Error populating background list:', error);
+			console.error('[BackgroundCard]', 'Error populating background list:', error);
 		}
 	}
 
@@ -672,11 +672,11 @@ export class BackgroundCard {
 
 				// Restore valid selections using normalized comparison
 				const normalizedFrom = from.map((skill) =>
-					DataNormalizer.normalizeForLookup(skill),
+					TextProcessor.normalizeForLookup(skill),
 				);
 				const validSelections = prevBackgroundSkillsSelected.filter(
 					(skill) =>
-						normalizedFrom.includes(DataNormalizer.normalizeForLookup(skill)) &&
+						normalizedFrom.includes(TextProcessor.normalizeForLookup(skill)) &&
 						!character.proficiencies.skills.includes(skill) &&
 						!fixedProfs.skills.includes(skill),
 				);
@@ -889,7 +889,7 @@ export class BackgroundCard {
 				if (from.length > 0) {
 					// Add specific language options from 'from' array
 					for (const lang of from) {
-						const norm = DataNormalizer.normalizeForLookup(lang);
+						const norm = TextProcessor.normalizeForLookup(lang);
 						if (!normalizedOptions.has(norm)) {
 							normalizedOptions.set(norm, lang);
 						}
@@ -898,7 +898,7 @@ export class BackgroundCard {
 					// No specific options means any language
 					const allLanguages = this._getAllLanguages();
 					for (const lang of allLanguages) {
-						const norm = DataNormalizer.normalizeForLookup(lang);
+						const norm = TextProcessor.normalizeForLookup(lang);
 						if (!normalizedOptions.has(norm)) {
 							normalizedOptions.set(norm, lang);
 						}
@@ -925,20 +925,20 @@ export class BackgroundCard {
 			// Restore valid language selections if any, excluding now-fixed languages
 			if (prevBackgroundLanguagesSelected.length > 0) {
 				const optionNorms = new Set(
-					choiceOptions.map((lang) => DataNormalizer.normalizeForLookup(lang)),
+					choiceOptions.map((lang) => TextProcessor.normalizeForLookup(lang)),
 				);
 				const fixedNorms = new Set(
-					fixedLanguages.map((lang) => DataNormalizer.normalizeForLookup(lang)),
+					fixedLanguages.map((lang) => TextProcessor.normalizeForLookup(lang)),
 				);
 				const existingLangs = new Set(
 					character.proficiencies.languages.map((lang) =>
-						DataNormalizer.normalizeForLookup(lang),
+						TextProcessor.normalizeForLookup(lang),
 					),
 				);
 
 				const validSelections = prevBackgroundLanguagesSelected.filter(
 					(lang) => {
-						const normalizedLang = DataNormalizer.normalizeForLookup(lang);
+						const normalizedLang = TextProcessor.normalizeForLookup(lang);
 						return (
 							optionNorms.has(normalizedLang) &&
 							!existingLangs.has(normalizedLang) &&

@@ -62,6 +62,17 @@ class PageHandlerImpl {
 				}
 			}
 
+			if (pageName !== 'build') {
+				if (this._buildPageCards) {
+					this._buildPageCards.forEach(card => {
+						if (card && typeof card._cleanupEventListeners === 'function') {
+							card._cleanupEventListeners();
+						}
+					});
+					this._buildPageCards = null;
+				}
+			}
+
 			switch (pageName) {
 				case 'home':
 					await this.initializeHomePage();
@@ -88,12 +99,12 @@ class PageHandlerImpl {
 					await this.initializePreviewPage();
 					break;
 				default:
-					console.debug('PageHandler', 'No special initialization for page', {
+					console.debug('[PageHandler]', 'No special initialization for page', {
 						pageName,
 					});
 			}
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing page', {
+			console.error('[PageHandler]', 'Error initializing page', {
 				pageName,
 				error,
 			});
@@ -103,7 +114,6 @@ class PageHandlerImpl {
 	async initializeHomePage() {
 		try {
 			const modal = Modal.getInstance();
-			modal.ensureInitialized();
 
 			const characterList = document.getElementById('characterList');
 			if (characterList) {
@@ -151,9 +161,8 @@ class PageHandlerImpl {
 				);
 			}
 
-			this._homeCharacterSelectedHandler = async () => {
-				const reloadCharacters = await CharacterManager.loadCharacterList();
-				await this.renderCharacterList(reloadCharacters);
+			this._homeCharacterSelectedHandler = (character) => {
+				this.updateCharacterCardSelection(character?.id);
 			};
 
 			eventBus.on(
@@ -175,8 +184,36 @@ class PageHandlerImpl {
 
 			eventBus.on(EVENTS.CHARACTER_CREATED, this._homeCharacterCreatedHandler);
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing home page', error);
+			console.error('[PageHandler]', 'Error initializing home page', error);
 			showNotification('Error loading home page', 'error');
+		}
+	}
+
+	updateCharacterCardSelection(selectedCharacterId) {
+		const characterList = document.getElementById('characterList');
+		if (!characterList) return;
+
+		// Remove selected state from all cards
+		const allCards = characterList.querySelectorAll('.character-card');
+		allCards.forEach(card => {
+			card.classList.remove('selected');
+			const badge = card.querySelector('.active-profile-badge');
+			if (badge) badge.remove();
+		});
+
+		// Add selected state to the active card
+		if (selectedCharacterId) {
+			const activeCard = characterList.querySelector(`[data-character-id="${selectedCharacterId}"]`);
+			if (activeCard) {
+				activeCard.classList.add('selected');
+				const cardHeader = activeCard.querySelector('.card-header h5');
+				if (cardHeader && !cardHeader.nextElementSibling?.classList.contains('active-profile-badge')) {
+					const badge = document.createElement('div');
+					badge.className = 'active-profile-badge';
+					badge.textContent = 'Active';
+					cardHeader.parentElement.appendChild(badge);
+				}
+			}
 		}
 	}
 
@@ -235,7 +272,7 @@ class PageHandlerImpl {
 		const characterList = document.getElementById('characterList');
 
 		if (!characterList) {
-			console.warn('PageHandler', 'Character list element not found');
+			console.warn('[PageHandler]', 'Character list element not found');
 			return;
 		}
 
@@ -378,7 +415,7 @@ class PageHandlerImpl {
 				try {
 					await CharacterManager.loadCharacter(characterId);
 				} catch (error) {
-					console.error('PageHandler', 'Failed to load character', {
+					console.error('[PageHandler]', 'Failed to load character', {
 						id: characterId,
 						error: error.message,
 					});
@@ -402,7 +439,7 @@ class PageHandlerImpl {
 						showNotification('Failed to export character', 'error');
 					}
 				} catch (error) {
-					console.error('PageHandler', 'Error exporting character', error);
+					console.error('[PageHandler]', 'Error exporting character', error);
 					showNotification('Failed to export character', 'error');
 				}
 			}
@@ -431,7 +468,7 @@ class PageHandlerImpl {
 						const reloadCharacters = await CharacterManager.loadCharacterList();
 						await this.renderCharacterList(reloadCharacters);
 					} catch (error) {
-						console.error('PageHandler', 'Failed to delete character', error);
+						console.error('[PageHandler]', 'Failed to delete character', error);
 						showNotification('Failed to delete character', 'error');
 					}
 				}
@@ -474,7 +511,7 @@ class PageHandlerImpl {
 				showNotification('Failed to import character', 'error');
 			}
 		} catch (error) {
-			console.error('PageHandler', 'Error importing character', error);
+			console.error('[PageHandler]', 'Error importing character', error);
 			showNotification('Error importing character', 'error');
 		}
 	}
@@ -521,24 +558,32 @@ class PageHandlerImpl {
 		try {
 			await settingsService.initializeSettingsPage();
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing settings page', error);
+			console.error('[PageHandler]', 'Error initializing settings page', error);
 			showNotification('Error loading settings page', 'error');
 		}
 	}
 
 	async initializeBuildPage() {
 		try {
-			new RaceCard();
-			new ClassCard();
-			new BackgroundCard();
+			const raceCard = new RaceCard();
+			const classCard = new ClassCard();
+			const backgroundCard = new BackgroundCard();
 
 			const abilityScoreCard = AbilityScoreCard.getInstance();
 			await abilityScoreCard.initialize();
 
 			const proficiencyCard = new ProficiencyCard();
 			await proficiencyCard.initialize();
+
+			// Store for cleanup when leaving page
+			this._buildPageCards = [
+				raceCard,
+				classCard,
+				backgroundCard,
+				proficiencyCard
+			];
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing build page', error);
+			console.error('[PageHandler]', 'Error initializing build page', error);
 			showNotification('Error initializing build page', 'error');
 		}
 	}
@@ -547,7 +592,7 @@ class PageHandlerImpl {
 		this._featListContainer = document.getElementById('featList');
 		this._featSourcesContainer = document.getElementById('featSources');
 		if (!this._featSourcesContainer) {
-			console.debug('PageHandler', 'Feat sources container not found');
+			console.debug('[PageHandler]', 'Feat sources container not found');
 			return;
 		}
 
@@ -563,7 +608,7 @@ class PageHandlerImpl {
 		this._onFeatsSelected = (selectedFeats) => {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				console.warn('PageHandler', 'No character loaded');
+				console.warn('[PageHandler]', 'No character loaded');
 				return;
 			}
 
@@ -657,7 +702,7 @@ class PageHandlerImpl {
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				console.warn('PageHandler', 'No character loaded for details page');
+				console.warn('[PageHandler]', 'No character loaded for details page');
 				return;
 			}
 
@@ -707,7 +752,7 @@ class PageHandlerImpl {
 
 			this._setupDetailsPageFormListeners();
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing details page', error);
+			console.error('[PageHandler]', 'Error initializing details page', error);
 			showNotification('Error loading details page', 'error');
 		}
 	}
@@ -744,7 +789,7 @@ class PageHandlerImpl {
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				console.warn('PageHandler', 'No character loaded for feats page');
+				console.warn('[PageHandler]', 'No character loaded for feats page');
 				return;
 			}
 
@@ -801,7 +846,7 @@ class PageHandlerImpl {
 
 			this._updateFeatAvailabilitySection(character);
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing feats page', error);
+			console.error('[PageHandler]', 'Error initializing feats page', error);
 			showNotification('Error loading feats page', 'error');
 		}
 	}
@@ -834,7 +879,7 @@ class PageHandlerImpl {
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				console.warn('PageHandler', 'No character loaded for equipment page');
+				console.warn('[PageHandler]', 'No character loaded for equipment page');
 				return;
 			}
 
@@ -851,7 +896,7 @@ class PageHandlerImpl {
 			eventBus.on(EVENTS.ITEM_EQUIPPED, updateHandler);
 			eventBus.on(EVENTS.ITEM_UNEQUIPPED, updateHandler);
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing equipment page', error);
+			console.error('[PageHandler]', 'Error initializing equipment page', error);
 			showNotification('Error loading equipment page', 'error');
 		}
 	}
@@ -860,12 +905,12 @@ class PageHandlerImpl {
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				console.warn('PageHandler', 'No character loaded for preview page');
+				console.warn('[PageHandler]', 'No character loaded for preview page');
 				return;
 			}
 
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing preview page', error);
+			console.error('[PageHandler]', 'Error initializing preview page', error);
 			showNotification('Error loading preview page', 'error');
 		}
 	}
@@ -874,7 +919,7 @@ class PageHandlerImpl {
 		try {
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
-				console.warn('PageHandler', 'No character loaded for spells page');
+				console.warn('[PageHandler]', 'No character loaded for spells page');
 				return;
 			}
 
@@ -893,7 +938,7 @@ class PageHandlerImpl {
 			eventBus.on(EVENTS.SPELL_SLOTS_USED, updateHandler);
 			eventBus.on(EVENTS.SPELL_SLOTS_RESTORED, updateHandler);
 		} catch (error) {
-			console.error('PageHandler', 'Error initializing spells page', error);
+			console.error('[PageHandler]', 'Error initializing spells page', error);
 			showNotification('Error loading spells page', 'error');
 		}
 	}

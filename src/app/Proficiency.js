@@ -1,12 +1,12 @@
 // biome-ignore-all lint/complexity/noStaticOnlyClass: false positive
 
-import DataNormalizer from '../lib/DataNormalizer.js';
+import TextProcessor from '../lib/TextProcessor.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 export class ProficiencyCore {
 	static addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			console.warn('ProficiencyCore', 'Invalid parameters for addProficiency:', {
+			console.warn('[ProficiencyCore]', 'Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -20,9 +20,9 @@ export class ProficiencyCore {
 		if (!character.proficiencySources[type])
 			character.proficiencySources[type] = new Map();
 
-		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
+		const normalizedTarget = TextProcessor.normalizeForLookup(proficiency);
 		const existingProf = character.proficiencies[type].find(
-			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
+			(p) => TextProcessor.normalizeForLookup(p) === normalizedTarget,
 		);
 
 		const wasNew = !existingProf;
@@ -52,7 +52,7 @@ export class ProficiencyCore {
 
 	static removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			console.warn('ProficiencyCore', 'Invalid parameters for removeProficienciesBySource');
+			console.warn('[ProficiencyCore]', 'Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -98,9 +98,9 @@ export class ProficiencyCore {
 	static hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
 
-		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
+		const normalizedTarget = TextProcessor.normalizeForLookup(proficiency);
 		return character.proficiencies[type].some(
-			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
+			(p) => TextProcessor.normalizeForLookup(p) === normalizedTarget,
 		);
 	}
 
@@ -125,7 +125,7 @@ export class ProficiencyCore {
 
 	static setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			console.warn('ProficiencyCore', 'Invalid parameters for setOptionalProficiencies');
+			console.warn('[ProficiencyCore]', 'Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -144,7 +144,7 @@ export class ProficiencyCore {
 			};
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		if (!character.optionalProficiencies[type][sourceKey]) {
 			character.optionalProficiencies[type][sourceKey] = {
 				allowed: 0,
@@ -172,7 +172,7 @@ export class ProficiencyCore {
 			return;
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		if (character.optionalProficiencies[type][sourceKey]) {
 			const selected =
 				character.optionalProficiencies[type][sourceKey].selected || [];
@@ -201,15 +201,15 @@ export class ProficiencyCore {
 
 	static selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
-			console.warn('ProficiencyCore', 'Optional proficiencies not initialized for type:', type);
+			console.warn('[ProficiencyCore]', 'Optional proficiencies not initialized for type:', type);
 			return false;
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
-			console.warn('ProficiencyCore', 'No optional proficiency configuration for source:', source);
+			console.warn('[ProficiencyCore]', 'No optional proficiency configuration for source:', source);
 			return false;
 		}
 
@@ -227,7 +227,7 @@ export class ProficiencyCore {
 		}
 
 		if (!config.options.includes(proficiency)) {
-			console.warn('ProficiencyCore', 'Proficiency not in available options:', proficiency);
+			console.warn('[ProficiencyCore]', 'Proficiency not in available options:', proficiency);
 			return false;
 		}
 
@@ -257,7 +257,7 @@ export class ProficiencyCore {
 			return false;
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
@@ -291,7 +291,7 @@ export class ProficiencyCore {
 	}
 
 	static getAvailableOptionalProficiencies(character, type, source) {
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		const config = character?.optionalProficiencies?.[type]?.[sourceKey];
 
 		if (!config) {
@@ -354,7 +354,7 @@ export class ProficiencyCore {
 			return;
 		}
 
-		const normalizedProf = DataNormalizer.normalizeForLookup(proficiency);
+		const normalizedProf = TextProcessor.normalizeForLookup(proficiency);
 		const sources = ['race', 'class', 'background'];
 		let refunded = false;
 
@@ -373,7 +373,7 @@ export class ProficiencyCore {
 			}
 
 			const matchingProf = config.selected.find(
-				(s) => DataNormalizer.normalizeForLookup(s) === normalizedProf,
+				(s) => TextProcessor.normalizeForLookup(s) === normalizedProf,
 			);
 
 			if (matchingProf) {
@@ -407,11 +407,11 @@ export class ProficiencyCore {
 			return;
 		}
 
-		const targetLower = DataNormalizer.normalizeForLookup(proficiency);
+		const targetLower = TextProcessor.normalizeForLookup(proficiency);
 		let foundProf = null;
 
 		for (const [key] of character.proficiencySources[type]) {
-			if (DataNormalizer.normalizeForLookup(key) === targetLower) {
+			if (TextProcessor.normalizeForLookup(key) === targetLower) {
 				foundProf = key;
 				break;
 			}
@@ -433,7 +433,7 @@ export class ProficiencyCore {
 
 			if (character.proficiencies[type]) {
 				const index = character.proficiencies[type].findIndex(
-					(p) => DataNormalizer.normalizeForLookup(p) === targetLower,
+					(p) => TextProcessor.normalizeForLookup(p) === targetLower,
 				);
 				if (index > -1) {
 					character.proficiencies[type].splice(index, 1);

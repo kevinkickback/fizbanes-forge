@@ -12,7 +12,7 @@ import {
 	toSentenceCase,
 	toTitleCase,
 } from '../../../lib/5eToolsParser.js';
-import DataNormalizer from '../../../lib/DataNormalizer.js';
+import TextProcessor from '../../../lib/TextProcessor.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { classService } from '../../../services/ClassService.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
@@ -84,7 +84,7 @@ export class ClassCard {
 			// Set up hover listeners for choice items
 			this._setupChoiceHoverListeners();
 		} catch (error) {
-			console.error('ClassCard', 'Failed to initialize class card:', error);
+			console.error('[ClassCard]', 'Failed to initialize class card:', error);
 		}
 	}
 
@@ -150,7 +150,7 @@ export class ClassCard {
 	//-------------------------------------------------------------------------
 
 	async _loadSavedClassSelection() {
-		console.debug('ClassCard _loadSavedClassSelection called');
+		console.debug('[ClassCard]', '_loadSavedClassSelection called');
 		try {
 			const character = AppState.getCurrentCharacter();
 			console.debug(
@@ -164,14 +164,14 @@ export class ClassCard {
 				!character.progression?.classes ||
 				character.progression.classes.length === 0
 			) {
-				console.debug('ClassCard No class progression data found');
+				console.debug('[ClassCard]', 'No class progression data found');
 				await this._renderClassTabsFromProgression();
 				this.resetClassDetails();
 				return; // No class data to load
 			}
 
 			const primaryClass = character.getPrimaryClass();
-			console.debug('ClassCard Primary class:', primaryClass);
+			console.debug('[ClassCard]', 'Primary class:', primaryClass);
 
 			if (!primaryClass?.name) {
 				console.debug(
@@ -193,7 +193,7 @@ export class ClassCard {
 			if (classData) {
 				// Get subclass from progression.classes[]
 				const subclassName = primaryClass.subclass || null;
-				console.debug('ClassCard Subclass name:', subclassName);
+				console.debug('[ClassCard]', 'Subclass name:', subclassName);
 
 				let subclassData = null;
 				if (subclassName) {
@@ -216,7 +216,7 @@ export class ClassCard {
 			// Render multiclass tabs based on progression
 			await this._renderClassTabsFromProgression();
 		} catch (error) {
-			console.error('ClassCard', 'Error loading saved class selection:', error);
+			console.error('[ClassCard]', 'Error loading saved class selection:', error);
 		}
 	}
 
@@ -251,12 +251,12 @@ export class ClassCard {
 
 	async _handleLevelUpComplete() {
 		try {
-			console.debug('ClassCard', 'Level up complete - refreshing class card');
+			console.debug('[ClassCard]', 'Level up complete - refreshing class card');
 
 			// Refresh the entire class selection to pick up new level and choices
 			await this._loadSavedClassSelection();
 		} catch (error) {
-			console.error('ClassCard', 'Error handling level up completion:', error);
+			console.error('[ClassCard]', 'Error handling level up completion:', error);
 		}
 	}
 
@@ -339,7 +339,7 @@ export class ClassCard {
 	async _selectClassByName(className, { skipTabUpdate = false } = {}) {
 		if (!className) return;
 
-		console.debug('ClassCard Selecting class:', className);
+		console.debug('[ClassCard]', 'Selecting class:', className);
 
 		// Get character to find class source
 		const character = CharacterManager.getCurrentCharacter();
@@ -369,7 +369,7 @@ export class ClassCard {
 			subclassData = subclasses.find((sc) => sc.name === subclassName);
 		}
 
-		console.debug('ClassCard Updating class details for:', className, 'with subclass:', subclassName);
+		console.debug('[ClassCard]', 'Updating class details for:', className, 'with subclass:', subclassName);
 
 		// Update UI (fluffData is fetched in updateClassDetails now)
 		await this.updateClassDetails(classData, subclassData);
@@ -918,7 +918,7 @@ export class ClassCard {
 	async _handleSpellSelection(className, level) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) {
-			console.warn('ClassCard', 'No character found for spell selection');
+			console.warn('[ClassCard]', 'No character found for spell selection');
 			return;
 		}
 
@@ -938,7 +938,7 @@ export class ClassCard {
 			);
 		}
 
-		console.debug('ClassCard', '_handleSpellSelection:', {
+		console.debug('[ClassCard]', '_handleSpellSelection:', {
 			className,
 			level,
 			sessionKey,
@@ -970,7 +970,7 @@ export class ClassCard {
 			await spellSelector.show();
 			// Note: CHARACTER_UPDATED event and display refresh happen in updateSpellSelection callback
 		} catch (error) {
-			console.error('ClassCard', 'Error in spell selection:', error);
+			console.error('[ClassCard]', 'Error in spell selection:', error);
 		}
 	}
 
@@ -1045,7 +1045,7 @@ export class ClassCard {
 			(s) => s.name,
 		);
 
-		console.debug('ClassCard', 'Updated spell selection:', {
+		console.debug('[ClassCard]', 'Updated spell selection:', {
 			className,
 			level,
 			selectedSpells: selectedSpells.map((s) => s.name),
@@ -1832,7 +1832,7 @@ export class ClassCard {
 			try {
 				selectedSpells = JSON.parse(decodeURIComponent(spellsJson));
 			} catch {
-				console.warn('ClassCard Failed to parse spell selection data');
+				console.warn('[ClassCard]', 'Failed to parse spell selection data');
 			}
 		}
 
@@ -1907,7 +1907,7 @@ export class ClassCard {
 			try {
 				selections = JSON.parse(decodeURIComponent(selectionsJson));
 			} catch {
-				console.warn('ClassCard Failed to parse feature selection data');
+				console.warn('[ClassCard]', 'Failed to parse feature selection data');
 			}
 		}
 
@@ -2257,7 +2257,7 @@ export class ClassCard {
 					eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 				}
 			} catch (error) {
-				console.error('ClassCard Error in feat selection:', error);
+				console.error('[ClassCard]', 'Error in feat selection:', error);
 			}
 			return;
 		}
@@ -2315,7 +2315,7 @@ export class ClassCard {
 				document.dispatchEvent(event);
 			}
 		} catch (error) {
-			console.error('ClassCard Error in ASI selection:', error);
+			console.error('[ClassCard]', 'Error in ASI selection:', error);
 		}
 	}
 
@@ -2686,7 +2686,7 @@ export class ClassCard {
 			// TODO: Import notification service to show subclass change warning
 			// NotificationCenter doesn't have a show(message, type, duration) method
 			// Should use Notifications.js show() method instead
-			console.warn('ClassCard', `Subclass changed to ${subclassName}. Please review your class features and spells.`);
+			console.warn('[ClassCard]', `Subclass changed to ${subclassName}. Please review your class features and spells.`);
 		}
 	}
 
@@ -2799,7 +2799,7 @@ export class ClassCard {
 	}
 
 	_updateProficiencies(classData) {
-		console.debug('ClassCard _updateProficiencies() called');
+		console.debug('[ClassCard]', '_updateProficiencies() called');
 
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !classData) return;
@@ -2883,11 +2883,11 @@ export class ClassCard {
 
 			// Restore valid selections using normalized name comparison
 			const normalizedSkills = skills.map((skill) =>
-				DataNormalizer.normalizeForLookup(skill),
+				TextProcessor.normalizeForLookup(skill),
 			);
 			character.optionalProficiencies.skills.class.selected =
 				previousClassSkills.filter((skill) =>
-					normalizedSkills.includes(DataNormalizer.normalizeForLookup(skill)),
+					normalizedSkills.includes(TextProcessor.normalizeForLookup(skill)),
 				);
 		}
 
@@ -3039,11 +3039,11 @@ export class ClassCard {
 	}
 
 	_processClassToolProficiencies(classData, character) {
-		console.debug('ClassCard _processClassToolProficiencies() called');
+		console.debug('[ClassCard]', '_processClassToolProficiencies() called');
 
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
-			console.debug('ClassCard No toolProficiencies found, returning');
+			console.debug('[ClassCard]', 'No toolProficiencies found, returning');
 			return;
 		}
 
@@ -3216,7 +3216,7 @@ class ClassDetailsView {
 			return;
 		}
 
-		console.debug('ClassDetailsView Updating info panel for:', classData.name);
+		console.debug('[ClassDetailsView]', 'Updating info panel for:', classData.name);
 
 		// Build the complete info panel content
 		let html = '';
@@ -3243,9 +3243,9 @@ class ClassDetailsView {
 		// Set the complete content
 		if (this._classInfoPanel) {
 			this._classInfoPanel.innerHTML = html;
-			console.debug('ClassDetailsView Info panel updated successfully');
+			console.debug('[ClassDetailsView]', 'Info panel updated successfully');
 		} else {
-			console.warn('ClassDetailsView Info panel element not found!');
+			console.warn('[ClassDetailsView]', 'Info panel element not found!');
 		}
 
 		// Process the entire panel at once to resolve all reference tags

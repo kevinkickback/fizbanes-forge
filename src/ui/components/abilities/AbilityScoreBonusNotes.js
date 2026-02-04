@@ -44,7 +44,7 @@ class BonusNotesView {
 				textProcessor.processElement(this._bonusesContainer);
 			}
 		} catch (error) {
-			console.error('BonusNotes', 'Error rendering bonus notes:', error);
+			console.error('[BonusNotes]', 'Error rendering bonus notes:', error);
 		}
 	}
 

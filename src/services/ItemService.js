@@ -1,5 +1,4 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
 import { EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 class ItemService extends BaseDataService {
@@ -26,14 +25,14 @@ class ItemService extends BaseDataService {
 
 				if (results[0].status === 'rejected') {
 					console.warn(
-						'ItemService',
+						'[ItemService]',
 						'Failed to load items.json:',
 						results[0].reason?.message,
 					);
 				}
 				if (results[1].status === 'rejected') {
 					console.warn(
-						'ItemService',
+						'[ItemService]',
 						'Failed to load items-base.json:',
 						results[1].reason?.message,
 					);
@@ -62,61 +61,12 @@ class ItemService extends BaseDataService {
 		return true;
 	}
 
-	/** @returns {Array<Object>} Array of item objects */
 	getAllItems() {
 		return this._data?.item || [];
 	}
 
-	/** @returns {Array<Object>} Array of base item objects */
 	getAllBaseItems() {
 		return this._data?.baseItem || [];
-	}
-
-	/** @param {string} name - Item name
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Item object or null if not found
-	 */
-	getItem(name, source = 'DMG') {
-		const item = this.lookupByNameAndSource(this._itemLookupMap, name, source);
-		if (item) return item;
-		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
-	}
-
-	/** @param {string} name - Base item name
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Base item object or null if not found
-	 */
-	getBaseItem(name, source = 'PHB') {
-		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
-	}
-
-	/** @param {string} type - Item type (e.g., 'W' for weapon, 'A' for armor)
-	 * @returns {Array<Object>} Array of item objects
-	 */
-	getItemsByType(type) {
-		const items = [];
-
-		if (this._data?.item) {
-			items.push(...this._data.item.filter((i) => i.type === type));
-		}
-
-		if (this._data?.baseItem) {
-			items.push(...this._data.baseItem.filter((bi) => bi.type === type));
-		}
-
-		return items;
-	}
-
-	/** @param {string} rarity - Item rarity (e.g., 'common', 'uncommon', 'rare')
-	 * @returns {Array<Object>} Array of item objects
-	 */
-	getItemsByRarity(rarity) {
-		if (!this._data?.item) return [];
-
-		const target = DataNormalizer.normalizeForLookup(rarity);
-		return this._data.item.filter(
-			(i) => i.rarity && DataNormalizer.normalizeForLookup(i.rarity) === target,
-		);
 	}
 }
 

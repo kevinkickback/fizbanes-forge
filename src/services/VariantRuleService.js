@@ -1,5 +1,5 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
+import TextProcessor from '../lib/TextProcessor.js';
 class VariantRuleService {
 	constructor() {
 		this._variantRuleData = null;
@@ -9,11 +9,11 @@ class VariantRuleService {
 	async initialize() {
 		// Skip if already initialized
 		if (this._variantRuleData) {
-			console.debug('VariantRuleService', 'Already initialized');
+			console.debug('[VariantRuleService]', 'Already initialized');
 			return true;
 		}
 
-		console.debug('VariantRuleService', 'Initializing variant rule data');
+		console.debug('[VariantRuleService]', 'Initializing variant rule data');
 
 		try {
 			this._variantRuleData = await DataLoader.loadVariantRules();
@@ -33,7 +33,7 @@ class VariantRuleService {
 			) {
 				for (const rule of this._variantRuleData.variantrule) {
 					if (!rule.name) continue;
-					const key = DataNormalizer.normalizeForLookup(rule.name);
+					const key = TextProcessor.normalizeForLookup(rule.name);
 					this._variantRuleMap.set(key, rule);
 				}
 			}
@@ -59,7 +59,7 @@ class VariantRuleService {
 	getVariantRule(ruleName) {
 		if (!this._variantRuleMap) return null;
 		return (
-			this._variantRuleMap.get(DataNormalizer.normalizeForLookup(ruleName)) ||
+			this._variantRuleMap.get(TextProcessor.normalizeForLookup(ruleName)) ||
 			null
 		);
 	}

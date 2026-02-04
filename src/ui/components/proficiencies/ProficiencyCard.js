@@ -2,10 +2,9 @@
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { ABILITY_NAMES, toTitleCase } from '../../../lib/5eToolsParser.js';
-import DataNormalizer from '../../../lib/DataNormalizer.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
-import { textProcessor } from '../../../lib/TextProcessor.js';
+import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
 
 import {
 	ARTISAN_TOOLS,
@@ -124,7 +123,7 @@ export class ProficiencyCard {
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
 			if (!this._character) {
-				console.error('ProficiencyCard', 'No active character found');
+				console.error('[ProficiencyCard]', 'No active character found');
 				return;
 			}
 
@@ -138,7 +137,7 @@ export class ProficiencyCard {
 			this._setupHoverListeners();
 			this._setupAccordionClickListeners();
 		} catch (error) {
-			console.error('ProficiencyCard', 'Initialization error:', error);
+			console.error('[ProficiencyCard]', 'Initialization error:', error);
 		}
 	}
 
@@ -173,15 +172,15 @@ export class ProficiencyCard {
 		}
 
 		if (!this._accordion) {
-			console.warn('ProficiencyCard', 'Proficiencies accordion not found');
+			console.warn('[ProficiencyCard]', 'Proficiencies accordion not found');
 		}
 
 		if (!this._infoPanel) {
-			console.warn('ProficiencyCard', 'Info panel not found');
+			console.warn('[ProficiencyCard]', 'Info panel not found');
 		}
 
 		if (!this._toggleBtn) {
-			console.warn('ProficiencyCard', 'Toggle button not found');
+			console.warn('[ProficiencyCard]', 'Toggle button not found');
 		}
 	}
 
@@ -367,7 +366,7 @@ export class ProficiencyCard {
 
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
-			console.warn('ProficiencyCard', 'Handler must be a function', {
+			console.warn('[ProficiencyCard]', 'Handler must be a function', {
 				event,
 			});
 			return;
@@ -388,7 +387,7 @@ export class ProficiencyCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('ProficiencyCard', 'Error removing listener', {
+						console.warn('[ProficiencyCard]', 'Error removing listener', {
 							event,
 							error: e,
 						});
@@ -398,7 +397,7 @@ export class ProficiencyCard {
 		}
 
 		this._eventHandlers = {};
-		console.debug('ProficiencyCard', 'EventBus cleanup complete');
+		console.debug('[ProficiencyCard]', 'EventBus cleanup complete');
 	}
 
 	_handleProficiencyAdded(data) {
@@ -420,7 +419,7 @@ export class ProficiencyCard {
 	}
 
 	_handleCharacterChanged(_event) {
-		console.debug('ProficiencyCard _handleCharacterChanged() called');
+		console.debug('[ProficiencyCard]', '_handleCharacterChanged() called');
 
 		try {
 			this._character = CharacterManager.getCurrentCharacter();
@@ -466,7 +465,7 @@ export class ProficiencyCard {
 		);
 
 		if (!this._character?.class) {
-			console.debug('ProficiencyCard No character or class, returning');
+			console.debug('[ProficiencyCard]', 'No character or class, returning');
 			return;
 		}
 
@@ -516,12 +515,12 @@ export class ProficiencyCard {
 			return;
 		}
 
-		console.debug('ProficiencyCard Processing class:', this._character.class);
+		console.debug('[ProficiencyCard]', 'Processing class:', this._character.class);
 
 		// Re-process class tool proficiencies using the same logic as ClassCard
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
-			console.debug('ProficiencyCard No toolProficiencies, returning');
+			console.debug('[ProficiencyCard]', 'No toolProficiencies, returning');
 			return;
 		}
 
@@ -644,7 +643,7 @@ export class ProficiencyCard {
 	}
 
 	_showRefundNotification(skill) {
-		console.debug('ProficiencyCard', `Skill proficiency refunded: ${skill}`);
+		console.debug('[ProficiencyCard]', `Skill proficiency refunded: ${skill}`);
 	}
 
 	async _populateProficiencyContainers() {
@@ -1213,10 +1212,10 @@ export class ProficiencyCard {
 	 * @private
 	 */
 	_computeInstrumentSlots() {
-		console.debug('ProficiencyCard _computeInstrumentSlots() called');
+		console.debug('[ProficiencyCard]', '_computeInstrumentSlots() called');
 
 		const normalizedInstrument =
-			DataNormalizer.normalizeForLookup('Musical instrument');
+			TextProcessor.normalizeForLookup('Musical instrument');
 		const slots = [];
 
 		// Check each source (race, class, background) for instrument offerings
@@ -1229,7 +1228,7 @@ export class ProficiencyCard {
 		for (const { key, label } of sources) {
 			const config = this._character?.optionalProficiencies?.tools?.[key];
 			if (!config) {
-				console.debug(`[ProficiencyCard] No config for source: ${key}`);
+				console.debug('[ProficiencyCard]', 'No config for source:', key);
 				continue;
 			}
 
@@ -1246,16 +1245,16 @@ export class ProficiencyCard {
 			// Check if this source offers Musical Instrument
 			const offersInstruments = options.some(
 				(opt) =>
-					DataNormalizer.normalizeForLookup(opt) === normalizedInstrument,
+					TextProcessor.normalizeForLookup(opt) === normalizedInstrument,
 			);
 
 			// Check if user explicitly selected Musical Instrument
 			const selected = config.selected || [];
-			console.debug(`[ProficiencyCard] Source ${key}: selected=`, selected);
+			console.debug('[ProficiencyCard]', 'Source', key, 'selected=', selected);
 
 			const isExplicitlySelected = selected.some(
 				(sel) =>
-					DataNormalizer.normalizeForLookup(sel) === normalizedInstrument,
+					TextProcessor.normalizeForLookup(sel) === normalizedInstrument,
 			);
 
 			console.debug(
@@ -1361,8 +1360,8 @@ export class ProficiencyCard {
 			// Check if proficiency already exists to avoid duplicates
 			const alreadyHas = this._character.proficiencies?.tools?.some(
 				(p) =>
-					DataNormalizer.normalizeForLookup(p.name || p) ===
-					DataNormalizer.normalizeForLookup(slot.selection) &&
+					TextProcessor.normalizeForLookup(p.name || p) ===
+					TextProcessor.normalizeForLookup(slot.selection) &&
 					(p.source || '') === `${slot.sourceLabel} Instrument Choice`,
 			);
 
@@ -1475,7 +1474,7 @@ export class ProficiencyCard {
 			return false;
 
 		// Normalize proficiency for comparison
-		const normalizedProf = DataNormalizer.normalizeString(proficiency);
+		const normalizedProf = TextProcessor.normalizeForLookup(proficiency);
 
 		// Handle languages
 		if (type === 'languages') {
@@ -1501,29 +1500,29 @@ export class ProficiencyCard {
 				this._character.optionalProficiencies[type].background?.selected || [];
 
 			const raceAllowsAny = raceOptions
-				.map((o) => DataNormalizer.normalizeString(o))
+				.map((o) => TextProcessor.normalizeForLookup(o))
 				.includes('any');
 			const classAllowsAny = classOptions
-				.map((o) => DataNormalizer.normalizeString(o))
+				.map((o) => TextProcessor.normalizeForLookup(o))
 				.includes('any');
 			const backgroundAllowsAny = backgroundOptions
-				.map((o) => DataNormalizer.normalizeString(o))
+				.map((o) => TextProcessor.normalizeForLookup(o))
 				.includes('any');
 
 			const isRaceOption =
 				raceAllowsAny ||
 				raceOptions
-					.map((o) => DataNormalizer.normalizeString(o))
+					.map((o) => TextProcessor.normalizeForLookup(o))
 					.includes(normalizedProf);
 			const isClassOption =
 				classAllowsAny ||
 				classOptions
-					.map((o) => DataNormalizer.normalizeString(o))
+					.map((o) => TextProcessor.normalizeForLookup(o))
 					.includes(normalizedProf);
 			const isBackgroundOption =
 				backgroundAllowsAny ||
 				backgroundOptions
-					.map((o) => DataNormalizer.normalizeString(o))
+					.map((o) => TextProcessor.normalizeForLookup(o))
 					.includes(normalizedProf);
 
 			if (isRaceOption && raceSelected.length < raceAllowed) return true;
@@ -1538,15 +1537,15 @@ export class ProficiencyCard {
 		if (type === 'skills') {
 			const raceOptions =
 				this._character.optionalProficiencies[type].race?.options?.map((o) =>
-					DataNormalizer.normalizeString(o),
+					TextProcessor.normalizeForLookup(o),
 				) || [];
 			const classOptions =
 				this._character.optionalProficiencies[type].class?.options?.map((o) =>
-					DataNormalizer.normalizeString(o),
+					TextProcessor.normalizeForLookup(o),
 				) || [];
 			const backgroundOptions =
 				this._character.optionalProficiencies[type].background?.options?.map(
-					(o) => DataNormalizer.normalizeString(o),
+					(o) => TextProcessor.normalizeForLookup(o),
 				) || [];
 			const raceSelected =
 				this._character.optionalProficiencies[type].race?.selected || [];
@@ -1589,15 +1588,15 @@ export class ProficiencyCard {
 		if (type === 'tools') {
 			const raceOptions =
 				this._character.optionalProficiencies[type].race?.options?.map((o) =>
-					DataNormalizer.normalizeString(o),
+					TextProcessor.normalizeForLookup(o),
 				) || [];
 			const classOptions =
 				this._character.optionalProficiencies[type].class?.options?.map((o) =>
-					DataNormalizer.normalizeString(o),
+					TextProcessor.normalizeForLookup(o),
 				) || [];
 			const backgroundOptions =
 				this._character.optionalProficiencies[type].background?.options?.map(
-					(o) => DataNormalizer.normalizeString(o),
+					(o) => TextProcessor.normalizeForLookup(o),
 				) || [];
 			const raceSelected =
 				this._character.optionalProficiencies[type].race?.selected || [];
@@ -1642,15 +1641,15 @@ export class ProficiencyCard {
 		if (otherTypeAllowed) {
 			const raceOptions =
 				this._character.optionalProficiencies?.[type]?.race?.options?.map((o) =>
-					DataNormalizer.normalizeString(o),
+					TextProcessor.normalizeForLookup(o),
 				) || [];
 			const classOptions =
 				this._character.optionalProficiencies?.[type]?.class?.options?.map(
-					(o) => DataNormalizer.normalizeString(o),
+					(o) => TextProcessor.normalizeForLookup(o),
 				) || [];
 			const backgroundOptions =
 				this._character.optionalProficiencies?.[type]?.background?.options?.map(
-					(o) => DataNormalizer.normalizeString(o),
+					(o) => TextProcessor.normalizeForLookup(o),
 				) || [];
 			const hasAnySourceOptions =
 				raceOptions.length > 0 ||
@@ -1658,7 +1657,7 @@ export class ProficiencyCard {
 				backgroundOptions.length > 0;
 
 			if (hasAnySourceOptions) {
-				const normalizedItem = DataNormalizer.normalizeString(proficiency);
+				const normalizedItem = TextProcessor.normalizeForLookup(proficiency);
 				return (
 					raceOptions.includes(normalizedItem) ||
 					classOptions.includes(normalizedItem) ||
@@ -1674,7 +1673,7 @@ export class ProficiencyCard {
 		// For tools, first check if this is an auto-granted item in optional selections
 		// (e.g., Bard's auto-selected "Musical instrument")
 		if (type === 'tools') {
-			const normalizedProf = DataNormalizer.normalizeForLookup(proficiency);
+			const normalizedProf = TextProcessor.normalizeForLookup(proficiency);
 			const sources = ['race', 'class', 'background'];
 			for (const source of sources) {
 				const config = this._character?.optionalProficiencies?.tools?.[source];
@@ -1684,7 +1683,7 @@ export class ProficiencyCard {
 				// and it's in the selected array, it's auto-granted
 				if (
 					config.options?.length === 1 &&
-					DataNormalizer.normalizeForLookup(config.options[0]) ===
+					TextProcessor.normalizeForLookup(config.options[0]) ===
 					normalizedProf &&
 					config.selected?.includes(proficiency)
 				) {
@@ -1710,7 +1709,7 @@ export class ProficiencyCard {
 		}
 
 		// Normalize the proficiency name for case-insensitive comparison
-		const normalizedProf = DataNormalizer.normalizeForLookup(profString);
+		const normalizedProf = TextProcessor.normalizeForLookup(profString);
 
 		// Find the matching proficiency by case-insensitive comparison
 		let matchingProf = null;
@@ -1719,7 +1718,7 @@ export class ProficiencyCard {
 		].entries()) {
 			if (
 				prof.toLowerCase?.() !== undefined &&
-				DataNormalizer.normalizeForLookup(prof) === normalizedProf
+				TextProcessor.normalizeForLookup(prof) === normalizedProf
 			) {
 				matchingProf = prof;
 				break;
@@ -1749,7 +1748,7 @@ export class ProficiencyCard {
 	}
 
 	_cleanupOptionalProficiencies() {
-		console.debug('ProficiencyCard _cleanupOptionalProficiencies() called');
+		console.debug('[ProficiencyCard]', '_cleanupOptionalProficiencies() called');
 		console.debug(
 			'[ProficiencyCard] tools.class BEFORE cleanup:',
 			JSON.stringify(

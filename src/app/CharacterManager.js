@@ -44,7 +44,7 @@ class CharacterManagerImpl {
 
 			return character;
 		} catch (error) {
-			console.error('CharacterManager', 'Create failed:', error);
+			console.error('[CharacterManager]', 'Create failed:', error);
 			throw error;
 		}
 	}
@@ -62,7 +62,7 @@ class CharacterManagerImpl {
 			const characterData = characters.find((c) => c.id === id);
 
 			if (!characterData) {
-				console.warn('CharacterManager', 'Character not found:', id);
+				console.warn('[CharacterManager]', 'Character not found:', id);
 				throw new Error('Character not found');
 			}
 
@@ -83,11 +83,9 @@ class CharacterManagerImpl {
 			AppState.setCurrentCharacter(character);
 			AppState.setHasUnsavedChanges(false);
 
-			eventBus.emit(EVENTS.CHARACTER_SELECTED, character);
-
 			return character;
 		} catch (error) {
-			console.error('CharacterManager', 'Load failed:', error);
+			console.error('[CharacterManager]', 'Load failed:', error);
 			throw error;
 		} finally {
 			AppState.setState({ isLoadingCharacter: false });
@@ -98,7 +96,7 @@ class CharacterManagerImpl {
 		const character = AppState.getCurrentCharacter();
 
 		if (!character) {
-			console.warn('CharacterManager', 'No character to save');
+			console.warn('[CharacterManager]', 'No character to save');
 			throw new Error('No character selected');
 		}
 
@@ -129,7 +127,7 @@ class CharacterManagerImpl {
 
 			return true;
 		} catch (error) {
-			console.error('CharacterManager', 'Save failed:', error);
+			console.error('[CharacterManager]', 'Save failed:', error);
 			throw error;
 		}
 	}
@@ -154,7 +152,7 @@ class CharacterManagerImpl {
 
 			return true;
 		} catch (error) {
-			console.error('CharacterManager', 'Delete failed:', error);
+			console.error('[CharacterManager]', 'Delete failed:', error);
 			throw error;
 		}
 	}
@@ -175,7 +173,7 @@ class CharacterManagerImpl {
 
 			return characters;
 		} catch (error) {
-			console.error('CharacterManager', 'Load list failed:', error);
+			console.error('[CharacterManager]', 'Load list failed:', error);
 			throw error;
 		}
 	}
@@ -184,7 +182,7 @@ class CharacterManagerImpl {
 		const character = AppState.getCurrentCharacter();
 
 		if (!character) {
-			console.warn('CharacterManager', 'No character to update');
+			console.warn('[CharacterManager]', 'No character to update');
 			return;
 		}
 

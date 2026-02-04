@@ -28,29 +28,16 @@ class BackgroundService extends BaseDataService {
 				return data;
 			},
 			{
-				onLoaded: (data) => {
-					console.debug(
-						'[BackgroundService]',
-						'Backgrounds loaded and normalized',
-						{
-							count: data?.background?.length,
-						},
-					);
-				},
+				onLoaded: () => { },
 				emitPayload: (data) => ['backgrounds', data?.background || []],
 			},
 		);
 	}
 
-	/** @returns {Array<Object>} Array of background objects from JSON */
 	getAllBackgrounds() {
 		return this._data?.background || [];
 	}
 
-	/** @param {string} name - Background name
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Background object from JSON or null if not found
-	 */
 	getBackground(name, source = 'PHB') {
 		if (!this._data?.background) return null;
 
@@ -61,24 +48,6 @@ class BackgroundService extends BaseDataService {
 		);
 	}
 
-	/** @param {string} backgroundName - Name of the background
-	 * @param {string} source - Source book
-	 * @returns {Object|null} Background fluff object or null if not found
-	 */
-	getBackgroundFluff(backgroundName, source = 'PHB') {
-		if (!this._data?.fluff) return null;
-
-		return (
-			this._data.fluff.find(
-				(f) => f.name === backgroundName && f.source === source,
-			) || null
-		);
-	}
-
-	/** @param {string} backgroundName - Name of the background to select
-	 * @param {string} source - Source of the background
-	 * @returns {Object|null} The selected background or null if not found
-	 */
 	selectBackground(backgroundName, source = 'PHB') {
 		this._selectedBackground = this.getBackground(backgroundName, source);
 
@@ -89,25 +58,6 @@ class BackgroundService extends BaseDataService {
 		return this._selectedBackground;
 	}
 
-	/** @returns {Object|null} Currently selected background */
-	getSelectedBackground() {
-		return this._selectedBackground;
-	}
-
-	/** Clear the currently selected background */
-	clearSelection() {
-		this._selectedBackground = null;
-		eventBus.emit('background:cleared');
-	}
-
-	/**
-	 * Normalize background from legacy proficiency structure to 5etools format.
-	 * Converts skillProficiencies/toolProficiencies/languageProficiencies to
-	 * proficiencies.{skills, tools, languages}
-	 * @private
-	 * @param {Object} background - Background data to normalize
-	 * @returns {Object} Normalized background object
-	 */
 	_normalizeBackgroundStructure(background) {
 		// If already normalized or no proficiencies, return as-is
 		if (background.proficiencies && !background.skillProficiencies) {
@@ -141,12 +91,6 @@ class BackgroundService extends BaseDataService {
 		return normalized;
 	}
 
-	/**
-	 * Normalize skill proficiencies from legacy object format to 5etools array format
-	 * @private
-	 * @param {Array<Object>} skillProfs - Legacy skill proficiencies [{skill1: true, choose: {...}}]
-	 * @returns {Array<Object>} Normalized skills [{skill: "Acrobatics"}, {skill: "Animal Handling"}, ...]
-	 */
 	_normalizeSkillProficiencies(skillProfs) {
 		if (!skillProfs) return [];
 
@@ -175,12 +119,6 @@ class BackgroundService extends BaseDataService {
 		return normalized;
 	}
 
-	/**
-	 * Normalize tool proficiencies from legacy object format to 5etools array format
-	 * @private
-	 * @param {Array<Object>} toolProfs - Legacy tool proficiencies [{tool1: true, choose: {...}}]
-	 * @returns {Array<Object>} Normalized tools
-	 */
 	_normalizeToolProficiencies(toolProfs) {
 		if (!toolProfs) return [];
 
@@ -205,12 +143,6 @@ class BackgroundService extends BaseDataService {
 		return normalized;
 	}
 
-	/**
-	 * Normalize language proficiencies from legacy object format to 5etools array format
-	 * @private
-	 * @param {Array<Object>} langProfs - Legacy language proficiencies [{language1: true, choose: {...}}]
-	 * @returns {Array<Object>} Normalized languages
-	 */
 	_normalizeLanguageProficiencies(langProfs) {
 		if (!langProfs) return [];
 
@@ -241,14 +173,7 @@ class BackgroundService extends BaseDataService {
 		return normalized;
 	}
 
-	/**
-	 * Convert skill abbreviations to proper names
-	 * @private
-	 * @param {string} skillKey - Skill key (e.g., "acrobatics" or "Acrobatics")
-	 * @returns {string} Proper skill name
-	 */
 	_normalizeSkillName(skillKey) {
-		// Simple capitalization for now, could map specific abbreviations if needed
 		if (!skillKey) return '';
 		return skillKey.charAt(0).toUpperCase() + skillKey.slice(1).toLowerCase();
 	}

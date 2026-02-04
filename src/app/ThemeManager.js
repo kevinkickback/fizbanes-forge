@@ -17,7 +17,7 @@ export class ThemeManager {
 			});
 		}
 
-		console.debug('ThemeManager Initialized with theme:', this.currentTheme);
+		console.debug('[ThemeManager]', 'Initialized with theme:', this.currentTheme);
 	}
 
 	destroy() {
@@ -39,7 +39,7 @@ export class ThemeManager {
 		document.documentElement.setAttribute('data-theme', theme);
 		this.currentTheme = theme;
 		this.updateToggleIcon();
-		console.debug('ThemeManager Applied theme:', theme);
+		console.debug('[ThemeManager]', 'Applied theme:', theme);
 	}
 
 	toggleTheme() {

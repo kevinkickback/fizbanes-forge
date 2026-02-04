@@ -21,7 +21,7 @@ function _loadPersistedCache() {
 		}
 		state.persisted = JSON.parse(raw) || {};
 	} catch (error) {
-		console.warn('DataLoader', 'Failed to load persisted cache', error);
+		console.warn('[DataLoader]', 'Failed to load persisted cache', error);
 		state.persisted = {};
 	}
 	return state.persisted;
@@ -32,7 +32,7 @@ function _savePersistedCache() {
 		if (!state.persisted) return;
 		window?.localStorage?.setItem(PERSIST_KEY, JSON.stringify(state.persisted));
 	} catch (error) {
-		console.warn('DataLoader', 'Failed to save persisted cache', error);
+		console.warn('[DataLoader]', 'Failed to save persisted cache', error);
 	}
 }
 
@@ -46,7 +46,7 @@ async function _hashData(data) {
 			.map((b) => b.toString(16).padStart(2, '0'))
 			.join('');
 	} catch (error) {
-		console.warn('DataLoader', 'Hashing failed, skipping version tag', error);
+		console.warn('[DataLoader]', 'Hashing failed, skipping version tag', error);
 		return null;
 	}
 }
@@ -95,7 +95,7 @@ function setBaseUrl(url) {
 async function loadJSON(url, { ttl } = {}) {
 	const start = performance.now();
 	if (state.cache[url]) {
-		console.debug('DataLoader', `Cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
+		console.debug('[DataLoader]', `Cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
 		return state.cache[url];
 	}
 
@@ -103,7 +103,7 @@ async function loadJSON(url, { ttl } = {}) {
 	const ttlOverride = typeof ttl === 'number' && ttl > 0 ? ttl : null;
 	if (_isCacheEntryValid(persisted, ttlOverride)) {
 		state.cache[url] = persisted.data;
-		console.debug('DataLoader', `Persisted cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
+		console.debug('[DataLoader]', `Persisted cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
 		return persisted.data;
 	}
 
@@ -155,11 +155,11 @@ async function loadJSON(url, { ttl } = {}) {
 			state.cache[url] = data;
 			_setPersistedEntry(url, data, hash);
 			delete state.loading[url];
-			console.debug('DataLoader', `Loaded ${url} from disk, duration: ${(performance.now() - loadStart).toFixed(2)}ms, total: ${(performance.now() - start).toFixed(2)}ms`);
+			console.debug('[DataLoader]', `Loaded ${url} from disk, duration: ${(performance.now() - loadStart).toFixed(2)}ms, total: ${(performance.now() - start).toFixed(2)}ms`);
 			return data;
 		} catch (error) {
 			delete state.loading[url];
-			console.error('DataLoader', `Failed to load ${url}:`, error);
+			console.error('[DataLoader]', `Failed to load ${url}:`, error);
 			throw error;
 		}
 	})();
@@ -318,7 +318,7 @@ async function loadSources() {
 	try {
 		return await loadJSON(`${state.baseUrl}books.json`);
 	} catch (error) {
-		console.warn('DataLoader', 'Could not find sources data', error);
+		console.warn('[DataLoader]', 'Could not find sources data', error);
 		return { source: [] };
 	}
 }
@@ -343,7 +343,7 @@ function clearCache() {
 	try {
 		window?.localStorage?.removeItem(PERSIST_KEY);
 	} catch (error) {
-		console.warn('DataLoader', 'Failed to clear persisted cache', error);
+		console.warn('[DataLoader]', 'Failed to clear persisted cache', error);
 	}
 	return dataLoader;
 }
@@ -369,7 +369,7 @@ function invalidateAllCache() {
 
 function setTTL(milliseconds) {
 	if (milliseconds < 0) {
-		console.warn('DataLoader', 'TTL must be non-negative; ignoring');
+		console.warn('[DataLoader]', 'TTL must be non-negative; ignoring');
 		return dataLoader;
 	}
 	state.ttl = milliseconds;

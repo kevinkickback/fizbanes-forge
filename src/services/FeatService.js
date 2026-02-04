@@ -1,9 +1,8 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
 import { EVENTS } from '../lib/EventBus.js';
+import TextProcessor from '../lib/TextProcessor.js';
 import { BaseDataService } from './BaseDataService.js';
 import { classService } from './ClassService.js';
-import { raceService } from './RaceService.js';
 
 class FeatService extends BaseDataService {
 	constructor() {
@@ -23,167 +22,26 @@ class FeatService extends BaseDataService {
 				if (data?.feat && Array.isArray(data.feat)) {
 					for (const feat of data.feat) {
 						if (!feat.name) continue;
-						const key = DataNormalizer.normalizeForLookup(feat.name);
+						const key = TextProcessor.normalizeForLookup(feat.name);
 						this._featMap.set(key, feat);
 					}
 				}
-				console.debug('FeatService', 'Feats loaded successfully', {
-					count: data?.feat?.length,
-				});
 			},
 			emitPayload: (data) => ['feats', data?.feat || []],
 		});
 	}
 
-	/** @returns {Array<Object>} Array of feat objects */
 	getAllFeats() {
 		return this._data?.feat || [];
 	}
 
-	/** Case-insensitive lookup.
-	 * @param {string} featName - Feat name
-	 * @returns {Object|null} Feat object or null if not found
-	 */
 	getFeat(featName) {
 		if (!this._featMap) return null;
 		return (
-			this._featMap.get(DataNormalizer.normalizeForLookup(featName)) || null
+			this._featMap.get(TextProcessor.normalizeForLookup(featName)) || null
 		);
 	}
 
-	/**
-	 * Calculate how many feats a character may select based on race/subrace data
-	 * and class Ability Score Improvement (ASI) features. Mirrors 5etools data.
-	 * @param {import('../core/Character.js').Character|null} character
-	 * @returns {{used:number,max:number,remaining:number,reasons:string[],blockedReason?:string}}
-	 */
-	calculateFeatAvailability(character) {
-		const fallback = {
-			used: 0,
-			max: 0,
-			remaining: 0,
-			reasons: [],
-			blockedReason: 'No character loaded.',
-		};
-
-		if (!character) return fallback;
-
-		const used = Array.isArray(character.feats) ? character.feats.length : 0;
-
-		// Respect optional rule toggle; default to enabled if unspecified
-		if (character.variantRules?.feats === false) {
-			return {
-				used,
-				max: 0,
-				remaining: 0,
-				reasons: [],
-				blockedReason: 'Feats are disabled by variant rules.',
-			};
-		}
-
-		let max = 0;
-		const reasons = [];
-
-		const raceSlots = this._getRaceGrantedFeatSlots(character);
-		max += raceSlots.slots;
-		reasons.push(...raceSlots.reasons);
-
-		const classSlots = this._getClassFeatSlots(character);
-		max += classSlots.slots;
-		reasons.push(...classSlots.reasons);
-
-		return {
-			used,
-			max,
-			remaining: Math.max(0, max - used),
-			reasons,
-			blockedReason:
-				max === 0
-					? 'No feat selections available for this character.'
-					: undefined,
-		};
-	}
-
-	_getRaceGrantedFeatSlots(character) {
-		let slots = 0;
-		const reasons = [];
-
-		const raceName = character.race?.name;
-		const raceSource = character.race?.source || 'PHB';
-		const subraceName = character.race?.subrace || '';
-
-		const raceData = raceName
-			? raceService.getRace(raceName, raceSource)
-			: null;
-		const subraceData =
-			raceName && subraceName
-				? raceService.getSubrace(raceName, subraceName, raceSource)
-				: null;
-
-		const collect = (featArr, label) => {
-			if (!Array.isArray(featArr)) return;
-			for (const entry of featArr) {
-				const count = this._extractFeatCount(entry);
-				if (count > 0) {
-					slots += count;
-					reasons.push(`Race: ${label}`);
-				}
-			}
-		};
-
-		collect(raceData?.feats, raceData?.name || raceName || 'Race');
-		collect(subraceData?.feats, 'Subrace');
-
-		return { slots, reasons };
-	}
-
-	_getClassFeatSlots(character) {
-		let slots = 0;
-		const reasons = [];
-
-		const primaryClass = character.getPrimaryClass();
-		const className = primaryClass?.name;
-		const classSource = primaryClass?.source || 'PHB';
-		const level = character.getTotalLevel();
-
-		if (!className || !Number.isFinite(level)) return { slots, reasons };
-
-		const features = classService.getClassFeatures(
-			className,
-			level,
-			classSource,
-		);
-		for (const feature of features) {
-			const name = feature?.name || '';
-			const isASI = name.toLowerCase() === 'ability score improvement';
-			if (isASI) {
-				slots += 1;
-				reasons.push(
-					`Ability Score Improvement at level ${feature.level ?? '?'} (${className})`,
-				);
-			}
-		}
-
-		return { slots, reasons };
-	}
-
-	_extractFeatCount(featEntry) {
-		if (!featEntry) return 0;
-		if (typeof featEntry.any === 'number') return featEntry.any;
-		if (typeof featEntry.anyFromCategory?.count === 'number')
-			return featEntry.anyFromCategory.count;
-		if (typeof featEntry.choose?.count === 'number')
-			return featEntry.choose.count;
-		return 0;
-	}
-
-	/**
-	 * Check if a feat's prerequisites are met by a character
-	 * @param {Object} feat - The feat to check
-	 * @param {Object} character - The character
-	 * @param {{ignoreRacePrereq?: boolean}} [options]
-	 * @returns {boolean} True if character meets prerequisites
-	 */
 	isFeatValidForCharacter(feat, character, options = {}) {
 		if (!feat.prerequisite || !Array.isArray(feat.prerequisite)) {
 			return true;
@@ -263,9 +121,6 @@ class FeatService extends BaseDataService {
 			});
 			if (!hasSpellcasting) return false;
 		}
-
-		// Add other prerequisite types as needed (proficiency, feat, etc.)
-		// For now, accept feats with unhandled prerequisites
 
 		return true;
 	}

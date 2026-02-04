@@ -16,9 +16,9 @@ class RouterImpl {
 	}
 
 	async navigate(path) {
-		console.debug('Router', 'Navigating to', { path });
+		console.debug('[Router]', 'Navigating to', { path });
 		if (!this.routes.has(path)) {
-			console.error('Router', 'Route not found:', path);
+			console.error('[Router]', 'Route not found:', path);
 			throw new Error(`Route not found: ${path}`);
 		}
 
@@ -61,7 +61,7 @@ class PageLoaderImpl {
 		this.contentArea = document.getElementById(contentAreaId);
 
 		if (!this.contentArea) {
-			console.error('PageLoader', 'Content area not found:', contentAreaId);
+			console.error('[PageLoader]', 'Content area not found:', contentAreaId);
 			throw new Error('Content area not found');
 		}
 	}
@@ -86,7 +86,7 @@ class PageLoaderImpl {
 
 			return html;
 		} catch (error) {
-			console.error('PageLoader', 'Load failed:', {
+			console.error('[PageLoader]', 'Load failed:', {
 				templateName,
 				error: error.message,
 			});
@@ -96,14 +96,14 @@ class PageLoaderImpl {
 
 	renderPage(html) {
 		if (!this.contentArea) {
-			console.error('PageLoader', 'Content area not initialized');
+			console.error('[PageLoader]', 'Content area not initialized');
 			throw new Error('Content area not initialized');
 		}
 
 		try {
 			this.contentArea.innerHTML = html;
 		} catch (error) {
-			console.error('PageLoader', 'Render failed:', error);
+			console.error('[PageLoader]', 'Render failed:', error);
 			throw error;
 		}
 	}
@@ -213,14 +213,14 @@ class NavigationControllerImpl {
 
 	initialize() {
 		if (this.isInitialized) {
-			console.warn('NavigationController', 'Already initialized');
+			console.warn('[NavigationController]', 'Already initialized');
 			return;
 		}
 
 		try {
 			this.pageLoader.initialize('pageContent');
 		} catch (error) {
-			console.error('NavigationController', 'Failed to initialize PageLoader');
+			console.error('[NavigationController]', 'Failed to initialize PageLoader');
 			this.pageLoader.renderError(error.message);
 			return;
 		}
@@ -318,7 +318,7 @@ class NavigationControllerImpl {
 		try {
 			route = await this.router.navigate(page);
 		} catch (error) {
-			console.error('NavigationController', 'Navigation failed:', error.message);
+			console.error('[NavigationController]', 'Navigation failed:', error.message);
 			this.pageLoader.renderError(error.message);
 			AppState.setState({ isNavigating: false });
 			return;
@@ -365,7 +365,7 @@ class NavigationControllerImpl {
 			try {
 				await this.navigateTo('build');
 			} catch (error) {
-				console.warn('NavigationController', 'Section navigation failed:', {
+				console.warn('[NavigationController]', 'Section navigation failed:', {
 					sectionId,
 					error,
 				});
@@ -456,7 +456,7 @@ class NavigationControllerImpl {
 		if (target) {
 			const scrollContainer = document.querySelector('.main-content');
 			if (!scrollContainer) {
-				console.warn('NavigationController Could not find scroll container');
+				console.warn('[NavigationController]', 'Could not find scroll container');
 				return;
 			}
 
@@ -471,7 +471,7 @@ class NavigationControllerImpl {
 				behavior: 'smooth',
 			});
 		} else {
-			console.warn('NavigationController', 'Unable to find section to scroll:', {
+			console.warn('[NavigationController]', 'Unable to find section to scroll:', {
 				sectionId,
 			});
 		}

@@ -89,7 +89,7 @@ async function _loadDataWithErrorHandling(promise, component) {
 		await promise;
 		return { ok: true, error: null };
 	} catch (error) {
-		console.warn('AppInitializer', `Failed to load ${component}:`, error);
+		console.warn('[AppInitializer]', `Failed to load ${component}:`, error);
 		return { ok: false, error };
 	}
 }
@@ -98,7 +98,7 @@ async function _checkDataFolder() {
 	try {
 		const saved = await window.app.getDataSource();
 		if (saved?.success && saved.type && saved.value) {
-			console.debug('AppInitializer', 'Using data source:', saved.type);
+			console.debug('[AppInitializer]', 'Using data source:', saved.type);
 			return true;
 		}
 
@@ -110,10 +110,10 @@ async function _checkDataFolder() {
 		const modal = new DataConfigurationModal();
 		const result = await modal.show();
 
-		console.debug('AppInitializer', 'User configured data source:', result.type);
+		console.debug('[AppInitializer]', 'User configured data source:', result.type);
 		return true;
 	} catch (error) {
-		console.error('AppInitializer', 'Error checking data folder:', error);
+		console.error('[AppInitializer]', 'Error checking data folder:', error);
 		showNotification('Error checking data folder. Please try again.', 'error');
 		return false;
 	}
@@ -149,7 +149,7 @@ async function _promptDataSourceFix(errorMessage) {
 		const modal = new DataConfigurationModal({ allowClose: true });
 		await modal.show();
 	} catch (error) {
-		console.warn('AppInitializer', 'User dismissed data source fix modal', error);
+		console.warn('[AppInitializer]', 'User dismissed data source fix modal', error);
 		throw error;
 	}
 }
@@ -229,7 +229,7 @@ async function _loadAllGameData(loadingModal) {
 
 		return { success: failedServices.length === 0, errors, failedServices };
 	} catch (error) {
-		console.error('AppInitializer', 'Error during game data loading:', error);
+		console.error('[AppInitializer]', 'Error during game data loading:', error);
 		errors.push(error);
 		return { success: false, errors, failedServices };
 	}
@@ -240,7 +240,7 @@ async function _initializeComponent(name, initFunction) {
 		await initFunction();
 		return { success: true, error: null };
 	} catch (error) {
-		console.error('AppInitializer', `Error initializing ${name}:`, error);
+		console.error('[AppInitializer]', `Error initializing ${name}:`, error);
 		return { success: false, error };
 	}
 }
@@ -276,7 +276,7 @@ async function _initializeCoreComponents() {
 
 			if (initResult.success) {
 				result.loadedComponents.push(component.name);
-				console.debug('AppInitializer', `✓ ${component.name} initialized`);
+				console.debug('[AppInitializer]', `✓ ${component.name} initialized`);
 			} else {
 				result.errors.push(initResult.error);
 				console.error(
@@ -289,7 +289,7 @@ async function _initializeCoreComponents() {
 
 		result.success = result.errors.length === 0;
 
-		console.debug('AppInitializer', 'Core components initialized', {
+		console.debug('[AppInitializer]', 'Core components initialized', {
 			success: result.success,
 			loaded: result.loadedComponents.length,
 			errors: result.errors.length,
@@ -310,7 +310,7 @@ async function _initializeCoreComponents() {
 
 export async function initializeAll() {
 	if (_isInitializing) {
-		console.warn('AppInitializer', 'Initialization already in progress');
+		console.warn('[AppInitializer]', 'Initialization already in progress');
 		return { success: false, errors: ['Initialization already in progress'] };
 	}
 
@@ -347,7 +347,7 @@ export async function initializeAll() {
 		themeManager.init(eventBus);
 		result.loadedComponents.push('ThemeManager');
 	} catch (error) {
-		console.warn('AppInitializer', 'Failed to initialize theme manager', error);
+		console.warn('[AppInitializer]', 'Failed to initialize theme manager', error);
 		result.errors.push(error);
 	}
 
@@ -362,7 +362,7 @@ export async function initializeAll() {
 	try {
 		cleanupOrphanedBackdrops();
 	} catch (error) {
-		console.warn('AppInitializer', 'Error cleaning up backdrops', error);
+		console.warn('[AppInitializer]', 'Error cleaning up backdrops', error);
 	}
 
 	const existingBackdrops = document.querySelectorAll('.modal-backdrop');
@@ -430,7 +430,7 @@ export async function initializeAll() {
 			config.dataSourceType === 'local' ||
 			(config.dataSourceType === 'url' && cachePath);
 
-		console.debug('AppInitializer', 'Data source check:', {
+		console.debug('[AppInitializer]', 'Data source check:', {
 			type: config.dataSourceType,
 			value: config.dataSourceValue,
 			hasCache,
@@ -465,7 +465,7 @@ export async function initializeAll() {
 					throw new Error(refreshResult?.error || 'Failed to download data');
 				}
 			} catch (error) {
-				console.error('AppInitializer', 'Failed to download data:', error);
+				console.error('[AppInitializer]', 'Failed to download data:', error);
 				showNotification(`Failed to download data: ${error.message}`, 'error');
 				throw error;
 			} finally {
@@ -477,14 +477,14 @@ export async function initializeAll() {
 			const autoUpdate = !!config.autoUpdateData;
 			const shouldRefresh = autoUpdate;
 
-			console.debug('AppInitializer', 'Cache check:', {
+			console.debug('[AppInitializer]', 'Cache check:', {
 				hasCache,
 				autoUpdate,
 				shouldRefresh,
 			});
 
 			if (shouldRefresh) {
-				console.debug('AppInitializer', 'Calling refreshDataSource');
+				console.debug('[AppInitializer]', 'Calling refreshDataSource');
 				loadingModal.updateProgress(15);
 
 				const dataSource = await window.app.getDataSource();
@@ -531,9 +531,9 @@ export async function initializeAll() {
 				const unsubscribe = window.app.onDataDownloadProgress(progressListener);
 
 				try {
-					console.debug('AppInitializer', 'Calling refreshDataSource');
+					console.debug('[AppInitializer]', 'Calling refreshDataSource');
 					const refreshResult = await window.app.refreshDataSource();
-					console.debug('AppInitializer', 'refreshDataSource result:', refreshResult);
+					console.debug('[AppInitializer]', 'refreshDataSource result:', refreshResult);
 
 					unsubscribe();
 
@@ -548,14 +548,14 @@ export async function initializeAll() {
 						throw new Error('Data source update failed');
 					} else {
 						DataLoader.clearCache();
-						console.debug('AppInitializer', 'Checked/updated data source');
+						console.debug('[AppInitializer]', 'Checked/updated data source');
 					}
 				} catch (error) {
 					unsubscribe();
-					console.warn('AppInitializer', 'Data source update failed', error);
+					console.warn('[AppInitializer]', 'Data source update failed', error);
 				}
 			} else {
-				console.debug('AppInitializer', 'Skipping data source refresh');
+				console.debug('[AppInitializer]', 'Skipping data source refresh');
 			}
 		}
 
@@ -588,23 +588,12 @@ export async function initializeAll() {
 		result.loadedComponents = componentsResult.loadedComponents;
 		result.errors.push(...componentsResult.errors);
 
-		loadingModal.updateDetail('Loading home page...');
-		loadingModal.updateProgress(95);
-		try {
-			if (PageHandler && typeof PageHandler.initializeHomePage === 'function') {
-				await PageHandler.initializeHomePage();
-			}
-		} catch (error) {
-			console.error('AppInitializer', 'Error loading home page:', error);
-			result.errors.push(error);
-		}
-
 		loadingModal.updateDetail('Registering event handlers...');
 		loadingModal.updateProgress(99);
 		try {
 			_uiHandlersCleanup = setupUiEventHandlers();
 		} catch (error) {
-			console.error('AppInitializer', 'Error setting up UI handlers:', error);
+			console.error('[AppInitializer]', 'Error setting up UI handlers:', error);
 			result.errors.push(error);
 		}
 
@@ -618,18 +607,18 @@ export async function initializeAll() {
 		await loadingModal.hide();
 
 		if (!result.success) {
-			console.warn('AppInitializer', 'Initialized with errors:', result.errors);
+			console.warn('[AppInitializer]', 'Initialized with errors:', result.errors);
 		}
 
 		_isInitializing = false;
 		_isInitialized = true;
-		console.debug('AppInitializer', 'Initialization complete');
+		console.debug('[AppInitializer]', 'Initialization complete');
 
 		return result;
 	} catch (error) {
 		loadingModal.hide();
 		_isInitializing = false;
-		console.error('AppInitializer', 'Fatal initialization error:', error);
+		console.error('[AppInitializer]', 'Fatal initialization error:', error);
 		result.success = false;
 		result.errors.push(error);
 		throw error;
@@ -638,6 +627,6 @@ export async function initializeAll() {
 
 document.addEventListener('DOMContentLoaded', () => {
 	initializeAll().catch((error) => {
-		console.error('AppInitializer', 'Error during initialization:', error);
+		console.error('[AppInitializer]', 'Error during initialization:', error);
 	});
 });

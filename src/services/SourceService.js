@@ -65,14 +65,6 @@ export class SourceService extends BaseDataService {
 		);
 	}
 
-	setCharacterHandler(handler) {
-		this.characterHandler = handler;
-		// Subscribe to character changes
-		this.characterHandler.addCharacterListener(
-			this._handleCharacterChange.bind(this),
-		);
-	}
-
 	_handleCharacterChange(character) {
 		if (!character) {
 			this.allowedSources = this._expandSourceVariants(new Set(['PHB']));
@@ -177,7 +169,7 @@ export class SourceService extends BaseDataService {
 							return groupPriority[a.group] - groupPriority[b.group];
 						});
 
-					console.debug('SourceService', 'Valid sources after filtering', {
+					console.debug('[SourceService]', 'Valid sources after filtering', {
 						sources: validSources.map((s) => s.id),
 					});
 
@@ -202,7 +194,7 @@ export class SourceService extends BaseDataService {
 						}
 					}
 
-					console.debug('SourceService', 'Initialization complete', {
+					console.debug('[SourceService]', 'Initialization complete', {
 						sourceCount: this.availableSources.size,
 					});
 				} else {
@@ -219,7 +211,7 @@ export class SourceService extends BaseDataService {
 			},
 			emitPayload: () => ['source', this],
 			onError: (error) => {
-				console.error('SourceService', 'Error during initialization', error);
+				console.error('[SourceService]', 'Error during initialization', error);
 				showNotification('Error loading source books', 'error');
 				throw error;
 			},

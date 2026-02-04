@@ -42,12 +42,12 @@ export function setupUiEventHandlers() {
 
 				showNotification('Character saved successfully', 'success');
 			} catch (error) {
-				console.error('UIHandlers', 'Error saving character', error);
+				console.error('[UIHandlers]', 'Error saving character', error);
 				showNotification('Error saving character', 'error');
 			}
 		});
 	} else {
-		console.warn('UIHandlers', 'Save button not found');
+		console.warn('[UIHandlers]', 'Save button not found');
 	}
 
 	const levelUpBtn = document.getElementById('openLevelUpModalBtn');
@@ -57,7 +57,7 @@ export function setupUiEventHandlers() {
 			try {
 				const character = AppState.getCurrentCharacter();
 				if (!character) {
-					console.warn('UIHandlers', '[LevelUp] No current character');
+					console.warn('[UIHandlers]', '[LevelUp] No current character');
 					showNotification('No character selected', 'warning');
 					return;
 				}
@@ -70,7 +70,7 @@ export function setupUiEventHandlers() {
 				}
 				await levelUpModalInstance.show();
 			} catch (error) {
-				console.error('UIHandlers', 'Failed to open Level Up modal', error);
+				console.error('[UIHandlers]', 'Failed to open Level Up modal', error);
 				try {
 					const el = document.getElementById('levelUpModal');
 					const bs = window.bootstrap || globalThis.bootstrap;
@@ -95,7 +95,7 @@ export function setupUiEventHandlers() {
 			}
 		});
 	} else {
-		console.warn('UIHandlers', 'Level Up button not found');
+		console.warn('[UIHandlers]', 'Level Up button not found');
 	}
 
 	const addListener = (event, handler) => {

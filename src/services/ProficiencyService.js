@@ -1,12 +1,11 @@
-import { SKILL_TO_ABILITY } from '../lib/5eToolsParser.js';
-import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
-import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
-	STANDARD_LANGUAGE_OPTIONS,
+	SKILL_TO_ABILITY, STANDARD_LANGUAGE_OPTIONS,
 	STANDARD_SKILL_OPTIONS,
-	STANDARD_TOOL_OPTIONS,
+	STANDARD_TOOL_OPTIONS
 } from '../lib/5eToolsParser.js';
+import { DataLoader } from '../lib/DataLoader.js';
+import TextProcessor from '../lib/TextProcessor.js';
+import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { itemService } from './ItemService.js';
 
 export class ProficiencyService {
@@ -21,12 +20,12 @@ export class ProficiencyService {
 
 	async initialize() {
 		if (this._initialized) {
-			console.debug('ProficiencyService', 'Already initialized');
+			console.debug('[ProficiencyService]', 'Already initialized');
 			return;
 		}
 
 		try {
-			console.debug('ProficiencyService', 'Initializing proficiency manager');
+			console.debug('[ProficiencyService]', 'Initializing proficiency manager');
 
 			// Cache commonly used data
 			this._skills = await this.getAvailableSkills();
@@ -84,7 +83,7 @@ export class ProficiencyService {
 
 	getSkillAbility(skill) {
 		if (!skill) return null;
-		const normalized = DataNormalizer.normalizeForLookup(skill);
+		const normalized = TextProcessor.normalizeForLookup(skill);
 		const abilityAbv = SKILL_TO_ABILITY[normalized];
 		if (!abilityAbv) return null;
 
@@ -133,7 +132,7 @@ export class ProficiencyService {
 
 	addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			console.warn('ProficiencyCore', 'Invalid parameters for addProficiency:', {
+			console.warn('[ProficiencyCore]', 'Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -147,9 +146,9 @@ export class ProficiencyService {
 		if (!character.proficiencySources[type])
 			character.proficiencySources[type] = new Map();
 
-		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
+		const normalizedTarget = TextProcessor.normalizeForLookup(proficiency);
 		const existingProf = character.proficiencies[type].find(
-			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
+			(p) => TextProcessor.normalizeForLookup(p) === normalizedTarget,
 		);
 
 		const wasNew = !existingProf;
@@ -179,7 +178,7 @@ export class ProficiencyService {
 
 	removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			console.warn('ProficiencyCore', 'Invalid parameters for removeProficienciesBySource');
+			console.warn('[ProficiencyCore]', 'Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -225,9 +224,9 @@ export class ProficiencyService {
 	hasProficiency(character, type, proficiency) {
 		if (!character?.proficiencies?.[type]) return false;
 
-		const normalizedTarget = DataNormalizer.normalizeForLookup(proficiency);
+		const normalizedTarget = TextProcessor.normalizeForLookup(proficiency);
 		return character.proficiencies[type].some(
-			(p) => DataNormalizer.normalizeForLookup(p) === normalizedTarget,
+			(p) => TextProcessor.normalizeForLookup(p) === normalizedTarget,
 		);
 	}
 
@@ -252,7 +251,7 @@ export class ProficiencyService {
 
 	setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			console.warn('ProficiencyCore', 'Invalid parameters for setOptionalProficiencies');
+			console.warn('[ProficiencyCore]', 'Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -270,7 +269,7 @@ export class ProficiencyService {
 			};
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		if (!character.optionalProficiencies[type][sourceKey]) {
 			character.optionalProficiencies[type][sourceKey] = {
 				allowed: 0,
@@ -298,7 +297,7 @@ export class ProficiencyService {
 			return;
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		if (character.optionalProficiencies[type][sourceKey]) {
 			const selected =
 				character.optionalProficiencies[type][sourceKey].selected || [];
@@ -327,15 +326,15 @@ export class ProficiencyService {
 
 	selectOptionalProficiency(character, type, source, proficiency) {
 		if (!character?.optionalProficiencies?.[type]) {
-			console.warn('ProficiencyCore', 'Optional proficiencies not initialized for type:', type);
+			console.warn('[ProficiencyCore]', 'Optional proficiencies not initialized for type:', type);
 			return false;
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
-			console.warn('ProficiencyCore', 'No optional proficiency configuration for source:', source);
+			console.warn('[ProficiencyCore]', 'No optional proficiency configuration for source:', source);
 			return false;
 		}
 
@@ -353,7 +352,7 @@ export class ProficiencyService {
 		}
 
 		if (!config.options.includes(proficiency)) {
-			console.warn('ProficiencyCore', 'Proficiency not in available options:', proficiency);
+			console.warn('[ProficiencyCore]', 'Proficiency not in available options:', proficiency);
 			return false;
 		}
 
@@ -383,7 +382,7 @@ export class ProficiencyService {
 			return false;
 		}
 
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		const config = character.optionalProficiencies[type][sourceKey];
 
 		if (!config) {
@@ -417,7 +416,7 @@ export class ProficiencyService {
 	}
 
 	getAvailableOptionalProficiencies(character, type, source) {
-		const sourceKey = DataNormalizer.normalizeForLookup(source);
+		const sourceKey = TextProcessor.normalizeForLookup(source);
 		const config = character?.optionalProficiencies?.[type]?.[sourceKey];
 
 		if (!config) {
@@ -555,7 +554,7 @@ export class ProficiencyService {
 			return;
 		}
 
-		const normalizedProf = DataNormalizer.normalizeForLookup(proficiency);
+		const normalizedProf = TextProcessor.normalizeForLookup(proficiency);
 		const sources = ['race', 'class', 'background'];
 		let refunded = false;
 
@@ -574,7 +573,7 @@ export class ProficiencyService {
 			}
 
 			const matchingProf = config.selected.find(
-				(s) => DataNormalizer.normalizeForLookup(s) === normalizedProf,
+				(s) => TextProcessor.normalizeForLookup(s) === normalizedProf,
 			);
 
 			if (matchingProf) {
@@ -608,11 +607,11 @@ export class ProficiencyService {
 			return;
 		}
 
-		const targetLower = DataNormalizer.normalizeForLookup(proficiency);
+		const targetLower = TextProcessor.normalizeForLookup(proficiency);
 		let foundProf = null;
 
 		for (const [key] of character.proficiencySources[type]) {
-			if (DataNormalizer.normalizeForLookup(key) === targetLower) {
+			if (TextProcessor.normalizeForLookup(key) === targetLower) {
 				foundProf = key;
 				break;
 			}
@@ -634,7 +633,7 @@ export class ProficiencyService {
 
 			if (character.proficiencies[type]) {
 				const index = character.proficiencies[type].findIndex(
-					(p) => DataNormalizer.normalizeForLookup(p) === targetLower,
+					(p) => TextProcessor.normalizeForLookup(p) === targetLower,
 				);
 				if (index > -1) {
 					character.proficiencies[type].splice(index, 1);
@@ -651,7 +650,7 @@ export class ProficiencyService {
 			this._skillData = data?.skill || [];
 			return this._skillData;
 		} catch (error) {
-			console.error('ProficiencyService', 'Failed to load skill data', error);
+			console.error('[ProficiencyService]', 'Failed to load skill data', error);
 			this._skillData = [];
 			return [];
 		}
@@ -679,7 +678,7 @@ export class ProficiencyService {
 		const skillData = await this._loadSkillData();
 		if (!skillData || skillData.length === 0) return null;
 
-		const normalizedSearch = DataNormalizer.normalizeForLookup(skillName);
+		const normalizedSearch = TextProcessor.normalizeForLookup(skillName);
 
 		// Import sourceService dynamically to avoid circular dependency
 		const { sourceService } = await import('./SourceService.js');
@@ -694,7 +693,7 @@ export class ProficiencyService {
 		if (allowedSources.has('XPHB')) {
 			skill = skillData.find(
 				(s) =>
-					DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(s.name) === normalizedSearch &&
 					s.source === 'XPHB',
 			);
 		}
@@ -703,7 +702,7 @@ export class ProficiencyService {
 		if (!skill && allowedSources.has('PHB')) {
 			skill = skillData.find(
 				(s) =>
-					DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(s.name) === normalizedSearch &&
 					s.source === 'PHB',
 			);
 		}
@@ -712,7 +711,7 @@ export class ProficiencyService {
 		if (!skill) {
 			skill = skillData.find(
 				(s) =>
-					DataNormalizer.normalizeForLookup(s.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(s.name) === normalizedSearch &&
 					allowedSources.has(s.source?.toUpperCase()),
 			);
 		}
@@ -733,7 +732,7 @@ export class ProficiencyService {
 		const languageData = await this._loadLanguageData();
 		if (!languageData || languageData.length === 0) return null;
 
-		const normalizedSearch = DataNormalizer.normalizeForLookup(languageName);
+		const normalizedSearch = TextProcessor.normalizeForLookup(languageName);
 
 		// Import sourceService dynamically to avoid circular dependency
 		const { sourceService } = await import('./SourceService.js');
@@ -748,7 +747,7 @@ export class ProficiencyService {
 		if (allowedSources.has('XPHB')) {
 			language = languageData.find(
 				(l) =>
-					DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(l.name) === normalizedSearch &&
 					l.source === 'XPHB',
 			);
 		}
@@ -757,7 +756,7 @@ export class ProficiencyService {
 		if (!language && allowedSources.has('PHB')) {
 			language = languageData.find(
 				(l) =>
-					DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(l.name) === normalizedSearch &&
 					l.source === 'PHB',
 			);
 		}
@@ -766,7 +765,7 @@ export class ProficiencyService {
 		if (!language) {
 			language = languageData.find(
 				(l) =>
-					DataNormalizer.normalizeForLookup(l.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(l.name) === normalizedSearch &&
 					allowedSources.has(l.source?.toUpperCase()),
 			);
 		}
@@ -787,7 +786,7 @@ export class ProficiencyService {
 	async getToolDescription(toolName) {
 		const items = itemService.getAllItems();
 		if (!items || items.length === 0) {
-			console.warn('ProficiencyService No items available for tool lookup');
+			console.warn('[ProficiencyService]', 'No items available for tool lookup');
 			return {
 				name: toolName,
 				description: `Proficiency with ${toolName.toLowerCase()} allows you to add your proficiency bonus to any ability checks made using these tools.`,
@@ -795,7 +794,7 @@ export class ProficiencyService {
 			};
 		}
 
-		const normalizedSearch = DataNormalizer.normalizeForLookup(toolName);
+		const normalizedSearch = TextProcessor.normalizeForLookup(toolName);
 
 		// Import sourceService dynamically to avoid circular dependency
 		const { sourceService } = await import('./SourceService.js');
@@ -826,7 +825,7 @@ export class ProficiencyService {
 		if (allowedSources.has('XPHB')) {
 			tool = items.find(
 				(item) =>
-					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 					item.source === 'XPHB' &&
 					isToolType(item.type),
 			);
@@ -836,7 +835,7 @@ export class ProficiencyService {
 		if (!tool && allowedSources.has('PHB')) {
 			tool = items.find(
 				(item) =>
-					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 					item.source === 'PHB' &&
 					isToolType(item.type),
 			);
@@ -846,7 +845,7 @@ export class ProficiencyService {
 		if (!tool) {
 			tool = items.find(
 				(item) =>
-					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 					allowedSources.has(item.source?.toUpperCase()) &&
 					isToolType(item.type),
 			);
@@ -921,10 +920,10 @@ export class ProficiencyService {
 		}
 
 		// Look for specific armor item
-		const normalizedSearch = DataNormalizer.normalizeForLookup(armorName);
+		const normalizedSearch = TextProcessor.normalizeForLookup(armorName);
 		let armor = baseItems.find(
 			(item) =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 				item.armor &&
 				item.source === 'XPHB',
 		);
@@ -932,7 +931,7 @@ export class ProficiencyService {
 		if (!armor) {
 			armor = baseItems.find(
 				(item) =>
-					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 					item.armor,
 			);
 		}
@@ -986,10 +985,10 @@ export class ProficiencyService {
 		}
 
 		// Look for specific weapon
-		const normalizedSearch = DataNormalizer.normalizeForLookup(weaponName);
+		const normalizedSearch = TextProcessor.normalizeForLookup(weaponName);
 		let weapon = baseItems.find(
 			(item) =>
-				DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+				TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 				item.weapon &&
 				item.source === 'XPHB',
 		);
@@ -997,7 +996,7 @@ export class ProficiencyService {
 		if (!weapon) {
 			weapon = baseItems.find(
 				(item) =>
-					DataNormalizer.normalizeForLookup(item.name) === normalizedSearch &&
+					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
 					item.weapon,
 			);
 		}
@@ -1045,7 +1044,7 @@ export class ProficiencyService {
 			this._bookData = bookData || null;
 			return this._bookData;
 		} catch (error) {
-			console.error('ProficiencyService', 'Failed to load book data', error);
+			console.error('[ProficiencyService]', 'Failed to load book data', error);
 			return null;
 		}
 	}

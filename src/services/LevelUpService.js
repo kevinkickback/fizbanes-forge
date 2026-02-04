@@ -1,4 +1,3 @@
-import { getAbilityAbbrDisplay } from '../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { classService } from './ClassService.js';
 import { sourceService } from './SourceService.js';
@@ -51,10 +50,6 @@ class LevelUpService {
 			if (source && !classEntry.source) {
 				classEntry.source = source;
 			}
-			console.debug(`[${this.loggerScope}]`, 'Updated class level', {
-				className,
-				level,
-			});
 			return classEntry;
 		}
 
@@ -77,11 +72,6 @@ class LevelUpService {
 			level,
 		);
 
-		console.debug(`[${this.loggerScope}]`, 'Added class level', {
-			className,
-			level,
-		});
-
 		eventBus.emit(EVENTS.MULTICLASS_ADDED, character, classEntry);
 		return classEntry;
 	}
@@ -100,10 +90,6 @@ class LevelUpService {
 
 		const removed = character.progression.classes.splice(index, 1)[0];
 
-		console.debug(`[${this.loggerScope}]`, 'Removed class level', {
-			className,
-		});
-
 		eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, removed);
 		return true;
 	}
@@ -112,49 +98,6 @@ class LevelUpService {
 		return classService.getHitDie(className);
 	}
 
-	getClassFeaturesForLevel(className, level) {
-		try {
-			// Use ClassService's built-in getClassFeatures which properly handles filtering
-			const features = classService.getClassFeatures(className, level);
-
-			return features.map((feature) => ({
-				name: feature.name,
-				source: feature.source,
-				level: feature.level,
-				description: feature.entries,
-			}));
-		} catch (error) {
-			console.error(`[${this.loggerScope}]`, 'Failed to load features', error);
-			return [];
-		}
-	}
-
-	async getSubclassFeaturesForLevel(className, subclassName, level) {
-		try {
-			// Get subclass features using ClassService's built-in method
-			const features = classService.getSubclassFeatures(
-				className,
-				subclassName,
-				level,
-			);
-
-			return features.map((feature) => ({
-				name: feature.name,
-				source: feature.source,
-				level: feature.level,
-				description: feature.entries,
-			}));
-		} catch (error) {
-			console.error(
-				`[${this.loggerScope}]`,
-				'Failed to load subclass features',
-				error,
-			);
-			return [];
-		}
-	}
-
-	/** Get ASI levels for class by parsing classFeatures. */
 	_getASILevelsForClass(className) {
 		const classData = classService.getClass(className);
 		if (!classData?.classFeatures) {
@@ -205,35 +148,6 @@ class LevelUpService {
 		return [4, 8, 12, 16, 19];
 	}
 
-	/** Combined ASI levels for multiclass character. */
-	getASILevels(character) {
-		if (
-			!character?.progression?.classes ||
-			character.progression.classes.length === 0
-		) {
-			// No classes yet, return standard
-			return [4, 8, 12, 16, 19];
-		}
-
-		// Collect all ASI levels from all classes
-		const allASILevels = new Set();
-		for (const classEntry of character.progression.classes) {
-			const asiLevels = this._getASILevelsForClass(classEntry.name);
-			for (const level of asiLevels) {
-				allASILevels.add(level);
-			}
-		}
-
-		return Array.from(allASILevels).sort((a, b) => a - b);
-	}
-
-	hasASIAvailable(character) {
-		const currentLevel = this.getTotalLevel(character);
-		const asiLevels = this.getASILevels(character);
-		return asiLevels.includes(currentLevel);
-	}
-
-	/** Record a level-up event with applied features and choices. */
 	recordLevelUp(character, fromLevel, toLevel, changes = {}) {
 		if (!character.progression) {
 			character.progression = {
@@ -253,8 +167,6 @@ class LevelUpService {
 		};
 
 		character.progression.levelUps.push(levelUpRecord);
-
-		console.debug(`[${this.loggerScope}]`, 'Recorded level-up', levelUpRecord);
 	}
 
 	updateSpellSlots(character) {
@@ -330,64 +242,6 @@ class LevelUpService {
 		return abilityMap[abbr] || abbr;
 	}
 
-	_getAllClasses() {
-		const classes = classService.getAllClasses();
-		// Filter by allowed sources and avoid duplicates
-		// Also exclude sidekick classes
-		const uniqueNames = new Set();
-		const result = [];
-
-		for (const cls of classes) {
-			// Skip sidekick classes (Spellcaster Sidekick, Warrior Sidekick, etc.)
-			if (cls.isSidekick) {
-				continue;
-			}
-
-			// Check if source is allowed
-			if (!sourceService.isSourceAllowed(cls.source)) {
-				continue;
-			}
-
-			// Keep one version per class name (prefer non-reprinted versions)
-			if (!uniqueNames.has(cls.name)) {
-				uniqueNames.add(cls.name);
-				result.push(cls.name);
-			}
-		}
-
-		return result.sort();
-	}
-
-	/** Return human-readable multiclass requirement string. */
-	getRequirementText(className) {
-		const classData = classService.getClass(className);
-		if (!classData?.multiclassing?.requirements) {
-			return '';
-		}
-
-		const req = classData.multiclassing.requirements;
-
-		// Handle OR requirements (e.g., Fighter: Str 13 or Dex 13)
-		if (req.or && Array.isArray(req.or)) {
-			const orParts = [];
-			for (const orGroup of req.or) {
-				const abilities = Object.entries(orGroup).map(([abbr, score]) => {
-					const fullName = this._mapAbilityAbbreviation(abbr);
-					return `${getAbilityAbbrDisplay(fullName)} ${score}`;
-				});
-				orParts.push(abilities.join(' & '));
-			}
-			return orParts.join(' or ');
-		}
-
-		// Handle regular AND requirements
-		const parts = Object.entries(req).map(([abbr, score]) => {
-			const fullName = this._mapAbilityAbbreviation(abbr);
-			return `${getAbilityAbbrDisplay(fullName)} ${score}`;
-		});
-		return parts.join(' & ');
-	}
-
 	checkMulticlassRequirements(character, className) {
 		const classData = classService.getClass(className);
 		if (!classData?.multiclassing?.requirements) {
@@ -395,7 +249,7 @@ class LevelUpService {
 				`[${this.loggerScope}]`,
 				`No multiclass requirements for class ${className}`,
 			);
-			return true; // No requirements, allow it
+			return true;
 		}
 
 		const requirements = classData.multiclassing.requirements;
@@ -410,18 +264,17 @@ class LevelUpService {
 
 		// Handle OR requirements (e.g., Fighter: Str 13 OR Dex 13)
 		if (requirements.or && Array.isArray(requirements.or)) {
+			// Flatten all OR requirements into a single list of alternatives
 			for (const orGroup of requirements.or) {
-				// Check if ALL requirements in this OR group are met
-				const allMet = Object.entries(orGroup).every(([abbr, minScore]) => {
+				for (const [abbr, minScore] of Object.entries(orGroup)) {
 					const fullName = this._mapAbilityAbbreviation(abbr);
 					const score = getScore(fullName);
-					return score >= minScore;
-				});
-				if (allMet) {
-					return true; // At least one OR group satisfied
+					if (score >= minScore) {
+						return true; // Need ANY one requirement
+					}
 				}
 			}
-			return false; // No OR groups satisfied
+			return false;
 		}
 
 		// Handle regular AND requirements
@@ -436,29 +289,57 @@ class LevelUpService {
 		return true;
 	}
 
-	getAvailableClassesForMulticlass(character, ignoreRequirements = false) {
-		const options = this.getMulticlassOptions(character, ignoreRequirements);
-		return options
-			.filter((opt) => opt.meetsRequirements)
-			.map((opt) => opt.name);
-	}
-
 	getMulticlassOptions(character, ignoreRequirements = false) {
-		const allClasses = this._getAllClasses();
+		const allClasses = classService.getAllClasses();
 		const existingClasses =
 			character.progression?.classes?.map((c) => c.name) || [];
 
-		return allClasses
-			.filter((cls) => !existingClasses.includes(cls))
+		const uniqueNames = new Set();
+		const filtered = [];
+
+		for (const cls of allClasses) {
+			if (cls.isSidekick) continue;
+			if (!sourceService.isSourceAllowed(cls.source)) continue;
+			if (existingClasses.includes(cls.name)) continue;
+			if (uniqueNames.has(cls.name)) continue;
+
+			uniqueNames.add(cls.name);
+			filtered.push(cls.name);
+		}
+
+		return filtered
+			.sort()
 			.map((cls) => {
-				// When ignoring requirements, mark all as meeting requirements
+				const classData = classService.getClass(cls);
 				const meetsRequirements =
 					ignoreRequirements ||
 					this.checkMulticlassRequirements(character, cls);
+
+				let requirementText = '';
+				if (classData?.multiclassing?.requirements) {
+					const reqs = classData.multiclassing.requirements;
+
+					if (reqs.or) {
+						// OR requirements: flatten and join with 'or'
+						const alternatives = [];
+						for (const group of reqs.or) {
+							for (const [abbr, score] of Object.entries(group)) {
+								alternatives.push(`${abbr.toUpperCase()} ${score}`);
+							}
+						}
+						requirementText = alternatives.join(' or ');
+					} else {
+						// AND requirements
+						requirementText = Object.entries(reqs)
+							.map(([abbr, score]) => `${abbr.toUpperCase()} ${score}`)
+							.join(', ');
+					}
+				}
+
 				return {
 					name: cls,
 					meetsRequirements,
-					requirementText: this.getRequirementText(cls),
+					requirementText,
 				};
 			});
 	}
@@ -510,99 +391,6 @@ class LevelUpService {
 
 		return combinedSlots;
 	}
-
-	/** Get pending choices needed at a specific level for build page. */
-	getPendingChoicesForLevel(character, className, level) {
-		const choices = {
-			subclass: null,
-			asi: null,
-			features: [],
-			spells: null,
-		};
-
-		const classData = classService.getClass(className);
-		if (!classData) return choices;
-
-		const classEntry = character.progression?.classes?.find(
-			(c) => c.name === className,
-		);
-		if (!classEntry) return choices;
-
-		// Check subclass requirement
-		const subclassLevel = classData.subclassTitle?.level || 3;
-		if (level >= subclassLevel && !classEntry.subclass) {
-			choices.subclass = {
-				level: subclassLevel,
-				required: true,
-			};
-		}
-
-		// Check ASI availability
-		const asiLevels = this._getASILevelsForClass(className);
-		if (asiLevels.includes(level)) {
-			// Check if ASI was already used at this level
-			const levelUps = character.progression?.levelUps || [];
-			const asiUsed = levelUps.some((lu) => {
-				const isThisLevel = lu.toLevel === level;
-				const hasChanges =
-					(lu.changedAbilities &&
-						Object.keys(lu.changedAbilities).length > 0) ||
-					(lu.appliedFeats && lu.appliedFeats.length > 0);
-				return isThisLevel && hasChanges;
-			});
-
-			if (!asiUsed) {
-				choices.asi = {
-					level,
-					available: true,
-				};
-			}
-		}
-
-		// Check class features with choices
-		const features = classService.getClassFeatures(
-			className,
-			level,
-			classData.source || 'PHB',
-		);
-		for (const feature of features) {
-			const featureName = feature.name || '';
-			const hasChoice =
-				featureName.includes('Fighting Style') ||
-				featureName.includes('Metamagic') ||
-				featureName.includes('Eldritch Invocations') ||
-				featureName.includes('Pact Boon');
-
-			if (hasChoice && feature.level === level) {
-				choices.features.push({
-					name: featureName,
-					level: feature.level,
-					type: this._detectFeatureType(featureName),
-				});
-			}
-		}
-
-		// Check spell availability (if spellcaster)
-		if (classData.spellcastingAbility) {
-			const spellInfo =
-				spellSelectionService.getPendingSpellChoices?.(character) || [];
-			const classSpellInfo = spellInfo.find((s) => s.class === className);
-			if (classSpellInfo) {
-				choices.spells = classSpellInfo;
-			}
-		}
-
-		return choices;
-	}
-
-	_detectFeatureType(featureName) {
-		if (featureName.includes('Fighting Style')) return 'fightingStyle';
-		if (featureName.includes('Metamagic')) return 'metamagic';
-		if (featureName.includes('Eldritch Invocations')) return 'invocations';
-		if (featureName.includes('Pact Boon')) return 'pactBoon';
-		return 'other';
-	}
 }
 
-// Export singleton
 export const levelUpService = new LevelUpService();

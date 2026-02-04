@@ -69,7 +69,7 @@ export class CharacterStepBackground {
 	 * Attach event listeners after render.
 	 */
 	async attachListeners(contentArea) {
-		console.debug('Step4Background', 'Attaching listeners');
+		console.debug('[Step4Background]', 'Attaching listeners');
 
 		// Load backgrounds
 		await this._loadBackgrounds();
@@ -111,7 +111,7 @@ export class CharacterStepBackground {
 	 */
 	async save() {
 		// Data is saved on change, nothing to do here
-		console.debug('Step4Background', 'Background step data saved to session');
+		console.debug('[Step4Background]', 'Background step data saved to session');
 	}
 
 	/**
@@ -126,7 +126,7 @@ export class CharacterStepBackground {
 				await backgroundService.initialize();
 			}
 		} catch (error) {
-			console.error('Step4Background', 'Failed to load backgrounds', error);
+			console.error('[Step4Background]', 'Failed to load backgrounds', error);
 		}
 	}
 
@@ -139,7 +139,7 @@ export class CharacterStepBackground {
 			const backgrounds = backgroundService.getAllBackgrounds();
 
 			if (!backgrounds || backgrounds.length === 0) {
-				console.error('Step4Background', 'No backgrounds available');
+				console.error('[Step4Background]', 'No backgrounds available');
 				return;
 			}
 
@@ -171,7 +171,7 @@ export class CharacterStepBackground {
 				`Populated ${filteredBackgrounds.length} backgrounds`,
 			);
 		} catch (error) {
-			console.error('Step4Background', 'Error populating backgrounds', error);
+			console.error('[Step4Background]', 'Error populating backgrounds', error);
 		}
 	}
 
@@ -193,11 +193,11 @@ export class CharacterStepBackground {
 		const background = backgroundService.selectBackground(name, source);
 
 		if (!background) {
-			console.error('Step4Background', 'Background not found', name, source);
+			console.error('[Step4Background]', 'Background not found', name, source);
 			return;
 		}
 
-		console.debug('Step4Background', 'Selected background:', name, source);
+		console.debug('[Step4Background]', 'Selected background:', name, source);
 
 		// Save to session
 		this.session.set('background', {

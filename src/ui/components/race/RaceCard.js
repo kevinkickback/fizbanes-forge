@@ -12,8 +12,7 @@ import {
 	toTitleCase,
 	unpackUid,
 } from '../../../lib/5eToolsParser.js';
-import DataNormalizer from '../../../lib/DataNormalizer.js';
-import { textProcessor } from '../../../lib/TextProcessor.js';
+import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
 import {
 	abilityScoreService,
 	getAbilityData,
@@ -74,7 +73,7 @@ export class RaceCard {
 					);
 				});
 		} catch (error) {
-			console.error('RaceCard', 'Failed to initialize race card:', error);
+			console.error('[RaceCard]', 'Failed to initialize race card:', error);
 		}
 	}
 
@@ -125,7 +124,7 @@ export class RaceCard {
 
 	onEventBus(event, handler) {
 		if (typeof handler !== 'function') {
-			console.warn('RaceCard', 'Handler must be a function', { event });
+			console.warn('[RaceCard]', 'Handler must be a function', { event });
 			return;
 		}
 
@@ -144,7 +143,7 @@ export class RaceCard {
 					try {
 						eventBus.off(event, handler);
 					} catch (e) {
-						console.warn('RaceCard', 'Error removing listener', {
+						console.warn('[RaceCard]', 'Error removing listener', {
 							event,
 							error: e,
 						});
@@ -154,7 +153,7 @@ export class RaceCard {
 		}
 
 		this._eventHandlers = {};
-		console.debug('RaceCard', 'EventBus cleanup complete');
+		console.debug('[RaceCard]', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------
@@ -167,7 +166,7 @@ export class RaceCard {
 		try {
 			const races = this._raceService.getAllRaces();
 			if (!races || races.length === 0) {
-				console.error('RaceCard', 'No races available to populate list');
+				console.error('[RaceCard]', 'No races available to populate list');
 				return;
 			}
 
@@ -185,7 +184,7 @@ export class RaceCard {
 			}
 
 			if (filteredRaces.length === 0) {
-				console.error('RaceCard', 'No races available after filtering');
+				console.error('[RaceCard]', 'No races available after filtering');
 				this._raceList.innerHTML = '<div class="text-muted px-2">No races found.</div>';
 				return;
 			}
@@ -203,9 +202,9 @@ export class RaceCard {
 				await this._createRaceItem(race);
 			}
 
-			console.debug('RaceCard', `Populated ${sortedRaces.length} races`);
+			console.debug('[RaceCard]', `Populated ${sortedRaces.length} races`);
 		} catch (error) {
-			console.error('RaceCard', 'Error populating race list:', error);
+			console.error('[RaceCard]', 'Error populating race list:', error);
 		}
 	}
 
@@ -418,7 +417,7 @@ export class RaceCard {
 				this._infoPanel.classList.remove('collapsed');
 			}
 		} else {
-			console.warn('RaceCard', `Info panel not found for: ${contentId}`);
+			console.warn('[RaceCard]', `Info panel not found for: ${contentId}`);
 		}
 	}
 
@@ -489,7 +488,7 @@ export class RaceCard {
 
 			// Find the race item in the list
 			const raceValue = `${character.race.name}_${character.race.source}`;
-			console.debug('RaceCard', 'Loading saved race:', raceValue);
+			console.debug('[RaceCard]', 'Loading saved race:', raceValue);
 
 			let raceItem = this._raceList?.querySelector(
 				`[data-race="${raceValue}"]`,
@@ -541,7 +540,7 @@ export class RaceCard {
 					const listHeight = this._raceList.offsetHeight;
 					const listScrollBottom = listScrollTop + listHeight;
 
-					console.debug('RaceCard Scrolling to selected race:', {
+					console.debug('[RaceCard]', 'Scrolling to selected race:', {
 						itemTop,
 						itemBottom,
 						listScrollTop,
@@ -577,7 +576,7 @@ export class RaceCard {
 						);
 					}, 100);
 				} else {
-					console.warn('RaceCard No race list found for scrolling');
+					console.warn('[RaceCard]', 'No race list found for scrolling');
 				}
 			});
 
@@ -587,7 +586,7 @@ export class RaceCard {
 				character.race.source,
 			);
 			if (!race) {
-				console.error('RaceCard', 'Could not find race data for:', raceValue);
+				console.error('[RaceCard]', 'Could not find race data for:', raceValue);
 				return;
 			}
 
@@ -642,7 +641,7 @@ export class RaceCard {
 					if (standardOption) {
 						subraceSelect.value = '__standard__';
 						this._selectedSubrace = null;
-						console.debug('RaceCard', 'Standard race option selected');
+						console.debug('[RaceCard]', 'Standard race option selected');
 					}
 				}
 			}
@@ -650,7 +649,7 @@ export class RaceCard {
 			// Show info panel for this race/subrace
 			this._showInfo(infoId, true);
 
-			console.debug('RaceCard', 'Saved race selection loaded successfully');
+			console.debug('[RaceCard]', 'Saved race selection loaded successfully');
 
 			// Re-apply racial ability bonuses and pending choices
 			this._updateAbilityBonuses(race, subrace);
@@ -661,7 +660,7 @@ export class RaceCard {
 				abilityScoreService.setRacialAbilityChoices(savedChoices);
 			}
 		} catch (error) {
-			console.error('RaceCard', 'Error loading saved race selection:', error);
+			console.error('[RaceCard]', 'Error loading saved race selection:', error);
 		}
 	}
 
@@ -851,10 +850,10 @@ export class RaceCard {
 					character.getPendingAbilityChoices(),
 				);
 			} else {
-				console.debug('RaceCard', 'No ability choices found for race/subrace');
+				console.debug('[RaceCard]', 'No ability choices found for race/subrace');
 			}
 		} catch (error) {
-			console.error('RaceCard', 'Error updating ability bonuses:', error);
+			console.error('[RaceCard]', 'Error updating ability bonuses:', error);
 		}
 
 		// Notify of changes
@@ -1005,12 +1004,12 @@ export class RaceCard {
 			character.optionalProficiencies.languages.race.options = languageOptions;
 			// Restore valid selections using normalized comparison
 			const normalizedLanguageOptions = languageOptions.map((lang) =>
-				DataNormalizer.normalizeForLookup(lang),
+				TextProcessor.normalizeForLookup(lang),
 			);
 			character.optionalProficiencies.languages.race.selected =
 				previousSelections.filter((lang) =>
 					normalizedLanguageOptions.includes(
-						DataNormalizer.normalizeForLookup(lang),
+						TextProcessor.normalizeForLookup(lang),
 					),
 				);
 		}
@@ -1053,12 +1052,12 @@ export class RaceCard {
 				// Restore valid selections using normalized comparison
 				const normalizedToolOptions =
 					character.optionalProficiencies.tools.race.options.map((tool) =>
-						DataNormalizer.normalizeForLookup(tool),
+						TextProcessor.normalizeForLookup(tool),
 					);
 				character.optionalProficiencies.tools.race.selected =
 					previousSelections.filter((tool) =>
 						normalizedToolOptions.includes(
-							DataNormalizer.normalizeForLookup(tool),
+							TextProcessor.normalizeForLookup(tool),
 						),
 					);
 			}
@@ -1117,12 +1116,12 @@ export class RaceCard {
 			character.optionalProficiencies.skills.race.options = raceSkillOptions;
 			// Restore valid selections using normalized comparison
 			const normalizedRaceSkillOptions = raceSkillOptions.map((skill) =>
-				DataNormalizer.normalizeForLookup(skill),
+				TextProcessor.normalizeForLookup(skill),
 			);
 			character.optionalProficiencies.skills.race.selected =
 				previousSelections.filter((skill) =>
 					normalizedRaceSkillOptions.includes(
-						DataNormalizer.normalizeForLookup(skill),
+						TextProcessor.normalizeForLookup(skill),
 					),
 				);
 		}
@@ -1387,7 +1386,7 @@ class RaceDetailsView {
 			speedSection.innerHTML =
 				speeds.map((speed) => `<li>${speed}</li>`).join('') || '<li>None</li>';
 		} catch (error) {
-			console.error('RaceDetails', 'Error updating size and speed:', error);
+			console.error('[RaceDetails]', 'Error updating size and speed:', error);
 
 			// Set default values if there's an error
 			const sizeSection = this._raceDetails.querySelector(

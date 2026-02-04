@@ -110,7 +110,7 @@ export class RaceDetailsView {
 			speedSection.innerHTML =
 				speeds.map((speed) => `<li>${speed}</li>`).join('') || '<li>None</li>';
 		} catch (error) {
-			console.error('RaceDetails', 'Error updating size and speed:', error);
+			console.error('[RaceDetails]', 'Error updating size and speed:', error);
 
 			// Set default values if there's an error
 			const sizeSection = this._raceDetails.querySelector(

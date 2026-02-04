@@ -6,7 +6,7 @@ import {
 	attAbvToFull,
 	formatModifierNumber,
 } from '../../../lib/5eToolsParser.js';
-import DataNormalizer from '../../../lib/DataNormalizer.js';
+import TextProcessor from '../../../lib/TextProcessor.js';
 
 export const SAVING_THROW_ABILITIES = {
 	strength: 'strength',
@@ -19,7 +19,7 @@ export const SAVING_THROW_ABILITIES = {
 
 export function getSkillAbility(skillName) {
 	if (!skillName) return null;
-	const normalized = DataNormalizer.normalizeForLookup(skillName);
+	const normalized = TextProcessor.normalizeForLookup(skillName);
 	// SKILL_TO_ABILITY uses lowercase ability abbreviations (str, dex, etc.)
 	// Convert to full names for compatibility
 	const abilityAbv = SKILL_TO_ABILITY[normalized];
@@ -73,7 +73,7 @@ export function mergeProficiencies(...proficiencyLists) {
 		if (!Array.isArray(list)) continue;
 		for (const item of list) {
 			if (!item || typeof item !== 'string') continue;
-			const key = DataNormalizer.normalizeForLookup(item);
+			const key = TextProcessor.normalizeForLookup(item);
 			if (!merged.has(key)) {
 				merged.set(key, item);
 			}
@@ -89,12 +89,12 @@ export function hasProficiency(proficiencies, proficiency) {
 		return false;
 	}
 
-	const normalized = DataNormalizer.normalizeForLookup(proficiency);
+	const normalized = TextProcessor.normalizeForLookup(proficiency);
 	return proficiencies.some(
 		(p) =>
 			p &&
 			typeof p === 'string' &&
-			DataNormalizer.normalizeForLookup(p) === normalized,
+			TextProcessor.normalizeForLookup(p) === normalized,
 	);
 }
 

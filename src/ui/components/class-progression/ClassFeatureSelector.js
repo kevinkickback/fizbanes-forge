@@ -48,7 +48,7 @@ export class ClassFeatureSelector {
 		maxSelections = null,
 	) {
 		try {
-			console.debug('LevelUpFeatureSelector Starting show', {
+			console.debug('[LevelUpFeatureSelector]', 'Starting show', {
 				className: this.className,
 				featureType: this.featureType,
 				currentFeatureId: this.currentFeatureId,

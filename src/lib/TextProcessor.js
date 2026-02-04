@@ -1,4 +1,4 @@
-/** TextProcessor.js - Processes text content, references, and formatting for D&D content. */
+// Processes text content, references, and formatting for D&D content.
 
 import { processString as renderStringWithTags } from './5eToolsRenderer.js';
 import { initializeTooltipListeners } from './TooltipManager.js';
@@ -62,21 +62,6 @@ class TextProcessor {
 		}
 	}
 
-	destroy() {
-		try {
-			if (this._observer) {
-				this._observer.disconnect();
-				this._observer = null;
-			}
-		} catch (error) {
-			console.error(
-				'[TextProcessor]',
-				'Error destroying text processor:',
-				error,
-			);
-		}
-	}
-
 	_handleDOMChanges(mutations) {
 		try {
 			for (const mutation of mutations) {
@@ -96,7 +81,7 @@ class TextProcessor {
 				});
 			}
 		} catch (error) {
-			console.error('TextProcessor', 'Error handling DOM changes:', error);
+			console.error('[TextProcessor]', 'Error handling DOM changes:', error);
 		}
 	}
 
@@ -106,7 +91,6 @@ class TextProcessor {
 			if (this._pendingNodes.length === 0) return;
 			const batch = this._pendingNodes;
 			this._pendingNodes = [];
-			// Deduplicate and skip non-HTMLElements
 			const unique = new Set();
 			for (const node of batch) {
 				if (node && node.nodeType === Node.ELEMENT_NODE) {
@@ -114,11 +98,10 @@ class TextProcessor {
 				}
 			}
 			unique.forEach((el) => {
-				// Process without forcing reprocess; element-specific matches handled inside
 				this.processPageContent(el);
 			});
 		} catch (error) {
-			console.error('TextProcessor', 'Error flushing pending nodes:', error);
+			console.error('[TextProcessor]', 'Error flushing pending nodes:', error);
 		}
 	}
 
@@ -131,7 +114,6 @@ class TextProcessor {
 
 			const mergedOptions = { ...this._defaultOptions, ...options };
 
-			// Combine all configured selectors for initial gathering
 			const allSelectors = [
 				...TextProcessor._DISPLAY_NAME_SELECTORS,
 				...TextProcessor._TOOLTIP_SELECTORS,
@@ -139,21 +121,16 @@ class TextProcessor {
 			const processingSelector = allSelectors.join(', ');
 
 			const elementsToProcess = [];
-			// Check if the container itself matches any processing selector
-			// Use allSelectors here for the check
 			if (allSelectors.some((selector) => container.matches(selector))) {
 				elementsToProcess.push(container);
 			}
 
-			// Add descendants that match using the combined processingSelector
 			if (processingSelector) {
-				// Ensure selector is not empty
 				elementsToProcess.push(
 					...container.querySelectorAll(processingSelector),
 				);
 			}
 
-			// Use a Set to avoid processing the same element multiple times if it's nested
 			const uniqueElements = new Set(elementsToProcess);
 
 			for (const element of uniqueElements) {
@@ -174,10 +151,9 @@ class TextProcessor {
 			if (!element) {
 				return;
 			}
-			// Force reprocess when called directly on an element
 			await this.processPageContent(element, {}, true);
 		} catch (error) {
-			console.error('TextProcessor', 'Error processing formatting:', error);
+			console.error('[TextProcessor]', 'Error processing element:', error);
 		}
 	}
 
@@ -185,7 +161,6 @@ class TextProcessor {
 		try {
 			const originalText = element.innerHTML;
 
-			// Skip if empty, or already processed unless forced
 			if (
 				!originalText.trim() ||
 				(element.hasAttribute('data-processed') && !forceReprocess)
@@ -193,8 +168,7 @@ class TextProcessor {
 				return;
 			}
 
-			// --- Determine Resolve Mode Based on Element Class Configuration ---
-			let resolveMode = options.resolveMode || 'tooltip'; // Start with default/passed option
+			let resolveMode = options.resolveMode || 'tooltip';
 
 			const useDisplayName = TextProcessor._DISPLAY_NAME_SELECTORS.some(
 				(selector) => element.matches(selector),
@@ -208,12 +182,9 @@ class TextProcessor {
 			} else if (useTooltip) {
 				resolveMode = 'tooltip';
 			}
-			// If it matches neither list, it will keep the default 'tooltip' mode.
 
-			// Pass the determined mode down in the options for processString
 			const processingOptions = { ...options, resolveMode };
 
-			// Only process if there's text content to avoid unnecessary async calls
 			if (element.textContent.includes('{@')) {
 				const processedText = await this.processString(
 					originalText,
@@ -232,10 +203,9 @@ class TextProcessor {
 				}
 			}
 
-			// Mark as processed to avoid reprocessing by the MutationObserver unless forced
 			element.setAttribute('data-processed', 'true');
 		} catch (error) {
-			console.warn('TextProcessor', 'Error processing text element', {
+			console.warn('[TextProcessor]', 'Error processing text element', {
 				error,
 				element,
 			});
@@ -246,23 +216,20 @@ class TextProcessor {
 		try {
 			if (!text) return '';
 
-			// Merge passed options with defaults
 			const mergedOptions = { ...this._defaultOptions, ...options };
 			let processedText = text;
 
-			// Process references if enabled, passing the options (including resolveMode)
 			if (mergedOptions.processReferences && text.includes('{@')) {
 				processedText = this._replaceReferences(processedText, mergedOptions);
 			}
 
-			// Process formatting if enabled
 			if (mergedOptions.processFormatting) {
 				processedText = this._processFormatting(processedText);
 			}
 
 			return processedText;
 		} catch (error) {
-			console.error('TextProcessor Error processing string:', error);
+			console.error('[TextProcessor]', 'Error processing string:', error);
 			return text || ''; // Return original text on error
 		}
 	}
@@ -276,28 +243,30 @@ class TextProcessor {
 		try {
 			if (!input) return '';
 
-			// Define formatting patterns
 			const patterns = [
 				{
 					regex: /\*\*([^*\n][^*]*?)\*\*/g,
 					replacement: '<strong>$1</strong>',
-				}, // Bold, avoid matching across newlines initially
-				{ regex: /\*([^*\n][^*]*?)\*/g, replacement: '<em>$1</em>' }, // Italic, avoid matching across newlines initially
-				// Add more formatting rules as needed
+				},
+				{ regex: /\*([^*\n][^*]*?)\*/g, replacement: '<em>$1</em>' },
 			];
 
-			// Apply each formatting pattern
 			let formattedText = input;
 			for (const { regex, replacement } of patterns) {
 				formattedText = formattedText.replace(regex, replacement);
 			}
 			return formattedText;
 		} catch (error) {
-			console.error('TextProcessor Error processing formatting:', error);
-			return input; // Return original input on error
+			console.error('[TextProcessor]', 'Error processing formatting:', error);
+			return input;
 		}
+	}
+
+	static normalizeForLookup(str) {
+		if (!str || typeof str !== 'string') return '';
+		return str.trim().toLowerCase();
 	}
 }
 
-// Create and export singleton instance
+export default TextProcessor;
 export const textProcessor = new TextProcessor();

@@ -10,12 +10,12 @@ export class SettingsService {
 
 	async initialize() {
 		if (this._initialized) {
-			console.debug('SettingsService', 'Already initialized');
+			console.debug('[SettingsService]', 'Already initialized');
 			return;
 		}
 
 		try {
-			console.debug('SettingsService', 'Initializing settings manager');
+			console.debug('[SettingsService]', 'Initializing settings manager');
 
 			this._initialized = true;
 			eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'settings', this);

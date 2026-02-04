@@ -1,18 +1,14 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { BaseDataService } from './BaseDataService.js';
 class ClassService extends BaseDataService {
 	constructor() {
 		super({ cacheKey: 'classes', loggerScope: 'ClassService' });
-		this._selectedClass = null;
-		this._selectedSubclass = null;
 	}
 
 	async initialize() {
 		const TTL_24_HOURS = 24 * 60 * 60 * 1000;
 		await this.initWithLoader(
 			async () => {
-				console.debug('ClassService', 'Initializing class data');
 				const index = await DataLoader.loadJSON('class/index.json', {
 					ttl: TTL_24_HOURS,
 				});
@@ -107,7 +103,7 @@ class ClassService extends BaseDataService {
 						subclassFluff: [],
 					};
 
-					console.debug('ClassService', 'Class data loaded', {
+					console.debug('[ClassService]', 'Class data loaded', {
 						classes: dataset.class.length,
 						classFeatures: dataset.classFeature.length,
 						subclasses: dataset.subclass.length,
@@ -214,6 +210,11 @@ class ClassService extends BaseDataService {
 		return defaultHitDice[className] || 'd8';
 	}
 
+	/** Alias for getClass() for backward compatibility */
+	getClassByName(className, source = 'PHB') {
+		return this.getClass(className, source);
+	}
+
 	/** Get a specific subclass by name. */
 	getSubclass(className, subclassName, source = 'PHB') {
 		const subclasses = this.getSubclasses(className, source);
@@ -246,56 +247,6 @@ class ClassService extends BaseDataService {
 				(f) => f.name === className && f.source === source,
 			) || null
 		);
-	}
-
-	/** Select a class (updates selection state). */
-	selectClass(className, source = 'PHB') {
-		console.debug('ClassService', 'Selecting class', { className, source });
-
-		this._selectedClass = this.getClass(className, source);
-		this._selectedSubclass = null;
-
-		if (this._selectedClass) {
-			console.debug('ClassService', 'Class selected', { className, source });
-			eventBus.emit(EVENTS.CLASS_SELECTED, this._selectedClass);
-		} else {
-			console.warn('ClassService', 'Class not found', { className, source });
-		}
-
-		return this._selectedClass;
-	}
-
-	/** Select a subclass for the currently selected class. */
-	selectSubclass(subclassName) {
-		if (!this._selectedClass) {
-			console.warn('ClassService', 'Cannot select subclass: no class selected');
-			return null;
-		}
-
-		console.debug('ClassService', 'Selecting subclass', { subclassName });
-
-		this._selectedSubclass = this.getSubclass(
-			this._selectedClass.name,
-			subclassName,
-			this._selectedClass.source,
-		);
-
-		if (this._selectedSubclass) {
-			console.debug('ClassService', 'Subclass selected', { subclassName });
-			eventBus.emit(EVENTS.SUBCLASS_SELECTED, this._selectedSubclass);
-		} else {
-			console.warn('ClassService', 'Subclass not found', { subclassName });
-		}
-
-		return this._selectedSubclass;
-	}
-
-	getSelectedClass() {
-		return this._selectedClass;
-	}
-
-	getSelectedSubclass() {
-		return this._selectedSubclass;
 	}
 
 	/** Get optional feature progression for a class. */
@@ -331,29 +282,6 @@ class ClassService extends BaseDataService {
 		}
 
 		return 0;
-	}
-
-	/** Check if a new optional feature is gained at a specific level. */
-	gainsOptionalFeatureAtLevel(
-		className,
-		currentLevel,
-		newLevel,
-		featureTypes,
-		source = 'PHB',
-	) {
-		const countAtCurrent = this.getOptionalFeatureCountAtLevel(
-			className,
-			currentLevel,
-			featureTypes,
-			source,
-		);
-		const countAtNew = this.getOptionalFeatureCountAtLevel(
-			className,
-			newLevel,
-			featureTypes,
-			source,
-		);
-		return countAtNew > countAtCurrent;
 	}
 
 	/** Get the level at which a class gains its subclass. */

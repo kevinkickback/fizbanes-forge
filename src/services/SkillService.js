@@ -1,5 +1,5 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
+import TextProcessor from '../lib/TextProcessor.js';
 class SkillService {
 	constructor() {
 		this._skillData = null;
@@ -9,14 +9,14 @@ class SkillService {
 	async initialize() {
 		// Skip if already initialized
 		if (this._skillData) {
-			console.debug('SkillService', 'Already initialized');
+			console.debug('[SkillService]', 'Already initialized');
 			return true;
 		}
 
-		console.debug('SkillService', 'Initializing skill data');
+		console.debug('[SkillService]', 'Initializing skill data');
 		try {
 			this._skillData = await DataLoader.loadSkills();
-			console.debug('SkillService', 'Skills loaded successfully', {
+			console.debug('[SkillService]', 'Skills loaded successfully', {
 				count: this._skillData.skill?.length,
 			});
 
@@ -25,14 +25,14 @@ class SkillService {
 			if (this._skillData.skill && Array.isArray(this._skillData.skill)) {
 				for (const skill of this._skillData.skill) {
 					if (!skill.name) continue;
-					const key = DataNormalizer.normalizeForLookup(skill.name);
+					const key = TextProcessor.normalizeForLookup(skill.name);
 					this._skillMap.set(key, skill);
 				}
 			}
 
 			return true;
 		} catch (error) {
-			console.error('SkillService', 'Failed to initialize skill data', error);
+			console.error('[SkillService]', 'Failed to initialize skill data', error);
 			return false;
 		}
 	}
@@ -45,7 +45,7 @@ class SkillService {
 	getSkill(skillName) {
 		if (!this._skillMap) return null;
 		return (
-			this._skillMap.get(DataNormalizer.normalizeForLookup(skillName)) || null
+			this._skillMap.get(TextProcessor.normalizeForLookup(skillName)) || null
 		);
 	}
 
@@ -72,11 +72,11 @@ class SkillService {
 			// Handle both string and array formats for ability
 			if (Array.isArray(skill.ability)) {
 				return skill.ability.some(
-					(a) => DataNormalizer.normalizeForLookup(a) === abilityAbbr,
+					(a) => TextProcessor.normalizeForLookup(a) === abilityAbbr,
 				);
 			}
 
-			return DataNormalizer.normalizeForLookup(skill.ability) === abilityAbbr;
+			return TextProcessor.normalizeForLookup(skill.ability) === abilityAbbr;
 		});
 	}
 }

@@ -5,10 +5,9 @@ import {
 	getAbilityModNumber,
 	numberToWords,
 } from '../lib/5eToolsParser.js';
-import DataNormalizer from '../lib/DataNormalizer.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import TextProcessor from '../lib/TextProcessor.js';
 
-/** Manages D&D character ability scores. */
 class AbilityScoreService {
 	constructor() {
 		// Use canonical lowercase abbreviations (str, dex, con, int, wis, cha) from 5eToolsParser
@@ -69,7 +68,7 @@ class AbilityScoreService {
 	normalizeAbilityName(abilityName) {
 		if (typeof abilityName !== 'string') {
 			console.warn(
-				'AbilityScoreService',
+				'[AbilityScoreService]',
 				`Expected string for ability name but got ${typeof abilityName}`,
 				{ abilityName },
 			);
@@ -81,7 +80,7 @@ class AbilityScoreService {
 
 		// Normalize abbreviations (str, dex, etc.) to full names before lookup
 		const fullName = attAbvToFull(trimmedName);
-		return DataNormalizer.normalizeForLookup(fullName);
+		return TextProcessor.normalizeForLookup(fullName);
 	}
 
 	getAllAbilities() {
@@ -122,19 +121,13 @@ class AbilityScoreService {
 		// Start with base score
 		let totalScore = this.getBaseScore(normalizedAbility);
 
-		console.debug('AbilityScoreService getTotalScore for', normalizedAbility, 'base:', totalScore);
-
 		// Add racial bonuses
 		if (
 			character.race?.abilityBonuses &&
 			typeof character.race.abilityBonuses[normalizedAbility] === 'number'
 		) {
 			totalScore += character.race.abilityBonuses[normalizedAbility];
-			console.debug('AbilityScoreService Added racial bonus:', character.race.abilityBonuses[normalizedAbility]);
 		}
-
-		// Add class bonuses
-		// Note: ability bonuses are stored in character.abilityBonuses, not in class object
 
 		// Add all other ability bonuses from any source
 		if (
@@ -142,15 +135,12 @@ class AbilityScoreService {
 			Array.isArray(character.abilityBonuses[normalizedAbility])
 		) {
 			const bonuses = character.abilityBonuses[normalizedAbility];
-			console.debug('AbilityScoreService Ability bonuses for', normalizedAbility, ':', bonuses);
 			for (const bonus of bonuses) {
 				if (typeof bonus.value === 'number') {
 					totalScore += bonus.value;
 				}
 			}
 		}
-
-		console.debug('AbilityScoreService Final total for', normalizedAbility, ':', totalScore);
 		return totalScore;
 	}
 
@@ -170,7 +160,7 @@ class AbilityScoreService {
 
 		if (!character) {
 			console.error(
-				'AbilityScoreService',
+				'[AbilityScoreService]',
 				'No character selected for ability score update',
 			);
 			return;
@@ -228,30 +218,23 @@ class AbilityScoreService {
 	assignStandardArrayValue(ability, value) {
 		const normalizedAbility = this.normalizeAbilityName(ability);
 
-		// Check if the value is in the standard array
 		if (!this._standardArrayValues.includes(value)) {
 			console.error(
-				'AbilityScoreService',
+				'[AbilityScoreService]',
 				`Value ${value} is not in the standard array`,
 			);
 			return false;
 		}
 
-		// Check if this value is already assigned to another ability
 		if (
 			this.isStandardArrayValueAssigned(value) &&
 			this._assignedStandardArrayValues[normalizedAbility] !== value
 		) {
 			console.error(
-				'AbilityScoreService',
+				'[AbilityScoreService]',
 				`Value ${value} is already assigned to another ability`,
 			);
 			return false;
-		}
-
-		// If this ability already has a value, remove it from assignedValues
-		if (this._assignedStandardArrayValues[normalizedAbility]) {
-			// No need to do anything, it will be overwritten
 		}
 
 		// Assign the value
@@ -267,10 +250,8 @@ class AbilityScoreService {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
-		// Clear and update the assigned values set
 		this._assignedStandardArrayValues = {};
 
-		// Track which values from the standard array are being used
 		for (const ability of this._allAbilities) {
 			const value = character.abilityScores?.[ability];
 			if (this._standardArrayValues.includes(value)) {
@@ -293,7 +274,7 @@ class AbilityScoreService {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character?.race) {
 			console.error(
-				'AbilityScoreService',
+				'[AbilityScoreService]',
 				'No character or race selected for ability choice',
 			);
 			return;
@@ -526,7 +507,6 @@ class AbilityScoreService {
 		return Object.entries(this._assignedStandardArrayValues);
 	}
 
-	/** Resets ability score method-specific state when switching methods. */
 	resetAbilityScoreMethod() {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
@@ -538,12 +518,9 @@ class AbilityScoreService {
 
 		const method = character.variantRules.abilityScoreMethod;
 
-		// Reset state based on the method
 		if (method === 'standardArray') {
-			// For standard array, reset assignments
 			this._assignedStandardArrayValues = {};
 
-			// Traditional D&D order assignment - always use this for consistency
 			const traditionalOrder = {
 				strength: 15, // STR: 15
 				dexterity: 14, // DEX: 14
@@ -553,39 +530,30 @@ class AbilityScoreService {
 				charisma: 8, // CHA: 8
 			};
 
-			// Always apply the traditional order for consistency and predictability
 			for (const [ability, value] of Object.entries(traditionalOrder)) {
-				// Update the character's ability score
 				this.updateAbilityScore(ability, value);
-
-				// Record the assignment
 				this._assignedStandardArrayValues[ability] = value;
 			}
 		} else if (method === 'pointBuy') {
-			// For point buy, ensure scores are within valid range (8-15)
 			for (const ability of this._allAbilities) {
 				const score = character.abilityScores?.[ability];
 
-				// If score is out of range, set to default
 				if (score < 8 || score > 15) {
 					this.updateAbilityScore(ability, 8);
 				}
 			}
 		}
 
-		// Notify listeners about the change
 		this._notifyAbilityScoresChanged();
 	}
 }
 
 //=============================================================================
-// Helper Functions from AbilityCalculator.js
+// Helper Functions
 //=============================================================================
 
-/** All ability score abbreviations in order */
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
-/** Formats an ability modifier with proper sign (e.g., "+2", "-1"). */
 export function formatModifier(modifier) {
 	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
 		return '+0';
@@ -629,81 +597,15 @@ export function calculatePointBuyTotal(scores) {
 	return total;
 }
 
-export function calculateRemainingPoints(scores, budget = POINT_BUY_BUDGET) {
-	return budget - calculatePointBuyTotal(scores);
-}
-
-export function validatePointBuyChange(
-	currentScores,
-	ability,
-	newScore,
-	budget = POINT_BUY_BUDGET,
-) {
-	// Score must be in valid range
-	if (newScore < 8 || newScore > 15) {
-		return false;
-	}
-
-	// Calculate what the total would be with the new score
-	const testScores = { ...currentScores, [ability]: newScore };
-	const totalCost = calculatePointBuyTotal(testScores);
-
-	return totalCost <= budget;
-}
-
-export function validateStandardArray(assignments) {
-	const result = {
-		isValid: true,
-		errors: [],
-	};
-
-	if (!assignments || typeof assignments !== 'object') {
-		result.isValid = false;
-		result.errors.push('Invalid assignments object');
-		return result;
-	}
-
-	const usedValues = new Set();
-	const assignedValues = Object.values(assignments).filter(
-		(v) => v !== null && v !== undefined,
-	);
-
-	// Check for duplicate values
-	for (const value of assignedValues) {
-		if (usedValues.has(value)) {
-			result.isValid = false;
-			result.errors.push(`Value ${value} assigned to multiple abilities`);
-		}
-		usedValues.add(value);
-	}
-
-	// Check if all values are from the standard array
-	for (const value of assignedValues) {
-		if (!STANDARD_ARRAY.includes(value)) {
-			result.isValid = false;
-			result.errors.push(`Value ${value} is not in the standard array`);
-		}
-	}
-
-	return result;
-}
-
-export function calculateTotalAbilityScore(baseScore, racialBonus = 0) {
-	return (baseScore || 0) + (racialBonus || 0);
-}
-
 //=============================================================================
-// Helper Functions from AbilityScoreUtils.js
+// 5etools Race Ability Parsing Helpers
 //=============================================================================
 
 function normalizeAbilityNameHelper(abb) {
-	// attAbvToFull returns capitalized names (e.g., 'Strength')
-	// We need lowercase for internal storage (e.g., 'strength')
 	const fullName = attAbvToFull(abb);
 	return fullName ? fullName.toLowerCase() : abb;
 }
 
-/** Parse race/subrace ability data into fixed bonuses and choices. */
 export function getRaceAbilityData(race, subrace) {
 	const fixed = [];
 	const choices = [];
@@ -767,7 +669,6 @@ export function getRaceAbilityData(race, subrace) {
 	return { fixed, choices };
 }
 
-/** Parse ability array into text and structured data. */
 export function getAbilityData(abilityArray, options = {}) {
 	const { isOnlyShort = false, isCurrentLineage = false } = options;
 
