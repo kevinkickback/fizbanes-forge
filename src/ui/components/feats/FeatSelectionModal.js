@@ -23,45 +23,50 @@ export class FeatSelectionModal {
 		this.ignoreRaceRestrictions = false;
 		this.ignoreSelectionLimit = false;
 		this.descriptionCache = new Map();
+		this._resolveSelection = null;
 	}
 
 	async show() {
-		const character = AppState.getCurrentCharacter();
-		this._availability = character?.getFeatAvailability?.() || {
-			max: 0,
-			remaining: 0,
-			reasons: [],
-			blockedReason:
-				'No feat selections available. Choose Variant Human or reach level 4.',
-		};
+		return new Promise((resolve, reject) => {
+			try {
+				this._resolveSelection = resolve;
 
-		this._baseSelectionLimit = this._availability?.max || 0;
-		this._selectionLimit = this.ignoreSelectionLimit
-			? null
-			: this._baseSelectionLimit;
+				const character = AppState.getCurrentCharacter();
+				this._availability = character?.getFeatAvailability?.() || {
+					max: 0,
+					remaining: 0,
+					reasons: [],
+					blockedReason:
+						'No feat selections available. Choose Variant Human or reach level 4.',
+				};
 
-		if (!this._selectionLimit) {
-			showNotification(
-				this._availability.blockedReason ||
-				'No feat selections available for this character.',
-				'warning',
-			);
-			return null;
-		}
+				this._baseSelectionLimit = this._availability?.max || 0;
+				this._selectionLimit = this.ignoreSelectionLimit
+					? null
+					: this._baseSelectionLimit;
 
-		this.selectedFeats = this._getInitialSelection();
-		this._snapshot = [...this.selectedFeats];
-		this._ensureController();
-		this._controller.config.selectionLimit = this._selectionLimit;
+				if (!this._selectionLimit) {
+					showNotification(
+						this._availability.blockedReason ||
+						'No feat selections available for this character.',
+						'warning',
+					);
+					resolve(null);
+					return;
+				}
 
-		const result = await this._controller.show(this._getContext());
-		if (Array.isArray(result)) {
-			this.selectedFeats = result;
-			this._snapshot = [...result];
-			return result;
-		}
+				this.selectedFeats = this._getInitialSelection();
+				this._snapshot = [...this.selectedFeats];
+				this._ensureController();
+				this._controller.config.selectionLimit = this._selectionLimit;
 
-		return null;
+				// Don't await - callbacks will resolve the promise
+				this._controller.show(this._getContext());
+			} catch (error) {
+				console.error('[FeatSelectionModal]', 'Error showing modal:', error);
+				reject(error);
+			}
+		});
 	}
 
 	_getContext() {
@@ -74,15 +79,10 @@ export class FeatSelectionModal {
 		if (this._controller) return;
 
 		this._controller = new UniversalSelectionModal({
-			modalId: 'featSelectionModal',
+			modalId: `featSelectionModal_${Date.now()}`,
+			modalTitle: 'Select Feats',
 			allowClose: this.allowClose,
 			pageSize: 50,
-			listContainerSelector: '.feat-list',
-			selectedContainerSelector: '.selected-feats-container',
-			searchInputSelector: '.feat-search',
-			filterPanelSelector: '[data-feat-filter-panel]',
-			confirmSelector: '.btn-ok',
-			cancelSelector: '.btn-secondary',
 			itemIdAttribute: 'data-feat-id',
 			selectionMode: 'multiple',
 			selectionLimit: this._selectionLimit,
@@ -168,16 +168,30 @@ export class FeatSelectionModal {
 			state?.selectedIds?.size >= this._selectionLimit &&
 			!isSelected;
 
+		const selectedClass = isSelected ? 'selected' : '';
+		const disabledClass = atLimit ? 'disabled' : '';
+
+		let badgesHtml = '';
+		if (feat.source) {
+			badgesHtml += `<span class="badge bg-secondary me-2">${feat.source}</span>`;
+		}
+
 		return `
-			<div class="feat-item ${isSelected ? 'selected' : ''} ${atLimit ? 'disabled' : ''}" data-feat-id="${feat.id}" role="button" aria-pressed="${isSelected}" aria-disabled="${atLimit ? 'true' : 'false'}" tabindex="${atLimit ? '-1' : '0'}">
-				<div class="flex-grow-1">
-					<div class="feat-item-header">
-						<strong class="feat-item-name">${feat.name}</strong>
-						<span class="badge feat-item-source">${feat.source}</span>
+			<div class="spell-card selector-card ${selectedClass} ${disabledClass}"
+			     data-feat-id="${feat.id}"
+			     role="button"
+			     aria-pressed="${isSelected}"
+			     aria-disabled="${atLimit ? 'true' : 'false'}"
+			     tabindex="${atLimit ? '-1' : '0'}">
+				<div class="spell-card-header">
+					<div>
+						<strong>${feat.name}</strong>
 					</div>
-					<div class="feat-desc">${description}</div>
+					<div>${badgesHtml}</div>
 				</div>
-				<div class="feat-selected-indicator" aria-hidden="true">✓ Selected</div>
+				<div class="spell-card-body">
+					<div class="feat-description">${description}</div>
+				</div>
 			</div>
 		`;
 	}
@@ -215,7 +229,7 @@ export class FeatSelectionModal {
 				this.descriptionCache.set(feat.id, description);
 
 				const slot = document.querySelector(
-					`[data-feat-id="${feat.id}"] .feat-desc`,
+					`[data-feat-id="${feat.id}"] .feat-description`,
 				);
 				if (slot) {
 					slot.innerHTML = description;
@@ -299,37 +313,23 @@ export class FeatSelectionModal {
 	}
 
 	_updateSelectionUi(state) {
-		const okButton = document.querySelector('#featSelectionModal .btn-ok');
-		if (okButton) {
+		if (!this._controller?.modal) return;
+
+		const confirmBtn = this._controller.modal.querySelector('.btn-confirm');
+		if (confirmBtn) {
 			const count = state?.selectedItems?.length || 0;
-			okButton.disabled = count === 0;
-			okButton.innerHTML =
+			confirmBtn.disabled = count === 0;
+			confirmBtn.innerHTML =
 				count > 0 ? `Add ${count} Feat${count > 1 ? 's' : ''}` : 'Add Feats';
 		}
 
-		this._renderSelectionLimitIndicator(state);
 		this._applyLimitClasses(state);
 	}
 
-	_renderSelectionLimitIndicator(state) {
-		const indicator = document.getElementById('featSelectionLimitIndicator');
-		if (!indicator) return;
-
-		const total =
-			this._selectionLimit === null ? '∞' : this._selectionLimit || 0;
-		const selected = state?.selectedItems?.length || 0;
-		const reasons = this._availability?.reasons || [];
-
-		indicator.innerHTML = `Allowed: ${selected}/${total}`;
-		if (reasons.length) {
-			indicator.innerHTML += `<div class="text-muted">${reasons
-				.map((r) => this._formatOrigin(r))
-				.join(', ')}</div>`;
-		}
-	}
-
 	_applyLimitClasses(state) {
-		const list = document.querySelector('#featSelectionModal .feat-list');
+		if (!this._controller?.modal) return;
+
+		const list = this._controller.modal.querySelector('.spell-list-container');
 		if (!list) return;
 
 		const atLimit =
@@ -391,11 +391,22 @@ export class FeatSelectionModal {
 			'success',
 		);
 
+		// Resolve the promise
+		if (this._resolveSelection) {
+			this._resolveSelection(enriched);
+			this._resolveSelection = null;
+		}
+
 		return enriched;
 	}
 
 	_handleCancel() {
 		this.selectedFeats = [...this._snapshot];
+		// Resolve the promise with null
+		if (this._resolveSelection) {
+			this._resolveSelection(null);
+			this._resolveSelection = null;
+		}
 	}
 
 	_formatOrigin(reason) {
