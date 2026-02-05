@@ -24,6 +24,7 @@ import { variantRuleService } from '../services/VariantRuleService.js';
 import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
 import { LoadingModal } from '../ui/components/setup/SetupModals.js';
 import { AppState } from './AppState.js';
+import { Modal } from './Modal.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
 import { themeManager } from './ThemeManager.js';
@@ -266,6 +267,7 @@ async function _initializeCoreComponents() {
 				name: 'notification center',
 				init: () => getNotificationCenter().initialize(),
 			},
+			{ name: 'modal', init: () => Modal.getInstance().ensureInitialized() },
 		];
 
 		for (const component of components) {

@@ -1,6 +1,7 @@
 // Step 2: Race - character race and subrace selection
 
 import {
+	escapeHtml,
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
@@ -93,58 +94,13 @@ export class CharacterStepRace {
         `;
 	}
 
-	/**
-	 * Attach event listeners to rendered content.
-	 */
 	async attachListeners(contentArea) {
-		console.debug('[Step2Race]', 'Attaching listeners');
-
 		this._raceSelect = contentArea.querySelector('#modalRaceSelect');
 		this._subraceSelect = contentArea.querySelector('#modalSubraceSelect');
 
-		// Initialize race service first
 		await this._raceService.initialize();
 
-		// Restore allowed sources from session if available
-		const savedSources = this.session.get('allowedSources');
-		console.debug('[Step2Race]', 'Saved sources from session:', {
-			savedSources,
-			type: typeof savedSources,
-			isSet: savedSources instanceof Set,
-			isArray: Array.isArray(savedSources),
-			size: savedSources?.size,
-			length: savedSources?.length,
-			values:
-				savedSources instanceof Set ? Array.from(savedSources) : savedSources,
-		});
-
-		if (savedSources && savedSources instanceof Set && savedSources.size > 0) {
-			// Update sourceService with saved sources
-			const currentSources = sourceService.getAllowedSources();
-			for (const source of currentSources) {
-				if (source !== 'PHB' && !savedSources.has(source)) {
-					sourceService.removeAllowedSource(source);
-				}
-			}
-			for (const source of savedSources) {
-				sourceService.addAllowedSource(source);
-			}
-			console.debug(
-				'[Step2Race]',
-				'Updated sourceService with saved sources:',
-				Array.from(sourceService.getAllowedSources()),
-			);
-		} else {
-			console.warn(
-				'[Step2Race]',
-				'No saved sources or invalid format, using sourceService defaults',
-			);
-			console.debug(
-				'[Step2Race]',
-				'Current sourceService sources:',
-				Array.from(sourceService.getAllowedSources()),
-			);
-		}
+		this.session.restoreSourcesFromSession(sourceService);
 
 		// Populate race dropdown
 		await this._populateRaceSelect();
@@ -450,14 +406,14 @@ export class CharacterStepRace {
 			// Build trait tags with hover tooltips
 			const traitTags = traits
 				.map((trait) => {
-					const escapedName = this._escapeHtml(trait.name);
+					const escapedName = escapeHtml(trait.name);
 
 					// Build description from entries
 					let description = '';
 					if (trait.entries && Array.isArray(trait.entries)) {
 						description = trait.entries
 							.filter((e) => typeof e === 'string')
-							.map((e) => `<p>${this._escapeHtml(e)}</p>`)
+							.map((e) => `<p>${escapeHtml(e)}</p>`)
 							.join('');
 					}
 
@@ -494,9 +450,6 @@ export class CharacterStepRace {
 		}
 	}
 
-	/**
-	 * Validate step data.
-	 */
 	async validate() {
 		const raceValue = this._raceSelect?.value;
 		if (!raceValue || raceValue === '') {
@@ -508,12 +461,6 @@ export class CharacterStepRace {
 		const raceName = parts[0];
 		const source = parts[1];
 
-		console.debug('[Step2Race]', 'Validating race:', {
-			raceValue,
-			raceName,
-			source,
-		});
-
 		if (!raceName || !source) {
 			console.error('[Step2Race]', 'Failed to parse race value:', {
 				raceValue,
@@ -522,15 +469,7 @@ export class CharacterStepRace {
 			return false;
 		}
 
-		// Check if subrace is required
 		const isRequired = this._raceService.isSubraceRequired(raceName, source);
-
-		console.debug('[Step2Race]', 'Subrace validation:', {
-			raceName,
-			source,
-			isRequired,
-			subraceValue: this._subraceSelect?.value,
-		});
 
 		if (isRequired) {
 			const subraceValue = this._subraceSelect?.value;
@@ -540,13 +479,9 @@ export class CharacterStepRace {
 			}
 		}
 
-		console.debug('[Step2Race]', 'Validation passed');
 		return true;
 	}
 
-	/**
-	 * Save step data to session.
-	 */
 	async save() {
 		const raceValue = this._raceSelect?.value;
 		if (!raceValue) {
@@ -562,30 +497,8 @@ export class CharacterStepRace {
 			source,
 			subrace: subraceValue,
 		});
-
-		console.debug('[Step2Race]', 'Saved race data:', this.session.get('race'));
 	}
 
-	/**
-	 * Escape HTML special characters for safe display in tooltips.
-	 * @private
-	 */
-	_escapeHtml(text) {
-		if (!text) return '';
-		const str = String(text);
-		const map = {
-			'&': '&amp;',
-			'<': '&lt;',
-			'>': '&gt;',
-			'"': '&quot;',
-			"'": '&#039;',
-		};
-		return str.replace(/[&<>"']/g, (m) => map[m]);
-	}
-
-	/**
-	 * Clean up resources.
-	 */
 	cleanup() {
 		this._cleanup.cleanup();
 	}

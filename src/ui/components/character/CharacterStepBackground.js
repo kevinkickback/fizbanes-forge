@@ -65,13 +65,7 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Attach event listeners after render.
-	 */
 	async attachListeners(contentArea) {
-		console.debug('[Step4Background]', 'Attaching listeners');
-
-		// Load backgrounds
 		await this._loadBackgrounds();
 
 		// Get elements
@@ -98,30 +92,17 @@ export class CharacterStepBackground {
 		}
 	}
 
-	/**
-	 * Validate step before proceeding.
-	 */
 	async validate() {
 		// Background is optional, so always return true
 		return true;
 	}
 
-	/**
-	 * Save step data to session.
-	 */
 	async save() {
-		// Data is saved on change, nothing to do here
-		console.debug('[Step4Background]', 'Background step data saved to session');
+		// No action needed - data saved on change
 	}
 
-	/**
-	 * Load backgrounds from service.
-	 * @private
-	 */
 	async _loadBackgrounds() {
 		try {
-			// BackgroundService is initialized by AppInitializer, no need to check
-			// Just ensure it's ready - if not initialized, this will initialize it
 			if (!backgroundService._backgroundData) {
 				await backgroundService.initialize();
 			}
@@ -130,10 +111,6 @@ export class CharacterStepBackground {
 		}
 	}
 
-	/**
-	 * Populate background dropdown.
-	 * @private
-	 */
 	async _populateBackgroundSelect() {
 		try {
 			const backgrounds = backgroundService.getAllBackgrounds();
@@ -143,42 +120,27 @@ export class CharacterStepBackground {
 				return;
 			}
 
-			// Filter by allowed sources
 			const filteredBackgrounds = backgrounds.filter((bg) =>
 				sourceService.isSourceAllowed(bg.source),
 			);
 
-			// Sort by name
 			filteredBackgrounds.sort((a, b) => a.name.localeCompare(b.name));
 
-			// Populate select
 			const select = document.getElementById('modalBackgroundSelect');
 			if (!select) return;
 
-			// Clear existing options except placeholder
 			select.innerHTML = '<option value="">Select a Background</option>';
-
-			// Add background options
 			for (const bg of filteredBackgrounds) {
 				const option = document.createElement('option');
 				option.value = `${bg.name}_${bg.source}`;
 				option.textContent = `${bg.name} (${bg.source})`;
 				select.appendChild(option);
 			}
-
-			console.debug(
-				'[Step4Background]',
-				`Populated ${filteredBackgrounds.length} backgrounds`,
-			);
 		} catch (error) {
 			console.error('[Step4Background]', 'Error populating backgrounds', error);
 		}
 	}
 
-	/**
-	 * Handle background selection change.
-	 * @private
-	 */
 	async _handleBackgroundChange() {
 		const select = document.getElementById('modalBackgroundSelect');
 		if (!select || !select.value) {
@@ -189,7 +151,6 @@ export class CharacterStepBackground {
 
 		const [name, source] = select.value.split('_');
 
-		// Get background data from service
 		const background = backgroundService.selectBackground(name, source);
 
 		if (!background) {
@@ -197,9 +158,6 @@ export class CharacterStepBackground {
 			return;
 		}
 
-		console.debug('[Step4Background]', 'Selected background:', name, source);
-
-		// Save to session
 		this.session.set('background', {
 			name: background.name,
 			source: background.source,
@@ -209,10 +167,6 @@ export class CharacterStepBackground {
 		await this._updateBackgroundDetails(background);
 	}
 
-	/**
-	 * Update background details display.
-	 * @private
-	 */
 	async _updateBackgroundDetails(background) {
 		const detailsContainer = document.getElementById('modalBackgroundDetails');
 		if (!detailsContainer) return;
@@ -230,10 +184,6 @@ export class CharacterStepBackground {
 		detailsContainer.innerHTML = html;
 	}
 
-	/**
-	 * Clear background details.
-	 * @private
-	 */
 	_clearBackgroundDetails() {
 		const detailsContainer = document.getElementById('modalBackgroundDetails');
 		if (!detailsContainer) return;
@@ -268,10 +218,6 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Render skill proficiencies.
-	 * @private
-	 */
 	_renderSkillProficiencies(background) {
 		const skillsHtml = this._formatSkillProficiencies(background);
 		return `
@@ -284,10 +230,6 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Render tool proficiencies.
-	 * @private
-	 */
 	_renderToolProficiencies(background) {
 		const toolsHtml = this._formatToolProficiencies(background);
 		return `
@@ -300,10 +242,6 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Render languages.
-	 * @private
-	 */
 	_renderLanguages(background) {
 		const languagesHtml = this._formatLanguages(background);
 		return `
@@ -316,10 +254,6 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Render equipment.
-	 * @private
-	 */
 	_renderEquipment(background) {
 		const equipmentHtml = this._formatEquipment(background);
 		return `
@@ -332,10 +266,6 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Render feature.
-	 * @private
-	 */
 	_renderFeature(background) {
 		const feature = this._extractFeature(background);
 		if (!feature) return '';
@@ -355,10 +285,6 @@ export class CharacterStepBackground {
         `;
 	}
 
-	/**
-	 * Format skill proficiencies.
-	 * @private
-	 */
 	_formatSkillProficiencies(background) {
 		if (!background?.proficiencies?.skills) return 'None';
 
@@ -374,10 +300,6 @@ export class CharacterStepBackground {
 		return skills.join(', ') || 'None';
 	}
 
-	/**
-	 * Format tool proficiencies.
-	 * @private
-	 */
 	_formatToolProficiencies(background) {
 		if (!background?.proficiencies?.tools) return 'None';
 
@@ -393,10 +315,6 @@ export class CharacterStepBackground {
 		return tools.join(', ') || 'None';
 	}
 
-	/**
-	 * Format languages.
-	 * @private
-	 */
 	_formatLanguages(background) {
 		if (!background?.proficiencies?.languages) return 'None';
 
@@ -419,10 +337,6 @@ export class CharacterStepBackground {
 		return languages.join(', ') || 'None';
 	}
 
-	/**
-	 * Format equipment.
-	 * @private
-	 */
 	_formatEquipment(background) {
 		if (!background?.equipment) return '<li>None</li>';
 
@@ -443,18 +357,10 @@ export class CharacterStepBackground {
 		return equipment.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
 	}
 
-	/**
-	 * Format equipment list.
-	 * @private
-	 */
 	_formatEquipmentList(items) {
 		return items.map((item) => this._formatSingleEquipment(item)).join(', ');
 	}
 
-	/**
-	 * Format single equipment item.
-	 * @private
-	 */
 	_formatSingleEquipment(item) {
 		if (typeof item === 'string') {
 			return item;
@@ -464,10 +370,6 @@ export class CharacterStepBackground {
 		return `${qty}${name}`.trim();
 	}
 
-	/**
-	 * Extract feature from background.
-	 * @private
-	 */
 	_extractFeature(background) {
 		if (!background?.entries) return null;
 
@@ -491,9 +393,6 @@ export class CharacterStepBackground {
 		};
 	}
 
-	/**
-	 * Cleanup when step is destroyed.
-	 */
 	destroy() {
 		this._cleanup.cleanup();
 	}

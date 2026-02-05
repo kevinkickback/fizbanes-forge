@@ -1,10 +1,4 @@
 import { DataLoader } from '../lib/DataLoader.js';
-import { eventBus, EVENTS } from '../lib/EventBus.js';
-import {
-	STANDARD_LANGUAGE_OPTIONS,
-	STANDARD_SKILL_OPTIONS,
-	STANDARD_TOOL_OPTIONS,
-} from '../lib/5eToolsParser.js';
 import { BaseDataService } from './BaseDataService.js';
 
 function groupSubracesByRace(subraceArray) {
@@ -130,17 +124,13 @@ function deriveFromSimpleVersion(version, raceName, source) {
 class RaceService extends BaseDataService {
 	constructor() {
 		super({ cacheKey: 'races', loggerScope: 'RaceService' });
-		this._selectedRace = null;
-		this._selectedSubrace = null;
 		/** @type {Map<string, {race: Object, subraces: Array, baseSubrace: Object|null}>} */
 		this._raceIndex = null;
 	}
 
-	/** @returns {Promise<void>} */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
-				console.debug('[RaceService]', 'Initializing race data');
 				const races = await DataLoader.loadRaces();
 				if (!races) throw new Error('Race data is null or undefined');
 
@@ -151,7 +141,7 @@ class RaceService extends BaseDataService {
 					}
 				} catch (fluffError) {
 					console.warn(
-						'RaceService',
+						'[RaceService]',
 						'Failed to load race fluff data',
 						fluffError,
 					);
@@ -161,12 +151,8 @@ class RaceService extends BaseDataService {
 				return races;
 			},
 			{
-				onLoaded: (data, meta) => {
+				onLoaded: (data) => {
 					this._buildRaceIndex(data);
-					console.debug('[RaceService]', 'Races loaded successfully', {
-						count: data?.race?.length,
-						fromCache: meta?.fromCache || false,
-					});
 				},
 				onError: () => ({ race: [], subrace: [], raceFluff: [] }),
 			},
@@ -177,13 +163,11 @@ class RaceService extends BaseDataService {
 		return this._data?.race || [];
 	}
 
-	/** Get race by name and source. */
 	getRace(name, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(name, source));
 		return bundle?.race || null;
 	}
 
-	/** Get subraces for a specific race. */
 	getSubraces(raceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle?.subraces || [];
@@ -207,23 +191,18 @@ class RaceService extends BaseDataService {
 		return bundle.subraces.length > 0 && !bundle.baseSubrace;
 	}
 
-	/** Get a specific subrace by name. */
 	getSubrace(raceName, subraceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		if (!bundle) return null;
 		return bundle.subraces.find((sr) => sr.name === subraceName) || null;
 	}
 
-	/** Get the base (unnamed) subrace for a race, if it exists. */
 	getBaseSubrace(raceName, source = 'PHB') {
 		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
 		return bundle?.baseSubrace || null;
 	}
 
-	/** Builds an optimized lookup index for fast race access. */
 	_buildRaceIndex(data = this._data) {
-		console.debug('[RaceService]', 'Building race index');
-
 		this._raceIndex = new Map();
 		const races = data?.race || [];
 		const subraceGroups = groupSubracesByRace(data?.subrace || []);
@@ -238,11 +217,8 @@ class RaceService extends BaseDataService {
 			const bundle = buildRaceBundle(race, explicitSubraces, raceSource);
 			this._raceIndex.set(key, bundle);
 		}
-
-		console.debug('[RaceService]', `Indexed ${this._raceIndex.size} races`);
 	}
 
-	/** Get fluff data for a race (descriptions and lore). */
 	getRaceFluff(raceName, source = 'PHB') {
 		if (!this._data?.raceFluff) return null;
 
@@ -251,55 +227,6 @@ class RaceService extends BaseDataService {
 				(f) => f.name === raceName && f.source === source,
 			) || null
 		);
-	}
-
-	/** Select a race (updates selection state). */
-	selectRace(raceName, source = 'PHB') {
-		this._selectedRace = this.getRace(raceName, source);
-		this._selectedSubrace = null;
-
-		if (this._selectedRace) {
-			eventBus.emit(EVENTS.RACE_SELECTED, this._selectedRace);
-		}
-
-		return this._selectedRace;
-	}
-
-	/** Select a subrace for the currently selected race. */
-	selectSubrace(subraceName) {
-		if (!this._selectedRace) return null;
-
-		this._selectedSubrace = this.getSubrace(
-			this._selectedRace.name,
-			subraceName,
-			this._selectedRace.source,
-		);
-
-		if (this._selectedSubrace) {
-			eventBus.emit(EVENTS.SUBRACE_SELECTED, this._selectedSubrace);
-		}
-
-		return this._selectedSubrace;
-	}
-
-	getSelectedRace() {
-		return this._selectedRace;
-	}
-
-	getSelectedSubrace() {
-		return this._selectedSubrace;
-	}
-
-	getStandardSkillOptions() {
-		return STANDARD_SKILL_OPTIONS;
-	}
-
-	getStandardToolOptions() {
-		return STANDARD_TOOL_OPTIONS;
-	}
-
-	getStandardLanguageOptions() {
-		return STANDARD_LANGUAGE_OPTIONS;
 	}
 }
 

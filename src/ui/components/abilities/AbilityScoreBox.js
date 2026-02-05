@@ -1,7 +1,9 @@
 // View for rendering ability score boxes with scores, modifiers, and bonuses.
-import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
+import { ABILITY_ABBREVIATIONS, attAbvToFull, getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { methodControlsView } from './AbilityScoreMethodControls.js';
+
+const ABILITIES = ABILITY_ABBREVIATIONS.map(a => attAbvToFull(a).toLowerCase());
 
 class AbilityScoreBoxView {
 	constructor(container) {
@@ -12,23 +14,18 @@ class AbilityScoreBoxView {
 		isStandardArray,
 		isPointBuy,
 		isCustom,
-		onStandardArrayChange,
 	) {
 		try {
 			// Initialize ability labels from 5eTools utilities
 			this._initializeAbilityLabels();
 
-			// Use full ability names that match the HTML data-ability attributes
-			const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-
 			// Process each ability score
-			for (const ability of abilities) {
+			for (const ability of ABILITIES) {
 				this.renderAbilityScoreBox(
 					ability,
 					isStandardArray,
 					isPointBuy,
 					isCustom,
-					onStandardArrayChange,
 				);
 			}
 		} catch (error) {
@@ -40,12 +37,20 @@ class AbilityScoreBoxView {
 		}
 	}
 
-	_initializeAbilityLabels() {
-		// Use full ability names that match the HTML data-ability attributes
-		const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+	_updateBonusDisplay(bonusElement, totalBonus) {
+		if (totalBonus !== 0) {
+			bonusElement.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
+			bonusElement.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
+			bonusElement.style.display = 'block';
+		} else {
+			bonusElement.textContent = '';
+			bonusElement.style.display = 'none';
+		}
+	}
 
+	_initializeAbilityLabels() {
 		// Populate ability label h6 elements with display-friendly abbreviations
-		for (const ability of abilities) {
+		for (const ability of ABILITIES) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
 			if (!box) continue;
 
@@ -61,7 +66,6 @@ class AbilityScoreBoxView {
 		isStandardArray,
 		isPointBuy,
 		isCustom,
-		onStandardArrayChange,
 	) {
 		const box = this._container.querySelector(`[data-ability="${ability}"]`);
 		if (!box) {
@@ -112,15 +116,7 @@ class AbilityScoreBoxView {
 		// Update bonus display
 		const bonusDiv = box.querySelector('.bonus');
 		const totalBonus = totalScore - baseScore;
-
-		if (totalBonus !== 0) {
-			bonusDiv.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
-			bonusDiv.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
-			bonusDiv.style.display = 'block';
-		} else {
-			bonusDiv.textContent = '';
-			bonusDiv.style.display = 'none';
-		}
+		this._updateBonusDisplay(bonusDiv, totalBonus);
 
 		// Create new controls container
 		const controlsContainer = document.createElement('div');
@@ -131,8 +127,6 @@ class AbilityScoreBoxView {
 			methodControlsView.renderStandardArrayControls(
 				controlsContainer,
 				ability,
-				baseScore,
-				onStandardArrayChange,
 			);
 		} else if (isPointBuy) {
 			methodControlsView.renderPointBuyControls(
@@ -167,10 +161,7 @@ class AbilityScoreBoxView {
 			return;
 		}
 
-		// Use full ability names that match the HTML data-ability attributes
-		const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-
-		for (const ability of abilities) {
+		for (const ability of ABILITIES) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
 			if (!box) {
 				console.warn('[AbilityScoreBox]', 'Box not found for ability:', ability);
@@ -190,15 +181,7 @@ class AbilityScoreBoxView {
 			// Update bonus display
 			const bonusDiv = box.querySelector('.bonus');
 			const totalBonus = totalScore - baseScore;
-
-			if (totalBonus !== 0) {
-				bonusDiv.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
-				bonusDiv.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
-				bonusDiv.style.display = 'block';
-			} else {
-				bonusDiv.textContent = '';
-				bonusDiv.style.display = 'none';
-			}
+			this._updateBonusDisplay(bonusDiv, totalBonus);
 
 			// Update point cost indicator if this is point buy method
 			if (isPointBuy) {
@@ -211,16 +194,9 @@ class AbilityScoreBoxView {
 						cost.remove();
 					}
 
-					// Get updated cost
+					// Get updated cost and styling class
 					const cost = abilityScoreService.getPointCost(baseScore);
-
-					// Determine cost level for styling
-					let costClass = 'low';
-					if (cost >= 7) {
-						costClass = 'high';
-					} else if (cost >= 4) {
-						costClass = 'medium';
-					}
+					const costClass = abilityScoreService.getPointCostClass(cost);
 
 					// Add updated cost indicator
 					const costIndicator = document.createElement('div');
@@ -234,12 +210,9 @@ class AbilityScoreBoxView {
 
 	updateAllAbilityScores() {
 		try {
-			// Use full ability names that match the HTML data-ability attributes
-			const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-
 			// Get the current ability scores from the manager
 			const scores = {};
-			for (const ability of abilities) {
+			for (const ability of ABILITIES) {
 				scores[ability] = abilityScoreService.getTotalScore(ability);
 			}
 
@@ -267,15 +240,7 @@ class AbilityScoreBoxView {
 					if (bonusElement) {
 						const baseScore = abilityScoreService.getBaseScore(ability);
 						const totalBonus = score - baseScore;
-						if (totalBonus !== 0) {
-							bonusElement.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
-							bonusElement.className =
-								totalBonus >= 0 ? 'bonus' : 'bonus negative';
-							bonusElement.style.display = 'block';
-						} else {
-							bonusElement.textContent = '';
-							bonusElement.style.display = 'none';
-						}
+						this._updateBonusDisplay(bonusElement, totalBonus);
 					}
 				}
 			}

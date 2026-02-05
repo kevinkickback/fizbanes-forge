@@ -1,13 +1,13 @@
+// Class feature selector for invocations, metamagic, maneuvers, etc.
+
+import { renderEntriesToText } from '../../../lib/5eToolsParser.js';
 import { showNotification } from '../../../lib/Notifications.js';
-import { textProcessor } from '../../../lib/TextProcessor.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import {
 	UniversalSelectionModal,
 	formatCounter,
 } from '../selection/UniversalSelectionModal.js';
-
-// Feature selector adapter for class features (Invocations, Metamagic, Maneuvers, etc.)
 
 export class ClassFeatureSelector {
 	constructor(
@@ -25,9 +25,6 @@ export class ClassFeatureSelector {
 		this.requirementLevel = requirementLevel;
 		this.currentFeatureId = currentFeatureId; // The feature choice being edited
 
-		// Service references
-		this.optionalFeatureService = optionalFeatureService;
-
 		// Selection limits
 		this.maxSelections = 1;
 
@@ -38,9 +35,6 @@ export class ClassFeatureSelector {
 		this._descriptionCache = new Map();
 	}
 
-	/**
-	 * Initialize and display the feature selector modal
-	 */
 	async show(
 		availableFeatures,
 		currentSelections = [],
@@ -48,15 +42,6 @@ export class ClassFeatureSelector {
 		maxSelections = null,
 	) {
 		try {
-			console.debug('[LevelUpFeatureSelector]', 'Starting show', {
-				className: this.className,
-				featureType: this.featureType,
-				currentFeatureId: this.currentFeatureId,
-				availableCount: availableFeatures.length,
-				currentSelectionsCount: currentSelections.length,
-			});
-
-			// Collect already-selected features
 			const alreadySelected = new Set();
 
 			if (this.session.originalCharacter?.progression?.classes) {
@@ -131,7 +116,7 @@ export class ClassFeatureSelector {
 				}
 				const originalFeatures = character.features;
 				character.features = featuresArray;
-				const result = this.optionalFeatureService.meetsPrerequisites(
+				const result = optionalFeatureService.meetsPrerequisites(
 					feature,
 					character,
 					this.className,
@@ -174,12 +159,10 @@ export class ClassFeatureSelector {
 					}
 					return true;
 				},
-				// Block selection when reaching maxSelections
 				canSelectItem: (_item, state) => {
 					const isAtCap =
 						this.maxSelections !== null &&
 						state.selectedIds.size >= this.maxSelections;
-					// Always allow deselection; only block new selections at cap
 					return !isAtCap;
 				},
 				onSelectBlocked: () => {
@@ -189,11 +172,9 @@ export class ClassFeatureSelector {
 						'warning',
 					);
 				},
-				// Description caching and rendering
 				descriptionCache: this._descriptionCache,
 				fetchDescription: (feature) => this._fetchFeatureDescription(feature),
 				descriptionContainerSelector: '.feature-description',
-				// Counter rendering
 				customCountFn: (selectedItems) =>
 					formatCounter({
 						label: `choice${this.maxSelections === 1 ? '' : 's'}`,
@@ -246,25 +227,7 @@ export class ClassFeatureSelector {
 	}
 
 	async _fetchFeatureDescription(feature) {
-		const parts = [];
-		if (Array.isArray(feature.entries)) {
-			for (const entry of feature.entries) {
-				if (typeof entry === 'string') {
-					parts.push(await textProcessor.processString(entry));
-				} else if (Array.isArray(entry?.entries)) {
-					for (const sub of entry.entries) {
-						if (typeof sub === 'string') {
-							parts.push(await textProcessor.processString(sub));
-						}
-					}
-				}
-			}
-		} else if (typeof feature.entries === 'string') {
-			parts.push(await textProcessor.processString(feature.entries));
-		}
-		return parts.length
-			? parts.join(' ')
-			: '<span class="text-muted small">No description available.</span>';
+		return renderEntriesToText(feature);
 	}
 
 	/**

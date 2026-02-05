@@ -68,6 +68,15 @@ class ItemService extends BaseDataService {
 	getAllBaseItems() {
 		return this._data?.baseItem || [];
 	}
+
+	getItem(name, source = 'PHB') {
+		// Try regular items first
+		const item = this.lookupByNameAndSource(this._itemLookupMap, name, source);
+		if (item) return item;
+
+		// Fall back to base items (armor, weapons, etc.)
+		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
+	}
 }
 
 export const itemService = new ItemService();

@@ -1,4 +1,5 @@
-/** Manages recording and retrieval of character class progression choices. */
+// Manages recording and retrieval of character class progression choices
+
 class ProgressionHistoryService {
 	ensureInitialized(character) {
 		if (!character.progressionHistory) {
@@ -6,7 +7,6 @@ class ProgressionHistoryService {
 		}
 	}
 
-	/** Record user choices for a specific class/level combination. */
 	recordChoices(character, className, level, choices) {
 		this.ensureInitialized(character);
 
@@ -21,15 +21,8 @@ class ProgressionHistoryService {
 			choices: { ...choices },
 			timestamp: new Date().toISOString(),
 		};
-
-		console.debug(
-			'[ProgressionHistoryService]',
-			`Recorded choices for ${className} level ${level}`,
-			choices,
-		);
 	}
 
-	/** Retrieve recorded choices for a specific class/level. */
 	getChoices(character, className, level) {
 		if (!character.progressionHistory) return null;
 
@@ -42,7 +35,6 @@ class ProgressionHistoryService {
 		return entry ? entry.choices : null;
 	}
 
-	/** Remove recorded choices for a specific class/level. */
 	removeChoices(character, className, level) {
 		if (!character.progressionHistory) return false;
 
@@ -53,17 +45,12 @@ class ProgressionHistoryService {
 
 		if (levelKey in classHistory) {
 			delete classHistory[levelKey];
-			console.debug(
-				'[ProgressionHistoryService]',
-				`Removed choices for ${className} level ${level}`,
-			);
 			return true;
 		}
 
 		return false;
 	}
 
-	/** Get all recorded choices for a class within a level range. */
 	getChoicesByRange(character, className, fromLevel, toLevel) {
 		if (!character.progressionHistory) return {};
 
@@ -82,14 +69,12 @@ class ProgressionHistoryService {
 		return result;
 	}
 
-	/** Get entire progression history for a class (all levels). */
 	getClassLevelHistory(character, className) {
 		if (!character.progressionHistory) return {};
 
 		return character.progressionHistory[className] || {};
 	}
 
-	/** Get all classes with recorded progression history. */
 	getClassesWithHistory(character) {
 		if (!character.progressionHistory) return [];
 
@@ -99,12 +84,6 @@ class ProgressionHistoryService {
 		);
 	}
 
-	/**
-	 * Check if a class has any recorded history
-	 * @param {Character} character
-	 * @param {string} className
-	 * @returns {boolean}
-	 */
 	hasClassHistory(character, className) {
 		if (!character.progressionHistory) return false;
 
@@ -112,12 +91,6 @@ class ProgressionHistoryService {
 		return classHistory && Object.keys(classHistory).length > 0;
 	}
 
-	/**
-	 * Get the highest level recorded for a class
-	 * @param {Character} character
-	 * @param {string} className
-	 * @returns {number|null} Highest level with recorded choices, or null
-	 */
 	getHighestRecordedLevel(character, className) {
 		if (!character.progressionHistory) return null;
 
@@ -127,33 +100,55 @@ class ProgressionHistoryService {
 		return Math.max(...Object.keys(classHistory).map(Number));
 	}
 
-	/**
-	 * Clear all progression history for a class
-	 * @param {Character} character
-	 * @param {string} className
-	 * @returns {void}
-	 */
 	clearClassHistory(character, className) {
 		if (!character.progressionHistory) return;
 
 		if (className in character.progressionHistory) {
 			delete character.progressionHistory[className];
-			console.debug(
-				'[ProgressionHistoryService]',
-				`Cleared all history for ${className}`,
-			);
 		}
 	}
 
 	clearAllHistory(character) {
 		character.progressionHistory = {};
-		console.debug(
-			'[ProgressionHistoryService]',
-			'Cleared all progression history',
-		);
 	}
 
-	/** Get a summary of recorded progression. */
+	// Clear specific feature types from all levels of a class (e.g., when changing subclass)
+	clearFeatureTypesFromClass(character, className, featureTypes) {
+		if (!character.progressionHistory) return 0;
+
+		const classHistory = character.progressionHistory[className];
+		if (!classHistory) return 0;
+
+		let affectedLevels = 0;
+
+		for (const [_level, entry] of Object.entries(classHistory)) {
+			if (!entry.choices) continue;
+
+			let modified = false;
+			for (const featureType of featureTypes) {
+				if (featureType in entry.choices) {
+					delete entry.choices[featureType];
+					modified = true;
+				}
+			}
+
+			if (modified) {
+				affectedLevels++;
+				// Update timestamp to reflect the modification
+				entry.timestamp = new Date().toISOString();
+			}
+		}
+
+		if (affectedLevels > 0) {
+			console.debug(
+				'[ProgressionHistoryService]',
+				`Cleared ${featureTypes.join(', ')} from ${affectedLevels} levels of ${className}`,
+			);
+		}
+
+		return affectedLevels;
+	}
+
 	getSummary(character) {
 		const summary = {};
 

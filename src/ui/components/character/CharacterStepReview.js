@@ -5,6 +5,7 @@ import {
 	attAbvToFull,
 } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
 
 export class CharacterStepReview {
@@ -131,17 +132,10 @@ export class CharacterStepReview {
         `;
 	}
 
-	/**
-	 * Attach event listeners to rendered content.
-	 */
 	attachListeners(_contentArea) {
-		console.debug('[Step3Review]', 'Attaching listeners');
-		// No listeners needed for review step
+		// No listeners needed
 	}
 
-	/**
-	 * Format ability score method for display.
-	 */
 	_formatAbilityScoreMethod(method) {
 		if (!method) return 'Point Buy';
 
@@ -152,9 +146,6 @@ export class CharacterStepReview {
 			.trim();
 	}
 
-	/**
-	 * Format ability scores for display.
-	 */
 	_formatAbilityScores(data) {
 		const scores = ABILITY_ABBREVIATIONS.map((abv) => {
 			const key = attAbvToFull(abv).toLowerCase();
@@ -176,10 +167,6 @@ export class CharacterStepReview {
 		return `<div class="ability-scores-grid">${scores}</div>`;
 	}
 
-	/**
-	 * Get racial bonus for an ability.
-	 * @private
-	 */
 	_getRacialBonus(ability, data) {
 		const raceName = data.race?.name;
 		const raceSource = data.race?.source;
@@ -187,56 +174,23 @@ export class CharacterStepReview {
 
 		if (!raceName || !raceSource) return 0;
 
-		// Get race and subrace data from service
 		const race = raceService.getRace(raceName, raceSource);
 		if (!race) return 0;
 
-		let subrace = null;
-		if (subraceName) {
-			subrace = raceService.getSubrace(raceName, subraceName, raceSource);
-		} else {
-			// Get base (unnamed) subrace if no explicit subrace selected
-			// This handles races like Human where ability bonuses are stored in the base subrace
-			subrace = raceService.getBaseSubrace(raceName, raceSource);
-		}
+		const subrace = subraceName
+			? raceService.getSubrace(raceName, subraceName, raceSource)
+			: raceService.getBaseSubrace(raceName, raceSource);
 
-		// Parse ability increases from race and subrace
-		const abilityArray = [
-			...(race?.ability || []),
-			...(subrace?.ability || []),
-		];
+		const abilityChoices = data.race?.abilityChoices || [];
 
-		if (abilityArray.length === 0) return 0;
-
-		// Calculate bonus for this specific ability
-		let bonus = 0;
-		for (const abilityEntry of abilityArray) {
-			if (!abilityEntry) continue;
-
-			// Handle different ability entry formats
-			if (typeof abilityEntry === 'object') {
-				// Direct ability mapping: { str: 2, dex: 1 }
-				const shortName = ability.substring(0, 3);
-				if (abilityEntry[shortName]) {
-					bonus += abilityEntry[shortName];
-				}
-			}
-		}
-
-		// Add bonuses from racial ability choices (e.g., Variant Human)
-		const savedChoices = data.race?.abilityChoices || [];
-		for (const choice of savedChoices) {
-			if (choice && choice.ability === ability) {
-				bonus += choice.amount || 1;
-			}
-		}
-
-		return bonus;
+		return abilityScoreService.getRacialBonus(
+			ability,
+			race,
+			subrace,
+			abilityChoices,
+		);
 	}
 
-	/**
-	 * Calculate starting HP.
-	 */
 	_calculateHP(data) {
 		const className = data.class?.name;
 		const baseConScore = data.abilityScores?.constitution || 10;
@@ -266,19 +220,12 @@ export class CharacterStepReview {
 		return Math.max(1, baseHP);
 	}
 
-	/**
-	 * Validate step data.
-	 */
 	async validate() {
 		// All validation already done in previous steps
 		return true;
 	}
 
-	/**
-	 * Save step data to session.
-	 */
 	async save() {
-		// Nothing to save - this is the final review step
-		console.debug('[Step3Review]', 'Final review complete');
+		// Nothing to save - final review only
 	}
 }

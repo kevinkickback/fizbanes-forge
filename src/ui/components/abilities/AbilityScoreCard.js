@@ -27,11 +27,7 @@ class AbilityScoreCard {
 		this._abilityChoicesView = null;
 		this._bonusNotesView = null;
 
-		// Listener references
-		this._abilityScoresChangedListener = null;
-		this._handleContainerClicks = null;
-		this._handleContainerChanges = null;
-		this._debouncedCustomInput = null;
+		// Listener references (for EventBus only, DOM listeners managed by DOMCleanup)
 		this._characterSelectedHandler = null;
 		this._characterUpdatedHandler = null;
 
@@ -242,33 +238,12 @@ class AbilityScoreCard {
 
 	_setupEventListeners() {
 		try {
-			// Remove any existing listeners first to prevent duplicates
-			if (this._abilityScoresChangedListener) {
-				document.removeEventListener(
-					'abilityScoresChanged',
-					this._abilityScoresChangedListener,
-				);
-			}
-			if (this._handleCharacterChanged) {
-				document.removeEventListener(
-					'characterChanged',
-					this._handleCharacterChanged,
-				);
-			}
+			// Remove existing EventBus listeners to prevent duplicates
 			if (this._characterSelectedHandler) {
 				eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 			}
 			if (this._characterUpdatedHandler) {
 				eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
-			}
-			if (this._raceChangedListener) {
-				document.removeEventListener('raceChanged', this._raceChangedListener);
-			}
-			if (this._subraceChangedListener) {
-				document.removeEventListener(
-					'subraceChanged',
-					this._subraceChangedListener,
-				);
 			}
 
 			// Listen to EventBus CHARACTER_SELECTED (when character is loaded/switched)
@@ -294,19 +269,17 @@ class AbilityScoreCard {
 			};
 			eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 
-			// Create ability scores changed listener
-			this._abilityScoresChangedListener = () => {
+			// Use DOMCleanup for ability scores changed listener
+			this._cleanup.on(document, 'abilityScoresChanged', () => {
 				console.debug(
 					'AbilityScoreCard',
 					'abilityScoresChanged event received',
 				);
 				this.update();
-			};
-			document.addEventListener(
-				'abilityScoresChanged',
-				this._abilityScoresChangedListener,
-			); // Create character changed listener (for backwards compatibility with DOM events)
-			this._handleCharacterChanged = (_event) => {
+			});
+
+			// Use DOMCleanup for character changed listener (backwards compatibility)
+			this._cleanup.on(document, 'characterChanged', () => {
 				const character = CharacterManager.getCurrentCharacter();
 				if (!character) return;
 
@@ -319,39 +292,12 @@ class AbilityScoreCard {
 
 				// Then render the UI
 				this.render();
-			};
-			document.addEventListener(
-				'characterChanged',
-				this._handleCharacterChanged,
-			);
+			});
 
-			// Remove existing click handlers on the container to prevent duplicates
+			// Use DOMCleanup for container delegation listeners
 			if (this._container) {
-				if (this._handleContainerClicks) {
-					this._container.removeEventListener(
-						'click',
-						this._handleContainerClicks,
-					);
-				}
-				if (this._handleContainerChanges) {
-					this._container.removeEventListener(
-						'change',
-						this._handleContainerChanges,
-					);
-				}
-
-				// Create bound handler references for delegation
-				this._handleContainerClicks =
-					this._handleContainerClickEvent.bind(this);
-				this._handleContainerChanges =
-					this._handleContainerChangeEvent.bind(this);
-
-				// Use delegation for all clicks and changes within the container
-				this._container.addEventListener('click', this._handleContainerClicks);
-				this._container.addEventListener(
-					'change',
-					this._handleContainerChanges,
-				);
+				this._cleanup.on(this._container, 'click', this._handleContainerClickEvent.bind(this));
+				this._cleanup.on(this._container, 'change', this._handleContainerChangeEvent.bind(this));
 			}
 
 			// Custom inputs - use delegation rather than individual listeners
@@ -360,17 +306,14 @@ class AbilityScoreCard {
 				300,
 			);
 
-			// Listen for race changes
-			this._raceChangedListener = () => {
+			// Use DOMCleanup for race/subrace change listeners
+			this._cleanup.on(document, 'raceChanged', () => {
 				this._updateAbilityScores();
-			};
-			document.addEventListener('raceChanged', this._raceChangedListener);
+			});
 
-			// Listen for subrace changes
-			this._subraceChangedListener = () => {
+			this._cleanup.on(document, 'subraceChanged', () => {
 				this._updateAbilityScores();
-			};
-			document.addEventListener('subraceChanged', this._subraceChangedListener);
+			});
 		} catch (error) {
 			console.error(
 				'AbilityScoreCard',
@@ -746,7 +689,6 @@ class AbilityScoreCard {
 				isStandardArray,
 				isPointBuy,
 				isCustom,
-				this._handleStandardArraySelection.bind(this),
 			);
 		} catch (error) {
 			console.error(
@@ -914,13 +856,7 @@ class AbilityScoreCard {
 	 * Removes event listeners when the card is destroyed
 	 */
 	remove() {
-		if (this._abilityScoresChangedListener) {
-			document.removeEventListener(
-				'abilityScoresChanged',
-				this._abilityScoresChangedListener,
-			);
-		}
-
+		// Remove EventBus listeners
 		if (this._characterSelectedHandler) {
 			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		}
@@ -929,16 +865,8 @@ class AbilityScoreCard {
 			eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 		}
 
-		if (this._container && this._handleContainerClicks) {
-			this._container.removeEventListener('click', this._handleContainerClicks);
-		}
-
-		if (this._container && this._handleContainerChanges) {
-			this._container.removeEventListener(
-				'change',
-				this._handleContainerChanges,
-			);
-		}
+		// Clean up all DOM listeners
+		this._cleanup.cleanup();
 	}
 
 	/**

@@ -6,10 +6,10 @@ import { deityService } from '../services/DeityService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { AbilityScoreCard } from '../ui/components/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../ui/components/background/BackgroundCard.js';
-import { ClassFeatSelector } from '../ui/components/class-progression/ClassFeatSelector.js';
 import { ClassCard } from '../ui/components/class/ClassSelectionCard.js';
 import {
 	FeatListView,
+	FeatSelectionModal,
 	FeatSourcesView,
 } from '../ui/components/feats/FeatSelectionModal.js';
 import { ProficiencyCard } from '../ui/components/proficiencies/ProficiencyCard.js';
@@ -29,6 +29,8 @@ class PageHandlerImpl {
 		this._onFeatsSelected = null;
 		this._onCharacterUpdatedForFeats = null;
 		this._onCharacterSelectedForFeats = null;
+		this._equipmentManager = null;
+		this._equipmentUpdateHandler = null;
 	}
 
 	initialize() {
@@ -143,15 +145,8 @@ class PageHandlerImpl {
 				},
 			});
 
-			const importButton = document.getElementById('importCharacterBtn');
-			if (importButton) {
-				const newImportButton = importButton.cloneNode(true);
-				importButton.parentNode.replaceChild(newImportButton, importButton);
-
-				newImportButton.addEventListener('click', async () => {
-					await this.handleImportCharacter();
-				});
-			}
+			// Initialize button listeners now that the page is loaded
+			modal.ensureInitialized();
 
 			// Remove old handler if it exists before adding new one
 			if (this._homeCharacterSelectedHandler) {
@@ -606,6 +601,11 @@ class PageHandlerImpl {
 		}
 
 		this._onFeatsSelected = (selectedFeats) => {
+			console.debug('[PageHandler]', 'FEATS_SELECTED event received', {
+				selectedFeatsCount: selectedFeats?.length || 0,
+				selectedFeatNames: selectedFeats?.map(f => f.name) || []
+			});
+
 			const character = AppState.getCurrentCharacter();
 			if (!character) {
 				console.warn('[PageHandler]', 'No character loaded');
@@ -618,6 +618,12 @@ class PageHandlerImpl {
 				? selectedFeats.slice(0, allowedCount)
 				: [];
 
+			console.debug('[PageHandler]', 'Setting feats on character', {
+				allowedCount,
+				receivedCount: selectedFeats.length,
+				storingCount: featsToStore.length,
+				storingFeats: featsToStore.map(f => f.name)
+			});
 			character.setFeats(featsToStore, 'Manual selection');
 			this._featListView.update(this._featListContainer, character);
 			this._featSourcesView.update(this._featSourcesContainer, character);
@@ -800,45 +806,18 @@ class PageHandlerImpl {
 				const newAddFeatBtn = addFeatBtn.cloneNode(true);
 				addFeatBtn.parentNode.replaceChild(newAddFeatBtn, addFeatBtn);
 				newAddFeatBtn.addEventListener('click', async () => {
-					const availability = character.getFeatAvailability?.();
-					const maxFeats = availability?.max || 0;
+					console.debug('[PageHandler]', 'Add Feat button clicked');
 
+					const selector = new FeatSelectionModal();
+					const result = await selector.show();
 
-					const selector = new ClassFeatSelector();
-					await selector.show({
-						currentSelection: character.feats || [],
-						multiSelect: true,
-						maxSelections: maxFeats,
-						onConfirm: async (feats) => {
-							if (feats && feats.length > 0) {
-								const reasons = availability?.reasons || [];
-								const enrichedFeats = feats.map((feat, idx) => ({
-									...feat,
-									origin:
-										feat.origin ||
-										(idx < reasons.length
-											? this._formatFeatOrigin(reasons[idx])
-											: 'Manual selection'),
-								}));
-
-								character.setFeats(enrichedFeats, 'Manual selection');
-
-								this._featListView.update(this._featListContainer, character);
-								this._featSourcesView.update(
-									this._featSourcesContainer,
-									character,
-								);
-								this._updateFeatUIState(character);
-								this._updateFeatAvailabilitySection(character);
-
-								eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
-								showNotification(
-									`${feats.length} feat(s) selected!`,
-									'success',
-								);
-							}
-						},
+					console.debug('[PageHandler]', 'FeatSelectionModal returned', {
+						result,
+						hasResult: !!result
 					});
+
+					// The modal's onConfirm already emits FEATS_SELECTED event
+					// which is handled by this._onFeatsSelected
 				});
 
 				this._updateFeatUIState(character);
@@ -886,15 +865,15 @@ class PageHandlerImpl {
 			const { EquipmentManager } = await import(
 				'../ui/components/equipment/EquipmentManager.js'
 			);
-			const equipmentManager = new EquipmentManager();
-			equipmentManager.render();
+			this._equipmentManager = new EquipmentManager();
+			this._equipmentManager.render();
 
-			const updateHandler = () => equipmentManager.render();
-			eventBus.on(EVENTS.CHARACTER_UPDATED, updateHandler);
-			eventBus.on(EVENTS.ITEM_ADDED, updateHandler);
-			eventBus.on(EVENTS.ITEM_REMOVED, updateHandler);
-			eventBus.on(EVENTS.ITEM_EQUIPPED, updateHandler);
-			eventBus.on(EVENTS.ITEM_UNEQUIPPED, updateHandler);
+			this._equipmentUpdateHandler = () => this._equipmentManager.render();
+			eventBus.on(EVENTS.CHARACTER_UPDATED, this._equipmentUpdateHandler);
+			eventBus.on(EVENTS.ITEM_ADDED, this._equipmentUpdateHandler);
+			eventBus.on(EVENTS.ITEM_REMOVED, this._equipmentUpdateHandler);
+			eventBus.on(EVENTS.ITEM_EQUIPPED, this._equipmentUpdateHandler);
+			eventBus.on(EVENTS.ITEM_UNEQUIPPED, this._equipmentUpdateHandler);
 		} catch (error) {
 			console.error('[PageHandler]', 'Error initializing equipment page', error);
 			showNotification('Error loading equipment page', 'error');

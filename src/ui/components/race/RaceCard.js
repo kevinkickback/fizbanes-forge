@@ -9,6 +9,9 @@ import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
+	STANDARD_LANGUAGE_OPTIONS,
+	STANDARD_SKILL_OPTIONS,
+	STANDARD_TOOL_OPTIONS,
 	toTitleCase,
 	unpackUid,
 } from '../../../lib/5eToolsParser.js';
@@ -975,7 +978,7 @@ export class RaceCard {
 				) {
 					languageCount += value;
 					// Get standard language options from RaceService
-					for (const lang of this._raceService.getStandardLanguageOptions()) {
+					for (const lang of STANDARD_LANGUAGE_OPTIONS) {
 						if (!languageOptions.includes(lang)) {
 							languageOptions.push(lang);
 						}
@@ -1048,7 +1051,7 @@ export class RaceCard {
 				character.optionalProficiencies.tools.race.allowed = profObj.any;
 				// Get standard tool options from RaceService
 				character.optionalProficiencies.tools.race.options =
-					this._raceService.getStandardToolOptions();
+					STANDARD_TOOL_OPTIONS;
 				// Restore valid selections using normalized comparison
 				const normalizedToolOptions =
 					character.optionalProficiencies.tools.race.options.map((tool) =>
@@ -1075,7 +1078,7 @@ export class RaceCard {
 				if (profObj.any) {
 					raceSkillCount += profObj.any;
 					// Get standard skill options from RaceService
-					raceSkillOptions = this._raceService.getStandardSkillOptions();
+					raceSkillOptions = STANDARD_SKILL_OPTIONS;
 					continue;
 				}
 
@@ -1106,8 +1109,7 @@ export class RaceCard {
 			subrace.name === 'Variant'
 		) {
 			raceSkillCount = 1;
-			// Get standard skill options from RaceService
-			raceSkillOptions = this._raceService.getStandardSkillOptions();
+			raceSkillOptions = STANDARD_SKILL_OPTIONS;
 		}
 
 		// Update race-specific skill options and count

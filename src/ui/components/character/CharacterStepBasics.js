@@ -80,21 +80,10 @@ export class CharacterStepBasics {
         `;
 	}
 
-	/**
-	 * Attach event listeners to rendered content.
-	 */
 	attachListeners(contentArea) {
-		console.debug('[Step0Basics]', 'Attaching listeners');
-
-		// Initialize portrait selector
 		this._initPortraitSelector(contentArea);
-
-		// No other listeners needed - form inputs are saved on next/back
 	}
 
-	/**
-	 * Initialize portrait selector with default and user portraits.
-	 */
 	async _initPortraitSelector(contentArea) {
 		const grid = contentArea.querySelector('#portraitGrid');
 		const preview = contentArea.querySelector('#portraitPreview');
@@ -158,9 +147,6 @@ export class CharacterStepBasics {
 		}
 	}
 
-	/**
-	 * Create a portrait button.
-	 */
 	_createPortraitButton(src, preview, grid) {
 		const btn = document.createElement('button');
 		btn.type = 'button';
@@ -183,9 +169,6 @@ export class CharacterStepBasics {
 		return btn;
 	}
 
-	/**
-	 * Load user portraits from portraits folder.
-	 */
 	async _loadUserPortraits(grid, preview) {
 		try {
 			const characterPath = await window.characterStorage?.getDefaultSavePath();
@@ -213,9 +196,6 @@ export class CharacterStepBasics {
 		}
 	}
 
-	/**
-	 * Handle portrait file upload.
-	 */
 	async _handlePortraitUpload(ev, preview, grid) {
 		const file = ev.target.files?.[0];
 		if (!file) return;
@@ -279,9 +259,6 @@ export class CharacterStepBasics {
 		}
 	}
 
-	/**
-	 * Validate step data.
-	 */
 	async validate() {
 		const nameInput = document.getElementById('characterName');
 		const genderSelect = document.getElementById('characterGender');
@@ -299,9 +276,6 @@ export class CharacterStepBasics {
 		return true;
 	}
 
-	/**
-	 * Save step data to session.
-	 */
 	async save() {
 		const nameInput = document.getElementById('characterName');
 		const genderSelect = document.getElementById('characterGender');
@@ -317,11 +291,5 @@ export class CharacterStepBasics {
 		if (this.selectedPortrait) {
 			this.session.set('portrait', this.selectedPortrait);
 		}
-
-		console.debug('[Step0Basics]', 'Saved data:', {
-			name: this.session.get('name'),
-			gender: this.session.get('gender'),
-			portrait: this.session.get('portrait'),
-		});
 	}
 }

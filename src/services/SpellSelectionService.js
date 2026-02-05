@@ -38,11 +38,6 @@ class SpellSelectionService {
 			ritualCasting: classInfo.ritualCasting || false,
 		};
 
-		console.debug(`[${this.loggerScope}]`, 'Initialized spellcasting for', {
-			className,
-			classLevel,
-		});
-
 		return character.spellcasting.classes[className];
 	}
 
@@ -287,11 +282,6 @@ class SpellSelectionService {
 		// Store full spell object
 		classSpellcasting.spellsKnown.push(spellData);
 
-		console.debug(`[${this.loggerScope}]`, 'Added known spell', {
-			className,
-			spell: spellData.name,
-		});
-
 		eventBus.emit(EVENTS.SPELL_ADDED, character, className, spellData);
 		return true;
 	}
@@ -326,11 +316,6 @@ class SpellSelectionService {
 		if (preparedIndex !== -1) {
 			classSpellcasting.spellsPrepared.splice(preparedIndex, 1);
 		}
-
-		console.debug(`[${this.loggerScope}]`, 'Removed known spell', {
-			className,
-			spell: spellName,
-		});
 
 		eventBus.emit(EVENTS.SPELL_REMOVED, character, className, removed);
 		return true;
@@ -384,11 +369,6 @@ class SpellSelectionService {
 
 		classSpellcasting.spellsPrepared.push({ ...knownSpell });
 
-		console.debug(`[${this.loggerScope}]`, 'Prepared spell', {
-			className,
-			spell: spellName,
-		});
-
 		eventBus.emit(EVENTS.SPELL_PREPARED, character, className, knownSpell);
 		return true;
 	}
@@ -416,11 +396,6 @@ class SpellSelectionService {
 
 		const removed = classSpellcasting.spellsPrepared.splice(index, 1)[0];
 
-		console.debug(`[${this.loggerScope}]`, 'Unprepared spell', {
-			className,
-			spell: spellName,
-		});
-
 		eventBus.emit(EVENTS.SPELL_UNPREPARED, character, className, removed);
 		return true;
 	}
@@ -446,12 +421,6 @@ class SpellSelectionService {
 
 		slot.current--;
 
-		console.debug(`[${this.loggerScope}]`, 'Used spell slot', {
-			className,
-			spellLevel,
-			remaining: slot.current,
-		});
-
 		eventBus.emit(EVENTS.SPELL_SLOTS_USED, character, className, spellLevel);
 		return true;
 	}
@@ -476,10 +445,6 @@ class SpellSelectionService {
 				}
 			}
 		}
-
-		console.debug(`[${this.loggerScope}]`, 'Restored spell slots', {
-			classNames: classesToRestore,
-		});
 
 		eventBus.emit(EVENTS.SPELL_SLOTS_RESTORED, character, classesToRestore);
 		return true;
@@ -539,6 +504,64 @@ class SpellSelectionService {
 				current: classSpellcasting.spellsPrepared.length,
 			};
 		}
+	}
+
+	// Progression spell selection tracking (per-level choices during level-up/creation)
+	_ensureSpellSelectionsInitialized(character) {
+		if (!character.progression) {
+			character.progression = {
+				classes: [],
+				experiencePoints: 0,
+				levelUps: [],
+			};
+		}
+		if (!character.progression.spellSelections) {
+			character.progression.spellSelections = {};
+		}
+	}
+
+	recordSpellSelections(character, className, level, spellNames) {
+		this._ensureSpellSelectionsInitialized(character);
+		const sessionKey = `${className}_${level}`;
+		character.progression.spellSelections[sessionKey] = Array.isArray(spellNames)
+			? [...spellNames]
+			: [spellNames];
+	}
+
+	getSpellSelections(character, className, level) {
+		if (!character.progression?.spellSelections) return [];
+		const sessionKey = `${className}_${level}`;
+		return character.progression.spellSelections[sessionKey] || [];
+	}
+
+	clearSpellSelectionsForClass(character, className) {
+		if (!character.progression?.spellSelections) return 0;
+
+		let clearedLevels = 0;
+		const keysToDelete = [];
+
+		for (const key of Object.keys(character.progression.spellSelections)) {
+			if (key.startsWith(`${className}_`)) {
+				keysToDelete.push(key);
+			}
+		}
+
+		for (const key of keysToDelete) {
+			delete character.progression.spellSelections[key];
+			clearedLevels++;
+		}
+
+		return clearedLevels;
+	}
+
+	clearSpellSelectionsForLevel(character, className, level) {
+		if (!character.progression?.spellSelections) return false;
+		const sessionKey = `${className}_${level}`;
+		if (sessionKey in character.progression.spellSelections) {
+			delete character.progression.spellSelections[sessionKey];
+			return true;
+		}
+		return false;
 	}
 }
 

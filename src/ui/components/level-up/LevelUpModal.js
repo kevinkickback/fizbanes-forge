@@ -7,6 +7,7 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
+import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
 
 const MAX_CHARACTER_LEVEL = 20;
 
@@ -458,13 +459,15 @@ export class LevelUpModal {
 			}
 
 			// Remove level from progression history if it exists
-			if (character.progressionHistory?.[lastClassName]?.[lastLevel]) {
-				delete character.progressionHistory[lastClassName][lastLevel];
+			const removed = progressionHistoryService.removeChoices(
+				character,
+				lastClassName,
+				lastLevel,
+			);
+			if (removed) {
 				// Clean up empty class history
-				if (
-					Object.keys(character.progressionHistory[lastClassName]).length === 0
-				) {
-					delete character.progressionHistory[lastClassName];
+				if (!progressionHistoryService.hasClassHistory(character, lastClassName)) {
+					progressionHistoryService.clearClassHistory(character, lastClassName);
 				}
 			}
 

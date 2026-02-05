@@ -118,13 +118,7 @@ export class CharacterStepRules {
         `;
 	}
 
-	/**
-	 * Attach event listeners to rendered content.
-	 */
 	async attachListeners(contentArea) {
-		console.debug('[Step1Rules]', 'Attaching listeners');
-
-		// Initialize source card
 		const container = contentArea.querySelector('#sourceBookSelection');
 		if (container) {
 			this._sourceCard.container = container;
@@ -165,9 +159,6 @@ export class CharacterStepRules {
 		}
 	}
 
-	/**
-	 * Restore previously selected sources.
-	 */
 	_restoreSourceSelection(sources) {
 		if (!this._sourceCard.container) return;
 
@@ -181,9 +172,6 @@ export class CharacterStepRules {
 		}
 	}
 
-	/**
-	 * Select all sources.
-	 */
 	_selectAllSources() {
 		if (!this._sourceCard.container) return;
 
@@ -194,9 +182,6 @@ export class CharacterStepRules {
 		}
 	}
 
-	/**
-	 * Select recommended D&D 5e sources for player options.
-	 */
 	_selectRecommendedSources() {
 		if (!this._sourceCard.container) return;
 
@@ -225,9 +210,6 @@ export class CharacterStepRules {
 		}
 	}
 
-	/**
-	 * Deselect all sources.
-	 */
 	_deselectAllSources() {
 		if (!this._sourceCard.container) return;
 
@@ -238,9 +220,6 @@ export class CharacterStepRules {
 		}
 	}
 
-	/**
-	 * Validate step data.
-	 */
 	async validate() {
 		const abilityScoreMethod = document.querySelector(
 			'input[name="abilityScoreMethod"]:checked',
@@ -262,9 +241,6 @@ export class CharacterStepRules {
 		return true;
 	}
 
-	/**
-	 * Save step data to session.
-	 */
 	async save() {
 		const abilityScoreMethod = document.querySelector(
 			'input[name="abilityScoreMethod"]:checked',
@@ -287,33 +263,20 @@ export class CharacterStepRules {
 			);
 		}
 
-		// Save source selection
 		const selectedSources = this._getSelectedSources();
 		this.session.set('allowedSources', selectedSources);
 
-		// Update sourceService with selected sources
-		// Clear existing sources first (except PHB which can't be removed)
 		const currentSources = sourceService.getAllowedSources();
 		for (const source of currentSources) {
 			if (source !== 'PHB' && !selectedSources.has(source)) {
 				sourceService.removeAllowedSource(source);
 			}
 		}
-		// Add newly selected sources
 		for (const source of selectedSources) {
 			sourceService.addAllowedSource(source);
 		}
-
-		console.debug('[Step1Rules]', 'Saved data:', {
-			abilityScoreMethod: this.session.get('abilityScoreMethod'),
-			variantRules: this.session.get('variantRules'),
-			allowedSources: Array.from(selectedSources),
-		});
 	}
 
-	/**
-	 * Get selected sources from UI.
-	 */
 	_getSelectedSources() {
 		const selectedSources = new Set();
 

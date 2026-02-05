@@ -2,12 +2,7 @@
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
 class MethodControlsView {
-	renderStandardArrayControls(
-		container,
-		ability,
-		_baseScore,
-		onStandardArrayChange,
-	) {
+	renderStandardArrayControls(container, ability) {
 		// Clear any existing content in the container
 		container.innerHTML = '';
 
@@ -19,8 +14,7 @@ class MethodControlsView {
 		// Update the options in the select to reflect current state
 		this.updateStandardArrayOptions(select, ability);
 
-		// Add change event listener
-		select.addEventListener('change', onStandardArrayChange);
+		// Note: Event listener is handled by parent via delegation, not added here
 
 		// Add the select to the container
 		container.appendChild(select);
@@ -48,12 +42,7 @@ class MethodControlsView {
 
 		// Add cost indicator
 		const cost = abilityScoreService.getPointCost(baseScore);
-		let costClass = 'low';
-		if (cost >= 7) {
-			costClass = 'high';
-		} else if (cost >= 4) {
-			costClass = 'medium';
-		}
+		const costClass = abilityScoreService.getPointCostClass(cost);
 
 		const costIndicator = document.createElement('div');
 		costIndicator.className = `point-cost ${costClass}`;

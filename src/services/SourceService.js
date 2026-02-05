@@ -1,4 +1,3 @@
-/** Manages source book selection and filtering for character creation. */
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
@@ -14,27 +13,8 @@ export class SourceService extends BaseDataService {
 		this.availableSources = new Map();
 		this.coreSources = new Set();
 		this.sources = new Set();
-		this.characterHandler = null;
-
-		/**
-		 * @type {Set<string>} Sources that are allowed for the current character
-		 * @description Default to PHB as the minimum allowed source
-		 */
 		this.allowedSources = new Set(['PHB']);
-
-		/**
-		 * @type {Set<string>} Default sources that every character begins with
-		 * @description These sources are core rulebooks required for character creation
-		 * @private
-		 */
 		this._defaultSources = new Set(['PHB', 'DMG', 'MM']);
-
-		/**
-		 * @type {Set<string>} Sources that are banned from selection
-		 * @description These sources are excluded because they contain content
-		 * that is not compatible with the character creator
-		 * @private
-		 */
 		this._bannedSources = new Set([
 			'MPMM', // Mordenkainen Presents: Monsters of the Multiverse
 			'AAG', // Astral Adventurer's Guide
@@ -169,11 +149,7 @@ export class SourceService extends BaseDataService {
 							return groupPriority[a.group] - groupPriority[b.group];
 						});
 
-					console.debug('[SourceService]', 'Valid sources after filtering', {
-						sources: validSources.map((s) => s.id),
-					});
 
-					// Initialize available sources
 					for (const source of validSources) {
 						this.availableSources.set(source.id, {
 							name: source.name,
@@ -222,16 +198,8 @@ export class SourceService extends BaseDataService {
 		return this._bannedSources.has(sourceId.toUpperCase());
 	}
 
-	getDefaultSources() {
-		return Array.from(this._defaultSources);
-	}
-
 	getAvailableSources() {
 		return Array.from(this.availableSources.keys());
-	}
-
-	getCoreSources() {
-		return this.coreSources;
 	}
 
 	isValidSource(source) {
@@ -239,14 +207,9 @@ export class SourceService extends BaseDataService {
 	}
 
 	isSourceAllowed(source) {
-		// Check direct and normalized variants
 		if (this.allowedSources.has(source)) return true;
 		const norm = this._normalizeSource(source);
 		return this.allowedSources.has(norm);
-	}
-
-	getSourceDetails(source) {
-		return this.availableSources.get(source) || null;
 	}
 
 	getAllowedSources() {
@@ -254,49 +217,24 @@ export class SourceService extends BaseDataService {
 	}
 
 	addAllowedSource(source) {
-		if (!this.isValidSource(source)) {
-			return false;
-		}
+		if (!this.isValidSource(source)) return false;
 
 		const added = !this.allowedSources.has(source);
 		if (added) {
 			this.allowedSources.add(source);
-
-			// Notify that allowed sources have changed
 			eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
-
-			// Update character if available
-			if (this.characterHandler?.getCurrentCharacter()) {
-				this.characterHandler.getCurrentCharacter().allowedSources = new Set(
-					this.allowedSources,
-				);
-			}
 		}
-
 		return added;
 	}
 
 	removeAllowedSource(source) {
-		// Don't allow removing PHB
-		if (source === 'PHB') {
-			return false;
-		}
+		if (source === 'PHB') return false;
 
 		const removed = this.allowedSources.has(source);
 		if (removed) {
 			this.allowedSources.delete(source);
-
-			// Notify that allowed sources have changed
 			eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
-
-			// Update character if available
-			if (this.characterHandler?.getCurrentCharacter()) {
-				this.characterHandler.getCurrentCharacter().allowedSources = new Set(
-					this.allowedSources,
-				);
-			}
 		}
-
 		return removed;
 	}
 
@@ -362,8 +300,6 @@ export class SourceService extends BaseDataService {
 		}
 		return expanded;
 	}
-
-	// Use BaseDataService's isInitialized() method (inherited)
 }
 
 export const sourceService = new SourceService();

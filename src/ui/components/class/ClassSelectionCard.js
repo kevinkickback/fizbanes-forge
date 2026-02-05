@@ -9,11 +9,11 @@ import {
 	attAbvToFull,
 	getAbilityAbbrDisplay,
 	getSchoolName,
+	SPELL_LEVEL_ORDINALS,
 	toSentenceCase,
 	toTitleCase,
 } from '../../../lib/5eToolsParser.js';
-import TextProcessor from '../../../lib/TextProcessor.js';
-import { textProcessor } from '../../../lib/TextProcessor.js';
+import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
 import { classService } from '../../../services/ClassService.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
@@ -25,20 +25,6 @@ import { ClassFeatureSelector } from '../class-progression/ClassFeatureSelector.
 import { ClassSpellSelector } from '../class-progression/ClassSpellSelector.js';
 
 export class ClassCard {
-	// Spell level ordinal names for UI display
-	static SPELL_LEVEL_ORDINALS = [
-		'',
-		'1st-level',
-		'2nd-level',
-		'3rd-level',
-		'4th-level',
-		'5th-level',
-		'6th-level',
-		'7th-level',
-		'8th-level',
-		'9th-level',
-	];
-
 	constructor(_container) {
 		this._classService = classService;
 
@@ -150,13 +136,8 @@ export class ClassCard {
 	//-------------------------------------------------------------------------
 
 	async _loadSavedClassSelection() {
-		console.debug('[ClassCard]', '_loadSavedClassSelection called');
 		try {
 			const character = AppState.getCurrentCharacter();
-			console.debug(
-				'[ClassCard] Current character:',
-				character ? character.name : 'null',
-			);
 
 			// Check if character has class data in progression
 			if (
@@ -164,19 +145,14 @@ export class ClassCard {
 				!character.progression?.classes ||
 				character.progression.classes.length === 0
 			) {
-				console.debug('[ClassCard]', 'No class progression data found');
 				await this._renderClassTabsFromProgression();
 				this.resetClassDetails();
 				return; // No class data to load
 			}
 
 			const primaryClass = character.getPrimaryClass();
-			console.debug('[ClassCard]', 'Primary class:', primaryClass);
 
 			if (!primaryClass?.name) {
-				console.debug(
-					'[ClassCard] No primary class found, rendering tabs and returning',
-				);
 				await this._renderClassTabsFromProgression();
 				this.resetClassDetails();
 				return; // No saved class to load
@@ -193,7 +169,6 @@ export class ClassCard {
 			if (classData) {
 				// Get subclass from progression.classes[]
 				const subclassName = primaryClass.subclass || null;
-				console.debug('[ClassCard]', 'Subclass name:', subclassName);
 
 				let subclassData = null;
 				if (subclassName) {
@@ -251,8 +226,6 @@ export class ClassCard {
 
 	async _handleLevelUpComplete() {
 		try {
-			console.debug('[ClassCard]', 'Level up complete - refreshing class card');
-
 			// Refresh the entire class selection to pick up new level and choices
 			await this._loadSavedClassSelection();
 		} catch (error) {
@@ -339,8 +312,6 @@ export class ClassCard {
 	async _selectClassByName(className, { skipTabUpdate = false } = {}) {
 		if (!className) return;
 
-		console.debug('[ClassCard]', 'Selecting class:', className);
-
 		// Get character to find class source
 		const character = CharacterManager.getCurrentCharacter();
 		const progressionClass = character?.progression?.classes?.find(
@@ -368,8 +339,6 @@ export class ClassCard {
 			);
 			subclassData = subclasses.find((sc) => sc.name === subclassName);
 		}
-
-		console.debug('[ClassCard]', 'Updating class details for:', className, 'with subclass:', subclassName);
 
 		// Update UI (fluffData is fetched in updateClassDetails now)
 		await this.updateClassDetails(classData, subclassData);
@@ -756,7 +725,7 @@ export class ClassCard {
 							? 'bg-danger'
 							: '';
 				const spellLevelName =
-					ClassCard.SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level';
+					SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level';
 				badges.push(
 					`<span class="badge ${spellClass}" style="${!spellClass ? 'background-color: var(--accent-color);' : ''}">${spellLevelName} ${spellCount}/${choice.spells}</span>`,
 				);
@@ -909,12 +878,6 @@ export class ClassCard {
 		return 0;
 	}
 
-	/**
-	 * Handle spell selection for a specific level
-	 * @param {string} className - Class name
-	 * @param {number} level - Level to select spells for
-	 * @private
-	 */
 	async _handleSpellSelection(className, level) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) {
@@ -937,15 +900,6 @@ export class ClassCard {
 				typeof spell === 'string' ? spell : spell.name
 			);
 		}
-
-		console.debug('[ClassCard]', '_handleSpellSelection:', {
-			className,
-			level,
-			sessionKey,
-			existingSelections,
-			progressionSpellSelections: character.progression?.spellSelections,
-			classSpellcasting: character.spellcasting?.classes?.[className]?.spellsKnown,
-		});
 
 		// Create a mock session for LevelUpSpellSelector
 		const mockSession = {
@@ -1002,17 +956,12 @@ export class ClassCard {
 			);
 		}
 
-		// Get the session key
-		const sessionKey = `${className}_${level}`;
-
-		// Initialize spell selections tracking if needed
-		if (!character.progression.spellSelections) {
-			character.progression.spellSelections = {};
-		}
-
 		// Get previous selections for this level
-		const previousSelections =
-			character.progression.spellSelections[sessionKey] || [];
+		const previousSelections = spellSelectionService.getSpellSelections(
+			character,
+			className,
+			level,
+		);
 
 		// Remove spells that are no longer selected
 		for (const prevSpellName of previousSelections) {
@@ -1041,18 +990,12 @@ export class ClassCard {
 		}
 
 		// Update progression tracking
-		character.progression.spellSelections[sessionKey] = selectedSpells.map(
-			(s) => s.name,
-		);
-
-		console.debug('[ClassCard]', 'Updated spell selection:', {
+		spellSelectionService.recordSpellSelections(
+			character,
 			className,
 			level,
-			selectedSpells: selectedSpells.map((s) => s.name),
-			knownSpells: character.spellcasting.classes[className].spellsKnown.map(
-				(s) => s.name,
-			),
-		});
+			selectedSpells.map((s) => s.name),
+		);
 
 		// Emit CHARACTER_UPDATED event after spells are added
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
@@ -1106,10 +1049,6 @@ export class ClassCard {
 		// Always add subclass choice at the appropriate level (even if already selected, so users can see/change it)
 		// This handles classes that get subclass at level 1 (Warlock, Cleric) or level 3 (most others)
 		if (level === effectiveSubclassLevel) {
-			console.debug(
-				`[ClassCard] Adding subclass choice for ${className} at level ${level} (subclass level: ${effectiveSubclassLevel})`,
-			);
-
 			const availableSubclasses = this._classService
 				.getSubclasses(className, classData.source)
 				.filter((sc) => {
@@ -2554,10 +2493,6 @@ export class ClassCard {
 		const isChanging = oldSubclass && oldSubclass !== subclassName;
 
 		if (isChanging) {
-			console.debug(
-				`[ClassCard] Subclass changing from ${oldSubclass} to ${subclassName} - clearing old subclass data`,
-			);
-
 			// 1. Clear subclass-specific features from progression.classes[].features
 			if (progressionClass?.features) {
 				// Remove features that came from the old subclass
@@ -2589,73 +2524,25 @@ export class ClassCard {
 
 			// 2. Clear subclass-specific optional feature choices from progression history
 			// This includes invocations, metamagic, maneuvers, etc. that might be subclass-restricted
-			const classLevel = progressionClass?.levels || 1;
-			for (let level = 1; level <= classLevel; level++) {
-				const choices = progressionHistoryService.getChoices(
-					character,
-					className,
-					level,
-				);
-				if (choices) {
-					// Clear optional feature choices that might be subclass-specific
-					// We'll let the user re-select them for the new subclass
-					if (choices.invocation) {
-						console.debug(
-							`[ClassCard] Clearing invocation choices at level ${level}`,
-						);
-						delete choices.invocation;
-					}
-					if (choices.metamagic) {
-						console.debug(
-							`[ClassCard] Clearing metamagic choices at level ${level}`,
-						);
-						delete choices.metamagic;
-					}
-					if (choices['fighting-style']) {
-						console.debug(
-							`[ClassCard] Clearing fighting-style choices at level ${level}`,
-						);
-						delete choices['fighting-style'];
-					}
-					if (choices.maneuver) {
-						console.debug(
-							`[ClassCard] Clearing maneuver choices at level ${level}`,
-						);
-						delete choices.maneuver;
-					}
-
-					// Update the progression history with cleared choices
-					progressionHistoryService.recordChoices(
-						character,
-						className,
-						level,
-						choices,
-					);
-				}
-			}
+			const featureTypesToClear = ['invocation', 'metamagic', 'fighting-style', 'maneuver'];
+			progressionHistoryService.clearFeatureTypesFromClass(
+				character,
+				className,
+				featureTypesToClear,
+			);
 
 			// 3. Clear subclass-specific spells if the spellcasting is subclass-dependent
 			// Some subclasses grant specific spell lists (e.g., Cleric domains)
 			if (character.spellcasting?.classes?.[className]) {
 				// Clear spell selections from progression.spellSelections for this class
 				// The user will need to re-select appropriate spells for the new subclass
-				if (character.progression?.spellSelections) {
-					for (let level = 1; level <= classLevel; level++) {
-						const sessionKey = `${className}_${level}`;
-						if (character.progression.spellSelections[sessionKey]) {
-							console.debug(
-								`[ClassCard] Clearing spell selections at level ${level}`,
-							);
-							delete character.progression.spellSelections[sessionKey];
-						}
-					}
-				}
+				spellSelectionService.clearSpellSelectionsForClass(
+					character,
+					className,
+				);
 
 				// Note: We keep spellsKnown intact for now, but the user can use the spell selection
 				// UI to remove incompatible spells and add new ones
-				console.debug(
-					`[ClassCard] Spell selections cleared - user should review and update spells`,
-				);
 			}
 		}
 
@@ -2799,15 +2686,8 @@ export class ClassCard {
 	}
 
 	_updateProficiencies(classData) {
-		console.debug('[ClassCard]', '_updateProficiencies() called');
-
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !classData) return;
-
-		console.debug(
-			'[ClassCard] tools.class BEFORE reset:',
-			JSON.stringify(character.optionalProficiencies?.tools?.class || {}),
-		);
 
 		// Store previous selected proficiencies to restore valid ones later
 		const previousClassSkills =
@@ -2828,11 +2708,6 @@ export class ClassCard {
 		character.optionalProficiencies.tools.class.allowed = 0;
 		character.optionalProficiencies.tools.class.options = [];
 		character.optionalProficiencies.tools.class.selected = [];
-
-		console.debug(
-			'[ClassCard] tools.class AFTER reset:',
-			JSON.stringify(character.optionalProficiencies?.tools?.class || {}),
-		);
 
 		// Add saving throw proficiencies
 		const savingThrows = this._getSavingThrows(classData);
@@ -3039,11 +2914,8 @@ export class ClassCard {
 	}
 
 	_processClassToolProficiencies(classData, character) {
-		console.debug('[ClassCard]', '_processClassToolProficiencies() called');
-
 		const toolProfs = classData?.startingProficiencies?.toolProficiencies;
 		if (!toolProfs || !Array.isArray(toolProfs)) {
-			console.debug('[ClassCard]', 'No toolProficiencies found, returning');
 			return;
 		}
 
@@ -3097,22 +2969,10 @@ export class ClassCard {
 		}
 
 		// Apply accumulated tool choices if any
-		console.debug(
-			'[ClassCard] maxAllowed:',
-			maxAllowed,
-			'allOptions:',
-			allOptions,
-		);
-
 		if (maxAllowed > 0) {
 			character.optionalProficiencies.tools.class.allowed = maxAllowed;
 			character.optionalProficiencies.tools.class.options = allOptions;
 			character.optionalProficiencies.tools.class.selected = [];
-
-			console.debug(
-				'[ClassCard] Set tools.class:',
-				JSON.stringify(character.optionalProficiencies.tools.class),
-			);
 
 			// Special case: if ONLY "Musical instrument" is offered (like Bard),
 			// auto-populate the selected array so it shows as granted/default
@@ -3122,10 +2982,6 @@ export class ClassCard {
 						'Musical instrument',
 					);
 				}
-				console.debug(
-					'[ClassCard] Bard detected - populated selected array:',
-					character.optionalProficiencies.tools.class.selected,
-				);
 			}
 		}
 	}
@@ -3216,8 +3072,6 @@ class ClassDetailsView {
 			return;
 		}
 
-		console.debug('[ClassDetailsView]', 'Updating info panel for:', classData.name);
-
 		// Build the complete info panel content
 		let html = '';
 
@@ -3243,7 +3097,6 @@ class ClassDetailsView {
 		// Set the complete content
 		if (this._classInfoPanel) {
 			this._classInfoPanel.innerHTML = html;
-			console.debug('[ClassDetailsView]', 'Info panel updated successfully');
 		} else {
 			console.warn('[ClassDetailsView]', 'Info panel element not found!');
 		}

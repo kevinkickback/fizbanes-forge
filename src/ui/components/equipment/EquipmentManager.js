@@ -1,6 +1,7 @@
 // Component for managing the Equipment page
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
@@ -10,19 +11,18 @@ export class EquipmentManager {
 	constructor() {
 		this.loggerScope = 'EquipmentManager';
 		this.equipmentSelectionModal = null;
+		this._cleanup = DOMCleanup.create();
 		this.setupEventListeners();
 	}
 
 	setupEventListeners() {
-		// Event delegation for buttons
-		document.addEventListener('click', (e) => {
+		this._cleanup.on(document, 'click', (e) => {
 			const addItemBtn = e.target.closest('#addItemBtn');
 			if (addItemBtn) {
 				this.handleAddItem();
 				return;
 			}
 
-			// Handle item removal
 			const removeItemBtn = e.target.closest('[data-remove-item]');
 			if (removeItemBtn) {
 				const itemId = removeItemBtn.dataset.removeItem;
@@ -30,7 +30,6 @@ export class EquipmentManager {
 				return;
 			}
 
-			// Handle equip item
 			const equipBtn = e.target.closest('[data-equip-item]');
 			if (equipBtn) {
 				const itemId = equipBtn.dataset.equipItem;
@@ -39,7 +38,6 @@ export class EquipmentManager {
 				return;
 			}
 
-			// Handle unequip item
 			const unequipBtn = e.target.closest('[data-unequip-item]');
 			if (unequipBtn) {
 				const itemId = unequipBtn.dataset.unequipItem;
@@ -47,7 +45,6 @@ export class EquipmentManager {
 				return;
 			}
 
-			// Handle attune item
 			const attuneBtn = e.target.closest('[data-attune-item]');
 			if (attuneBtn) {
 				const itemId = attuneBtn.dataset.attuneItem;
@@ -55,7 +52,6 @@ export class EquipmentManager {
 				return;
 			}
 
-			// Handle unattune item
 			const unattuneBtn = e.target.closest('[data-unattune-item]');
 			if (unattuneBtn) {
 				const itemId = unattuneBtn.dataset.unattuneItem;
@@ -65,14 +61,33 @@ export class EquipmentManager {
 		});
 	}
 
+	cleanup() {
+		this._cleanup.cleanup();
+	}
+
+	_executeAction(actionFn, errorMsg) {
+		const character = AppState.getCurrentCharacter();
+		if (!character) {
+			showNotification('No character selected', 'error');
+			return false;
+		}
+
+		const success = actionFn(character);
+		if (success) {
+			eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
+			return true;
+		}
+
+		showNotification(errorMsg, 'error');
+		return false;
+	}
+
 	render() {
 		const character = AppState.getCurrentCharacter();
 		if (!character) {
 			console.warn(`[${this.loggerScope}]`, 'No character selected');
 			return;
 		}
-
-		console.debug(`[${this.loggerScope}]`, 'Rendering equipment page');
 
 		this.renderInventory(character);
 		this.renderEquippedItems(character);
@@ -111,24 +126,22 @@ export class EquipmentManager {
                             </small>
                         </div>
                         <div class="btn-group">
-                            ${
-															!isEquipped
-																? `<button class="btn btn-sm btn-outline-primary" data-equip-item="${item.id}" title="Equip">
+                            ${!isEquipped
+					? `<button class="btn btn-sm btn-outline-primary" data-equip-item="${item.id}" title="Equip">
                                 <i class="fas fa-shield-alt"></i>
                             </button>`
-																: `<button class="btn btn-sm btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
+					: `<button class="btn btn-sm btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
                                 <i class="fas fa-times-circle"></i>
                             </button>`
-														}
-                            ${
-															!isAttuned
-																? `<button class="btn btn-sm btn-outline-info" data-attune-item="${item.id}" title="Attune">
+				}
+                            ${!isAttuned
+					? `<button class="btn btn-sm btn-outline-info" data-attune-item="${item.id}" title="Attune">
                                 <i class="fas fa-star"></i>
                             </button>`
-																: `<button class="btn btn-sm btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
+					: `<button class="btn btn-sm btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
                                 <i class="fas fa-star-half-alt"></i>
                             </button>`
-														}
+				}
                             <button class="btn btn-sm btn-outline-danger" data-remove-item="${item.id}" title="Remove">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -272,36 +285,17 @@ export class EquipmentManager {
 				this.equipmentSelectionModal = new EquipmentSelectionModal();
 			}
 
-			const result = await this.equipmentSelectionModal.show();
-			if (result) {
-				console.debug(`[${this.loggerScope}]`, 'Items added', {
-					count: result.length,
-				});
-			}
+			await this.equipmentSelectionModal.show();
 		} catch (error) {
 			console.error(`[${this.loggerScope}]`, 'Modal error', error);
 		}
 	}
 
 	handleRemoveItem(itemId) {
-		const character = AppState.getCurrentCharacter();
-		if (!character) {
-			showNotification('No character selected', 'error');
-			return;
-		}
-
-		const item = equipmentService.findItemById(character, itemId);
-		if (!item) {
-			showNotification('Item not found', 'error');
-			return;
-		}
-
-		const success = equipmentService.removeItem(character, itemId, 1);
-		if (success) {
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-		} else {
-			showNotification('Failed to remove item', 'error');
-		}
+		this._executeAction(
+			(char) => equipmentService.removeItem(char, itemId, 1),
+			'Failed to remove item',
+		);
 	}
 
 	handleEquipItem(_itemId, _slot) {
@@ -319,50 +313,23 @@ export class EquipmentManager {
 	}
 
 	handleUnequipItem(itemId) {
-		const character = AppState.getCurrentCharacter();
-		if (!character) {
-			showNotification('No character selected', 'error');
-			return;
-		}
-
-		const success = equipmentService.unequipItem(character, itemId);
-		if (success) {
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-		} else {
-			showNotification('Failed to unequip item', 'error');
-		}
+		this._executeAction(
+			(char) => equipmentService.unequipItem(char, itemId),
+			'Failed to unequip item',
+		);
 	}
 
 	handleAttuneItem(itemId) {
-		const character = AppState.getCurrentCharacter();
-		if (!character) {
-			showNotification('No character selected', 'error');
-			return;
-		}
-
-		const success = equipmentService.attuneItem(character, itemId);
-		if (success) {
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-		} else {
-			showNotification(
-				'Failed to attune item (check attunement limit)',
-				'error',
-			);
-		}
+		this._executeAction(
+			(char) => equipmentService.attuneItem(char, itemId),
+			'Failed to attune item (check attunement limit)',
+		);
 	}
 
 	handleUnattuneItem(itemId) {
-		const character = AppState.getCurrentCharacter();
-		if (!character) {
-			showNotification('No character selected', 'error');
-			return;
-		}
-
-		const success = equipmentService.unattueItem(character, itemId);
-		if (success) {
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
-		} else {
-			showNotification('Failed to unattune item', 'error');
-		}
+		this._executeAction(
+			(char) => equipmentService.unattuneItem(char, itemId),
+			'Failed to unattune item',
+		);
 	}
 }

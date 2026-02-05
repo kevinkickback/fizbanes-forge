@@ -163,7 +163,7 @@ class CharacterValidationServiceImpl {
 		);
 		const actualCantrips =
 			spellcasting.spellsKnown?.filter((s) => {
-				const spell = spellService.getSpellByName(s);
+				const spell = spellService.getSpell(s);
 				return spell?.level === 0;
 			}).length || 0;
 

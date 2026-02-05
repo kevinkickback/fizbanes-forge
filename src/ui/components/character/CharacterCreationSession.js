@@ -50,37 +50,16 @@ export class CharacterCreationSession {
 				charisma: 8,
 			},
 		};
-
-		console.debug(
-			'[CharacterCreationSession]',
-			'Initialized new character creation session',
-		);
 	}
 
-	/**
-	 * Get a value from staged data using dot notation path.
-	 *
-	 * @param {string} path - Dot notation path (e.g., "variantRules.feats")
-	 * @returns {*} Value at path
-	 */
 	get(path) {
 		return this._navigatePath(this.stagedData, path);
 	}
 
-	/**
-	 * Set a value in staged data using dot notation path.
-	 *
-	 * @param {string} path - Dot notation path
-	 * @param {*} value - Value to set
-	 */
 	set(path, value) {
 		this._setPath(this.stagedData, path, value);
 	}
 
-	/**
-	 * Get all staged data for final character creation.
-	 * @returns {Object} Staged data
-	 */
 	getStagedData() {
 		return {
 			...this.stagedData,
@@ -88,33 +67,6 @@ export class CharacterCreationSession {
 		};
 	}
 
-	/**
-	 * Validate the current step's data.
-	 * @returns {boolean} True if valid
-	 */
-	validateCurrentStep() {
-		switch (this.currentStep) {
-			case 0: // Basics
-				return this.stagedData.name?.trim().length > 0;
-
-			case 1: // Rules
-				return this.stagedData.abilityScoreMethod?.length > 0;
-
-			case 2: // Sources
-				return this.stagedData.allowedSources.size > 0;
-
-			case 3: // Review
-				return true;
-
-			default:
-				return false;
-		}
-	}
-
-	/**
-	 * Navigate a path in an object using dot notation.
-	 * @private
-	 */
 	_navigatePath(obj, path) {
 		const parts = path.split('.');
 		let current = obj;
@@ -127,11 +79,6 @@ export class CharacterCreationSession {
 		return current;
 	}
 
-	/**
-	 * Set a value at a path in an object using dot notation.
-	 * Creates intermediate objects if needed.
-	 * @private
-	 */
 	_setPath(obj, path, value) {
 		const parts = path.split('.');
 		const last = parts.pop();
@@ -147,9 +94,6 @@ export class CharacterCreationSession {
 		current[last] = value;
 	}
 
-	/**
-	 * Reset the session to initial state.
-	 */
 	reset() {
 		this.currentStep = 0;
 		this.stagedData = {
@@ -159,13 +103,47 @@ export class CharacterCreationSession {
 			portrait: null,
 			abilityScoreMethod: 'pointBuy',
 			variantRules: {
-				feats: true,
-				multiclassing: true,
-				averageHitPoints: true,
+				variantfeat: false,
+				averageHitPoints: false,
 			},
 			allowedSources: new Set(),
+			race: {
+				name: '',
+				source: '',
+				subrace: '',
+			},
+			class: {
+				name: '',
+				source: '',
+				subclass: '',
+			},
+			background: {
+				name: '',
+				source: '',
+			},
+			abilityScores: {
+				strength: 8,
+				dexterity: 8,
+				constitution: 8,
+				intelligence: 8,
+				wisdom: 8,
+				charisma: 8,
+			},
 		};
+	}
 
-		console.debug('[CharacterCreationSession]', 'Session reset');
+	restoreSourcesFromSession(sourceService) {
+		const savedSources = this.get('allowedSources');
+		if (savedSources && savedSources instanceof Set && savedSources.size > 0) {
+			const currentSources = sourceService.getAllowedSources();
+			for (const source of currentSources) {
+				if (source !== 'PHB' && !savedSources.has(source)) {
+					sourceService.removeAllowedSource(source);
+				}
+			}
+			for (const source of savedSources) {
+				sourceService.addAllowedSource(source);
+			}
+		}
 	}
 }

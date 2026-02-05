@@ -2,9 +2,9 @@
 
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import TextProcessor from '../../../lib/TextProcessor.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import TextProcessor from '../../../lib/TextProcessor.js';
 
 import {
 	toSentenceCase,
@@ -565,7 +565,7 @@ export class BackgroundCard {
 	// Character Data Management
 	//-------------------------------------------------------------------------
 
-	_updateCharacterBackground(background, variant) {
+	async _updateCharacterBackground(background, variant) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
@@ -605,7 +605,7 @@ export class BackgroundCard {
 				}
 
 				// Add background proficiencies
-				this._updateBackgroundProficiencies(background, variant);
+				await this._updateBackgroundProficiencies(background);
 
 				// Force a refresh after a short delay to ensure everything is updated
 				setTimeout(() => {
@@ -621,13 +621,10 @@ export class BackgroundCard {
 					character: CharacterManager.getCurrentCharacter(),
 				});
 			}
-
-			// Trigger an event to update the UI
-			document.dispatchEvent(new CustomEvent('characterChanged'));
 		}
 	}
 
-	_updateBackgroundProficiencies(background, _variant) {
+	async _updateBackgroundProficiencies(background) {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !background) return;
 
@@ -698,7 +695,7 @@ export class BackgroundCard {
 		}
 
 		// Handle languages from normalized structure
-		this._updateBackgroundLanguageProficiencies(
+		await this._updateBackgroundLanguageProficiencies(
 			character,
 			background,
 			prevBackgroundLanguagesSelected,
@@ -706,13 +703,6 @@ export class BackgroundCard {
 
 		// Update combined skill options
 		this._updateCombinedSkillOptions(character);
-
-		// Notify UI to update proficiencies
-		document.dispatchEvent(
-			new CustomEvent('proficiencyChanged', {
-				detail: { triggerCleanup: true },
-			}),
-		);
 	}
 
 	_getFixedProficiencies(background) {
@@ -738,28 +728,6 @@ export class BackgroundCard {
 		}
 
 		return { skills, tools };
-	}
-
-	_getAllLanguages() {
-		// Standard D&D 5e languages with proper casing from 5etools
-		return [
-			'Common',
-			'Dwarvish',
-			'Elvish',
-			'Giant',
-			'Gnomish',
-			'Goblin',
-			'Halfling',
-			'Orc',
-			'Abyssal',
-			'Celestial',
-			'Draconic',
-			'Deep Speech',
-			'Infernal',
-			'Primordial',
-			'Sylvan',
-			'Undercommon',
-		];
 	}
 
 	_updateCombinedSkillOptions(character) {
@@ -860,7 +828,7 @@ export class BackgroundCard {
 		];
 	}
 
-	_updateBackgroundLanguageProficiencies(
+	async _updateBackgroundLanguageProficiencies(
 		character,
 		background,
 		prevBackgroundLanguagesSelected,
@@ -895,8 +863,11 @@ export class BackgroundCard {
 						}
 					}
 				} else {
-					// No specific options means any language
-					const allLanguages = this._getAllLanguages();
+					// No specific options means any language - load from service
+					const { proficiencyService } = await import(
+						'../../../services/ProficiencyService.js'
+					);
+					const allLanguages = await proficiencyService.getStandardLanguages();
 					for (const lang of allLanguages) {
 						const norm = TextProcessor.normalizeForLookup(lang);
 						if (!normalizedOptions.has(norm)) {

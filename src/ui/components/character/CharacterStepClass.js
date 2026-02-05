@@ -1,6 +1,6 @@
 // Step 3: Class - character class and subclass selection
 
-import { attAbvToFull, toTitleCase } from '../../../lib/5eToolsParser.js';
+import { attAbvToFull, escapeHtml, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { classService } from '../../../services/ClassService.js';
@@ -87,32 +87,13 @@ export class CharacterStepClass {
         `;
 	}
 
-	/**
-	 * Attach event listeners to rendered content.
-	 */
 	async attachListeners(contentArea) {
-		console.debug('[Step3Class]', 'Attaching listeners');
-
 		this._classSelect = contentArea.querySelector('#modalClassSelect');
 		this._subclassSelect = contentArea.querySelector('#modalSubclassSelect');
 
-		// Initialize class service first
 		await this._classService.initialize();
 
-		// Restore allowed sources from session if available
-		const savedSources = this.session.get('allowedSources');
-		if (savedSources && savedSources instanceof Set && savedSources.size > 0) {
-			// Update sourceService with saved sources
-			const currentSources = sourceService.getAllowedSources();
-			for (const source of currentSources) {
-				if (source !== 'PHB' && !savedSources.has(source)) {
-					sourceService.removeAllowedSource(source);
-				}
-			}
-			for (const source of savedSources) {
-				sourceService.addAllowedSource(source);
-			}
-		}
+		this.session.restoreSourcesFromSession(sourceService);
 
 		// Populate class dropdown
 		await this._populateClassSelect();
@@ -147,10 +128,6 @@ export class CharacterStepClass {
 		this._featuresGrid = contentArea.querySelector('#modalFeatures');
 	}
 
-	/**
-	 * Get the level at which a class gains its subclass.
-	 * @private
-	 */
 	_getSubclassLevel(classData) {
 		if (!classData?.classFeatures) return null;
 
@@ -402,7 +379,7 @@ export class CharacterStepClass {
 			// Build feature tags with hover tooltips
 			const featureTags = features
 				.map((feature) => {
-					const escapedName = this._escapeHtml(
+					const escapedName = escapeHtml(
 						feature.name || 'Unknown Feature',
 					);
 
@@ -411,7 +388,7 @@ export class CharacterStepClass {
 					if (feature.entries && Array.isArray(feature.entries)) {
 						description = feature.entries
 							.filter((e) => typeof e === 'string')
-							.map((e) => `<p>${this._escapeHtml(e)}</p>`)
+							.map((e) => `<p>${escapeHtml(e)}</p>`)
 							.join('');
 					}
 
@@ -448,9 +425,6 @@ export class CharacterStepClass {
 		}
 	}
 
-	/**
-	 * Validate step data.
-	 */
 	async validate() {
 		const classValue = this._classSelect?.value;
 		if (!classValue) {
@@ -483,9 +457,6 @@ export class CharacterStepClass {
 		return true;
 	}
 
-	/**
-	 * Save step data to session.
-	 */
 	async save() {
 		const classValue = this._classSelect?.value;
 		if (!classValue) {
@@ -501,34 +472,8 @@ export class CharacterStepClass {
 			source,
 			subclass: subclassValue,
 		});
-
-		console.debug(
-			'[Step3Class]',
-			'Saved class data:',
-			this.session.get('class'),
-		);
 	}
 
-	/**
-	 * Escape HTML special characters for safe display in tooltips.
-	 * @private
-	 */
-	_escapeHtml(text) {
-		if (!text) return '';
-		const str = String(text);
-		const map = {
-			'&': '&amp;',
-			'<': '&lt;',
-			'>': '&gt;',
-			'"': '&quot;',
-			"'": '&#039;',
-		};
-		return str.replace(/[&<>"']/g, (m) => map[m]);
-	}
-
-	/**
-	 * Clean up resources.
-	 */
 	cleanup() {
 		this._cleanup.cleanup();
 	}

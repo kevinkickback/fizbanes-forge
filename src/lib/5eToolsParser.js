@@ -31,6 +31,19 @@ export const ABILITY_NAMES = [
 	'Charisma',
 ];
 
+export function escapeHtml(text) {
+	if (!text) return '';
+	const str = String(text);
+	const map = {
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#039;',
+	};
+	return str.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 const SPELL_SCHOOLS = {
 	A: 'Abjuration',
 	C: 'Conjuration',
@@ -51,6 +64,32 @@ export const SPELL_SCHOOL_NAMES = [
 	'Illusion',
 	'Necromancy',
 	'Transmutation',
+];
+
+export const SPELL_LEVEL_ORDINALS = [
+	'',
+	'1st-level',
+	'2nd-level',
+	'3rd-level',
+	'4th-level',
+	'5th-level',
+	'6th-level',
+	'7th-level',
+	'8th-level',
+	'9th-level',
+];
+
+export const CANTRIP_ORDINALS = [
+	'Cantrip',
+	'1st',
+	'2nd',
+	'3rd',
+	'4th',
+	'5th',
+	'6th',
+	'7th',
+	'8th',
+	'9th',
 ];
 
 const SPEED_MODES = ['walk', 'burrow', 'climb', 'fly', 'swim'];
@@ -736,11 +775,8 @@ export {
 	LANGUAGES_SECRET,
 	LANGUAGES_STANDARD,
 	SIZE_ABV_TO_FULL,
-	SKILL_TO_ABILITY,
-	SOURCE_TO_ABV,
-	SOURCE_TO_FULL,
-	SOURCES,
-	SPEED_MODES
+	SKILL_TO_ABILITY, SOURCE_TO_ABV,
+	SOURCE_TO_FULL, SOURCES, SPEED_MODES
 };
 
 export default {
@@ -775,3 +811,31 @@ export default {
 	ascSortByProp,
 	ascSortByPropLower,
 };
+
+/**
+ * Process 5etools entries array into HTML text
+ * @param {Object} item - Item with entries property (feat, feature, spell, etc.)
+ * @returns {Promise<string>} Processed description HTML
+ */
+export async function renderEntriesToText(item) {
+	const { textProcessor } = await import('./TextProcessor.js');
+	const parts = [];
+	if (Array.isArray(item.entries)) {
+		for (const entry of item.entries) {
+			if (typeof entry === 'string') {
+				parts.push(await textProcessor.processString(entry));
+			} else if (Array.isArray(entry?.entries)) {
+				for (const sub of entry.entries) {
+					if (typeof sub === 'string') {
+						parts.push(await textProcessor.processString(sub));
+					}
+				}
+			}
+		}
+	} else if (typeof item.entries === 'string') {
+		parts.push(await textProcessor.processString(item.entries));
+	}
+	return parts.length
+		? parts.join(' ')
+		: '<span class="text-muted small">No description available.</span>';
+}

@@ -1,61 +1,45 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import TextProcessor from '../lib/TextProcessor.js';
-class VariantRuleService {
+import { BaseDataService } from './BaseDataService.js';
+
+class VariantRuleService extends BaseDataService {
 	constructor() {
-		this._variantRuleData = null;
-		this._variantRuleMap = null; // Map for O(1) lookups by name (case-insensitive)
+		super({ loggerScope: 'VariantRuleService' });
+		this._variantRuleMap = null;
 	}
 
 	async initialize() {
-		// Skip if already initialized
-		if (this._variantRuleData) {
-			console.debug('[VariantRuleService]', 'Already initialized');
-			return true;
-		}
-
-		console.debug('[VariantRuleService]', 'Initializing variant rule data');
-
-		try {
-			this._variantRuleData = await DataLoader.loadVariantRules();
-			console.debug(
-				'[VariantRuleService]',
-				'Variant rules loaded successfully',
-				{
-					count: this._variantRuleData.variantrule?.length,
+		await this.initWithLoader(
+			async () => {
+				const data = await DataLoader.loadVariantRules();
+				return data;
+			},
+			{
+				onLoaded: (data) => {
+					// Build lookup map for O(1) access by name (case-insensitive)
+					this._variantRuleMap = new Map();
+					if (data.variantrule && Array.isArray(data.variantrule)) {
+						for (const rule of data.variantrule) {
+							if (!rule.name) continue;
+							const key = TextProcessor.normalizeForLookup(rule.name);
+							this._variantRuleMap.set(key, rule);
+						}
+					}
 				},
-			);
+				onError: () => {
+					console.warn(
+						'[VariantRuleService]',
+						'Variant rules unavailable, continuing without them',
+					);
+					this._variantRuleMap = new Map();
+					return { variantrule: [] };
+				},
+			},
+		);
 
-			// Build lookup map for O(1) access by name (case-insensitive)
-			this._variantRuleMap = new Map();
-			if (
-				this._variantRuleData.variantrule &&
-				Array.isArray(this._variantRuleData.variantrule)
-			) {
-				for (const rule of this._variantRuleData.variantrule) {
-					if (!rule.name) continue;
-					const key = TextProcessor.normalizeForLookup(rule.name);
-					this._variantRuleMap.set(key, rule);
-				}
-			}
-
-			return true;
-		} catch {
-			// Gracefully handle missing file - variant rules are optional
-			console.warn(
-				'[VariantRuleService]',
-				'Variant rules unavailable, continuing without them',
-			);
-			this._variantRuleData = { variantrule: [] };
-			this._variantRuleMap = new Map();
-			return true;
-		}
+		return true;
 	}
 
-	getAllVariantRules() {
-		return this._variantRuleData?.variantrule || [];
-	}
-
-	/** Get a specific variant rule by name (case-insensitive). */
 	getVariantRule(ruleName) {
 		if (!this._variantRuleMap) return null;
 		return (

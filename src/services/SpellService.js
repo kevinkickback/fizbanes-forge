@@ -82,16 +82,6 @@ class SpellService extends BaseDataService {
 		return this.lookupByNameAndSource(this._spellLookupMap, name, source);
 	}
 
-	/** @param {number} level - Spell level (0-9)
-	 * @returns {Array<Object>} Array of spell objects
-	 */
-	getSpellsByLevel(level) {
-		if (!this._data?.spell) return [];
-
-		return this._data.spell.filter((s) => s.level === level);
-	}
-
-	/** Check if a spell is available for a specific class. */
 	isSpellAvailableForClass(spell, className) {
 		if (!this._spellClassLookup || !spell?.name || !spell?.source) {
 			return false;
@@ -119,15 +109,6 @@ class SpellService extends BaseDataService {
 		}
 
 		return false;
-	}
-
-	/** Get spells by class. */
-	getSpellsByClass(className) {
-		if (!this._data?.spell) return [];
-
-		return this._data.spell.filter((s) =>
-			this.isSpellAvailableForClass(s, className),
-		);
 	}
 }
 

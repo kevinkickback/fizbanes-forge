@@ -86,7 +86,7 @@ class EquipmentService {
 
 			// Unatune if needed
 			if (item.attuned) {
-				this.unattueItem(character, itemInstanceId);
+				this.unattuneItem(character, itemInstanceId);
 			}
 
 			character.inventory.items.splice(itemIndex, 1);
@@ -165,7 +165,7 @@ class EquipmentService {
 		return true;
 	}
 
-	unattueItem(character, itemInstanceId) {
+	unattuneItem(character, itemInstanceId) {
 		if (!character.inventory) return false;
 
 		const index = character.inventory.attuned.indexOf(itemInstanceId);

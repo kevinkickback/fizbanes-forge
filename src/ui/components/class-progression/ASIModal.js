@@ -1,8 +1,8 @@
-// Modal for ability score improvement selection (+2 to one or +1 to two abilities)
+// Ability score improvement modal
 
 import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
-import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
+import { disposeBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 
 export class ASIModal {
 	constructor(level, currentASI = {}) {
@@ -352,16 +352,5 @@ export class ASIModal {
 			this._resolve(this._result);
 			this._resolve = null;
 		}
-	}
-
-	async hide() {
-		if (!this.bootstrapModal) return;
-
-		// Use centralized hide utility
-		await hideBootstrapModal(this.bootstrapModal, this.modalEl);
-
-		// Clean up component references
-		this._cleanup.cleanup();
-		this.bootstrapModal = null;
 	}
 }

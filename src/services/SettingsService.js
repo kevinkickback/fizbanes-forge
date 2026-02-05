@@ -9,23 +9,14 @@ export class SettingsService {
 	}
 
 	async initialize() {
-		if (this._initialized) {
-			console.debug('[SettingsService]', 'Already initialized');
-			return;
-		}
+		if (this._initialized) return;
 
 		try {
-			console.debug('[SettingsService]', 'Initializing settings manager');
-
 			this._initialized = true;
 			eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'settings', this);
-			console.debug(
-				'SettingsService',
-				'Settings manager initialized successfully',
-			);
 		} catch (error) {
 			console.error(
-				'SettingsService',
+				'[SettingsService]',
 				'Error initializing settings manager',
 				error,
 			);
@@ -34,7 +25,6 @@ export class SettingsService {
 		}
 	}
 
-	/** Called when settings page is loaded and rendered. */
 	async initializeSettingsPage() {
 		try {
 			// Update app data path display
@@ -57,7 +47,7 @@ export class SettingsService {
 			this.initializeEventListeners();
 		} catch (error) {
 			console.error(
-				'SettingsService',
+				'[SettingsService]',
 				'Error initializing settings page',
 				error,
 			);
@@ -98,7 +88,7 @@ export class SettingsService {
 			}
 		} catch (error) {
 			console.error(
-				'SettingsService',
+				'[SettingsService]',
 				'Error updating app data path display',
 				error,
 			);
@@ -135,7 +125,7 @@ export class SettingsService {
 			}
 		} catch (error) {
 			console.error(
-				'SettingsService',
+				'[SettingsService]',
 				'Error updating data source display',
 				error,
 			);
@@ -204,7 +194,7 @@ export class SettingsService {
 						}
 					} catch (error) {
 						console.error(
-							'SettingsService',
+							'[SettingsService]',
 							'Error selecting app data folder',
 							error,
 						);
@@ -225,7 +215,7 @@ export class SettingsService {
 						}
 					} catch (error) {
 						console.error(
-							'SettingsService',
+							'[SettingsService]',
 							'Error resetting app data path',
 							error,
 						);
@@ -241,26 +231,14 @@ export class SettingsService {
 						const modal = new DataConfigurationModal({ allowClose: true });
 						const result = await modal.show();
 
-						console.debug(
-							'SettingsService',
-							'User reconfigured data source:',
-							result.type,
-						);
 						showNotification('Data source updated successfully', 'success');
 						await this.updateDataSourceDisplay();
 						eventBus.emit(EVENTS.DATA_SOURCE_CHANGED, result);
 					} catch (error) {
-						// User closed modal without making changes - this is not an error
-						if (error.message === 'Modal closed by user') {
-							console.debug(
-								'SettingsService',
-								'Data source configuration cancelled by user',
-							);
-							return;
-						}
+						if (error.message === 'Modal closed by user') return;
 
 						console.error(
-							'SettingsService',
+							'[SettingsService]',
 							'Error reconfiguring data source',
 							error,
 						);
@@ -322,7 +300,7 @@ export class SettingsService {
 					} catch (error) {
 						if (unsubscribe) unsubscribe();
 						console.error(
-							'SettingsService',
+							'[SettingsService]',
 							'Error refreshing data source',
 							error,
 						);
@@ -334,7 +312,7 @@ export class SettingsService {
 			}
 		} catch (error) {
 			console.error(
-				'SettingsService',
+				'[SettingsService]',
 				'Error initializing settings event listeners',
 				error,
 			);

@@ -1,7 +1,7 @@
 // Controller for proficiency display/selection/notes UI
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import { ABILITY_NAMES, toTitleCase } from '../../../lib/5eToolsParser.js';
+import { ABILITY_NAMES, STANDARD_SKILL_OPTIONS, STANDARD_TOOL_OPTIONS, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
@@ -1159,9 +1159,7 @@ export class ProficiencyCard {
 	async _getAvailableOptions(type) {
 		switch (type) {
 			case 'skills': {
-				const allSkills = await this._proficiencyManager.getAvailableSkills();
-				// Return skills with proper casing from 5etools JSON
-				return allSkills;
+				return [...STANDARD_SKILL_OPTIONS];
 			}
 			case 'savingThrows':
 				return [...ABILITY_NAMES];  // Use 5eToolsParser canonical list
@@ -1188,9 +1186,7 @@ export class ProficiencyCard {
 				return availableLanguages;
 			}
 			case 'tools': {
-				const allTools = await this._proficiencyManager.getAvailableTools();
-				// Return tools with original JSON casing preserved
-				return allTools;
+				return [...STANDARD_TOOL_OPTIONS];
 			}
 			case 'armor':
 				return ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'];

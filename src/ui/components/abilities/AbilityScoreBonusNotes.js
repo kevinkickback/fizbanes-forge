@@ -31,7 +31,7 @@ class BonusNotesView {
 				const bonusText = [];
 				for (const [ability, value] of bonusMap.entries()) {
 					bonusText.push(
-						`${fullAbilityToAbbr(ability).toUpperCase()} ${value >= 0 ? '+' : ''}${value}`,
+						`${getAbilityAbbrDisplay(ability)} ${value >= 0 ? '+' : ''}${value}`,
 					);
 				}
 				bonusContent += this._createBonusNote(source, bonusText.join(', '));

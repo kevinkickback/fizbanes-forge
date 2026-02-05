@@ -72,23 +72,6 @@ class MethodSwitcherView {
 		}
 	}
 
-	_getMethodStatusText(method) {
-		if (method === 'pointBuy') {
-			const usedPoints = abilityScoreService.getUsedPoints();
-			const remainingPoints = abilityScoreService.getRemainingPoints();
-			const maxPoints = abilityScoreService.getMaxPoints();
-
-			const status = remainingPoints < 0 ? 'danger' : '';
-			return `<span class="${status}">${usedPoints}/${maxPoints}</span>`;
-		} else if (method === 'standardArray') {
-			const availableValues =
-				abilityScoreService.getAvailableStandardArrayValues();
-			const usedCount = 6 - availableValues.length;
-			return `${usedCount}/6`;
-		}
-		return '';
-	}
-
 	updatePointBuyCounter() {
 		// Update the separate point buy counter display
 		const counterDisplay = document.getElementById('pointBuyDisplay');

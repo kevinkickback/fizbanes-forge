@@ -16,17 +16,10 @@ export class CharacterCreationModal {
 
 		// Step components (lazy loaded)
 		this._stepComponents = {};
-
-		console.debug('[CharacterCreationModal]', 'Constructor initialized');
 	}
 
 	async show() {
 		try {
-			console.debug(
-				'[CharacterCreationModal]',
-				'Opening character creation wizard',
-			);
-
 			const failedServices = AppState.getFailedServices();
 			if (Array.isArray(failedServices) && failedServices.length > 0) {
 				const message = `Cannot create characters until data loads (${failedServices.join(', ')}).`;
@@ -34,7 +27,6 @@ export class CharacterCreationModal {
 				return;
 			}
 
-			// Get modal element
 			this.modalEl = document.getElementById('newCharacterModal');
 			if (!this.modalEl) {
 				console.error(
@@ -45,22 +37,15 @@ export class CharacterCreationModal {
 				return;
 			}
 
-			// Create new session
 			this.session = new CharacterCreationSession();
 
-			// Fresh cleanup instance
 			this._cleanup = DOMCleanup.create();
 
-			// Initialize Bootstrap modal
 			this._initializeBootstrapModal();
 
-			// Render step 0
 			await this._renderStep(0);
-
-			// Attach navigation button listeners after render
 			this._attachNavigationListeners();
 
-			// Show modal
 			this.bootstrapModal.show();
 		} catch (error) {
 			console.error('[CharacterCreationModal]', 'Failed to show modal', error);
@@ -71,10 +56,8 @@ export class CharacterCreationModal {
 	async hide() {
 		if (!this.bootstrapModal) return;
 
-		// Use centralized hide utility
 		await hideBootstrapModal(this.bootstrapModal, this.modalEl);
 
-		// Clean up component references
 		this._cleanup.cleanup();
 		this.bootstrapModal = null;
 	}
@@ -84,21 +67,17 @@ export class CharacterCreationModal {
 
 		const currentStep = this.session.currentStep;
 
-		// Validate current step before proceeding
 		if (!(await this._validateStep(currentStep))) {
 			return;
 		}
 
-		// Save current step data
 		await this._saveStepData(currentStep);
 
-		// If on last step (step 6 = review), create character
 		if (currentStep === 6) {
 			await this._createCharacter();
 			return;
 		}
 
-		// Move to next step
 		this.session.currentStep = currentStep + 1;
 		await this._renderStep(this.session.currentStep);
 	}
@@ -109,22 +88,18 @@ export class CharacterCreationModal {
 		const currentStep = this.session.currentStep;
 		if (currentStep === 0) return;
 
-		// Save current step data
 		await this._saveStepData(currentStep);
 
-		// Move to previous step
 		this.session.currentStep = currentStep - 1;
 		await this._renderStep(this.session.currentStep);
 	}
 
 	_initializeBootstrapModal() {
-		// Create new Bootstrap modal instance using centralized utility
 		this.bootstrapModal = initializeBootstrapModal(this.modalEl, {
 			backdrop: 'static',
 			keyboard: false,
 		});
 
-		// Handle modal hidden event
 		this._cleanup.once(this.modalEl, 'hidden.bs.modal', () => {
 			this._onModalHidden();
 		});
@@ -142,7 +117,6 @@ export class CharacterCreationModal {
 			this._cleanup.on(nextBtn, 'click', () => this.nextStep());
 		}
 
-		// Handle keyboard shortcuts
 		this._cleanup.on(document, 'keydown', (e) => {
 			if (!this.modalEl || !this.modalEl.classList.contains('show')) return;
 
@@ -156,16 +130,12 @@ export class CharacterCreationModal {
 
 	async _renderStep(stepIndex) {
 		try {
-			console.debug('[CharacterCreationModal]', 'Rendering step', stepIndex);
-
-			// Get content area
 			const contentArea = this.modalEl.querySelector('[data-step-content]');
 			if (!contentArea) {
 				console.error('[CharacterCreationModal]', 'Content area not found');
 				return;
 			}
 
-			// Load step component if not already loaded
 			if (!this._stepComponents[stepIndex]) {
 				this._stepComponents[stepIndex] =
 					await this._loadStepComponent(stepIndex);
@@ -181,19 +151,14 @@ export class CharacterCreationModal {
 				return;
 			}
 
-			// Render step HTML
 			const html = await step.render();
 			contentArea.innerHTML = html;
 
-			// Attach event listeners
 			if (step.attachListeners) {
 				step.attachListeners(contentArea);
 			}
 
-			// Update stepper UI
 			this._updateStepper();
-
-			// Update navigation buttons
 			this._updateNavigationButtons();
 		} catch (error) {
 			console.error(
@@ -206,10 +171,6 @@ export class CharacterCreationModal {
 		}
 	}
 
-	/**
-	 * Load a step component dynamically.
-	 * @private
-	 */
 	async _loadStepComponent(stepIndex) {
 		try {
 			let StepClass;
@@ -282,13 +243,11 @@ export class CharacterCreationModal {
 		const step = this._stepComponents[stepIndex];
 		if (!step) return true;
 
-		// Use step's validate method if available
 		if (step.validate) {
 			return await step.validate();
 		}
 
-		// Fallback to session validation
-		return this.session.validateCurrentStep();
+		return true;
 	}
 
 	async _saveStepData(stepIndex) {
@@ -350,15 +309,12 @@ export class CharacterCreationModal {
 		try {
 			const stagedData = this.session.getStagedData();
 
-			// Import CharacterManager
 			const { CharacterManager } = await import(
 				'../../../app/CharacterManager.js'
 			);
 
-			// Create character
 			const character = await CharacterManager.createCharacter(stagedData.name);
 
-			// Apply staged data (no legacy character.level field)
 			character.gender = stagedData.gender;
 			character.portrait =
 				stagedData.portrait ||
@@ -369,7 +325,6 @@ export class CharacterCreationModal {
 				abilityScoreMethod: stagedData.abilityScoreMethod || 'pointBuy',
 			};
 
-			// Apply race selection
 			if (stagedData.race) {
 				character.race = {
 					name: stagedData.race.name,
@@ -391,9 +346,7 @@ export class CharacterCreationModal {
 				}
 			}
 
-			// Apply class selection (only in progression.classes[], no legacy character.class field)
 			if (stagedData.class) {
-				// New progression format - add class to progression.classes array
 				if (!character.progression) {
 					character.progression = {
 						classes: [],
@@ -415,14 +368,12 @@ export class CharacterCreationModal {
 				character.progression.classes.push(classEntry);
 			}
 
-			// Apply background selection and proficiencies
 			if (stagedData.background) {
 				character.background = {
 					name: stagedData.background.name,
 					source: stagedData.background.source,
 				};
 
-				// Apply background proficiencies
 				const { backgroundService } = await import(
 					'../../../services/BackgroundService.js'
 				);
@@ -431,29 +382,24 @@ export class CharacterCreationModal {
 					stagedData.background.source,
 				);
 				if (background) {
-					this._applyBackgroundProficiencies(character, background);
+					await this._applyBackgroundProficiencies(character, background);
 				}
 			}
 
-			// Apply ability scores
 			if (stagedData.abilityScores) {
 				character.abilityScores = { ...stagedData.abilityScores };
 			}
 
-			// Update SourceService
 			const { sourceService } = await import(
 				'../../../services/SourceService.js'
 			);
 			sourceService.allowedSources = new Set(stagedData.allowedSources);
 			eventBus.emit('sources:allowed-changed', stagedData.allowedSources);
 
-			// Save character
 			await CharacterManager.saveCharacter();
 
-			// Close modal
 			this.bootstrapModal.hide();
 
-			// Emit event
 			eventBus.emit(EVENTS.CHARACTER_CREATED, character);
 
 			showNotification('New character created successfully', 'success');
@@ -470,7 +416,6 @@ export class CharacterCreationModal {
 	_onModalHidden() {
 		console.debug('[CharacterCreationModal]', 'Modal hidden, cleaning up');
 
-		// Cleanup all step components
 		for (const step of Object.values(this._stepComponents)) {
 			if (step._cleanup) {
 				step._cleanup.cleanup();
@@ -478,33 +423,27 @@ export class CharacterCreationModal {
 		}
 		this._stepComponents = {};
 
-		// Cleanup modal
 		this._cleanup.cleanup();
 
-		// Reset session
 		if (this.session) {
 			this.session.reset();
 			this.session = null;
 		}
 
-		// Dispose Bootstrap modal
 		disposeBootstrapModal(this.bootstrapModal);
 		this.bootstrapModal = null;
 
 		eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_CLOSED);
 	}
 
-	// Apply background proficiencies to character (fixed and optional)
-	_applyBackgroundProficiencies(character, background) {
+	async _applyBackgroundProficiencies(character, background) {
 		if (!character || !background) return;
 
-		// Apply fixed skill proficiencies
 		const skillProfs = background?.proficiencies?.skills || [];
 		for (const skillEntry of skillProfs) {
 			if (!skillEntry.choose && skillEntry.skill) {
 				character.addProficiency('skills', skillEntry.skill, 'Background');
 			}
-			// Set up optional skill choices
 			if (skillEntry.choose) {
 				const count = skillEntry.choose.count || 1;
 				const from = skillEntry.choose.from || [];
@@ -514,13 +453,11 @@ export class CharacterCreationModal {
 			}
 		}
 
-		// Apply fixed tool proficiencies
 		const toolProfs = background?.proficiencies?.tools || [];
 		for (const toolEntry of toolProfs) {
 			if (!toolEntry.choose && toolEntry.tool) {
 				character.addProficiency('tools', toolEntry.tool, 'Background');
 			}
-			// Set up optional tool choices
 			if (toolEntry.choose) {
 				const count = toolEntry.choose.count || 1;
 				character.optionalProficiencies.tools.background.allowed = count;
@@ -529,14 +466,11 @@ export class CharacterCreationModal {
 			}
 		}
 
-		// Apply language proficiencies (fixed and optional)
 		const langProfs = background?.proficiencies?.languages || [];
 		for (const langEntry of langProfs) {
-			// Fixed languages
 			if (!langEntry.choose && langEntry.language) {
 				character.addProficiency('languages', langEntry.language, 'Background');
 			}
-			// Optional language choices
 			if (langEntry.choose) {
 				const count = langEntry.choose.count || 1;
 				const from = langEntry.choose.from || [];
@@ -544,26 +478,12 @@ export class CharacterCreationModal {
 
 				character.optionalProficiencies.languages.background.allowed = count;
 
-				// If 'any' or 'anystandard', provide all standard languages
 				if (type === 'any' || type === 'anystandard' || from.length === 0) {
-					character.optionalProficiencies.languages.background.options = [
-						'Common',
-						'Dwarvish',
-						'Elvish',
-						'Giant',
-						'Gnomish',
-						'Goblin',
-						'Halfling',
-						'Orc',
-						'Abyssal',
-						'Celestial',
-						'Draconic',
-						'Deep Speech',
-						'Infernal',
-						'Primordial',
-						'Sylvan',
-						'Undercommon',
-					];
+					const { proficiencyService } = await import(
+						'../../../services/ProficiencyService.js'
+					);
+					character.optionalProficiencies.languages.background.options =
+						await proficiencyService.getStandardLanguages();
 				} else {
 					character.optionalProficiencies.languages.background.options = from;
 				}

@@ -3,24 +3,15 @@ import TextProcessor from '../lib/TextProcessor.js';
 class SkillService {
 	constructor() {
 		this._skillData = null;
-		this._skillMap = null; // Map for O(1) lookups by name (case-insensitive)
+		this._skillMap = null;
 	}
 
 	async initialize() {
-		// Skip if already initialized
-		if (this._skillData) {
-			console.debug('[SkillService]', 'Already initialized');
-			return true;
-		}
+		if (this._skillData) return true;
 
-		console.debug('[SkillService]', 'Initializing skill data');
 		try {
 			this._skillData = await DataLoader.loadSkills();
-			console.debug('[SkillService]', 'Skills loaded successfully', {
-				count: this._skillData.skill?.length,
-			});
 
-			// Build lookup map for O(1) access by name (case-insensitive)
 			this._skillMap = new Map();
 			if (this._skillData.skill && Array.isArray(this._skillData.skill)) {
 				for (const skill of this._skillData.skill) {
@@ -37,19 +28,6 @@ class SkillService {
 		}
 	}
 
-	getAllSkills() {
-		return this._skillData?.skill || [];
-	}
-
-	/** Get a specific skill by name (case-insensitive). */
-	getSkill(skillName) {
-		if (!this._skillMap) return null;
-		return (
-			this._skillMap.get(TextProcessor.normalizeForLookup(skillName)) || null
-		);
-	}
-
-	/** Get all skills that use a specific ability score. */
 	getSkillsByAbility(abilityName) {
 		if (!this._skillData?.skill) return [];
 

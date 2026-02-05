@@ -505,6 +505,64 @@ export class Character {
 	hasClass(className) {
 		return this.getClassEntry(className) !== null;
 	}
+
+	/**
+	 * Calculate feat availability based on ASI choices and race
+	 * @returns {Object} { used, max, remaining, reasons, blockedReason }
+	 */
+	getFeatAvailability() {
+		const reasons = [];
+		let maxFeats = 0;
+
+		// Count ASI opportunities (available feat slots from level-ups)
+		const totalLevel = this.getTotalLevel();
+		if (this.progression?.classes) {
+			for (const classEntry of this.progression.classes) {
+				const className = classEntry.name;
+				const classLevel = classEntry.levels || 0;
+
+				// Determine ASI levels for this class
+				let asiLevels = [4, 8, 12, 16, 19]; // Standard
+				if (className === 'Fighter') {
+					asiLevels = [4, 6, 8, 12, 14, 16, 19];
+				} else if (className === 'Rogue') {
+					asiLevels = [4, 8, 10, 12, 16, 19];
+				}
+
+				// Count ASI opportunities for this class
+				const asiCount = asiLevels.filter((level) => level <= classLevel).length;
+				maxFeats += asiCount;
+
+				if (asiCount > 0) {
+					reasons.push(
+						`${className}: ${asiCount} ASI choice${asiCount > 1 ? 's' : ''}`,
+					);
+				}
+			}
+		}
+
+		// Check for Variant Human feat
+		const raceName = this.race?.name?.toLowerCase() || '';
+		if (raceName.includes('variant') && raceName.includes('human')) {
+			maxFeats += 1;
+			reasons.push('Variant Human');
+		}
+
+		// Count currently selected feats
+		const usedFeats = this.feats?.length || 0;
+		const remaining = Math.max(0, maxFeats - usedFeats);
+
+		return {
+			used: usedFeats,
+			max: maxFeats,
+			remaining,
+			reasons,
+			blockedReason:
+				maxFeats === 0
+					? 'No feat selections available. Choose Variant Human or reach level 4.'
+					: null,
+		};
+	}
 }
 
 export function serializeCharacter(character) {

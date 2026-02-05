@@ -1,138 +1,21 @@
-import {
-	SKILL_TO_ABILITY, STANDARD_LANGUAGE_OPTIONS,
-	STANDARD_SKILL_OPTIONS,
-	STANDARD_TOOL_OPTIONS
-} from '../lib/5eToolsParser.js';
 import { DataLoader } from '../lib/DataLoader.js';
-import TextProcessor from '../lib/TextProcessor.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import TextProcessor from '../lib/TextProcessor.js';
 import { itemService } from './ItemService.js';
 
 export class ProficiencyService {
 	constructor() {
 		this._initialized = false;
-		this._skills = null;
-		this._tools = null;
-		this._languages = null;
 		this._skillData = null;
 		this._languageData = null;
+		this._bookData = null;
 	}
 
-	async initialize() {
-		if (this._initialized) {
-			console.debug('[ProficiencyService]', 'Already initialized');
-			return;
-		}
 
-		try {
-			console.debug('[ProficiencyService]', 'Initializing proficiency manager');
-
-			// Cache commonly used data
-			this._skills = await this.getAvailableSkills();
-			this._tools = await this.getAvailableTools();
-			this._languages = await this.getAvailableLanguages();
-
-			this._initialized = true;
-			console.debug(
-				'[ProficiencyService]',
-				'Proficiency manager initialized successfully',
-				{
-					skillCount: this._skills?.length,
-					toolCount: this._tools?.length,
-					languageCount: this._languages?.length,
-				},
-			);
-			eventBus.emit(EVENTS.SERVICE_INITIALIZED, 'proficiency', this);
-		} catch (error) {
-			console.error(
-				'ProficiencyService',
-				'Failed to initialize proficiency manager',
-				error,
-			);
-			throw error;
-		}
-	}
-
-	calculateProficiencyBonus(level) {
-		return Math.floor((level - 1) / 4) + 2;
-	}
-
-	async getAvailableSkills() {
-		if (this._skills) {
-			return [...this._skills];
-		}
-
-		return [...STANDARD_SKILL_OPTIONS];
-	}
-
-	async getAvailableTools() {
-		if (this._tools) {
-			return [...this._tools];
-		}
-
-		return [...STANDARD_TOOL_OPTIONS];
-	}
-
-	async getAvailableLanguages() {
-		if (this._languages) {
-			return [...this._languages];
-		}
-
-		return [...STANDARD_LANGUAGE_OPTIONS];
-	}
-
-	getSkillAbility(skill) {
-		if (!skill) return null;
-		const normalized = TextProcessor.normalizeForLookup(skill);
-		const abilityAbv = SKILL_TO_ABILITY[normalized];
-		if (!abilityAbv) return null;
-
-		// Map abbreviations to full names for compatibility
-		const abvToFull = {
-			str: 'strength',
-			dex: 'dexterity',
-			con: 'constitution',
-			int: 'intelligence',
-			wis: 'wisdom',
-			cha: 'charisma',
-		};
-		return abvToFull[abilityAbv] || null;
-	}
-
-	validateSkill(skill) {
-		return this.getSkillAbility(skill) !== null;
-	}
-
-	async validateTool(tool) {
-		const tools = await this.getAvailableTools();
-		return tools.includes(tool);
-	}
-
-	async validateLanguage(language) {
-		const languages = await this.getAvailableLanguages();
-		return languages.includes(language);
-	}
-
-	calculateSkillModifier(character, skill) {
-		const ability = this.getSkillAbility(skill);
-		if (!ability) return 0;
-
-		const abilityMod = character.getAbilityModifier(ability);
-		const profBonus = character.hasProficiency('skill', skill)
-			? this.calculateProficiencyBonus(character.getTotalLevel())
-			: 0;
-
-		return abilityMod + profBonus;
-	}
-
-	/** @deprecated Use getAbilityModifier from 5eToolsParser instead. */
-	formatModifier(value) {
-		return value >= 0 ? `+${value}` : value.toString();
-	}
 
 	addProficiency(character, type, proficiency, source) {
 		if (!character || !type || !proficiency || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for addProficiency:', {
+			console.warn('[ProficiencyService]', 'Invalid parameters for addProficiency:', {
 				type,
 				proficiency,
 				source,
@@ -178,7 +61,7 @@ export class ProficiencyService {
 
 	removeProficienciesBySource(character, source) {
 		if (!character || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for removeProficienciesBySource');
+			console.warn('[ProficiencyService]', 'Invalid parameters for removeProficienciesBySource');
 			return {};
 		}
 
@@ -221,37 +104,13 @@ export class ProficiencyService {
 		return removed;
 	}
 
-	hasProficiency(character, type, proficiency) {
-		if (!character?.proficiencies?.[type]) return false;
-
-		const normalizedTarget = TextProcessor.normalizeForLookup(proficiency);
-		return character.proficiencies[type].some(
-			(p) => TextProcessor.normalizeForLookup(p) === normalizedTarget,
-		);
-	}
-
 	getProficiencySources(character, type, proficiency) {
 		return character?.proficiencySources?.[type]?.get(proficiency) || new Set();
 	}
 
-	getProficienciesWithSources(character, type) {
-		if (!character?.proficiencies?.[type]) {
-			return [];
-		}
-
-		return character.proficiencies[type].map((proficiency) => ({
-			name: proficiency,
-			sources: this.getProficiencySources(
-				character,
-				type,
-				proficiency,
-			),
-		}));
-	}
-
 	setOptionalProficiencies(character, type, source, allowed, options) {
 		if (!character || !type || !source) {
-			console.warn('[ProficiencyCore]', 'Invalid parameters for setOptionalProficiencies');
+			console.warn('[ProficiencyService]', 'Invalid parameters for setOptionalProficiencies');
 			return;
 		}
 
@@ -289,155 +148,6 @@ export class ProficiencyService {
 			allowed,
 			options,
 			character,
-		});
-	}
-
-	clearOptionalProficiencies(character, type, source) {
-		if (!character?.optionalProficiencies?.[type]) {
-			return;
-		}
-
-		const sourceKey = TextProcessor.normalizeForLookup(source);
-		if (character.optionalProficiencies[type][sourceKey]) {
-			const selected =
-				character.optionalProficiencies[type][sourceKey].selected || [];
-			for (const _proficiency of selected) {
-				this.removeProficienciesBySource(
-					character,
-					`${source} Choice`,
-				);
-			}
-
-			character.optionalProficiencies[type][sourceKey] = {
-				allowed: 0,
-				options: [],
-				selected: [],
-			};
-
-			this._recalculateOptionalProficiencies(character, type);
-		}
-
-		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_CLEARED, {
-			type,
-			source: sourceKey,
-			character,
-		});
-	}
-
-	selectOptionalProficiency(character, type, source, proficiency) {
-		if (!character?.optionalProficiencies?.[type]) {
-			console.warn('[ProficiencyCore]', 'Optional proficiencies not initialized for type:', type);
-			return false;
-		}
-
-		const sourceKey = TextProcessor.normalizeForLookup(source);
-		const config = character.optionalProficiencies[type][sourceKey];
-
-		if (!config) {
-			console.warn('[ProficiencyCore]', 'No optional proficiency configuration for source:', source);
-			return false;
-		}
-
-		if (config.selected.includes(proficiency)) {
-			return false;
-		}
-
-		if (config.selected.length >= config.allowed) {
-			console.warn(
-				'[ProficiencyCore]',
-				'Maximum optional proficiencies already selected for',
-				source,
-			);
-			return false;
-		}
-
-		if (!config.options.includes(proficiency)) {
-			console.warn('[ProficiencyCore]', 'Proficiency not in available options:', proficiency);
-			return false;
-		}
-
-		config.selected.push(proficiency);
-
-		this.addProficiency(
-			character,
-			type,
-			proficiency,
-			`${source} Choice`,
-		);
-
-		this._recalculateOptionalProficiencies(character, type);
-
-		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_SELECTED, {
-			type,
-			source: sourceKey,
-			proficiency,
-			character,
-		});
-
-		return true;
-	}
-
-	deselectOptionalProficiency(character, type, source, proficiency) {
-		if (!character?.optionalProficiencies?.[type]) {
-			return false;
-		}
-
-		const sourceKey = TextProcessor.normalizeForLookup(source);
-		const config = character.optionalProficiencies[type][sourceKey];
-
-		if (!config) {
-			return false;
-		}
-
-		const index = config.selected.indexOf(proficiency);
-		if (index === -1) {
-			return false;
-		}
-
-		config.selected.splice(index, 1);
-
-		this._removeProficiencyFromSource(
-			character,
-			type,
-			proficiency,
-			`${source} Choice`,
-		);
-
-		this._recalculateOptionalProficiencies(character, type);
-
-		eventBus.emit(EVENTS.PROFICIENCY_OPTIONAL_DESELECTED, {
-			type,
-			source: sourceKey,
-			proficiency,
-			character,
-		});
-
-		return true;
-	}
-
-	getAvailableOptionalProficiencies(character, type, source) {
-		const sourceKey = TextProcessor.normalizeForLookup(source);
-		const config = character?.optionalProficiencies?.[type]?.[sourceKey];
-
-		if (!config) {
-			return [];
-		}
-
-		return config.options.filter((option) => {
-			if (config.selected.includes(option)) {
-				return false;
-			}
-
-			const sources = this.getProficiencySources(
-				character,
-				type,
-				option,
-			);
-			const hasNonChoiceSources = Array.from(sources).some(
-				(s) => !s.includes('Choice'),
-			);
-
-			return !hasNonChoiceSources;
 		});
 	}
 
@@ -728,6 +438,36 @@ export class ProficiencyService {
 		};
 	}
 
+	async getStandardLanguages() {
+		const languageData = await this._loadLanguageData();
+		if (!languageData || languageData.length === 0) return [];
+
+		// Import sourceService dynamically to avoid circular dependency
+		const { sourceService } = await import('./SourceService.js');
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
+		);
+
+		// Get unique language names from allowed sources, prioritizing XPHB then PHB
+		const languageMap = new Map();
+
+		for (const lang of languageData) {
+			if (!allowedSources.has(lang.source?.toUpperCase())) continue;
+			if (lang.type !== 'standard' && lang.type !== 'exotic') continue;
+
+			const normalizedName = TextProcessor.normalizeForLookup(lang.name);
+
+			if (!languageMap.has(normalizedName)) {
+				languageMap.set(normalizedName, lang.name);
+			} else if (lang.source === 'XPHB') {
+				// Prefer XPHB version
+				languageMap.set(normalizedName, lang.name);
+			}
+		}
+
+		return Array.from(languageMap.values()).sort();
+	}
+
 	async getLanguageDescription(languageName) {
 		const languageData = await this._loadLanguageData();
 		if (!languageData || languageData.length === 0) return null;
@@ -894,9 +634,10 @@ export class ProficiencyService {
 
 		if (typeCode) {
 			// Get category info from PHB book
-			const categoryInfo = await this.getArmorCategoryInfo(armorName);
+			const bookData = await this._loadBookData();
+			const categoryInfo = bookData ? this._findBookEntry(bookData.data, armorName) : null;
 
-			// Return category description with book reference
+			// Get examples from items
 			const examples = baseItems
 				.filter(
 					(item) =>
@@ -963,7 +704,14 @@ export class ProficiencyService {
 		// Handle weapon categories
 		if (weaponName === 'Simple Weapons' || weaponName === 'Martial Weapons') {
 			// Get category info from PHB book
-			const categoryInfo = await this.getWeaponCategoryInfo(weaponName);
+			const bookData = await this._loadBookData();
+			const weaponProfEntry = bookData ? this._findBookEntry(bookData.data, 'Weapon Proficiency') : null;
+			const categoryInfo = weaponProfEntry ? {
+				name: weaponName,
+				entries: weaponProfEntry.entries || [],
+				source: 'PHB',
+				page: weaponProfEntry.page,
+			} : null;
 
 			const category = weaponName === 'Simple Weapons' ? 'simple' : 'martial';
 			const examples = baseItems
@@ -1062,40 +810,6 @@ export class ProficiencyService {
 			}
 		}
 		return null;
-	}
-
-	async getArmorCategoryInfo(categoryName) {
-		const bookData = await this._loadBookData();
-		if (!bookData) return null;
-
-		const entry = this._findBookEntry(bookData.data, categoryName);
-		if (!entry) return null;
-
-		return {
-			name: entry.name,
-			entries: entry.entries || [],
-			source: 'PHB',
-			page: entry.page,
-		};
-	}
-
-	async getWeaponCategoryInfo(categoryName) {
-		const bookData = await this._loadBookData();
-		if (!bookData) return null;
-
-		// Weapon proficiency section contains the category info
-		const weaponProfEntry = this._findBookEntry(
-			bookData.data,
-			'Weapon Proficiency',
-		);
-		if (!weaponProfEntry) return null;
-
-		return {
-			name: categoryName,
-			entries: weaponProfEntry.entries || [],
-			source: 'PHB',
-			page: weaponProfEntry.page,
-		};
 	}
 
 	async getSavingThrowInfo() {

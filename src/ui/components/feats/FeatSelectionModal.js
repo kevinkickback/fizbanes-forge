@@ -404,7 +404,7 @@ export class FeatSelectionModal {
 	}
 
 	_onError(err) {
-		console.error('[FeatSelectionModal]', err);
+		console.error('FeatSelectionModal', err);
 		showNotification('Failed to open feat selection modal', 'error');
 	}
 }
@@ -519,7 +519,7 @@ export class FeatListView {
 		const featName = featItem?.getAttribute('data-feat-name');
 
 		if (!featName) {
-			console.warn('[FeatListView]', 'Could not determine feat name to remove');
+			console.warn('FeatListView', 'Could not determine feat name to remove');
 			return;
 		}
 
@@ -570,7 +570,7 @@ export class FeatListView {
 		// Emit character updated event
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, updatedCharacter);
 
-		console.debug('[FeatListView]', 'Feat removed', { featName });
+		console.debug('FeatListView', 'Feat removed', { featName });
 	}
 }
 

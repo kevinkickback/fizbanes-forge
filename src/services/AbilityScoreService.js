@@ -183,6 +183,12 @@ class AbilityScoreService {
 		return cost > 0 || score === 8 ? cost : null;
 	}
 
+	getPointCostClass(cost) {
+		if (cost >= 7) return 'high';
+		if (cost >= 4) return 'medium';
+		return 'low';
+	}
+
 	getValidPointBuyScores() {
 		return Array.from(this._pointBuyCosts.keys()).sort((a, b) => a - b);
 	}
@@ -332,7 +338,8 @@ class AbilityScoreService {
 
 		// Group bonuses by source for each ability
 		for (const ability of this._allAbilities) {
-			const bonuses = character.abilityBonuses?.[ability] || [];
+			const fullName = attAbvToFull(ability).toLowerCase();
+			const bonuses = character.abilityBonuses?.[fullName] || [];
 			if (bonuses.length === 0) continue;
 
 			// Group by source
@@ -545,6 +552,37 @@ class AbilityScoreService {
 		}
 
 		this._notifyAbilityScoresChanged();
+	}
+
+	getRacialBonus(ability, raceData, subraceData, abilityChoices = []) {
+		const normalizedAbility = this.normalizeAbilityName(ability);
+		const shortName = normalizedAbility.substring(0, 3);
+
+		const abilityArray = [
+			...(raceData?.ability || []),
+			...(subraceData?.ability || []),
+		];
+
+		if (abilityArray.length === 0 && abilityChoices.length === 0) return 0;
+
+		let bonus = 0;
+		for (const abilityEntry of abilityArray) {
+			if (!abilityEntry) continue;
+
+			if (typeof abilityEntry === 'object') {
+				if (abilityEntry[shortName]) {
+					bonus += abilityEntry[shortName];
+				}
+			}
+		}
+
+		for (const choice of abilityChoices) {
+			if (choice && choice.ability === normalizedAbility) {
+				bonus += choice.amount || 1;
+			}
+		}
+
+		return bonus;
 	}
 }
 
