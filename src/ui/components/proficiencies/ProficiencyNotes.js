@@ -4,6 +4,10 @@ import { toTitleCase } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 
 export class ProficiencyNotesView {
+	constructor() {
+		this._storageKey = 'proficiencyNotesCollapsed';
+	}
+
 	async updateProficiencyNotes(container, character, getTypeLabel) {
 		if (!character) {
 			container.innerHTML = '';
@@ -75,7 +79,17 @@ export class ProficiencyNotesView {
 		}
 
 		// Build the notes HTML
-		let notesHtml = '<h6 class="mb-2">Sources:</h6>';
+		const isCollapsed = localStorage.getItem(this._storageKey) === 'true';
+		const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
+		const contentDisplay = isCollapsed ? 'none' : 'block';
+
+		let notesHtml = `
+			<div class="sources-collapsible-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+				<h6 class="mb-0">Sources</h6>
+				<i class="fas ${chevronClass}" style="font-size: 0.875rem;"></i>
+			</div>
+			<div class="sources-collapsible-content" style="display: ${contentDisplay};">
+		`;
 
 		for (const type in typeGroups) {
 			if (typeGroups[type].length === 0) continue;
@@ -116,9 +130,35 @@ export class ProficiencyNotesView {
 			notesHtml += '</div>';
 		}
 
+		notesHtml += '</div>';
 		container.innerHTML = notesHtml;
+
+		// Add click listener to toggle collapse
+		const header = container.querySelector('.sources-collapsible-header');
+		if (header) {
+			header.addEventListener('click', () => this._toggleCollapse(container));
+		}
 
 		// Process the notes container to resolve reference tags
 		await textProcessor.processElement(container);
+	}
+
+	_toggleCollapse(container) {
+		const content = container.querySelector('.sources-collapsible-content');
+		const icon = container.querySelector('.sources-collapsible-header i');
+
+		if (!content || !icon) return;
+
+		const isCurrentlyCollapsed = content.style.display === 'none';
+
+		if (isCurrentlyCollapsed) {
+			content.style.display = 'block';
+			icon.className = 'fas fa-chevron-up';
+			localStorage.setItem(this._storageKey, 'false');
+		} else {
+			content.style.display = 'none';
+			icon.className = 'fas fa-chevron-down';
+			localStorage.setItem(this._storageKey, 'true');
+		}
 	}
 }

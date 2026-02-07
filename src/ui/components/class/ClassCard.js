@@ -21,8 +21,8 @@ import { progressionHistoryService } from '../../../services/ProgressionHistoryS
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
-import { ClassFeatureSelectorModal } from '../class-progression/ClassFeatureSelectorModal.js';
-import { ClassSpellSelectorModal } from '../class-progression/ClassSpellSelectorModal.js';
+import { ClassFeatureSelectorModal } from './ClassFeatureSelectorModal.js';
+import { ClassSpellSelectorModal } from './ClassSpellSelectorModal.js';
 
 export class ClassCard {
 	constructor(_container) {
@@ -251,6 +251,9 @@ export class ClassCard {
 
 		// Update class details (proficiencies, etc.) in info panel
 		await this._detailsView.updateAllDetails(classData, fluffData);
+
+		// Apply class proficiencies to character
+		this._updateCharacterClass(classData, subclassData?.name || '');
 
 		// Update class choices section
 		await this._updateClassChoices(classData, subclassData);
@@ -2166,7 +2169,7 @@ export class ClassCard {
 		if (isSelectingFeat) {
 			// Open feat selection modal
 			const { ClassFeatSelectorModal } = await import(
-				'../class-progression/ClassFeatSelectorModal.js'
+				'../class/ClassFeatSelectorModal.js'
 			);
 			const { levelUpService } = await import(
 				'../../../services/LevelUpService.js'
@@ -2218,7 +2221,7 @@ export class ClassCard {
 		if (!primaryClass) return;
 
 		// Import AbilityScoreSelectorModal
-		const { AbilityScoreSelectorModal } = await import('../class-progression/AbilityScoreSelectorModal.js');
+		const { AbilityScoreSelectorModal } = await import('../class/AbilityScoreSelectorModal.js');
 
 		// Check if ASI was already used at this level
 		const levelUps = character.progression?.levelUps || [];

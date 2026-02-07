@@ -338,6 +338,10 @@ export class ProficiencyCard {
 				'proficiency:optionalDeselected',
 				this._handleProficiencyChanged.bind(this),
 			);
+			this.onEventBus(
+				EVENTS.CHARACTER_UPDATED,
+				this._handleCharacterUpdated.bind(this),
+			);
 		} catch (error) {
 			console.error(
 				'ProficiencyCard',
@@ -444,6 +448,25 @@ export class ProficiencyCard {
 			console.error(
 				'ProficiencyCard',
 				'Error handling character change:',
+				error,
+			);
+		}
+	}
+
+	_handleCharacterUpdated(_event) {
+		console.debug('[ProficiencyCard]', '_handleCharacterUpdated() called - refreshing accordion');
+
+		try {
+			this._character = CharacterManager.getCurrentCharacter();
+
+			if (this._character) {
+				// Just refresh the accordion to reflect updated options
+				this._populateAccordion();
+			}
+		} catch (error) {
+			console.error(
+				'ProficiencyCard',
+				'Error handling character update:',
 				error,
 			);
 		}

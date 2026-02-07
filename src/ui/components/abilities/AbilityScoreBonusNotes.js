@@ -6,6 +6,7 @@ import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 class BonusNotesView {
 	constructor(bonusesContainer) {
 		this._bonusesContainer = bonusesContainer;
+		this._storageKey = 'abilityBonusesCollapsed';
 	}
 
 	render() {
@@ -16,7 +17,18 @@ class BonusNotesView {
 				return;
 			}
 
-			let bonusContent = '<h6 class="mb-2">Sources</h6>';
+			const isCollapsed = localStorage.getItem(this._storageKey) === 'true';
+			const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
+			const contentDisplay = isCollapsed ? 'none' : 'block';
+
+			let bonusContent = `
+				<div class="sources-collapsible-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+					<h6 class="mb-0">Sources</h6>
+					<i class="fas ${chevronClass}" style="font-size: 0.875rem;"></i>
+				</div>
+				<div class="sources-collapsible-content" style="display: ${contentDisplay};">
+			`;
+
 			const raceBonuses = this._processRaceBonuses(bonusGroups);
 
 			if (raceBonuses.length > 0) {
@@ -37,7 +49,14 @@ class BonusNotesView {
 				bonusContent += this._createBonusNote(source, bonusText.join(', '));
 			}
 
+			bonusContent += '</div>';
 			this._bonusesContainer.innerHTML = bonusContent;
+
+			// Add click listener to toggle collapse
+			const header = this._bonusesContainer.querySelector('.sources-collapsible-header');
+			if (header) {
+				header.addEventListener('click', () => this._toggleCollapse());
+			}
 
 			// Process the bonuses container to resolve any reference tags
 			if (textProcessor && typeof textProcessor.processElement === 'function') {
@@ -45,6 +64,25 @@ class BonusNotesView {
 			}
 		} catch (error) {
 			console.error('[BonusNotes]', 'Error rendering bonus notes:', error);
+		}
+	}
+
+	_toggleCollapse() {
+		const content = this._bonusesContainer.querySelector('.sources-collapsible-content');
+		const icon = this._bonusesContainer.querySelector('.sources-collapsible-header i');
+
+		if (!content || !icon) return;
+
+		const isCurrentlyCollapsed = content.style.display === 'none';
+
+		if (isCurrentlyCollapsed) {
+			content.style.display = 'block';
+			icon.className = 'fas fa-chevron-up';
+			localStorage.setItem(this._storageKey, 'false');
+		} else {
+			content.style.display = 'none';
+			icon.className = 'fas fa-chevron-down';
+			localStorage.setItem(this._storageKey, 'true');
 		}
 	}
 

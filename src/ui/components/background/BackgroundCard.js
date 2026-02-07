@@ -548,6 +548,15 @@ export class BackgroundCard {
 			// Show info panel for this background/variant
 			this._showInfo(infoId, true);
 
+			// Regenerate proficiency options if they're empty (from older save files)
+			// This ensures options arrays are properly populated without resetting allowed/selected
+			await this._regenerateEmptyProficiencyOptions(character, background);
+
+			// Emit CHARACTER_UPDATED to trigger ProficiencyCard refresh with new options
+			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+				character: CharacterManager.getCurrentCharacter(),
+			});
+
 			console.debug(
 				'[BackgroundCard]',
 				'Saved background selection loaded successfully',
@@ -852,6 +861,8 @@ export class BackgroundCard {
 				const count = langEntry.choose.count || 1;
 				const from = langEntry.choose.from || [];
 
+				console.debug('[BackgroundCard]', 'Language choice:', { count, from, langEntry });
+
 				choiceCount += count;
 
 				if (from.length > 0) {
@@ -868,6 +879,7 @@ export class BackgroundCard {
 						'../../../services/ProficiencyService.js'
 					);
 					const allLanguages = await proficiencyService.getStandardLanguages();
+					console.debug('[BackgroundCard]', 'Loaded standard languages:', allLanguages);
 					for (const lang of allLanguages) {
 						const norm = TextProcessor.normalizeForLookup(lang);
 						if (!normalizedOptions.has(norm)) {
@@ -886,12 +898,19 @@ export class BackgroundCard {
 			);
 		}
 
+		console.debug('[BackgroundCard]', 'After processing, choiceCount:', choiceCount, 'choiceOptions:', choiceOptions);
+
 		// Set up optional language choices if any exist
 		if (choiceCount > 0) {
 			character.optionalProficiencies.languages.background.allowed =
 				choiceCount;
 			character.optionalProficiencies.languages.background.options =
 				choiceOptions;
+
+			console.debug('[BackgroundCard]', 'Set language options:', {
+				allowed: choiceCount,
+				options: choiceOptions,
+			});
 
 			// Restore valid language selections if any, excluding now-fixed languages
 			if (prevBackgroundLanguagesSelected.length > 0) {
@@ -925,6 +944,77 @@ export class BackgroundCard {
 			// Update combined language options
 			this._updateCombinedLanguageOptions(character);
 		}
+	}
+
+	async _regenerateEmptyProficiencyOptions(character, background) {
+		if (!character || !background) return;
+
+		// Only regenerate language options if they're empty but allowed > 0
+		const langAllowed = character.optionalProficiencies.languages.background?.allowed || 0;
+		const langOptions = character.optionalProficiencies.languages.background?.options || [];
+
+		if (langAllowed > 0 && langOptions.length === 0) {
+			console.debug('[BackgroundCard]', 'Regenerating empty language options for saved character');
+
+			const langProfs = background?.proficiencies?.languages || [];
+			const normalizedOptions = new Map();
+
+			for (const langEntry of langProfs) {
+				if (langEntry.choose) {
+					const from = langEntry.choose.from || [];
+
+					if (from.length > 0) {
+						// Add specific language options
+						for (const lang of from) {
+							const norm = TextProcessor.normalizeForLookup(lang);
+							if (!normalizedOptions.has(norm)) {
+								normalizedOptions.set(norm, lang);
+							}
+						}
+					} else {
+						// No specific options means any language - load from service
+						const { proficiencyService } = await import(
+							'../../../services/ProficiencyService.js'
+						);
+						const allLanguages = await proficiencyService.getStandardLanguages();
+						console.debug('[BackgroundCard]', 'Loaded standard languages for empty options:', allLanguages.length);
+						for (const lang of allLanguages) {
+							const norm = TextProcessor.normalizeForLookup(lang);
+							if (!normalizedOptions.has(norm)) {
+								normalizedOptions.set(norm, lang);
+							}
+						}
+					}
+				}
+			}
+
+			if (normalizedOptions.size > 0) {
+				character.optionalProficiencies.languages.background.options =
+					Array.from(normalizedOptions.values());
+				console.debug('[BackgroundCard]', 'Set language options:',
+					character.optionalProficiencies.languages.background.options.length);
+			}
+		}
+
+		// Same for skills if needed
+		const skillAllowed = character.optionalProficiencies.skills.background?.allowed || 0;
+		const skillOptions = character.optionalProficiencies.skills.background?.options || [];
+
+		if (skillAllowed > 0 && skillOptions.length === 0) {
+			console.debug('[BackgroundCard]', 'Regenerating empty skill options for saved character');
+
+			const skillProfs = background?.proficiencies?.skills || [];
+			for (const skillEntry of skillProfs) {
+				if (skillEntry.choose) {
+					const from = skillEntry.choose.from || [];
+					character.optionalProficiencies.skills.background.options = from;
+					console.debug('[BackgroundCard]', 'Set skill options:', from.length);
+					break; // Only need first choose entry
+				}
+			}
+		}
+
+		// Tools are typically "choose 1" without specific options, so we don't populate them here
 	}
 }
 
