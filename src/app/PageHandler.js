@@ -6,12 +6,12 @@ import { deityService } from '../services/DeityService.js';
 import { settingsService } from '../services/SettingsService.js';
 import { AbilityScoreCard } from '../ui/components/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../ui/components/background/BackgroundCard.js';
-import { ClassCard } from '../ui/components/class/ClassSelectionCard.js';
+import { ClassCard } from '../ui/components/class/ClassCard.js';
 import {
 	FeatListView,
-	FeatSelectionModal,
+	FeatSelectorModal,
 	FeatSourcesView,
-} from '../ui/components/feats/FeatSelectionModal.js';
+} from '../ui/components/feats/FeatSelectorModal.js';
 import { ProficiencyCard } from '../ui/components/proficiencies/ProficiencyCard.js';
 import { RaceCard } from '../ui/components/race/RaceCard.js';
 import { AppState } from './AppState.js';
@@ -178,6 +178,23 @@ class PageHandlerImpl {
 			};
 
 			eventBus.on(EVENTS.CHARACTER_CREATED, this._homeCharacterCreatedHandler);
+
+			// Remove old handler if it exists before adding new one
+			if (this._homeCharacterUpdatedHandler) {
+				eventBus.off(EVENTS.CHARACTER_UPDATED, this._homeCharacterUpdatedHandler);
+			}
+
+			this._homeCharacterUpdatedHandler = async () => {
+				const reloadCharacters = await CharacterManager.loadCharacterList();
+				await this.renderCharacterList(reloadCharacters);
+				// Preserve selection state after re-render
+				const currentCharacter = CharacterManager.getCurrentCharacter();
+				if (currentCharacter?.id) {
+					this.updateCharacterCardSelection(currentCharacter.id);
+				}
+			};
+
+			eventBus.on(EVENTS.CHARACTER_UPDATED, this._homeCharacterUpdatedHandler);
 		} catch (error) {
 			console.error('[PageHandler]', 'Error initializing home page', error);
 			showNotification('Error loading home page', 'error');
@@ -808,10 +825,10 @@ class PageHandlerImpl {
 				newAddFeatBtn.addEventListener('click', async () => {
 					console.debug('[PageHandler]', 'Add Feat button clicked');
 
-					const selector = new FeatSelectionModal();
+					const selector = new FeatSelectorModal();
 					const result = await selector.show();
 
-					console.debug('[PageHandler]', 'FeatSelectionModal returned', {
+					console.debug('[PageHandler]', 'FeatSelectorModal returned', {
 						result,
 						hasResult: !!result
 					});

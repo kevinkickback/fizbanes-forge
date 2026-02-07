@@ -4,10 +4,10 @@ import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
 import { itemService } from '../../../services/ItemService.js';
+import { BaseSelectorModal } from '../selection/BaseSelectorModal.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
-import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
-export class EquipmentSelectionModal {
+export class ItemSelectorModal {
 	constructor({ allowClose = true } = {}) {
 		this.allowClose = allowClose;
 		this.descriptionCache = new Map();
@@ -34,7 +34,7 @@ export class EquipmentSelectionModal {
 	_ensureController() {
 		if (this._controller) return;
 
-		this._controller = new UniversalSelectionModal({
+		this._controller = new BaseSelectorModal({
 			modalId: 'universalEquipmentSelectionModal',
 			modalTitle: 'Add Equipment',
 			allowClose: this.allowClose,
@@ -346,7 +346,7 @@ export class EquipmentSelectionModal {
 					failedItems.push(item.name);
 				}
 			} catch (error) {
-				console.error('[EquipmentSelectionModal]', 'Error adding item:', error);
+				console.error('[ItemSelectorModal]', 'Error adding item:', error);
 				failedItems.push(item.name);
 			}
 		}

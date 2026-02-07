@@ -21,8 +21,8 @@ import { progressionHistoryService } from '../../../services/ProgressionHistoryS
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
-import { ClassFeatureSelector } from '../class-progression/ClassFeatureSelector.js';
-import { ClassSpellSelector } from '../class-progression/ClassSpellSelector.js';
+import { ClassFeatureSelectorModal } from '../class-progression/ClassFeatureSelectorModal.js';
+import { ClassSpellSelectorModal } from '../class-progression/ClassSpellSelectorModal.js';
 
 export class ClassCard {
 	constructor(_container) {
@@ -913,7 +913,7 @@ export class ClassCard {
 		};
 
 		// Create and show spell selector
-		const spellSelector = new ClassSpellSelector(
+		const spellSelector = new ClassSpellSelectorModal(
 			mockSession,
 			this, // parent step
 			className,
@@ -2165,8 +2165,8 @@ export class ClassCard {
 
 		if (isSelectingFeat) {
 			// Open feat selection modal
-			const { ClassFeatSelector } = await import(
-				'../class-progression/ClassFeatSelector.js'
+			const { ClassFeatSelectorModal } = await import(
+				'../class-progression/ClassFeatSelectorModal.js'
 			);
 			const { levelUpService } = await import(
 				'../../../services/LevelUpService.js'
@@ -2183,7 +2183,7 @@ export class ClassCard {
 			const currentFeat = existingFeat?.appliedFeats?.[0];
 
 			// Create feat selector (no wrapper needed now)
-			const featSelector = new ClassFeatSelector(null, null);
+			const featSelector = new ClassFeatSelectorModal(null, null);
 
 			try {
 				// Show modal and await the selected feat name
@@ -2217,8 +2217,8 @@ export class ClassCard {
 		const primaryClass = character.getPrimaryClass();
 		if (!primaryClass) return;
 
-		// Import ASIModal
-		const { ASIModal } = await import('../class-progression/ASIModal.js');
+		// Import AbilityScoreSelectorModal
+		const { AbilityScoreSelectorModal } = await import('../class-progression/AbilityScoreSelectorModal.js');
 
 		// Check if ASI was already used at this level
 		const levelUps = character.progression?.levelUps || [];
@@ -2232,7 +2232,7 @@ export class ClassCard {
 		const currentASI = existingASI?.changedAbilities || {};
 
 		// Show ASI modal
-		const modal = new ASIModal(level, currentASI);
+		const modal = new AbilityScoreSelectorModal(level, currentASI);
 
 		try {
 			const result = await modal.show();
@@ -2347,7 +2347,7 @@ export class ClassCard {
 		};
 
 		// Show feature selector
-		const selector = new ClassFeatureSelector(
+		const selector = new ClassFeatureSelectorModal(
 			mockSession,
 			this,
 			className,
@@ -2438,7 +2438,7 @@ export class ClassCard {
 		};
 
 		// Show feature selector
-		const selector = new ClassFeatureSelector(
+		const selector = new ClassFeatureSelectorModal(
 			mockSession,
 			this,
 			className,

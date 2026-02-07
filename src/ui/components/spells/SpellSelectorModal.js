@@ -6,14 +6,14 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
+import {
+	BaseSelectorModal,
+	formatCategoryCounters,
+} from '../selection/BaseSelectorModal.js';
 import { ClassSwitcher } from '../selection/ClassSwitcher.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
-import {
-	formatCategoryCounters,
-	UniversalSelectionModal,
-} from '../selection/UniversalSelectionModal.js';
 
-export class SpellSelectionModal {
+export class SpellSelectorModal {
 	constructor({
 		className = null,
 		allowClose = true,
@@ -145,7 +145,7 @@ export class SpellSelectionModal {
 	_ensureController() {
 		if (this._controller) return;
 
-		this._controller = new UniversalSelectionModal({
+		this._controller = new BaseSelectorModal({
 			modalId: 'universalSpellSelectionModal',
 			modalTitle: 'Add Spell',
 			allowClose: this.allowClose,
@@ -711,6 +711,6 @@ export class SpellSelectionModal {
 	}
 
 	_handleCancel() {
-		// No-op: allow UniversalSelectionModal to resolve null
+		// No-op: allow BaseSelectorModal to resolve null
 	}
 }

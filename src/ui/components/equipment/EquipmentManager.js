@@ -5,12 +5,12 @@ import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
-import { EquipmentSelectionModal } from './EquipmentSelectionModal.js';
+import { ItemSelectorModal } from './ItemSelectorModal.js';
 
 export class EquipmentManager {
 	constructor() {
 		this.loggerScope = 'EquipmentManager';
-		this.equipmentSelectionModal = null;
+		this.itemSelectorModal = null;
 		this._cleanup = DOMCleanup.create();
 		this.setupEventListeners();
 	}
@@ -281,11 +281,11 @@ export class EquipmentManager {
 		}
 
 		try {
-			if (!this.equipmentSelectionModal) {
-				this.equipmentSelectionModal = new EquipmentSelectionModal();
+			if (!this.itemSelectorModal) {
+				this.itemSelectorModal = new ItemSelectorModal();
 			}
 
-			await this.equipmentSelectionModal.show();
+			await this.itemSelectorModal.show();
 		} catch (error) {
 			console.error(`[${this.loggerScope}]`, 'Modal error', error);
 		}

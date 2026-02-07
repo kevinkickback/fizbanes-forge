@@ -4,11 +4,11 @@ import { AppState } from '../../../app/AppState.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
+import { BaseSelectorModal, formatCategoryCounters } from '../selection/BaseSelectorModal.js';
 import { ClassSwitcher } from '../selection/ClassSwitcher.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
-import { formatCategoryCounters, UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
-export class PreparedSpellSelectionModal {
+export class PreparedSpellSelectorModal {
     constructor({ classNames = [] } = {}) {
         this.classNames = Array.isArray(classNames) ? classNames : [];
         this.selectedClassName = null; // Track currently selected class for switcher
@@ -120,7 +120,7 @@ export class PreparedSpellSelectionModal {
     _ensureController() {
         if (this._controller) return;
 
-        this._controller = new UniversalSelectionModal({
+        this._controller = new BaseSelectorModal({
             modalId: 'preparedSpellSelectionModal',
             modalTitle: 'Prepare Spells',
             allowClose: true,

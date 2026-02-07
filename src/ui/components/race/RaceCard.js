@@ -370,11 +370,6 @@ export class RaceCard {
 					item.classList.remove('selected');
 				});
 				raceItem.classList.add('selected');
-
-				// Emit event to notify about character update (unsaved changes)
-				eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-					character: CharacterManager.getCurrentCharacter(),
-				});
 			}
 		});
 
@@ -785,6 +780,11 @@ export class RaceCard {
 					new CustomEvent('updateUI', { detail: { fullRefresh: true } }),
 				);
 			}, 150);
+
+			// Notify EventBus so unsaved indicator and cross-component listeners react
+			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+				character: CharacterManager.getCurrentCharacter(),
+			});
 		}
 	}
 

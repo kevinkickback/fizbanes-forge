@@ -4,13 +4,13 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import {
-	UniversalSelectionModal,
+	BaseSelectorModal,
 	formatCounter,
-} from '../selection/UniversalSelectionModal.js';
+} from '../selection/BaseSelectorModal.js';
 
-// Feat selector adapter for UniversalSelectionModal with prerequisite checking
+// Feat selector adapter for BaseSelectorModal with prerequisite checking
 
-export class ClassFeatSelector {
+export class ClassFeatSelectorModal {
 	constructor(session = null, parentStep = null) {
 		this.session = session;
 		this.parentStep = parentStep;
@@ -137,7 +137,7 @@ export class ClassFeatSelector {
 					}
 					: null;
 
-				this._selector = new UniversalSelectionModal({
+				this._selector = new BaseSelectorModal({
 					modalId: `featSelectorModal_${Date.now()}`,
 					modalTitle: multiSelect ? 'Select Feats' : 'Select a Feat',
 					loadItems: () => this._filteredFeats,
@@ -192,7 +192,7 @@ export class ClassFeatSelector {
 				this._selector.show();
 			} catch (error) {
 				console.error(
-					'[LevelUpFeatSelector]',
+					'[ClassFeatSelectorModal]',
 					'Error showing feat selector:',
 					error,
 				);

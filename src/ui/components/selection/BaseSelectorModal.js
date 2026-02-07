@@ -23,7 +23,7 @@ export function formatCounter(category) {
 	return `<span class="badge ${color}">${category.selected}/${category.max} ${category.label}</span>`;
 }
 
-export class UniversalSelectionModal {
+export class BaseSelectorModal {
 	constructor(config = {}) {
 		this.config = {
 			modalId: `modal_${Date.now()}_${Math.random()}`, // Auto-generate unique ID
@@ -195,13 +195,13 @@ export class UniversalSelectionModal {
 			this.state.items = await (this.config.loadItems?.(ctx) || []);
 			this.state.filtered = [...this.state.items];
 			console.debug(
-				'[UniversalSelectionModal]',
+				'[BaseSelectorModal]',
 				'Loaded items:',
 				this.state.items.length,
 				'items',
 			);
 			if (this.state.items.length === 0) {
-				console.warn('[UniversalSelectionModal]', 'WARNING: No items loaded!');
+				console.warn('[BaseSelectorModal]', 'WARNING: No items loaded!');
 			}
 
 			// Prime initial selections if provided
@@ -237,7 +237,7 @@ export class UniversalSelectionModal {
 				this._resolvePromise = resolve;
 			});
 		} catch (error) {
-			console.error('[UniversalSelectionModal]', 'Failed to show modal', error);
+			console.error('[BaseSelectorModal]', 'Failed to show modal', error);
 			if (this.config.onError) {
 				this.config.onError(error);
 			} else {

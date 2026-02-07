@@ -3,8 +3,9 @@
 import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { disposeBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
+import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
-export class ASIModal {
+export class AbilityScoreSelectorModal {
 	constructor(level, currentASI = {}) {
 		this.level = level;
 		this.currentASI = currentASI; // { str: 1, dex: 1 } or { str: 2 }
@@ -152,6 +153,12 @@ export class ASIModal {
 				this._selectedAbilities.ability1 === ability ||
 				this._selectedAbilities.ability2 === ability;
 			const bonus = this._getAbilityBonus(ability);
+			const currentScore = abilityScoreService.getTotalScore(ability);
+			const hasScore = typeof currentScore === 'number' && !Number.isNaN(currentScore);
+			const scoreDisplay = hasScore ? currentScore : '—';
+			const previewDisplay = (hasScore && bonus)
+				? `<span class="text-success">→ ${currentScore + bonus}</span>`
+				: '';
 
 			return `
                 <div class="col-4 col-md-4">
@@ -161,8 +168,9 @@ export class ASIModal {
                         data-ability="${ability}"
                     >
                         <strong>${attAbvToFull(ability)}</strong>
+                        <div class="small text-muted">${scoreDisplay}</div>
                         <div class="bonus-display">
-                            ${bonus ? `+${bonus}` : '\u00A0'}
+                            ${bonus ? `+${bonus} ${previewDisplay}` : '\u00A0'}
                         </div>
                     </button>
                 </div>

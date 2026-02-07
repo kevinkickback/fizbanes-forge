@@ -1,4 +1,4 @@
-// FeatSelectionModal.js
+// FeatSelectorModal.js
 // Modal for selecting feats valid for the current character using the universal selector
 
 import { AppState } from '../../../app/AppState.js';
@@ -8,10 +8,10 @@ import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
+import { BaseSelectorModal } from '../selection/BaseSelectorModal.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
-import { UniversalSelectionModal } from '../selection/UniversalSelectionModal.js';
 
-export class FeatSelectionModal {
+export class FeatSelectorModal {
 	constructor({ allowClose = true } = {}) {
 		this.allowClose = allowClose;
 		this._controller = null;
@@ -63,7 +63,7 @@ export class FeatSelectionModal {
 				// Don't await - callbacks will resolve the promise
 				this._controller.show(this._getContext());
 			} catch (error) {
-				console.error('[FeatSelectionModal]', 'Error showing modal:', error);
+				console.error('[FeatSelectorModal]', 'Error showing modal:', error);
 				reject(error);
 			}
 		});
@@ -78,7 +78,7 @@ export class FeatSelectionModal {
 	_ensureController() {
 		if (this._controller) return;
 
-		this._controller = new UniversalSelectionModal({
+		this._controller = new BaseSelectorModal({
 			modalId: `featSelectionModal_${Date.now()}`,
 			modalTitle: 'Select Feats',
 			allowClose: this.allowClose,
@@ -153,7 +153,7 @@ export class FeatSelectionModal {
 	}
 
 	_featMatchesFilters() {
-		// Additional filters are handled via source/search in UniversalSelectionModal
+		// Additional filters are handled via source/search in BaseSelectorModal
 		return true;
 	}
 
@@ -236,7 +236,7 @@ export class FeatSelectionModal {
 				}
 			} catch (error) {
 				console.error(
-					'[FeatSelectionModal]',
+					'[FeatSelectorModal]',
 					'Failed to process description',
 					error,
 				);
@@ -408,7 +408,7 @@ export class FeatSelectionModal {
 	}
 
 	_onError(err) {
-		console.error('FeatSelectionModal', err);
+		console.error('FeatSelectorModal', err);
 		showNotification('Failed to open feat selection modal', 'error');
 	}
 }

@@ -5,11 +5,11 @@ import { showNotification } from '../../../lib/Notifications.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import {
-	UniversalSelectionModal,
+	BaseSelectorModal,
 	formatCounter,
-} from '../selection/UniversalSelectionModal.js';
+} from '../selection/BaseSelectorModal.js';
 
-export class ClassFeatureSelector {
+export class ClassFeatureSelectorModal {
 	constructor(
 		session,
 		parentStep,
@@ -105,7 +105,7 @@ export class ClassFeatureSelector {
 
 			const character = this.session.stagedChanges;
 			const prerequisiteChecker = (feature) => {
-				if (!feature.prerequisite) return true;
+				if (!feature.prerequisite) return { met: true, reasons: [] };
 				const featuresArray = [];
 				if (character.progression?.classes) {
 					for (const cls of character.progression.classes) {
@@ -125,7 +125,7 @@ export class ClassFeatureSelector {
 				return result;
 			};
 
-			this._selector = new UniversalSelectionModal({
+			this._selector = new BaseSelectorModal({
 				modalId: `featureSelectorModal_${Date.now()}`,
 				modalTitle: `Select ${this._getFeatureTypeName()} - ${this.className}`,
 				loadItems: () => filtered,
@@ -145,11 +145,9 @@ export class ClassFeatureSelector {
 					);
 				},
 				buildFilters: null,
-				prerequisiteNote: this._getPrerequisiteNote(),
 				renderItem: (item, state) => this._renderFeatureItem(item, state),
 				getItemId: (item) => item.id || item.name,
 				matchItem: (item, state) => {
-					if (!prerequisiteChecker(item)) return false;
 					if (state.searchTerm) {
 						const term = state.searchTerm.toLowerCase();
 						return (
@@ -159,18 +157,25 @@ export class ClassFeatureSelector {
 					}
 					return true;
 				},
-				canSelectItem: (_item, state) => {
+				canSelectItem: (item, state) => {
+					const prereqResult = prerequisiteChecker(item);
+					if (!prereqResult.met) return false;
 					const isAtCap =
 						this.maxSelections !== null &&
 						state.selectedIds.size >= this.maxSelections;
 					return !isAtCap;
 				},
-				onSelectBlocked: () => {
-					const label = this._getFeatureTypeName();
-					showNotification(
-						`${label} selection limit reached. Deselect a choice to add another.`,
-						'warning',
-					);
+				onSelectBlocked: (item) => {
+					const prereqResult = prerequisiteChecker(item);
+					if (!prereqResult.met) {
+						showNotification(prereqResult.reasons.join('. '), 'info');
+					} else {
+						const label = this._getFeatureTypeName();
+						showNotification(
+							`${label} selection limit reached. Deselect a choice to add another.`,
+							'warning',
+						);
+					}
 				},
 				descriptionCache: this._descriptionCache,
 				fetchDescription: (feature) => this._fetchFeatureDescription(feature),
@@ -191,7 +196,7 @@ export class ClassFeatureSelector {
 			this._selector.show();
 		} catch (error) {
 			console.error(
-				'[LevelUpFeatureSelector]',
+				'[ClassFeatureSelectorModal]',
 				'Error showing feature selector:',
 				error,
 			);

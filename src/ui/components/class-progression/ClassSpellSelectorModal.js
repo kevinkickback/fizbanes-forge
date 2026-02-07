@@ -6,13 +6,13 @@ import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
-import { FilterBuilder } from '../selection/FilterBuilder.js';
 import {
+	BaseSelectorModal,
 	formatCategoryCounters,
-	UniversalSelectionModal,
-} from '../selection/UniversalSelectionModal.js';
+} from '../selection/BaseSelectorModal.js';
+import { FilterBuilder } from '../selection/FilterBuilder.js';
 
-export class ClassSpellSelector {
+export class ClassSpellSelectorModal {
 	constructor(session, parentStep, className, currentLevel) {
 		this.session = session;
 		this.parentStep = parentStep;
@@ -233,7 +233,7 @@ export class ClassSpellSelector {
 				});
 			};
 
-			this._selector = new UniversalSelectionModal({
+			this._selector = new BaseSelectorModal({
 				modalId: `spellSelectorModal_${Date.now()}`,
 				modalTitle,
 				loadItems: () => spellData,
@@ -357,7 +357,7 @@ export class ClassSpellSelector {
 			this._selector.show();
 		} catch (error) {
 			console.error(
-				'[LevelUpSpellSelector]',
+				'[ClassSpellSelectorModal]',
 				'Error showing spell selector:',
 				error,
 			);

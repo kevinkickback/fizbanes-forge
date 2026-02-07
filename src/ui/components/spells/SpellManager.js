@@ -5,14 +5,14 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
-import { PreparedSpellSelectionModal } from './PreparedSpellSelectionModal.js';
-import { SpellSelectionModal } from './SpellSelectionModal.js';
+import { PreparedSpellSelectorModal } from './PreparedSpellSelectorModal.js';
+import { SpellSelectorModal } from './SpellSelectorModal.js';
 
 export class SpellsManager {
 	constructor() {
 		this.loggerScope = 'SpellsManager';
-		this.spellSelectionModal = null;
-		this.preparedSpellSelectionModal = null;
+		this.spellSelectorModal = null;
+		this.preparedSpellSelectorModal = null;
 		this.setupEventListeners();
 	}
 
@@ -379,18 +379,18 @@ export class SpellsManager {
 		const knownSpells = classSpellcasting?.spellsKnown || [];
 
 		try {
-			if (!this.spellSelectionModal) {
-				this.spellSelectionModal = new SpellSelectionModal({
+			if (!this.spellSelectorModal) {
+				this.spellSelectorModal = new SpellSelectorModal({
 					className,
 					initialSpells: knownSpells,
 				});
 			} else {
 				// Update class name and initial spells for existing modal
-				this.spellSelectionModal.className = className;
-				this.spellSelectionModal.initialSpells = knownSpells;
+				this.spellSelectorModal.className = className;
+				this.spellSelectorModal.initialSpells = knownSpells;
 			}
 
-			const result = await this.spellSelectionModal.show();
+			const result = await this.spellSelectorModal.show();
 			if (result) {
 				console.debug(`[${this.loggerScope}]`, 'Spells added', {
 					count: result.successCount,
@@ -417,14 +417,14 @@ export class SpellsManager {
 		}
 
 		try {
-			if (!this.preparedSpellSelectionModal) {
-				this.preparedSpellSelectionModal =
-					new PreparedSpellSelectionModal({ classNames: preparedClasses });
+			if (!this.preparedSpellSelectorModal) {
+				this.preparedSpellSelectorModal =
+					new PreparedSpellSelectorModal({ classNames: preparedClasses });
 			} else {
-				this.preparedSpellSelectionModal.classNames = preparedClasses;
+				this.preparedSpellSelectorModal.classNames = preparedClasses;
 			}
 
-			await this.preparedSpellSelectionModal.show();
+			await this.preparedSpellSelectorModal.show();
 		} catch (error) {
 			console.error(`[${this.loggerScope}]`, 'Prepare modal error', error);
 		}
