@@ -820,21 +820,67 @@ export default {
 export async function renderEntriesToText(item) {
 	const { textProcessor } = await import('./TextProcessor.js');
 	const parts = [];
-	if (Array.isArray(item.entries)) {
-		for (const entry of item.entries) {
-			if (typeof entry === 'string') {
-				parts.push(await textProcessor.processString(entry));
-			} else if (Array.isArray(entry?.entries)) {
-				for (const sub of entry.entries) {
-					if (typeof sub === 'string') {
-						parts.push(await textProcessor.processString(sub));
-					}
+
+	/**
+	 * Recursively process an entry and its children
+	 * @param {*} entry - Entry to process (string, object, or array)
+	 */
+	const processEntry = async (entry) => {
+		// Handle string entries
+		if (typeof entry === 'string') {
+			parts.push(await textProcessor.processString(entry));
+			return;
+		}
+
+		// Handle array entries
+		if (Array.isArray(entry)) {
+			for (const subEntry of entry) {
+				await processEntry(subEntry);
+			}
+			return;
+		}
+
+		// Handle object entries
+		if (typeof entry === 'object' && entry !== null) {
+			// Skip reference entries (they don't contain display text)
+			if (
+				entry.type === 'refSubclassFeature' ||
+				entry.type === 'refClassFeature' ||
+				entry.type === 'refOptionalfeature'
+			) {
+				return;
+			}
+
+			// Skip table entries (too complex for brief descriptions)
+			if (entry.type === 'table') {
+				return;
+			}
+
+			// Process nested entries recursively
+			if (Array.isArray(entry.entries)) {
+				for (const subEntry of entry.entries) {
+					await processEntry(subEntry);
 				}
 			}
+
+			// Process items in lists
+			if (Array.isArray(entry.items)) {
+				for (const item of entry.items) {
+					await processEntry(item);
+				}
+			}
+		}
+	};
+
+	// Process the main entries
+	if (Array.isArray(item.entries)) {
+		for (const entry of item.entries) {
+			await processEntry(entry);
 		}
 	} else if (typeof item.entries === 'string') {
 		parts.push(await textProcessor.processString(item.entries));
 	}
+
 	return parts.length
 		? parts.join(' ')
 		: '<span class="text-muted small">No description available.</span>';

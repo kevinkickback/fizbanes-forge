@@ -2406,14 +2406,15 @@ export class ClassCard {
 				if (sc.subclassFeatures && sc.subclassFeatures.length > 0) {
 					const firstFeatureRef = sc.subclassFeatures[0];
 					if (typeof firstFeatureRef === 'string') {
-						// Resolve from service data
+						// Resolve from service data - get features up to character's level
 						const features = this._classService.getSubclassFeatures(
 							sc.className,
 							sc.shortName,
-							1,
+							level || 20,
 							sc.source || 'PHB',
 						);
-						const firstFeature = features.find((f) => f.level === 1);
+						// Get the first (lowest level) feature
+						const firstFeature = features.length > 0 ? features[0] : null;
 						entries = firstFeature?.entries || [];
 					} else {
 						// Already an object with entries

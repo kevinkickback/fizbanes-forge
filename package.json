@@ -16,7 +16,12 @@
 		"check:format": "biome format",
 		"check:lint": "biome lint",
 		"format": "biome format --write .",
-		"lint": "biome lint --write ."
+		"lint": "biome lint --write .",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:ui": "vitest --ui",
+		"test:coverage": "vitest run --coverage",
+		"test:e2e": "playwright test"
 	},
 	"build": {
 		"appId": "fizbanes.forge",
@@ -53,10 +58,13 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.2",
 		"@playwright/test": "^1.56.1",
+		"@vitest/ui": "^2.1.9",
 		"cross-env": "^10.1.0",
 		"electron": "latest",
 		"electron-builder": "latest",
-		"electronmon": "latest"
+		"electronmon": "latest",
+		"jsdom": "^28.0.0",
+		"vitest": "^2.1.9"
 	},
 	"dependencies": {
 		"@fortawesome/fontawesome-free": "^6.5.1",
