@@ -252,12 +252,18 @@ export class FeatSelectionModal {
 		if (!panel) return;
 		panel.innerHTML = '';
 
+		const collapseId = `collapseRestrictions_${Date.now()}`;
+
 		// Build a card manually to control title and body contents
 		const card = document.createElement('div');
 		card.className = 'card mb-3';
 
 		const header = document.createElement('div');
 		header.className = 'card-header';
+		header.style.cursor = 'pointer';
+		header.setAttribute('data-bs-toggle', 'collapse');
+		header.setAttribute('data-bs-target', `#${collapseId}`);
+		header.setAttribute('aria-expanded', 'true');
 		header.innerHTML = `
 			<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
 				<span>Restrictions</span>
@@ -265,6 +271,10 @@ export class FeatSelectionModal {
 			</h6>
 		`;
 		card.appendChild(header);
+
+		const collapseWrapper = document.createElement('div');
+		collapseWrapper.className = 'collapse show';
+		collapseWrapper.id = collapseId;
 
 		const body = document.createElement('div');
 		body.className = 'card-body';
@@ -290,25 +300,8 @@ export class FeatSelectionModal {
 			},
 		});
 
-		const note = document.createElement('div');
-		note.className = 'text-muted small';
-		note.textContent =
-			'Race requirements can be ignored; other prerequisites remain enforced.';
-		body.appendChild(note);
-
-		if (
-			Array.isArray(this._availability?.reasons) &&
-			this._availability.reasons.length
-		) {
-			const reasonList = document.createElement('div');
-			reasonList.className = 'text-muted small mt-2';
-			reasonList.innerHTML = `Origins: ${this._availability.reasons
-				.map((r) => this._formatOrigin(r))
-				.join(', ')}`;
-			body.appendChild(reasonList);
-		}
-
-		card.appendChild(body);
+		collapseWrapper.appendChild(body);
+		card.appendChild(collapseWrapper);
 		panel.appendChild(card);
 	}
 

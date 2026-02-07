@@ -1916,6 +1916,13 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	box-shadow: 0 0 0 2px var(--accent-color);
 }
 
+.spell-card.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+	background: var(--secondary-color);
+}
+
 .spell-card-header {
 	display: flex;
 	justify-content: space-between;

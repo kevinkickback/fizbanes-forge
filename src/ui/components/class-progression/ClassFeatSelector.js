@@ -319,12 +319,13 @@ export class ClassFeatSelector {
 				this._resolveSelection(featName);
 				this._resolveSelection = null;
 			}
-		} else {
-			// No selection made
-			if (this._resolveSelection) {
-				this._resolveSelection(null);
-				this._resolveSelection = null;
-			}
+			return;
+		}
+
+		// No selection made
+		if (this._resolveSelection) {
+			this._resolveSelection(null);
+			this._resolveSelection = null;
 		}
 	}
 

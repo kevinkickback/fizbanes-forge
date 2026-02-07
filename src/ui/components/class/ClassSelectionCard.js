@@ -2129,6 +2129,18 @@ export class ClassCard {
 				}
 			}
 
+			// Remove any feats that were applied at this ASI level
+			if (existingASI.appliedFeats?.length) {
+				for (const featName of existingASI.appliedFeats) {
+					const featIndex = character.feats.findIndex(
+						(f) => f.name === featName,
+					);
+					if (featIndex !== -1) {
+						character.feats.splice(featIndex, 1);
+					}
+				}
+			}
+
 			// Remove the levelUp record
 			const existingIndex = levelUps.findIndex((lu) => lu.toLevel === level);
 			if (existingIndex !== -1) {
