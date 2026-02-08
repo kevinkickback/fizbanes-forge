@@ -1,3 +1,9 @@
+import 'dotenv/config';
+/** Electron application entry point. */
+
+import { app } from 'electron';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { registerCharacterHandlers } from './ipc/CharacterHandlers.js';
 import { registerDataHandlers } from './ipc/DataHandlers.js';
 import { registerEquipmentHandlers } from './ipc/EquipmentHandlers.js';
@@ -5,11 +11,6 @@ import { registerFileHandlers } from './ipc/FileHandlers.js';
 import { registerProgressionHandlers } from './ipc/ProgressionHandlers.js';
 import { registerSettingsHandlers } from './ipc/SettingsHandlers.js';
 import { registerSpellHandlers } from './ipc/SpellHandlers.js';
-/** Electron application entry point. */
-
-import { app } from 'electron';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { MainLogger } from './Logger.js';
 import {
 	clearPreferences,
@@ -25,9 +26,8 @@ import {
 } from './Settings.js';
 import { createMainWindow, getMainWindow } from './Window.js';
 
-// Debug mode - controlled via environment variable `FF_DEBUG`
+// Environment variables loaded from .env file (see .env.example)
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
-// Allow opening DevTools in normal mode with FF_DEVTOOLS env var (separate from debug mode)
 const ENABLE_DEVTOOLS = process.env.FF_DEVTOOLS === 'true';
 
 const __filename = fileURLToPath(import.meta.url);

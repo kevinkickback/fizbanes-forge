@@ -1,6 +1,8 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
 import { EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
+import { featIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 import { classService } from './ClassService.js';
 
@@ -35,11 +37,26 @@ class FeatService extends BaseDataService {
 		return this._data?.feat || [];
 	}
 
-	getFeat(featName) {
-		if (!this._featMap) return null;
-		return (
-			this._featMap.get(TextProcessor.normalizeForLookup(featName)) || null
+	getFeat(featName, source = 'PHB') {
+		const validated = validateInput(
+			featIdentifierSchema,
+			{ name: featName, source },
+			'Invalid feat identifier',
 		);
+
+		if (!this._featMap) {
+			throw new NotFoundError('Feat', `${validated.name} (${validated.source})`);
+		}
+
+		const feat = this._featMap.get(
+			TextProcessor.normalizeForLookup(validated.name),
+		);
+
+		if (!feat) {
+			throw new NotFoundError('Feat', `${validated.name} (${validated.source})`);
+		}
+
+		return feat;
 	}
 
 	isFeatValidForCharacter(feat, character, options = {}) {

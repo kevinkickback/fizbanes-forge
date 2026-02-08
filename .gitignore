@@ -1,50 +1,32 @@
 # Editor
 .vscode/
-
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-out/
-*.log
+.github/copilot-instructions.md
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Test outputs
-playwright.config.js
-playwright-report/
-test-results/
-test-output.txt
-playwright-report/
-playwright/.cache/
-tests/
-
-# GitHub Copilot
-.github/copilot-instructions.md
-
-# Ignore workspace settings
-.vscode/
+# Build outputs
+dist/
+out/
+*.log
 
 # Documentation (generated/internal)
 docs/AUDIT.md
 docs/CODEBASE_ARCHITECTURE.md
-docs/CODEBASE_AUDIT.md
 
-# Electron
-*.asar
+# Dependencies
+node_modules/
+src/renderer/assets/bootstrap/
+src/renderer/assets/fontawesome/
+src/data/
+
+# Playwright results
+playwright-report/
+test-results/
 
 # Environment
 .env
 .env.local
 .env.*.local
-
-# 5e data files (large JSON files from external source)
-src/data/
-
-# Third-party assets (installed via npm)
-src/renderer/assets/bootstrap/
-src/renderer/assets/fontawesome/

@@ -98,6 +98,15 @@ export const EVENTS = {
 
 // Wrapper class to maintain existing API while using EventEmitter3 internally
 class EventBusImpl extends EventEmitter {
+	constructor() {
+		super();
+		// Use window.FF_DEBUG (exposed from preload) instead of process.env
+		this._debugMode = (typeof window !== 'undefined' && window.FF_DEBUG) || false;
+		this._history = [];
+		this._metrics = new Map();
+		this._maxHistorySize = 100;
+	}
+
 	// Maintain existing on() behavior with debug logging
 	on(event, handler) {
 		if (typeof handler !== 'function') {
@@ -106,10 +115,14 @@ class EventBusImpl extends EventEmitter {
 		}
 
 		super.on(event, handler);
-		console.debug('[EventBus]', 'Listener registered', {
-			event,
-			totalListeners: this.listenerCount(event),
-		});
+
+		if (this._debugMode) {
+			console.debug('[EventBus]', 'Listener registered', {
+				event,
+				totalListeners: this.listenerCount(event),
+			});
+			this._checkForListenerLeaks(event);
+		}
 		return this;
 	}
 
@@ -152,13 +165,27 @@ class EventBusImpl extends EventEmitter {
 
 	// Maintain existing emit() behavior with debug logging and error handling
 	emit(event, ...args) {
-		console.debug('[EventBus]', 'Event emitted', {
-			event,
-			argsCount: args.length,
-		});
+		const startTime = performance.now();
+
+		if (this._debugMode) {
+			console.debug('[EventBus]', 'Event emitted', {
+				event,
+				argsCount: args.length,
+			});
+
+			// Record event in history
+			this._recordEvent(event, args);
+		}
 
 		try {
-			return super.emit(event, ...args);
+			const result = super.emit(event, ...args);
+
+			if (this._debugMode) {
+				const duration = performance.now() - startTime;
+				this._recordMetric(event, duration);
+			}
+
+			return result;
 		} catch (error) {
 			console.error('[EventBus]', 'Error in event handler', {
 				event,
@@ -178,6 +205,106 @@ class EventBusImpl extends EventEmitter {
 	clearAll() {
 		this.removeAllListeners();
 		console.debug('[EventBus]', 'All events cleared');
+	}
+
+	// Debug mode utilities
+	_recordEvent(event, args) {
+		const record = {
+			event,
+			timestamp: Date.now(),
+			args: this._serializeArgs(args),
+			listenerCount: this.listenerCount(event),
+		};
+
+		this._history.push(record);
+
+		// Keep history size manageable
+		if (this._history.length > this._maxHistorySize) {
+			this._history.shift();
+		}
+	}
+
+	_recordMetric(event, duration) {
+		if (!this._metrics.has(event)) {
+			this._metrics.set(event, {
+				count: 0,
+				totalDuration: 0,
+				maxDuration: 0,
+				minDuration: Number.POSITIVE_INFINITY,
+			});
+		}
+
+		const metric = this._metrics.get(event);
+		metric.count++;
+		metric.totalDuration += duration;
+		metric.maxDuration = Math.max(metric.maxDuration, duration);
+		metric.minDuration = Math.min(metric.minDuration, duration);
+	}
+
+	_serializeArgs(args) {
+		try {
+			// Only store first 3 args to avoid memory issues
+			return args.slice(0, 3).map(arg => {
+				if (arg === null || arg === undefined) return arg;
+				if (typeof arg !== 'object') return arg;
+				// Store basic info about objects without deep cloning
+				return { type: arg.constructor?.name || 'Object' };
+			});
+		} catch {
+			return ['<unserializable>'];
+		}
+	}
+
+	_checkForListenerLeaks(event) {
+		const count = this.listenerCount(event);
+		const threshold = 10; // Warn if more than 10 listeners
+
+		if (count > threshold) {
+			console.warn('[EventBus]', 'Possible listener leak detected', {
+				event,
+				listenerCount: count,
+				threshold,
+			});
+		}
+	}
+
+	// Public debug API
+	getHistory(eventName = null) {
+		if (!eventName) return [...this._history];
+		return this._history.filter(record => record.event === eventName);
+	}
+
+	getMetrics(eventName = null) {
+		if (!eventName) {
+			return Object.fromEntries(this._metrics);
+		}
+		return this._metrics.get(eventName) || null;
+	}
+
+	clearHistory() {
+		this._history = [];
+		console.debug('[EventBus]', 'History cleared');
+	}
+
+	clearMetrics() {
+		this._metrics.clear();
+		console.debug('[EventBus]', 'Metrics cleared');
+	}
+
+	enableDebugMode() {
+		this._debugMode = true;
+		console.log('[EventBus]', 'Debug mode enabled');
+	}
+
+	disableDebugMode() {
+		this._debugMode = false;
+		this.clearHistory();
+		this.clearMetrics();
+		console.log('[EventBus]', 'Debug mode disabled');
+	}
+
+	isDebugMode() {
+		return this._debugMode;
 	}
 }
 

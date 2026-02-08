@@ -3,6 +3,7 @@
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { NotFoundError } from '../../../lib/Errors.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import {
@@ -579,86 +580,97 @@ export class RaceCard {
 			});
 
 			// Get the race data
-			const race = this._raceService.getRace(
-				character.race.name,
-				character.race.source,
-			);
-			if (!race) {
-				console.error('[RaceCard]', 'Could not find race data for:', raceValue);
-				return;
-			}
-
-			// Store the selected race
-			this._selectedRace = race;
-
-			// Handle subrace if present
-			let subrace = null;
-			let infoId = this.sanitizeId(race.name);
-
-			if (character.race.subrace) {
-				console.debug(
-					'[RaceCard]',
-					'Saved subrace found:',
-					character.race.subrace,
+			try {
+				const race = this._raceService.getRace(
+					character.race.name,
+					character.race.source,
 				);
 
-				// Find and set the subrace dropdown if it exists
-				const subraceSelect = raceItem.querySelector('select');
-				if (subraceSelect) {
-					const subraceOption = Array.from(subraceSelect.options).find(
-						(opt) => opt.value === character.race.subrace,
+				// Store the selected race
+				this._selectedRace = race;
+
+				// Handle subrace if present
+				let subrace = null;
+				let infoId = this.sanitizeId(race.name);
+
+				if (character.race.subrace) {
+					console.debug(
+						'[RaceCard]',
+						'Saved subrace found:',
+						character.race.subrace,
 					);
-					if (subraceOption) {
-						subraceSelect.value = character.race.subrace;
-						subrace = this._raceService.getSubrace(
-							race.name,
-							character.race.subrace,
-							race.source,
+
+					// Find and set the subrace dropdown if it exists
+					const subraceSelect = raceItem.querySelector('select');
+					if (subraceSelect) {
+						const subraceOption = Array.from(subraceSelect.options).find(
+							(opt) => opt.value === character.race.subrace,
 						);
-						this._selectedSubrace = subrace;
-						infoId = this.sanitizeId(`${race.name}-${character.race.subrace}`);
-						console.debug(
-							'[RaceCard]',
-							'Subrace restored:',
-							character.race.subrace,
+						if (subraceOption) {
+							subraceSelect.value = character.race.subrace;
+							try {
+								subrace = this._raceService.getSubrace(
+									race.name,
+									character.race.subrace,
+									race.source,
+								);
+								this._selectedSubrace = subrace;
+								infoId = this.sanitizeId(`${race.name}-${character.race.subrace}`);
+								console.debug(
+									'[RaceCard]',
+									'Subrace restored:',
+									character.race.subrace,
+								);
+							} catch (err) {
+								console.warn(
+									'[RaceCard]',
+									`Saved subrace "${character.race.subrace}" not found:`,
+									err.message,
+								);
+							}
+						} else {
+							console.warn(
+								'RaceCard',
+								`Saved subrace "${character.race.subrace}" not found in dropdown options.`,
+							);
+						}
+					}
+				} else {
+					// No subrace saved - if there's a dropdown with "Standard" option, select it
+					const subraceSelect = raceItem.querySelector('select');
+					if (subraceSelect) {
+						const standardOption = Array.from(subraceSelect.options).find(
+							(opt) => opt.value === '__standard__',
 						);
-					} else {
-						console.warn(
-							'RaceCard',
-							`Saved subrace "${character.race.subrace}" not found in dropdown options.`,
-						);
+						if (standardOption) {
+							subraceSelect.value = '__standard__';
+							this._selectedSubrace = null;
+							console.debug('[RaceCard]', 'Standard race option selected');
+						}
 					}
 				}
-			} else {
-				// No subrace saved - if there's a dropdown with "Standard" option, select it
-				const subraceSelect = raceItem.querySelector('select');
-				if (subraceSelect) {
-					const standardOption = Array.from(subraceSelect.options).find(
-						(opt) => opt.value === '__standard__',
-					);
-					if (standardOption) {
-						subraceSelect.value = '__standard__';
-						this._selectedSubrace = null;
-						console.debug('[RaceCard]', 'Standard race option selected');
-					}
+
+				// Show info panel for this race/subrace
+				this._showInfo(infoId, true);
+
+				console.debug('[RaceCard]', 'Saved race selection loaded successfully');
+
+				// Re-apply racial ability bonuses and pending choices
+				this._updateAbilityBonuses(race, subrace);
+
+				// Restore any previously saved racial ability choices
+				const savedChoices = character.race?.abilityChoices || [];
+				if (savedChoices.length > 0) {
+					abilityScoreService.setRacialAbilityChoices(savedChoices);
 				}
-			}
-
-			// Show info panel for this race/subrace
-			this._showInfo(infoId, true);
-
-			console.debug('[RaceCard]', 'Saved race selection loaded successfully');
-
-			// Re-apply racial ability bonuses and pending choices
-			this._updateAbilityBonuses(race, subrace);
-
-			// Restore any previously saved racial ability choices
-			const savedChoices = character.race?.abilityChoices || [];
-			if (savedChoices.length > 0) {
-				abilityScoreService.setRacialAbilityChoices(savedChoices);
+			} catch (error) {
+				console.error('[RaceCard]', 'Error loading saved race selection:', error);
+				if (error instanceof NotFoundError) {
+					console.warn('[RaceCard]', 'Race or subrace data not found - may need to select again');
+				}
 			}
 		} catch (error) {
-			console.error('[RaceCard]', 'Error loading saved race selection:', error);
+			console.error('[RaceCard]', 'Unexpected error in _loadSavedRaceSelection:', error);
 		}
 	}
 

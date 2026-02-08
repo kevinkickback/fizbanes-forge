@@ -1,4 +1,5 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { DataError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { cleanupOrphanedBackdrops } from '../lib/ModalCleanupUtility.js';
 import { getNotificationCenter } from '../lib/NotificationCenter.js';
@@ -341,8 +342,21 @@ export async function initializeAll() {
 
 	if (window.FF_DEBUG === true) {
 		document.body.classList.add('debug-mode');
+
+		// Expose debug utilities to DevTools console
+		window.__debug = {
+			eventBus,
+			history: (eventName = null) => eventBus.getHistory(eventName),
+			metrics: (eventName = null) => eventBus.getMetrics(eventName),
+			clearHistory: () => eventBus.clearHistory(),
+			clearMetrics: () => eventBus.clearMetrics(),
+			enable: () => eventBus.enableDebugMode(),
+			disable: () => eventBus.disableDebugMode(),
+		};
+		console.log('[AppInitializer] Debug utilities available via window.__debug');
 	} else {
 		document.body.classList.remove('debug-mode');
+		delete window.__debug;
 	}
 
 	try {
@@ -419,7 +433,7 @@ export async function initializeAll() {
 
 		const dataReady = await _checkDataFolder();
 		if (!dataReady) {
-			throw new Error('Data folder not configured');
+			throw new DataError('Data folder not configured');
 		}
 
 		if (!saved?.success || !saved.type || !saved.value) {
@@ -464,7 +478,7 @@ export async function initializeAll() {
 			try {
 				const refreshResult = await window.app.refreshDataSource();
 				if (!refreshResult?.success) {
-					throw new Error(refreshResult?.error || 'Failed to download data');
+					throw new DataError(refreshResult?.error || 'Failed to download data');
 				}
 			} catch (error) {
 				console.error('[AppInitializer]', 'Failed to download data:', error);
@@ -547,7 +561,7 @@ export async function initializeAll() {
 						await _promptDataSourceFix(
 							refreshResult?.error || 'Data source is invalid',
 						);
-						throw new Error('Data source update failed');
+						throw new DataError('Data source update failed');
 					} else {
 						DataLoader.clearCache();
 						console.debug('[AppInitializer]', 'Checked/updated data source');

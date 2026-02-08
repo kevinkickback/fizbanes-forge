@@ -1,4 +1,10 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { DataError, NotFoundError } from '../lib/Errors.js';
+import {
+	raceIdentifierSchema,
+	subraceIdentifierSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 function groupSubracesByRace(subraceArray) {
@@ -132,7 +138,7 @@ class RaceService extends BaseDataService {
 		await this.initWithLoader(
 			async () => {
 				const races = await DataLoader.loadRaces();
-				if (!races) throw new Error('Race data is null or undefined');
+				if (!races) throw new DataError('Race data is null or undefined');
 
 				try {
 					const fluffData = await DataLoader.loadRaceFluff();
@@ -164,8 +170,24 @@ class RaceService extends BaseDataService {
 	}
 
 	getRace(name, source = 'PHB') {
-		const bundle = this._raceIndex?.get(createRaceKey(name, source));
-		return bundle?.race || null;
+		const validated = validateInput(
+			raceIdentifierSchema,
+			{ name, source },
+			'Invalid race identifier',
+		);
+
+		const bundle = this._raceIndex?.get(
+			createRaceKey(validated.name, validated.source),
+		);
+
+		if (!bundle?.race) {
+			throw new NotFoundError(
+				'Race',
+				`${validated.name} (${validated.source})`,
+			);
+		}
+
+		return bundle.race;
 	}
 
 	getSubraces(raceName, source = 'PHB') {
@@ -192,14 +214,57 @@ class RaceService extends BaseDataService {
 	}
 
 	getSubrace(raceName, subraceName, source = 'PHB') {
-		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
-		if (!bundle) return null;
-		return bundle.subraces.find((sr) => sr.name === subraceName) || null;
+		const validated = validateInput(
+			subraceIdentifierSchema,
+			{ raceName, subraceName, source },
+			'Invalid subrace identifier',
+		);
+
+		const bundle = this._raceIndex?.get(
+			createRaceKey(validated.raceName, validated.source),
+		);
+
+		if (!bundle) {
+			throw new NotFoundError(
+				'Race',
+				`${validated.raceName} (${validated.source})`,
+			);
+		}
+
+		const subrace = bundle.subraces.find(
+			(sr) => sr.name === validated.subraceName,
+		);
+
+		if (!subrace) {
+			throw new NotFoundError(
+				'Subrace',
+				`${validated.subraceName} for ${validated.raceName} (${validated.source})`,
+			);
+		}
+
+		return subrace;
 	}
 
 	getBaseSubrace(raceName, source = 'PHB') {
-		const bundle = this._raceIndex?.get(createRaceKey(raceName, source));
-		return bundle?.baseSubrace || null;
+		const validated = validateInput(
+			raceIdentifierSchema,
+			{ name: raceName, source },
+			'Invalid race identifier',
+		);
+
+		const bundle = this._raceIndex?.get(
+			createRaceKey(validated.name, validated.source),
+		);
+
+		if (!bundle) {
+			throw new NotFoundError(
+				'Race',
+				`${validated.name} (${validated.source})`,
+			);
+		}
+
+		// Base subrace is optional - return null if it doesn't exist
+		return bundle.baseSubrace || null;
 	}
 
 	_buildRaceIndex(data = this._data) {
@@ -220,13 +285,22 @@ class RaceService extends BaseDataService {
 	}
 
 	getRaceFluff(raceName, source = 'PHB') {
-		if (!this._data?.raceFluff) return null;
-
-		return (
-			this._data.raceFluff.find(
-				(f) => f.name === raceName && f.source === source,
-			) || null
+		const validated = validateInput(
+			raceIdentifierSchema,
+			{ name: raceName, source },
+			'Invalid race identifier',
 		);
+
+		// Fluff is optional content - return null if it doesn't exist
+		if (!this._data?.raceFluff) {
+			return null;
+		}
+
+		const fluff = this._data.raceFluff.find(
+			(f) => f.name === validated.name && f.source === validated.source,
+		);
+
+		return fluff || null;
 	}
 }
 

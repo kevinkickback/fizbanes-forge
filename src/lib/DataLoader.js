@@ -1,3 +1,4 @@
+import { DataError } from './Errors.js';
 import { eventBus, EVENTS } from './EventBus.js';
 
 const state = {
@@ -133,7 +134,7 @@ async function loadJSON(url, { ttl } = {}) {
 					if (result.success) {
 						data = result.data;
 					} else {
-						throw new Error(result.error || `Failed to load ${url}`);
+						throw new DataError(result.error || `Failed to load ${url}`);
 					}
 				} catch (electronError) {
 					console.error(
@@ -144,7 +145,7 @@ async function loadJSON(url, { ttl } = {}) {
 					throw electronError;
 				}
 			} else {
-				throw new Error(
+				throw new DataError(
 					`DataLoader: window.data.loadJSON not available. ` +
 					`This is an Electron app and requires the preload bridge. ` +
 					`Ensure the preload script is properly loaded.`,

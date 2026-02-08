@@ -13,8 +13,8 @@ import { IPC_CHANNELS } from './channels.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DEBUG_MODE = process.env.FF_DEBUG === 'true';
-const DEV_DATA_PATH = DEBUG_MODE
+const USE_BUNDLED_DATA = process.env.FF_USE_BUNDLED_DATA === 'true';
+const BUNDLED_DATA_PATH = USE_BUNDLED_DATA
 	? path.resolve(__dirname, '..', '..', '..', 'src', 'data')
 	: null;
 /** Register all data-related IPC handlers. */
@@ -28,12 +28,12 @@ export function registerDataHandlers(preferencesManager) {
 		'cached-data',
 	);
 
-	// In debug mode, force local src/data without persisting over user settings
-	if (DEBUG_MODE) {
-		currentDataPath = DEV_DATA_PATH;
+	// When using bundled data, bypass configured sources and use src/data
+	if (USE_BUNDLED_DATA) {
+		currentDataPath = BUNDLED_DATA_PATH;
 		MainLogger.debug(
 			'DataHandlers',
-			`Debug mode enabled; using local data folder (non-persisted): ${DEV_DATA_PATH}`,
+			`FF_USE_BUNDLED_DATA enabled; using bundled data folder: ${BUNDLED_DATA_PATH}`,
 		);
 	}
 
@@ -47,8 +47,8 @@ export function registerDataHandlers(preferencesManager) {
 	};
 
 	const syncDataPathFromPreferences = () => {
-		if (DEBUG_MODE) {
-			currentDataPath = DEV_DATA_PATH;
+		if (USE_BUNDLED_DATA) {
+			currentDataPath = BUNDLED_DATA_PATH;
 			return;
 		}
 		const type = preferencesManager.get('dataSourceType', null);
@@ -77,10 +77,10 @@ export function registerDataHandlers(preferencesManager) {
 	const refreshCurrentDataSource = async (event) => {
 		MainLogger.debug('DataHandlers', 'refreshCurrentDataSource called');
 		try {
-			if (DEBUG_MODE) {
+			if (USE_BUNDLED_DATA) {
 				MainLogger.debug(
 					'DataHandlers',
-					'DEBUG_MODE is true, skipping refresh',
+					'Using bundled data, skipping refresh',
 				);
 				sendDownloadProgress(event, 'complete', {
 					total: 0,
@@ -88,13 +88,13 @@ export function registerDataHandlers(preferencesManager) {
 					skipped: 0,
 					file: null,
 					success: true,
-					debugBypass: true,
+					bundledDataBypass: true,
 				});
 				return {
 					success: true,
 					downloaded: 0,
 					skipped: 0,
-					debugBypass: true,
+					bundledDataBypass: true,
 					path: currentDataPath,
 				};
 			}
@@ -269,14 +269,14 @@ export function registerDataHandlers(preferencesManager) {
 
 	ipcMain.handle(IPC_CHANNELS.DATA_LOAD_JSON, async (_event, fileName) => {
 		try {
-			if (DEBUG_MODE) {
+			if (USE_BUNDLED_DATA) {
 				if (!isJsonFile(fileName)) {
 					return {
 						success: false,
 						error: 'Only JSON files may be loaded',
 					};
 				}
-				const filePath = resolveSafePath(DEV_DATA_PATH, fileName);
+				const filePath = resolveSafePath(BUNDLED_DATA_PATH, fileName);
 				if (!filePath) {
 					return {
 						success: false,
@@ -359,8 +359,8 @@ export function registerDataHandlers(preferencesManager) {
 
 	ipcMain.handle(IPC_CHANNELS.DATA_FILE_EXISTS, async (_event, fileName) => {
 		try {
-			// Determine the data path (debug mode or configured)
-			const dataPath = DEBUG_MODE ? DEV_DATA_PATH : currentDataPath;
+			// Determine the data path (bundled or configured)
+			const dataPath = USE_BUNDLED_DATA ? BUNDLED_DATA_PATH : currentDataPath;
 			if (!dataPath) {
 				return false;
 			}
@@ -387,12 +387,12 @@ export function registerDataHandlers(preferencesManager) {
 
 	ipcMain.handle(IPC_CHANNELS.DATA_GET_SOURCE, async () => {
 		try {
-			if (DEBUG_MODE) {
+			if (USE_BUNDLED_DATA) {
 				return {
 					success: true,
 					type: 'local',
-					value: DEV_DATA_PATH,
-					debugBypass: true,
+					value: BUNDLED_DATA_PATH,
+					bundledData: true,
 				};
 			}
 			const type = preferencesManager.get('dataSourceType', null);
@@ -415,12 +415,12 @@ export function registerDataHandlers(preferencesManager) {
 	});
 
 	ipcMain.handle(IPC_CHANNELS.DATA_VALIDATE_SOURCE, async (event, source) => {
-		if (DEBUG_MODE) {
+		if (USE_BUNDLED_DATA) {
 			return {
 				success: true,
 				type: 'local',
-				value: DEV_DATA_PATH,
-				debugBypass: true,
+				value: BUNDLED_DATA_PATH,
+				bundledData: true,
 			};
 		}
 

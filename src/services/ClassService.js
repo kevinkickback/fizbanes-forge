@@ -1,4 +1,10 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
+import {
+	classIdentifierSchema,
+	subclassIdentifierSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 class ClassService extends BaseDataService {
 	constructor() {
@@ -129,19 +135,29 @@ class ClassService extends BaseDataService {
 
 	/** Get a specific class by name and source. */
 	getClass(name, source = 'PHB') {
-		if (!this._data?.class) return null;
+		const validated = validateInput(
+			classIdentifierSchema,
+			{ name, source },
+			'Invalid class identifier',
+		);
+
+		if (!this._data?.class) {
+			throw new NotFoundError('Class', `${validated.name} (${validated.source})`);
+		}
 
 		// Try to find exact source match first
 		const exactMatch = this._data.class.find(
-			(c) => c.name === name && c.source === source,
+			(c) => c.name === validated.name && c.source === validated.source,
 		);
 		if (exactMatch) {
 			return exactMatch;
 		}
 
 		// Fall back to any source for the class (preference: PHB, then classic edition, then any)
-		const byName = this._data.class.filter((c) => c.name === name);
-		if (byName.length === 0) return null;
+		const byName = this._data.class.filter((c) => c.name === validated.name);
+		if (byName.length === 0) {
+			throw new NotFoundError('Class', `${validated.name} (${validated.source})`);
+		}
 
 		// Return first matching class if exact source not found
 		// Prefer classic/primary editions over newer ones
@@ -217,12 +233,31 @@ class ClassService extends BaseDataService {
 
 	/** Get a specific subclass by name. */
 	getSubclass(className, subclassName, source = 'PHB') {
-		const subclasses = this.getSubclasses(className, source);
-		return (
-			subclasses.find(
-				(sc) => sc.name === subclassName || sc.shortName === subclassName,
-			) || null
+		const validated = validateInput(
+			subclassIdentifierSchema,
+			{ className, subclassName, source },
+			'Invalid subclass identifier',
 		);
+
+		const subclasses = this.getSubclasses(
+			validated.className,
+			validated.source,
+		);
+
+		const subclass = subclasses.find(
+			(sc) =>
+				sc.name === validated.subclassName ||
+				sc.shortName === validated.subclassName,
+		);
+
+		if (!subclass) {
+			throw new NotFoundError(
+				'Subclass',
+				`${validated.subclassName} for ${validated.className} (${validated.source})`,
+			);
+		}
+
+		return subclass;
 	}
 
 	/** Get subclass features for a specific subclass up to a given level. */

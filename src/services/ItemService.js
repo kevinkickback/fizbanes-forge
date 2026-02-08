@@ -1,5 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
 import { EVENTS } from '../lib/EventBus.js';
+import { itemIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 class ItemService extends BaseDataService {
 	constructor() {
@@ -70,12 +72,35 @@ class ItemService extends BaseDataService {
 	}
 
 	getItem(name, source = 'PHB') {
+		const validated = validateInput(
+			itemIdentifierSchema,
+			{ name, source },
+			'Invalid item identifier',
+		);
+
 		// Try regular items first
-		const item = this.lookupByNameAndSource(this._itemLookupMap, name, source);
+		const item = this.lookupByNameAndSource(
+			this._itemLookupMap,
+			validated.name,
+			validated.source,
+		);
 		if (item) return item;
 
 		// Fall back to base items (armor, weapons, etc.)
-		return this.lookupByNameAndSource(this._baseItemLookupMap, name, source);
+		const baseItem = this.lookupByNameAndSource(
+			this._baseItemLookupMap,
+			validated.name,
+			validated.source,
+		);
+
+		if (!baseItem) {
+			throw new NotFoundError(
+				'Item',
+				`${validated.name} (${validated.source})`,
+			);
+		}
+
+		return baseItem;
 	}
 }
 

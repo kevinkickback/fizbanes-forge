@@ -1,5 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
 import { EVENTS } from '../lib/EventBus.js';
+import { spellIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 class SpellService extends BaseDataService {
@@ -76,10 +78,30 @@ class SpellService extends BaseDataService {
 	/** O(1) lookup by name, then checks source.
 	 * @param {string} name - Spell name
 	 * @param {string} [source='PHB'] - Source book
-	 * @returns {Object|null} Spell object or null if not found
+	 * @returns {Object} Spell object
+	 * @throws {NotFoundError} If spell is not found
 	 */
 	getSpell(name, source = 'PHB') {
-		return this.lookupByNameAndSource(this._spellLookupMap, name, source);
+		const validated = validateInput(
+			spellIdentifierSchema,
+			{ name, source },
+			'Invalid spell identifier',
+		);
+
+		const spell = this.lookupByNameAndSource(
+			this._spellLookupMap,
+			validated.name,
+			validated.source,
+		);
+
+		if (!spell) {
+			throw new NotFoundError(
+				'Spell',
+				`${validated.name} (${validated.source})`,
+			);
+		}
+
+		return spell;
 	}
 
 	isSpellAvailableForClass(spell, className) {

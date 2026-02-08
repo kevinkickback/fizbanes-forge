@@ -1,5 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { backgroundIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 class BackgroundService extends BaseDataService {
@@ -39,13 +41,31 @@ class BackgroundService extends BaseDataService {
 	}
 
 	getBackground(name, source = 'PHB') {
-		if (!this._data?.background) return null;
-
-		return (
-			this._data.background.find(
-				(bg) => bg.name === name && bg.source === source,
-			) || null
+		const validated = validateInput(
+			backgroundIdentifierSchema,
+			{ name, source },
+			'Invalid background identifier',
 		);
+
+		if (!this._data?.background) {
+			throw new NotFoundError(
+				'Background',
+				`${validated.name} (${validated.source})`,
+			);
+		}
+
+		const background = this._data.background.find(
+			(bg) => bg.name === validated.name && bg.source === validated.source,
+		);
+
+		if (!background) {
+			throw new NotFoundError(
+				'Background',
+				`${validated.name} (${validated.source})`,
+			);
+		}
+
+		return background;
 	}
 
 	selectBackground(backgroundName, source = 'PHB') {

@@ -231,8 +231,6 @@ export class BaseSelectorModal {
 
 			this.bootstrapModal.show();
 
-			this.bootstrapModal.show();
-
 			return new Promise((resolve) => {
 				this._resolvePromise = resolve;
 			});

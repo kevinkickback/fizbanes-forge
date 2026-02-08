@@ -1,3 +1,9 @@
+import {
+	DataError,
+	NotFoundError,
+	ServiceError,
+	ValidationError,
+} from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 
@@ -11,7 +17,11 @@ class CharacterManagerImpl {
 		if (Array.isArray(failedServices) && failedServices.length > 0) {
 			const message = `Cannot create characters until data loads (${failedServices.join(', ')}).`;
 			showNotification(message, 'error');
-			throw new Error(message);
+			throw new ServiceError(
+				'CharacterManager',
+				message,
+				{ failedServices },
+			);
 		}
 
 		try {
@@ -19,7 +29,7 @@ class CharacterManagerImpl {
 
 			const uuidResult = await window.characterStorage.generateUUID();
 			if (!uuidResult.success) {
-				throw new Error('Failed to generate character ID');
+				throw new DataError('Failed to generate character ID');
 			}
 
 			characterData.id = uuidResult.data;
@@ -32,7 +42,10 @@ class CharacterManagerImpl {
 					'Validation failed:',
 					validation.errors,
 				);
-				throw new Error(`Invalid character: ${validation.errors.join(', ')}`);
+				throw new ValidationError(
+					`Invalid character: ${validation.errors.join(', ')}`,
+					{ errors: validation.errors },
+				);
 			}
 
 			const character = new Character(characterData);
@@ -55,7 +68,7 @@ class CharacterManagerImpl {
 
 			const listResult = await window.characterStorage.loadCharacters();
 			if (!listResult.success) {
-				throw new Error('Failed to load character list');
+				throw new DataError('Failed to load character list');
 			}
 
 			const characters = listResult.characters || [];
@@ -63,7 +76,7 @@ class CharacterManagerImpl {
 
 			if (!characterData) {
 				console.warn('[CharacterManager]', 'Character not found:', id);
-				throw new Error('Character not found');
+				throw new NotFoundError('Character', id);
 			}
 
 			const validation = CharacterSchema.validate(characterData);
@@ -73,8 +86,9 @@ class CharacterManagerImpl {
 					'Loaded character invalid:',
 					validation.errors,
 				);
-				throw new Error(
+				throw new ValidationError(
 					`Invalid character data: ${validation.errors.join(', ')}`,
+					{ errors: validation.errors },
 				);
 			}
 
@@ -97,7 +111,7 @@ class CharacterManagerImpl {
 
 		if (!character) {
 			console.warn('[CharacterManager]', 'No character to save');
-			throw new Error('No character selected');
+			throw new NotFoundError('Character', 'current');
 		}
 
 		try {
@@ -110,7 +124,10 @@ class CharacterManagerImpl {
 					'Cannot save invalid character:',
 					validation.errors,
 				);
-				throw new Error(`Cannot save: ${validation.errors.join(', ')}`);
+				throw new ValidationError(
+					`Cannot save: ${validation.errors.join(', ')}`,
+					{ errors: validation.errors },
+				);
 			}
 
 			const serializedCharacter = serializeCharacter(character);
@@ -119,7 +136,10 @@ class CharacterManagerImpl {
 				await window.characterStorage.saveCharacter(serializedCharacter);
 
 			if (!saveResult.success) {
-				throw new Error(saveResult.error || 'Save failed');
+				throw new DataError(
+					saveResult.error || 'Save failed',
+					{ characterId: character.id },
+				);
 			}
 
 			AppState.setHasUnsavedChanges(false);
@@ -137,7 +157,10 @@ class CharacterManagerImpl {
 			const deleteResult = await window.characterStorage.deleteCharacter(id);
 
 			if (!deleteResult.success) {
-				throw new Error(deleteResult.error || 'Delete failed');
+				throw new DataError(
+					deleteResult.error || 'Delete failed',
+					{ characterId: id },
+				);
 			}
 
 			const characters = AppState.getCharacters().filter((c) => c.id !== id);
@@ -162,7 +185,7 @@ class CharacterManagerImpl {
 			const listResult = await window.characterStorage.loadCharacters();
 
 			if (!listResult.success) {
-				throw new Error(listResult.error || 'Failed to load list');
+				throw new DataError(listResult.error || 'Failed to load list');
 			}
 
 			const charactersData = listResult.characters || [];
