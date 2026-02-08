@@ -552,10 +552,8 @@ export class BackgroundCard {
 			// This ensures options arrays are properly populated without resetting allowed/selected
 			await this._regenerateEmptyProficiencyOptions(character, background);
 
-			// Emit CHARACTER_UPDATED to trigger ProficiencyCard refresh with new options
-			eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-				character: CharacterManager.getCurrentCharacter(),
-			});
+			// Note: We don't emit CHARACTER_UPDATED here because loading saved data
+			// is not a user change and shouldn't trigger the unsaved changes indicator
 
 			console.debug(
 				'[BackgroundCard]',

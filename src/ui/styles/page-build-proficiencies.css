@@ -1,0 +1,19 @@
+/* ========================================
+   PAGE: BUILD - PROFICIENCIES
+   ======================================== */
+
+/* ========================================
+   VIEWPORT HEIGHT - AUTO SIZING
+   ======================================== */
+
+/* Full viewport card for proficiencies page */
+#build-proficiencies .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-proficiencies .card-body {
+	flex: 1;
+	display: flex;
+}

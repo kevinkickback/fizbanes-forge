@@ -933,3 +933,25 @@
 .choice-item .btn-sm i {
 	margin-right: 0.25rem;
 }
+
+/* ========================================
+   VIEWPORT HEIGHT - AUTO SIZING
+   ======================================== */
+
+/* Full viewport card for class selection page */
+#build-class .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-class .card-body {
+	flex: 1;
+	display: flex;
+}
+
+/* Ensure split card body fills available space */
+#build-class .split-card-body {
+	flex: 1;
+	display: flex;
+}

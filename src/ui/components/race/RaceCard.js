@@ -655,8 +655,8 @@ export class RaceCard {
 
 				console.debug('[RaceCard]', 'Saved race selection loaded successfully');
 
-				// Re-apply racial ability bonuses and pending choices
-				this._updateAbilityBonuses(race, subrace);
+				// Re-apply racial ability bonuses and pending choices (silently, without triggering events)
+				this._updateAbilityBonuses(race, subrace, { silent: true });
 
 				// Restore any previously saved racial ability choices
 				const savedChoices = character.race?.abilityChoices || [];
@@ -800,7 +800,8 @@ export class RaceCard {
 		}
 	}
 
-	_updateAbilityBonuses(race, subrace) {
+	_updateAbilityBonuses(race, subrace, options = {}) {
+		const { silent = false } = options;
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !race) return;
 
@@ -871,10 +872,12 @@ export class RaceCard {
 			console.error('[RaceCard]', 'Error updating ability bonuses:', error);
 		}
 
-		// Notify of changes
-		document.dispatchEvent(
-			new CustomEvent('abilityScoresChanged', { detail: { character } }),
-		);
+		// Notify of changes (unless silent mode)
+		if (!silent) {
+			document.dispatchEvent(
+				new CustomEvent('abilityScoresChanged', { detail: { character } }),
+			);
+		}
 	}
 
 	_updateRacialTraits(race, subrace) {

@@ -250,3 +250,19 @@
 		display: none !important;
 	}
 }
+
+/* ========================================
+   VIEWPORT HEIGHT - AUTO SIZING
+   ======================================== */
+
+/* Full viewport card for background selection page */
+#build-background .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-background .card-body {
+	flex: 1;
+	display: flex;
+}

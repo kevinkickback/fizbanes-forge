@@ -1,0 +1,19 @@
+/* ========================================
+   PAGE: BUILD - ABILITY SCORES
+   ======================================== */
+
+/* ========================================
+   VIEWPORT HEIGHT - AUTO SIZING
+   ======================================== */
+
+/* Full viewport card for ability scores page */
+#build-ability-scores .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-ability-scores .card-body {
+	flex: 1;
+	display: flex;
+}
