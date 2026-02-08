@@ -1,0 +1,235 @@
+/* ========================================
+   PAGE: BUILD - RACE SELECTION
+   ======================================== */
+
+/* Race Selection Styling - Legacy */
+.race-select-container {
+	width: 200px;
+	flex-shrink: 0;
+	margin-bottom: 0.5rem;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Ensure consistent spacing between label and select */
+.race-select-container .form-select {
+	margin-top: 0.25rem;
+}
+
+.race-selection-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.race-selection-controls .race-selectors {
+	display: flex;
+	gap: 1rem;
+}
+
+.race-selection-controls .form-label {
+	margin-bottom: 0.25rem;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	display: block;
+}
+
+/* Fixed position for race image */
+.race-image-container {
+	width: var(--race-image-width);
+	min-width: 205px;
+	max-width: 300px;
+	flex-shrink: 0;
+	position: absolute;
+	right: 1.5rem;
+	top: 1.5rem;
+	bottom: 1.5rem;
+	height: calc(100% - 3rem);
+	z-index: 1; /* Ensure image stays behind content if they overlap */
+}
+
+.race-image {
+	width: 100%;
+	height: 100%;
+	border-radius: var(--border-radius);
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.race-image img {
+	max-width: 100% !important;
+	max-height: 100% !important;
+	width: auto !important;
+	height: auto !important;
+	object-fit: contain !important;
+	display: block;
+	margin: 0 auto;
+}
+
+.race-image .placeholder-icon {
+	font-size: 3.5rem;
+	color: var(--border-color);
+}
+
+/* Race content container to ensure consistent width */
+.race-content-container {
+	width: var(--race-content-width);
+	position: relative;
+	z-index: 2;
+	box-sizing: border-box;
+	margin-bottom: 0.5rem;
+	max-width: 100%; /* Ensure it doesn't exceed parent width */
+}
+
+/* Race description styling */
+.race-quick-desc {
+	font-size: 0.9rem;
+	color: var(--text-color);
+	line-height: 1.5;
+	padding: 0.75rem;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	background: var(--overlay-secondary-50);
+	border-radius: var(--border-radius);
+	margin-top: 0.5rem;
+	min-height: 80px;
+	border-left: 2px solid var(--accent-color);
+	box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+/* Improve text visibility in quick descriptions */
+.race-quick-desc p,
+.class-quick-desc p,
+.background-quick-desc p {
+	color: #ffffff;
+	margin-bottom: 0.5rem;
+}
+
+.race-quick-desc h6 {
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.35rem; /* Increased from 0.25rem */
+	margin-top: 0; /* Remove any top margin */
+}
+
+/* Race details section */
+#raceDetails {
+	padding-top: 0.5rem;
+	margin-top: 0.5rem;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* Race details styling */
+.race-details-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 1rem;
+}
+
+.traits-section {
+	grid-column: 1 / -1;
+}
+
+.detail-section {
+	background: rgba(36, 36, 36, 0.5);
+	padding: 0.5rem 0.75rem; /* Reduced top/bottom padding */
+	border-radius: var(--border-radius);
+	border-left: 2px solid var(--accent-color);
+	margin-bottom: 0.5rem;
+}
+
+.detail-section h6 {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.35rem; /* Increased from 0.15rem */
+	margin-top: 0;
+	line-height: 1.2;
+}
+
+.detail-section p {
+	margin-bottom: 0;
+	margin-top: 0.25rem; /* Increased from 0.15rem */
+	line-height: 1.4; /* Tighter line height for content */
+	color: #ffffff; /* Ensure text is clearly visible */
+}
+
+.detail-section ul {
+	list-style: none;
+	padding-left: 0;
+	margin-top: 0.25rem; /* Increased from 0.15rem */
+	margin-bottom: 0;
+}
+
+.detail-section li {
+	position: relative;
+	padding-left: 1rem;
+	line-height: 1.4; /* Tighter line height for list items */
+	margin-bottom: 0.15rem; /* Add small spacing between list items */
+	color: #ffffff; /* Ensure text is clearly visible */
+}
+
+.detail-section li:last-child {
+	margin-bottom: 0; /* Remove margin from last item */
+}
+
+.detail-section li:before {
+	content: "•";
+	position: absolute;
+	left: 0;
+	color: var(--accent-color);
+}
+
+/* Multi-column list for proficiencies */
+.multi-column-list {
+	column-count: 2;
+	column-gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+	.multi-column-list.many-items {
+		column-count: 3;
+	}
+}
+
+.multi-column-list li {
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+/* Skill proficiency choose text */
+.choose-text {
+	color: var(--text-color);
+	font-size: 0.9rem;
+	margin-top: 0.25rem;
+}
+
+/* Improve race card layout */
+.card-body .d-flex.gap-3 {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem !important;
+}
+
+/* Make all card headers more compact */
+.card-header h5 {
+	font-size: 1.1rem;
+	font-weight: 600;
+}
+
+.card-body.race-card-body > .mb-3 {
+	margin-bottom: 0 !important;
+}

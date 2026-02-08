@@ -7,7 +7,7 @@ import {
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 
-import { CharacterSchema } from '../shared/CharacterSchema.js';
+import { CharacterSchema } from '../lib/CharacterSchema.js';
 import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
 

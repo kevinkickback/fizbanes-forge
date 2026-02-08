@@ -2,7 +2,7 @@ import fssync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
-import { CharacterSchema } from '../shared/CharacterSchema.js';
+import { CharacterSchema } from '../lib/CharacterSchema.js';
 
 export class CharacterImportService {
 	constructor(savePath) {

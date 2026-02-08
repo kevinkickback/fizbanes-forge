@@ -1,0 +1,295 @@
+/* ========================================
+   COMPONENT: ABILITY SCORES
+   ======================================== */
+
+/* Ability Scores */
+.ability-score-method-select-container {
+	width: 150px;
+	flex-shrink: 0;
+}
+
+.ability-score-container {
+	margin: 0 auto 1rem auto;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.points-remaining-display {
+	display: inline-block;
+	width: auto;
+	background-color: color-mix(
+		in srgb,
+		var(--accent-color) 18%,
+		var(--secondary-color)
+	);
+	border: 1px solid var(--accent-color);
+	color: var(--text-color);
+	padding: 0.35rem 0.85rem;
+	border-radius: 6px;
+	font-size: 0.95rem;
+	white-space: nowrap;
+}
+
+.ability-score-grid {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 1rem;
+	width: 100%;
+}
+
+@media (max-width: 1400px) {
+	.ability-score-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 768px) {
+	.ability-score-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+/* Ability score choice dropdowns at the bottom of the ability-score-container */
+.ability-choices-container {
+	width: 100%;
+	margin-top: 1rem;
+	display: flex;
+	justify-content: center;
+}
+
+.ability-choices-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	width: 100%;
+	max-width: 600px;
+}
+
+.ability-choice-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.ability-choice-group label {
+	font-weight: 500;
+	font-size: 0.9rem;
+	text-align: center;
+}
+
+.ability-choice-group select {
+	width: auto;
+	min-width: 150px;
+	max-width: fit-content;
+}
+
+/* Instrument choice dropdowns */
+.instrument-choices-container {
+	width: 100%;
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	display: flex;
+	justify-content: center;
+}
+
+.instrument-choices-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	width: 100%;
+	max-width: 800px;
+}
+
+.instrument-choice-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.instrument-choice-group label {
+	font-weight: 500;
+	font-size: 0.9rem;
+	text-align: center;
+	color: var(--text-light);
+}
+
+.instrument-choice-group select {
+	width: auto;
+	min-width: 150px;
+	max-width: fit-content;
+}
+
+/* Responsive breakpoints for ability score grid */
+@media (max-width: 1200px) {
+	.ability-score-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 768px) {
+	.ability-score-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 576px) {
+	.ability-score-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Ability Score Card split pane styles */
+.ability-score-card-body.split-card-body .choices-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.ability-score-card-body.split-card-body .ability-method-tabs {
+	flex-shrink: 0;
+	margin-bottom: 1rem;
+}
+
+.ability-score-card-body.split-card-body .ability-score-container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow-y: auto;
+	gap: 1rem;
+}
+
+.ability-score-card-body.split-card-body .ability-bonuses-container {
+	flex-shrink: 0;
+	margin-top: auto;
+}
+
+.ability-method-tabs {
+	margin-bottom: 1rem;
+}
+
+.ability-method-tabs .nav-pills {
+	background: var(--bg-secondary);
+	padding: 0.5rem;
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+	display: flex !important;
+	flex-direction: row !important;
+	flex-wrap: nowrap;
+	width: auto;
+	gap: 0.5rem;
+}
+
+.ability-method-tabs .nav-link {
+	padding: 0.5rem 1rem;
+	text-align: center;
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--text-color);
+	transition: all 0.2s ease;
+	min-width: auto;
+}
+
+.ability-method-tabs .nav-link:hover {
+	background: var(--hover-bg);
+	border-color: var(--border-color);
+}
+
+.ability-method-tabs .nav-link.active {
+	background: var(--bs-primary);
+	color: white;
+	border-color: var(--bs-primary);
+}
+
+.ability-method-tabs .nav-link i {
+	margin-right: 0;
+}
+
+.ability-method-tabs .method-status {
+	font-size: 0.75rem;
+	margin-left: 0.5rem;
+	opacity: 0.8;
+	font-weight: normal;
+}
+
+.ability-method-tabs .method-status .danger {
+	color: var(--danger-color);
+	font-weight: bold;
+}
+
+.ability-score-box {
+	position: relative;
+	padding: 0.7rem;
+	border-radius: 8px;
+	background-color: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	text-align: center;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	transition: var(--transition);
+}
+
+.ability-score-box .bonus {
+	position: absolute;
+	top: 0rem;
+	right: 0.2rem;
+	font-size: 0.85rem;
+	color: var(--success-color);
+	font-weight: bold;
+}
+
+.ability-score-box .bonus.negative {
+	color: var(--danger-color);
+}
+
+.ability-score-box:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--box-shadow);
+}
+
+.ability-score-box h6 {
+	color: var(--text-muted);
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	text-transform: none;
+	font-size: 0.8rem;
+	letter-spacing: 0.5px;
+}
+
+.score {
+	color: var(--accent-color);
+	font-size: 2.5rem;
+	font-weight: 700;
+	line-height: 1;
+	margin: 0.5rem 0;
+}
+
+.modifier {
+	color: var(--text-color);
+	font-weight: 600;
+	font-size: 1.2rem;
+}
+
+/* Ensure ability score buttons stay horizontal */
+.ability-score-box .mt-2 {
+	display: flex;
+	justify-content: center;
+	gap: 0.5rem;
+	flex-wrap: nowrap; /* Prevent wrapping to keep buttons side by side */
+}
+
+.ability-score-box .btn-sm {
+	min-width: 2rem; /* Ensure minimum width */
+	padding: 0.25rem 0.5rem;
+	flex: 0 0 auto; /* Prevent flex shrinking/growing */
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}

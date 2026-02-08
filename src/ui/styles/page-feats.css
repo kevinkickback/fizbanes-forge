@@ -1,0 +1,63 @@
+/* Feat Modal and Selection Styles */
+
+.feat-list {
+	max-height: 50vh;
+	overflow-y: auto;
+}
+
+/* Feat List View */
+.feat-list-view {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.feat-list-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	padding: 0.5rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	transition: all 0.2s ease;
+}
+
+.feat-list-item:hover {
+	background: var(--secondary-color);
+}
+
+.feat-list-item-info {
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.feat-list-item-header {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.feat-list-item-name {
+	color: var(--text-color);
+	font-weight: 600;
+}
+
+.feat-list-item-desc {
+	color: var(--text-light);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+/* Feat selection counter styling to match proficiencies but with accent color */
+#build-feats .selection-counter {
+	color: var(--accent-color);
+	font-weight: 400;
+}
+
+.remove-feat-btn {
+	padding: 0.25rem 0.5rem;
+	flex-shrink: 0;
+}

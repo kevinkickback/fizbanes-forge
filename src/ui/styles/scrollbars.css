@@ -30,16 +30,6 @@
 	background: var(--text-muted);
 }
 
-/* Thin scrollbars for smaller areas */
-.thin-scrollbar::-webkit-scrollbar {
-	width: 8px;
-	height: 8px;
-}
-
-.thin-scrollbar::-webkit-scrollbar-thumb {
-	border: 1px solid var(--secondary-color);
-}
-
 /* Firefox scrollbars */
 * {
 	scrollbar-width: thin;

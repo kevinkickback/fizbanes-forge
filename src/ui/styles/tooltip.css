@@ -27,98 +27,6 @@
 	--tooltip-text-small: #b0b0b0;
 }
 
-/* Bootstrap-style tooltips */
-.tooltip {
-	position: fixed;
-	z-index: 1070;
-	display: block;
-	margin: 0;
-	font-family: inherit;
-	font-style: normal;
-	font-weight: 400;
-	line-height: 1.5;
-	text-align: left;
-	text-decoration: none;
-	text-shadow: none;
-	text-transform: none;
-	letter-spacing: normal;
-	word-break: normal;
-	word-spacing: normal;
-	white-space: normal;
-	line-break: auto;
-	font-size: 0.875rem;
-	word-wrap: break-word;
-	opacity: 0;
-	pointer-events: none;
-}
-
-.tooltip.show {
-	opacity: 1;
-}
-
-.tooltip-inner {
-	max-width: 300px;
-	padding: 0.75rem 1rem;
-	color: #fff;
-	text-align: left;
-	background-color: var(--secondary-color);
-	border-radius: var(--border-radius);
-	box-shadow: var(--shadow-lg);
-	border: 1px solid var(--border-color);
-}
-
-.tooltip-inner h4 {
-	color: var(--accent-color);
-	font-size: 1rem;
-	margin-bottom: 0.5rem;
-	font-weight: 600;
-}
-
-.tooltip-inner p {
-	margin-bottom: 0.5rem;
-	font-size: 0.9rem;
-	line-height: 1.4;
-}
-
-.tooltip-inner p:last-child {
-	margin-bottom: 0;
-}
-
-/* Tooltip arrows */
-.tooltip .tooltip-arrow {
-	position: absolute;
-	display: block;
-	width: 0.8rem;
-	height: 0.4rem;
-}
-
-.tooltip .tooltip-arrow::before {
-	position: absolute;
-	content: "";
-	border-color: transparent;
-	border-style: solid;
-}
-
-.tooltip.bs-tooltip-top .tooltip-arrow {
-	bottom: 0;
-}
-
-.tooltip.bs-tooltip-top .tooltip-arrow::before {
-	top: -1px;
-	border-width: 0.4rem 0.4rem 0;
-	border-top-color: var(--border-color);
-}
-
-.tooltip.bs-tooltip-bottom .tooltip-arrow {
-	top: 0;
-}
-
-.tooltip.bs-tooltip-bottom .tooltip-arrow::before {
-	bottom: -1px;
-	border-width: 0 0.4rem 0.4rem;
-	border-bottom-color: var(--border-color);
-}
-
 /* Custom D&D Tooltips */
 .tooltip-container {
 	position: fixed;
@@ -477,15 +385,6 @@
 	color: #ff9999;
 }
 
-/* Monster links */
-.rd__monster-link {
-	color: #f08080;
-}
-
-.rd__monster-link:hover {
-	color: #ff9999;
-}
-
 /* Action links */
 .rd__action-link {
 	color: #7bff7b;
@@ -538,33 +437,6 @@
 
 .rd__feature-link:hover {
 	color: #c8c8ff;
-}
-
-/* Skill links */
-.rd__skill-link {
-	color: #7bffb7;
-}
-
-.rd__skill-link:hover {
-	color: #99ffcc;
-}
-
-/* Language links */
-.rd__language-link {
-	color: #b8ff8f;
-}
-
-.rd__language-link:hover {
-	color: #d4ffb3;
-}
-
-/* Proficiency links */
-.rd__proficiency-link {
-	color: #f0c080;
-}
-
-.rd__proficiency-link:hover {
-	color: #ffdb99;
 }
 
 /* Tooltip Container Styling */

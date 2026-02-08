@@ -197,31 +197,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	scrollbar-gutter: stable both-edges;
 }
 
-/* Spell selection modal - no body scroll */
-#spellSelectionModal .modal-body {
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
-}
-
-/* Equipment selection modal - no body scroll */
-#equipmentSelectionModal .modal-body {
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
-}
-
-/* Universal selection modal - no body scroll, flex layout for proper filter/results scrolling */
-#universalSelectionModal .modal-body {
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
-	padding: 1rem;
-}
-
 /* Custom scrollbar for modal body */
 .modal-body::-webkit-scrollbar {
 	width: 8px;
@@ -1297,18 +1272,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	}
 }
 
-/* ===== Spell Selection Modal - Responsive Size ===== */
-#spellSelectionModal .modal-dialog {
-	width: 90vw;
-	max-width: 1200px;
-	height: 85vh;
-	max-height: 800px;
-}
-
-#spellSelectionModal .modal-content {
-	height: 100%;
-}
-
 /* ===== Spell Selection Modal - Filter Collapse ===== */
 .spell-filter-row-wrapper {
 	flex: 1;
@@ -1481,49 +1444,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 	color: var(--text-light);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-}
-
-/* Ensure feat modal selected area matches spell styling */
-#featSelectionModal .selected-items-section {
-	background: var(--secondary-color);
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	padding: 0.75rem;
-	min-height: 80px;
-	max-height: 120px;
-	overflow-y: auto;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-#featSelectionModal .selected-items-section h6 {
-	margin: 0 0 0.5rem 0;
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-light);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-/* ===== Equipment Selection Modal - Responsive Size ===== */
-#equipmentSelectionModal .modal-dialog {
-	width: 90vw;
-	max-width: 1200px;
-	height: 85vh;
-	max-height: 800px;
-}
-
-#equipmentSelectionModal .modal-content {
-	height: 100%;
-}
-
-/* Equipment selection modal - no body scroll */
-#equipmentSelectionModal .modal-body {
-	overflow: hidden;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
 }
 
 /* ===== Equipment Selection Modal - Filter Collapse ===== */
@@ -2429,12 +2349,6 @@ body > .modal-backdrop.show:nth-last-child(2) {
 /* ===================================
    UNIVERSAL SELECTION MODAL STYLES
    =================================== */
-
-/* Search bar toolbar - doesn't flex, stays at top */
-#universalSelectionModal .d-flex:has(.universal-selection-search) {
-	flex-shrink: 0;
-	flex-grow: 0;
-}
 
 /* Wrapper that enables independent scrolling for filters and results */
 .universal-selection-filter-row-wrapper {

@@ -70,16 +70,6 @@
 	}
 }
 
-/* Rotate animation */
-@keyframes rotate {
-	from {
-		transform: rotate(0deg);
-	}
-	to {
-		transform: rotate(360deg);
-	}
-}
-
 /* Bounce animation */
 @keyframes bounce {
 	0%,
@@ -91,14 +81,8 @@
 	}
 }
 
-/* Apply animations to page content */
-.page-content {
-	animation: fadeIn 0.3s ease;
-}
-
 /* Card entrance animations */
 .card,
-.entity-card,
 .character-card {
 	animation: scaleIn 0.3s ease;
 }
@@ -121,22 +105,4 @@
 }
 .character-card:nth-child(6) {
 	animation-delay: 0.25s;
-}
-
-/* Loading spinner */
-.spinner {
-	animation: rotate 1s linear infinite;
-}
-
-/* Skeleton loader */
-.skeleton {
-	background: linear-gradient(
-		90deg,
-		var(--secondary-color) 0%,
-		var(--border-light) 50%,
-		var(--secondary-color) 100%
-	);
-	background-size: 200% 100%;
-	animation: shimmer 1.5s ease-in-out infinite;
-	border-radius: var(--border-radius);
 }

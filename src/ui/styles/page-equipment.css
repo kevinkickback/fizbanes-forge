@@ -1,0 +1,39 @@
+/* ========================================
+   PAGE: EQUIPMENT
+   ======================================== */
+
+/* Equipment List */
+.equipment-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.equipment-item {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	padding: 1rem;
+	transition: var(--transition);
+	color: #ffffff;
+}
+
+.equipment-item:hover {
+	background: var(--primary-color);
+	border-color: var(--accent-color);
+}
+
+.equipment-item h4,
+.equipment-item h5,
+.equipment-item h6 {
+	color: #ffffff;
+	margin-bottom: 0.5rem;
+}
+
+.equipment-item p {
+	color: var(--text-light);
+	margin-bottom: 0.5rem;
+}
+
+.equipment-item .text-muted {
+	color: #b0b0b0 !important;
+}

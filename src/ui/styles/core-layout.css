@@ -1,0 +1,247 @@
+/* ===================================
+   CORE LAYOUT
+   App container, sidebar, navigation, main content
+   =================================== */
+
+/* Layout */
+.app-container {
+	display: flex;
+	min-height: 100vh;
+	position: relative;
+	background-color: var(--background-color);
+}
+
+/* Sidebar */
+.sidebar {
+	width: var(--sidebar-width);
+	background: var(--primary-color);
+	color: white;
+	padding: 0.75rem;
+	position: fixed;
+	height: 100vh;
+	left: 0;
+	top: 0;
+	overflow-y: auto;
+	transition: all 0.2s ease;
+	border-right: 1px solid var(--border-color);
+	z-index: 1000;
+	box-sizing: border-box;
+	box-shadow: var(--shadow-lg);
+}
+
+/* Debug-only nav items hidden by default */
+.nav-item.debug-only {
+	display: none;
+}
+
+body.debug-mode .nav-item.debug-only {
+	display: list-item;
+}
+
+.sidebar-header {
+	display: none; /* Header removed; keep rule to avoid layout shifts */
+}
+
+.sidebar-nav {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
+}
+
+.nav-item {
+	margin-bottom: 0.5rem;
+}
+
+.nav-link {
+	display: flex;
+	align-items: center;
+	padding: 0.5rem 0.75rem;
+	color: var(--text-muted);
+	background: transparent;
+	border: none;
+	width: 100%;
+	text-align: left;
+	border-radius: var(--border-radius);
+	transition: var(--transition);
+	gap: 0.5rem;
+	cursor: pointer;
+}
+
+.nav-link:hover {
+	background: var(--secondary-color);
+	color: var(--text-color);
+}
+
+.nav-link.active {
+	background: var(--accent-color);
+	color: white;
+}
+
+.nav-link i {
+	width: 20px;
+	text-align: center;
+}
+
+/* Custom disabled nav link that allows click events */
+.nav-link.disabled {
+	color: var(--text-muted);
+	opacity: 0.7;
+	cursor: not-allowed;
+	pointer-events: auto !important; /* Override Bootstrap's pointer-events: none */
+}
+
+.nav-link.disabled:hover {
+	background: var(--secondary-color);
+	color: var(--text-muted);
+}
+
+/* Prevent active class from being applied to disabled links */
+.nav-link.disabled.active {
+	background: var(--secondary-color);
+	color: var(--text-muted);
+}
+
+.nav-item--has-children .nav-link {
+	justify-content: space-between;
+}
+
+.nav-link-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.nav-caret {
+	margin-left: auto;
+	font-size: 0.85rem;
+	opacity: 0.9;
+	transition: transform 0.2s ease;
+}
+
+.nav-item--has-children.is-open .nav-caret {
+	transform: rotate(180deg);
+}
+
+.sidebar-subnav {
+	list-style: none;
+	margin: 0.25rem 0 0.5rem;
+	padding: 0 0.5rem 0.25rem 2.25rem;
+	display: none;
+}
+
+.nav-item--has-children.is-open .sidebar-subnav {
+	display: block;
+}
+
+.nav-sublink {
+	display: block;
+	width: 100%;
+	text-align: left;
+	padding: 0.35rem 0.5rem;
+	background: transparent;
+	border: none;
+	border-radius: var(--border-radius);
+	color: var(--text-muted);
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: var(--transition);
+}
+
+.nav-sublink:hover {
+	background: var(--secondary-color);
+	color: var(--text-color);
+}
+
+.nav-sublink.active {
+	background: var(--overlay-white-12);
+	color: white;
+}
+
+.feat-sources-footer {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 0.75rem;
+	font-size: 0.9rem;
+}
+
+.feat-sources-footer h6 {
+	font-size: 0.9rem;
+	margin: 0 0 0.35rem 0;
+}
+
+.feat-source-row {
+	margin-bottom: 0.25rem;
+}
+
+.feat-source-row:last-child {
+	margin-bottom: 0;
+}
+
+/* Main Content */
+.main-content {
+	flex: 1;
+	width: calc(100% - var(--sidebar-width));
+	margin-left: var(--sidebar-width);
+	padding: 2rem;
+	height: 100vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+	box-sizing: border-box;
+}
+
+.service-warning-banner {
+	border: 1px solid var(--accent-color);
+	background: var(--accent-10);
+	color: var(--text-color);
+	border-radius: var(--border-radius-lg);
+	padding: var(--spacing-md);
+	margin: 0 0 var(--spacing-md) 0;
+	box-shadow: var(--shadow-md);
+}
+
+.service-warning-content {
+	display: flex;
+	gap: var(--spacing-md);
+	align-items: flex-start;
+}
+
+.service-warning-icon {
+	color: var(--warning-color);
+	font-size: 1.5rem;
+	line-height: 1;
+}
+
+.service-warning-title {
+	font-weight: 700;
+	margin: 0 0 var(--spacing-xs) 0;
+}
+
+.service-warning-list {
+	margin: 0 0 var(--spacing-xs) 0;
+	font-size: 0.95rem;
+}
+
+.service-warning-help {
+	color: var(--text-muted);
+	font-size: 0.9rem;
+}
+
+.service-warning-actions {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+}
+
+@media (max-width: 768px) {
+	.service-warning-content {
+		flex-direction: column;
+	}
+
+	.service-warning-actions {
+		margin-left: 0;
+	}
+}

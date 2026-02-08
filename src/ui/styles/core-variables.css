@@ -1,0 +1,129 @@
+/* ===================================
+   CORE VARIABLES
+   Theme-independent CSS variables
+   =================================== */
+
+:root {
+	/* Proficiency & Skill Colors */
+	--proficiency-race: #a67cff;
+	--proficiency-class: #4a9aff;
+	--proficiency-background: #66bb6a;
+	--proficiency-default-bg: rgba(25, 118, 210, 0.075);
+	--proficiency-disabled-bg: #d8d8d8;
+	--proficiency-disabled-text: #888888;
+	--proficiency-disabled-border: #c8c8c8;
+	--highlight-color: #fdcb6e;
+
+	/* Tooltip & Reference Colors (these remain consistent across themes) */
+	--tooltip-bg: rgba(25, 25, 25, 0.98);
+	--tooltip-title: #e8e8e8;
+	--tooltip-title-spell: #7bb5ff;
+	--tooltip-title-condition: #ff7b7b;
+	--tooltip-title-action: #7bff7b;
+	--tooltip-title-object: #ffb77b;
+	--tooltip-title-variantrule: #c77bff;
+	--tooltip-title-book: #ffd700;
+	--tooltip-text: #e8e8e8;
+	--tooltip-text-muted: #b8b8b8;
+	--tooltip-text-small: #b0b0b0;
+	--tooltip-text-link: #4da6ff;
+	--tooltip-border: #444444;
+
+	/* Item Rarity Colors */
+	--item-common: #ffffff;
+	--item-uncommon: #1eff00;
+	--item-rare: #0070dd;
+	--item-very-rare: #a335ee;
+	--item-legendary: #ff8000;
+	--item-artifact: #e6cc80;
+
+	/* Spell School Colors */
+	--spell-school-abjuration: #4a90e2;
+	--spell-school-conjuration: #f5a623;
+	--spell-school-divination: #7ed321;
+	--spell-school-enchantment: #bd10e0;
+	--spell-school-evocation: #ff6b6b;
+	--spell-school-illusion: #50e3c2;
+	--spell-school-necromancy: #9013fe;
+	--spell-school-transmutation: #f8e71c;
+
+	/* Spell Prepared Styling */
+	--spell-prepared-bg: color-mix(in srgb, var(--success-color) 18%, transparent);
+	--spell-prepared-bg-hover: color-mix(
+		in srgb,
+		var(--success-color) 26%,
+		transparent
+	);
+	--spell-prepared-text: var(--success-color);
+
+	/* Reference Link Colors */
+	--link-spell: #7bb5ff;
+	--link-spell-hover: #9ecfff;
+	--link-item: #ffc107;
+	--link-item-hover: #ffd54f;
+	--link-condition: #ff7b7b;
+	--link-condition-hover: #ff9999;
+	--link-monster: #f08080;
+	--link-action: #7bff7b;
+	--link-action-hover: #99ff99;
+	--link-class: #7bbdff;
+	--link-class-hover: #9ecfff;
+	--link-race: #d4a574;
+	--link-race-hover: #e8b896;
+	--link-feat: #f0a080;
+	--link-feat-hover: #ffb399;
+	--link-background: #b8a080;
+	--link-background-hover: #d4b899;
+	--link-feature: #a8a8ff;
+	--link-feature-hover: #c8c8ff;
+	--link-skill: #7bffb7;
+	--link-skill-hover: #99ffcc;
+	--link-language: #b8ff8f;
+	--link-language-hover: #d4ffb3;
+	--link-proficiency: #f0c080;
+	--link-proficiency-hover: #ffdb99;
+
+	/* Bootstrap/Setup Colors (Light theme for setup modal) */
+	--bootstrap-primary: #0d6efd;
+	--bootstrap-primary-hover: #0b5ed7;
+	--bootstrap-light-bg: #f8f9fa;
+	--bootstrap-border: #dee2e6;
+	--bootstrap-border-light: #e9ecef;
+	--bootstrap-text-muted: #6c757d;
+	--bootstrap-text-secondary: #495057;
+	--bootstrap-text-dark: #212529;
+	--bootstrap-info-bg: #e7f3ff;
+	--bootstrap-info-text: #0c5aa0;
+	--bootstrap-info-border: #0d6efd;
+
+	/* Layout Dimensions */
+	--sidebar-width: 250px;
+	--header-height: 60px;
+	--titlebar-height: 56px;
+
+	/* Border Radius Scale */
+	--border-radius: 4px;
+	--border-radius-sm: 2px;
+	--border-radius-lg: 8px;
+
+	/* Spacing & Sizing */
+	--spacing-xs: 0.25rem;
+	--spacing-sm: 0.5rem;
+	--spacing-md: 1rem;
+	--spacing-lg: 1.5rem;
+	--spacing-xl: 2rem;
+
+	/* Transitions & Animations */
+	--transition: all 0.2s ease;
+	--transition-fast: all 0.15s ease;
+	--transition-slow: all 0.3s ease;
+	--box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+	/* Content Layout Widths */
+	--race-content-width: 62%;
+	--race-image-width: 30%;
+	--class-content-width: 62%;
+	--class-image-width: 30%;
+	--background-content-width: 62%;
+	--background-image-width: 30%;
+}

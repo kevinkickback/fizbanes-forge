@@ -21,50 +21,6 @@
 	height: 100%;
 }
 
-/* Progress Bar Styles */
-.progress-bar-custom {
-	height: 6px;
-	background: var(--bootstrap-border-light);
-	border-radius: 3px;
-	overflow: hidden;
-}
-
-.progress-bar-fill {
-	width: 0%;
-	height: 100%;
-	background: var(--bootstrap-primary);
-}
-
-/* Drag Handle */
-.drag-handle {
-	cursor: grab;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: var(--text-muted);
-	transition: color 0.2s ease;
-}
-
-.drag-handle:hover {
-	color: var(--text-color);
-}
-
-.drag-handle:active {
-	cursor: grabbing;
-}
-
-/* Spinner Icon */
-.spinner-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-}
-
-/* Small Button Padding */
-.btn-sm-compact {
-	padding: 0.25rem 0.5rem;
-}
-
 /* Centered Content */
 .content-center-vertical {
 	height: calc(100vh - 200px);
@@ -88,15 +44,6 @@
 /* Traits Section */
 .traits-section {
 	margin-top: 1rem;
-}
-
-/* Unsaved Changes Indicator */
-#unsavedChangesIndicator {
-	display: none;
-}
-
-#unsavedChangesIndicator.show {
-	display: inline;
 }
 
 /* Character Exists Dialog */

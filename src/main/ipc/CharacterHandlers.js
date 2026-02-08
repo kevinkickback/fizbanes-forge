@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
+import { CharacterSchema } from '../../lib/CharacterSchema.js';
 import { CharacterImportService } from '../../services/CharacterImportService.js';
-import { CharacterSchema } from '../../shared/CharacterSchema.js';
 
 export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.debug('CharacterHandlers', 'Registering character handlers');
