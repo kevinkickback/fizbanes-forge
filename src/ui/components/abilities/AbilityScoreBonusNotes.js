@@ -19,7 +19,6 @@ class BonusNotesView {
 
 			const isCollapsed = localStorage.getItem(this._storageKey) === 'true';
 			const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
-			const contentDisplay = isCollapsed ? 'none' : 'block';
 
 			let bonusContent = `
 				<div class="sources-collapsible-header u-collapsible-header">

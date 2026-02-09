@@ -81,7 +81,6 @@ export class ProficiencyNotesView {
 		// Build the notes HTML
 		const isCollapsed = localStorage.getItem(this._storageKey) === 'true';
 		const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
-		const contentDisplay = isCollapsed ? 'none' : 'block';
 
 		let notesHtml = `
 			<div class="sources-collapsible-header u-collapsible-header">
