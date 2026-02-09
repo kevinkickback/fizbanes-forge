@@ -13,7 +13,6 @@ out/
 *.log
 
 # Documentation (generated/internal)
-docs/AUDIT.md
 docs/CODEBASE_ARCHITECTURE.md
 
 # Dependencies

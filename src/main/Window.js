@@ -52,6 +52,18 @@ export function createMainWindow({
 		mainWindow.show();
 	});
 
+	// Block navigation away from the app (e.g. injected <a> tags)
+	mainWindow.webContents.on('will-navigate', (event) => {
+		MainLogger.warn('WindowManager', 'Blocked navigation attempt');
+		event.preventDefault();
+	});
+
+	// Block new window creation (e.g. target="_blank" links)
+	mainWindow.webContents.setWindowOpenHandler(() => {
+		MainLogger.warn('WindowManager', 'Blocked new window attempt');
+		return { action: 'deny' };
+	});
+
 	// Setup window event handlers
 	setupWindowEvents(preferencesManager);
 

@@ -508,6 +508,18 @@ export async function downloadDataFromUrl(
 		for (const relPath of manifest) {
 			const remoteUrl = `${baseUrl}/${relPath.replace(/\\/g, '/')}`;
 			const localPath = path.join(targetDir, relPath);
+
+			// Guard against path traversal from untrusted manifest entries
+			if (!path.resolve(localPath).startsWith(path.resolve(targetDir))) {
+				MainLogger.warn('DataFolderManager', 'Skipping path traversal attempt', { relPath });
+				failed.push({ file: relPath, error: 'Path traversal rejected' });
+				completed += 1;
+				if (typeof onProgress === 'function') {
+					onProgress({ completed, total, file: relPath, success: false, skipped: false, error: 'Path traversal rejected' });
+				}
+				continue;
+			}
+
 			const localDir = path.dirname(localPath);
 
 			let success = false;

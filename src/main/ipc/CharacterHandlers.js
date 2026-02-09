@@ -8,6 +8,22 @@ import { IPC_CHANNELS } from './channels.js';
 import { CharacterSchema } from '../../lib/CharacterSchema.js';
 import { CharacterImportService } from '../../services/CharacterImportService.js';
 
+// Validate that a character ID is safe for use as a filename.
+// Allows UUIDs, alphanumeric strings, hyphens, and underscores only.
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+function resolveCharacterPath(savePath, id) {
+	if (!id || typeof id !== 'string' || !SAFE_ID_PATTERN.test(id)) {
+		return null;
+	}
+	const filePath = path.join(savePath, `${id}.ffp`);
+	const resolved = path.resolve(filePath);
+	if (!resolved.startsWith(path.resolve(savePath))) {
+		return null;
+	}
+	return resolved;
+}
+
 export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.debug('CharacterHandlers', 'Registering character handlers');
 
@@ -39,7 +55,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			const savePath = preferencesManager.getCharacterSavePath();
 			// Save using the character ID as filename (simple, predictable)
 			const id = character.id || uuidv4();
-			const filePath = path.join(savePath, `${id}.ffp`);
+			const filePath = resolveCharacterPath(savePath, id);
+			if (!filePath) {
+				return { success: false, error: 'Invalid character ID' };
+			}
 			const tempPath = `${filePath}.tmp`;
 
 			try {
@@ -112,7 +131,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			MainLogger.debug('CharacterHandlers', 'Deleting character:', id);
 
 			const savePath = preferencesManager.getCharacterSavePath();
-			const filePath = path.join(savePath, `${id}.ffp`);
+			const filePath = resolveCharacterPath(savePath, id);
+			if (!filePath) {
+				return { success: false, error: 'Invalid character ID' };
+			}
 
 			await fs.unlink(filePath);
 
@@ -130,7 +152,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			MainLogger.debug('CharacterHandlers', 'Exporting character:', id);
 
 			const savePath = preferencesManager.getCharacterSavePath();
-			const sourceFilePath = path.join(savePath, `${id}.ffp`);
+			const sourceFilePath = resolveCharacterPath(savePath, id);
+			if (!sourceFilePath) {
+				return { success: false, error: 'Invalid character ID' };
+			}
 
 			const parentWindow =
 				typeof windowManager.getMainWindow === 'function'
@@ -248,7 +273,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 			// Write character atomically
 			const id = character.id;
-			const targetFilePath = path.join(savePath, `${id}.ffp`);
+			const targetFilePath = resolveCharacterPath(savePath, id);
+			if (!targetFilePath) {
+				return { success: false, error: 'Invalid character ID' };
+			}
 			const tempPath = `${targetFilePath}.tmp`;
 
 			try {

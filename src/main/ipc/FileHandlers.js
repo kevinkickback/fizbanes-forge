@@ -104,7 +104,14 @@ export function registerFileHandlers(windowManager) {
 	// Open file with default application
 	ipcMain.handle(IPC_CHANNELS.FILE_OPEN, async (_event, filePath) => {
 		try {
-			await shell.openPath(filePath);
+			const safePath = resolveUnderAllowedRoots(filePath);
+			if (!safePath) {
+				return {
+					success: false,
+					error: 'Access to the requested path is denied',
+				};
+			}
+			await shell.openPath(safePath);
 			return { success: true };
 		} catch (error) {
 			MainLogger.error('FileHandlers', 'Open file failed:', error);

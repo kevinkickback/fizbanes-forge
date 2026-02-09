@@ -17,6 +17,15 @@ export class HomePageController extends BasePageController {
         try {
             const modal = Modal.getInstance();
 
+            const importBtn = document.getElementById('importCharacterBtn');
+            if (importBtn) {
+                const freshBtn = importBtn.cloneNode(true);
+                importBtn.parentNode.replaceChild(freshBtn, importBtn);
+                freshBtn.addEventListener('click', async () => {
+                    await this.handleImportCharacter();
+                });
+            }
+
             const characterList = document.getElementById('characterList');
             if (characterList) {
                 this._setupCharacterCardListeners(characterList);
