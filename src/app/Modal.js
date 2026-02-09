@@ -251,7 +251,7 @@ export class Modal {
 			keepBothButton.className = 'btn btn-secondary';
 			keepBothButton.textContent = 'Keep Both';
 
-			cancelButton.style.display = 'none';
+			cancelButton.classList.add('u-hidden');
 
 			const buttonContainer = cancelButton.parentElement;
 			buttonContainer.insertBefore(keepBothButton, cancelButton);
@@ -263,27 +263,30 @@ export class Modal {
 			}
 
 			return new Promise((resolve) => {
+				let resolved = false;
+				let resolveValue = 'cancel';
+
 				const handleOverwrite = () => {
-					cleanup();
+					resolveValue = 'overwrite';
 					modal.hide();
-					resolve('overwrite');
 				};
 
 				const handleKeepBoth = () => {
-					cleanup();
+					resolveValue = 'keepBoth';
 					modal.hide();
-					resolve('keepBoth');
 				};
 
 				const handleCloseIcon = () => {
-					cleanup();
+					resolveValue = 'cancel';
 					modal.hide();
-					resolve('cancel');
 				};
 
 				const handleHidden = () => {
 					cleanup();
-					resolve('cancel');
+					if (!resolved) {
+						resolved = true;
+						resolve(resolveValue);
+					}
 				};
 
 				const cleanup = () => {
@@ -292,7 +295,7 @@ export class Modal {
 					closeButton.removeEventListener('click', handleCloseIcon);
 					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
 					keepBothButton.remove();
-					cancelButton.style.display = 'block';
+					cancelButton.classList.remove('u-hidden');
 					try {
 						modal.dispose();
 					} catch (e) {

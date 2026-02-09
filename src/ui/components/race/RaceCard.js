@@ -655,7 +655,7 @@ export class RaceCard {
 
 				console.debug('[RaceCard]', 'Saved race selection loaded successfully');
 
-				// Re-apply racial ability bonuses and pending choices (silently, without triggering events)
+				// Re-apply racial ability bonuses and pending choices (silently, without triggering DOM events)
 				this._updateAbilityBonuses(race, subrace, { silent: true });
 
 				// Restore any previously saved racial ability choices
@@ -663,6 +663,9 @@ export class RaceCard {
 				if (savedChoices.length > 0) {
 					abilityScoreService.setRacialAbilityChoices(savedChoices);
 				}
+
+				// Notify AbilityScoreCard so it re-renders with the restored bonuses
+				eventBus.emit(EVENTS.ABILITY_SCORES_CHANGED, { source: 'RaceCard:loadSaved' });
 			} catch (error) {
 				console.error('[RaceCard]', 'Error loading saved race selection:', error);
 				if (error instanceof NotFoundError) {

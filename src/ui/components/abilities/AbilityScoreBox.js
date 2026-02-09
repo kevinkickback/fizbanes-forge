@@ -132,7 +132,6 @@ class AbilityScoreBoxView {
 			methodControlsView.renderPointBuyControls(
 				controlsContainer,
 				ability,
-				baseScore,
 			);
 		} else if (isCustom) {
 			methodControlsView.renderCustomControls(
@@ -183,28 +182,7 @@ class AbilityScoreBoxView {
 			const totalBonus = totalScore - baseScore;
 			this._updateBonusDisplay(bonusDiv, totalBonus);
 
-			// Update point cost indicator if this is point buy method
-			if (isPointBuy) {
-				const controlsContainer = box.querySelector('.ability-controls');
-				if (controlsContainer) {
-					// First remove any existing cost indicators
-					const existingCosts =
-						controlsContainer.querySelectorAll('.point-cost');
-					for (const cost of existingCosts) {
-						cost.remove();
-					}
 
-					// Get updated cost and styling class
-					const cost = abilityScoreService.getPointCost(baseScore);
-					const costClass = abilityScoreService.getPointCostClass(cost);
-
-					// Add updated cost indicator
-					const costIndicator = document.createElement('div');
-					costIndicator.className = `point-cost ${costClass}`;
-					costIndicator.textContent = `${cost} pts`;
-					controlsContainer.appendChild(costIndicator);
-				}
-			}
 		}
 	}
 

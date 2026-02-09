@@ -1,5 +1,5 @@
 import { _electron as electron } from '@playwright/test';
-import { test } from './fixtures.js';
+import { test } from '../fixtures.js';
 
 // Use this as a template for new tests with Playwright Inspector
 // Run with: "npx playwright test !boilerplate.spec.js --debug"

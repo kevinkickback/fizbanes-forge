@@ -20,7 +20,7 @@ class MethodControlsView {
 		container.appendChild(select);
 	}
 
-	renderPointBuyControls(container, ability, baseScore) {
+	renderPointBuyControls(container, ability) {
 		// Create button group for +/- controls
 		const buttonGroup = document.createElement('div');
 		buttonGroup.className =
@@ -40,20 +40,11 @@ class MethodControlsView {
 		increaseBtn.dataset.ability = ability;
 		increaseBtn.textContent = '+';
 
-		// Add cost indicator
-		const cost = abilityScoreService.getPointCost(baseScore);
-		const costClass = abilityScoreService.getPointCostClass(cost);
-
-		const costIndicator = document.createElement('div');
-		costIndicator.className = `point-cost ${costClass}`;
-		costIndicator.textContent = `${cost} pts`;
-
 		// Assemble the controls - no value display between buttons
 		buttonGroup.appendChild(decreaseBtn);
 		buttonGroup.appendChild(increaseBtn);
 
 		container.appendChild(buttonGroup);
-		container.appendChild(costIndicator);
 	}
 
 	renderCustomControls(container, ability, baseScore) {

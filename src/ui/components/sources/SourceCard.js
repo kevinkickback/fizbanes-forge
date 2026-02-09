@@ -58,6 +58,11 @@ export class SourceCard {
 				(toggle) => this._handleSourceClick(toggle),
 				this._cleanup,
 			);
+
+			// Pre-select default sources (PHB) on first visit
+			if (this._selectedSources.size === 0) {
+				this._preselectDefaultSources();
+			}
 		} catch (error) {
 			console.error(
 				'SourceCard',
@@ -68,23 +73,14 @@ export class SourceCard {
 	}
 
 	_preselectDefaultSources() {
-		const recommendedSources = new Set([
+		const defaultSources = new Set([
 			'PHB', // Player's Handbook (2014)
-			'TCE', // Tasha's Cauldron of Everything
-			'XGE', // Xanathar's Guide to Everything
-			'SCAG', // Sword Coast Adventurer's Guide
-			'EGW', // Eberron: Rising from the Last War
-			'GGR', // Guildmasters' Guide to Ravnica
-			'MToF', // Mordenkainen's Tome of Foes
-			'VGM', // Volo's Guide to Monsters
-			'AI', // Acquisitions Incorporated
-			'LLK', // Lost Laboratory of Kwalish
 		]);
 
 		const toggles = this._container.querySelectorAll('.source-toggle');
 		for (const toggle of toggles) {
 			const source = toggle.getAttribute('data-source')?.toUpperCase();
-			if (source && recommendedSources.has(source)) {
+			if (source && defaultSources.has(source)) {
 				this._handleSourceClick(toggle);
 			}
 		}

@@ -190,12 +190,15 @@
 .proficiencies-card-body.split-card-body .choices-panel {
 	display: flex;
 	flex-direction: column;
+	overflow-y: auto;
 }
 
 .proficiencies-card-body.split-card-body #proficienciesAccordion {
-	flex: 1;
-	min-height: 0;
-	overflow-y: auto;
+	flex-shrink: 0;
+}
+
+.proficiencies-card-body.split-card-body .proficiency-notes-container {
+	flex-shrink: 0;
 }
 
 /* Accordion item styling */
@@ -268,4 +271,11 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
+	justify-content: center;
+}
+
+#proficienciesAccordion .proficiency-grid .proficiency-item {
+	flex: 1 1 0;
+	justify-content: center;
+	text-align: center;
 }

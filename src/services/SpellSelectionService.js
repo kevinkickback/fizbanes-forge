@@ -26,10 +26,8 @@ class SpellSelectionService {
 		const classInfo = this._getClassSpellcastingInfo(className);
 
 		if (!classInfo) {
-			throw new ValidationError(`Class ${className} is not a spellcaster`, {
-				className,
-				classLevel,
-			});
+			console.debug(`[${this.loggerScope}]`, `Class ${className} is not a spellcaster, skipping`);
+			return null;
 		}
 
 		// Initialize spellcasting for this class

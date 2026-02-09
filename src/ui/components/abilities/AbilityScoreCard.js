@@ -1,5 +1,6 @@
 // Controller for managing ability score UI and interactions.
 import { CharacterManager } from '../../../app/CharacterManager.js';
+import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -12,6 +13,9 @@ import { abilityScoreBoxView } from './AbilityScoreBox.js';
 import { abilityChoicesView } from './AbilityScoreChoices.js';
 import { methodControlsView } from './AbilityScoreMethodControls.js';
 import { methodSwitcherView } from './AbilityScoreMethodSwitcher.js';
+
+// Full lowercase ability names matching data-ability attributes in the DOM
+const ABILITIES = ABILITY_ABBREVIATIONS.map(a => attAbvToFull(a).toLowerCase());
 
 class AbilityScoreCard {
 	constructor() {
@@ -396,8 +400,9 @@ class AbilityScoreCard {
 		const currentAbilityScore = abilityScoreService.getBaseScore(ability);
 
 		// Check all abilities to see if any have this value assigned
+		// Use ABILITIES (full names) to match data-ability attributes in the DOM
 		let otherAbility = null;
-		for (const checkAbility of abilityScoreService.getAllAbilities()) {
+		for (const checkAbility of ABILITIES) {
 			// Skip the current ability
 			if (checkAbility === ability) {
 				continue;
@@ -715,7 +720,8 @@ class AbilityScoreCard {
 	 * @private
 	 */
 	_updateAllStandardArrayOptions() {
-		for (const ability of abilityScoreService.getAllAbilities()) {
+		// Use ABILITIES (full names) to match data-ability attributes in the DOM
+		for (const ability of ABILITIES) {
 			const box = this._container.querySelector(`[data-ability="${ability}"]`);
 			if (!box) continue;
 

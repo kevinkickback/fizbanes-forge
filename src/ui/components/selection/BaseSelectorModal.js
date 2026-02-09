@@ -298,7 +298,7 @@ export class BaseSelectorModal {
 				const selected = this._currentSelection();
 
 				if (
-					this.config.selectionLimit &&
+					this.config.selectionLimit !== null &&
 					selected.length > this.config.selectionLimit
 				) {
 					showNotification(
@@ -601,7 +601,7 @@ export class BaseSelectorModal {
 			} else {
 				// Enforce global selection limit
 				if (
-					this.config.selectionLimit &&
+					this.config.selectionLimit !== null &&
 					this.state.selectedIds.size >= this.config.selectionLimit
 				) {
 					showNotification(

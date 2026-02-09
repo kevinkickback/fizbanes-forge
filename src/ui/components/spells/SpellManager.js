@@ -84,7 +84,7 @@ export class SpellsManager {
 			// Check if spellcasting is already initialized for this class
 			if (character.spellcasting?.classes?.[className]) continue;
 
-			// Initialize spellcasting for this class if it's a spellcaster
+			// Initialize spellcasting for this class (returns null for non-casters)
 			spellSelectionService.initializeSpellcastingForClass(
 				character,
 				className,

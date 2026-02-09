@@ -234,7 +234,7 @@
 	top: 0.5rem;
 	right: 0.5rem;
 	z-index: 10;
-	background: var(--bs-primary);
+	background: var(--accent-color);
 	border: none;
 	color: white;
 	width: 32px;
@@ -249,7 +249,7 @@
 }
 
 .split-card-body .info-toggle-btn:hover {
-	background: var(--bs-primary-dark);
+	background: var(--accent-hover);
 	transform: scale(1.1);
 }
 

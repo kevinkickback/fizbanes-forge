@@ -12,8 +12,14 @@ tests/
 │   ├── Character.test.js
 │   ├── CharacterSerializer.test.js
 │   └── 5eToolsParser.test.js
+├── e2e/                     # E2E tests (Playwright)
+│   ├── !boilerplate.spec.js
+│   ├── app-lifecycle.spec.js
+│   ├── navigation.spec.js
+│   ├── theme-settings.spec.js
+│   └── character-creation.spec.js
 ├── fixtures.js              # Playwright fixtures for E2E tests
-└── !boilerplate.spec.js     # E2E test boilerplate
+└── README.md
 ```
 
 ## Unit Tests
@@ -86,7 +92,7 @@ End-to-end tests use **Playwright** to test the full application workflow, inclu
 npm run test:e2e
 
 # Run specific E2E test in headed mode (visible browser)
-npx playwright test tests/your-test.spec.js --headed
+npx playwright test tests/e2e/your-test.spec.js --headed
 ```
 
 ### E2E Test Structure
@@ -95,7 +101,7 @@ E2E tests follow this pattern:
 
 ```javascript
 import { _electron as electron } from '@playwright/test';
-import { test } from './fixtures.js';
+import { test } from '../fixtures.js';
 
 test('should perform action', async () => {
     test.setTimeout(60000);

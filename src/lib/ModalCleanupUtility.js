@@ -131,6 +131,16 @@ export function initializeBootstrapModal(modalElement, options = {}) {
         // Check for and dispose of existing instance
         const existing = bs.Modal.getInstance(modalElement);
         if (existing) {
+            // If the modal is mid-transition (show/hide animation in progress),
+            // disposing would null out _element while Bootstrap's internal
+            // callbacks are still pending, causing "Cannot read properties of
+            // null (reading 'style')" in _showElement. Return the existing
+            // instance so the transition can complete safely.
+            if (existing._isTransitioning) {
+                console.debug('[ModalCleanup]', 'Modal is mid-transition, reusing existing instance');
+                return existing;
+            }
+
             console.debug('[ModalCleanup]', 'Disposing existing modal instance before creating new one');
             try {
                 existing.dispose();

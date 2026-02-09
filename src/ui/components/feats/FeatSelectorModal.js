@@ -45,16 +45,6 @@ export class FeatSelectorModal {
 					? null
 					: this._baseSelectionLimit;
 
-				if (!this._selectionLimit) {
-					showNotification(
-						this._availability.blockedReason ||
-						'No feat selections available for this character.',
-						'warning',
-					);
-					resolve(null);
-					return;
-				}
-
 				this.selectedFeats = this._getInitialSelection();
 				this._snapshot = [...this.selectedFeats];
 				this._ensureController();
@@ -164,7 +154,7 @@ export class FeatSelectorModal {
 
 		const isSelected = state?.selectedIds?.has(feat.id);
 		const atLimit =
-			this._selectionLimit &&
+			this._selectionLimit !== null &&
 			state?.selectedIds?.size >= this._selectionLimit &&
 			!isSelected;
 
@@ -326,7 +316,7 @@ export class FeatSelectorModal {
 		if (!list) return;
 
 		const atLimit =
-			this._selectionLimit && state?.selectedIds?.size >= this._selectionLimit;
+			this._selectionLimit !== null && state?.selectedIds?.size >= this._selectionLimit;
 
 		list.querySelectorAll('[data-feat-id]').forEach((el) => {
 			const id = el.getAttribute('data-feat-id');
