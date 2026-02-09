@@ -150,8 +150,8 @@ describe('EventBus Debug Mode', () => {
         it('should warn when listener count exceeds threshold', () => {
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
-            // Add more than 10 listeners
-            for (let i = 0; i < 12; i++) {
+            // Add more than 20 listeners (threshold is 20 in EventBus._checkForListenerLeaks)
+            for (let i = 0; i < 22; i++) {
                 testBus.on('test:event', () => { });
             }
 

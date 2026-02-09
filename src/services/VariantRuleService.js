@@ -10,6 +10,11 @@ class VariantRuleService extends BaseDataService {
 		this._variantRuleMap = null;
 	}
 
+	resetData() {
+		super.resetData();
+		this._variantRuleMap = null;
+	}
+
 	async initialize() {
 		await this.initWithLoader(
 			async () => {

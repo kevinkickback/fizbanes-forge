@@ -7,7 +7,6 @@ import { BaseDataService } from './BaseDataService.js';
 class ActionService extends BaseDataService {
 	constructor() {
 		super({
-			cacheKey: 'actions',
 			loadEvent: 'actions:loaded',
 			loggerScope: 'ActionService',
 		});

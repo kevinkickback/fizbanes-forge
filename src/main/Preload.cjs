@@ -2,7 +2,9 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-// IPC channel names - must stay in sync with src/main/ipc/channels.js
+// IPC channel names — source of truth is src/main/ipc/channels.cjs.
+// Electron sandbox prevents require() of arbitrary files, so values are inlined here.
+// A unit test (IpcChannels.test.js) verifies these stay in sync.
 const IPC_CHANNELS = {
 	// Character operations
 	CHARACTER_SAVE: 'character:save',
@@ -51,7 +53,7 @@ contextBridge.exposeInMainWorld('app', {
 		ipcRenderer.invoke(IPC_CHANNELS.DATA_CHECK_DEFAULT),
 	/** Subscribe to data download progress events. Returns unsubscribe function. */
 	onDataDownloadProgress: (handler) => {
-		if (typeof handler !== 'function') return () => {};
+		if (typeof handler !== 'function') return () => { };
 		const wrapped = (_event, payload) => handler(payload);
 		ipcRenderer.on(IPC_CHANNELS.DATA_DOWNLOAD_PROGRESS, wrapped);
 		return () =>

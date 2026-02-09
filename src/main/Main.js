@@ -6,11 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerCharacterHandlers } from './ipc/CharacterHandlers.js';
 import { registerDataHandlers } from './ipc/DataHandlers.js';
-import { registerEquipmentHandlers } from './ipc/EquipmentHandlers.js';
 import { registerFileHandlers } from './ipc/FileHandlers.js';
-import { registerProgressionHandlers } from './ipc/ProgressionHandlers.js';
 import { registerSettingsHandlers } from './ipc/SettingsHandlers.js';
-import { registerSpellHandlers } from './ipc/SpellHandlers.js';
 import { MainLogger } from './Logger.js';
 import {
 	clearPreferences,
@@ -66,9 +63,6 @@ app.whenReady().then(() => {
 		set: setPreference,
 		app,
 	});
-	registerEquipmentHandlers();
-	registerSpellHandlers();
-	registerProgressionHandlers();
 
 	// Create main window
 	createMainWindow({

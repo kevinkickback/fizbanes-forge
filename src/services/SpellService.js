@@ -16,18 +16,14 @@ class SpellService extends BaseDataService {
 		await this.initWithLoader(
 			async () => {
 				const [index, classLookup] = await Promise.all([
-					DataLoader.loadJSON('spells/index.json', {
-						ttl: 24 * 60 * 60 * 1000,
-					}),
-					DataLoader.loadJSON('generated/gendata-spell-source-lookup.json', {
-						ttl: 24 * 60 * 60 * 1000,
-					}),
+					DataLoader.loadJSON('spells/index.json'),
+					DataLoader.loadJSON('generated/gendata-spell-source-lookup.json'),
 				]);
 
 				const spellFiles = Object.values(index);
 				const allSpells = await Promise.allSettled(
 					spellFiles.map((file) =>
-						DataLoader.loadJSON(`spells/${file}`, { ttl: 24 * 60 * 60 * 1000 }),
+						DataLoader.loadJSON(`spells/${file}`),
 					),
 				);
 
@@ -68,6 +64,12 @@ class SpellService extends BaseDataService {
 		);
 
 		return true;
+	}
+
+	resetData() {
+		super.resetData();
+		this._spellLookupMap = null;
+		this._spellClassLookup = null;
 	}
 
 	/** @returns {Array<Object>} Array of spell objects */

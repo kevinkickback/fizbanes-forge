@@ -1,40 +1,50 @@
-import { AppState } from '../app/AppState.js';
-import { eventBus } from '../lib/EventBus.js';
+import { eventBus, EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
 
 /** Shared helpers for renderer data services: caching, initialization, and event emission. */
 export class BaseDataService {
 	constructor({
-		cacheKey = null,
 		loadEvent = null,
 		loggerScope = 'DataService',
 	} = {}) {
 		this._data = null;
-		this._cacheKey = cacheKey;
 		this._loadEvent = loadEvent;
 		this._loggerScope = loggerScope;
 		this._initPromise = null;
+		this._eventListeners = [];
+
+		// Listen for cache invalidation so auto-update can force re-init
+		this._onDataInvalidated = () => this.resetData();
+		this._trackListener(EVENTS.DATA_INVALIDATED, this._onDataInvalidated);
+	}
+
+	_trackListener(event, handler) {
+		eventBus.on(event, handler);
+		this._eventListeners.push({ event, handler });
+	}
+
+	dispose() {
+		for (const { event, handler } of this._eventListeners) {
+			eventBus.off(event, handler);
+		}
+		this._eventListeners = [];
+		this._data = null;
+		this._initPromise = null;
+		console.debug(`[${this._loggerScope}]`, 'Disposed');
 	}
 
 	isInitialized() {
 		return Boolean(this._data);
 	}
 
-	hydrateFromCache() {
-		if (!this._cacheKey) return null;
-		const cached = AppState.getLoadedData(this._cacheKey);
-		if (cached) {
-			this._data = cached;
-			return cached;
-		}
-		return null;
+	resetData() {
+		this._data = null;
+		this._initPromise = null;
+		console.debug(`[${this._loggerScope}]`, 'Data reset via invalidation');
 	}
 
 	setData(data) {
 		this._data = data;
-		if (this._cacheKey) {
-			AppState.setLoadedData(this._cacheKey, data);
-		}
 		return this._data;
 	}
 
@@ -54,14 +64,6 @@ export class BaseDataService {
 
 		if (this._initPromise) {
 			return this._initPromise;
-		}
-
-		const cached = this.hydrateFromCache();
-		if (cached) {
-			if (onLoaded) onLoaded(cached, { fromCache: true });
-			if (emitPayload)
-				this.emitLoaded(emitPayload(cached, { fromCache: true }));
-			return cached;
 		}
 
 		this._initPromise = (async () => {

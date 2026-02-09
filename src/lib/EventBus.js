@@ -22,6 +22,7 @@ export const EVENTS = {
 
 	// Data events
 	DATA_LOADED: 'data:loaded',
+	DATA_INVALIDATED: 'data:invalidated',
 	DATA_ERROR: 'data:error',
 	DATA_FILE_LOADING: 'data:fileLoading',
 
@@ -31,6 +32,9 @@ export const EVENTS = {
 
 	// Error events
 	ERROR_OCCURRED: 'error:occurred',
+
+	// Ability score events
+	ABILITY_SCORES_CHANGED: 'abilityScores:changed',
 
 	// Proficiency events
 	PROFICIENCY_ADDED: 'proficiency:added',
@@ -258,7 +262,7 @@ class EventBusImpl extends EventEmitter {
 
 	_checkForListenerLeaks(event) {
 		const count = this.listenerCount(event);
-		const threshold = 10; // Warn if more than 10 listeners
+		const threshold = 20; // Warn if more than 20 listeners
 
 		if (count > threshold) {
 			console.warn('[EventBus]', 'Possible listener leak detected', {

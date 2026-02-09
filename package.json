@@ -58,9 +58,9 @@
 		"@biomejs/biome": "^2.2.2",
 		"@playwright/test": "^1.56.1",
 		"@vitest/ui": "^2.1.9",
-		"electron": "latest",
-		"electron-builder": "latest",
-		"electronmon": "latest",
+		"electron": "^34.3.0",
+		"electron-builder": "^25.1.8",
+		"electronmon": "^2.0.3",
 		"jsdom": "^28.0.0",
 		"vitest": "^2.1.9"
 	},

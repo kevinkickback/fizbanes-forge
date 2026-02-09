@@ -2,33 +2,26 @@ import { DataLoader } from '../lib/DataLoader.js';
 import { NotFoundError } from '../lib/Errors.js';
 import TextProcessor from '../lib/TextProcessor.js';
 import { conditionIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
+import { BaseDataService } from './BaseDataService.js';
 
-class ConditionService {
+class ConditionService extends BaseDataService {
 	constructor() {
-		this._conditionData = null;
+		super({ loggerScope: 'ConditionService' });
 	}
 
 	async initialize() {
-		if (this._conditionData) {
-			return true;
-		}
-
-		try {
-			this._conditionData = await DataLoader.loadConditions();
-			return true;
-		} catch (error) {
-			console.error(
-				'[ConditionService]',
-				'Failed to initialize condition data',
-				error,
-			);
-			return false;
-		}
+		await this.initWithLoader(
+			() => DataLoader.loadConditions(),
+			{
+				onError: () => ({ condition: [], disease: [] }),
+			},
+		);
+		return true;
 	}
 
 	/** Get all conditions */
 	getAllConditions() {
-		return this._conditionData?.condition || [];
+		return this._data?.condition || [];
 	}
 
 	/** Get condition by name with validation */

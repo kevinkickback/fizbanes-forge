@@ -11,14 +11,6 @@ class AppStateImpl {
 			currentCharacter: null,
 			characters: [],
 			hasUnsavedChanges: false,
-			loadedData: {
-				classes: null,
-				races: null,
-				backgrounds: null,
-				spells: null,
-				equipment: null,
-				feats: null,
-			},
 		};
 
 		console.debug('[AppState]', 'Initialized');
@@ -100,20 +92,6 @@ class AppStateImpl {
 
 	getCharacters() {
 		return this.state.characters;
-	}
-
-	setLoadedData(dataType, data) {
-		this.setState({
-			loadedData: {
-				...this.state.loadedData,
-				[dataType]: data,
-			},
-		});
-		eventBus.emit(EVENTS.DATA_LOADED, dataType, data);
-	}
-
-	getLoadedData(dataType) {
-		return this.state.loadedData[dataType];
 	}
 
 	clear() {

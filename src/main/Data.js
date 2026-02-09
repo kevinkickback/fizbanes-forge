@@ -589,11 +589,17 @@ export async function downloadDataFromUrl(
 			});
 		}
 
+		// Check if any core required files failed
+		const criticalFailures = failed.filter((f) =>
+			CORE_REQUIRED_FILES.includes(f.file),
+		);
+
 		return {
-			success: true,
+			success: criticalFailures.length === 0,
 			downloaded: downloadedCount,
 			skipped: skippedCount,
 			failed,
+			criticalFailures,
 			warning:
 				failed.length > 0
 					? `${failed.length} file(s) not available upstream`

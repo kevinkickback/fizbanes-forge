@@ -126,9 +126,6 @@ describe('RaceService', () => {
         });
 
         it('should use fallback data if race data is null', async () => {
-            const { AppState } = await import('../../src/app/AppState.js');
-            AppState.setLoadedData('races', null); // Clear cached races
-
             const originalLoader = await import('../../src/lib/DataLoader.js');
             vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue(null);
 
@@ -141,9 +138,6 @@ describe('RaceService', () => {
         });
 
         it('should handle missing fluff data gracefully', async () => {
-            const { AppState } = await import('../../src/app/AppState.js');
-            AppState.setLoadedData('races', null); // Clear cached races
-
             const originalLoader = await import('../../src/lib/DataLoader.js');
             vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue({
                 race: mockRaces,
@@ -402,9 +396,6 @@ describe('RaceService', () => {
 
     describe('getRaceFluff', () => {
         beforeEach(async () => {
-            const { AppState } = await import('../../src/app/AppState.js');
-            AppState.setLoadedData('races', null);
-
             const originalLoader = await import('../../src/lib/DataLoader.js');
             vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue({
                 race: mockRaces,
@@ -539,9 +530,6 @@ describe('RaceService', () => {
         });
 
         it('should handle subraces without raceName', async () => {
-            const { AppState } = await import('../../src/app/AppState.js');
-            AppState.setLoadedData('races', null); // Clear cached races
-
             const originalLoader = await import('../../src/lib/DataLoader.js');
             vi.clearAllMocks();
             vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue({
@@ -561,9 +549,6 @@ describe('RaceService', () => {
         });
 
         it('should handle races without names', async () => {
-            const { AppState } = await import('../../src/app/AppState.js');
-            AppState.setLoadedData('races', null); // Clear cached races
-
             const originalLoader = await import('../../src/lib/DataLoader.js');
             vi.clearAllMocks();
             vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue({
@@ -581,9 +566,6 @@ describe('RaceService', () => {
         });
 
         it('should handle multiple subraces with same name', async () => {
-            const { AppState } = await import('../../src/app/AppState.js');
-            AppState.setLoadedData('races', null); // Clear cached races
-
             const originalLoader = await import('../../src/lib/DataLoader.js');
             vi.clearAllMocks();
             vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue({

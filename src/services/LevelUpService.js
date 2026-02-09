@@ -1,3 +1,4 @@
+import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
 	addClassLevelArgsSchema,
@@ -98,15 +99,20 @@ class LevelUpService {
 
 		const { character: char, className: cls } = validated;
 
-		if (!char.progression) return false;
+		if (!char.progression) {
+			throw new ValidationError('Character has no progression data', {
+				characterId: char.id,
+			});
+		}
 
 		const index = char.progression.classes.findIndex(
 			(c) => c.name === cls,
 		);
 
 		if (index === -1) {
-			console.warn(`[${this.loggerScope}]`, 'Class not found', { className: cls });
-			return false;
+			throw new NotFoundError('Class', cls, {
+				characterId: char.id,
+			});
 		}
 
 		const removed = char.progression.classes.splice(index, 1)[0];

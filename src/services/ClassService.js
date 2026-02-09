@@ -8,31 +8,26 @@ import {
 import { BaseDataService } from './BaseDataService.js';
 class ClassService extends BaseDataService {
 	constructor() {
-		super({ cacheKey: 'classes', loggerScope: 'ClassService' });
+		super({ loggerScope: 'ClassService' });
 	}
 
 	async initialize() {
-		const TTL_24_HOURS = 24 * 60 * 60 * 1000;
 		await this.initWithLoader(
 			async () => {
-				const index = await DataLoader.loadJSON('class/index.json', {
-					ttl: TTL_24_HOURS,
-				});
-				const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json', {
-					ttl: TTL_24_HOURS,
-				});
+				const index = await DataLoader.loadJSON('class/index.json');
+				const fluffIndex = await DataLoader.loadJSON('class/fluff-index.json');
 
 				const classFiles = Object.values(index);
 				const allClasses = await Promise.allSettled(
 					classFiles.map((file) =>
-						DataLoader.loadJSON(`class/${file}`, { ttl: TTL_24_HOURS }),
+						DataLoader.loadJSON(`class/${file}`),
 					),
 				);
 
 				const fluffFiles = Object.values(fluffIndex);
 				const allFluff = await Promise.allSettled(
 					fluffFiles.map((file) =>
-						DataLoader.loadJSON(`class/${file}`, { ttl: TTL_24_HOURS }),
+						DataLoader.loadJSON(`class/${file}`),
 					),
 				);
 

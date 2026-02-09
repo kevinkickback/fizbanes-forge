@@ -261,11 +261,10 @@ export const addItemArgsSchema = z.object({
 });
 
 export const removeItemArgsSchema = z.object({
-    character: z.object({
-        inventory: z.object({
-            items: z.array(z.unknown()).optional(),
-        }).optional(),
-    }),
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
     itemInstanceId: z.string().min(1, 'Item instance ID is required'),
     quantity: z.number().int().min(1).default(1),
 });

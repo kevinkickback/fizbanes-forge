@@ -15,14 +15,33 @@ class MonsterService extends BaseDataService {
 	}
 
 	async initialize() {
-		// Only load the index file at startup
-		const index = await DataLoader.loadJSON('bestiary/index.json');
-		this._monsterIndex = index || {};
-		// Optionally, load a summary file if available, else build summary from index
-		// For now, just build a summary with ids and file names
-		this._monsterSummary = Object.entries(this._monsterIndex).map(([id, file]) => ({ id, file }));
-		console.debug('[MonsterService]', `Loaded monster index with ${this._monsterSummary.length} entries`);
+		await this.initWithLoader(
+			async () => {
+				const index = await DataLoader.loadJSON('bestiary/index.json');
+				return index || {};
+			},
+			{
+				onLoaded: (data) => {
+					this._monsterIndex = data;
+					this._monsterSummary = Object.entries(data).map(([id, file]) => ({ id, file }));
+					console.debug('[MonsterService]', `Loaded monster index with ${this._monsterSummary.length} entries`);
+				},
+				onError: () => {
+					this._monsterIndex = {};
+					this._monsterSummary = [];
+					return {};
+				},
+			},
+		);
 		return true;
+	}
+
+	resetData() {
+		super.resetData();
+		this._monsterIndex = null;
+		this._monsterSummary = [];
+		this._monsterDetailsCache.clear();
+		this._cacheAccessOrder = [];
 	}
 
 	/**

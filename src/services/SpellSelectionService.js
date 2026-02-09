@@ -1,3 +1,4 @@
+import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
 	addSpellArgsSchema,
@@ -25,11 +26,10 @@ class SpellSelectionService {
 		const classInfo = this._getClassSpellcastingInfo(className);
 
 		if (!classInfo) {
-			console.warn(
-				`[${this.loggerScope}]`,
-				`Class ${className} is not a spellcaster`,
-			);
-			return null;
+			throw new ValidationError(`Class ${className} is not a spellcaster`, {
+				className,
+				classLevel,
+			});
 		}
 
 		// Initialize spellcasting for this class
@@ -269,10 +269,10 @@ class SpellSelectionService {
 		const { character: char, className: cls, spellData: spell } = validated;
 
 		if (!char.spellcasting?.classes?.[cls]) {
-			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
+			throw new ValidationError(`Spellcasting not initialized for class ${cls}`, {
 				className: cls,
+				characterId: char.id,
 			});
-			return false;
 		}
 
 		const classSpellcasting = char.spellcasting.classes[cls];
@@ -284,12 +284,10 @@ class SpellSelectionService {
 					s.name === spell.name && s.source === (spell.source || 'PHB'),
 			)
 		) {
-			console.warn(
-				`[${this.loggerScope}]`,
-				'Spell already known',
-				spell.name,
-			);
-			return false;
+			throw new ValidationError(`Spell ${spell.name} is already known`, {
+				spellName: spell.name,
+				className: cls,
+			});
 		}
 
 		// Store full spell object
@@ -309,10 +307,10 @@ class SpellSelectionService {
 		const { character: char, className: cls, spellName: name } = validated;
 
 		if (!char.spellcasting?.classes?.[cls]) {
-			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
+			throw new ValidationError(`Spellcasting not initialized for class ${cls}`, {
 				className: cls,
+				characterId: char.id,
 			});
-			return false;
 		}
 
 		const classSpellcasting = char.spellcasting.classes[cls];
@@ -321,11 +319,10 @@ class SpellSelectionService {
 		);
 
 		if (index === -1) {
-			console.warn(`[${this.loggerScope}]`, 'Spell not known', {
+			throw new NotFoundError('Known spell', name, {
 				className: cls,
-				spellName: name,
+				characterId: char.id,
 			});
-			return false;
 		}
 
 		const removed = classSpellcasting.spellsKnown.splice(index, 1)[0];
@@ -345,10 +342,10 @@ class SpellSelectionService {
 	/** Prepare a spell (for Cleric, Wizard, Druid, Paladin). */
 	prepareSpell(character, className, spellName) {
 		if (!character.spellcasting?.classes?.[className]) {
-			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
+			throw new ValidationError(`Spellcasting not initialized for class ${className}`, {
 				className,
+				characterId: character.id,
 			});
-			return false;
 		}
 
 		const classSpellcasting = character.spellcasting.classes[className];
@@ -358,20 +355,18 @@ class SpellSelectionService {
 			(s) => s.name === spellName,
 		);
 		if (!knownSpell) {
-			console.warn(`[${this.loggerScope}]`, 'Spell not known', {
+			throw new NotFoundError('Known spell', spellName, {
 				className,
-				spellName,
+				characterId: character.id,
 			});
-			return false;
 		}
 
 		// Check if already prepared
 		if (classSpellcasting.spellsPrepared.some((s) => s.name === spellName)) {
-			console.warn(`[${this.loggerScope}]`, 'Spell already prepared', {
+			throw new ValidationError(`Spell ${spellName} is already prepared`, {
 				className,
 				spellName,
 			});
-			return false;
 		}
 
 		// Check prepared limit
@@ -381,11 +376,11 @@ class SpellSelectionService {
 			classSpellcasting.level,
 		);
 		if (classSpellcasting.spellsPrepared.length >= preparedLimit) {
-			console.warn(`[${this.loggerScope}]`, 'Prepared spell limit reached', {
+			throw new ValidationError(`Prepared spell limit reached (${preparedLimit})`, {
 				className,
 				limit: preparedLimit,
+				current: classSpellcasting.spellsPrepared.length,
 			});
-			return false;
 		}
 
 		classSpellcasting.spellsPrepared.push({ ...knownSpell });
@@ -396,10 +391,10 @@ class SpellSelectionService {
 
 	unprepareSpell(character, className, spellName) {
 		if (!character.spellcasting?.classes?.[className]) {
-			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
+			throw new ValidationError(`Spellcasting not initialized for class ${className}`, {
 				className,
+				characterId: character.id,
 			});
-			return false;
 		}
 
 		const classSpellcasting = character.spellcasting.classes[className];
@@ -408,11 +403,10 @@ class SpellSelectionService {
 		);
 
 		if (index === -1) {
-			console.warn(`[${this.loggerScope}]`, 'Spell not prepared', {
+			throw new NotFoundError('Prepared spell', spellName, {
 				className,
-				spellName,
+				characterId: character.id,
 			});
-			return false;
 		}
 
 		const removed = classSpellcasting.spellsPrepared.splice(index, 1)[0];
@@ -423,21 +417,21 @@ class SpellSelectionService {
 
 	useSpellSlot(character, className, spellLevel) {
 		if (!character.spellcasting?.classes?.[className]) {
-			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
+			throw new ValidationError(`Spellcasting not initialized for class ${className}`, {
 				className,
+				characterId: character.id,
 			});
-			return false;
 		}
 
 		const slot =
 			character.spellcasting.classes[className].spellSlots[spellLevel];
 
 		if (!slot || slot.current <= 0) {
-			console.warn(`[${this.loggerScope}]`, 'No spell slots available', {
+			throw new ValidationError(`No spell slots available for level ${spellLevel}`, {
 				className,
 				spellLevel,
+				available: slot?.current || 0,
 			});
-			return false;
 		}
 
 		slot.current--;
@@ -449,8 +443,9 @@ class SpellSelectionService {
 	/** Restore spell slots (on long rest). */
 	restoreSpellSlots(character, className = null) {
 		if (!character.spellcasting?.classes) {
-			console.warn(`[${this.loggerScope}]`, 'No spellcasting initialized');
-			return false;
+			throw new ValidationError('Character has no spellcasting initialized', {
+				characterId: character.id,
+			});
 		}
 
 		const classesToRestore = className

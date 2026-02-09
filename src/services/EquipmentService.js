@@ -1,3 +1,4 @@
+import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
 	addItemArgsSchema,
@@ -26,7 +27,7 @@ class EquipmentService {
 	}
 
 	_generateItemInstanceId() {
-		return `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		return `item-${crypto.randomUUID()}`;
 	}
 
 	addItem(character, itemData, quantity = 1, source = 'Manual') {
@@ -39,36 +40,32 @@ class EquipmentService {
 		const { character: char, itemData: item, quantity: qty, source: src } = validated;
 
 		if (!char.inventory) {
-			console.warn('[EquipmentService]', 'Character missing inventory');
-			return null;
+			throw new ValidationError('Character has no inventory initialized', {
+				characterId: char.id,
+			});
 		}
 
-		try {
-			const itemInstance = {
-				id: this._generateItemInstanceId(),
-				name: item.name,
-				baseItemId: item.id || item.name,
-				quantity: Math.max(1, qty),
-				equipped: false,
-				attuned: false,
-				cost: item.cost ? { ...item.cost } : null,
-				weight: item.weight || 0,
-				source: item.source || 'Unknown',
-				metadata: {
-					addedAt: new Date().toISOString(),
-					addedFrom: src,
-				},
-			};
+		const itemInstance = {
+			id: this._generateItemInstanceId(),
+			name: item.name,
+			baseItemId: item.id || item.name,
+			quantity: Math.max(1, qty),
+			equipped: false,
+			attuned: false,
+			cost: item.cost ? { ...item.cost } : null,
+			weight: item.weight || 0,
+			source: item.source || 'Unknown',
+			metadata: {
+				addedAt: new Date().toISOString(),
+				addedFrom: src,
+			},
+		};
 
-			char.inventory.items.push(itemInstance);
-			this._updateInventoryWeight(char);
+		char.inventory.items.push(itemInstance);
+		this._updateInventoryWeight(char);
 
-			eventBus.emit(EVENTS.ITEM_ADDED, char, itemInstance);
-			return itemInstance;
-		} catch (error) {
-			console.error('[EquipmentService]', 'Failed to add item', error);
-			return null;
-		}
+		eventBus.emit(EVENTS.ITEM_ADDED, char, itemInstance);
+		return itemInstance;
 	}
 
 	removeItem(character, itemInstanceId, quantity = 1) {
@@ -80,15 +77,20 @@ class EquipmentService {
 
 		const { character: char, itemInstanceId: instanceId, quantity: qty } = validated;
 
-		if (!char.inventory) return false;
+		if (!char.inventory) {
+			throw new ValidationError('Character has no inventory initialized', {
+				characterId: char.id,
+			});
+		}
 
 		const itemIndex = char.inventory.items.findIndex(
 			(item) => item.id === instanceId,
 		);
 
 		if (itemIndex === -1) {
-			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId: instanceId });
-			return false;
+			throw new NotFoundError('Item', instanceId, {
+				characterId: char.id,
+			});
 		}
 
 		const item = char.inventory.items[itemIndex];
@@ -118,7 +120,11 @@ class EquipmentService {
 	}
 
 	unequipItem(character, itemInstanceId) {
-		if (!character.inventory) return false;
+		if (!character.inventory) {
+			throw new ValidationError('Character has no inventory initialized', {
+				characterId: character.id,
+			});
+		}
 
 		let slot = null;
 		let found = false;
@@ -155,20 +161,24 @@ class EquipmentService {
 			return true;
 		}
 
-		console.warn('[EquipmentService]', 'Item not found in equipped slots', {
-			itemInstanceId,
+		throw new NotFoundError('Equipped item', itemInstanceId, {
+			characterId: character.id,
 		});
-		return false;
 	}
 
 	attuneItem(character, itemInstanceId) {
-		if (!character.inventory) return false;
+		if (!character.inventory) {
+			throw new ValidationError('Character has no inventory initialized', {
+				characterId: character.id,
+			});
+		}
 
 		const item = character.inventory.items.find((i) => i.id === itemInstanceId);
 
 		if (!item) {
-			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId });
-			return false;
+			throw new NotFoundError('Item', itemInstanceId, {
+				characterId: character.id,
+			});
 		}
 
 		if (!character.inventory.attuned.includes(itemInstanceId)) {
@@ -182,15 +192,18 @@ class EquipmentService {
 	}
 
 	unattuneItem(character, itemInstanceId) {
-		if (!character.inventory) return false;
+		if (!character.inventory) {
+			throw new ValidationError('Character has no inventory initialized', {
+				characterId: character.id,
+			});
+		}
 
 		const index = character.inventory.attuned.indexOf(itemInstanceId);
 
 		if (index === -1) {
-			console.warn('[EquipmentService]', 'Item not attuned', {
-				itemInstanceId,
+			throw new NotFoundError('Attuned item', itemInstanceId, {
+				characterId: character.id,
 			});
-			return false;
 		}
 
 		character.inventory.attuned.splice(index, 1);

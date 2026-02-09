@@ -37,11 +37,25 @@ class AbilityScoreService {
 		// Map to store ability choices
 		this.abilityChoices = new Map();
 
+		// Track EventBus listeners for dispose()
+		this._eventListeners = [];
+
 		// Subscribe to character selection (when a character is loaded or selected)
-		eventBus.on(
-			EVENTS.CHARACTER_SELECTED,
-			this._handleCharacterChanged.bind(this),
-		);
+		this._handleCharacterChangedBound = this._handleCharacterChanged.bind(this);
+		this._trackListener(EVENTS.CHARACTER_SELECTED, this._handleCharacterChangedBound);
+	}
+
+	_trackListener(event, handler) {
+		eventBus.on(event, handler);
+		this._eventListeners.push({ event, handler });
+	}
+
+	dispose() {
+		for (const { event, handler } of this._eventListeners) {
+			eventBus.off(event, handler);
+		}
+		this._eventListeners = [];
+		console.debug('[AbilityScoreService]', 'Disposed');
 	}
 
 	_handleCharacterChanged() {
@@ -281,10 +295,7 @@ class AbilityScoreService {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
-		const event = new CustomEvent('abilityScoresChanged', {
-			detail: { character },
-		});
-		document.dispatchEvent(event);
+		eventBus.emit(EVENTS.ABILITY_SCORES_CHANGED, { character });
 	}
 
 	setRacialAbilityChoices(choices) {

@@ -7,7 +7,6 @@ import { BaseDataService } from './BaseDataService.js';
 export class SourceService extends BaseDataService {
 	constructor() {
 		super({
-			cacheKey: 'sources',
 			loadEvent: EVENTS.SERVICE_INITIALIZED,
 			loggerScope: 'SourceService',
 		});
@@ -31,19 +30,11 @@ export class SourceService extends BaseDataService {
 	}
 
 	_setupEventListeners() {
-		// Set up listeners for relevant application events
-		eventBus.on(
-			EVENTS.CHARACTER_LOADED,
-			this._handleCharacterChange.bind(this),
-		);
-		eventBus.on(
-			EVENTS.CHARACTER_CREATED,
-			this._handleCharacterChange.bind(this),
-		);
-		eventBus.on(
-			EVENTS.CHARACTER_SELECTED,
-			this._handleCharacterChange.bind(this),
-		);
+		this._handleCharacterChangeBound = this._handleCharacterChange.bind(this);
+
+		this._trackListener(EVENTS.CHARACTER_LOADED, this._handleCharacterChangeBound);
+		this._trackListener(EVENTS.CHARACTER_CREATED, this._handleCharacterChangeBound);
+		this._trackListener(EVENTS.CHARACTER_SELECTED, this._handleCharacterChangeBound);
 	}
 
 	_handleCharacterChange(character) {

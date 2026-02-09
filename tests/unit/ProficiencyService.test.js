@@ -16,9 +16,35 @@ describe('ProficiencyService', () => {
 
     describe('Constructor', () => {
         it('should initialize with default values', () => {
-            expect(proficiencyService._initialized).toBe(false);
             expect(proficiencyService._skillData).toBe(null);
             expect(proficiencyService._languageData).toBe(null);
+            expect(proficiencyService._bookData).toBe(null);
+        });
+    });
+
+    describe('resetData', () => {
+        it('should clear all cached data fields', () => {
+            proficiencyService._skillData = [{ name: 'Athletics' }];
+            proficiencyService._languageData = [{ name: 'Common' }];
+            proficiencyService._bookData = { data: [] };
+
+            proficiencyService.resetData();
+
+            expect(proficiencyService._skillData).toBe(null);
+            expect(proficiencyService._languageData).toBe(null);
+            expect(proficiencyService._bookData).toBe(null);
+        });
+
+        it('should reset when DATA_INVALIDATED event is emitted', () => {
+            proficiencyService._skillData = [{ name: 'Athletics' }];
+            proficiencyService._languageData = [{ name: 'Common' }];
+            proficiencyService._bookData = { data: [] };
+
+            eventBus.emit(EVENTS.DATA_INVALIDATED);
+
+            expect(proficiencyService._skillData).toBe(null);
+            expect(proficiencyService._languageData).toBe(null);
+            expect(proficiencyService._bookData).toBe(null);
         });
     });
 

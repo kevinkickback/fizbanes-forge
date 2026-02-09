@@ -1,6 +1,7 @@
 /**
- * IPC channel names shared by main and preload.
- * Changes must be mirrored in src/main/Preload.cjs (sandbox prevents ESM imports).
+ * Single source of truth for IPC channel names.
+ * Preload.cjs must inline its own copy (Electron sandbox blocks imports);
+ * IpcChannels.test.js verifies the two stay in sync.
  */
 
 export const IPC_CHANNELS = {

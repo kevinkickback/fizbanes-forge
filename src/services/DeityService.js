@@ -6,7 +6,6 @@ import { BaseDataService } from './BaseDataService.js';
 class DeityService extends BaseDataService {
 	constructor() {
 		super({
-			cacheKey: 'deities',
 			loadEvent: 'deities:loaded',
 			loggerScope: 'DeityService',
 		});

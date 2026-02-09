@@ -7,7 +7,6 @@ import { BaseDataService } from './BaseDataService.js';
 class BackgroundService extends BaseDataService {
 	constructor() {
 		super({
-			cacheKey: 'backgrounds',
 			loadEvent: EVENTS.DATA_LOADED,
 			loggerScope: 'BackgroundService',
 		});

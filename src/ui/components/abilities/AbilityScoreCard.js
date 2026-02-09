@@ -269,11 +269,12 @@ class AbilityScoreCard {
 			};
 			eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 
-			// Use DOMCleanup for ability scores changed listener
-			this._cleanup.on(document, 'abilityScoresChanged', () => {
+			// Listen for ability score changes from race, class, or other components
+			// Uses EventBus for proper cleanup tracking
+			this._cleanup.onEvent(EVENTS.ABILITY_SCORES_CHANGED, () => {
 				console.debug(
 					'AbilityScoreCard',
-					'abilityScoresChanged event received',
+					'ABILITY_SCORES_CHANGED event received',
 				);
 				this.update();
 			});

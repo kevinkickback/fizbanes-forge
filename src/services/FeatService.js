@@ -9,7 +9,6 @@ import { classService } from './ClassService.js';
 class FeatService extends BaseDataService {
 	constructor() {
 		super({
-			cacheKey: 'feats',
 			loadEvent: EVENTS.DATA_LOADED,
 			loggerScope: 'FeatService',
 		});

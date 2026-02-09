@@ -10,10 +10,36 @@ import { itemService } from './ItemService.js';
 
 export class ProficiencyService {
 	constructor() {
-		this._initialized = false;
 		this._skillData = null;
 		this._languageData = null;
 		this._bookData = null;
+		this._eventListeners = [];
+
+		this._onDataInvalidated = () => this.resetData();
+		this._trackListener(EVENTS.DATA_INVALIDATED, this._onDataInvalidated);
+	}
+
+	_trackListener(event, handler) {
+		eventBus.on(event, handler);
+		this._eventListeners.push({ event, handler });
+	}
+
+	dispose() {
+		for (const { event, handler } of this._eventListeners) {
+			eventBus.off(event, handler);
+		}
+		this._eventListeners = [];
+		this._skillData = null;
+		this._languageData = null;
+		this._bookData = null;
+		console.debug('[ProficiencyService]', 'Disposed');
+	}
+
+	resetData() {
+		this._skillData = null;
+		this._languageData = null;
+		this._bookData = null;
+		console.debug('[ProficiencyService]', 'Data reset via invalidation');
 	}
 
 

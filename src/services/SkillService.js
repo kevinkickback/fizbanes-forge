@@ -2,32 +2,40 @@ import { DataLoader } from '../lib/DataLoader.js';
 import { ValidationError } from '../lib/Errors.js';
 import TextProcessor from '../lib/TextProcessor.js';
 import { skillIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
-class SkillService {
+import { BaseDataService } from './BaseDataService.js';
+
+class SkillService extends BaseDataService {
 	constructor() {
-		this._skillData = null;
+		super({ loggerScope: 'SkillService' });
 		this._skillMap = null;
 	}
 
 	async initialize() {
-		if (this._skillData) return true;
+		await this.initWithLoader(
+			() => DataLoader.loadSkills(),
+			{
+				onLoaded: (data) => {
+					this._skillMap = new Map();
+					if (data?.skill && Array.isArray(data.skill)) {
+						for (const skill of data.skill) {
+							if (!skill.name) continue;
+							const key = TextProcessor.normalizeForLookup(skill.name);
+							this._skillMap.set(key, skill);
+						}
+					}
+				},
+				onError: () => {
+					this._skillMap = new Map();
+					return { skill: [] };
+				},
+			},
+		);
+		return true;
+	}
 
-		try {
-			this._skillData = await DataLoader.loadSkills();
-
-			this._skillMap = new Map();
-			if (this._skillData.skill && Array.isArray(this._skillData.skill)) {
-				for (const skill of this._skillData.skill) {
-					if (!skill.name) continue;
-					const key = TextProcessor.normalizeForLookup(skill.name);
-					this._skillMap.set(key, skill);
-				}
-			}
-
-			return true;
-		} catch (error) {
-			console.error('[SkillService]', 'Failed to initialize skill data', error);
-			return false;
-		}
+	resetData() {
+		super.resetData();
+		this._skillMap = null;
 	}
 
 	getSkillsByAbility(abilityName) {
@@ -37,7 +45,7 @@ class SkillService {
 			'Invalid ability name',
 		);
 
-		if (!this._skillData?.skill) return [];
+		if (!this._data?.skill) return [];
 
 		// Convert full ability name to 3-letter abbreviation used in JSON
 		const abilityMap = {
@@ -61,7 +69,7 @@ class SkillService {
 
 		const abilityAbbr = abilityMap[normalizedName] || normalizedName;
 
-		return this._skillData.skill.filter((skill) => {
+		return this._data.skill.filter((skill) => {
 			if (!skill.ability) return false;
 
 			// Handle both string and array formats for ability

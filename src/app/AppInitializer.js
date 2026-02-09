@@ -563,7 +563,7 @@ export async function initializeAll() {
 						);
 						throw new DataError('Data source update failed');
 					} else {
-						DataLoader.clearCache();
+						DataLoader.resetAll();
 						console.debug('[AppInitializer]', 'Checked/updated data source');
 					}
 				} catch (error) {

@@ -1,5 +1,6 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { NotFoundError } from '../lib/Errors.js';
+import { EVENTS } from '../lib/EventBus.js';
 import {
 	optionalFeatureIdentifierSchema,
 	optionalFeatureTypeSchema,
@@ -9,11 +10,13 @@ import { BaseDataService } from './BaseDataService.js';
 
 class OptionalFeatureService extends BaseDataService {
 	constructor() {
-		super('optionalfeatures');
+		super({
+			loadEvent: EVENTS.DATA_LOADED,
+			loggerScope: 'OptionalFeatureService',
+		});
 	}
 
 	async initialize() {
-		const TTL_24_HOURS = 24 * 60 * 60 * 1000;
 		await this.initWithLoader(
 			async () => {
 				console.debug(
@@ -24,13 +27,11 @@ class OptionalFeatureService extends BaseDataService {
 				// Load main optionalfeatures data
 				const optionalfeaturesData = await DataLoader.loadJSON(
 					'optionalfeatures.json',
-					{ ttl: TTL_24_HOURS },
 				);
 
 				// Load fluff data
 				const fluffData = await DataLoader.loadJSON(
 					'fluff-optionalfeatures.json',
-					{ ttl: TTL_24_HOURS },
 				);
 
 				// Merge data
