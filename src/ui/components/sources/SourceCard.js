@@ -45,6 +45,7 @@ export class SourceCard {
 			const header = this._view.createSourceHeader(
 				() => this.selectAllSources(),
 				() => this.deselectAllSources(),
+				this._cleanup,
 			);
 			this._headerContainer.appendChild(header);
 
@@ -55,10 +56,8 @@ export class SourceCard {
 				availableSources,
 				(source) => this._sourceManager.formatSourceName(source),
 				(toggle) => this._handleSourceClick(toggle),
+				this._cleanup,
 			);
-
-			// Pre-select PHB
-			this._preselectDefaultSources();
 		} catch (error) {
 			console.error(
 				'SourceCard',

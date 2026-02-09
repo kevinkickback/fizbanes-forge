@@ -26,6 +26,8 @@ export class SpellSelectorModal {
 		this.ignoreClassRestrictions = !!ignoreClassRestrictions;
 		this.initialSpells = initialSpells || [];
 		this.descriptionCache = new Map();
+		this._cacheAccessOrder = []; // Track cache access order for LRU eviction
+		this._maxCacheSize = 150; // Maximum cached spell descriptions
 		this.classSwitcher = null;
 		this._controller = null;
 	}
@@ -178,6 +180,7 @@ export class SpellSelectorModal {
 			descriptionCache: this.descriptionCache,
 			fetchDescription: (spell) => this._fetchSpellDescription(spell),
 			descriptionContainerSelector: '.spell-description',
+			onCacheSet: (id) => this._manageCacheLRU(id),
 		});
 	}
 
@@ -712,5 +715,22 @@ export class SpellSelectorModal {
 
 	_handleCancel() {
 		// No-op: allow BaseSelectorModal to resolve null
+	}
+
+	_manageCacheLRU(id) {
+		// Remove from current position if exists
+		const existingIndex = this._cacheAccessOrder.indexOf(id);
+		if (existingIndex > -1) {
+			this._cacheAccessOrder.splice(existingIndex, 1);
+		}
+
+		// Add to end (most recent)
+		this._cacheAccessOrder.push(id);
+
+		// Evict least recently used if cache is full
+		while (this._cacheAccessOrder.length > this._maxCacheSize) {
+			const lruId = this._cacheAccessOrder.shift();
+			this.descriptionCache.delete(lruId);
+		}
 	}
 }

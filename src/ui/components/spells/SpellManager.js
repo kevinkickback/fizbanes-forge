@@ -1,6 +1,7 @@
 // Component for managing the Spells page
 
 import { AppState } from '../../../app/AppState.js';
+import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { levelUpService } from '../../../services/LevelUpService.js';
@@ -13,12 +14,13 @@ export class SpellsManager {
 		this.loggerScope = 'SpellsManager';
 		this.spellSelectorModal = null;
 		this.preparedSpellSelectorModal = null;
+		this._cleanup = DOMCleanup.create();
 		this.setupEventListeners();
 	}
 
 	setupEventListeners() {
 		// Event delegation for buttons
-		document.addEventListener('click', (e) => {
+		this._cleanup.on(document, 'click', (e) => {
 			const addSpellBtn = e.target.closest('#addSpellBtn');
 			if (addSpellBtn) {
 				this.handleAddSpell();
@@ -561,5 +563,10 @@ export class SpellsManager {
 		if (width >= 1200) return 3;
 		if (width >= 900) return 2;
 		return 1;
+	}
+
+	cleanup() {
+		this._cleanup.cleanup();
+		console.debug(`[${this.loggerScope}]`, 'Cleanup complete');
 	}
 }

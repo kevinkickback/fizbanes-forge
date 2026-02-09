@@ -6,6 +6,7 @@ export class SourcePickerView {
 		availableSources,
 		formatSourceName,
 		onToggleClick,
+		cleanup = null,
 	) {
 		container.innerHTML = '';
 		const toggles = [];
@@ -15,6 +16,7 @@ export class SourcePickerView {
 				source,
 				formatSourceName,
 				onToggleClick,
+				cleanup,
 			);
 			container.appendChild(toggle);
 			toggles.push(toggle);
@@ -23,7 +25,7 @@ export class SourcePickerView {
 		return toggles;
 	}
 
-	createSourceToggle(source, formatSourceName, onToggleClick) {
+	createSourceToggle(source, formatSourceName, onToggleClick, cleanup = null) {
 		const toggle = document.createElement('button');
 		toggle.className = 'source-toggle';
 		toggle.setAttribute('data-source', source);
@@ -40,24 +42,32 @@ export class SourcePickerView {
 		name.textContent = formatSourceName(source);
 		toggle.appendChild(name);
 
-		this._setupToggleEventListeners(toggle, onToggleClick);
+		this._setupToggleEventListeners(toggle, onToggleClick, cleanup);
 		return toggle;
 	}
 
-	_setupToggleEventListeners(toggle, onToggleClick) {
-		toggle.addEventListener('click', (e) => {
+	_setupToggleEventListeners(toggle, onToggleClick, cleanup = null) {
+		const clickHandler = (e) => {
 			e.preventDefault();
 			onToggleClick(toggle);
-		});
-		toggle.addEventListener('keydown', (e) => {
+		};
+		const keyHandler = (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();
 				onToggleClick(toggle);
 			}
-		});
+		};
+
+		if (cleanup) {
+			cleanup.on(toggle, 'click', clickHandler);
+			cleanup.on(toggle, 'keydown', keyHandler);
+		} else {
+			toggle.addEventListener('click', clickHandler);
+			toggle.addEventListener('keydown', keyHandler);
+		}
 	}
 
-	createSourceHeader(onSelectAll, onSelectNone) {
+	createSourceHeader(onSelectAll, onSelectNone, cleanup = null) {
 		const headerContainer = document.createElement('div');
 		headerContainer.className = 'mb-1';
 
@@ -69,11 +79,11 @@ export class SourcePickerView {
 		const linksContainer = document.createElement('div');
 		linksContainer.className = 'd-flex align-items-center gap-2 ps-2';
 
-		const selectAllLink = this._createHeaderLink('Select All', onSelectAll);
+		const selectAllLink = this._createHeaderLink('Select All', onSelectAll, cleanup);
 		const divider = document.createElement('span');
 		divider.className = 'text-muted';
 		divider.textContent = '|';
-		const selectNoneLink = this._createHeaderLink('None', onSelectNone);
+		const selectNoneLink = this._createHeaderLink('None', onSelectNone, cleanup);
 
 		linksContainer.append(selectAllLink, divider, selectNoneLink);
 		headerContainer.appendChild(linksContainer);
@@ -81,15 +91,21 @@ export class SourcePickerView {
 		return headerContainer;
 	}
 
-	_createHeaderLink(text, onClick) {
+	_createHeaderLink(text, onClick, cleanup = null) {
 		const link = document.createElement('a');
 		link.href = '#';
 		link.className = 'text-decoration-none text-accent';
 		link.textContent = text;
-		link.addEventListener('click', (e) => {
+		const handler = (e) => {
 			e.preventDefault();
 			onClick();
-		});
+		};
+
+		if (cleanup) {
+			cleanup.on(link, 'click', handler);
+		} else {
+			link.addEventListener('click', handler);
+		}
 		return link;
 	}
 

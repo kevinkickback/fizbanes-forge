@@ -54,6 +54,7 @@ export class BaseSelectorModal {
 			descriptionCache: null,
 			fetchDescription: null,
 			descriptionContainerSelector: null,
+			onCacheSet: null, // Optional callback when cache entry is set (id) => void
 			...config,
 		};
 
@@ -560,6 +561,10 @@ export class BaseSelectorModal {
 						desc ||
 						'<span class="text-muted small">No description available.</span>';
 					cache.set(id, html);
+					// Notify cache management callback if provided
+					if (this.config.onCacheSet) {
+						this.config.onCacheSet(id);
+					}
 					const slot = list.querySelector(
 						`[${this.config.itemIdAttribute}="${id}"] ${this.config.descriptionContainerSelector}`,
 					);

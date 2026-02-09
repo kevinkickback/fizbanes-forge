@@ -9,7 +9,9 @@ class MonsterService extends BaseDataService {
 		super({ loggerScope: 'MonsterService' });
 		this._monsterIndex = null; // { id: file }
 		this._monsterSummary = []; // [{ name, source, ... }]
-		this._monsterDetailsCache = new Map(); // id -> details
+		this._monsterDetailsCache = new Map(); // id -> details (LRU cache)
+		this._cacheAccessOrder = []; // Track access order for LRU eviction
+		this._maxCacheSize = 100; // Maximum cache entries
 	}
 
 	async initialize() {
@@ -49,6 +51,8 @@ class MonsterService extends BaseDataService {
 		}
 
 		if (this._monsterDetailsCache.has(validated.id)) {
+			// Move to end (most recently used)
+			this._updateCacheAccess(validated.id);
 			return this._monsterDetailsCache.get(validated.id);
 		}
 
@@ -61,7 +65,7 @@ class MonsterService extends BaseDataService {
 
 		try {
 			const details = await DataLoader.loadJSON(`bestiary/${file}`);
-			this._monsterDetailsCache.set(validated.id, details);
+			this._addToCache(validated.id, details);
 			return details;
 		} catch (err) {
 			console.error('[MonsterService]', `Failed to load monster details for ${validated.id}:`, err);
@@ -70,6 +74,27 @@ class MonsterService extends BaseDataService {
 				error: err.message,
 			});
 		}
+	}
+
+	_addToCache(id, details) {
+		// Evict least recently used if cache is full
+		if (this._monsterDetailsCache.size >= this._maxCacheSize) {
+			const lruId = this._cacheAccessOrder.shift();
+			this._monsterDetailsCache.delete(lruId);
+			console.debug('[MonsterService]', `Evicted LRU entry: ${lruId}`);
+		}
+
+		this._monsterDetailsCache.set(id, details);
+		this._cacheAccessOrder.push(id);
+	}
+
+	_updateCacheAccess(id) {
+		// Remove from current position and add to end (most recent)
+		const index = this._cacheAccessOrder.indexOf(id);
+		if (index > -1) {
+			this._cacheAccessOrder.splice(index, 1);
+		}
+		this._cacheAccessOrder.push(id);
 	}
 
 	// Deprecated: getMonster/getMonstersByName now require details to be loaded on demand
