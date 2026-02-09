@@ -1,5 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
 import TextProcessor from '../lib/TextProcessor.js';
+import { validateInput, variantRuleIdentifierSchema } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 class VariantRuleService extends BaseDataService {
@@ -41,11 +43,24 @@ class VariantRuleService extends BaseDataService {
 	}
 
 	getVariantRule(ruleName) {
-		if (!this._variantRuleMap) return null;
-		return (
-			this._variantRuleMap.get(TextProcessor.normalizeForLookup(ruleName)) ||
-			null
+		const validated = validateInput(
+			variantRuleIdentifierSchema,
+			{ name: ruleName },
+			'Invalid variant rule identifier',
 		);
+
+		if (!this._variantRuleMap) {
+			throw new NotFoundError('Variant Rule', validated.name, {
+				reason: 'Variant rule data not initialized',
+			});
+		}
+
+		const rule = this._variantRuleMap.get(TextProcessor.normalizeForLookup(validated.name));
+		if (!rule) {
+			throw new NotFoundError('Variant Rule', validated.name);
+		}
+
+		return rule;
 	}
 }
 

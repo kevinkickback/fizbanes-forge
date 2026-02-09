@@ -1,4 +1,6 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
+import { deityIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 class DeityService extends BaseDataService {
@@ -35,6 +37,25 @@ class DeityService extends BaseDataService {
 			}
 		}
 		return Array.from(names).sort();
+	}
+
+	/** Get deity by name with validation */
+	getDeity(name) {
+		const validated = validateInput(
+			deityIdentifierSchema,
+			{ name },
+			'Invalid deity identifier',
+		);
+
+		const deity = this.deities.find(
+			(d) => d.name?.toLowerCase() === validated.name.toLowerCase(),
+		);
+
+		if (!deity) {
+			throw new NotFoundError('Deity', validated.name);
+		}
+
+		return deity;
 	}
 }
 

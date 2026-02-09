@@ -7,6 +7,11 @@ import {
 } from '../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
+import {
+	handleAbilityChoiceArgsSchema,
+	updateAbilityScoreArgsSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 
 class AbilityScoreService {
 	constructor() {
@@ -155,7 +160,13 @@ class AbilityScoreService {
 	}
 
 	updateAbilityScore(ability, score) {
-		const normalizedAbility = this.normalizeAbilityName(ability);
+		const validated = validateInput(
+			updateAbilityScoreArgsSchema,
+			{ ability, score },
+			'Invalid parameters for updateAbilityScore',
+		);
+
+		const normalizedAbility = this.normalizeAbilityName(validated.ability);
 		const character = CharacterManager.getCurrentCharacter();
 
 		if (!character) {
@@ -172,7 +183,7 @@ class AbilityScoreService {
 		}
 
 		// Store directly as a number rather than as an object with score property
-		character.abilityScores[normalizedAbility] = Number.parseInt(score, 10);
+		character.abilityScores[normalizedAbility] = validated.score;
 
 		// Notify listeners about the change
 		this._notifyAbilityScoresChanged();
@@ -438,8 +449,19 @@ class AbilityScoreService {
 	}
 
 	handleAbilityChoice(ability, choiceIndex, bonus, source) {
+		const validated = validateInput(
+			handleAbilityChoiceArgsSchema,
+			{ ability, choiceIndex, bonus, source },
+			'Invalid parameters for handleAbilityChoice',
+		);
+
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
+
+		ability = validated.ability;
+		choiceIndex = validated.choiceIndex;
+		bonus = validated.bonus;
+		source = validated.source;
 
 		// Clear the previous ability bonus for this specific choice index
 		const previousAbility = this.abilityChoices.get(choiceIndex);

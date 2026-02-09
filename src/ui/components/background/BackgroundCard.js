@@ -86,7 +86,7 @@ export class BackgroundCard {
 		// sources:allowed-changed fires after CHARACTER_SELECTED and ensures
 		// the list is populated with correctly filtered sources before loading
 		// the saved selection.
-		this.onEventBus('sources:allowed-changed', () => {
+		this.onEventBus(EVENTS.SOURCES_ALLOWED_CHANGED, () => {
 			this._populateBackgroundList();
 			this._loadSavedBackgroundSelection();
 		});

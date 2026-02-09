@@ -1,7 +1,6 @@
-// Simplified level picker for character progression (changes apply immediately)
+// Simplified level picker for character progression (changes held in memory until manual save)
 
 import { AppState } from '../../../app/AppState.js';
-import { CharacterManager } from '../../../app/CharacterManager.js';
 import { Modal } from '../../../app/Modal.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
@@ -323,9 +322,8 @@ export class LevelUpModal {
 			const newLevel = (classEntry.levels || 0) + 1;
 			levelUpService.addClassLevel(character, className, newLevel);
 
-			// Update character and save to disk
+			// Update character in memory (save is manual via titlebar)
 			AppState.setCurrentCharacter(character, { skipEvent: true });
-			await CharacterManager.saveCharacter();
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 
 			// Update only the affected class level and character level display
@@ -376,9 +374,8 @@ export class LevelUpModal {
 				timestamp: new Date().toISOString(),
 			};
 
-			// Update character and save to disk
+			// Update character in memory (save is manual via titlebar)
 			AppState.setCurrentCharacter(character, { skipEvent: true });
-			await CharacterManager.saveCharacter();
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 			eventBus.emit(EVENTS.MULTICLASS_ADDED, character, { name: className });
 
@@ -490,9 +487,8 @@ export class LevelUpModal {
 				showNotification(`Removed level from ${lastClassName}`, 'success');
 			}
 
-			// Update character and save to disk
+			// Update character in memory (save is manual via titlebar)
 			AppState.setCurrentCharacter(character, { skipEvent: true });
-			await CharacterManager.saveCharacter();
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 
 			// Re-render picker

@@ -886,6 +886,8 @@
 #classChoicesAccordion .accordion-body {
 	padding: 1rem 1.25rem;
 	background: var(--card-background);
+	max-height: 50vh;
+	overflow-y: auto;
 }
 
 /* Individual choice item */
@@ -934,9 +936,34 @@
 	margin-right: 0.25rem;
 }
 
+/* Passive (no-choice) feature items */
+.passive-feature-item {
+	background: var(--secondary-color);
+	border-left: 3px solid var(--accent-color);
+	border-radius: 0.25rem;
+	padding: 0.625rem 0.75rem;
+	border-bottom: none;
+	cursor: default;
+}
+
+.passive-feature-item p {
+	margin-bottom: 0.25rem;
+}
+
+.passive-feature-item p:last-child {
+	margin-bottom: 0;
+}
+
 /* ========================================
    VIEWPORT HEIGHT - AUTO SIZING
    ======================================== */
+
+/* Class choices container - scrollable within choices panel */
+#classChoicesContainer {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
 
 /* Full viewport card for class selection page */
 #build-class .card {

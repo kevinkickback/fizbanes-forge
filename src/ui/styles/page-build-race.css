@@ -254,4 +254,5 @@
 #build-race .split-card-body {
 	flex: 1;
 	display: flex;
+	overflow: hidden;
 }

@@ -1,6 +1,11 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
+import {
+	addProficiencyArgsSchema,
+	removeProficienciesBySourceArgsSchema,
+	validateInput
+} from '../lib/ValidationSchemas.js';
 import { itemService } from './ItemService.js';
 
 export class ProficiencyService {
@@ -13,81 +18,96 @@ export class ProficiencyService {
 
 
 
+	/**
+	 * Adds a proficiency to a character
+	 * @param {Object} character - The character object
+	 * @param {string} type - Proficiency type (armor, weapons, tools, skills, languages, savingThrows)
+	 * @param {string} proficiency - The proficiency name
+	 * @param {string} source - The source of the proficiency
+	 * @returns {boolean} Whether the proficiency was newly added
+	 */
 	addProficiency(character, type, proficiency, source) {
-		if (!character || !type || !proficiency || !source) {
-			console.warn('[ProficiencyService]', 'Invalid parameters for addProficiency:', {
-				type,
-				proficiency,
-				source,
-			});
-			return false;
-		}
+		const validated = validateInput(
+			addProficiencyArgsSchema,
+			{ character, type, proficiency, source },
+			'Invalid parameters for addProficiency'
+		);
 
-		if (!character.proficiencies) character.proficiencies = {};
-		if (!character.proficiencies[type]) character.proficiencies[type] = [];
-		if (!character.proficiencySources) character.proficiencySources = {};
-		if (!character.proficiencySources[type])
-			character.proficiencySources[type] = new Map();
+		const { character: char, type: profType, proficiency: profName, source: profSource } = validated;
 
-		const normalizedTarget = TextProcessor.normalizeForLookup(proficiency);
-		const existingProf = character.proficiencies[type].find(
+		if (!char.proficiencies) char.proficiencies = {};
+		if (!char.proficiencies[profType]) char.proficiencies[profType] = [];
+		if (!char.proficiencySources) char.proficiencySources = {};
+		if (!char.proficiencySources[profType])
+			char.proficiencySources[profType] = new Map();
+
+		const normalizedTarget = TextProcessor.normalizeForLookup(profName);
+		const existingProf = char.proficiencies[profType].find(
 			(p) => TextProcessor.normalizeForLookup(p) === normalizedTarget,
 		);
 
 		const wasNew = !existingProf;
 		if (wasNew) {
-			character.proficiencies[type].push(proficiency);
+			char.proficiencies[profType].push(profName);
 		}
 
-		const trackKey = existingProf || proficiency;
-		if (!character.proficiencySources[type].has(trackKey)) {
-			character.proficiencySources[type].set(trackKey, new Set());
+		const trackKey = existingProf || profName;
+		if (!char.proficiencySources[profType].has(trackKey)) {
+			char.proficiencySources[profType].set(trackKey, new Set());
 		}
-		character.proficiencySources[type].get(trackKey).add(source);
+		char.proficiencySources[profType].get(trackKey).add(profSource);
 
-		if (type === 'skills' && !source.includes('Choice')) {
-			this._refundOptionalSkill(character, proficiency, source);
+		if (profType === 'skills' && !profSource.includes('Choice')) {
+			this._refundOptionalSkill(char, profName, profSource);
 		}
 
 		eventBus.emit(EVENTS.PROFICIENCY_ADDED, {
-			type,
-			proficiency,
-			source,
-			character,
+			type: profType,
+			proficiency: profName,
+			source: profSource,
+			character: char,
 		});
 
 		return wasNew;
 	}
 
+	/**
+	 * Removes all proficiencies from a character that came from a specific source
+	 * @param {Object} character - The character object
+	 * @param {string} source - The source to remove proficiencies from
+	 * @returns {Object} Object with arrays of removed proficiencies by type
+	 */
 	removeProficienciesBySource(character, source) {
-		if (!character || !source) {
-			console.warn('[ProficiencyService]', 'Invalid parameters for removeProficienciesBySource');
-			return {};
-		}
+		const validated = validateInput(
+			removeProficienciesBySourceArgsSchema,
+			{ character, source },
+			'Invalid parameters for removeProficienciesBySource'
+		);
 
+		const { character: char, source: profSource } = validated;
 		const removed = {};
 
-		if (!character.proficiencySources) {
+		if (!char.proficiencySources) {
 			return removed;
 		}
 
-		for (const type in character.proficiencySources) {
+		for (const type in char.proficiencySources) {
 			removed[type] = [];
 
-			for (const [proficiency, sources] of character.proficiencySources[
+			for (const [proficiency, sources] of char.proficiencySources[
 				type
 			].entries()) {
-				if (sources.has(source)) {
-					sources.delete(source);
+				if (sources.has(profSource)) {
+					sources.delete(profSource);
 					removed[type].push(proficiency);
 
 					if (sources.size === 0) {
-						character.proficiencySources[type].delete(proficiency);
+						char.proficiencySources[type].delete(proficiency);
 
-						if (character.proficiencies[type]) {
-							const index = character.proficiencies[type].indexOf(proficiency);
-							if (index > -1) {
-								character.proficiencies[type].splice(index, 1);
+						if (char.proficiencies[type]) {
+							const index = char.proficiencies[type].indexOf(proficiency);
+							if (index !== -1) {
+								char.proficiencies[type].splice(index, 1);
 							}
 						}
 					}
@@ -96,9 +116,9 @@ export class ProficiencyService {
 		}
 
 		eventBus.emit(EVENTS.PROFICIENCY_REMOVED_BY_SOURCE, {
-			source,
+			source: profSource,
 			removed,
-			character,
+			character: char,
 		});
 
 		return removed;

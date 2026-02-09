@@ -428,7 +428,7 @@ export class CharacterStepClass {
 	async validate() {
 		const classValue = this._classSelect?.value;
 		if (!classValue) {
-			console.warn('[Step3Class]', 'No class selected');
+			this._classSelect?.focus();
 			return false;
 		}
 
@@ -443,12 +443,7 @@ export class CharacterStepClass {
 			if (subclassLevel === 1) {
 				const subclassValue = this._subclassSelect?.value;
 				if (!subclassValue) {
-					console.warn(
-						'[Step3Class]',
-						'Subclass required for',
-						className,
-						'at level 1',
-					);
+					this._subclassSelect?.focus();
 					return false;
 				}
 			}

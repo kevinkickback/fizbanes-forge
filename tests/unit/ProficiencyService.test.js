@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Character } from '../../src/app/Character.js';
+import { ValidationError } from '../../src/lib/Errors.js';
 import { eventBus, EVENTS } from '../../src/lib/EventBus.js';
 import { ProficiencyService } from '../../src/services/ProficiencyService.js';
 
@@ -162,39 +163,36 @@ describe('ProficiencyService', () => {
                     type: 'skills',
                     proficiency: 'Athletics',
                     source: 'Race',
-                    character,
                 }),
             );
+            // Verify character is passed in the event
+            expect(emitSpy.mock.calls[0][1].character).toBe(character);
         });
 
-        it('should handle invalid parameters gracefully', () => {
-            const result = proficiencyService.addProficiency(null, 'skills', 'Athletics', 'Race');
-            expect(result).toBe(false);
+        it('should throw ValidationError for invalid parameters', () => {
+            expect(() => proficiencyService.addProficiency(null, 'skills', 'Athletics', 'Race')).toThrow(ValidationError);
         });
 
-        it('should handle missing type parameter', () => {
-            const result = proficiencyService.addProficiency(
+        it('should throw ValidationError for missing type parameter', () => {
+            expect(() => proficiencyService.addProficiency(
                 character,
                 null,
                 'Athletics',
                 'Race',
-            );
-            expect(result).toBe(false);
+            )).toThrow(ValidationError);
         });
 
-        it('should handle missing proficiency parameter', () => {
-            const result = proficiencyService.addProficiency(character, 'skills', null, 'Race');
-            expect(result).toBe(false);
+        it('should throw ValidationError for missing proficiency parameter', () => {
+            expect(() => proficiencyService.addProficiency(character, 'skills', null, 'Race')).toThrow(ValidationError);
         });
 
-        it('should handle missing source parameter', () => {
-            const result = proficiencyService.addProficiency(
+        it('should throw ValidationError for missing source parameter', () => {
+            expect(() => proficiencyService.addProficiency(
                 character,
                 'skills',
                 'Athletics',
                 null,
-            );
-            expect(result).toBe(false);
+            )).toThrow(ValidationError);
         });
 
         it('should add weapon proficiencies', () => {
@@ -274,20 +272,21 @@ describe('ProficiencyService', () => {
                 EVENTS.PROFICIENCY_REMOVED_BY_SOURCE,
                 expect.objectContaining({
                     source: 'Race',
-                    removed: expect.any(Object),
-                    character,
+                    removed: expect.objectContaining({
+                        skills: expect.arrayContaining(['Athletics']),
+                    }),
                 }),
             );
+            // Verify character is passed in the event
+            expect(emitSpy.mock.calls[0][1].character).toBe(character);
         });
 
-        it('should handle null character gracefully', () => {
-            const result = proficiencyService.removeProficienciesBySource(null, 'Race');
-            expect(result).toEqual({});
+        it('should throw ValidationError for null character', () => {
+            expect(() => proficiencyService.removeProficienciesBySource(null, 'Race')).toThrow(ValidationError);
         });
 
-        it('should handle null source gracefully', () => {
-            const result = proficiencyService.removeProficienciesBySource(character, null);
-            expect(result).toEqual({});
+        it('should throw ValidationError for null source', () => {
+            expect(() => proficiencyService.removeProficienciesBySource(character, null)).toThrow(ValidationError);
         });
 
         it('should remove proficiencies across multiple types', () => {
@@ -520,9 +519,8 @@ describe('ProficiencyService', () => {
             expect(character.proficiencies.tools).toContain("Thieves' Tools");
         });
 
-        it('should handle empty proficiency name', () => {
-            const result = proficiencyService.addProficiency(character, 'skills', '', 'Race');
-            expect(result).toBe(false);
+        it('should throw ValidationError for empty proficiency name', () => {
+            expect(() => proficiencyService.addProficiency(character, 'skills', '', 'Race')).toThrow(ValidationError);
         });
 
         it('should handle whitespace-only proficiency name', () => {

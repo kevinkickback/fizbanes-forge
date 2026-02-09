@@ -93,7 +93,15 @@ export class CharacterStepBackground {
 	}
 
 	async validate() {
-		// Background is optional, so always return true
+		const backgroundSelect = document.getElementById('modalBackgroundSelect');
+
+		if (!backgroundSelect || !backgroundSelect.value) {
+			if (backgroundSelect) {
+				backgroundSelect.focus();
+			}
+			return false;
+		}
+
 		return true;
 	}
 

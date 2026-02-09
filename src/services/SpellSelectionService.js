@@ -1,4 +1,9 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import {
+	addSpellArgsSchema,
+	removeSpellArgsSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 import { classService } from './ClassService.js';
 import { spellService } from './SpellService.js';
 
@@ -255,54 +260,70 @@ class SpellSelectionService {
 	}
 
 	addKnownSpell(character, className, spellData) {
-		if (!character.spellcasting?.classes?.[className]) {
+		const validated = validateInput(
+			addSpellArgsSchema,
+			{ character, className, spellData },
+			'Invalid parameters for addKnownSpell',
+		);
+
+		const { character: char, className: cls, spellData: spell } = validated;
+
+		if (!char.spellcasting?.classes?.[cls]) {
 			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
-				className,
+				className: cls,
 			});
 			return false;
 		}
 
-		const classSpellcasting = character.spellcasting.classes[className];
+		const classSpellcasting = char.spellcasting.classes[cls];
 
 		// Check if spell already known
 		if (
 			classSpellcasting.spellsKnown.some(
 				(s) =>
-					s.name === spellData.name && s.source === (spellData.source || 'PHB'),
+					s.name === spell.name && s.source === (spell.source || 'PHB'),
 			)
 		) {
 			console.warn(
 				`[${this.loggerScope}]`,
 				'Spell already known',
-				spellData.name,
+				spell.name,
 			);
 			return false;
 		}
 
 		// Store full spell object
-		classSpellcasting.spellsKnown.push(spellData);
+		classSpellcasting.spellsKnown.push(spell);
 
-		eventBus.emit(EVENTS.SPELL_ADDED, character, className, spellData);
+		eventBus.emit(EVENTS.SPELL_ADDED, char, cls, spell);
 		return true;
 	}
 
 	removeKnownSpell(character, className, spellName) {
-		if (!character.spellcasting?.classes?.[className]) {
+		const validated = validateInput(
+			removeSpellArgsSchema,
+			{ character, className, spellName },
+			'Invalid parameters for removeKnownSpell',
+		);
+
+		const { character: char, className: cls, spellName: name } = validated;
+
+		if (!char.spellcasting?.classes?.[cls]) {
 			console.warn(`[${this.loggerScope}]`, 'Class not initialized', {
-				className,
+				className: cls,
 			});
 			return false;
 		}
 
-		const classSpellcasting = character.spellcasting.classes[className];
+		const classSpellcasting = char.spellcasting.classes[cls];
 		const index = classSpellcasting.spellsKnown.findIndex(
-			(s) => s.name === spellName,
+			(s) => s.name === name,
 		);
 
 		if (index === -1) {
 			console.warn(`[${this.loggerScope}]`, 'Spell not known', {
-				className,
-				spellName,
+				className: cls,
+				spellName: name,
 			});
 			return false;
 		}
@@ -311,13 +332,13 @@ class SpellSelectionService {
 
 		// Also remove from prepared if applicable
 		const preparedIndex = classSpellcasting.spellsPrepared.findIndex(
-			(s) => s.name === spellName,
+			(s) => s.name === name,
 		);
 		if (preparedIndex !== -1) {
 			classSpellcasting.spellsPrepared.splice(preparedIndex, 1);
 		}
 
-		eventBus.emit(EVENTS.SPELL_REMOVED, character, className, removed);
+		eventBus.emit(EVENTS.SPELL_REMOVED, char, cls, removed);
 		return true;
 	}
 

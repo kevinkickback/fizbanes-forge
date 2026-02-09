@@ -1,6 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
+import { sourceIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 export class SourceService extends BaseDataService {
@@ -217,23 +218,35 @@ export class SourceService extends BaseDataService {
 	}
 
 	addAllowedSource(source) {
-		if (!this.isValidSource(source)) return false;
+		const validated = validateInput(
+			sourceIdentifierSchema,
+			source,
+			'Invalid source identifier',
+		);
 
-		const added = !this.allowedSources.has(source);
+		if (!this.isValidSource(validated)) return false;
+
+		const added = !this.allowedSources.has(validated);
 		if (added) {
-			this.allowedSources.add(source);
-			eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
+			this.allowedSources.add(validated);
+			eventBus.emit(EVENTS.SOURCES_ALLOWED_CHANGED, Array.from(this.allowedSources));
 		}
 		return added;
 	}
 
 	removeAllowedSource(source) {
-		if (source === 'PHB') return false;
+		const validated = validateInput(
+			sourceIdentifierSchema,
+			source,
+			'Invalid source identifier',
+		);
 
-		const removed = this.allowedSources.has(source);
+		if (validated === 'PHB') return false;
+
+		const removed = this.allowedSources.has(validated);
 		if (removed) {
-			this.allowedSources.delete(source);
-			eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
+			this.allowedSources.delete(validated);
+			eventBus.emit(EVENTS.SOURCES_ALLOWED_CHANGED, Array.from(this.allowedSources));
 		}
 		return removed;
 	}

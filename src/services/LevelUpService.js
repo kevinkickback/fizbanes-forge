@@ -1,4 +1,9 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import {
+	addClassLevelArgsSchema,
+	removeClassLevelArgsSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 import { classService } from './ClassService.js';
 import { sourceService } from './SourceService.js';
 import { spellSelectionService } from './SpellSelectionService.js';
@@ -35,62 +40,78 @@ class LevelUpService {
 	}
 
 	addClassLevel(character, className, level = 1, source = 'PHB') {
-		if (!character.progression) {
-			this.initializeProgression(character);
+		const validated = validateInput(
+			addClassLevelArgsSchema,
+			{ character, className, level, source },
+			'Invalid parameters for addClassLevel',
+		);
+
+		const { character: char, className: cls, level: lvl, source: src } = validated;
+
+		if (!char.progression) {
+			this.initializeProgression(char);
 		}
 
 		// Check if class already exists
-		let classEntry = character.progression.classes.find(
-			(c) => c.name === className,
+		let classEntry = char.progression.classes.find(
+			(c) => c.name === cls,
 		);
 
 		if (classEntry) {
-			classEntry.levels = level;
+			classEntry.levels = lvl;
 			// Update source if provided and currently missing
-			if (source && !classEntry.source) {
-				classEntry.source = source;
+			if (src && !classEntry.source) {
+				classEntry.source = src;
 			}
 			return classEntry;
 		}
 
 		// Create new class entry
 		classEntry = {
-			name: className,
-			source,
-			levels: level,
+			name: cls,
+			source: src,
+			levels: lvl,
 			hitPoints: [],
 			features: [],
 			spellSlots: {},
 		};
 
-		character.progression.classes.push(classEntry);
+		char.progression.classes.push(classEntry);
 
 		// Initialize spellcasting for this class if applicable
 		spellSelectionService.initializeSpellcastingForClass(
-			character,
-			className,
-			level,
+			char,
+			cls,
+			lvl,
 		);
 
-		eventBus.emit(EVENTS.MULTICLASS_ADDED, character, classEntry);
+		eventBus.emit(EVENTS.MULTICLASS_ADDED, char, classEntry);
 		return classEntry;
 	}
 
 	removeClassLevel(character, className) {
-		if (!character.progression) return false;
+		const validated = validateInput(
+			removeClassLevelArgsSchema,
+			{ character, className },
+			'Invalid parameters for removeClassLevel',
+		);
 
-		const index = character.progression.classes.findIndex(
-			(c) => c.name === className,
+		const { character: char, className: cls } = validated;
+
+		if (!char.progression) return false;
+
+		const index = char.progression.classes.findIndex(
+			(c) => c.name === cls,
 		);
 
 		if (index === -1) {
-			console.warn(`[${this.loggerScope}]`, 'Class not found', { className });
+			console.warn(`[${this.loggerScope}]`, 'Class not found', { className: cls });
 			return false;
 		}
 
-		const removed = character.progression.classes.splice(index, 1)[0];
+		const removed = char.progression.classes.splice(index, 1)[0];
 
-		eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, removed);
+		eventBus.emit(EVENTS.MULTICLASS_REMOVED, char, removed);
 		return true;
 	}
 

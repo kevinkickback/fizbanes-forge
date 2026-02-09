@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import { ValidationError } from '../../src/lib/Errors.js';
 import {
     abilityBonusSchema,
     abilitySchema,
     abilityScoresSchema,
+    addClassLevelArgsSchema,
+    addItemArgsSchema,
     addProficiencySchema,
+    addSpellArgsSchema,
     backgroundIdentifierSchema,
     classIdentifierSchema,
     featIdentifierSchema,
+    handleAbilityChoiceArgsSchema,
     itemFilterSchema,
     itemIdentifierSchema,
     levelSchema,
@@ -14,14 +19,18 @@ import {
     optionalSourceSchema,
     proficiencyTypeSchema,
     raceIdentifierSchema,
+    removeClassLevelArgsSchema,
+    removeItemArgsSchema,
+    removeSpellArgsSchema,
     sourceArraySchema,
+    sourceIdentifierSchema,
     sourceSchema,
     spellFilterSchema,
     spellIdentifierSchema,
     subclassIdentifierSchema,
     subraceIdentifierSchema,
+    updateAbilityScoreArgsSchema,
     validateInput,
-    ValidationError,
 } from '../../src/lib/ValidationSchemas.js';
 
 describe('ValidationSchemas', () => {
@@ -417,6 +426,256 @@ describe('ValidationSchemas', () => {
             const error = new ValidationError('Test error');
 
             expect(error).toBeInstanceOf(Error);
+        });
+    });
+
+    describe('AbilityScoreService Schemas', () => {
+        it('should validate updateAbilityScore args', () => {
+            const result = updateAbilityScoreArgsSchema.parse({
+                ability: 'strength',
+                score: 15,
+            });
+
+            expect(result.ability).toBe('strength');
+            expect(result.score).toBe(15);
+        });
+
+        it('should coerce string score to number', () => {
+            const result = updateAbilityScoreArgsSchema.parse({
+                ability: 'dex',
+                score: '12',
+            });
+
+            expect(result.score).toBe(12);
+        });
+
+        it('should reject score out of range', () => {
+            expect(() => updateAbilityScoreArgsSchema.parse({
+                ability: 'str',
+                score: 0,
+            })).toThrow();
+
+            expect(() => updateAbilityScoreArgsSchema.parse({
+                ability: 'str',
+                score: 31,
+            })).toThrow();
+        });
+
+        it('should reject empty ability name', () => {
+            expect(() => updateAbilityScoreArgsSchema.parse({
+                ability: '',
+                score: 10,
+            })).toThrow();
+        });
+
+        it('should validate handleAbilityChoice args', () => {
+            const result = handleAbilityChoiceArgsSchema.parse({
+                ability: 'wisdom',
+                choiceIndex: 0,
+                bonus: 2,
+                source: 'Race Choice',
+            });
+
+            expect(result.ability).toBe('wisdom');
+            expect(result.choiceIndex).toBe(0);
+            expect(result.bonus).toBe(2);
+            expect(result.source).toBe('Race Choice');
+        });
+
+        it('should reject negative choiceIndex', () => {
+            expect(() => handleAbilityChoiceArgsSchema.parse({
+                ability: 'str',
+                choiceIndex: -1,
+                bonus: 1,
+                source: 'Race',
+            })).toThrow();
+        });
+    });
+
+    describe('LevelUpService Schemas', () => {
+        it('should validate addClassLevel args', () => {
+            const result = addClassLevelArgsSchema.parse({
+                character: { progression: { classes: [] } },
+                className: 'Fighter',
+                level: 5,
+                source: 'PHB',
+            });
+
+            expect(result.className).toBe('Fighter');
+            expect(result.level).toBe(5);
+            expect(result.source).toBe('PHB');
+        });
+
+        it('should provide defaults for level and source', () => {
+            const result = addClassLevelArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Wizard',
+            });
+
+            expect(result.level).toBe(1);
+            expect(result.source).toBe('PHB');
+        });
+
+        it('should reject empty className', () => {
+            expect(() => addClassLevelArgsSchema.parse({
+                character: { name: 'Test' },
+                className: '',
+            })).toThrow();
+        });
+
+        it('should reject level out of range', () => {
+            expect(() => addClassLevelArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Fighter',
+                level: 0,
+            })).toThrow();
+
+            expect(() => addClassLevelArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Fighter',
+                level: 21,
+            })).toThrow();
+        });
+
+        it('should reject non-object character', () => {
+            expect(() => addClassLevelArgsSchema.parse({
+                character: null,
+                className: 'Fighter',
+            })).toThrow();
+        });
+
+        it('should validate removeClassLevel args', () => {
+            const result = removeClassLevelArgsSchema.parse({
+                character: { progression: { classes: [{ name: 'Fighter' }] } },
+                className: 'Fighter',
+            });
+
+            expect(result.className).toBe('Fighter');
+        });
+    });
+
+    describe('EquipmentService Schemas', () => {
+        it('should validate addItem args', () => {
+            const result = addItemArgsSchema.parse({
+                character: { inventory: { items: [] } },
+                itemData: { name: 'Longsword' },
+            });
+
+            expect(result.itemData.name).toBe('Longsword');
+            expect(result.quantity).toBe(1);
+            expect(result.source).toBe('Manual');
+        });
+
+        it('should validate addItem with full data', () => {
+            const result = addItemArgsSchema.parse({
+                character: { inventory: { items: [] } },
+                itemData: {
+                    name: 'Longsword',
+                    id: 'longsword',
+                    source: 'PHB',
+                    weight: 3,
+                },
+                quantity: 2,
+                source: 'Shop',
+            });
+
+            expect(result.itemData.name).toBe('Longsword');
+            expect(result.quantity).toBe(2);
+            expect(result.source).toBe('Shop');
+        });
+
+        it('should reject item without name', () => {
+            expect(() => addItemArgsSchema.parse({
+                character: { inventory: { items: [] } },
+                itemData: { id: 'test' },
+            })).toThrow();
+        });
+
+        it('should validate removeItem args', () => {
+            const result = removeItemArgsSchema.parse({
+                character: { inventory: { items: [] } },
+                itemInstanceId: 'item-123',
+            });
+
+            expect(result.itemInstanceId).toBe('item-123');
+            expect(result.quantity).toBe(1);
+        });
+
+        it('should reject empty itemInstanceId', () => {
+            expect(() => removeItemArgsSchema.parse({
+                character: { inventory: { items: [] } },
+                itemInstanceId: '',
+            })).toThrow();
+        });
+    });
+
+    describe('SpellSelectionService Schemas', () => {
+        it('should validate addSpell args', () => {
+            const result = addSpellArgsSchema.parse({
+                character: { spellcasting: { classes: {} } },
+                className: 'Wizard',
+                spellData: { name: 'Fireball', level: 3 },
+            });
+
+            expect(result.className).toBe('Wizard');
+            expect(result.spellData.name).toBe('Fireball');
+            expect(result.spellData.level).toBe(3);
+        });
+
+        it('should pass through extra spellData properties', () => {
+            const result = addSpellArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Wizard',
+                spellData: { name: 'Fireball', level: 3, source: 'PHB', school: 'Evocation' },
+            });
+
+            expect(result.spellData.source).toBe('PHB');
+            expect(result.spellData.school).toBe('Evocation');
+        });
+
+        it('should reject invalid spell level', () => {
+            expect(() => addSpellArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Wizard',
+                spellData: { name: 'Fireball', level: -1 },
+            })).toThrow();
+
+            expect(() => addSpellArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Wizard',
+                spellData: { name: 'Fireball', level: 10 },
+            })).toThrow();
+        });
+
+        it('should validate removeSpell args', () => {
+            const result = removeSpellArgsSchema.parse({
+                character: { spellcasting: { classes: {} } },
+                className: 'Wizard',
+                spellName: 'Fireball',
+            });
+
+            expect(result.className).toBe('Wizard');
+            expect(result.spellName).toBe('Fireball');
+        });
+
+        it('should reject empty spellName', () => {
+            expect(() => removeSpellArgsSchema.parse({
+                character: { name: 'Test' },
+                className: 'Wizard',
+                spellName: '',
+            })).toThrow();
+        });
+    });
+
+    describe('SourceService Schemas', () => {
+        it('should validate source identifier', () => {
+            const result = sourceIdentifierSchema.parse('PHB');
+
+            expect(result).toBe('PHB');
+        });
+
+        it('should reject empty source identifier', () => {
+            expect(() => sourceIdentifierSchema.parse('')).toThrow();
         });
     });
 });

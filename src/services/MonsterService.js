@@ -1,4 +1,6 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
+import { monsterIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 /** Manages monster/creature data and provides access to monsters. */
@@ -31,22 +33,42 @@ class MonsterService extends BaseDataService {
 	/**
 	 * Loads monster details by id (from index) on demand, caches result
 	 * @param {string} id - Monster ID (key from index)
-	 * @returns {Promise<Object|null>} Monster details object
+	 * @returns {Promise<Object>} Monster details object
 	 */
 	async getMonsterDetails(id) {
-		if (!id || !this._monsterIndex) return null;
-		if (this._monsterDetailsCache.has(id)) {
-			return this._monsterDetailsCache.get(id);
+		const validated = validateInput(
+			monsterIdentifierSchema,
+			{ id },
+			'Invalid monster identifier',
+		);
+
+		if (!this._monsterIndex) {
+			throw new NotFoundError('Monster', validated.id, {
+				reason: 'Monster index not initialized',
+			});
 		}
-		const file = this._monsterIndex[id];
-		if (!file) return null;
+
+		if (this._monsterDetailsCache.has(validated.id)) {
+			return this._monsterDetailsCache.get(validated.id);
+		}
+
+		const file = this._monsterIndex[validated.id];
+		if (!file) {
+			throw new NotFoundError('Monster', validated.id, {
+				reason: 'Monster ID not found in index',
+			});
+		}
+
 		try {
 			const details = await DataLoader.loadJSON(`bestiary/${file}`);
-			this._monsterDetailsCache.set(id, details);
+			this._monsterDetailsCache.set(validated.id, details);
 			return details;
 		} catch (err) {
-			console.error('[MonsterService]', `Failed to load monster details for ${id}:`, err);
-			return null;
+			console.error('[MonsterService]', `Failed to load monster details for ${validated.id}:`, err);
+			throw new NotFoundError('Monster', validated.id, {
+				reason: 'Failed to load monster data file',
+				error: err.message,
+			});
 		}
 	}
 

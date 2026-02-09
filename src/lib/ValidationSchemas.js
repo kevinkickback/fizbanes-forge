@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ValidationError } from './Errors.js';
 
 /**
  * Common validation schemas for use across services
@@ -135,6 +136,165 @@ export const levelSchema = z.number().int().min(1).max(20);
 // Source filter array
 export const sourceArraySchema = z.array(sourceSchema);
 
+// Deity service schemas
+export const deityIdentifierSchema = z.object({
+    name: nameSchema,
+});
+
+// Monster service schemas
+export const monsterIdentifierSchema = z.object({
+    id: z.string().min(1),
+});
+
+// Skill service schemas
+export const skillIdentifierSchema = z.object({
+    abilityName: z.string().min(1),
+});
+
+// Condition service schemas
+export const conditionIdentifierSchema = z.object({
+    name: nameSchema,
+});
+
+// Action service schemas
+export const actionIdentifierSchema = z.object({
+    name: nameSchema,
+});
+
+// Optional feature service schemas
+export const optionalFeatureIdentifierSchema = z.object({
+    name: nameSchema,
+    source: optionalSourceSchema,
+});
+
+export const optionalFeatureTypeSchema = z.union([
+    z.string().min(1),
+    z.array(z.string().min(1)),
+]);
+
+// Variant rule service schemas
+export const variantRuleIdentifierSchema = z.object({
+    name: nameSchema,
+});
+
+// ProficiencyService schemas
+export const addProficiencyArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    type: proficiencyTypeSchema,
+    proficiency: z.string().min(1, 'Proficiency name is required'),
+    source: z.string().min(1, 'Source is required'),
+});
+
+export const removeProficienciesBySourceArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    source: z.string().min(1, 'Source is required'),
+});
+
+// AbilityScoreService schemas
+export const abilityNameSchema = z.enum([
+    'strength',
+    'dexterity',
+    'constitution',
+    'intelligence',
+    'wisdom',
+    'charisma',
+    'str',
+    'dex',
+    'con',
+    'int',
+    'wis',
+    'cha',
+]);
+
+export const updateAbilityScoreArgsSchema = z.object({
+    ability: z.string().min(1, 'Ability name is required'),
+    score: z.coerce.number().int().min(1).max(30, 'Ability score must be between 1 and 30'),
+});
+
+export const handleAbilityChoiceArgsSchema = z.object({
+    ability: z.string().min(1, 'Ability name is required'),
+    choiceIndex: z.number().int().min(0),
+    bonus: z.number().int(),
+    source: z.string().min(1, 'Source is required'),
+});
+
+// LevelUpService schemas
+export const addClassLevelArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    className: z.string().min(1, 'Class name is required'),
+    level: z.number().int().min(1).max(20).default(1),
+    source: optionalSourceSchema,
+});
+
+export const removeClassLevelArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    className: z.string().min(1, 'Class name is required'),
+});
+
+// EquipmentService schemas
+export const addItemArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    itemData: z.object({
+        name: z.string().min(1, 'Item name is required'),
+        id: z.string().optional(),
+        source: z.string().optional(),
+        cost: z.unknown().optional(),
+        weight: z.number().optional(),
+    }).passthrough(),
+    quantity: z.number().int().min(1).default(1),
+    source: z.string().default('Manual'),
+});
+
+export const removeItemArgsSchema = z.object({
+    character: z.object({
+        inventory: z.object({
+            items: z.array(z.unknown()).optional(),
+        }).optional(),
+    }),
+    itemInstanceId: z.string().min(1, 'Item instance ID is required'),
+    quantity: z.number().int().min(1).default(1),
+});
+
+// SpellSelectionService schemas
+export const addSpellArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    className: z.string().min(1, 'Class name is required'),
+    spellData: z.object({
+        name: z.string().min(1, 'Spell name is required'),
+        level: z.number().int().min(0).max(9),
+    }).passthrough(),
+});
+
+export const removeSpellArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    className: z.string().min(1, 'Class name is required'),
+    spellName: z.string().min(1, 'Spell name is required'),
+});
+
+// SourceService schemas
+export const sourceIdentifierSchema = z.string().min(1, 'Source identifier is required');
+
 /**
  * Helper to validate and transform input
  */
@@ -148,15 +308,4 @@ export function validateInput(schema, input, errorMessage = 'Invalid input') {
         throw new ValidationError(errorMessage, details);
     }
     return result.data;
-}
-
-/**
- * Create a ValidationError from zod errors
- */
-export class ValidationError extends Error {
-    constructor(message, details = {}) {
-        super(message);
-        this.name = 'ValidationError';
-        this.details = details;
-    }
 }

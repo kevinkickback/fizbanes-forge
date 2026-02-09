@@ -53,7 +53,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const className = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__class-link rd__hover-link" data-hover-type="class" data-hover-name="${className}" data-hover-source="${source}">${className}</a>`;
+		const display = escapeHtml(parts[2] || '') || className;
+		return `<a class="rd__class-link rd__hover-link" data-hover-type="class" data-hover-name="${className}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Race reference
@@ -61,7 +62,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const raceName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__race-link rd__hover-link" data-hover-type="race" data-hover-name="${raceName}" data-hover-source="${source}">${raceName}</a>`;
+		const display = escapeHtml(parts[2] || '') || raceName;
+		return `<a class="rd__race-link rd__hover-link" data-hover-type="race" data-hover-name="${raceName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Background reference
@@ -69,7 +71,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const bgName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__background-link rd__hover-link" data-hover-type="background" data-hover-name="${bgName}" data-hover-source="${source}">${bgName}</a>`;
+		const display = escapeHtml(parts[2] || '') || bgName;
+		return `<a class="rd__background-link rd__hover-link" data-hover-type="background" data-hover-name="${bgName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Feat reference
@@ -77,7 +80,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const featName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__feat-link rd__hover-link" data-hover-type="feat" data-hover-name="${featName}" data-hover-source="${source}">${featName}</a>`;
+		const display = escapeHtml(parts[2] || '') || featName;
+		return `<a class="rd__feat-link rd__hover-link" data-hover-type="feat" data-hover-name="${featName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Feature reference
@@ -85,7 +89,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const featureName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__feature-link rd__hover-link" data-hover-type="feature" data-hover-name="${featureName}" data-hover-source="${source}">${featureName}</a>`;
+		const display = escapeHtml(parts[2] || '') || featureName;
+		return `<a class="rd__feature-link rd__hover-link" data-hover-type="feature" data-hover-name="${featureName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Spell reference
@@ -93,7 +98,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const spellName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__spell-link rd__hover-link" data-hover-type="spell" data-hover-name="${spellName}" data-hover-source="${source}">${spellName}</a>`;
+		const display = escapeHtml(parts[2] || '') || spellName;
+		return `<a class="rd__spell-link rd__hover-link" data-hover-type="spell" data-hover-name="${spellName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Item reference
@@ -101,7 +107,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const itemName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__item-link rd__hover-link" data-hover-type="item" data-hover-name="${itemName}" data-hover-source="${source}">${itemName}</a>`;
+		const display = escapeHtml(parts[2] || '') || itemName;
+		return `<a class="rd__item-link rd__hover-link" data-hover-type="item" data-hover-name="${itemName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Optional Feature reference
@@ -109,7 +116,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const featName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__optfeature-link rd__hover-link" data-hover-type="optfeature" data-hover-name="${featName}" data-hover-source="${source}">${featName}</a>`;
+		const display = escapeHtml(parts[2] || '') || featName;
+		return `<a class="rd__optfeature-link rd__hover-link" data-hover-type="optfeature" data-hover-name="${featName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Condition reference
@@ -117,7 +125,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const condName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__condition-link rd__hover-link" data-hover-type="condition" data-hover-name="${condName}" data-hover-source="${source}">${condName}</a>`;
+		const display = escapeHtml(parts[2] || '') || condName;
+		return `<a class="rd__condition-link rd__hover-link" data-hover-type="condition" data-hover-name="${condName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Skill reference (usually not a link, just formatted text)
@@ -132,7 +141,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const actionName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || 'PHB');
-		return `<a class="rd__action-link rd__hover-link" data-hover-type="action" data-hover-name="${actionName}" data-hover-source="${source}">${actionName}</a>`;
+		const display = escapeHtml(parts[2] || '') || actionName;
+		return `<a class="rd__action-link rd__hover-link" data-hover-type="action" data-hover-name="${actionName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Note/emphasis tag
@@ -186,7 +196,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const creatureName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__creature-link rd__hover-link" data-hover-type="creature" data-hover-name="${creatureName}" data-hover-source="${source}">${creatureName}</a>`;
+		const display = escapeHtml(parts[2] || '') || creatureName;
+		return `<a class="rd__creature-link rd__hover-link" data-hover-type="creature" data-hover-name="${creatureName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Book reference
@@ -202,7 +213,8 @@ function initializeDefaultHandlers() {
 		const parts = splitTagByPipe(text);
 		const ruleName = escapeHtml(parts[0]);
 		const source = escapeHtml(parts[1] || DEFAULT_SOURCE);
-		return `<a class="rd__variantrule-link rd__hover-link" data-hover-type="variantrule" data-hover-name="${ruleName}" data-hover-source="${source}">${ruleName}</a>`;
+		const display = escapeHtml(parts[2] || '') || ruleName;
+		return `<a class="rd__variantrule-link rd__hover-link" data-hover-type="variantrule" data-hover-name="${ruleName}" data-hover-source="${source}">${display}</a>`;
 	});
 
 	// Quick reference (rules)

@@ -394,7 +394,7 @@ export class CharacterCreationModal {
 				'../../../services/SourceService.js'
 			);
 			sourceService.allowedSources = new Set(stagedData.allowedSources);
-			eventBus.emit('sources:allowed-changed', stagedData.allowedSources);
+			eventBus.emit(EVENTS.SOURCES_ALLOWED_CHANGED, stagedData.allowedSources);
 
 			await CharacterManager.saveCharacter();
 

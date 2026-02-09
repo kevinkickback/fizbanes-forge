@@ -515,7 +515,7 @@ export class Character {
 		let maxFeats = 0;
 
 		// Count ASI opportunities (available feat slots from level-ups)
-		const totalLevel = this.getTotalLevel();
+		const _totalLevel = this.getTotalLevel();
 		if (this.progression?.classes) {
 			for (const classEntry of this.progression.classes) {
 				const className = classEntry.name;

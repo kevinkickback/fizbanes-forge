@@ -108,7 +108,7 @@ export class ClassCard {
 		// Listen to view events via EventBus (dropdown events removed)
 		eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
 		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		eventBus.on('sources:allowed-changed', this._sourcesChangedHandler);
+		eventBus.on(EVENTS.SOURCES_ALLOWED_CHANGED, this._sourcesChangedHandler);
 		eventBus.on('LEVEL_UP_COMPLETE', this._levelUpCompleteHandler);
 	}
 
@@ -121,7 +121,7 @@ export class ClassCard {
 			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
 		}
 		if (this._sourcesChangedHandler) {
-			eventBus.off('sources:allowed-changed', this._sourcesChangedHandler);
+			eventBus.off(EVENTS.SOURCES_ALLOWED_CHANGED, this._sourcesChangedHandler);
 		}
 		if (this._levelUpCompleteHandler) {
 			eventBus.off('LEVEL_UP_COMPLETE', this._levelUpCompleteHandler);
@@ -372,6 +372,7 @@ export class ClassCard {
 		const classLevel = progressionClass?.levels || 0;
 
 		const allChoices = [];
+		const allPassiveFeatures = [];
 		for (let lvl = 1; lvl <= classLevel; lvl++) {
 			const levelChoices = await this._getClassChoicesAtLevel(
 				className,
@@ -379,6 +380,13 @@ export class ClassCard {
 				subclassData,
 			);
 			allChoices.push(...levelChoices);
+
+			const levelPassiveFeatures = this._getNoChoiceFeaturesAtLevel(
+				className,
+				lvl,
+				classData,
+			);
+			allPassiveFeatures.push(...levelPassiveFeatures);
 		}
 
 		// Sort all choices by level to ensure proper display order
@@ -389,17 +397,17 @@ export class ClassCard {
 		// Hide the old separate ASI section since ASI is now integrated
 		this._hideASISection();
 
-		// Show container if any choices exist
-		const hasChoices = allChoices.length > 0;
+		// Show container if any choices or passive features exist
+		const hasContent = allChoices.length > 0 || allPassiveFeatures.length > 0;
 
-		if (hasChoices) {
+		if (hasContent) {
 			this._showClassChoices();
 		} else {
 			this._hideClassChoices();
 		}
 
-		if (hasChoices) {
-			await this._renderClassChoices(className, allChoices);
+		if (hasContent) {
+			await this._renderClassChoices(className, allChoices, allPassiveFeatures);
 		}
 	}
 
@@ -1031,6 +1039,68 @@ export class ClassCard {
 		}
 	}
 
+	_getNoChoiceFeaturesAtLevel(className, level, classData) {
+		const classSource = classData?.source || 'PHB';
+		const classFeatureRefs = classData?.classFeatures || [];
+
+		// Build set of feature names at this level that are choices
+		const choiceFeatureNames = new Set();
+
+		// ASI features
+		const asiLevels = levelUpService._getASILevelsForClass(className);
+		if (asiLevels.includes(level)) {
+			choiceFeatureNames.add('Ability Score Improvement');
+		}
+
+		// Subclass-granting features
+		for (const ref of classFeatureRefs) {
+			if (typeof ref === 'object' && ref.gainSubclassFeature) {
+				const parts = ref.classFeature.split('|');
+				const featureLevel = parseInt(parts[parts.length - 1], 10);
+				if (featureLevel === level) {
+					choiceFeatureNames.add(parts[0]);
+				}
+			}
+		}
+
+		// Optional feature progression names
+		const progressions = classData?.optionalfeatureProgression || [];
+		for (const progression of progressions) {
+			const count = this._classService.getCountAtLevel(progression.progression, level);
+			const prevCount = level > 1
+				? this._classService.getCountAtLevel(progression.progression, level - 1)
+				: 0;
+			if (count - prevCount > 0) {
+				choiceFeatureNames.add(progression.name);
+			}
+		}
+
+		// Get all class feature entries at exactly this level
+		const allFeaturesUpToLevel = this._classService.getClassFeatures(className, level, classSource);
+		const featuresAtLevel = allFeaturesUpToLevel.filter(f => f.level === level);
+
+		// Filter to only non-choice features
+		const passiveFeatures = featuresAtLevel.filter(f => {
+			if (choiceFeatureNames.has(f.name)) return false;
+
+			// Skip features that contain option selections (refOptionalfeature)
+			if (f.entries?.some(e => typeof e === 'object' && (e.type === 'options' || e.type === 'refOptionalfeature'))) {
+				return false;
+			}
+
+			return true;
+		});
+
+		return passiveFeatures.map(f => ({
+			name: f.name,
+			entries: f.entries,
+			level: f.level,
+			source: f.source,
+			page: f.page,
+			className: f.className,
+		}));
+	}
+
 	async _getClassChoicesAtLevel(className, level, subclassData = null) {
 		const choices = [];
 		const character = CharacterManager.getCurrentCharacter();
@@ -1295,7 +1365,7 @@ export class ClassCard {
 		return '';
 	}
 
-	async _renderClassChoices(className, choices) {
+	async _renderClassChoices(className, choices, passiveFeatures = []) {
 		const container = document.getElementById('classChoicesContent');
 		if (!container) return;
 
@@ -1324,17 +1394,32 @@ export class ClassCard {
 			choicesByLevel[level].push(choice);
 		}
 
-		// Sort levels
-		const levels = Object.keys(choicesByLevel)
-			.map(Number)
-			.sort((a, b) => a - b);
+		// Group passive features by level
+		const passiveByLevel = {};
+		for (const feature of passiveFeatures) {
+			const level = feature.level || 1;
+			if (!passiveByLevel[level]) {
+				passiveByLevel[level] = [];
+			}
+			passiveByLevel[level].push(feature);
+		}
+
+		// Merge all levels that have either choices or passive features
+		const allLevels = new Set([
+			...Object.keys(choicesByLevel).map(Number),
+			...Object.keys(passiveByLevel).map(Number),
+		]);
+		const levels = [...allLevels].sort((a, b) => a - b);
 
 		// Build accordion HTML
 		let html =
 			'<div class="accordion accordion-flush" id="classChoicesAccordion">';
 
 		for (const level of levels) {
-			const levelChoices = choicesByLevel[level];
+			const levelChoices = choicesByLevel[level] || [];
+			const levelPassive = passiveByLevel[level] || [];
+			const hasChoices = levelChoices.length > 0;
+
 			// Keep previously expanded state, or default to collapsed
 			const isExpanded =
 				expandedLevels.size > 0 ? expandedLevels.has(level) : false;
@@ -1346,14 +1431,15 @@ export class ClassCard {
 						<button class="accordion-button ${isExpanded ? '' : 'collapsed'}" type="button" 
 							data-bs-toggle="collapse" data-bs-target="#${collapseId}" 
 							aria-expanded="${isExpanded}" aria-controls="${collapseId}">
-							<strong>Level ${level} Choices</strong>
-							<span class="badge bg-secondary ms-2">${levelChoices.length}</span>
+							<strong>Level ${level} Features</strong>
+							${hasChoices ? `<span class="badge bg-secondary ms-2">${levelChoices.length}</span>` : ''}
 						</button>
 					</h2>
 					<div id="${collapseId}" class="accordion-collapse collapse ${isExpanded ? 'show' : ''}" 
 						aria-labelledby="heading${collapseId}">
 						<div class="accordion-body p-2">
 							${levelChoices.map((choice) => this._renderFeatureChoice(choice, className)).join('')}
+							${levelPassive.map((feature) => this._renderNoChoiceFeature(feature)).join('')}
 						</div>
 					</div>
 				</div>
@@ -1362,6 +1448,9 @@ export class ClassCard {
 
 		html += '</div>';
 		container.innerHTML = html;
+
+		// Resolve {@tag} references in passive feature descriptions
+		await textProcessor.processElement(container);
 
 		// Attach listeners
 		this._attachClassChoiceListeners(container, className);
@@ -1688,6 +1777,9 @@ export class ClassCard {
 					case 'asi':
 						await this._showASIInfo(item);
 						break;
+					case 'passive-feature':
+						await this._showPassiveFeatureInfo(item);
+						break;
 				}
 			},
 			true,
@@ -1971,6 +2063,55 @@ export class ClassCard {
 		await textProcessor.processElement(this._infoPanel);
 	}
 
+	async _showPassiveFeatureInfo(item) {
+		const featureName = item.dataset.hoverFeatureName;
+		const featureLevel = item.dataset.hoverFeatureLevel;
+		const featureSource = item.dataset.hoverFeatureSource || 'PHB';
+
+		// Look up the full feature data from ClassService
+		const character = CharacterManager.getCurrentCharacter();
+		const primaryClass = character?.getPrimaryClass();
+		const className = primaryClass?.name;
+
+		if (!className) return;
+
+		const classFeatures = this._classService.getClassFeatures(className, parseInt(featureLevel, 10), featureSource);
+		const feature = classFeatures.find(f => f.name === featureName && f.level === parseInt(featureLevel, 10));
+
+		if (!feature) {
+			this._infoPanel.innerHTML = `
+				<div class="info-section">
+					<h5><i class="fas fa-bookmark me-2"></i>${featureName}</h5>
+					<p class="text-muted">Feature details not available.</p>
+				</div>
+			`;
+			await textProcessor.processElement(this._infoPanel);
+			return;
+		}
+
+		const entriesHtml = this._renderFeatureEntries(feature.entries);
+
+		// Build source line with page if available
+		let sourceLine = `Source: ${feature.source || 'PHB'}`;
+		if (feature.page) {
+			sourceLine += `, p. ${feature.page}`;
+		}
+
+		const html = `
+			<div class="info-section">
+				<h5><i class="fas fa-bookmark me-2"></i>${feature.name}</h5>
+				<p class="text-muted small">Level ${feature.level} Feature</p>
+				<div class="mt-2">
+					${entriesHtml || '<p class="text-muted">No description available.</p>'}
+				</div>
+				<p class="text-muted small mt-3">${sourceLine}</p>
+			</div>
+		`;
+
+		this._infoPanel.innerHTML = html;
+		await textProcessor.processElement(this._infoPanel);
+	}
+
 	_renderFeatureEntries(entries) {
 		if (!entries) return '';
 		if (!Array.isArray(entries)) entries = [entries];
@@ -1995,6 +2136,22 @@ export class ClassCard {
 				return '';
 			})
 			.join('');
+	}
+
+	_renderNoChoiceFeature(feature) {
+		// Quick description: first string entry only
+		const firstString = feature.entries?.find(e => typeof e === 'string') || '';
+		return `
+			<div class="passive-feature-item choice-item" data-hover-type="passive-feature"
+				data-hover-feature-name="${feature.name}" data-hover-feature-level="${feature.level}"
+				data-hover-feature-source="${feature.source || 'PHB'}">
+				<div class="d-flex align-items-center mb-1">
+					<i class="fas fa-bookmark me-2" style="color: var(--accent-color)"></i>
+					<strong>${feature.name}</strong>
+				</div>
+				<div class="small text-muted">${firstString ? `<p>${firstString}</p>` : ''}</div>
+			</div>
+		`;
 	}
 
 	_getFeatureTypeName(type) {

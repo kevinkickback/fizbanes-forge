@@ -1,52 +1,71 @@
-/** Schema helpers for creating and validating character data. */
+/** Schema helpers for creating and validating character data using Zod. */
+import { z } from 'zod';
 
-function validateCharacterData(character) {
-    const errors = [];
-    if (!character) {
-        errors.push('Character object is required');
-        return { valid: false, errors };
-    }
-    if (!character.id) errors.push('Missing character ID');
-    if (!character.name || String(character.name).trim() === '')
-        errors.push('Missing character name');
-    // Note: level is calculated from progression.classes[], no validation needed
-    if (
-        !Array.isArray(character.allowedSources) &&
-        !(character.allowedSources instanceof Set)
-    ) {
-        errors.push('allowedSources must be an array or Set');
-    }
-    if (!character.abilityScores || typeof character.abilityScores !== 'object') {
-        errors.push('Missing or invalid abilityScores');
-    } else {
-        for (const ability of [
-            'strength',
-            'dexterity',
-            'constitution',
-            'intelligence',
-            'wisdom',
-            'charisma',
-        ]) {
-            if (typeof character.abilityScores[ability] !== 'number') {
-                errors.push(`Missing or invalid ability score: ${ability}`);
-            }
-        }
-    }
-    if (!character.proficiencies || typeof character.proficiencies !== 'object') {
-        errors.push('Missing or invalid proficiencies');
-    }
-    if (!character.hitPoints || typeof character.hitPoints !== 'object') {
-        errors.push('Missing or invalid hitPoints');
-    } else {
-        if (typeof character.hitPoints.current !== 'number')
-            errors.push('Missing or invalid hitPoints.current');
-        if (typeof character.hitPoints.max !== 'number')
-            errors.push('Missing or invalid hitPoints.max');
-        if (typeof character.hitPoints.temp !== 'number')
-            errors.push('Missing or invalid hitPoints.temp');
-    }
-    return { valid: errors.length === 0, errors };
-}
+// Character validation schema - validates structure without providing defaults  
+const characterValidationSchema = z.object({
+    id: z.string().nullable(),
+    name: z.string().min(1, 'Character name is required'),
+    playerName: z.string().optional(),
+    portrait: z.string().optional(),
+
+    abilityScores: z.object({
+        strength: z.number().int().min(1).max(30),
+        dexterity: z.number().int().min(1).max(30),
+        constitution: z.number().int().min(1).max(30),
+        intelligence: z.number().int().min(1).max(30),
+        wisdom: z.number().int().min(1).max(30),
+        charisma: z.number().int().min(1).max(30),
+    }),
+
+    abilityBonuses: z.record(z.string(), z.array(z.unknown())).optional(),
+    pendingAbilityChoices: z.array(z.unknown()).optional(),
+
+    race: z.unknown().nullable().optional(),
+    background: z.unknown().nullable().optional(),
+    size: z.union([z.string(), z.array(z.unknown())]).optional(),
+    speed: z.record(z.string(), z.number()).optional(),
+
+    height: z.string().optional(),
+    weight: z.string().optional(),
+    gender: z.string().optional(),
+    alignment: z.string().optional(),
+    deity: z.string().optional(),
+    backstory: z.string().optional(),
+
+    features: z.record(z.string(), z.unknown()).optional(),
+    feats: z.array(z.unknown()).optional(),
+    featSources: z.union([z.record(z.string(), z.unknown()), z.instanceof(Map)]).optional(),
+
+    proficiencies: z.record(z.string(), z.array(z.string())).optional(),
+    proficiencySources: z.record(z.string(), z.unknown()).optional(),
+    optionalProficiencies: z.record(z.string(), z.unknown()).optional(),
+
+    pendingChoices: z.union([z.record(z.string(), z.unknown()), z.instanceof(Map)]).optional(),
+    instrumentChoices: z.array(z.unknown()).optional(),
+
+    variantRules: z.record(z.string(), z.unknown()).optional(),
+    allowedSources: z.union([z.array(z.string()), z.instanceof(Set)]).optional(),
+
+    equipment: z.union([z.array(z.unknown()), z.record(z.string(), z.unknown())]).optional(),
+    spells: z.array(z.unknown()).optional(),
+
+    hitPoints: z.object({
+        current: z.number(),
+        max: z.number(),
+        temp: z.number(),
+    }),
+
+    inventory: z.record(z.string(), z.unknown()).optional(),
+    spellcasting: z.record(z.string(), z.unknown()).optional(),
+    progression: z.record(z.string(), z.unknown()).optional(),
+    progressionHistory: z.record(z.string(), z.unknown()).optional(),
+
+    notes: z.string().optional(),
+    createdAt: z.string().optional(),
+    lastModified: z.string().optional(),
+}).passthrough();
+
+
 
 export const CharacterSchema = {
     create() {
@@ -249,17 +268,56 @@ export const CharacterSchema = {
         };
     },
 
+    /**
+     * Validates a character object using Zod schema
+     * @param {Object} character - Character object to validate
+     * @returns {{ valid: boolean, errors: string[] }} Validation result
+     */
     validate(character) {
-        const { valid: isValid, errors } = validateCharacterData(character);
+        const result = characterValidationSchema.safeParse(character);
 
-        if (!isValid) {
+        if (!result.success) {
+            const errors = result.error?.issues ?
+                result.error.issues.map(err =>
+                    `${err.path.join('.')}: ${err.message}`
+                ) :
+                ['Validation failed'];
+
             console.warn('[CharacterSchema]', 'Validation failed:', {
                 errors,
-                characterId: character.id,
+                characterId: character?.id,
             });
+
+            return { valid: false, errors };
         }
 
-        return { valid: isValid, errors };
+        return { valid: true, errors: [] };
+    },
+
+    /**
+     * Parses and validates a character object, returning the validated data
+     * @param {Object} character - Character object to parse
+     * @returns {Object} Validated and transformed character data
+     * @throws {Error} If validation fails
+     */
+    parse(character) {
+        try {
+            return characterValidationSchema.parse(character);
+        } catch (error) {
+            console.error('[CharacterSchema]', 'Parse failed:', {
+                error: error.message,
+                characterId: character?.id,
+            });
+            throw error;
+        }
+    },
+
+    /**
+     * Gets the Zod schema for external use
+     * @returns {z.ZodObject} The character validation schema
+     */
+    getSchema() {
+        return characterValidationSchema;
     },
 
     touch(character) {

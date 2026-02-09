@@ -1,5 +1,7 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
 import TextProcessor from '../lib/TextProcessor.js';
+import { actionIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 class ActionService extends BaseDataService {
@@ -40,10 +42,24 @@ class ActionService extends BaseDataService {
 	}
 
 	getAction(actionName) {
-		if (!this._actionMap) return null;
-		return (
-			this._actionMap.get(TextProcessor.normalizeForLookup(actionName)) || null
+		const validated = validateInput(
+			actionIdentifierSchema,
+			{ name: actionName },
+			'Invalid action identifier',
 		);
+
+		if (!this._actionMap) {
+			throw new NotFoundError('Action', validated.name, {
+				reason: 'Action data not initialized',
+			});
+		}
+
+		const action = this._actionMap.get(TextProcessor.normalizeForLookup(validated.name));
+		if (!action) {
+			throw new NotFoundError('Action', validated.name);
+		}
+
+		return action;
 	}
 }
 

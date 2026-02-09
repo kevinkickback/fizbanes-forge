@@ -1,7 +1,4 @@
-import { produce, setAutoFreeze } from 'immer';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-
-setAutoFreeze(false);
 
 class AppStateImpl {
 	constructor() {
@@ -45,9 +42,7 @@ class AppStateImpl {
 	setState(updates) {
 		const oldState = this.state;
 
-		this.state = produce(this.state, (draft) => {
-			Object.assign(draft, updates);
-		});
+		this.state = { ...this.state, ...updates };
 
 		eventBus.emit(EVENTS.STATE_CHANGED, this.state, oldState);
 
@@ -123,9 +118,10 @@ class AppStateImpl {
 
 	clear() {
 		console.warn('[AppState]', 'Clearing all state');
+		const oldState = this.state;
 		const initialState = new AppStateImpl().state;
-		this.state = initialState;
-		eventBus.emit(EVENTS.STATE_CHANGED, this.state, {});
+		this.state = { ...initialState };
+		eventBus.emit(EVENTS.STATE_CHANGED, this.state, oldState);
 	}
 }
 

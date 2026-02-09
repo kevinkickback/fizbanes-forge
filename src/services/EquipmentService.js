@@ -1,4 +1,9 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import {
+	addItemArgsSchema,
+	removeItemArgsSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 
 class EquipmentService {
 	constructor() {
@@ -25,37 +30,40 @@ class EquipmentService {
 	}
 
 	addItem(character, itemData, quantity = 1, source = 'Manual') {
-		if (!character.inventory) {
-			console.warn('[EquipmentService]', 'Character missing inventory');
-			return null;
-		}
+		const validated = validateInput(
+			addItemArgsSchema,
+			{ character, itemData, quantity, source },
+			'Invalid parameters for addItem',
+		);
 
-		if (!itemData || !itemData.name) {
-			console.warn('[EquipmentService]', 'Invalid item data');
+		const { character: char, itemData: item, quantity: qty, source: src } = validated;
+
+		if (!char.inventory) {
+			console.warn('[EquipmentService]', 'Character missing inventory');
 			return null;
 		}
 
 		try {
 			const itemInstance = {
 				id: this._generateItemInstanceId(),
-				name: itemData.name,
-				baseItemId: itemData.id || itemData.name,
-				quantity: Math.max(1, quantity),
+				name: item.name,
+				baseItemId: item.id || item.name,
+				quantity: Math.max(1, qty),
 				equipped: false,
 				attuned: false,
-				cost: itemData.cost ? { ...itemData.cost } : null,
-				weight: itemData.weight || 0,
-				source: itemData.source || 'Unknown',
+				cost: item.cost ? { ...item.cost } : null,
+				weight: item.weight || 0,
+				source: item.source || 'Unknown',
 				metadata: {
 					addedAt: new Date().toISOString(),
-					addedFrom: source,
+					addedFrom: src,
 				},
 			};
 
-			character.inventory.items.push(itemInstance);
-			this._updateInventoryWeight(character);
+			char.inventory.items.push(itemInstance);
+			this._updateInventoryWeight(char);
 
-			eventBus.emit(EVENTS.ITEM_ADDED, character, itemInstance);
+			eventBus.emit(EVENTS.ITEM_ADDED, char, itemInstance);
 			return itemInstance;
 		} catch (error) {
 			console.error('[EquipmentService]', 'Failed to add item', error);
@@ -64,40 +72,48 @@ class EquipmentService {
 	}
 
 	removeItem(character, itemInstanceId, quantity = 1) {
-		if (!character.inventory) return false;
+		const validated = validateInput(
+			removeItemArgsSchema,
+			{ character, itemInstanceId, quantity },
+			'Invalid parameters for removeItem',
+		);
 
-		const itemIndex = character.inventory.items.findIndex(
-			(item) => item.id === itemInstanceId,
+		const { character: char, itemInstanceId: instanceId, quantity: qty } = validated;
+
+		if (!char.inventory) return false;
+
+		const itemIndex = char.inventory.items.findIndex(
+			(item) => item.id === instanceId,
 		);
 
 		if (itemIndex === -1) {
-			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId });
+			console.warn('[EquipmentService]', 'Item not found', { itemInstanceId: instanceId });
 			return false;
 		}
 
-		const item = character.inventory.items[itemIndex];
+		const item = char.inventory.items[itemIndex];
 
 		// If removing all quantity, delete the item entirely
-		if (quantity >= item.quantity) {
+		if (qty >= item.quantity) {
 			// Unequip if needed
 			if (item.equipped) {
-				this.unequipItem(character, itemInstanceId);
+				this.unequipItem(char, instanceId);
 			}
 
 			// Unatune if needed
 			if (item.attuned) {
-				this.unattuneItem(character, itemInstanceId);
+				this.unattuneItem(char, instanceId);
 			}
 
-			character.inventory.items.splice(itemIndex, 1);
+			char.inventory.items.splice(itemIndex, 1);
 		} else {
 			// Reduce quantity
-			item.quantity -= quantity;
+			item.quantity -= qty;
 		}
 
-		this._updateInventoryWeight(character);
+		this._updateInventoryWeight(char);
 
-		eventBus.emit(EVENTS.ITEM_REMOVED, character, item);
+		eventBus.emit(EVENTS.ITEM_REMOVED, char, item);
 		return true;
 	}
 

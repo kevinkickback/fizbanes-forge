@@ -453,7 +453,7 @@ export class CharacterStepRace {
 	async validate() {
 		const raceValue = this._raceSelect?.value;
 		if (!raceValue || raceValue === '') {
-			console.warn('[Step2Race]', 'No race selected');
+			this._raceSelect?.focus();
 			return false;
 		}
 
@@ -474,7 +474,7 @@ export class CharacterStepRace {
 		if (isRequired) {
 			const subraceValue = this._subraceSelect?.value;
 			if (!subraceValue) {
-				console.warn('[Step2Race]', 'Subrace required but not selected');
+				this._subraceSelect?.focus();
 				return false;
 			}
 		}

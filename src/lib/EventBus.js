@@ -91,6 +91,7 @@ export const EVENTS = {
 
 	// Data source events
 	DATA_SOURCE_CHANGED: 'dataSource:changed',
+	SOURCES_ALLOWED_CHANGED: 'sources:allowed-changed',
 
 	// Service lifecycle
 	SERVICE_INITIALIZED: 'service:initialized',

@@ -1,4 +1,10 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { NotFoundError } from '../lib/Errors.js';
+import {
+	optionalFeatureIdentifierSchema,
+	optionalFeatureTypeSchema,
+	validateInput,
+} from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
 class OptionalFeatureService extends BaseDataService {
@@ -46,7 +52,13 @@ class OptionalFeatureService extends BaseDataService {
 	}
 
 	getFeaturesByType(featureTypes) {
-		const types = Array.isArray(featureTypes) ? featureTypes : [featureTypes];
+		const validated = validateInput(
+			optionalFeatureTypeSchema,
+			featureTypes,
+			'Invalid feature type',
+		);
+
+		const types = Array.isArray(validated) ? validated : [validated];
 		return this.getAllOptionalFeatures().filter((feature) =>
 			feature.featureType?.some((ft) => types.includes(ft)),
 		);
@@ -156,15 +168,23 @@ class OptionalFeatureService extends BaseDataService {
 		return { met: reasons.length === 0, reasons };
 	}
 
-	getFeatureByName(name, source = null) {
+	getFeatureByName(name, source = 'PHB') {
+		const validated = validateInput(
+			optionalFeatureIdentifierSchema,
+			{ name, source },
+			'Invalid optional feature identifier',
+		);
+
 		const features = this.getAllOptionalFeatures();
-		if (source) {
-			return (
-				features.find((f) => f.name === name && f.source === source) ||
-				features.find((f) => f.name === name)
-			);
+		const feature =
+			features.find((f) => f.name === validated.name && f.source === validated.source) ||
+			features.find((f) => f.name === validated.name);
+
+		if (!feature) {
+			throw new NotFoundError('Optional Feature', `${validated.name} (${validated.source})`);
 		}
-		return features.find((f) => f.name === name);
+
+		return feature;
 	}
 }
 
