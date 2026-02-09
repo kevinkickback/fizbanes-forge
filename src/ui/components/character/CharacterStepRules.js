@@ -103,7 +103,7 @@ export class CharacterStepRules {
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div id="sourceBookHeader" style="display: none;"></div>
+                                <div id="sourceBookHeader" class="u-hidden"></div>
                                 <div id="sourceBookSelection">
                                     <!-- Source book toggles will be added here -->
                                 </div>

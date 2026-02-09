@@ -22,11 +22,11 @@ class BonusNotesView {
 			const contentDisplay = isCollapsed ? 'none' : 'block';
 
 			let bonusContent = `
-				<div class="sources-collapsible-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+				<div class="sources-collapsible-header u-collapsible-header">
 					<h6 class="mb-0">Sources</h6>
-					<i class="fas ${chevronClass}" style="font-size: 0.875rem;"></i>
+					<i class="fas ${chevronClass} u-text-md"></i>
 				</div>
-				<div class="sources-collapsible-content" style="display: ${contentDisplay};">
+				<div class="sources-collapsible-content ${isCollapsed ? 'u-hidden' : 'u-block'}">
 			`;
 
 			const raceBonuses = this._processRaceBonuses(bonusGroups);
@@ -73,15 +73,17 @@ class BonusNotesView {
 
 		if (!content || !icon) return;
 
-		const isCurrentlyCollapsed = content.style.display === 'none';
+		const isCurrentlyCollapsed = content.classList.contains('u-hidden');
 
 		if (isCurrentlyCollapsed) {
-			content.style.display = 'block';
-			icon.className = 'fas fa-chevron-up';
+			content.classList.remove('u-hidden');
+			content.classList.add('u-block');
+			icon.className = 'fas fa-chevron-up u-text-md';
 			localStorage.setItem(this._storageKey, 'false');
 		} else {
-			content.style.display = 'none';
-			icon.className = 'fas fa-chevron-down';
+			content.classList.remove('u-block');
+			content.classList.add('u-hidden');
+			icon.className = 'fas fa-chevron-down u-text-md';
 			localStorage.setItem(this._storageKey, 'true');
 		}
 	}

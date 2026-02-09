@@ -180,7 +180,7 @@ export class LevelUpModal {
 					)
 					.join('')}
                             </select>
-                            <button class="btn btn-primary" id="addMulticlassBtn" style="white-space: nowrap;">
+                            <button class="btn btn-primary u-nowrap" id="addMulticlassBtn">
                                 <i class="fas fa-plus"></i> Add Class
                             </button>
                         </div>

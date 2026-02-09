@@ -148,8 +148,7 @@ export class FeatsPageController extends BasePageController {
         if (!character) return;
 
         if (featSourcesContainer) {
-            featSourcesContainer.style.display =
-                character.feats?.length > 0 ? 'block' : 'none';
+            featSourcesContainer.classList.toggle('u-hidden', !(character.feats?.length > 0));
         }
     }
 }

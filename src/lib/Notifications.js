@@ -82,9 +82,9 @@ function updateNotificationBadge() {
 	const unreadCount = notificationHistory.filter((n) => !n.read).length;
 	if (unreadCount > 0) {
 		badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-		badge.style.display = 'block';
+		badge.classList.remove('u-hidden');
 	} else {
-		badge.style.display = 'none';
+		badge.classList.add('u-hidden');
 	}
 }
 

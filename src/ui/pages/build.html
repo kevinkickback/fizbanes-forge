@@ -46,13 +46,12 @@
                 <!-- Left Panel: Class Choices/Actions -->
                 <div class="choices-panel" id="classChoicesPanel">
                     <!-- Class tabs for multiclass characters -->
-                    <div class="class-tabs" id="classTabs" style="display:none;">
-                        <div class="nav nav-pills" id="classTabsList"
-                            style="flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap;"></div>
+                    <div class="class-tabs u-hidden" id="classTabs">
+                        <div class="nav nav-pills u-flex-nowrap-scroll" id="classTabsList"></div>
                     </div>
 
                     <!-- Class and subclass dropdowns hidden - now managed through class features -->
-                    <div class="class-selectors" style="display: none;">
+                    <div class="class-selectors u-hidden">
                         <div class="class-select-container">
                             <select class="form-select" id="classSelect">
                                 <!-- Options will be populated dynamically -->
@@ -66,15 +65,15 @@
                     </div>
 
                     <!-- Class Choices Section -->
-                    <div id="classChoicesContainer" style="display: none;">
+                    <div id="classChoicesContainer" class="u-hidden">
 
                         <!-- Subclass Choice Section -->
-                        <div id="subclassChoiceSection" style="display: none;">
+                        <div id="subclassChoiceSection" class="u-hidden">
                             <!-- Dynamically populated when subclass choice is needed -->
                         </div>
 
                         <!-- ASI/Feat Choice Section -->
-                        <div id="asiChoiceSection" style="display: none;">
+                        <div id="asiChoiceSection" class="u-hidden">
                             <!-- Dynamically populated when ASI is available -->
                         </div>
 
@@ -84,7 +83,7 @@
                         </div>
 
                         <!-- Spell Notification Section -->
-                        <div id="spellNotificationSection" style="display: none;">
+                        <div id="spellNotificationSection" class="u-hidden">
                             <!-- Dynamically populated when spells are available -->
                         </div>
                     </div>
@@ -136,7 +135,7 @@
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Ability Scores</h5>
                 <!-- Point Buy Counter -->
-                <div id="pointBuyCounter" style="display: none;">
+                <div id="pointBuyCounter" class="u-hidden">
                     <div class="points-remaining-display">
                         <strong>Points Remaining:</strong> <span id="pointBuyDisplay">27</span>
                     </div>

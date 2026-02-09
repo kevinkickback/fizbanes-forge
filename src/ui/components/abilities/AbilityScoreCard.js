@@ -74,9 +74,6 @@ class AbilityScoreCard {
 			this._setupAbilityHoverListeners();
 			await this._showDefaultInfoPlaceholder();
 
-			// Add custom styles
-			this._addStyles();
-
 			// Initial render
 			this.render();
 
@@ -783,74 +780,6 @@ class AbilityScoreCard {
 			clearTimeout(timeout);
 			timeout = setTimeout(later, wait);
 		};
-	}
-
-	_addStyles() {
-		const style = document.createElement('style');
-		style.id = 'ability-score-methods-styles';
-
-		style.textContent = `
-            .ability-score-method-info {
-                margin-bottom: 12px;
-            }
-            
-            .ability-score-method-info .card {
-                background-color: var(--card-bg-color, #f8f9fa);
-                border-color: var(--border-color, #dee2e6);
-                border-radius: var(--border-radius, 4px);
-            }
-            
-            .point-cost {
-                font-size: 11px;
-                font-weight: 600;
-                margin-left: 8px;
-                padding: 2px 6px;
-                border-radius: 4px;
-                display: inline-block;
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-            }
-            
-            .point-cost.low {
-                color: #0d6efd;
-            }
-            
-            .point-cost.medium {
-                color: #fd7e14;
-            }
-            
-            .point-cost.high {
-                color: #dc3545;
-            }
-            
-            .ability-controls {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
-            }
-            
-            .standard-array-select {
-                width: 100%;
-                max-width: 120px;
-                margin: 0 auto;
-            }
-            
-            @keyframes flashBorder {
-                0% { border-color: var(--border-color, #dee2e6); }
-                50% { border-color: var(--accent-color); }
-                100% { border-color: var(--border-color, #dee2e6); }
-            }
-            
-            .ability-score-box.flash-border {
-                animation: flashBorder 0.5s ease;
-            }
-        `;
-
-		// Only add if not already present
-		if (!document.getElementById('ability-score-methods-styles')) {
-			document.head.appendChild(style);
-		}
 	}
 
 	/**

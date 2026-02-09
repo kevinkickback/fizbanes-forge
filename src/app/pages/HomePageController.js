@@ -223,7 +223,7 @@ export class HomePageController extends BasePageController {
 
                 return `
 					<div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
-						<div class="character-portrait" style="background-image: url('${portraitUrl}');"></div>
+						<div class="character-portrait" data-portrait-url="${portraitUrl}"></div>
 						<div class="card-header py-2">
 							<h5 class="mb-0">
 								<i class="fas fa-user me-2"></i>
@@ -272,6 +272,11 @@ export class HomePageController extends BasePageController {
             `;
             })
             .join('');
+
+        // Apply portrait backgrounds using data attributes (CSP-compliant)
+        characterList.querySelectorAll('.character-portrait[data-portrait-url]').forEach((el) => {
+            el.style.backgroundImage = `url('${el.dataset.portraitUrl}')`;
+        });
     }
 
     _setupCharacterCardListeners(container) {

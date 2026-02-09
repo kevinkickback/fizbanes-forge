@@ -103,7 +103,7 @@ export class CharacterStepAbilityScores {
                     <h6>${ability.toUpperCase()}</h6>
                     <div class="score">${totalScore}</div>
                     <div class="modifier">${modifier}</div>
-                    ${racialBonus !== 0 ? `<div class="bonus ${racialBonus < 0 ? 'negative' : ''}" style="display: block;">${racialBonus >= 0 ? '+' : ''}${racialBonus}</div>` : '<div class="bonus" style="display: none;"></div>'}
+                    ${racialBonus !== 0 ? `<div class="bonus ${racialBonus < 0 ? 'negative' : ''} u-block">${racialBonus >= 0 ? '+' : ''}${racialBonus}</div>` : '<div class="bonus u-hidden"></div>'}
                     <div class="ability-controls mt-2" id="controls-${ability}">
                         <!-- Controls will be added dynamically -->
                     </div>

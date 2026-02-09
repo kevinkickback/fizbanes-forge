@@ -69,3 +69,165 @@
 .sort-select {
 	width: auto;
 }
+
+/* CSP-compliant utilities to replace inline styles */
+.u-hidden {
+	display: none !important;
+}
+
+.u-block {
+	display: block !important;
+}
+
+/* Modal sizing */
+.u-modal-sm {
+	max-width: 400px !important;
+	min-width: 300px !important;
+}
+
+.u-modal-md {
+	max-width: 500px !important;
+	min-width: 400px !important;
+}
+
+.u-modal-lg {
+	max-width: 600px !important;
+	width: 90% !important;
+	max-height: 80vh !important;
+}
+
+.u-modal-content-scroll {
+	max-height: 80vh !important;
+	overflow-y: auto !important;
+}
+
+/* Modal body flex layout (BaseSelectorModal) */
+.u-modal-body-flex {
+	overflow: hidden !important;
+	display: flex !important;
+	flex-direction: column !important;
+	max-height: 100% !important;
+}
+
+/* Spacing */
+.u-p-modal-body {
+	padding: 3rem 2rem !important;
+}
+
+.u-p-2 {
+	padding: 2rem !important;
+}
+
+.u-mt-xs {
+	margin-top: 0.5rem !important;
+}
+
+/* Spinner sizing */
+.u-spinner-lg {
+	width: 50px !important;
+	height: 50px !important;
+}
+
+/* Loading specific */
+.u-loading-detail-min-h {
+	min-height: 1.2em;
+}
+
+/* Flexbox tab scrolling */
+.u-flex-nowrap-scroll {
+	flex-wrap: nowrap !important;
+	overflow-x: auto !important;
+	overflow-y: hidden !important;
+	white-space: nowrap !important;
+}
+
+/* Progress bar initial */
+.u-progress-init {
+	width: 0% !important;
+}
+
+/* Opacity */
+.u-opacity-60 {
+	opacity: 0.6 !important;
+}
+
+/* Cursor */
+.u-cursor-pointer {
+	cursor: pointer !important;
+}
+
+/* Text */
+.u-pre-line {
+	white-space: pre-line !important;
+}
+
+.u-nowrap {
+	white-space: nowrap !important;
+}
+
+/* Font sizes */
+.u-text-xs {
+	font-size: 0.7rem !important;
+}
+
+.u-text-sm {
+	font-size: 0.75rem !important;
+}
+
+.u-text-md {
+	font-size: 0.875rem !important;
+}
+
+.u-text-2x {
+	font-size: 2rem !important;
+}
+
+/* Flex inline select */
+.u-inline-select {
+	width: auto !important;
+	flex-shrink: 0 !important;
+}
+
+/* Filter row single column override */
+.u-grid-single-col {
+	grid-template-columns: 1fr !important;
+}
+
+/* Selected items container */
+.u-selected-items-box {
+	min-height: 32px;
+	max-height: 200px;
+	overflow-y: auto;
+}
+
+/* Collapsible header */
+.u-collapsible-header {
+	cursor: pointer;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 0.5rem;
+}
+
+/* Accent color utilities */
+.u-bg-accent {
+	background-color: var(--accent-color) !important;
+}
+
+.u-text-accent {
+	color: var(--accent-color) !important;
+}
+
+/* Themed modal */
+.u-modal-themed .modal-content {
+	background-color: var(--surface-color);
+	border-color: var(--border-color);
+}
+
+.u-modal-themed .modal-header {
+	border-bottom-color: var(--border-color);
+}
+
+.u-modal-themed .modal-footer {
+	border-top-color: var(--border-color);
+}

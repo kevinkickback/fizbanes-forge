@@ -17,8 +17,8 @@ docs/CODEBASE_ARCHITECTURE.md
 
 # Dependencies
 node_modules/
-src/renderer/assets/bootstrap/
-src/renderer/assets/fontawesome/
+src/ui/assets/bootstrap/
+src/ui/assets/fontawesome/
 src/data/
 
 # Playwright results

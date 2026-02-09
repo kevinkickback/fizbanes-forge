@@ -70,14 +70,14 @@ function _updateServiceFailureBanner(failedServices = []) {
 		Array.isArray(failedServices) && failedServices.length > 0;
 
 	if (!hasFailures) {
-		banner.style.display = 'none';
+		banner.classList.add('u-hidden');
 		banner.setAttribute('aria-hidden', 'true');
 		list.textContent = '';
 		return;
 	}
 
 	list.textContent = `Failed to load: ${failedServices.join(', ')}`;
-	banner.style.display = 'flex';
+	banner.classList.remove('u-hidden');
 	banner.setAttribute('aria-hidden', 'false');
 
 	if (reloadButton && !reloadButton.dataset.bound) {

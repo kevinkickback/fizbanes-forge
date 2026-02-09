@@ -112,7 +112,7 @@ export class BaseSelectorModal {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     
-                    <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; max-height: 100%;">
+                    <div class="modal-body u-modal-body-flex">
                         <!-- Search Bar -->
                         <div class="d-flex gap-2 mb-2">
                             ${this.config.buildFilters
@@ -139,7 +139,7 @@ export class BaseSelectorModal {
 			}
                         
                         <!-- Filters and Results (spell-filter-row layout) -->
-                        <div class="spell-filter-row" ${this.config.buildFilters ? '' : 'style="grid-template-columns: 1fr;"'}>
+                        <div class="spell-filter-row ${this.config.buildFilters ? '' : 'u-grid-single-col'}">
                             <!-- Filters Panel (only shown if buildFilters provided) -->
                             ${this.config.buildFilters
 				? `<div class="spell-filters-column">
@@ -165,7 +165,7 @@ export class BaseSelectorModal {
                                             <span class="badge bg-info">0 / ∞</span>
                                         </div>
                                     </div>
-                                    <div class="selected-spells-container" style="min-height: 32px; max-height: 200px; overflow-y: auto;">
+                                    <div class="selected-spells-container u-selected-items-box">
                                         <em class="text-muted">No items selected</em>
                                     </div>
                                 </div>
@@ -481,7 +481,7 @@ export class BaseSelectorModal {
 			return `
                 <span class="badge bg-secondary me-2 mb-2">
                     ${item.name}
-                    <button class="btn-close btn-close-white ms-2" data-deselect="${id}" style="font-size: 0.7rem;"></button>
+                    <button class="btn-close btn-close-white ms-2 u-text-xs" data-deselect="${id}"></button>
                 </span>
             `;
 		});

@@ -78,7 +78,7 @@ export class NotificationCenter {
 		if (notifications.length === 0) {
 			this._listContainer.innerHTML = `
 				<div class="text-center py-4">
-					<i class="fas fa-inbox" style="font-size: 2rem;"></i>
+					<i class="fas fa-inbox u-text-2x"></i>
 					<p class="mt-2">No notifications yet</p>
 				</div>
 			`;
@@ -131,7 +131,7 @@ export class NotificationCenter {
 				if (this._listContainer.children.length === 0) {
 					this._listContainer.innerHTML = `
 						<div class="text-center py-4">
-							<i class="fas fa-inbox" style="font-size: 2rem;"></i>
+							<i class="fas fa-inbox u-text-2x"></i>
 							<p class="mt-2">No notifications yet</p>
 						</div>
 					`;

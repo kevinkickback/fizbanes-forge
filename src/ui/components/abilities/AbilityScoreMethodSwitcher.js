@@ -87,7 +87,7 @@ class MethodSwitcherView {
 	showPointBuyCounter() {
 		const counterContainer = document.getElementById('pointBuyCounter');
 		if (counterContainer) {
-			counterContainer.style.display = 'block';
+			counterContainer.classList.remove('u-hidden');
 			this.updatePointBuyCounter();
 		}
 	}
@@ -95,7 +95,7 @@ class MethodSwitcherView {
 	hidePointBuyCounter() {
 		const counterContainer = document.getElementById('pointBuyCounter');
 		if (counterContainer) {
-			counterContainer.style.display = 'none';
+			counterContainer.classList.add('u-hidden');
 		}
 	}
 

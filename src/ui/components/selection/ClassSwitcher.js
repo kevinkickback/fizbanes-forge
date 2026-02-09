@@ -37,7 +37,7 @@ export class ClassSwitcher {
         const html = `
 			<div class="d-flex align-items-center gap-2 me-auto">
 				<label class="mb-0 text-nowrap"><strong>${this.label}</strong></label>
-				<select class="form-select form-select-sm" id="${this.selectorId}" style="width: auto; flex-shrink: 0;">
+				<select class="form-select form-select-sm u-inline-select" id="${this.selectorId}">
 					${optionsHtml}
 				</select>
 			</div>

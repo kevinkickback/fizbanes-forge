@@ -266,7 +266,7 @@ export class ClassCard {
 		const classes = character?.progression?.classes || [];
 
 		if (!classes.length || classes.length < 2) {
-			this._classTabsWrapper.style.display = 'none';
+			this._classTabsWrapper.classList.add('u-hidden');
 			this._classTabsList.innerHTML = '';
 			this._activeClassTab = classes[0]?.name || null;
 			return;
@@ -285,14 +285,14 @@ export class ClassCard {
 			.map((cls) => {
 				const isActive = cls.name === this._activeClassTab;
 				const activeClass = isActive ? 'active' : '';
-				return `<button type="button" class="nav-link py-1 px-3 ${activeClass}" data-class-name="${cls.name}" style="font-size: 0.875rem;">
-					${cls.name} <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;">Lv ${cls.levels}</span>
+				return `<button type="button" class="nav-link py-1 px-3 u-text-md ${activeClass}" data-class-name="${cls.name}">
+					${cls.name} <span class="badge bg-secondary ms-1 u-text-sm">Lv ${cls.levels}</span>
 				</button>`;
 			})
 			.join('');
 
 		this._classTabsList.innerHTML = buttonsHtml;
-		this._classTabsWrapper.style.display = 'block';
+		this._classTabsWrapper.classList.remove('u-hidden');
 
 		// Bind click handlers
 		this._classTabsList.querySelectorAll('[data-class-name]').forEach((btn) => {
@@ -464,7 +464,7 @@ export class ClassCard {
 						</label>
 					</div>
 					
-					<div id="asiAbilitySelectors_${classLevel}" class="ms-4 mb-3" style="display: none;">
+					<div id="asiAbilitySelectors_${classLevel}" class="ms-4 mb-3 u-hidden">
 						<div class="row g-2">
 							<div class="col-md-6">
 								<label class="form-label small">Ability 1</label>
@@ -486,7 +486,7 @@ export class ClassCard {
 								</select>
 							</div>
 						</div>
-						<div class="row g-2 mt-2" id="asiSecondAbility_${classLevel}" style="display: none;">
+						<div class="row g-2 mt-2 u-hidden" id="asiSecondAbility_${classLevel}">
 							<div class="col-md-6">
 								<label class="form-label small">Ability 2</label>
 								<select class="form-select form-select-sm" id="asiAbility2_${classLevel}">
@@ -516,7 +516,7 @@ export class ClassCard {
 						</label>
 					</div>
 					
-					<div id="asiFeatButton_${classLevel}" class="ms-4 mt-2" style="display: none;">
+					<div id="asiFeatButton_${classLevel}" class="ms-4 mt-2 u-hidden">
 						<button class="btn btn-secondary btn-sm" id="browseFeat_${classLevel}">
 							<i class="fas fa-arrow-down"></i> Browse Feats Below
 						</button>
@@ -524,7 +524,7 @@ export class ClassCard {
 				</div>
 			</div>
 		`;
-		container.style.display = 'block';
+		container.classList.remove('u-hidden');
 
 		// Attach event listeners
 		this._attachASISectionListeners(classLevel);
@@ -539,11 +539,8 @@ export class ClassCard {
 
 		if (standardRadio && asiAbilitySelectors) {
 			this._cleanup.on(standardRadio, 'change', () => {
-				asiAbilitySelectors.style.display = standardRadio.checked
-					? 'block'
-					: 'none';
-				document.getElementById(`asiFeatButton_${classLevel}`).style.display =
-					'none';
+				asiAbilitySelectors.classList.toggle('u-hidden', !standardRadio.checked);
+				document.getElementById(`asiFeatButton_${classLevel}`).classList.add('u-hidden');
 			});
 		}
 
@@ -555,9 +552,9 @@ export class ClassCard {
 
 		if (featRadio && asiFeatButton) {
 			this._cleanup.on(featRadio, 'change', () => {
-				asiFeatButton.style.display = featRadio.checked ? 'block' : 'none';
+				asiFeatButton.classList.toggle('u-hidden', !featRadio.checked);
 				if (asiAbilitySelectors) {
-					asiAbilitySelectors.style.display = 'none';
+					asiAbilitySelectors.classList.add('u-hidden');
 				}
 			});
 		}
@@ -570,8 +567,7 @@ export class ClassCard {
 
 		if (bonus1Select && secondAbilityRow) {
 			this._cleanup.on(bonus1Select, 'change', () => {
-				secondAbilityRow.style.display =
-					bonus1Select.value === '1' ? 'block' : 'none';
+				secondAbilityRow.classList.toggle('u-hidden', bonus1Select.value !== '1');
 			});
 		}
 
@@ -722,7 +718,7 @@ export class ClassCard {
 							? 'bg-danger'
 							: '';
 				badges.push(
-					`<span class="badge me-1 ${cantripClass}" style="${!cantripClass ? 'background-color: var(--accent-color);' : ''}">Cantrips ${cantripCount}/${choice.cantrips}</span>`,
+					`<span class="badge me-1 ${cantripClass} ${!cantripClass ? 'u-bg-accent' : ''}">Cantrips ${cantripCount}/${choice.cantrips}</span>`,
 				);
 			}
 			if (choice.spells > 0) {
@@ -738,7 +734,7 @@ export class ClassCard {
 				const spellLevelName =
 					SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level';
 				badges.push(
-					`<span class="badge ${spellClass}" style="${!spellClass ? 'background-color: var(--accent-color);' : ''}">${spellLevelName} ${spellCount}/${choice.spells}</span>`,
+					`<span class="badge ${spellClass} ${!spellClass ? 'u-bg-accent' : ''}">${spellLevelName} ${spellCount}/${choice.spells}</span>`,
 				);
 			}
 			const badgeDisplay = badges.join('');
@@ -777,7 +773,7 @@ export class ClassCard {
 		}
 
 		container.innerHTML = cardsHTML;
-		container.style.display = 'block';
+		container.classList.remove('u-hidden');
 
 		// Attach listeners for spell selection buttons
 		const spellButtons = container.querySelectorAll(
@@ -1018,7 +1014,7 @@ export class ClassCard {
 	_hideSubclassNotification() {
 		const container = document.getElementById('subclassChoiceSection');
 		if (container) {
-			container.style.display = 'none';
+			container.classList.add('u-hidden');
 			container.innerHTML = '';
 		}
 	}
@@ -1026,7 +1022,7 @@ export class ClassCard {
 	_hideASISection() {
 		const container = document.getElementById('asiChoiceSection');
 		if (container) {
-			container.style.display = 'none';
+			container.classList.add('u-hidden');
 			container.innerHTML = '';
 		}
 	}
@@ -1034,7 +1030,7 @@ export class ClassCard {
 	_hideSpellNotification() {
 		const container = document.getElementById('spellNotificationSection');
 		if (container) {
-			container.style.display = 'none';
+			container.classList.add('u-hidden');
 			container.innerHTML = '';
 		}
 	}
@@ -2146,7 +2142,7 @@ export class ClassCard {
 				data-hover-feature-name="${feature.name}" data-hover-feature-level="${feature.level}"
 				data-hover-feature-source="${feature.source || 'PHB'}">
 				<div class="d-flex align-items-center mb-1">
-					<i class="fas fa-bookmark me-2" style="color: var(--accent-color)"></i>
+					<i class="fas fa-bookmark me-2 u-text-accent"></i>
 					<strong>${feature.name}</strong>
 				</div>
 				<div class="small text-muted">${firstString ? `<p>${firstString}</p>` : ''}</div>
@@ -2778,14 +2774,14 @@ export class ClassCard {
 	_showClassChoices() {
 		const container = document.getElementById('classChoicesContainer');
 		if (container) {
-			container.style.display = 'block';
+			container.classList.remove('u-hidden');
 		}
 	}
 
 	_hideClassChoices() {
 		const container = document.getElementById('classChoicesContainer');
 		if (container) {
-			container.style.display = 'none';
+			container.classList.add('u-hidden');
 		}
 	}
 

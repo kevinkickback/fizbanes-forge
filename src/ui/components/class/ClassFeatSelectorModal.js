@@ -80,7 +80,7 @@ export class ClassFeatSelectorModal {
 					? (_ctx, panel, cleanup) => {
 						panel.innerHTML = `
                         <div class="card mb-3">
-                            <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse"
+                            <div class="card-header u-cursor-pointer" data-bs-toggle="collapse"
                                 data-bs-target="#collapsePrereqs" aria-expanded="true">
                                 <h6 class="mb-0 d-flex align-items-center">
                                     <span>Restrictions</span>
