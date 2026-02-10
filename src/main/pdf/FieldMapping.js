@@ -208,6 +208,41 @@ function formatAllProficiencies(characterData) {
     return sections.join('\n');
 }
 
+/**
+ * Flatten a 5etools entry (or array of entries) to plain text.
+ * Handles nested {type:'entries', entries:[...]} structures.
+ */
+function flattenEntries(entry) {
+    if (!entry) return '';
+    if (typeof entry === 'string') return entry;
+    if (Array.isArray(entry)) return entry.map(flattenEntries).filter(Boolean).join(' ');
+    if (typeof entry === 'object') {
+        if (entry.entries) return flattenEntries(entry.entries);
+        if (entry.type === 'list' && Array.isArray(entry.items)) {
+            return entry.items.map(flattenEntries).filter(Boolean).join('; ');
+        }
+    }
+    return '';
+}
+
+function formatRacialTraits(characterData) {
+    const parts = [];
+    const features = characterData.features;
+    if (features?.darkvision) parts.push(`Darkvision ${features.darkvision} ft.`);
+    if (features?.resistances?.length) {
+        parts.push(`Resistances: ${features.resistances.join(', ')}`);
+    }
+    if (features?.traits && typeof features.traits === 'object') {
+        for (const [name, data] of Object.entries(features.traits)) {
+            const source = typeof data === 'object' ? data.source : '';
+            if (source && source !== 'Race' && source !== 'Subrace') continue;
+            const desc = typeof data === 'object' ? flattenEntries(data.description) : String(data || '');
+            parts.push(desc ? `${name}. ${desc}` : name);
+        }
+    }
+    return parts.join('\n\n');
+}
+
 function formatFeaturesAndTraits(characterData) {
     const parts = [];
     const features = characterData.features;
@@ -217,8 +252,8 @@ function formatFeaturesAndTraits(characterData) {
     }
     if (features?.traits && typeof features.traits === 'object') {
         for (const [name, data] of Object.entries(features.traits)) {
-            const desc = typeof data === 'object' ? data.description : data;
-            parts.push(desc ? `${name}: ${desc}` : name);
+            const desc = typeof data === 'object' ? flattenEntries(data.description) : String(data || '');
+            parts.push(desc ? `${name}. ${desc}` : name);
         }
     }
     if (characterData.feats?.length) {
@@ -239,6 +274,25 @@ function formatEquipment(characterData) {
             return `${item.name || 'Unknown'}${qty}`;
         })
         .join('\n');
+}
+
+const ALLY_DISPLAY_NAMES = {
+    'harpers': 'The Harpers',
+    'zhentarim': 'The Zhentarim',
+    'emerald-enclave': 'Emerald Enclave',
+    'lords-alliance': "Lords' Alliance",
+    'order-gauntlet': 'Order of the Gauntlet',
+};
+
+function formatAlliesOrganizations(characterData) {
+    const allies = characterData.alliesAndOrganizations;
+    if (!allies) return { left: '', right: '' };
+    const selected = allies.selectedAlly || '';
+    if (selected === 'custom') {
+        return { left: allies.customNotes || '', right: '' };
+    }
+    const displayName = ALLY_DISPLAY_NAMES[selected] || '';
+    return { left: displayName, right: allies.customNotes || '' };
 }
 
 // ── Hit Die Defaults ──────────────────────────────────────────────────────────
@@ -355,8 +409,10 @@ function computeCharacterValues(characterData) {
         background: formatBackground(characterData),
         hitDice: formatHitDice(characterData),
         features: formatFeaturesAndTraits(characterData),
+        racialTraits: formatRacialTraits(characterData),
         proficiencies: formatAllProficiencies(characterData),
         equipment: formatEquipment(characterData),
+        allies: formatAlliesOrganizations(characterData),
     };
 }
 
@@ -430,7 +486,7 @@ function buildFieldMap2014(characterData, values) {
         }
     }
 
-    // --- Character Details ---
+    // --- Character Details (page 1 / shared) ---
     textFields.Sex = characterData.gender || '';
     textFields.Height = characterData.height || '';
     textFields.Weight = characterData.weight || '';
@@ -438,6 +494,57 @@ function buildFieldMap2014(characterData, values) {
     textFields.Background_History = characterData.backstory || '';
     textFields['Class Features'] = values.features;
     textFields.MoreProficiencies = values.proficiencies;
+
+    // --- Page 2: Personality, racial traits, background feature ---
+    textFields['Racial Traits'] = values.racialTraits;
+    textFields['Personality Trait'] = characterData.personalityTraits || '';
+    textFields.Ideal = characterData.ideals || '';
+    textFields.Bond = characterData.bonds || '';
+    textFields.Flaw = characterData.flaws || '';
+    textFields['Background Feature Description'] = characterData.backgroundFeature || '';
+
+    // --- Page 2: Equipment rows ---
+    const inventoryItems = characterData.inventory?.items || [];
+    for (let i = 0; i < Math.min(inventoryItems.length, 54); i++) {
+        const item = inventoryItems[i];
+        const row = i + 1;
+        textFields[`Adventuring Gear Row ${row}`] = item.name || '';
+        if (item.quantity && item.quantity > 1) {
+            textFields[`Adventuring Gear Amount ${row}`] = String(item.quantity);
+        }
+        if (item.weight) {
+            textFields[`Adventuring Gear Weight ${row}`] = String(item.weight);
+        }
+    }
+
+    // --- Page 2: Currency ---
+    const currency = characterData.currency;
+    if (currency) {
+        textFields['Copper Pieces'] = currency.cp ? String(currency.cp) : '';
+        textFields['Silver Pieces'] = currency.sp ? String(currency.sp) : '';
+        textFields['Electrum Pieces'] = currency.ep ? String(currency.ep) : '';
+        textFields['Gold Pieces'] = currency.gp ? String(currency.gp) : '';
+        textFields['Platinum Pieces'] = currency.pp ? String(currency.pp) : '';
+    }
+
+    // --- Page 3: Feats ---
+    const feats = characterData.feats || [];
+    for (let i = 0; i < Math.min(feats.length, 4); i++) {
+        const feat = feats[i];
+        const name = typeof feat === 'string' ? feat : feat?.name || '';
+        textFields[`Feat Note ${i + 1}`] = name;
+    }
+
+    // --- Page 4: Appearance & details ---
+    textFields.Alignment = characterData.alignment || '';
+    textFields['Hair colour'] = characterData.hairColor || '';
+    textFields['Eyes colour'] = characterData.eyeColor || '';
+    textFields['Skin colour'] = characterData.skinColor || '';
+    textFields.Age = characterData.age || '';
+    textFields.Background_Appearance = characterData.appearance || '';
+    textFields['Background_Organisation.Left'] = values.allies.left;
+    textFields['Background_Organisation.Right'] = values.allies.right;
+    textFields.Background_Enemies = characterData.enemies || '';
 
     // --- Armor Proficiency Checkboxes ---
     const armorProfs = characterData.proficiencies?.armor || [];

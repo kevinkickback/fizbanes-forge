@@ -55,7 +55,7 @@ export class SpellSelectorModal {
 		this._ensureController();
 
 		// Wire up class switcher after modal is shown
-		const options = ['Bonus', ...spellcastingClasses];
+		const options = ['Bonus', ...spellcastingClasses.filter(c => c !== 'Bonus')];
 
 		if (options.length > 1) {
 			setTimeout(() => {
@@ -643,21 +643,28 @@ export class SpellSelectorModal {
 			return selected;
 		}
 
-		const targetClass = this.selectedClassName;
+		// Non-caster classes always route to the Bonus bucket
+		const targetClass = this.selectedClassName !== 'Bonus' && spellSelectionService.isSpellcastingClass(this.selectedClassName)
+			? this.selectedClassName
+			: 'Bonus';
 
-		// Initialize spellcasting for class if not already initialized (skip for Bonus)
-		if (targetClass !== 'Bonus' && !character.spellcasting?.classes?.[targetClass]) {
-			const classLevel =
-				character.class?.name === targetClass
-					? character.level
-					: character.multiclass?.find((c) => c.name === targetClass)
-						?.level || 1;
+		// Ensure spellcasting is initialized for the target class
+		if (!character.spellcasting?.classes?.[targetClass]) {
+			if (targetClass === 'Bonus') {
+				spellSelectionService.ensureBonusBucket(character);
+			} else {
+				const classLevel =
+					character.class?.name === targetClass
+						? character.level
+						: character.multiclass?.find((c) => c.name === targetClass)
+							?.level || 1;
 
-			spellSelectionService.initializeSpellcastingForClass(
-				character,
-				targetClass,
-				classLevel,
-			);
+				spellSelectionService.initializeSpellcastingForClass(
+					character,
+					targetClass,
+					classLevel,
+				);
+			}
 		}
 
 		// Get currently known spells for this class to avoid duplicates

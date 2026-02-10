@@ -303,6 +303,15 @@ export class SpellsManager {
 
 		for (const className of classNames) {
 			const classSpellcasting = spellcasting.classes[className];
+
+			if (className === 'Bonus') {
+				html += `<div class="spellcasting-class-info">
+					<h6>Bonus Spells</h6>
+					<p class="bonus-spell-note text-muted mb-0"><i class="fas fa-circle-info"></i> Spell save DC, spell attack bonus, and spellcasting ability vary depending on the source of each spell (item, feat, racial trait, etc.).</p>
+				</div>`;
+				continue;
+			}
+
 			const ability =
 				classSpellcasting?.spellcastingAbility ||
 				this._getSpellcastingAbility(className);
@@ -362,8 +371,6 @@ export class SpellsManager {
 		html += '</div></div>';
 		container.innerHTML = html;
 	}
-
-
 
 	async handleAddSpell() {
 		const character = AppState.getCurrentCharacter();

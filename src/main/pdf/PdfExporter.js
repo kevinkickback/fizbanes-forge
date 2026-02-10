@@ -1,8 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { PDFDocument, PDFName } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
 import { MainLogger } from '../Logger.js';
 import { buildFieldMap } from './FieldMapping.js';
+
+// Fields that are calculated/read-only in the MPMB template and need
+// to be converted to editable after we fill them with our values.
+const CALCULATED_FIELDS = ['AC', 'Proficiency Bonus'];
 
 /**
  * Generate a filled PDF from a template and character data.
@@ -65,13 +69,19 @@ export async function generateFilledPdf(characterData, templatePath) {
         }
     }
 
-    // Hide MPMB interactive chrome (buttons, overlays, watermarks) without
-    // flattening — flatten renders hidden elements visible.
-    hideInteractiveFields(form);
+    // Hide MPMB interactive chrome (buttons, overlays, watermarks) and
+    // ammunition tracker checkboxes. Does not flatten — that would make
+    // hidden elements visible.
+    hideUnwantedFields(form);
 
     // Clear MPMB Attack.*.Mod dropdowns that default to "empty",
     // which renders as truncated "emp" text.
     clearAttackModDropdowns(form);
+
+    // Strip calculation formulas from all fields and make calculated
+    // fields (AC, Proficiency Bonus) editable for the exported PDF.
+    stripCalculationActions(form);
+    makeCalculatedFieldsEditable(form);
 
     // Generate text-field appearance streams, then strip the /Off
     // appearance state that pdf-lib adds to checkboxes — it draws a
@@ -86,6 +96,8 @@ export async function generateFilledPdf(characterData, templatePath) {
     return filledBytes;
 }
 
+// ── Field Visibility ──────────────────────────────────────────────────────────
+
 // Layout / visual buttons that should be preserved (portraits, logos,
 // icons, decorative elements). Everything else is MPMB interactive chrome.
 const MPMB_BUTTON_KEEP_PATTERNS = [
@@ -96,35 +108,45 @@ const MPMB_BUTTON_KEEP_PATTERNS = [
     /^Weight /i,
 ];
 
-function shouldHideField(field) {
-    if (field.constructor.name !== 'PDFButton') return false;
-    const name = field.getName();
-    return !MPMB_BUTTON_KEEP_PATTERNS.some(p => p.test(name));
+/** Ammunition tracker checkboxes and icon buttons to hide. */
+const AMMO_CHECKBOX_PATTERN = /^Ammo(Left|Right)\.(Top|Base|Bullet|Icon)\./;
+
+/**
+ * Zero the widget rectangle and remove appearance streams for a field,
+ * making it invisible without flattening.
+ */
+function hideFieldWidgets(field) {
+    for (const widget of field.acroField.getWidgets()) {
+        widget.setRectangle({ x: 0, y: 0, width: 0, height: 0 });
+        widget.dict.delete(PDFName.of('AP'));
+    }
 }
 
 /**
- * Hide MPMB interactive buttons ("Add", "Show extra features", arrow
- * buttons, etc.) by zeroing their widget rectangles and removing
- * appearance streams. Layout buttons (Portrait, Image.*, logos) are kept.
+ * Hide MPMB interactive buttons and ammunition tracker checkboxes.
+ * Layout buttons (Portrait, Image.*, logos) and ammo Name/Amount fields are kept.
  */
-function hideInteractiveFields(form) {
-    const fields = form.getFields();
+function hideUnwantedFields(form) {
     let hidden = 0;
-    for (const field of fields) {
-        if (!shouldHideField(field)) continue;
+    for (const field of form.getFields()) {
+        const name = field.getName();
+        const isInteractiveButton = field.constructor.name === 'PDFButton'
+            && !MPMB_BUTTON_KEEP_PATTERNS.some(p => p.test(name));
+        const isAmmoCheckbox = AMMO_CHECKBOX_PATTERN.test(name);
+
+        if (!isInteractiveButton && !isAmmoCheckbox) continue;
+
         try {
-            const widgets = field.acroField.getWidgets();
-            for (const widget of widgets) {
-                widget.setRectangle({ x: 0, y: 0, width: 0, height: 0 });
-                widget.dict.delete(PDFName.of('AP'));
-            }
+            hideFieldWidgets(field);
             hidden++;
         } catch {
-            MainLogger.debug('PdfExporter', `Could not hide field: ${field.getName()}`);
+            MainLogger.debug('PdfExporter', `Could not hide field: ${name}`);
         }
     }
-    MainLogger.debug('PdfExporter', `Hidden ${hidden} interactive/overlay fields`);
+    MainLogger.debug('PdfExporter', `Hidden ${hidden} interactive/ammo fields`);
 }
+
+// ── Form Cleanup ──────────────────────────────────────────────────────────────
 
 /**
  * Remove the /Off appearance state that pdf-lib's updateFieldAppearances()
@@ -158,6 +180,45 @@ function clearAttackModDropdowns(form) {
         }
     }
 }
+
+/**
+ * Remove Additional Actions (AA) — which contain JavaScript calculation
+ * scripts — from all form fields. Prevents PDF viewers from recalculating
+ * filled values while keeping fields editable and hidden elements invisible.
+ */
+function stripCalculationActions(form) {
+    const aaKey = PDFName.of('AA');
+    let stripped = 0;
+    for (const field of form.getFields()) {
+        if (field.acroField.dict.has(aaKey)) {
+            field.acroField.dict.delete(aaKey);
+            stripped++;
+        }
+    }
+    MainLogger.debug('PdfExporter', `Stripped calculation actions from ${stripped} fields`);
+}
+
+/**
+ * Clear the read-only flag on calculated fields (AC, Proficiency Bonus)
+ * so users can manually edit them in the exported PDF.
+ */
+function makeCalculatedFieldsEditable(form) {
+    const ffKey = PDFName.of('Ff');
+    for (const fieldName of CALCULATED_FIELDS) {
+        try {
+            const field = form.getTextField(fieldName);
+            const flags = field.acroField.dict.get(ffKey);
+            if (flags && typeof flags.numberValue === 'number') {
+                field.acroField.dict.set(ffKey, PDFNumber.of(flags.numberValue & ~1));
+                MainLogger.debug('PdfExporter', `Made field editable: ${fieldName}`);
+            }
+        } catch {
+            // Field may not exist in this template
+        }
+    }
+}
+
+// ── Portrait Embedding ────────────────────────────────────────────────────────
 
 /**
  * Embed a portrait image into the PDF form's image button field.
@@ -195,27 +256,4 @@ async function embedPortrait(pdfDoc, form, portraitPath) {
     }
 
     MainLogger.debug('PdfExporter', 'No image field found in PDF template for portrait');
-}
-
-/**
- * Inspect a PDF template and return its form field names and types.
- *
- * @param {string} templatePath - Absolute path to the PDF template
- * @returns {Promise<Array<{name: string, type: string}>>} Array of field descriptors
- */
-export async function inspectTemplate(templatePath) {
-    MainLogger.debug('PdfExporter', `Inspecting PDF template: ${templatePath}`);
-
-    const templateBytes = await fs.readFile(templatePath);
-    const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: false });
-    const form = pdfDoc.getForm();
-    const fields = form.getFields();
-
-    const fieldDescriptors = fields.map(field => ({
-        name: field.getName(),
-        type: field.constructor.name,
-    }));
-
-    MainLogger.debug('PdfExporter', `Found ${fieldDescriptors.length} form fields`);
-    return fieldDescriptors;
 }

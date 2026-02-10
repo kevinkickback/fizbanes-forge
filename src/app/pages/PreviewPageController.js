@@ -2,7 +2,11 @@ import { EVENTS } from '../../lib/EventBus.js';
 import { showNotification } from '../../lib/Notifications.js';
 import { PdfPreviewRenderer } from '../../ui/components/preview/PdfPreviewRenderer.js';
 import { AppState } from '../AppState.js';
+import { serializeCharacter } from '../Character.js';
 import { BasePageController } from './BasePageController.js';
+
+// Module-level cache so the preview survives page navigation
+let _previewCache = null;
 
 export class PreviewPageController extends BasePageController {
     constructor() {
@@ -22,6 +26,11 @@ export class PreviewPageController extends BasePageController {
 
             await this._loadTemplateList();
             this._bindListeners();
+
+            // Restore cached preview if it matches the current character
+            if (_previewCache && _previewCache.characterId === character.id) {
+                await this._restoreFromCache();
+            }
 
             // Auto-refresh when character is updated if a preview is already showing
             this._trackListener(EVENTS.CHARACTER_UPDATED, () => {
@@ -98,11 +107,10 @@ export class PreviewPageController extends BasePageController {
 
         this._isGenerating = true;
         this._showLoading();
-        this._updateProgress(10, 'Building character sheet...');
 
         try {
-            this._updateProgress(30, 'Filling PDF template...');
-            const result = await window.characterStorage.previewPdf(character.id, this._templateName);
+            const characterData = serializeCharacter(character);
+            const result = await window.characterStorage.previewPdf(characterData, this._templateName);
 
             if (!result.success) {
                 this._showError(result.error || 'Failed to generate character sheet');
@@ -112,13 +120,19 @@ export class PreviewPageController extends BasePageController {
             const container = document.getElementById('previewCanvasContainer');
             if (!container) return;
 
-            this._updateProgress(60, 'Rendering preview...');
             this._hideAllStates();
 
             const pdfBytes = new Uint8Array(result.pdfBytes);
+
+            // Copy before render — pdf.js detaches the ArrayBuffer when posting to its Worker
+            _previewCache = {
+                pdfBytes: new Uint8Array(pdfBytes),
+                templateName: this._templateName,
+                characterId: character.id,
+            };
+
             const { numPages } = await this._renderer.render(pdfBytes, container);
 
-            this._updateProgress(100, 'Complete');
             this._updatePageIndicator(numPages);
 
             // Enable export button after successful generation
@@ -136,8 +150,17 @@ export class PreviewPageController extends BasePageController {
         const character = AppState.getCurrentCharacter();
         if (!character?.id || !this._templateName) return;
 
+        const exportBtn = document.getElementById('previewExportBtn');
+        const originalContent = exportBtn?.innerHTML;
+
         try {
-            const result = await window.characterStorage.exportPdf(character.id, this._templateName);
+            if (exportBtn) {
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing\u2026';
+            }
+
+            const characterData = serializeCharacter(character);
+            const result = await window.characterStorage.exportPdf(characterData, this._templateName);
 
             if (result.canceled) return;
 
@@ -150,6 +173,11 @@ export class PreviewPageController extends BasePageController {
         } catch (error) {
             console.error('[PreviewPageController]', 'PDF export failed', error);
             showNotification('Failed to save character sheet', 'error');
+        } finally {
+            if (exportBtn) {
+                exportBtn.innerHTML = originalContent;
+                exportBtn.disabled = false;
+            }
         }
     }
 
@@ -157,20 +185,6 @@ export class PreviewPageController extends BasePageController {
         this._hideAllStates();
         const loading = document.getElementById('previewLoading');
         if (loading) loading.classList.remove('u-hidden');
-        this._updateProgress(0, '');
-    }
-
-    _updateProgress(percent, detail) {
-        const bar = document.getElementById('previewProgressBar');
-        const detailEl = document.getElementById('previewLoadingDetail');
-        if (bar) {
-            const clamped = Math.max(0, Math.min(100, percent));
-            bar.style.width = `${clamped}%`;
-            bar.setAttribute('aria-valuenow', String(clamped));
-        }
-        if (detailEl && detail !== undefined) {
-            detailEl.textContent = detail;
-        }
     }
 
     _showError(message) {
@@ -204,5 +218,42 @@ export class PreviewPageController extends BasePageController {
     cleanup() {
         this._renderer.destroy();
         super.cleanup();
+    }
+
+    async _restoreFromCache() {
+        const container = document.getElementById('previewCanvasContainer');
+        if (!container || !_previewCache) return;
+
+        console.debug('[PreviewPageController]', 'Restoring preview from cache');
+
+        this._hideAllStates();
+
+        try {
+            const { numPages } = await this._renderer.render(new Uint8Array(_previewCache.pdfBytes), container);
+            this._updatePageIndicator(numPages);
+
+            // Restore template selection to match cached preview
+            if (_previewCache.templateName) {
+                this._templateName = _previewCache.templateName;
+                const select = document.getElementById('previewTemplateSelect');
+                if (select) select.value = _previewCache.templateName;
+            }
+
+            const exportBtn = document.getElementById('previewExportBtn');
+            if (exportBtn) exportBtn.disabled = false;
+        } catch (error) {
+            console.error('[PreviewPageController]', 'Failed to restore cached preview', error);
+            _previewCache = null;
+        }
+    }
+
+    static clearCache() {
+        _previewCache = null;
+    }
+
+    static clearCacheIfChanged(characterId) {
+        if (_previewCache && _previewCache.characterId !== characterId) {
+            _previewCache = null;
+        }
     }
 }

@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MainLogger } from '../Logger.js';
-import { generateFilledPdf, inspectTemplate } from '../pdf/PdfExporter.js';
+import { generateFilledPdf } from '../pdf/PdfExporter.js';
 import { IPC_CHANNELS } from './channels.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,20 +11,6 @@ const __dirname = path.dirname(__filename);
 
 /** Absolute path to the bundled PDF templates directory. */
 const TEMPLATES_DIR = path.join(__dirname, '..', '..', 'ui', 'assets', 'pdf');
-
-const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
-
-function resolveCharacterPath(savePath, id) {
-    if (!id || typeof id !== 'string' || !SAFE_ID_PATTERN.test(id)) {
-        return null;
-    }
-    const filePath = path.join(savePath, `${id}.ffp`);
-    const resolved = path.resolve(filePath);
-    if (!resolved.startsWith(path.resolve(savePath))) {
-        return null;
-    }
-    return resolved;
-}
 
 /**
  * Resolve a template name (e.g. "2024_CharacterSheet") to its absolute path
@@ -41,7 +27,7 @@ function resolveTemplatePath(templateName) {
     return resolved;
 }
 
-export function registerPdfHandlers(preferencesManager, windowManager) {
+export function registerPdfHandlers(_preferencesManager, windowManager) {
     MainLogger.debug('PdfHandlers', 'Registering PDF handlers');
 
     // List available bundled PDF templates
@@ -64,27 +50,18 @@ export function registerPdfHandlers(preferencesManager, windowManager) {
     });
 
     // Generate filled PDF bytes for preview (no save dialog)
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_PDF_PREVIEW, async (_event, characterId, templateName) => {
+    ipcMain.handle(IPC_CHANNELS.CHARACTER_PDF_PREVIEW, async (_event, characterData, templateName) => {
         try {
-            MainLogger.debug('PdfHandlers', 'Generating PDF preview for character:', characterId);
+            MainLogger.debug('PdfHandlers', 'Generating PDF preview for character:', characterData?.name);
 
-            if (!characterId || !templateName) {
-                return { success: false, error: 'Character ID and template name are required' };
+            if (!characterData || !templateName) {
+                return { success: false, error: 'Character data and template name are required' };
             }
 
             const templatePath = resolveTemplatePath(templateName);
             if (!templatePath) {
                 return { success: false, error: 'Invalid template name' };
             }
-
-            const savePath = preferencesManager.getCharacterSavePath();
-            const characterFilePath = resolveCharacterPath(savePath, characterId);
-            if (!characterFilePath) {
-                return { success: false, error: 'Invalid character ID' };
-            }
-
-            const characterJson = await fs.readFile(characterFilePath, 'utf8');
-            const characterData = JSON.parse(characterJson);
 
             const pdfBytes = await generateFilledPdf(characterData, templatePath);
 
@@ -101,12 +78,12 @@ export function registerPdfHandlers(preferencesManager, windowManager) {
     });
 
     // Generate filled PDF and save via native dialog
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT_PDF, async (_event, characterId, templateName) => {
+    ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT_PDF, async (_event, characterData, templateName) => {
         try {
-            MainLogger.debug('PdfHandlers', 'Exporting PDF for character:', characterId);
+            MainLogger.debug('PdfHandlers', 'Exporting PDF for character:', characterData?.name);
 
-            if (!characterId || !templateName) {
-                return { success: false, error: 'Character ID and template name are required' };
+            if (!characterData || !templateName) {
+                return { success: false, error: 'Character data and template name are required' };
             }
 
             const templatePath = resolveTemplatePath(templateName);
@@ -114,14 +91,6 @@ export function registerPdfHandlers(preferencesManager, windowManager) {
                 return { success: false, error: 'Invalid template name' };
             }
 
-            const savePath = preferencesManager.getCharacterSavePath();
-            const characterFilePath = resolveCharacterPath(savePath, characterId);
-            if (!characterFilePath) {
-                return { success: false, error: 'Invalid character ID' };
-            }
-
-            const characterJson = await fs.readFile(characterFilePath, 'utf8');
-            const characterData = JSON.parse(characterJson);
             const characterName = characterData.name || 'character';
 
             const pdfBytes = await generateFilledPdf(characterData, templatePath);
@@ -151,37 +120,6 @@ export function registerPdfHandlers(preferencesManager, windowManager) {
             if (error.message?.includes('encrypted')) {
                 return { success: false, error: 'This PDF template is encrypted and cannot be used' };
             }
-            return { success: false, error: error.message };
-        }
-    });
-
-    // Inspect a PDF template and return its form field names/types
-    ipcMain.handle(IPC_CHANNELS.CHARACTER_PDF_INSPECT, async (_event, templateName) => {
-        try {
-            MainLogger.debug('PdfHandlers', 'Inspecting PDF template:', templateName);
-
-            if (!templateName) {
-                return { success: false, error: 'Template name is required' };
-            }
-
-            const templatePath = resolveTemplatePath(templateName);
-            if (!templatePath) {
-                return { success: false, error: 'Invalid template name' };
-            }
-
-            const fields = await inspectTemplate(templatePath);
-
-            if (fields.length === 0) {
-                return {
-                    success: true,
-                    fields: [],
-                    warning: 'This PDF has no form fields.',
-                };
-            }
-
-            return { success: true, fields };
-        } catch (error) {
-            MainLogger.error('PdfHandlers', 'PDF inspect failed:', error);
             return { success: false, error: error.message };
         }
     });

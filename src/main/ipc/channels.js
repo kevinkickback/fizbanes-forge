@@ -74,6 +74,5 @@ export const IPC_CHANNELS = {
 	// PDF export operations
 	CHARACTER_EXPORT_PDF: 'character:exportPdf',
 	CHARACTER_PDF_PREVIEW: 'character:pdfPreview',
-	CHARACTER_PDF_INSPECT: 'character:pdfInspect',
 	PDF_LIST_TEMPLATES: 'pdf:listTemplates',
 };

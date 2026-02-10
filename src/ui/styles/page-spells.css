@@ -33,6 +33,11 @@
 	margin-bottom: 1rem;
 }
 
+.bonus-spell-note {
+	font-size: 0.85rem;
+	line-height: 1.5;
+}
+
 .spellcasting-class-info .text-muted {
 	color: var(--text-muted) !important;
 }

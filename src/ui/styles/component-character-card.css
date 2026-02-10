@@ -289,7 +289,6 @@
 /* Sort Controls */
 #sortSelect {
 	min-width: 180px;
-	background: var(--card-background);
 	border: 1px solid var(--border-color);
 	color: var(--text-color);
 	font-size: 0.95rem;

@@ -35,6 +35,14 @@ class PageHandlerImpl {
 			this.handlePageLoaded(pageName);
 		});
 
+		eventBus.on(EVENTS.CHARACTER_DELETED, () => {
+			PreviewPageController.clearCache();
+		});
+
+		eventBus.on(EVENTS.CHARACTER_SELECTED, (character) => {
+			PreviewPageController.clearCacheIfChanged(character?.id);
+		});
+
 		this.isInitialized = true;
 	}
 

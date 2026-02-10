@@ -13,6 +13,36 @@ class SpellSelectionService {
 		this.loggerScope = 'SpellSelectionService';
 	}
 
+	/** Whether a class has native spellcasting (not a virtual bucket like 'Bonus'). */
+	isSpellcastingClass(className) {
+		return this._getClassSpellcastingInfo(className) !== null;
+	}
+
+	/** Ensure the Bonus spellcasting bucket exists for non-class spells. */
+	ensureBonusBucket(character) {
+		if (!character.spellcasting) {
+			character.spellcasting = {
+				classes: {},
+				multiclass: { isCastingMulticlass: false, combinedSlots: {} },
+				other: { spellsKnown: [], itemSpells: [] },
+			};
+		}
+
+		if (!character.spellcasting.classes.Bonus) {
+			character.spellcasting.classes.Bonus = {
+				level: 0,
+				spellsKnown: [],
+				spellsPrepared: [],
+				spellSlots: {},
+				cantripsKnown: 0,
+				spellcastingAbility: null,
+				ritualCasting: false,
+			};
+		}
+
+		return character.spellcasting.classes.Bonus;
+	}
+
 	initializeSpellcastingForClass(character, className, classLevel) {
 		if (!character.spellcasting) {
 			character.spellcasting = {
@@ -45,7 +75,12 @@ class SpellSelectionService {
 	}
 
 	_getClassSpellcastingInfo(className) {
-		const classData = classService.getClass(className);
+		let classData;
+		try {
+			classData = classService.getClass(className);
+		} catch {
+			return null;
+		}
 		if (!classData || !classData.spellcastingAbility) {
 			return null;
 		}
