@@ -28,9 +28,15 @@ const characterValidationSchema = z.object({
     height: z.string().optional(),
     weight: z.string().optional(),
     gender: z.string().optional(),
+    eyeColor: z.string().optional(),
+    hairColor: z.string().optional(),
     alignment: z.string().optional(),
     deity: z.string().optional(),
     backstory: z.string().optional(),
+    alliesAndOrganizations: z.object({
+        selectedAlly: z.string().optional(),
+        customNotes: z.string().optional(),
+    }).optional(),
 
     features: z.record(z.string(), z.unknown()).optional(),
     feats: z.array(z.unknown()).optional(),
@@ -120,9 +126,15 @@ export const CharacterSchema = {
             height: '',
             weight: '',
             gender: '',
+            eyeColor: '',
+            hairColor: '',
             alignment: '',
             deity: '',
             backstory: '',
+            alliesAndOrganizations: {
+                selectedAlly: '',
+                customNotes: '',
+            },
 
             // Features
             features: {

@@ -15,22 +15,6 @@
                             <label class="form-label">Player Name</label>
                             <input type="text" class="form-control" id="playerName">
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Height</label>
-                            <input type="text" class="form-control" id="height">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Weight</label>
-                            <input type="text" class="form-control" id="weight">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Gender</label>
-                            <input type="text" class="form-control" id="gender">
-                        </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Alignment</label>
                             <select class="form-control" id="alignment">
@@ -82,16 +66,72 @@
     <div class="col-12 mb-4">
         <div class="card">
             <div class="card-header py-2">
-                <h5 class="mb-0">Background Story</h5>
+                <h5 class="mb-0">Appearance</h5>
             </div>
             <div class="card-body character-info-card-body">
                 <div class="character-info-container">
-                    <div class="form-row-full">
+                    <div class="form-row">
                         <div class="form-group">
-                            <textarea class="form-control" id="backstory"></textarea>
+                            <label class="form-label">Height</label>
+                            <input type="text" class="form-control" id="height">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Weight</label>
+                            <input type="text" class="form-control" id="weight">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Gender</label>
+                            <input type="text" class="form-control" id="gender">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Eye Color</label>
+                            <input type="text" class="form-control" id="eyeColor">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hair Color</label>
+                            <input type="text" class="form-control" id="hairColor">
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Allies & Organizations</h5>
+            </div>
+            <div class="card-body">
+                <div class="allies-org-container">
+                    <div class="allies-org-left-col">
+                        <select class="form-control" id="allySelector">
+                            <option value="">Select Organization</option>
+                            <option value="harpers">The Harpers</option>
+                            <option value="zhentarim">The Zhentarim</option>
+                            <option value="emerald-enclave">Emerald Enclave</option>
+                            <option value="lords-alliance">Lords' Alliance</option>
+                            <option value="order-gauntlet">Order of the Gauntlet</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <div id="allyImage" class="ally-image"></div>
+                    </div>
+                    <div class="allies-org-right-col">
+                        <div class="ally-info" id="allyInfo"></div>
+                        <textarea class="form-control u-hidden" id="allyCustomNotes"
+                            placeholder="Enter custom organization details..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">History</h5>
+            </div>
+            <div class="card-body history-card-body">
+                <textarea class="form-control" id="backstory"
+                    placeholder="Enter character background and history..."></textarea>
             </div>
         </div>
     </div>

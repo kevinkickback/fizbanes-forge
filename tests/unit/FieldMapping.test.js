@@ -391,7 +391,7 @@ describe('FieldMapping', () => {
                     },
                 },
             });
-            const { checkboxFields, textFields } = buildFieldMap(char);
+            const { checkboxFields } = buildFieldMap(char);
             // Background skills
             expect(checkboxFields['Dec Prof']).toBe(true);
             expect(checkboxFields['Sle Prof']).toBe(true);

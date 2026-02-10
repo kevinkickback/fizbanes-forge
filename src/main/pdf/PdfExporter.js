@@ -139,7 +139,7 @@ function stripCheckboxOffAppearances(form) {
             const ap = widget.dict.get(PDFName.of('AP'));
             if (!ap) continue;
             const n = ap.get(PDFName.of('N'));
-            if (n && n.has(PDFName.of('Off'))) {
+            if (n?.has(PDFName.of('Off'))) {
                 n.delete(PDFName.of('Off'));
                 stripped++;
             }

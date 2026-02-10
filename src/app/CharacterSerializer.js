@@ -97,9 +97,15 @@ export function serialize(character) {
 		height: character.height || '',
 		weight: character.weight || '',
 		gender: character.gender || '',
+		eyeColor: character.eyeColor || '',
+		hairColor: character.hairColor || '',
 		alignment: character.alignment || '',
 		deity: character.deity || '',
 		backstory: character.backstory || '',
+		alliesAndOrganizations: character.alliesAndOrganizations || {
+			selectedAlly: '',
+			customNotes: '',
+		},
 
 		abilityScores: { ...character.abilityScores },
 		abilityBonuses: { ...character.abilityBonuses },
