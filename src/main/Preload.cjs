@@ -34,6 +34,11 @@ const IPC_CHANNELS = {
 	DATA_DOWNLOAD_PROGRESS: 'data:downloadProgress',
 	// Utility operations
 	UTIL_GET_USER_DATA: 'util:getUserData',
+	// PDF export operations
+	CHARACTER_EXPORT_PDF: 'character:exportPdf',
+	CHARACTER_PDF_PREVIEW: 'character:pdfPreview',
+	CHARACTER_PDF_INSPECT: 'character:pdfInspect',
+	PDF_LIST_TEMPLATES: 'pdf:listTemplates',
 };
 
 // Expose FF_DEBUG to renderer for conditional logging
@@ -109,4 +114,16 @@ contextBridge.exposeInMainWorld('characterStorage', {
 		),
 	listPortraits: (dirPath) =>
 		ipcRenderer.invoke(IPC_CHANNELS.PORTRAITS_LIST, dirPath),
+	/** Generate a filled PDF and return bytes for preview. */
+	previewPdf: (id, templateName) =>
+		ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_PDF_PREVIEW, id, templateName),
+	/** Generate a filled PDF and save via native dialog. */
+	exportPdf: (id, templateName) =>
+		ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_EXPORT_PDF, id, templateName),
+	/** Inspect a PDF template and return its form field names/types. */
+	inspectPdfTemplate: (templateName) =>
+		ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_PDF_INSPECT, templateName),
+	/** List available bundled PDF templates. */
+	listPdfTemplates: () =>
+		ipcRenderer.invoke(IPC_CHANNELS.PDF_LIST_TEMPLATES),
 });

@@ -21,7 +21,9 @@ src/ui/assets/bootstrap/
 src/ui/assets/fontawesome/
 src/data/
 
-# Playwright results
+# Test artifacts
+*.pdf
+!src/ui/assets/pdf/*.pdf
 playwright-report/
 test-results/
 

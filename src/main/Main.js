@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { registerCharacterHandlers } from './ipc/CharacterHandlers.js';
 import { registerDataHandlers } from './ipc/DataHandlers.js';
 import { registerFileHandlers } from './ipc/FileHandlers.js';
+import { registerPdfHandlers } from './ipc/PdfHandlers.js';
 import { registerSettingsHandlers } from './ipc/SettingsHandlers.js';
 import { MainLogger } from './Logger.js';
 import {
@@ -63,6 +64,14 @@ app.whenReady().then(() => {
 		set: setPreference,
 		app,
 	});
+	registerPdfHandlers(
+		{
+			get: getPreference,
+			set: setPreference,
+			getCharacterSavePath,
+		},
+		{ getMainWindow },
+	);
 
 	// Create main window
 	createMainWindow({

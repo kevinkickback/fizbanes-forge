@@ -1,0 +1,138 @@
+/* ===================================
+   PREVIEW PAGE
+   PDF preview and export styles
+   =================================== */
+
+.preview-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-md, 1rem);
+}
+
+/* --- Toolbar --- */
+.preview-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	flex-shrink: 0;
+}
+
+.preview-toolbar-left,
+.preview-toolbar-right {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.preview-template-name {
+	color: var(--text-muted);
+	font-size: 0.875rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 300px;
+}
+
+/* --- Canvas Container --- */
+.preview-canvas-container {
+	flex: 1;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-md, 1rem);
+	background: var(--background-color);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	min-height: 0;
+}
+
+.preview-canvas-container canvas {
+	max-width: 100%;
+	height: auto;
+	box-shadow: var(--shadow-lg);
+	border-radius: 2px;
+}
+
+/* --- Empty State --- */
+.preview-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-xl, 3rem);
+	color: var(--text-muted);
+	text-align: center;
+	flex: 1;
+}
+
+.preview-empty-state i {
+	color: var(--text-very-light);
+}
+
+.preview-empty-state h5 {
+	color: var(--text-color);
+	margin: 0;
+}
+
+.preview-empty-state p {
+	max-width: 400px;
+	margin: 0;
+}
+
+/* --- Loading State --- */
+.preview-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-xl, 3rem);
+	color: var(--text-muted);
+	flex: 1;
+}
+
+/* --- Error State --- */
+.preview-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-xl, 3rem);
+	color: var(--danger-color);
+	text-align: center;
+	flex: 1;
+}
+
+.preview-error h5 {
+	color: var(--text-color);
+	margin: 0;
+}
+
+.preview-error p {
+	color: var(--text-muted);
+	max-width: 500px;
+	margin: 0;
+}
+
+/* --- Page Indicator --- */
+.preview-page-indicator {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-xs, 0.25rem);
+	padding: var(--spacing-sm, 0.5rem);
+	color: var(--text-muted);
+	font-size: 0.875rem;
+	flex-shrink: 0;
+}

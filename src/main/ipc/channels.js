@@ -70,4 +70,10 @@ export const IPC_CHANNELS = {
 	PROGRESSION_ADD_CLASS_LEVEL: 'progression:addClassLevel',
 	PROGRESSION_REMOVE_CLASS_LEVEL: 'progression:removeClassLevel',
 	PROGRESSION_CALCULATE_HP: 'progression:calculateHP',
+
+	// PDF export operations
+	CHARACTER_EXPORT_PDF: 'character:exportPdf',
+	CHARACTER_PDF_PREVIEW: 'character:pdfPreview',
+	CHARACTER_PDF_INSPECT: 'character:pdfInspect',
+	PDF_LIST_TEMPLATES: 'pdf:listTemplates',
 };

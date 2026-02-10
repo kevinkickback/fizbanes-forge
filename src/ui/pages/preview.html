@@ -1,0 +1,57 @@
+<div class="preview-page">
+    <!-- Toolbar -->
+    <div class="preview-toolbar">
+        <div class="preview-toolbar-left">
+            <label class="preview-template-label" for="previewTemplateSelect">Template:</label>
+            <select class="form-select form-select-sm" id="previewTemplateSelect">
+                <option value="">Loading templates...</option>
+            </select>
+        </div>
+        <div class="preview-toolbar-right">
+            <button class="btn btn-primary" id="previewGenerateBtn">
+                <i class="fas fa-scroll"></i> Generate
+            </button>
+            <button class="btn btn-outline-secondary" id="previewExportBtn" disabled>
+                <i class="fas fa-download"></i> Save PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="preview-canvas-container" id="previewCanvasContainer">
+        <!-- Empty state -->
+        <div class="preview-empty-state" id="previewEmptyState">
+            <i class="fas fa-scroll fa-3x"></i>
+            <h5>Character Sheet Preview</h5>
+            <p>Select a template and click <strong>Generate</strong> to preview your filled character sheet.</p>
+        </div>
+
+        <!-- Loading state -->
+        <div class="preview-loading u-hidden" id="previewLoading">
+            <div class="spinner-border text-primary mb-3 u-spinner-lg" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Generating Character Sheet</h5>
+            <p class="preview-loading-detail text-muted small u-loading-detail-min-h u-mt-xs" id="previewLoadingDetail">
+            </p>
+            <div class="progress mt-3 preview-progress-bar">
+                <div class="progress-bar u-progress-init" id="previewProgressBar" role="progressbar" aria-valuenow="0"
+                    aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+
+        <!-- Error state -->
+        <div class="preview-error u-hidden" id="previewError">
+            <i class="fas fa-exclamation-triangle fa-3x"></i>
+            <h5>Generation Error</h5>
+            <p id="previewErrorMessage">Something went wrong.</p>
+        </div>
+
+        <!-- Canvas pages rendered here by PdfPreviewRenderer -->
+    </div>
+
+    <!-- Page indicator -->
+    <div class="preview-page-indicator u-hidden" id="previewPageIndicator">
+        Page <span id="previewCurrentPage">1</span> of <span id="previewTotalPages">1</span>
+    </div>
+</div>
