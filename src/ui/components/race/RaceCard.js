@@ -56,26 +56,13 @@ export class RaceCard {
 	// Initialization Methods
 	//-------------------------------------------------------------------------
 
-	initialize() {
+	async initialize() {
 		try {
-			// Initialize race service FIRST before setting up listeners
-			// This ensures race data is ready before any events try to use it
-			this._raceService
-				.initialize()
-				.then(async () => {
-					// NOW set up event listeners and load saved selection
-					this._setupEventListeners();
-					this._setupToggleButton();
-					await this._populateRaceList();
-					await this._loadSavedRaceSelection();
-				})
-				.catch((error) => {
-					console.error(
-						'RaceCard',
-						'Failed to initialize race service:',
-						error,
-					);
-				});
+			await this._raceService.initialize();
+			this._setupEventListeners();
+			this._setupToggleButton();
+			await this._populateRaceList();
+			await this._loadSavedRaceSelection();
 		} catch (error) {
 			console.error('[RaceCard]', 'Failed to initialize race card:', error);
 		}

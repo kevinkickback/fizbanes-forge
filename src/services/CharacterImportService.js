@@ -1,4 +1,3 @@
-import fssync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,7 +46,7 @@ export class CharacterImportService {
 			await fs.access(existingFilePath);
 			const existingContent = await fs.readFile(existingFilePath, 'utf8');
 			const existingCharacter = JSON.parse(existingContent);
-			const stats = fssync.statSync(existingFilePath);
+			const stats = await fs.stat(existingFilePath);
 
 			return {
 				exists: true,

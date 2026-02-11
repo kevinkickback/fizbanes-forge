@@ -1,7 +1,9 @@
 /** Simple logger adapter for main process (honors FF_DEBUG). */
 import util from 'node:util';
 
-const isDebug = process.env.FF_DEBUG === 'true' || false;
+function isDebug() {
+	return process.env.FF_DEBUG === 'true';
+}
 
 function formatMessage(prefix, ...args) {
 	const message = args
@@ -22,7 +24,7 @@ export const MainLogger = {
 		console.error(formatMessage(`[${prefix}]`, ...args));
 	},
 	debug(prefix, ...args) {
-		if (isDebug) {
+		if (isDebug()) {
 			console.debug(formatMessage(`[${prefix}]`, ...args));
 		}
 	},

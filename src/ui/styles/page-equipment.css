@@ -14,7 +14,7 @@
 	border: 1px solid var(--border-color);
 	padding: 1rem;
 	transition: var(--transition);
-	color: #ffffff;
+	color: var(--text-color);
 }
 
 .equipment-item:hover {
@@ -25,7 +25,7 @@
 .equipment-item h4,
 .equipment-item h5,
 .equipment-item h6 {
-	color: #ffffff;
+	color: var(--text-color);
 	margin-bottom: 0.5rem;
 }
 
@@ -35,5 +35,5 @@
 }
 
 .equipment-item .text-muted {
-	color: #b0b0b0 !important;
+	color: var(--text-muted) !important;
 }
