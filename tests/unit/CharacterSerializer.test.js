@@ -262,6 +262,61 @@ describe('CharacterSerializer', () => {
         });
     });
 
+    describe('Appearance & Allies Fields', () => {
+        it('should serialize eyeColor and hairColor', () => {
+            character.eyeColor = 'Green';
+            character.hairColor = 'Red';
+            const serialized = CharacterSerializer.serialize(character);
+
+            expect(serialized.eyeColor).toBe('Green');
+            expect(serialized.hairColor).toBe('Red');
+        });
+
+        it('should serialize alliesAndOrganizations', () => {
+            character.alliesAndOrganizations = {
+                selectedAlly: 'zhentarim',
+                customNotes: 'Secret informant',
+            };
+            const serialized = CharacterSerializer.serialize(character);
+
+            expect(serialized.alliesAndOrganizations).toEqual({
+                selectedAlly: 'zhentarim',
+                customNotes: 'Secret informant',
+            });
+        });
+
+        it('should default alliesAndOrganizations when not set', () => {
+            const serialized = CharacterSerializer.serialize(character);
+
+            expect(serialized.alliesAndOrganizations).toEqual({
+                selectedAlly: '',
+                customNotes: '',
+            });
+        });
+
+        it('should round-trip eyeColor and hairColor', () => {
+            character.eyeColor = 'Amber';
+            character.hairColor = 'Silver';
+            const serialized = CharacterSerializer.serialize(character);
+            const deserialized = CharacterSerializer.deserialize(serialized);
+
+            expect(deserialized.eyeColor).toBe('Amber');
+            expect(deserialized.hairColor).toBe('Silver');
+        });
+
+        it('should round-trip alliesAndOrganizations', () => {
+            character.alliesAndOrganizations = {
+                selectedAlly: 'emerald-enclave',
+                customNotes: 'Ranger contact',
+            };
+            const serialized = CharacterSerializer.serialize(character);
+            const deserialized = CharacterSerializer.deserialize(serialized);
+
+            expect(deserialized.alliesAndOrganizations.selectedAlly).toBe('emerald-enclave');
+            expect(deserialized.alliesAndOrganizations.customNotes).toBe('Ranger contact');
+        });
+    });
+
     describe('Edge Cases', () => {
         it('should handle character with Set in proficiencySources', () => {
             // Simulate Map with Set values

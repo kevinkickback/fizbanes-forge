@@ -64,6 +64,7 @@ describe('IPC Channel Sync', () => {
             'EQUIPMENT_',
             'SPELL_',
             'PROGRESSION_',
+            'PDF_',
         ];
 
         for (const prefix of groups) {

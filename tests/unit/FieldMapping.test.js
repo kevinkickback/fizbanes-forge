@@ -75,6 +75,21 @@ function makeCharacter(overrides = {}) {
                 { name: 'Explorer\'s Pack', quantity: 1 },
             ],
         },
+        gender: 'Male',
+        eyeColor: 'Brown',
+        hairColor: 'Black',
+        skinColor: 'Tan',
+        age: '45',
+        personalityTraits: 'I never back down from a challenge.',
+        ideals: 'Honor above all.',
+        bonds: 'My clan is everything.',
+        flaws: 'Too stubborn for my own good.',
+        backgroundFeature: 'Military Rank',
+        alliesAndOrganizations: {
+            selectedAlly: 'harpers',
+            customNotes: 'Served together in the north.',
+        },
+        currency: { cp: 15, sp: 30, ep: 0, gp: 120, pp: 5 },
         ...overrides,
     };
 }
@@ -539,6 +554,151 @@ describe('FieldMapping', () => {
         it('should include character level', () => {
             const { textFields } = buildFieldMap(makeCharacter());
             expect(textFields['Character Level']).toBe('5');
+        });
+
+        it('should include appearance fields in 2014 template', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Hair colour']).toBe('Black');
+            expect(textFields['Eyes colour']).toBe('Brown');
+            expect(textFields['Skin colour']).toBe('Tan');
+            expect(textFields.Age).toBe('45');
+            expect(textFields.Sex).toBe('Male');
+        });
+
+        it('should include personality traits and ideals', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Personality Trait']).toBe('I never back down from a challenge.');
+            expect(textFields.Ideal).toBe('Honor above all.');
+            expect(textFields.Bond).toBe('My clan is everything.');
+            expect(textFields.Flaw).toBe('Too stubborn for my own good.');
+        });
+
+        it('should include background feature', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Background Feature Description']).toBe('Military Rank');
+        });
+
+        it('should include allies/organizations for predefined ally', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Background_Faction.Text']).toBe('The Harpers');
+            expect(textFields['Background_Organisation.Left']).toBe('Served together in the north.');
+            expect(textFields['Background_Organisation.Right']).toBe('');
+        });
+
+        it('should use custom notes on left when ally is custom', () => {
+            const char = makeCharacter({
+                alliesAndOrganizations: {
+                    selectedAlly: 'custom',
+                    customNotes: 'My personal guild',
+                },
+            });
+            const { textFields } = buildFieldMap(char);
+            expect(textFields['Background_Faction.Text']).toBe('');
+            expect(textFields['Background_Organisation.Left']).toBe('My personal guild');
+            expect(textFields['Background_Organisation.Right']).toBe('');
+        });
+
+        it('should handle empty allies', () => {
+            const char = makeCharacter({
+                alliesAndOrganizations: { selectedAlly: '', customNotes: '' },
+            });
+            const { textFields } = buildFieldMap(char);
+            expect(textFields['Background_Faction.Text']).toBe('');
+            expect(textFields['Background_Organisation.Left']).toBe('');
+            expect(textFields['Background_Organisation.Right']).toBe('');
+        });
+
+        it('should include currency fields', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Copper Pieces']).toBe('15');
+            expect(textFields['Silver Pieces']).toBe('30');
+            expect(textFields['Electrum Pieces']).toBe('');
+            expect(textFields['Gold Pieces']).toBe('120');
+            expect(textFields['Platinum Pieces']).toBe('5');
+        });
+
+        it('should format equipment list', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Adventuring Gear Row 1']).toBe('Greataxe');
+            expect(textFields['Adventuring Gear Row 2']).toBe('Handaxe');
+            expect(textFields['Adventuring Gear Amount 2']).toBe('2');
+            expect(textFields['Adventuring Gear Row 3']).toBe("Explorer's Pack");
+        });
+
+        it('should include feat notes', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Feat Note 1']).toBe('Great Weapon Master');
+        });
+
+        it('should handle string feats in feat notes', () => {
+            const char = makeCharacter({
+                feats: ['Alert', 'Tough'],
+            });
+            const { textFields } = buildFieldMap(char);
+            expect(textFields['Feat Note 1']).toBe('Alert');
+            expect(textFields['Feat Note 2']).toBe('Tough');
+        });
+
+        it('should include racial traits with darkvision and resistances', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields['Racial Traits']).toContain('Darkvision 60 ft.');
+            expect(textFields['Racial Traits']).toContain('Poison');
+            expect(textFields['Racial Traits']).toContain('Dwarven Resilience');
+        });
+
+        it('should include 2024 template ability scores and combat stats', () => {
+            const char = makeCharacter();
+            const { textFields } = buildFieldMap(char, '/assets/pdf/2024_CharacterSheet.pdf');
+            // STR score and mod
+            expect(textFields.Text_22).toBe('16');
+            expect(textFields.Text_25).toBe('+3');
+            // DEX score and mod
+            expect(textFields.Text_23).toBe('12');
+            expect(textFields.Text_26).toBe('+1');
+            // CON score (14 + 2 bonus = 16) and mod
+            expect(textFields.Text_24).toBe('16');
+            expect(textFields.Text_27).toBe('+3');
+            // Proficiency bonus
+            expect(textFields.Text_7).toBe('+3');
+            // Initiative (DEX mod)
+            expect(textFields.Text_8).toBe('+1');
+            // Speed
+            expect(textFields.Text_9).toBe('25 ft');
+            // HP Max
+            expect(textFields.Text_10).toBe('44');
+        });
+
+        it('should include equipment text area in 2024 template', () => {
+            const char = makeCharacter();
+            const { textFields } = buildFieldMap(char, '/assets/pdf/2024_CharacterSheet.pdf');
+            // Text_59 is equipment
+            expect(textFields.Text_59).toContain('Greataxe');
+            expect(textFields.Text_59).toContain('Handaxe (x2)');
+        });
+
+        it('should default speed to 30 ft when not set', () => {
+            const char = makeCharacter({ speed: null });
+            const { textFields } = buildFieldMap(char);
+            expect(textFields.Speed).toBe('30 ft');
+        });
+
+        it('should include alignment', () => {
+            const { textFields } = buildFieldMap(makeCharacter());
+            expect(textFields.Alignment).toBe('Lawful Good');
+        });
+
+        it('should handle other weapon proficiencies', () => {
+            const char = makeCharacter({
+                proficiencies: {
+                    ...makeCharacter().proficiencies,
+                    weapons: ['Simple Weapons', 'Hand Crossbow'],
+                },
+            });
+            const { checkboxFields, textFields } = buildFieldMap(char);
+            expect(checkboxFields['Proficiency Weapon Simple']).toBe(true);
+            expect(checkboxFields['Proficiency Weapon Martial']).toBe(false);
+            expect(checkboxFields['Proficiency Weapon Other']).toBe(true);
+            expect(textFields['Proficiency Weapon Other Description']).toBe('Hand Crossbow');
         });
     });
 });

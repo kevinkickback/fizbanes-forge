@@ -193,10 +193,13 @@ export class Character {
 		this.height = data.height || '';
 		this.weight = data.weight || '';
 		this.gender = data.gender || '';
+		this.age = data.age || '';
+		this.skinColor = data.skinColor || '';
 		this.eyeColor = data.eyeColor || '';
 		this.hairColor = data.hairColor || '';
 		this.alignment = data.alignment || '';
 		this.deity = data.deity || '';
+		this.additionalFeatures = data.additionalFeatures || '';
 		this.backstory = data.backstory || '';
 		this.alliesAndOrganizations = data.alliesAndOrganizations || {
 			selectedAlly: '',

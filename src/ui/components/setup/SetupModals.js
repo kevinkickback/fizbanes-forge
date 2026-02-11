@@ -59,6 +59,7 @@ export class LoadingModal {
 	updateProgress(percent) {
 		if (this.progressBar) {
 			const safePercent = Math.min(100, Math.max(0, percent));
+			this.progressBar.classList.remove('u-progress-init');
 			this.progressBar.style.width = `${safePercent}%`;
 			this.progressBar.setAttribute('aria-valuenow', safePercent);
 		}
@@ -131,6 +132,7 @@ export class RefreshProgressModal {
 	updateProgress(percent, message) {
 		if (this.progressBar) {
 			const safePercent = Math.min(100, Math.max(0, percent));
+			this.progressBar.classList.remove('u-progress-init');
 			this.progressBar.style.width = `${safePercent}%`;
 			this.progressBar.setAttribute('aria-valuenow', safePercent);
 		}

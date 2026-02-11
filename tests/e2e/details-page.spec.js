@@ -169,6 +169,8 @@ test.describe('Details Page', () => {
             '#height',
             '#weight',
             '#gender',
+            '#eyeColor',
+            '#hairColor',
             '#alignment',
             '#deity',
             '#backstory',
@@ -209,5 +211,81 @@ test.describe('Details Page', () => {
         await saveBtn.click();
         const toast = page.locator('.notification.success');
         await expect(toast).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('10.3 — Eye color and hair color fields are editable', async () => {
+        const eyeColor = page.locator('#eyeColor');
+        const hairColor = page.locator('#hairColor');
+
+        await eyeColor.fill('Blue');
+        await hairColor.fill('Auburn');
+
+        await expect(eyeColor).toHaveValue('Blue');
+        await expect(hairColor).toHaveValue('Auburn');
+
+        // Should mark character as unsaved
+        const saveBtn = page.locator('#saveCharacter');
+        await expect(saveBtn).toHaveClass(/unsaved/, { timeout: 5_000 });
+    });
+
+    test('10.4 — Ally selector is present with predefined options', async () => {
+        const allySelector = page.locator('#allySelector');
+        await expect(allySelector).toBeAttached({ timeout: 5_000 });
+
+        // Should have multiple options including predefined factions
+        const optionCount = await allySelector.locator('option').count();
+        expect(optionCount).toBeGreaterThan(1);
+    });
+
+    test('10.5 — Selecting a predefined ally shows info', async () => {
+        const allySelector = page.locator('#allySelector');
+        await allySelector.selectOption('harpers');
+
+        // Ally info text should appear with a description
+        const allyInfo = page.locator('#allyInfo');
+        await expect(allyInfo).not.toHaveClass(/u-hidden/, { timeout: 5_000 });
+        const text = await allyInfo.textContent();
+        expect(text).toBeTruthy();
+        expect(text.length).toBeGreaterThan(10);
+    });
+
+    test('10.6 — Selecting custom ally shows notes textarea', async () => {
+        const allySelector = page.locator('#allySelector');
+        await allySelector.selectOption('custom');
+
+        const customNotes = page.locator('#allyCustomNotes');
+        await expect(customNotes).not.toHaveClass(/u-hidden/, { timeout: 5_000 });
+
+        await customNotes.fill('My personal guild of adventurers.');
+        await expect(customNotes).toHaveValue('My personal guild of adventurers.');
+    });
+
+    test('10.7 — Appearance and ally changes persist after save', async () => {
+        // Save current state
+        const saveBtn = page.locator('#saveCharacter');
+        await saveBtn.click();
+        const toast = page.locator('.notification.success');
+        await expect(toast).toBeVisible({ timeout: 10_000 });
+
+        // Navigate away and come back
+        await page.locator('button[data-page="home"]').click();
+        await page.waitForFunction(
+            () => document.body.getAttribute('data-current-page') === 'home',
+            { timeout: 10_000 },
+        );
+
+        // Click on the character to re-select it
+        const characterCard = page.locator('.character-card').first();
+        await characterCard.click();
+        await page.waitForSelector('#titlebarCharacterName', { timeout: 10_000 });
+
+        await navigateToDetails(page);
+
+        // Verify fields persisted
+        const eyeColor = page.locator('#eyeColor');
+        await expect(eyeColor).toHaveValue('Blue', { timeout: 5_000 });
+
+        const hairColor = page.locator('#hairColor');
+        await expect(hairColor).toHaveValue('Auburn', { timeout: 5_000 });
     });
 });

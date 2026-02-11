@@ -93,9 +93,9 @@ export class CharacterStepBasics {
 
 		// Default portrait images
 		const defaults = [
-			'assets/images/characters/placeholder_char_card.webp',
-			'assets/images/characters/placeholder_char_card2.webp',
-			'assets/images/characters/placeholder_char_card3.webp',
+			'assets/images/characters/placeholder_char_card.jpg',
+			'assets/images/characters/placeholder_char_card2.jpg',
+			'assets/images/characters/placeholder_char_card3.jpg',
 			'assets/images/characters/placeholder_char_card4.jpg',
 			'assets/images/characters/placeholder_char_card5.jpg',
 			'assets/images/characters/placeholder_char_card6.jpg',

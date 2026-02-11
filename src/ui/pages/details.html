@@ -2,7 +2,7 @@
     <div class="col-12 mb-4">
         <div class="card">
             <div class="card-header py-2">
-                <h5 class="mb-0">Character Information</h5>
+                <h5 class="mb-0">Character Details</h5>
             </div>
             <div class="card-body character-info-card-body">
                 <div class="character-info-container">
@@ -16,61 +16,31 @@
                             <input type="text" class="form-control" id="playerName">
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Gender</label>
+                            <input type="text" class="form-control" id="gender">
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Alignment</label>
                             <select class="form-select" id="alignment">
                                 <option value="">Select alignment...</option>
-                                <option value="Lawful Good">Lawful Good</option>
-                                <option value="Neutral Good">Neutral Good</option>
-                                <option value="Chaotic Good">Chaotic Good</option>
-                                <option value="Lawful Neutral">Lawful Neutral</option>
-                                <option value="True Neutral">True Neutral</option>
-                                <option value="Chaotic Neutral">Chaotic Neutral</option>
-                                <option value="Lawful Evil">Lawful Evil</option>
-                                <option value="Neutral Evil">Neutral Evil</option>
-                                <option value="Chaotic Evil">Chaotic Evil</option>
-                                <option value="Unaligned">Unaligned</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Deity</label>
                             <input type="text" class="form-control" id="deity" list="deityList"
                                 placeholder="Type or select...">
-                            <datalist id="deityList">
-                                <option value="Bahamut">
-                                <option value="Tiamat">
-                                <option value="Pelor">
-                                <option value="Moradin">
-                                <option value="Corellon Larethian">
-                                <option value="Gruumsh">
-                                <option value="Lolth">
-                                <option value="Torm">
-                                <option value="Helm">
-                                <option value="Tempus">
-                                <option value="Mystra">
-                                <option value="Selûne">
-                                <option value="Shar">
-                                <option value="Kelemvor">
-                                <option value="Oghma">
-                                <option value="Tyr">
-                                <option value="Bane">
-                                <option value="Bhaal">
-                                <option value="Myrkul">
-                                <option value="Asmodeus">
-                            </datalist>
+                            <datalist id="deityList"></datalist>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header py-2">
-                <h5 class="mb-0">Appearance</h5>
-            </div>
-            <div class="card-body character-info-card-body">
+                <hr class="my-3">
+                <h6 class="mb-2 text-secondary">Appearance</h6>
                 <div class="character-info-container">
                     <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Age</label>
+                            <input type="text" class="form-control" id="age">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Height</label>
                             <input type="text" class="form-control" id="height">
@@ -79,20 +49,26 @@
                             <label class="form-label">Weight</label>
                             <input type="text" class="form-control" id="weight">
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Gender</label>
-                            <input type="text" class="form-control" id="gender">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Eye Color</label>
+                            <label class="form-label">Eyes</label>
                             <input type="text" class="form-control" id="eyeColor">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Hair Color</label>
+                            <label class="form-label">Skin</label>
+                            <input type="text" class="form-control" id="skinColor">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hair</label>
                             <input type="text" class="form-control" id="hairColor">
                         </div>
                     </div>
                 </div>
+                <hr class="my-3">
+                <h6 class="mb-2 text-secondary">Additional Features</h6>
+                <textarea class="form-control" id="additionalFeatures"
+                    placeholder="Enter additional features & traits..."></textarea>
             </div>
         </div>
     </div>

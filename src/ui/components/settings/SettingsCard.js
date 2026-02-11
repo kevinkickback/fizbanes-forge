@@ -178,7 +178,6 @@ export class SettingsCard {
                         const modal = new DataConfigurationModal({ allowClose: true });
                         const result = await modal.show();
 
-                        showNotification('Data source updated successfully', 'success');
                         await this._updateDataSourceDisplay();
                         eventBus.emit(EVENTS.DATA_SOURCE_CHANGED, result);
                     } catch (error) {

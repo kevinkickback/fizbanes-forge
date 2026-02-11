@@ -49,22 +49,28 @@ export class DetailsPageController extends BasePageController {
 
             const characterNameInput = document.getElementById('characterName');
             const playerNameInput = document.getElementById('playerName');
+            const genderInput = document.getElementById('gender');
+            const ageInput = document.getElementById('age');
             const heightInput = document.getElementById('height');
             const weightInput = document.getElementById('weight');
-            const genderInput = document.getElementById('gender');
             const eyeColorInput = document.getElementById('eyeColor');
+            const skinColorInput = document.getElementById('skinColor');
             const hairColorInput = document.getElementById('hairColor');
+            const additionalFeaturesTextarea = document.getElementById('additionalFeatures');
             const backstoryTextarea = document.getElementById('backstory');
             const allySelectorInput = document.getElementById('allySelector');
             const allyCustomNotesTextarea = document.getElementById('allyCustomNotes');
 
             if (characterNameInput) characterNameInput.value = character.name || '';
             if (playerNameInput) playerNameInput.value = character.playerName || '';
+            if (genderInput) genderInput.value = character.gender || '';
+            if (ageInput) ageInput.value = character.age || '';
             if (heightInput) heightInput.value = character.height || '';
             if (weightInput) weightInput.value = character.weight || '';
-            if (genderInput) genderInput.value = character.gender || '';
             if (eyeColorInput) eyeColorInput.value = character.eyeColor || '';
+            if (skinColorInput) skinColorInput.value = character.skinColor || '';
             if (hairColorInput) hairColorInput.value = character.hairColor || '';
+            if (additionalFeaturesTextarea) additionalFeaturesTextarea.value = character.additionalFeatures || '';
             if (backstoryTextarea) backstoryTextarea.value = character.backstory || '';
 
             if (character.alliesAndOrganizations) {
@@ -81,25 +87,37 @@ export class DetailsPageController extends BasePageController {
     }
 
     _setupFormListeners() {
-        const detailsFields = [
-            'characterName', 'playerName', 'height', 'weight',
-            'gender', 'eyeColor', 'hairColor', 'alignment', 'deity', 'backstory',
-        ];
+        const FIELD_TO_PROPERTY = {
+            characterName: 'name',
+            playerName: 'playerName',
+            gender: 'gender',
+            alignment: 'alignment',
+            deity: 'deity',
+            age: 'age',
+            height: 'height',
+            weight: 'weight',
+            eyeColor: 'eyeColor',
+            skinColor: 'skinColor',
+            hairColor: 'hairColor',
+            additionalFeatures: 'additionalFeatures',
+            backstory: 'backstory',
+        };
 
-        detailsFields.forEach((fieldId) => {
+
+
+        for (const [fieldId, property] of Object.entries(FIELD_TO_PROPERTY)) {
             const field = document.getElementById(fieldId);
             if (field) {
-                field.addEventListener('input', () => {
-                    console.debug(
-                        'DetailsPageController',
-                        `Form field changed (${fieldId}), emitting CHARACTER_UPDATED`,
-                    );
-                    eventBus.emit(EVENTS.CHARACTER_UPDATED, {
-                        character: AppState.getCurrentCharacter(),
-                    });
+                const eventType = field.tagName === 'SELECT' ? 'change' : 'input';
+                field.addEventListener(eventType, () => {
+                    const character = AppState.getCurrentCharacter();
+                    if (character) {
+                        character[property] = field.value;
+                        eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+                    }
                 });
             }
-        });
+        }
 
         const allySelector = document.getElementById('allySelector');
         const allyCustomNotes = document.getElementById('allyCustomNotes');

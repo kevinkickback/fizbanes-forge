@@ -97,10 +97,13 @@ export function serialize(character) {
 		height: character.height || '',
 		weight: character.weight || '',
 		gender: character.gender || '',
+		age: character.age || '',
+		skinColor: character.skinColor || '',
 		eyeColor: character.eyeColor || '',
 		hairColor: character.hairColor || '',
 		alignment: character.alignment || '',
 		deity: character.deity || '',
+		additionalFeatures: character.additionalFeatures || '',
 		backstory: character.backstory || '',
 		alliesAndOrganizations: character.alliesAndOrganizations || {
 			selectedAlly: '',

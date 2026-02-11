@@ -286,13 +286,13 @@ const ALLY_DISPLAY_NAMES = {
 
 function formatAlliesOrganizations(characterData) {
     const allies = characterData.alliesAndOrganizations;
-    if (!allies) return { left: '', right: '' };
+    if (!allies) return { name: '', left: '', right: '' };
     const selected = allies.selectedAlly || '';
     if (selected === 'custom') {
-        return { left: allies.customNotes || '', right: '' };
+        return { name: '', left: allies.customNotes || '', right: '' };
     }
     const displayName = ALLY_DISPLAY_NAMES[selected] || '';
-    return { left: displayName, right: allies.customNotes || '' };
+    return { name: displayName, left: allies.customNotes || '', right: '' };
 }
 
 // ── Hit Die Defaults ──────────────────────────────────────────────────────────
@@ -541,7 +541,11 @@ function buildFieldMap2014(characterData, values) {
     textFields['Eyes colour'] = characterData.eyeColor || '';
     textFields['Skin colour'] = characterData.skinColor || '';
     textFields.Age = characterData.age || '';
-    textFields.Background_Appearance = characterData.appearance || '';
+    const sizeAbv = Array.isArray(characterData.size) ? characterData.size[0] : characterData.size;
+    const sizeMap = { T: 'Tiny', S: 'Small', M: 'Medium', L: 'Large', H: 'Huge', G: 'Gargantuan' };
+    textFields['Size Category'] = sizeMap[sizeAbv] || sizeAbv || '';
+    textFields.Background_Appearance = characterData.additionalFeatures || '';
+    textFields['Background_Faction.Text'] = values.allies.name;
     textFields['Background_Organisation.Left'] = values.allies.left;
     textFields['Background_Organisation.Right'] = values.allies.right;
     textFields.Background_Enemies = characterData.enemies || '';

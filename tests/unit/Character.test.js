@@ -343,6 +343,46 @@ describe('Character', () => {
         });
     });
 
+    describe('Appearance Fields', () => {
+        it('should default eyeColor and hairColor to empty strings', () => {
+            expect(character.eyeColor).toBe('');
+            expect(character.hairColor).toBe('');
+        });
+
+        it('should initialize eyeColor and hairColor from data', () => {
+            const char = new Character({ eyeColor: 'Blue', hairColor: 'Brown' });
+            expect(char.eyeColor).toBe('Blue');
+            expect(char.hairColor).toBe('Brown');
+        });
+    });
+
+    describe('Allies and Organizations', () => {
+        it('should default alliesAndOrganizations to empty selections', () => {
+            expect(character.alliesAndOrganizations).toEqual({
+                selectedAlly: '',
+                customNotes: '',
+            });
+        });
+
+        it('should initialize alliesAndOrganizations from data', () => {
+            const char = new Character({
+                alliesAndOrganizations: {
+                    selectedAlly: 'harpers',
+                    customNotes: 'Trusted member',
+                },
+            });
+            expect(char.alliesAndOrganizations.selectedAlly).toBe('harpers');
+            expect(char.alliesAndOrganizations.customNotes).toBe('Trusted member');
+        });
+
+        it('should preserve partial alliesAndOrganizations data', () => {
+            const char = new Character({
+                alliesAndOrganizations: { selectedAlly: 'custom' },
+            });
+            expect(char.alliesAndOrganizations.selectedAlly).toBe('custom');
+        });
+    });
+
     describe('Variant Rules', () => {
         it('should initialize variant rules with defaults', () => {
             expect(character.variantRules).toEqual({

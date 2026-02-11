@@ -35,6 +35,7 @@ export class DataConfigurationModal {
 			}
 
 			this._setupModal();
+			this._resetUIState();
 			this._populateSavedValues();
 			this._attachEventListeners();
 
@@ -100,6 +101,66 @@ export class DataConfigurationModal {
 			);
 			this.savedType = null;
 			this.savedValue = null;
+		}
+	}
+
+	_resetUIState() {
+		this.isValidating = false;
+		this.detachProgressListener();
+
+		// Reset URL validate button
+		const validateUrlBtn = this.modal.querySelector('[data-action="validate-url"]');
+		if (validateUrlBtn) {
+			validateUrlBtn.disabled = true;
+			const spinner = validateUrlBtn.querySelector('.data-config-spinner');
+			const text = validateUrlBtn.querySelector('.button-text');
+			spinner?.classList.add('d-none');
+			if (text) text.textContent = 'Validate & Download';
+		}
+
+		// Reset local validate button
+		const validateLocalBtn = this.modal.querySelector('[data-action="validate-local"]');
+		if (validateLocalBtn) {
+			validateLocalBtn.disabled = true;
+			const spinner = validateLocalBtn.querySelector('.data-config-spinner');
+			const text = validateLocalBtn.querySelector('.button-text');
+			spinner?.classList.add('d-none');
+			if (text) text.textContent = 'Validate & Use Folder';
+		}
+
+		// Reset progress/status area
+		const statusEl = this.modal.querySelector('.data-download-status');
+		const barEl = this.modal.querySelector('.data-download-progress-bar');
+		const textEl = this.modal.querySelector('.data-download-status-text');
+
+		if (statusEl) statusEl.classList.add('d-none');
+		if (barEl) {
+			barEl.classList.add('u-progress-init');
+			barEl.classList.remove('progress-bar-striped', 'progress-bar-animated', 'bg-danger');
+			barEl.style.width = '0%';
+			barEl.setAttribute('aria-valuenow', '0');
+		}
+		if (textEl) textEl.textContent = 'Preparing download...';
+
+		// Reset URL tab back to active
+		const urlTab = this.modal.querySelector('#url-tab');
+		const localTab = this.modal.querySelector('#local-tab');
+		const urlPane = this.modal.querySelector('#url-tab-pane');
+		const localPane = this.modal.querySelector('#local-tab-pane');
+
+		if (urlTab) {
+			urlTab.classList.add('active');
+			urlTab.setAttribute('aria-selected', 'true');
+		}
+		if (localTab) {
+			localTab.classList.remove('active');
+			localTab.setAttribute('aria-selected', 'false');
+		}
+		if (urlPane) {
+			urlPane.classList.add('show', 'active');
+		}
+		if (localPane) {
+			localPane.classList.remove('show', 'active');
 		}
 	}
 
@@ -237,6 +298,7 @@ export class DataConfigurationModal {
 			const completed = payload.completed || 0;
 			const percent =
 				total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
+			barEl.classList.remove('u-progress-init');
 			barEl.style.width = `${percent}%`;
 			barEl.setAttribute('aria-valuenow', percent);
 
@@ -308,7 +370,6 @@ export class DataConfigurationModal {
 		// Always show status for feedback
 		if (statusEl && textEl) {
 			statusEl.classList.remove('d-none');
-			statusEl.style.display = 'block'; // Force display in case d-none isn't removed
 			if (barEl) {
 				barEl.style.width = '0%';
 				barEl.classList.add('progress-bar-striped', 'progress-bar-animated');

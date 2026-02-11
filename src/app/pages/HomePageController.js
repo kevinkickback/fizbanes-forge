@@ -40,6 +40,8 @@ export class HomePageController extends BasePageController {
                 sortSelect.parentNode.replaceChild(newSortSelect, sortSelect);
 
                 newSortSelect.addEventListener('change', async () => {
+                    const reloadCharacters = await CharacterManager.loadCharacterList();
+                    await this._renderCharacterList(reloadCharacters);
                 });
             }
 
@@ -184,6 +186,7 @@ export class HomePageController extends BasePageController {
 
         const currentCharacter = AppState.getCurrentCharacter();
         const activeCharacterId = currentCharacter?.id;
+        const defaultPlaceholder = 'assets/images/characters/placeholder_char_card0.jpg';
 
         characterList.innerHTML = sortedCharacters
             .map((character) => {
@@ -198,12 +201,6 @@ export class HomePageController extends BasePageController {
                         .map((cls) => cls.name || 'Unknown Class')
                         .join('<br>')
                     : 'No Class';
-                const placeholderImages = [
-                    'assets/images/characters/placeholder_char_card.webp',
-                    'assets/images/characters/placeholder_char_card2.webp',
-                    'assets/images/characters/placeholder_char_card3.webp',
-                ];
-                const defaultPlaceholder = placeholderImages[0];
 
                 const rawPortrait =
                     character.portrait || character.image || character.avatar || defaultPlaceholder;
@@ -273,9 +270,18 @@ export class HomePageController extends BasePageController {
             })
             .join('');
 
-        // Apply portrait backgrounds using data attributes (CSP-compliant)
+        // Apply portrait backgrounds using data attributes (CSP-compliant).
+        // Validate each image — fall back to the placeholder when it fails to load.
         characterList.querySelectorAll('.character-portrait[data-portrait-url]').forEach((el) => {
-            el.style.backgroundImage = `url('${el.dataset.portraitUrl}')`;
+            const url = el.dataset.portraitUrl;
+            const img = new Image();
+            img.onload = () => {
+                el.style.backgroundImage = `url('${url}')`;
+            };
+            img.onerror = () => {
+                el.style.backgroundImage = `url('${defaultPlaceholder}')`;
+            };
+            img.src = url;
         });
     }
 

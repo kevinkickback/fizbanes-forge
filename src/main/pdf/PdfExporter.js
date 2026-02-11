@@ -1,8 +1,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
 import { MainLogger } from '../Logger.js';
 import { buildFieldMap } from './FieldMapping.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/** Root directory for renderer assets (src/ui/). */
+const RENDERER_ROOT = path.join(__dirname, '..', '..', 'ui');
 
 // Fields that are calculated/read-only in the MPMB template and need
 // to be converted to editable after we fill them with our values.
@@ -228,18 +235,25 @@ function makeCalculatedFieldsEditable(form) {
  * @param {string} portraitPath - Path to the portrait image file
  */
 async function embedPortrait(pdfDoc, form, portraitPath) {
-    const resolvedPath = path.resolve(portraitPath);
-    const imageBytes = await fs.readFile(resolvedPath);
+    // Resolve renderer-relative paths (e.g. 'assets/images/...') from src/ui/
+    const resolvedPath = path.isAbsolute(portraitPath)
+        ? portraitPath
+        : path.join(RENDERER_ROOT, portraitPath);
     const ext = path.extname(resolvedPath).toLowerCase();
+
+    // pdf-lib only supports PNG and JPG — skip unsupported formats
+    if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+        MainLogger.debug('PdfExporter', `Skipping unsupported portrait format: ${ext}`);
+        return;
+    }
+
+    const imageBytes = await fs.readFile(resolvedPath);
 
     let image;
     if (ext === '.png') {
         image = await pdfDoc.embedPng(imageBytes);
-    } else if (ext === '.jpg' || ext === '.jpeg') {
-        image = await pdfDoc.embedJpg(imageBytes);
     } else {
-        MainLogger.debug('PdfExporter', `Unsupported portrait format: ${ext}`);
-        return;
+        image = await pdfDoc.embedJpg(imageBytes);
     }
 
     // Try common image field names
