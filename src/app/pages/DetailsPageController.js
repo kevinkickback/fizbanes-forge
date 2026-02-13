@@ -1,4 +1,4 @@
-import { ALIGNMENTS } from '../../lib/5eToolsParser.js';
+import { ALIGNMENTS, toSentenceCase } from '../../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../../lib/EventBus.js';
 import { showNotification } from '../../lib/Notifications.js';
 import { deityService } from '../../services/DeityService.js';
@@ -69,8 +69,7 @@ export class DetailsPageController extends BasePageController {
             if (characterNameInput) characterNameInput.value = character.name || '';
             if (playerNameInput) playerNameInput.value = character.playerName || '';
             if (genderInput) {
-                const g = character.gender || '';
-                genderInput.value = g ? g.charAt(0).toUpperCase() + g.slice(1) : '';
+                genderInput.value = toSentenceCase(character.gender);
             }
             if (ageInput) ageInput.value = character.age || '';
             if (heightInput) heightInput.value = character.height || '';

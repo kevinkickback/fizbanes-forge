@@ -22,6 +22,7 @@ const characterValidationSchema = z.object({
 
     race: z.unknown().nullable().optional(),
     background: z.unknown().nullable().optional(),
+    backgroundFeature: z.string().optional(),
     size: z.union([z.string(), z.array(z.unknown())]).optional(),
     speed: z.record(z.string(), z.number()).optional(),
 
@@ -74,7 +75,6 @@ const characterValidationSchema = z.object({
     progression: z.record(z.string(), z.unknown()).optional(),
     progressionHistory: z.record(z.string(), z.unknown()).optional(),
 
-    notes: z.string().optional(),
     createdAt: z.string().optional(),
     lastModified: z.string().optional(),
 }).passthrough();
@@ -277,9 +277,6 @@ export const CharacterSchema = {
 
             // Progression history (user choices at each level: spells, feats, invocations, etc.)
             progressionHistory: {},
-
-            // Notes
-            notes: '',
 
             // Metadata
             createdAt: new Date().toISOString(),

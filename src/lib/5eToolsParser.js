@@ -317,6 +317,10 @@ export function attAbvToFull(abv) {
 	return ATB_ABV_TO_FULL[abv.toLowerCase()] || abv;
 }
 
+export function attAbvToLower(abv) {
+	return attAbvToFull(abv).toLowerCase();
+}
+
 export function getSchoolName(code) {
 	return SPELL_SCHOOLS[code] || code;
 }
@@ -452,7 +456,7 @@ export function monTypeToFullObj(type) {
 	return out;
 }
 
-function capitalize(str) {
+export function capitalize(str) {
 	if (!str) return '';
 	return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }

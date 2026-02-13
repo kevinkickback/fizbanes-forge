@@ -4,6 +4,7 @@ import {
 	getSpeedString,
 	SIZE_ABV_TO_FULL,
 	sizeAbvToFull,
+	toSentenceCase,
 	toTitleCase,
 } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -167,7 +168,7 @@ export class RaceDetailsView {
 						return `Walk: ${mode}`;
 					}
 					// Capitalize first letter of other movement types
-					return mode.charAt(0).toUpperCase() + mode.slice(1);
+					return toSentenceCase(mode);
 				})
 				.join('\n');
 		}

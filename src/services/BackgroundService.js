@@ -1,3 +1,4 @@
+import { capitalize } from '../lib/5eToolsParser.js';
 import { DataLoader } from '../lib/DataLoader.js';
 import { NotFoundError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
@@ -194,7 +195,7 @@ class BackgroundService extends BaseDataService {
 
 	_normalizeSkillName(skillKey) {
 		if (!skillKey) return '';
-		return skillKey.charAt(0).toUpperCase() + skillKey.slice(1).toLowerCase();
+		return capitalize(skillKey);
 	}
 }
 

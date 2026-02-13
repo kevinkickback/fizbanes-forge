@@ -1,10 +1,17 @@
 import path from 'node:path';
+import {
+    ABILITY_NAMES,
+    formatModifierNumber,
+    getAbilityAbbrDisplay,
+    getAbilityModNumber,
+    levelToProficiencyBonus,
+    sizeAbvToFull,
+} from '../../lib/5eToolsParser.js';
 import { MainLogger } from '../Logger.js';
 
 // ── Shared Constants ──────────────────────────────────────────────────────────
 
-const ABILITIES = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-const ABILITY_ABBR = { strength: 'Str', dexterity: 'Dex', constitution: 'Con', intelligence: 'Int', wisdom: 'Wis', charisma: 'Cha' };
+const ABILITIES = ABILITY_NAMES.map(n => n.toLowerCase());
 
 const SKILL_ABILITY_MAP = {
     'Acrobatics': 'dexterity',
@@ -107,7 +114,7 @@ function detectTemplate(templatePath) {
  * @returns {number} The modifier
  */
 export function calcModifier(score) {
-    return Math.floor((score - 10) / 2);
+    return getAbilityModNumber(score);
 }
 
 /**
@@ -116,7 +123,7 @@ export function calcModifier(score) {
  * @returns {string}
  */
 export function formatModifier(mod) {
-    return mod >= 0 ? `+${mod}` : `${mod}`;
+    return formatModifierNumber(mod);
 }
 
 /**
@@ -139,7 +146,7 @@ export function getFinalAbilityScore(characterData, ability) {
  */
 export function getProficiencyBonus(characterData) {
     const totalLevel = getTotalLevel(characterData);
-    return Math.floor((totalLevel - 1) / 4) + 2;
+    return levelToProficiencyBonus(totalLevel);
 }
 
 /**
@@ -243,26 +250,18 @@ function formatRacialTraits(characterData) {
     return parts.join('\n\n');
 }
 
-function formatFeaturesAndTraits(characterData) {
+function formatClassFeatures(characterData) {
     const parts = [];
     const features = characterData.features;
-    if (features?.darkvision) parts.push(`Darkvision ${features.darkvision} ft.`);
-    if (features?.resistances?.length) {
-        parts.push(`Resistances: ${features.resistances.join(', ')}`);
-    }
     if (features?.traits && typeof features.traits === 'object') {
         for (const [name, data] of Object.entries(features.traits)) {
+            const source = typeof data === 'object' ? data.source : '';
+            if (source === 'Race' || source === 'Subrace') continue;
             const desc = typeof data === 'object' ? flattenEntries(data.description) : String(data || '');
             parts.push(desc ? `${name}. ${desc}` : name);
         }
     }
-    if (characterData.feats?.length) {
-        for (const feat of characterData.feats) {
-            const name = typeof feat === 'string' ? feat : feat?.name;
-            if (name) parts.push(name);
-        }
-    }
-    return parts.join('\n');
+    return parts.join('\n\n');
 }
 
 function formatEquipment(characterData) {
@@ -354,6 +353,44 @@ function collectAllSkillProficiencies(characterData) {
     return skills;
 }
 
+// ── Spellcasting DC ───────────────────────────────────────────────────────────
+
+const SPELL_DC_ABILITY_DROPDOWN = {
+    strength: '    STRENGTH',
+    dexterity: '    DEXTERITY',
+    constitution: 'CONSTITUTION',
+    intelligence: ' INTELLIGENCE',
+    wisdom: '      WISDOM',
+    charisma: '    CHARISMA',
+};
+
+function computeSpellDCs(characterData, modifiers, profBonus) {
+    const spellClasses = characterData.spellcasting?.classes;
+    if (!spellClasses || typeof spellClasses !== 'object') return [];
+
+    const seen = new Set();
+    const dcs = [];
+
+    for (const [className, classData] of Object.entries(spellClasses)) {
+        if (className === 'Bonus') continue;
+        const ability = classData?.spellcastingAbility;
+        if (!ability || seen.has(ability)) continue;
+        seen.add(ability);
+
+        const mod = modifiers[ability] || 0;
+        const dc = 8 + profBonus + mod;
+        const attackBonus = profBonus + mod;
+
+        dcs.push({
+            ability,
+            dc,
+            attackBonus,
+            dropdownValue: SPELL_DC_ABILITY_DROPDOWN[ability] || '',
+        });
+    }
+    return dcs;
+}
+
 // ── Shared Value Computation ──────────────────────────────────────────────────
 
 function computeCharacterValues(characterData) {
@@ -375,7 +412,7 @@ function computeCharacterValues(characterData) {
     for (const ability of ABILITIES) {
         const isProficient = savingThrowProfs.some(
             s => s.toLowerCase() === ability.toLowerCase() ||
-                s.toLowerCase() === ABILITY_ABBR[ability].toLowerCase()
+                s.toLowerCase() === getAbilityAbbrDisplay(ability).toLowerCase()
         );
         saveValues[ability] = {
             mod: modifiers[ability] + (isProficient ? profBonus : 0),
@@ -401,14 +438,17 @@ function computeCharacterValues(characterData) {
         hpMax = computeFallbackMaxHP(characterData, modifiers.constitution);
     }
 
+    // Compute spell save DCs from spellcasting classes
+    const spellDCs = computeSpellDCs(characterData, modifiers, profBonus);
+
     return {
         scores, modifiers, profBonus, totalLevel, hpMax,
-        saveValues, skillValues, passivePerception,
+        saveValues, skillValues, passivePerception, spellDCs,
         classLevel: formatClassLevel(characterData),
         race: formatRace(characterData),
         background: formatBackground(characterData),
         hitDice: formatHitDice(characterData),
-        features: formatFeaturesAndTraits(characterData),
+        classFeatures: formatClassFeatures(characterData),
         racialTraits: formatRacialTraits(characterData),
         proficiencies: formatAllProficiencies(characterData),
         equipment: formatEquipment(characterData),
@@ -433,7 +473,7 @@ function buildFieldMap2014(characterData, values) {
 
     // --- Ability Scores & Modifiers ---
     for (const ability of ABILITIES) {
-        const abbr = ABILITY_ABBR[ability];
+        const abbr = getAbilityAbbrDisplay(ability);
         textFields[abbr] = String(values.scores[ability]);
         textFields[`${abbr} Mod`] = formatModifier(values.modifiers[ability]);
     }
@@ -493,7 +533,7 @@ function buildFieldMap2014(characterData, values) {
     textFields.Weight = characterData.weight || '';
     textFields['Faith/Deity'] = characterData.deity || '';
     textFields.Background_History = characterData.backstory || '';
-    textFields['Class Features'] = values.features;
+    textFields['Class Features'] = values.classFeatures;
     textFields.MoreProficiencies = values.proficiencies;
 
     // --- Page 2: Personality, racial traits, background feature ---
@@ -528,11 +568,30 @@ function buildFieldMap2014(characterData, values) {
         textFields['Platinum Pieces'] = currency.pp ? String(currency.pp) : '';
     }
 
+    // --- Spell Save DC ---
+    if (values.spellDCs.length > 0) {
+        const dc1 = values.spellDCs[0];
+        textFields['Spell save DC 1'] = String(dc1.dc);
+        textFields['Spell DC 1 Mod'] = dc1.dropdownValue;
+    }
+    if (values.spellDCs.length > 1) {
+        const dc2 = values.spellDCs[1];
+        textFields['Spell save DC 2'] = String(dc2.dc);
+        textFields['Spell DC 2 Mod'] = dc2.dropdownValue;
+    }
+
+    // --- Resistances ---
+    const resistances = characterData.features?.resistances || [];
+    for (let i = 0; i < Math.min(resistances.length, 6); i++) {
+        textFields[`Resistance Damage Type ${i + 1}`] = resistances[i];
+    }
+
     // --- Page 3: Feats ---
     const feats = characterData.feats || [];
     for (let i = 0; i < Math.min(feats.length, 4); i++) {
         const feat = feats[i];
         const name = typeof feat === 'string' ? feat : feat?.name || '';
+        textFields[`Feat Name ${i + 1}`] = name;
         textFields[`Feat Note ${i + 1}`] = name;
     }
 
@@ -543,8 +602,7 @@ function buildFieldMap2014(characterData, values) {
     textFields['Skin colour'] = characterData.skinColor || '';
     textFields.Age = characterData.age || '';
     const sizeAbv = Array.isArray(characterData.size) ? characterData.size[0] : characterData.size;
-    const sizeMap = { T: 'Tiny', S: 'Small', M: 'Medium', L: 'Large', H: 'Huge', G: 'Gargantuan' };
-    textFields['Size Category'] = sizeMap[sizeAbv] || sizeAbv || '';
+    textFields['Size Category'] = sizeAbvToFull(sizeAbv) || sizeAbv || '';
     textFields.Background_Appearance = characterData.additionalFeatures || '';
     textFields['Background_Faction.Text'] = values.allies.name;
     textFields['Background_Organisation.Left'] = values.allies.left;
@@ -631,7 +689,9 @@ function buildFieldMap2024(characterData, values) {
 
     // --- Large text areas (page 1 bottom) ---
     textFields.Text_55 = values.proficiencies;
-    textFields.Text_57 = values.features;
+    // 2024 has a single Features & Traits area — combine racial + class
+    const allFeatures = [values.racialTraits, values.classFeatures].filter(Boolean).join('\n\n');
+    textFields.Text_57 = allFeatures;
     textFields.Text_59 = values.equipment;
     textFields.Text_60 = characterData.backstory || '';
 

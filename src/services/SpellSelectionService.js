@@ -1,3 +1,4 @@
+import { attAbvToLower } from '../lib/5eToolsParser.js';
 import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
@@ -85,19 +86,7 @@ class SpellSelectionService {
 			return null;
 		}
 
-		// Map 5etools ability abbreviations to full names
-		const abilityMap = {
-			str: 'strength',
-			dex: 'dexterity',
-			con: 'constitution',
-			int: 'intelligence',
-			wis: 'wisdom',
-			cha: 'charisma',
-		};
-
-		const ability =
-			abilityMap[classData.spellcastingAbility] ||
-			classData.spellcastingAbility;
+		const ability = attAbvToLower(classData.spellcastingAbility);
 
 		return {
 			spellcastingAbility: ability,

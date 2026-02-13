@@ -13,6 +13,7 @@ import {
 	STANDARD_LANGUAGE_OPTIONS,
 	STANDARD_SKILL_OPTIONS,
 	STANDARD_TOOL_OPTIONS,
+	toSentenceCase,
 	toTitleCase,
 	unpackUid,
 } from '../../../lib/5eToolsParser.js';
@@ -1450,7 +1451,7 @@ class RaceDetailsView {
 						return `Walk: ${mode}`;
 					}
 					// Capitalize first letter of other movement types
-					return mode.charAt(0).toUpperCase() + mode.slice(1);
+					return toSentenceCase(mode);
 				})
 				.join('\n');
 		}

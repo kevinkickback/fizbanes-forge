@@ -2,8 +2,10 @@ import { CharacterManager } from '../app/CharacterManager.js';
 import {
 	ABILITY_ABBREVIATIONS,
 	attAbvToFull,
+	formatModifierNumber,
 	getAbilityModNumber,
 	numberToWords,
+	toSentenceCase,
 } from '../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
@@ -623,17 +625,9 @@ class AbilityScoreService {
 // Helper Functions
 //=============================================================================
 
-const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const ABILITIES = ABILITY_ABBREVIATIONS;
 
-export function formatModifier(modifier) {
-	if (typeof modifier !== 'number' || Number.isNaN(modifier)) {
-		return '+0';
-	}
-	if (modifier >= 0) {
-		return `+${modifier}`;
-	}
-	return `${modifier}`;
-}
+export { formatModifierNumber as formatModifier };
 
 const POINT_BUY_COSTS = new Map([
 	[8, 0],
@@ -790,7 +784,7 @@ export function getAbilityData(abilityArray, options = {}) {
 
 	// Combine parts
 	const asText =
-		asTextParts.length > 0 ? `${capitalizeFirst(asTextParts.join(', '))}.` : '';
+		asTextParts.length > 0 ? `${toSentenceCase(asTextParts.join(', '))}.` : '';
 	const asTextShort = asTextShortParts.join(', ');
 
 	return {
@@ -985,11 +979,6 @@ export function validateAbilitySelections(abilityArray, selections) {
 		errors,
 		final,
 	};
-}
-
-function capitalizeFirst(str) {
-	if (!str) return '';
-	return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // Create and export singleton instance

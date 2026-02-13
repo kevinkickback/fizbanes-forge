@@ -1,3 +1,4 @@
+import { attAbvToLower } from '../lib/5eToolsParser.js';
 import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
@@ -258,15 +259,7 @@ class LevelUpService {
 	}
 
 	_mapAbilityAbbreviation(abbr) {
-		const abilityMap = {
-			str: 'strength',
-			dex: 'dexterity',
-			con: 'constitution',
-			int: 'intelligence',
-			wis: 'wisdom',
-			cha: 'charisma',
-		};
-		return abilityMap[abbr] || abbr;
+		return attAbvToLower(abbr);
 	}
 
 	checkMulticlassRequirements(character, className) {

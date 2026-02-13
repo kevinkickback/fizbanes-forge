@@ -1,6 +1,11 @@
 // Spell selector for class-specific spell/cantrip selection with known limits
 
-import { getSchoolName, renderEntriesToText } from '../../../lib/5eToolsParser.js';
+import {
+	CANTRIP_ORDINALS,
+	getSchoolName,
+	renderEntriesToText,
+	SPELL_LEVEL_ORDINALS,
+} from '../../../lib/5eToolsParser.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { classService } from '../../../services/ClassService.js';
 import { sourceService } from '../../../services/SourceService.js';
@@ -54,19 +59,7 @@ export class ClassSpellSelectorModal {
 					this.className,
 					this.currentLevel,
 				);
-				const ordinals = [
-					'',
-					'1st-level',
-					'2nd-level',
-					'3rd-level',
-					'4th-level',
-					'5th-level',
-					'6th-level',
-					'7th-level',
-					'8th-level',
-					'9th-level',
-				];
-				const levelText = ordinals[maxSpellLevel] || 'level';
+				const levelText = SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level';
 				const msg =
 					this.maxCantrips > 0 || this.maxSpells > 0
 						? 'No valid spells found for selection.'
@@ -96,19 +89,7 @@ export class ClassSpellSelectorModal {
 					this.className,
 					this.currentLevel,
 				);
-				const ordinals = [
-					'',
-					'1st-level',
-					'2nd-level',
-					'3rd-level',
-					'4th-level',
-					'5th-level',
-					'6th-level',
-					'7th-level',
-					'8th-level',
-					'9th-level',
-				];
-				modalTitle = `Learn ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}, ${this.maxSpells} ${ordinals[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
+				modalTitle = `Learn ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}, ${this.maxSpells} ${SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
 			} else if (this.maxCantrips > 0) {
 				modalTitle = `Learn ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}`;
 			} else if (this.maxSpells > 0) {
@@ -116,19 +97,7 @@ export class ClassSpellSelectorModal {
 					this.className,
 					this.currentLevel,
 				);
-				const ordinals = [
-					'',
-					'1st-level',
-					'2nd-level',
-					'3rd-level',
-					'4th-level',
-					'5th-level',
-					'6th-level',
-					'7th-level',
-					'8th-level',
-					'9th-level',
-				];
-				modalTitle = `Learn ${this.maxSpells} ${ordinals[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
+				modalTitle = `Learn ${this.maxSpells} ${SPELL_LEVEL_ORDINALS[maxSpellLevel] || 'level'} spell${this.maxSpells !== 1 ? 's' : ''}`;
 			}
 
 			// Build filter sets using FilterBuilder (same as UniversalSpellModal)
@@ -138,19 +107,6 @@ export class ClassSpellSelectorModal {
 					this.className,
 					this.currentLevel,
 				);
-				const ordinals = [
-					'Cantrip',
-					'1st',
-					'2nd',
-					'3rd',
-					'4th',
-					'5th',
-					'6th',
-					'7th',
-					'8th',
-					'9th',
-				];
-
 				const builder = new FilterBuilder(panel, cleanup);
 
 				// Build level options from available spells
@@ -159,7 +115,7 @@ export class ClassSpellSelectorModal {
 					.sort((a, b) => a - b);
 
 				const levelOptions = availableLevels.map((level) => ({
-					label: ordinals[level],
+					label: CANTRIP_ORDINALS[level],
 					value: String(level),
 				}));
 
@@ -324,19 +280,7 @@ export class ClassSpellSelectorModal {
 							this.className,
 							this.currentLevel,
 						);
-						const ordinals = [
-							'Cantrip',
-							'1st',
-							'2nd',
-							'3rd',
-							'4th',
-							'5th',
-							'6th',
-							'7th',
-							'8th',
-							'9th',
-						];
-						const lvlText = ordinals[maxSpellLevel];
+						const lvlText = CANTRIP_ORDINALS[maxSpellLevel];
 						showNotification(
 							`${lvlText} spell limit reached. Deselect a spell to add another.`,
 							'warning',
@@ -528,19 +472,6 @@ export class ClassSpellSelectorModal {
 	 * Example: "2/2 cantrips, 2/2 level 1"
 	 */
 	_getCountDisplay(selectedItems) {
-		const ordinals = [
-			'Cantrip',
-			'1st',
-			'2nd',
-			'3rd',
-			'4th',
-			'5th',
-			'6th',
-			'7th',
-			'8th',
-			'9th',
-		];
-
 		// Count selected spells by level
 		const selectedByLevel = {};
 		selectedItems.forEach((spell) => {
@@ -569,7 +500,7 @@ export class ClassSpellSelectorModal {
 				this.currentLevel,
 			);
 			const selectedLeveled = selectedItems.filter((s) => s.level > 0).length;
-			const levelText = ordinals[maxSpellLevel];
+			const levelText = CANTRIP_ORDINALS[maxSpellLevel];
 			categories.push({
 				label: `${levelText} level`,
 				selected: selectedLeveled,

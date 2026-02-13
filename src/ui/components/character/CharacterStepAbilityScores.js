@@ -1,18 +1,16 @@
 // Step 5: Ability Scores - score assignment based on method from step 1
 
-import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
+import {
+	ABILITY_NAMES,
+	formatModifierNumber,
+	getAbilityAbbrDisplay,
+	getAbilityModNumber,
+} from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { getRaceAbilityData } from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
 
-export const ABILITIES = [
-	'strength',
-	'dexterity',
-	'constitution',
-	'intelligence',
-	'wisdom',
-	'charisma',
-];
+export const ABILITIES = ABILITY_NAMES.map(n => n.toLowerCase());
 
 export const POINT_COSTS = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
@@ -94,8 +92,8 @@ export class CharacterStepAbilityScores {
 				const baseScore = stagedData.abilityScores[ability] || 8;
 				const racialBonus = this._getRacialBonus(ability);
 				const totalScore = baseScore + racialBonus;
-				const modifier = this._formatModifier(
-					Math.floor((totalScore - 10) / 2),
+				const modifier = formatModifierNumber(
+					getAbilityModNumber(totalScore),
 				);
 
 				return `
@@ -248,10 +246,7 @@ export class CharacterStepAbilityScores {
 	}
 
 	_formatModifier(modifier) {
-		if (modifier >= 0) {
-			return `+${modifier}`;
-		}
-		return `${modifier}`;
+		return formatModifierNumber(modifier);
 	}
 
 	async attachListeners() {
@@ -330,7 +325,7 @@ export class CharacterStepAbilityScores {
 				this.session.getStagedData().abilityScores?.[ability] || 8;
 			const racialBonus = this._getRacialBonus(ability);
 			const totalScore = baseScore + racialBonus;
-			const modifier = this._formatModifier(Math.floor((totalScore - 10) / 2));
+			const modifier = this._formatModifier(getAbilityModNumber(totalScore));
 
 			// Update the score display
 			const scoreDisplay = box.querySelector('.score');
@@ -615,7 +610,7 @@ export class CharacterStepAbilityScores {
 			const baseScore = stagedData.abilityScores?.[ability] || 8;
 			const racialBonus = this._getRacialBonus(ability);
 			const totalScore = baseScore + racialBonus;
-			const modifier = this._formatModifier(Math.floor((totalScore - 10) / 2));
+			const modifier = this._formatModifier(getAbilityModNumber(totalScore));
 
 			// Update displayed values
 			const scoreEl = box.querySelector('.score');

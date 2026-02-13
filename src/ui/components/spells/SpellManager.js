@@ -1,6 +1,7 @@
 // Component for managing the Spells page
 
 import { AppState } from '../../../app/AppState.js';
+import { CANTRIP_ORDINALS, toSentenceCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
@@ -555,13 +556,12 @@ export class SpellsManager {
 	}
 
 	_formatAbilityName(ability) {
-		return ability.charAt(0).toUpperCase() + ability.slice(1);
+		return toSentenceCase(ability);
 	}
 
 	_getLevelLabel(level) {
 		if (level === 0) return 'Cantrips';
-		const suffixes = ['', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];
-		return `${level}${suffixes[level]} Level`;
+		return `${CANTRIP_ORDINALS[level]} Level`;
 	}
 
 	_getColumnCount() {

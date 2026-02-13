@@ -1,6 +1,6 @@
 // Controller for managing ability score UI and interactions.
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
+import { ABILITY_ABBREVIATIONS, attAbvToFull, toSentenceCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
@@ -199,7 +199,7 @@ class AbilityScoreCard {
 
 		if (skills.length === 0) {
 			infoContent.innerHTML = `
-				<h6>${ability.charAt(0).toUpperCase() + ability.slice(1)}</h6>
+				<h6>${toSentenceCase(ability)}</h6>
 				<p class="text-muted small">No skills use this ability score.</p>
 			`;
 			await textProcessor.processElement(infoContent);
@@ -228,7 +228,7 @@ class AbilityScoreCard {
 
 		infoContent.innerHTML = `
 			<div class="mb-2">
-				<h5>${ability.charAt(0).toUpperCase() + ability.slice(1)} Skills</h5>
+				<h5>${toSentenceCase(ability)} Skills</h5>
 				<p class="text-muted small">Skills that use this ability score:</p>
 			</div>
 			${skillsHTML}

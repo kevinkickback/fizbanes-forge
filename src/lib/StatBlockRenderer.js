@@ -2,6 +2,7 @@
 
 import { getAbilityData } from '../services/AbilityScoreService.js';
 import {
+	ABILITY_ABBREVIATIONS,
 	getOrdinalForm,
 	getSpeedString,
 	sizeAbvToFull,
@@ -627,7 +628,7 @@ export function renderMonster(monster) {
 		monster.cha
 	) {
 		html += '<div class="tooltip-abilities">';
-		const abilities = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+		const abilities = ABILITY_ABBREVIATIONS;
 		for (const ab of abilities) {
 			if (monster[ab] !== undefined) {
 				html += `<span><strong>${ab.toUpperCase()}:</strong> ${monster[ab]}</span>`;

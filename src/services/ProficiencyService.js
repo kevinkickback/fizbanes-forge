@@ -1,3 +1,4 @@
+import { toSentenceCase } from '../lib/5eToolsParser.js';
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
@@ -340,7 +341,7 @@ export class ProficiencyService {
 					character,
 					'skills',
 					matchingProf,
-					`${source.charAt(0).toUpperCase() + source.slice(1)} Choice`,
+					`${toSentenceCase(source)} Choice`,
 				);
 
 				refunded = true;

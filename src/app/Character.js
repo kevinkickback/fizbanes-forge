@@ -36,6 +36,7 @@ export class Character {
 		}
 
 		this.background = data.background || '';
+		this.backgroundFeature = data.backgroundFeature || '';
 		this.createdAt = data.createdAt || new Date().toISOString();
 		this.lastModified = data.lastModified || new Date().toISOString();
 
@@ -232,18 +233,9 @@ export class Character {
 
 		this.inventory = data.inventory || {
 			items: [],
-			equipped: {
-				head: null,
-				body: null,
-				hands: [],
-				feet: null,
-				back: null,
-				neck: null,
-				wrists: [],
-				fingers: [],
-				waist: null,
-			},
+			equipped: [],
 			attuned: [],
+			currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
 			weight: {
 				current: 0,
 				capacity: 0,
@@ -265,6 +257,8 @@ export class Character {
 		this.progression = data.progression || {
 			classes: [],
 		};
+
+		this.progressionHistory = data.progressionHistory || {};
 
 		proficiencyService.initializeProficiencyStructures(this);
 	}

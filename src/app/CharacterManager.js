@@ -8,6 +8,7 @@ import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 
 import { CharacterSchema } from '../lib/CharacterSchema.js';
+import { rehydrationService } from '../services/RehydrationService.js';
 import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
 
@@ -93,6 +94,7 @@ class CharacterManagerImpl {
 			}
 
 			const character = new Character(characterData);
+			rehydrationService.rehydrate(character);
 
 			AppState.setCurrentCharacter(character);
 			AppState.setHasUnsavedChanges(false);
@@ -190,7 +192,11 @@ class CharacterManagerImpl {
 
 			const charactersData = listResult.characters || [];
 
-			const characters = charactersData.map((data) => new Character(data));
+			const characters = charactersData.map((data) => {
+				const character = new Character(data);
+				rehydrationService.rehydrate(character);
+				return character;
+			});
 
 			AppState.setCharacters(characters);
 

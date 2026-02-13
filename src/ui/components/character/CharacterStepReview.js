@@ -3,6 +3,9 @@
 import {
 	ABILITY_ABBREVIATIONS,
 	attAbvToFull,
+	getAbilityModNumber,
+	getAbilityModifier,
+	toSentenceCase,
 } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
@@ -22,7 +25,7 @@ export class CharacterStepReview {
 			data.portrait || 'assets/images/characters/placeholder_char_card.webp';
 		const name = data.name || 'Unnamed';
 		const gender = data.gender
-			? data.gender.charAt(0).toUpperCase() + data.gender.slice(1)
+			? toSentenceCase(data.gender)
 			: 'Male';
 
 		// Format sources as badges
@@ -153,8 +156,7 @@ export class CharacterStepReview {
 			const baseScore = data.abilityScores?.[key] || 8;
 			const racialBonus = this._getRacialBonus(key, data);
 			const totalScore = baseScore + racialBonus;
-			const modifier = Math.floor((totalScore - 10) / 2);
-			const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+			const modStr = getAbilityModifier(totalScore);
 			return `
                 <div class="ability-score-summary">
                     <span class="ability-label">${label}</span>
@@ -196,7 +198,7 @@ export class CharacterStepReview {
 		const baseConScore = data.abilityScores?.constitution || 10;
 		const racialConBonus = this._getRacialBonus('constitution', data);
 		const totalConScore = baseConScore + racialConBonus;
-		const conModifier = Math.floor((totalConScore - 10) / 2);
+		const conModifier = getAbilityModNumber(totalConScore);
 
 		// Hit die by class (simplified)
 		const hitDice = {

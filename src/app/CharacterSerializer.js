@@ -136,6 +136,7 @@ export function serialize(character) {
 				? { ...character.background }
 				: { name: character.background }
 			: {},
+		backgroundFeature: character.backgroundFeature || '',
 
 		size: character.size || 'Medium',
 		speed: character.speed
@@ -350,6 +351,11 @@ export function serialize(character) {
 			timestamp: levelUp.timestamp,
 		})),
 	};
+
+	// Add progression history
+	serializedData.progressionHistory = character.progressionHistory
+		? JSON.parse(JSON.stringify(character.progressionHistory))
+		: {};
 
 	return serializedData;
 }

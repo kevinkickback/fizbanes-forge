@@ -1,14 +1,4 @@
-import { DEFAULT_SOURCE } from './5eToolsParser.js';
-
-function escapeHtml(text) {
-	if (!text) return '';
-	return String(text)
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#x27;');
-}
+import { DEFAULT_SOURCE, escapeHtml } from './5eToolsParser.js';
 
 function splitTagByPipe(text) {
 	return text.split('|').map((s) => s.trim());

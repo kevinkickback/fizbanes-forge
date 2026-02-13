@@ -1,7 +1,7 @@
 // Controller for proficiency display/selection/notes UI
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import { ABILITY_NAMES, STANDARD_SKILL_OPTIONS, STANDARD_TOOL_OPTIONS, toTitleCase } from '../../../lib/5eToolsParser.js';
+import { ABILITY_NAMES, STANDARD_SKILL_OPTIONS, STANDARD_TOOL_OPTIONS, toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
@@ -705,7 +705,7 @@ export class ProficiencyCard {
 
 		for (const type of this._proficiencyTypes) {
 			const isExpanded = expandedItems.has(type);
-			const collapseId = `proficiencies${type.charAt(0).toUpperCase() + type.slice(1)}`;
+			const collapseId = `proficiencies${toSentenceCase(type)}`;
 			const typeLabel = this._displayView.getTypeLabel(type);
 			const iconClass = this._displayView.getIconForType(type);
 			const availableOptions = availableOptionsMap[type] || [];
@@ -1049,7 +1049,7 @@ export class ProficiencyCard {
 						extraInfo.push(`Damage: ${info.damage} ${info.damageType || ''}`);
 					if (info.weaponCategory)
 						extraInfo.push(
-							`Category: ${info.weaponCategory.charAt(0).toUpperCase() + info.weaponCategory.slice(1)}`,
+							`Category: ${toSentenceCase(info.weaponCategory)}`,
 						);
 
 					// Handle description - can be entries array from book or string

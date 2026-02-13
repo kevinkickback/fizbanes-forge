@@ -1,3 +1,4 @@
+import { ABILITY_ABBREVIATIONS, fullAbilityToAbbr } from '../lib/5eToolsParser.js';
 import { DataLoader } from '../lib/DataLoader.js';
 import { ValidationError } from '../lib/Errors.js';
 import TextProcessor from '../lib/TextProcessor.js';
@@ -47,27 +48,16 @@ class SkillService extends BaseDataService {
 
 		if (!this._data?.skill) return [];
 
-		// Convert full ability name to 3-letter abbreviation used in JSON
-		const abilityMap = {
-			strength: 'str',
-			dexterity: 'dex',
-			constitution: 'con',
-			intelligence: 'int',
-			wisdom: 'wis',
-			charisma: 'cha',
-		};
-
 		const normalizedName = validated.abilityName.toLowerCase().trim();
+		const abilityAbbr = fullAbilityToAbbr(normalizedName);
 
 		// Validate ability is recognized
-		if (!abilityMap[normalizedName] && !['str', 'dex', 'con', 'int', 'wis', 'cha'].includes(normalizedName)) {
+		if (!ABILITY_ABBREVIATIONS.includes(abilityAbbr)) {
 			throw new ValidationError('Invalid ability name', {
 				abilityName: validated.abilityName,
 				validOptions: ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma', 'str', 'dex', 'con', 'int', 'wis', 'cha'],
 			});
 		}
-
-		const abilityAbbr = abilityMap[normalizedName] || normalizedName;
 
 		return this._data.skill.filter((skill) => {
 			if (!skill.ability) return false;

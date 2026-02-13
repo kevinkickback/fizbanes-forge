@@ -7,6 +7,7 @@ import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import {
 	ARTISAN_TOOLS,
 	attAbvToFull,
+	attAbvToLower,
 	getAbilityAbbrDisplay,
 	getSchoolName,
 	SPELL_LEVEL_ORDINALS,
@@ -2452,15 +2453,7 @@ export class ClassCard {
 				for (const [ability, bonus] of Object.entries(
 					existingASI.changedAbilities,
 				)) {
-					// Normalize ability name (str -> strength, dex -> dexterity, etc.)
-					const normalizedAbility = ability
-						.toLowerCase()
-						.replace(/^str$/, 'strength')
-						.replace(/^dex$/, 'dexterity')
-						.replace(/^con$/, 'constitution')
-						.replace(/^int$/, 'intelligence')
-						.replace(/^wis$/, 'wisdom')
-						.replace(/^cha$/, 'charisma');
+					const normalizedAbility = attAbvToLower(ability);
 
 					character.removeAbilityBonus(
 						normalizedAbility,
