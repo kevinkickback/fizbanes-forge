@@ -1,3 +1,4 @@
+import { nativeImage } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,7 +73,7 @@ export async function generateFilledPdf(characterData, templatePath) {
         try {
             await embedPortrait(pdfDoc, form, characterData.portrait);
         } catch (error) {
-            MainLogger.warn('PdfExporter', 'Failed to embed portrait image:', error.message);
+            MainLogger.warn('PdfExporter', 'Failed to embed portrait image:', error?.message || error);
         }
     }
 
@@ -239,21 +240,33 @@ async function embedPortrait(pdfDoc, form, portraitPath) {
     const resolvedPath = path.isAbsolute(portraitPath)
         ? portraitPath
         : path.join(RENDERER_ROOT, portraitPath);
-    const ext = path.extname(resolvedPath).toLowerCase();
-
-    // pdf-lib only supports PNG and JPG — skip unsupported formats
-    if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
-        MainLogger.debug('PdfExporter', `Skipping unsupported portrait format: ${ext}`);
-        return;
-    }
 
     const imageBytes = await fs.readFile(resolvedPath);
 
+    // Detect actual format from magic bytes instead of trusting the extension
+    const isJpeg = imageBytes[0] === 0xFF && imageBytes[1] === 0xD8;
+    const isPng = imageBytes[0] === 0x89 && imageBytes[1] === 0x50
+        && imageBytes[2] === 0x4E && imageBytes[3] === 0x47;
+    const isWebP = imageBytes[0] === 0x52 && imageBytes[1] === 0x49
+        && imageBytes[2] === 0x46 && imageBytes[3] === 0x46;
+
     let image;
-    if (ext === '.png') {
+    if (isPng) {
         image = await pdfDoc.embedPng(imageBytes);
-    } else {
+    } else if (isJpeg) {
         image = await pdfDoc.embedJpg(imageBytes);
+    } else if (isWebP) {
+        // Convert WebP to PNG via Electron's nativeImage
+        const ni = nativeImage.createFromBuffer(Buffer.from(imageBytes));
+        if (ni.isEmpty()) {
+            MainLogger.warn('PdfExporter', `Failed to decode WebP portrait: ${portraitPath}`);
+            return;
+        }
+        const pngBytes = ni.toPNG();
+        image = await pdfDoc.embedPng(pngBytes);
+    } else {
+        MainLogger.debug('PdfExporter', `Skipping unsupported portrait format for: ${portraitPath}`);
+        return;
     }
 
     // Try common image field names

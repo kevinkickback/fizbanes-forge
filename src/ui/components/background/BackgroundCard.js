@@ -38,6 +38,9 @@ export class BackgroundCard {
 		this._selectedBackground = null;
 		this._selectedVariant = null;
 
+		// Track equipment choice dropdowns by background key
+		this._equipmentSelects = new Map();
+
 		// Initialize the component
 		this.initialize();
 	}
@@ -276,6 +279,38 @@ export class BackgroundCard {
 			await this._createBackgroundInfoPanel(background, null);
 		}
 
+		// Add equipment choice dropdown if background has A/B (or more) equipment options
+		const effectiveBackground = this._selectedVariant || background;
+		const equipChoices = this._getEquipmentChoices(effectiveBackground);
+		if (equipChoices.length > 0) {
+			const choice = equipChoices[0];
+			const equipDropdown = document.createElement('div');
+			equipDropdown.className = 'inline-dropdown-container';
+			equipDropdown.setAttribute('data-equipment-choice', 'true');
+
+			const equipSelect = document.createElement('select');
+			equipSelect.className = 'form-select form-select-sm';
+
+			for (const key of choice.keys) {
+				const opt = document.createElement('option');
+				opt.value = key;
+				opt.textContent = this._getEquipmentChoiceLabel(choice.entry[key]);
+				equipSelect.appendChild(opt);
+			}
+
+			equipDropdown.appendChild(equipSelect);
+			const flexContainer = itemWrapper.querySelector('.d-flex');
+			flexContainer.appendChild(equipDropdown);
+
+			// Track for saved-selection restoration
+			const bgKey = `${background.name}_${background.source}`;
+			this._equipmentSelects.set(bgKey, equipSelect);
+
+			this._cleanup.on(equipSelect, 'change', () => {
+				this._updateCharacterEquipmentChoice(equipSelect.value);
+			});
+		}
+
 		// Handle background selection
 		const radio = itemWrapper.querySelector('input[type="radio"]');
 		this._cleanup.on(backgroundItem, 'click', (e) => {
@@ -290,8 +325,8 @@ export class BackgroundCard {
 				radio.checked = true;
 				this._selectedBackground = background;
 
-				// Check if dropdown actually exists (filtered variants)
-				const select = itemWrapper.querySelector('select');
+				// Check if variant dropdown exists (exclude equipment choice dropdown)
+				const select = itemWrapper.querySelector('.inline-dropdown-container:not([data-equipment-choice]) select');
 
 				// If has dropdown with variants, show first variant info, otherwise show background info
 				if (select && select.options.length > 0) {
@@ -333,8 +368,8 @@ export class BackgroundCard {
 
 		// Add hover to show info
 		this._cleanup.on(backgroundItem, 'mouseenter', () => {
-			// Check if dropdown actually exists
-			const select = itemWrapper.querySelector('select');
+			// Check if variant dropdown exists (exclude equipment choice dropdown)
+			const select = itemWrapper.querySelector('.inline-dropdown-container:not([data-equipment-choice]) select');
 
 			if (select && select.options.length > 0) {
 				const variantName = select.value;
@@ -410,6 +445,48 @@ export class BackgroundCard {
 
 	sanitizeId(name) {
 		return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+	}
+
+	//-------------------------------------------------------------------------
+	// Equipment Choice Helpers
+	//-------------------------------------------------------------------------
+
+	_getEquipmentChoices(background) {
+		if (!background?.equipment) return [];
+		const choices = [];
+		for (const eq of background.equipment) {
+			const keys = Object.keys(eq).filter(k => k !== '_').sort();
+			if (keys.length > 1) {
+				choices.push({ keys, entry: eq });
+			}
+		}
+		return choices;
+	}
+
+	_getEquipmentChoiceLabel(items) {
+		if (!Array.isArray(items) || items.length === 0) return 'Unknown';
+
+		// Single item — show its formatted name (handles currency, equipmentType, etc.)
+		if (items.length === 1) {
+			return this._detailsView._formatSingleEquipment(items[0]) || 'Equipment';
+		}
+
+		// Multiple items
+		return 'Equipment Pack';
+	}
+
+	_updateCharacterEquipmentChoice(choiceKey) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character?.background) return;
+
+		if (!character.background.equipmentChoices) {
+			character.background.equipmentChoices = {};
+		}
+		character.background.equipmentChoices = { 0: choiceKey };
+
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
+			character: CharacterManager.getCurrentCharacter(),
+		});
 	}
 
 	_extractDescription(background) {
@@ -516,8 +593,8 @@ export class BackgroundCard {
 					character.background.variant,
 				);
 
-				// Find and set the variant dropdown if it exists
-				const variantSelect = backgroundItem.querySelector('select');
+				// Find and set the variant dropdown if it exists (exclude equipment choice dropdown)
+				const variantSelect = backgroundItem.querySelector('.inline-dropdown-container:not([data-equipment-choice]) select');
 				if (variantSelect) {
 					const variantOption = Array.from(variantSelect.options).find(
 						(opt) => opt.value === character.background.variant,
@@ -541,6 +618,19 @@ export class BackgroundCard {
 							'BackgroundCard',
 							`Saved variant "${character.background.variant}" not found in dropdown options.`,
 						);
+					}
+				}
+			}
+
+			// Restore saved equipment choice if present
+			const bgKey = `${character.background.name}_${character.background.source}`;
+			const equipSelect = this._equipmentSelects.get(bgKey);
+			if (equipSelect && character.background.equipmentChoices) {
+				const savedChoice = character.background.equipmentChoices[0];
+				if (savedChoice) {
+					const matchingOpt = Array.from(equipSelect.options).find(o => o.value === savedChoice);
+					if (matchingOpt) {
+						equipSelect.value = savedChoice;
 					}
 				}
 			}
@@ -609,6 +699,15 @@ export class BackgroundCard {
 					character.background.variant = variant.name;
 				} else {
 					character.background.variant = null;
+				}
+
+				// Set default equipment choice to first option if choices exist
+				const effectiveBg = variant || background;
+				const equipChoices = this._getEquipmentChoices(effectiveBg);
+				if (equipChoices.length > 0) {
+					character.background.equipmentChoices = { 0: equipChoices[0].keys[0] };
+				} else {
+					character.background.equipmentChoices = null;
 				}
 
 				// Add background proficiencies
@@ -1142,21 +1241,30 @@ class BackgroundDetailsView {
 	_formatEquipment(background) {
 		if (!background?.equipment) return 'None';
 
-		// 5etools normalizes equipment: equipment = [{item: "...", quantity: n}] or [{a: [...], b: [...]}]
 		const equipment = [];
 
 		for (const eq of background.equipment) {
-			if (eq.a && eq.b) {
-				// Choice between options
-				equipment.push(
-					`(a) ${this._formatEquipmentList(eq.a)} or (b) ${this._formatEquipmentList(eq.b)}`,
+			// Detect choice entries: keys other than '_' (fixed equipment)
+			const choiceKeys = Object.keys(eq).filter(k => k !== '_').sort();
+
+			// Render fixed items under the '_' key
+			if (eq._ && Array.isArray(eq._)) {
+				equipment.push(this._formatEquipmentList(eq._));
+			}
+
+			// Render choice items
+			if (choiceKeys.length > 1) {
+				const parts = choiceKeys.map(k =>
+					`(${k}) ${this._formatEquipmentList(eq[k])}`,
 				);
-			} else if (Array.isArray(eq)) {
-				// Direct equipment list
-				equipment.push(this._formatEquipmentList(eq));
-			} else {
-				// Single item
-				equipment.push(this._formatSingleEquipment(eq));
+				equipment.push(parts.join(' or '));
+			} else if (choiceKeys.length === 0 && !eq._) {
+				// Plain item or array with no choice keys and no fixed key
+				if (Array.isArray(eq)) {
+					equipment.push(this._formatEquipmentList(eq));
+				} else {
+					equipment.push(this._formatSingleEquipment(eq));
+				}
 			}
 		}
 
@@ -1169,17 +1277,47 @@ class BackgroundDetailsView {
 
 	_formatSingleEquipment(item) {
 		if (typeof item === 'string') {
-			return item;
+			const parsed = unpackUid(item);
+			return parsed?.name || item;
 		}
+
+		// Standalone currency value (e.g. { value: 5000 } → "50 GP")
+		if (item.value != null && !item.item && !item.special) {
+			return this._formatCurrencyValue(item.value);
+		}
+
+		// Equipment type placeholder (e.g. { equipmentType: "toolArtisan" })
+		if (item.equipmentType) {
+			const typeLabels = {
+				toolArtisan: "Artisan's Tools (any)",
+				instrumentMusical: 'Musical Instrument (any)',
+				setGaming: 'Gaming Set (any)',
+			};
+			return typeLabels[item.equipmentType] || toSentenceCase(item.equipmentType);
+		}
+
 		const qty = item.quantity ? `${item.quantity}x ` : '';
 		const itemRef = item.item || '';
-		const name =
+		let name =
 			item.displayName ||
 			(itemRef ? unpackUid(itemRef).name : '') ||
 			item.name ||
 			item.special ||
 			'';
+
+		// Append contained gold (e.g. pouch containing 15 GP)
+		if (item.containsValue) {
+			const gp = Math.floor(item.containsValue / 100);
+			name += ` (containing ${gp} GP)`;
+		}
+
 		return `${qty}${name}`.trim();
+	}
+
+	_formatCurrencyValue(copperValue) {
+		if (copperValue >= 100 && copperValue % 100 === 0) return `${copperValue / 100} GP`;
+		if (copperValue >= 10 && copperValue % 10 === 0) return `${copperValue / 10} SP`;
+		return `${copperValue} CP`;
 	}
 
 	_extractFeature(background) {

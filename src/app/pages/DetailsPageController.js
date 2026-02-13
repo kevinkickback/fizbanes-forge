@@ -57,13 +57,21 @@ export class DetailsPageController extends BasePageController {
             const skinColorInput = document.getElementById('skinColor');
             const hairColorInput = document.getElementById('hairColor');
             const additionalFeaturesTextarea = document.getElementById('additionalFeatures');
+            const personalityTraitsTextarea = document.getElementById('personalityTraits');
+            const idealsTextarea = document.getElementById('ideals');
+            const bondsTextarea = document.getElementById('bonds');
+            const flawsTextarea = document.getElementById('flaws');
+            const experienceInput = document.getElementById('experience');
             const backstoryTextarea = document.getElementById('backstory');
             const allySelectorInput = document.getElementById('allySelector');
             const allyCustomNotesTextarea = document.getElementById('allyCustomNotes');
 
             if (characterNameInput) characterNameInput.value = character.name || '';
             if (playerNameInput) playerNameInput.value = character.playerName || '';
-            if (genderInput) genderInput.value = character.gender || '';
+            if (genderInput) {
+                const g = character.gender || '';
+                genderInput.value = g ? g.charAt(0).toUpperCase() + g.slice(1) : '';
+            }
             if (ageInput) ageInput.value = character.age || '';
             if (heightInput) heightInput.value = character.height || '';
             if (weightInput) weightInput.value = character.weight || '';
@@ -71,6 +79,11 @@ export class DetailsPageController extends BasePageController {
             if (skinColorInput) skinColorInput.value = character.skinColor || '';
             if (hairColorInput) hairColorInput.value = character.hairColor || '';
             if (additionalFeaturesTextarea) additionalFeaturesTextarea.value = character.additionalFeatures || '';
+            if (personalityTraitsTextarea) personalityTraitsTextarea.value = character.personalityTraits || '';
+            if (idealsTextarea) idealsTextarea.value = character.ideals || '';
+            if (bondsTextarea) bondsTextarea.value = character.bonds || '';
+            if (flawsTextarea) flawsTextarea.value = character.flaws || '';
+            if (experienceInput) experienceInput.value = character.experience || '';
             if (backstoryTextarea) backstoryTextarea.value = character.backstory || '';
 
             if (character.alliesAndOrganizations) {
@@ -100,6 +113,11 @@ export class DetailsPageController extends BasePageController {
             skinColor: 'skinColor',
             hairColor: 'hairColor',
             additionalFeatures: 'additionalFeatures',
+            personalityTraits: 'personalityTraits',
+            ideals: 'ideals',
+            bonds: 'bonds',
+            flaws: 'flaws',
+            experience: 'experience',
             backstory: 'backstory',
         };
 

@@ -200,6 +200,11 @@ export class Character {
 		this.alignment = data.alignment || '';
 		this.deity = data.deity || '';
 		this.additionalFeatures = data.additionalFeatures || '';
+		this.personalityTraits = data.personalityTraits || '';
+		this.ideals = data.ideals || '';
+		this.bonds = data.bonds || '';
+		this.flaws = data.flaws || '';
+		this.experience = data.experience || '';
 		this.backstory = data.backstory || '';
 		this.alliesAndOrganizations = data.alliesAndOrganizations || {
 			selectedAlly: '',

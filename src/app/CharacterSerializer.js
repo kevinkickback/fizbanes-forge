@@ -104,6 +104,11 @@ export function serialize(character) {
 		alignment: character.alignment || '',
 		deity: character.deity || '',
 		additionalFeatures: character.additionalFeatures || '',
+		personalityTraits: character.personalityTraits || '',
+		ideals: character.ideals || '',
+		bonds: character.bonds || '',
+		flaws: character.flaws || '',
+		experience: character.experience || '',
 		backstory: character.backstory || '',
 		alliesAndOrganizations: character.alliesAndOrganizations || {
 			selectedAlly: '',

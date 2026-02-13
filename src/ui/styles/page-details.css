@@ -1,8 +1,49 @@
 /* Details Page Styles */
 
 /* Character Information and Appearance Cards */
-.character-info-container .form-group {
+.character-info-container .form-group:not(:has(textarea)) {
 	max-width: 250px;
+}
+
+.character-info-container textarea.form-control {
+	min-height: 80px;
+	height: auto;
+	resize: vertical;
+}
+
+/* Personality Traits 2x2 Grid */
+.traits-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: auto auto;
+	gap: 1rem;
+}
+
+.traits-grid .form-group {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.traits-grid .form-label {
+	margin-bottom: 0.5rem;
+	font-size: 0.9rem;
+	color: var(--text-color);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-weight: 500;
+}
+
+.traits-grid textarea.form-control {
+	min-height: 80px;
+	resize: vertical;
+	overflow: auto;
+}
+
+@media (max-width: 768px) {
+	.traits-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* Allies & Organizations Card Layout */

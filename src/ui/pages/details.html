@@ -27,14 +27,16 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Deity</label>
-                            <input type="text" class="form-control" id="deity" list="deityList"
-                                placeholder="Type or select...">
+                            <input type="text" class="form-control" id="deity" list="deityList">
                             <datalist id="deityList"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Experience</label>
+                            <input type="text" class="form-control" id="experience">
                         </div>
                     </div>
                 </div>
-                <hr class="my-3">
-                <h6 class="mb-2 text-secondary">Appearance</h6>
+                <hr class="my-4">
                 <div class="character-info-container">
                     <div class="form-row">
                         <div class="form-group">
@@ -49,8 +51,6 @@
                             <label class="form-label">Weight</label>
                             <input type="text" class="form-control" id="weight">
                         </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Eyes</label>
                             <input type="text" class="form-control" id="eyeColor">
@@ -64,11 +64,30 @@
                             <input type="text" class="form-control" id="hairColor">
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Additional Features</label>
+                        <textarea class="form-control" id="additionalFeatures"></textarea>
+                    </div>
                 </div>
-                <hr class="my-3">
-                <h6 class="mb-2 text-secondary">Additional Features</h6>
-                <textarea class="form-control" id="additionalFeatures"
-                    placeholder="Enter additional features & traits..."></textarea>
+                <hr class="my-4">
+                <div class="traits-grid">
+                    <div class="form-group">
+                        <label class="form-label">Personality Traits</label>
+                        <textarea class="form-control" id="personalityTraits"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ideals</label>
+                        <textarea class="form-control" id="ideals"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Bonds</label>
+                        <textarea class="form-control" id="bonds"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Flaws</label>
+                        <textarea class="form-control" id="flaws"></textarea>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

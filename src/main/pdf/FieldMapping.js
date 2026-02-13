@@ -429,6 +429,7 @@ function buildFieldMap2014(characterData, values) {
     textFields['Character Level'] = String(values.totalLevel);
     textFields.Race = values.race;
     textFields.Background = values.background;
+    textFields['Total Experience'] = characterData.experience || '';
 
     // --- Ability Scores & Modifiers ---
     for (const ability of ABILITIES) {
@@ -518,7 +519,7 @@ function buildFieldMap2014(characterData, values) {
     }
 
     // --- Page 2: Currency ---
-    const currency = characterData.currency;
+    const currency = characterData.inventory?.currency || characterData.currency;
     if (currency) {
         textFields['Copper Pieces'] = currency.cp ? String(currency.cp) : '';
         textFields['Silver Pieces'] = currency.sp ? String(currency.sp) : '';

@@ -350,11 +350,12 @@ export class HomePageController extends BasePageController {
                     try {
                         await CharacterManager.deleteCharacter(characterId);
                         showNotification('Character deleted successfully', 'success');
-                        const reloadCharacters = await CharacterManager.loadCharacterList();
-                        await this._renderCharacterList(reloadCharacters);
                     } catch (error) {
                         console.error('[HomePageController]', 'Failed to delete character', error);
                         showNotification('Failed to delete character', 'error');
+                    } finally {
+                        const reloadCharacters = await CharacterManager.loadCharacterList();
+                        await this._renderCharacterList(reloadCharacters);
                     }
                 }
             }
