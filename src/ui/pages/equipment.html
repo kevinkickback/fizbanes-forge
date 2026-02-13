@@ -31,30 +31,33 @@
                 </button>
             </div>
             <div class="card-body">
-                <div class="d-flex justify-content-end mb-3">
-                    <span class="text-muted">
-                        Weight: <span id="inventoryWeight">0</span> / <span id="weightCapacity">0</span> lbs
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <span class="badge bg-secondary equipment-badge">
+                        <i class="fas fa-weight-hanging me-1"></i>
+                        <span id="inventoryWeight">0</span> / <span id="weightCapacity">0</span> lbs
+                    </span>
+                    <span class="badge bg-info equipment-badge">
+                        <i class="fas fa-star me-1"></i>
+                        <span id="attunedCount">0</span> / <span id="attunementLimit">3</span> attuned
+                    </span>
+                    <span class="badge bg-warning text-dark equipment-badge currency-badge" id="currencyBadge">
+                        <i class="fas fa-coins me-1"></i>
+                        <span class="currency-inputs">
+                            <label class="currency-label">PP<input type="number" min="0" class="currency-input"
+                                    id="currencyPP" data-currency="pp" value="0"></label>
+                            <label class="currency-label">GP<input type="number" min="0" class="currency-input"
+                                    id="currencyGP" data-currency="gp" value="0"></label>
+                            <label class="currency-label">EP<input type="number" min="0" class="currency-input"
+                                    id="currencyEP" data-currency="ep" value="0"></label>
+                            <label class="currency-label">SP<input type="number" min="0" class="currency-input"
+                                    id="currencySP" data-currency="sp" value="0"></label>
+                            <label class="currency-label">CP<input type="number" min="0" class="currency-input"
+                                    id="currencyCP" data-currency="cp" value="0"></label>
+                        </span>
                     </span>
                 </div>
                 <div class="inventory-list" id="inventoryList">
                     <!-- Inventory items will be populated dynamically -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Attuned Items -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Attuned Items</h5>
-                <span class="text-muted">
-                    <span id="attunedCount">0</span> / <span id="attunementLimit">3</span> items
-                </span>
-            </div>
-            <div class="card-body">
-                <div class="attuned-items" id="attunedItems">
-                    <!-- Attuned items will be populated dynamically -->
                 </div>
             </div>
         </div>

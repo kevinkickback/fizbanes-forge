@@ -290,13 +290,13 @@ describe('Character', () => {
             const data = {
                 inventory: {
                     items: [{ name: 'Sword', qty: 1 }],
-                    equipped: { head: 'Helmet' },
+                    equipped: ['item-1'],
                 },
             };
 
             const char = new Character(data);
             expect(char.inventory.items).toHaveLength(1);
-            expect(char.inventory.equipped.head).toBe('Helmet');
+            expect(char.inventory.equipped).toContain('item-1');
         });
     });
 

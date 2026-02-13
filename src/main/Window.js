@@ -33,6 +33,7 @@ export function createMainWindow({
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: true,
+			devTools: debugMode || enableDevTools,
 		},
 		show: false, // Don't show until ready
 	});

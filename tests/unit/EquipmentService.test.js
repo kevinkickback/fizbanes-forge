@@ -15,17 +15,7 @@ function createCharacterWithInventory(overrides = {}) {
         abilityScores: { strength: 10 },
         inventory: {
             items: [],
-            equipped: {
-                head: null,
-                body: null,
-                hands: null,
-                feet: null,
-                back: null,
-                neck: null,
-                wrists: null,
-                fingers: [],
-                waist: null,
-            },
+            equipped: [],
             attuned: [],
             weight: { current: 0, capacity: 150 },
         },
@@ -161,36 +151,149 @@ describe('EquipmentService', () => {
         });
     });
 
-    describe('unequipItem', () => {
-        it('should unequip an item from a slot', () => {
-            const item = equipmentService.addItem(character, createItemData());
-            item.equipped = true;
-            character.inventory.equipped.body = item.id;
-
-            equipmentService.unequipItem(character, item.id);
-
-            expect(item.equipped).toBe(false);
-            expect(character.inventory.equipped.body).toBeNull();
-        });
-
-        it('should unequip from array slots like fingers', () => {
+    describe('equipItem', () => {
+        it('should equip an item', () => {
             const item = equipmentService.addItem(
                 character,
-                createItemData({ name: 'Ring of Protection' }),
+                createItemData({ weapon: true }),
             );
-            item.equipped = true;
-            character.inventory.equipped.fingers.push(item.id);
+
+            equipmentService.equipItem(character, item.id);
+
+            expect(item.equipped).toBe(true);
+            expect(character.inventory.equipped).toContain(item.id);
+        });
+
+        it('should emit ITEM_EQUIPPED event', () => {
+            const item = equipmentService.addItem(
+                character,
+                createItemData({ weapon: true }),
+            );
+            vi.clearAllMocks();
+
+            equipmentService.equipItem(character, item.id);
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                EVENTS.ITEM_EQUIPPED,
+                character,
+                expect.objectContaining({ name: 'Longsword' }),
+            );
+        });
+
+        it('should not duplicate if already equipped', () => {
+            const item = equipmentService.addItem(
+                character,
+                createItemData({ weapon: true }),
+            );
+            equipmentService.equipItem(character, item.id);
+            equipmentService.equipItem(character, item.id);
+
+            expect(
+                character.inventory.equipped.filter((id) => id === item.id),
+            ).toHaveLength(1);
+        });
+
+        it('should prevent equipping two armors', () => {
+            const armor1 = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Chain Mail', type: 'HA', armor: true }),
+            );
+            equipmentService.equipItem(character, armor1.id);
+
+            const armor2 = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Plate Armor', type: 'HA', armor: true }),
+            );
+
+            expect(() =>
+                equipmentService.equipItem(character, armor2.id),
+            ).toThrow(ValidationError);
+        });
+
+        it('should prevent equipping two shields', () => {
+            const shield1 = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S', weight: 6 }),
+            );
+            equipmentService.equipItem(character, shield1.id);
+
+            const shield2 = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield +1', type: 'S', weight: 6 }),
+            );
+
+            expect(() =>
+                equipmentService.equipItem(character, shield2.id),
+            ).toThrow(ValidationError);
+        });
+
+        it('should allow equipping armor and shield together', () => {
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Chain Mail', type: 'HA', armor: true }),
+            );
+            const shield = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S', weight: 6 }),
+            );
+
+            equipmentService.equipItem(character, armor.id);
+            equipmentService.equipItem(character, shield.id);
+
+            expect(armor.equipped).toBe(true);
+            expect(shield.equipped).toBe(true);
+        });
+
+        it('should allow equipping multiple weapons', () => {
+            const weapon1 = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Longsword', weapon: true }),
+            );
+            const weapon2 = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shortsword', weapon: true }),
+            );
+
+            equipmentService.equipItem(character, weapon1.id);
+            equipmentService.equipItem(character, weapon2.id);
+
+            expect(weapon1.equipped).toBe(true);
+            expect(weapon2.equipped).toBe(true);
+        });
+
+        it('should throw NotFoundError for non-existent item', () => {
+            expect(() =>
+                equipmentService.equipItem(character, 'item-nonexistent'),
+            ).toThrow(NotFoundError);
+        });
+
+        it('should throw ValidationError for character without inventory', () => {
+            expect(() =>
+                equipmentService.equipItem({ id: 'x' }, 'item-1'),
+            ).toThrow(ValidationError);
+        });
+    });
+
+    describe('unequipItem', () => {
+        it('should unequip an item', () => {
+            const item = equipmentService.addItem(
+                character,
+                createItemData({ weapon: true }),
+            );
+            equipmentService.equipItem(character, item.id);
 
             equipmentService.unequipItem(character, item.id);
 
             expect(item.equipped).toBe(false);
-            expect(character.inventory.equipped.fingers).toHaveLength(0);
+            expect(character.inventory.equipped).not.toContain(item.id);
         });
 
         it('should emit ITEM_UNEQUIPPED event', () => {
-            const item = equipmentService.addItem(character, createItemData());
-            item.equipped = true;
-            character.inventory.equipped.body = item.id;
+            const item = equipmentService.addItem(
+                character,
+                createItemData({ weapon: true }),
+            );
+            equipmentService.equipItem(character, item.id);
             vi.clearAllMocks();
 
             equipmentService.unequipItem(character, item.id);
@@ -199,11 +302,10 @@ describe('EquipmentService', () => {
                 EVENTS.ITEM_UNEQUIPPED,
                 character,
                 expect.objectContaining({ name: 'Longsword' }),
-                'body',
             );
         });
 
-        it('should throw NotFoundError for item not in any slot', () => {
+        it('should throw NotFoundError for item not equipped', () => {
             const item = equipmentService.addItem(character, createItemData());
             expect(() =>
                 equipmentService.unequipItem(character, item.id),

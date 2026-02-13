@@ -8,22 +8,34 @@ import {
 
 class EquipmentService {
 	constructor() {
-		this.validSlots = {
-			head: 'Head (Helm, Crown)',
-			body: 'Body (Armor)',
-			hands: 'Hands (Gloves)',
-			feet: 'Feet (Boots)',
-			back: 'Back (Cloak, Cape)',
-			neck: 'Neck (Amulet, Pendant)',
-			wrists: 'Wrists (Bracers)',
-			fingers: 'Fingers (Rings)',
-			waist: 'Waist (Belt, Girdle)',
-		};
-
 		this.MAX_ATTUNEMENT_SLOTS = 3;
 		this.CARRY_CAPACITY_MULTIPLIER = 15;
 		this.LIGHT_ENCUMBRANCE_MULTIPLIER = 5;
 		this.HEAVY_ENCUMBRANCE_MULTIPLIER = 10;
+	}
+
+	_getTypeCode(item) {
+		return String(item.type || '').split('|')[0].toUpperCase();
+	}
+
+	isEquippable(item) {
+		if (item.weapon || item.armor) return true;
+		const typeCode = this._getTypeCode(item);
+		return ['LA', 'MA', 'HA', 'S', 'M', 'R'].includes(typeCode);
+	}
+
+	isAttuneable(item) {
+		return !!item.reqAttune;
+	}
+
+	isArmor(item) {
+		if (item.armor) return true;
+		const typeCode = this._getTypeCode(item);
+		return ['LA', 'MA', 'HA'].includes(typeCode);
+	}
+
+	isShield(item) {
+		return this._getTypeCode(item) === 'S';
 	}
 
 	_generateItemInstanceId() {
@@ -55,6 +67,11 @@ class EquipmentService {
 			cost: item.cost ? { ...item.cost } : null,
 			weight: item.weight || 0,
 			source: item.source || 'Unknown',
+			type: item.type || null,
+			weapon: item.weapon || false,
+			armor: item.armor || false,
+			shield: this._getTypeCode(item) === 'S',
+			reqAttune: item.reqAttune || false,
 			metadata: {
 				addedAt: new Date().toISOString(),
 				addedFrom: src,
@@ -66,6 +83,12 @@ class EquipmentService {
 
 		eventBus.emit(EVENTS.ITEM_ADDED, char, itemInstance);
 		return itemInstance;
+	}
+
+	_ensureEquippedArray(inventory) {
+		if (!Array.isArray(inventory.equipped)) {
+			inventory.equipped = [];
+		}
 	}
 
 	removeItem(character, itemInstanceId, quantity = 1) {
@@ -119,6 +142,57 @@ class EquipmentService {
 		return true;
 	}
 
+	equipItem(character, itemInstanceId) {
+		if (!character.inventory) {
+			throw new ValidationError('Character has no inventory initialized', {
+				characterId: character.id,
+			});
+		}
+
+		this._ensureEquippedArray(character.inventory);
+
+		const item = character.inventory.items.find((i) => i.id === itemInstanceId);
+		if (!item) {
+			throw new NotFoundError('Item', itemInstanceId, {
+				characterId: character.id,
+			});
+		}
+
+		if (item.equipped) return true;
+
+		if (this.isArmor(item)) {
+			const existingArmor = character.inventory.items.find(
+				(i) => i.equipped && i.id !== itemInstanceId && this.isArmor(i),
+			);
+			if (existingArmor) {
+				throw new ValidationError(
+					`Cannot equip ${item.name} — already wearing ${existingArmor.name}. Unequip it first.`,
+					{ itemId: itemInstanceId, conflictId: existingArmor.id },
+				);
+			}
+		}
+
+		if (this.isShield(item)) {
+			const existingShield = character.inventory.items.find(
+				(i) => i.equipped && i.id !== itemInstanceId && this.isShield(i),
+			);
+			if (existingShield) {
+				throw new ValidationError(
+					`Cannot equip ${item.name} — already using ${existingShield.name}. Unequip it first.`,
+					{ itemId: itemInstanceId, conflictId: existingShield.id },
+				);
+			}
+		}
+
+		item.equipped = true;
+		if (!character.inventory.equipped.includes(itemInstanceId)) {
+			character.inventory.equipped.push(itemInstanceId);
+		}
+
+		eventBus.emit(EVENTS.ITEM_EQUIPPED, character, item);
+		return true;
+	}
+
 	unequipItem(character, itemInstanceId) {
 		if (!character.inventory) {
 			throw new ValidationError('Character has no inventory initialized', {
@@ -126,44 +200,26 @@ class EquipmentService {
 			});
 		}
 
-		let slot = null;
-		let found = false;
+		this._ensureEquippedArray(character.inventory);
 
-		// Search all slots for the item
-		for (const [slotName, slotContent] of Object.entries(
-			character.inventory.equipped,
-		)) {
-			if (Array.isArray(slotContent)) {
-				const index = slotContent.indexOf(itemInstanceId);
-				if (index !== -1) {
-					slotContent.splice(index, 1);
-					slot = slotName;
-					found = true;
-					break;
-				}
-			} else if (slotContent === itemInstanceId) {
-				character.inventory.equipped[slotName] = null;
-				slot = slotName;
-				found = true;
-				break;
-			}
+		const index = character.inventory.equipped.indexOf(itemInstanceId);
+		if (index === -1) {
+			throw new NotFoundError('Equipped item', itemInstanceId, {
+				characterId: character.id,
+			});
 		}
 
-		if (found) {
-			const item = character.inventory.items.find(
-				(i) => i.id === itemInstanceId,
-			);
-			if (item) {
-				item.equipped = false;
+		character.inventory.equipped.splice(index, 1);
 
-				eventBus.emit(EVENTS.ITEM_UNEQUIPPED, character, item, slot);
-			}
-			return true;
+		const item = character.inventory.items.find(
+			(i) => i.id === itemInstanceId,
+		);
+		if (item) {
+			item.equipped = false;
+			eventBus.emit(EVENTS.ITEM_UNEQUIPPED, character, item);
 		}
 
-		throw new NotFoundError('Equipped item', itemInstanceId, {
-			characterId: character.id,
-		});
+		return true;
 	}
 
 	attuneItem(character, itemInstanceId) {

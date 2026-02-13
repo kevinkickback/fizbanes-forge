@@ -33,8 +33,7 @@ export class EquipmentManager {
 			const equipBtn = e.target.closest('[data-equip-item]');
 			if (equipBtn) {
 				const itemId = equipBtn.dataset.equipItem;
-				const slot = equipBtn.dataset.slot;
-				this.handleEquipItem(itemId, slot);
+				this.handleEquipItem(itemId);
 				return;
 			}
 
@@ -57,6 +56,19 @@ export class EquipmentManager {
 				const itemId = unattuneBtn.dataset.unattuneItem;
 				this.handleUnattuneItem(itemId);
 				return;
+			}
+		});
+
+		this._cleanup.on(document, 'change', (e) => {
+			const currencyInput = e.target.closest('.currency-input');
+			if (currencyInput) {
+				this.handleCurrencyChange(currencyInput);
+				return;
+			}
+
+			const qtyInput = e.target.closest('.qty-input');
+			if (qtyInput) {
+				this.handleQuantityChange(qtyInput);
 			}
 		});
 	}
@@ -90,9 +102,8 @@ export class EquipmentManager {
 		}
 
 		this.renderInventory(character);
-		this.renderEquippedItems(character);
-		this.renderAttunedItems(character);
 		this.renderWeight(character);
+		this.renderCurrency(character);
 	}
 
 	renderInventory(character) {
@@ -111,37 +122,46 @@ export class EquipmentManager {
 		for (const item of items) {
 			const isEquipped = item.equipped;
 			const isAttuned = item.attuned;
+			const canEquip = equipmentService.isEquippable(item);
+			const canAttune = equipmentService.isAttuneable(item);
+
+			let equipBtn = '';
+			if (canEquip) {
+				equipBtn = !isEquipped
+					? `<button class="btn btn-sm btn-outline-primary" data-equip-item="${item.id}" title="Equip">
+						<i class="fas fa-shield-alt"></i>
+					</button>`
+					: `<button class="btn btn-sm btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
+						<i class="fas fa-times-circle"></i>
+					</button>`;
+			}
+
+			let attuneBtn = '';
+			if (canAttune) {
+				attuneBtn = !isAttuned
+					? `<button class="btn btn-sm btn-outline-info" data-attune-item="${item.id}" title="Attune">
+						<i class="fas fa-star"></i>
+					</button>`
+					: `<button class="btn btn-sm btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
+						<i class="fas fa-star-half-alt"></i>
+					</button>`;
+			}
 
 			html += `
                 <div class="item-row card card-sm mb-2">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-1">${item.name}</h6>
+                            <h6 class="mb-1"><a href="#" class="reference-link" data-hover-type="item" data-hover-name="${item.name}" data-hover-source="${item.source}">${item.name}</a></h6>
                             <small class="text-muted">
-                                Qty: ${item.quantity} | 
-                                Weight: ${item.weight || 0} lb | 
-                                Value: ${item.value ? `${item.value / 100} gp` : 'N/A'}
+                                <label class="qty-label">Qty<input type="number" min="1" class="qty-input" data-qty-item="${item.id}" value="${item.quantity}"></label>
+                                <span class="ms-2">|</span> <span class="ms-2">Weight: ${item.weight || 0} lb</span>
                                 ${isEquipped ? '<span class="badge bg-success ms-2">Equipped</span>' : ''}
                                 ${isAttuned ? '<span class="badge bg-info ms-2">Attuned</span>' : ''}
                             </small>
                         </div>
                         <div class="btn-group">
-                            ${!isEquipped
-					? `<button class="btn btn-sm btn-outline-primary" data-equip-item="${item.id}" title="Equip">
-                                <i class="fas fa-shield-alt"></i>
-                            </button>`
-					: `<button class="btn btn-sm btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
-                                <i class="fas fa-times-circle"></i>
-                            </button>`
-				}
-                            ${!isAttuned
-					? `<button class="btn btn-sm btn-outline-info" data-attune-item="${item.id}" title="Attune">
-                                <i class="fas fa-star"></i>
-                            </button>`
-					: `<button class="btn btn-sm btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
-                                <i class="fas fa-star-half-alt"></i>
-                            </button>`
-				}
+                            ${equipBtn}
+                            ${attuneBtn}
                             <button class="btn btn-sm btn-outline-danger" data-remove-item="${item.id}" title="Remove">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -154,113 +174,11 @@ export class EquipmentManager {
 		container.innerHTML = html;
 	}
 
-	renderEquippedItems(character) {
-		const container = document.getElementById('equipmentSlots');
-		if (!container) return;
-
-		const equipped = character.inventory?.equipped || {};
-		const slots = equipmentService.validSlots;
-
-		let html = '<div class="row g-3">';
-
-		for (const [slotKey, slotName] of Object.entries(slots)) {
-			const slotItems = equipped[slotKey];
-			const isArraySlot = Array.isArray(slotItems);
-			const hasItem = isArraySlot
-				? slotItems && slotItems.length > 0
-				: slotItems;
-
-			html += `
-                <div class="col-md-6">
-                    <div class="equipment-slot-card card">
-                        <div class="card-body">
-                            <h6 class="mb-2">${slotName}</h6>
-            `;
-
-			if (hasItem) {
-				if (isArraySlot) {
-					for (const itemId of slotItems) {
-						const item = equipmentService.findItemById(character, itemId);
-						if (item) {
-							html += `
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>${item.name}</span>
-                                    <button class="btn btn-sm btn-outline-warning" data-unequip-item="${itemId}">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            `;
-						}
-					}
-				} else {
-					const item = equipmentService.findItemById(character, slotItems);
-					if (item) {
-						html += `
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span>${item.name}</span>
-                                <button class="btn btn-sm btn-outline-warning" data-unequip-item="${slotItems}">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        `;
-					}
-				}
-			} else {
-				html += '<p class="text-muted mb-0">Empty</p>';
-			}
-
-			html += `
-                        </div>
-                    </div>
-                </div>
-            `;
-		}
-
-		html += '</div>';
-		container.innerHTML = html;
-	}
-
-	renderAttunedItems(character) {
-		const container = document.getElementById('attunedItems');
-		const countSpan = document.getElementById('attunedCount');
-		const limitSpan = document.getElementById('attunementLimit');
-
-		if (!container) return;
-
-		const attunedItems = equipmentService.getAttunedItems(character);
-		const limit = equipmentService.MAX_ATTUNEMENT_SLOTS;
-
-		if (countSpan) countSpan.textContent = attunedItems.length;
-		if (limitSpan) limitSpan.textContent = limit;
-
-		if (attunedItems.length === 0) {
-			container.innerHTML = '<p class="text-muted">No items attuned.</p>';
-			return;
-		}
-
-		let html = '';
-		for (const item of attunedItems) {
-			html += `
-                <div class="attuned-item-card card card-sm mb-2">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">${item.name}</h6>
-                            <small class="text-muted">${item.type || 'Item'}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger" data-unattune-item="${item.id}">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-		}
-
-		container.innerHTML = html;
-	}
-
 	renderWeight(character) {
 		const weightSpan = document.getElementById('inventoryWeight');
 		const capacitySpan = document.getElementById('weightCapacity');
+		const countSpan = document.getElementById('attunedCount');
+		const limitSpan = document.getElementById('attunementLimit');
 
 		if (weightSpan) {
 			const totalWeight = equipmentService.calculateTotalWeight(character);
@@ -271,6 +189,52 @@ export class EquipmentManager {
 			const capacity = equipmentService.calculateCarryCapacity(character);
 			capacitySpan.textContent = capacity;
 		}
+
+		const attunedItems = equipmentService.getAttunedItems(character);
+		if (countSpan) countSpan.textContent = attunedItems.length;
+		if (limitSpan) limitSpan.textContent = equipmentService.MAX_ATTUNEMENT_SLOTS;
+	}
+
+	renderCurrency(character) {
+		const currency = character.inventory?.currency || {};
+		const fields = { pp: 'currencyPP', gp: 'currencyGP', ep: 'currencyEP', sp: 'currencySP', cp: 'currencyCP' };
+
+		for (const [key, id] of Object.entries(fields)) {
+			const input = document.getElementById(id);
+			if (input) input.value = currency[key] || 0;
+		}
+	}
+
+	handleQuantityChange(input) {
+		const character = AppState.getCurrentCharacter();
+		if (!character) return;
+
+		const itemId = input.dataset.qtyItem;
+		const value = Math.max(1, parseInt(input.value, 10) || 1);
+		input.value = value;
+
+		const item = character.inventory.items.find((i) => i.id === itemId);
+		if (!item) return;
+
+		item.quantity = value;
+		this.renderWeight(character);
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
+	}
+
+	handleCurrencyChange(input) {
+		const character = AppState.getCurrentCharacter();
+		if (!character) return;
+
+		const type = input.dataset.currency;
+		const value = Math.max(0, parseInt(input.value, 10) || 0);
+		input.value = value;
+
+		if (!character.inventory.currency) {
+			character.inventory.currency = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
+		}
+
+		character.inventory.currency[type] = value;
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
 	}
 
 	async handleAddItem() {
@@ -298,18 +262,15 @@ export class EquipmentManager {
 		);
 	}
 
-	handleEquipItem(_itemId, _slot) {
-		const character = AppState.getCurrentCharacter();
-		if (!character) {
-			showNotification('No character selected', 'error');
-			return;
+	handleEquipItem(itemId) {
+		try {
+			this._executeAction(
+				(char) => equipmentService.equipItem(char, itemId),
+				'Failed to equip item',
+			);
+		} catch (error) {
+			showNotification(error.message, 'warning');
 		}
-
-		// TODO: Implement slot selection modal/dropdown
-		showNotification(
-			'Please select an equipment slot (feature in progress)',
-			'info',
-		);
 	}
 
 	handleUnequipItem(itemId) {

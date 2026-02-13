@@ -764,7 +764,7 @@ export class ClassCard {
 								</div>
 							</div>
 							<button class="btn btn-primary btn-sm ms-2" data-spell-select-level="${choice.level}" data-spell-select-class="${className}">
-								<i class="fas fa-magic"></i> Choose
+								<i class="fas fa-list"></i> Choose
 							</button>
 						</div>
 					</div>
@@ -929,7 +929,6 @@ export class ClassCard {
 
 		try {
 			await spellSelector.show();
-			// Note: CHARACTER_UPDATED event and display refresh happen in updateSpellSelection callback
 		} catch (error) {
 			console.error('[ClassCard]', 'Error in spell selection:', error);
 		}
@@ -1165,6 +1164,38 @@ export class ClassCard {
 					required: true,
 					count: 1,
 					level,
+				});
+			}
+		}
+
+		// Check for subclass feature choices (e.g., Dragon Ancestor for Draconic Bloodline)
+		if (subclassData) {
+			const progressionClass = character.progression?.classes?.find(
+				(c) => c.name === className,
+			);
+			const featureChoiceDefs = this._getSubclassFeatureChoicesAtLevel(
+				className,
+				subclassData.shortName,
+				level,
+				progressionClass?.source,
+			);
+
+			for (const fc of featureChoiceDefs) {
+				const currentChoice =
+					progressionClass?.subclassChoices?.[fc.choiceKey];
+
+				choices.push({
+					id: `${className.toLowerCase()}_${fc.choiceKey}_${level}`,
+					name: fc.label,
+					type: 'subclass-feature-choice',
+					level,
+					choiceKey: fc.choiceKey,
+					choiceType: fc.choiceType,
+					options: fc.options,
+					colLabels: fc.colLabels,
+					icon: fc.icon || 'fas fa-star',
+					currentValue: currentChoice?.value || null,
+					featureChoiceDefinition: fc,
 				});
 			}
 		}
@@ -1465,6 +1496,11 @@ export class ClassCard {
 			return this._renderSubclassChoice(choice, className);
 		}
 
+		// Handle subclass feature choices (e.g., Dragon Ancestor)
+		if (choice.type === 'subclass-feature-choice') {
+			return this._renderSubclassFeatureChoice(choice, className);
+		}
+
 		// Handle ASI specially
 		if (choice.type === 'asi') {
 			return this._renderASIChoice(choice, className);
@@ -1509,7 +1545,7 @@ export class ClassCard {
 						</div>
 					</div>
 					<button 
-						class="btn btn-sm ${isComplete ? 'btn-outline-secondary' : 'btn-primary'}" 
+						class="btn btn-sm btn-outline-primary" 
 						data-feature-select-btn="${choice.id}"
 						data-feature-type="${choice.type}"
 						data-feature-level="${choice.level}"
@@ -1549,7 +1585,7 @@ export class ClassCard {
 						</div>
 					</div>
 					<button 
-						class="btn btn-sm ${isComplete ? 'btn-outline-secondary' : 'btn-primary'}" 
+						class="btn btn-sm btn-outline-primary" 
 						data-feature-select-btn="${choice.id}"
 						data-feature-type="${choice.type}"
 						data-feature-level="${choice.level}"
@@ -1560,6 +1596,141 @@ export class ClassCard {
 				</div>
 			</div>
 		`;
+	}
+
+	_renderSubclassFeatureChoice(choice, _className) {
+		const currentValue = choice.currentValue;
+		const isComplete = !!currentValue;
+
+		// Find the selected option to display its label
+		let selectedDisplay = 'None selected';
+		if (currentValue) {
+			const selectedOpt = choice.options.find(o => o.value === currentValue);
+			if (selectedOpt) {
+				selectedDisplay = this._formatChoiceOptionLabel(selectedOpt, choice);
+			}
+		}
+
+		return `
+			<div class="choice-item border-bottom pb-2 mb-2" data-choice-card="${choice.id}">
+				<div class="d-flex justify-content-between align-items-start">
+					<div class="flex-grow-1">
+						<div class="d-flex align-items-center mb-1">
+							<strong><i class="${choice.icon}"></i> ${choice.name}</strong>
+							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+						</div>
+						<div class="text-muted small">${selectedDisplay}</div>
+					</div>
+					<button class="btn btn-sm btn-outline-primary"
+						data-subclass-choice-btn="${choice.choiceKey}"
+						data-subclass-choice-class="${_className}"
+						data-subclass-choice-level="${choice.level}">
+						<i class="fas fa-list"></i> ${isComplete ? 'Change' : 'Choose'}
+					</button>
+				</div>
+			</div>
+		`;
+	}
+
+	/**
+	 * Format option label for subclass feature choice dropdown.
+	 * For table-type choices, appends metadata columns (e.g., "Gold — Fire").
+	 * For options-type choices, uses just the label.
+	 */
+	_formatChoiceOptionLabel(opt, choice) {
+		if (choice.choiceType === 'table' && choice.colLabels?.length >= 2) {
+			// Show label + metadata columns (skip the first colLabel, it's the value column)
+			const extras = choice.colLabels.slice(1).map((col) => {
+				const key = col.toLowerCase().replace(/\s+/g, '_');
+				return opt[key] || '';
+			}).filter(Boolean);
+			if (extras.length > 0) {
+				return `${opt.label} \u2014 ${extras.join(', ')}`;
+			}
+		}
+		return opt.label;
+	}
+
+	/**
+	 * Build a stable choiceKey from a feature name (e.g. "Dragon Ancestor" → "dragon_ancestor").
+	 * @private
+	 */
+	_toChoiceKey(featureName) {
+		return featureName
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '_')
+			.replace(/^_|_$/g, '');
+	}
+
+	/**
+	 * Convert raw 5etools choice data into ClassCard's expected UI shape.
+	 * @private
+	 */
+	_toChoiceDefinition(raw) {
+		const choiceKey = this._toChoiceKey(raw.featureName);
+
+		// Map raw options into uniform { value, label, ...metadata } objects
+		const options = raw.options.map((opt) => ({
+			value: opt.value,
+			label: opt.label || opt.value,
+			entries: opt.entries || [],
+			source: opt.source || '',
+			...(opt.metadata || {}),
+		}));
+
+		return {
+			featureName: raw.featureName,
+			level: raw.level,
+			label: raw.caption || raw.featureName,
+			choiceKey,
+			choiceType: raw.type,
+			count: raw.count || 1,
+			colLabels: raw.colLabels || null,
+			icon: 'fas fa-list',
+			options,
+		};
+	}
+
+	/**
+	 * Resolve the best source for a subclass by looking it up in ClassService.
+	 * @private
+	 */
+	_resolveSubclassSource(className, subclassShortName) {
+		try {
+			const sc = this._classService.getSubclass(className, subclassShortName);
+			return sc?.subclassSource || sc?.source || sc?.classSource || 'PHB';
+		} catch {
+			return 'PHB';
+		}
+	}
+
+	/**
+	 * Get all subclass feature choices for a class + subclass.
+	 * Scans the 5etools JSON through ClassService and transforms to UI shape.
+	 * @private
+	 */
+	_getSubclassFeatureChoices(className, subclassShortName, maxLevel = 20, source) {
+		const resolvedSource = source || this._resolveSubclassSource(className, subclassShortName);
+		const raw = this._classService.getSubclassFeatureChoices(
+			className,
+			subclassShortName,
+			maxLevel,
+			resolvedSource,
+		);
+		return raw.map((r) => this._toChoiceDefinition(r));
+	}
+
+	/**
+	 * Get subclass feature choices that appear at a specific level.
+	 * @private
+	 */
+	_getSubclassFeatureChoicesAtLevel(className, subclassShortName, level, source) {
+		return this._getSubclassFeatureChoices(
+			className,
+			subclassShortName,
+			level,
+			source,
+		).filter((c) => c.level === level);
 	}
 
 	_renderSpellChoice(choice, className) {
@@ -1603,10 +1774,10 @@ export class ClassCard {
 						</div>
 					</div>
 					<button 
-						class="btn btn-sm ${isComplete ? 'btn-outline-secondary' : 'btn-primary'}" 
+						class="btn btn-sm btn-outline-primary" 
 						data-spell-select-level="${choice.level}" 
 						data-spell-select-class="${className}">
-						<i class="fas fa-magic"></i> ${isComplete ? 'Change' : 'Choose'}
+						<i class="fas fa-list"></i> ${isComplete ? 'Change' : 'Choose'}
 					</button>
 				</div>
 			</div>
@@ -1711,7 +1882,7 @@ export class ClassCard {
 						</div>
 					</div>
 					<button 
-						class="btn btn-sm ${asiUsed ? 'btn-outline-secondary' : 'btn-primary'} align-self-md-start" 
+						class="btn btn-sm btn-outline-primary align-self-md-start" 
 						data-asi-action-btn="${choice.level}"
 						data-current-choice="${selectedChoice}"
 						data-asi-used="${asiUsed}">
@@ -2248,6 +2419,23 @@ export class ClassCard {
 				}
 			});
 		});
+
+		// Subclass feature choice buttons (e.g., Dragon Ancestor)
+		const subclassChoiceButtons = container.querySelectorAll(
+			'[data-subclass-choice-btn]',
+		);
+		subclassChoiceButtons.forEach((button) => {
+			this._cleanup.on(button, 'click', () => {
+				const choiceKey = button.dataset.subclassChoiceBtn;
+				const choiceClass = button.dataset.subclassChoiceClass;
+				const level = parseInt(button.dataset.subclassChoiceLevel, 10);
+				this._showSubclassFeatureChoiceModal(
+					choiceClass,
+					choiceKey,
+					level,
+				);
+			});
+		});
 	}
 
 	async _handleASIChange(level) {
@@ -2313,6 +2501,158 @@ export class ClassCard {
 			detail: { character },
 		});
 		document.dispatchEvent(event);
+	}
+
+	/**
+	 * Show modal for selecting subclass feature choices (e.g., Dragon Ancestor)
+	 * @private
+	 */
+	async _showSubclassFeatureChoiceModal(className, choiceKey, level) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		const progressionClass = character.progression?.classes?.find(
+			(c) => c.name === className,
+		);
+		if (!progressionClass) return;
+
+		// Get the choice definition
+		const subclassShortName = this._classService
+			.getSubclasses(className, progressionClass.source || 'PHB')
+			.find((sc) => sc.name === progressionClass.subclass)?.shortName;
+		if (!subclassShortName) return;
+
+		const featureChoiceDefs = this._getSubclassFeatureChoices(
+			className,
+			subclassShortName,
+			20,
+			progressionClass.source,
+		);
+		const definition = featureChoiceDefs.find(
+			(fc) => fc.choiceKey === choiceKey,
+		);
+		if (!definition) return;
+
+		// Build mock session and parent for the modal (it expects this structure)
+		const mockSession = {
+			originalCharacter: character,
+			stagedChanges: character,
+			stepData: {},
+		};
+
+		const mockParent = {
+			updateFeatureSelection: (_cls, _type, _reqLevel, selectedNames) => {
+				this._handleSubclassFeatureChoiceChange(
+					className,
+					choiceKey,
+					selectedNames[0] || null,
+					level,
+					definition,
+				);
+			},
+		};
+
+		// Convert choice options to feature-like objects for the modal
+		const featureOptions = definition.options.map((opt) => {
+			let entries = opt.entries || [];
+
+			// For table-type choices with no entries, format metadata as description
+			if (entries.length === 0 && definition.choiceType === 'table' && definition.colLabels) {
+				const metadataEntries = [];
+				for (let i = 1; i < definition.colLabels.length; i++) {
+					const colLabel = definition.colLabels[i];
+					const key = colLabel.toLowerCase().replace(/\s+/g, '_');
+					const value = opt[key];
+					if (value) {
+						metadataEntries.push(`{@b ${colLabel}:} ${value}`);
+					}
+				}
+				if (metadataEntries.length > 0) {
+					entries = [metadataEntries.join(' • ')];
+				}
+			}
+
+			return {
+				id: opt.value,
+				name: opt.value,
+				source: opt.source || progressionClass.source || 'PHB',
+				entries,
+				// Store metadata for later retrieval
+				_metadata: opt,
+			};
+		});
+
+		// Find current selection
+		const currentChoice = progressionClass.subclassChoices?.[choiceKey];
+		const currentSelections = currentChoice
+			? featureOptions.filter((f) => f.id === currentChoice.value)
+			: [];
+
+		const modal = new ClassFeatureSelectorModal(
+			mockSession,
+			mockParent,
+			className,
+			`subclass-${choiceKey}`,
+			level,
+			null,
+		);
+
+		await modal.show(
+			featureOptions,
+			currentSelections,
+			false, // single select
+			1, // max 1 selection
+		);
+
+		// Re-render after modal closes to reflect the choice
+		await this._syncWithCharacterProgression();
+	}
+
+	/**
+	 * Handle subclass feature choice change from modal
+	 * @private
+	 */
+	async _handleSubclassFeatureChoiceChange(
+		className,
+		choiceKey,
+		selectedValue,
+		_level,
+		definition,
+	) {
+		const character = CharacterManager.getCurrentCharacter();
+		if (!character) return;
+
+		const progressionClass = character.progression?.classes?.find(
+			(c) => c.name === className,
+		);
+		if (!progressionClass) return;
+
+		if (!progressionClass.subclassChoices) {
+			progressionClass.subclassChoices = {};
+		}
+
+		if (!selectedValue) {
+			delete progressionClass.subclassChoices[choiceKey];
+		} else {
+			const selectedOption = definition.options.find(
+				(o) => o.value === selectedValue,
+			);
+			if (!selectedOption) return;
+
+			// Store value plus any metadata from the option
+			const choiceData = { value: selectedOption.value };
+			if (definition.colLabels) {
+				for (const col of definition.colLabels.slice(1)) {
+					const key = col.toLowerCase().replace(/\s+/g, '_');
+					if (selectedOption[key]) {
+						choiceData[key] = selectedOption[key];
+					}
+				}
+			}
+			progressionClass.subclassChoices[choiceKey] = choiceData;
+		}
+
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 	}
 
 	async _handleASISelection(level, isSelectingFeat = false) {
@@ -2631,13 +2971,12 @@ export class ClassCard {
 			choices,
 		);
 
-		// Update display
-		this._updateFeatureDisplay(className);
-
 		// Emit event to notify about character update
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
 		});
+
+		this._updateFeatureDisplay(className);
 	}
 
 	_updateSubclassSelection(className, selectedNames) {
@@ -2700,7 +3039,12 @@ export class ClassCard {
 				featureTypesToClear,
 			);
 
-			// 3. Clear subclass-specific spells if the spellcasting is subclass-dependent
+			// 4. Clear subclass feature choices (e.g., Dragon Ancestor)
+			if (progressionClass?.subclassChoices) {
+				progressionClass.subclassChoices = {};
+			}
+
+			// 5. Clear subclass-specific spells if the spellcasting is subclass-dependent
 			// Some subclasses grant specific spell lists (e.g., Cleric domains)
 			if (character.spellcasting?.classes?.[className]) {
 				// Clear spell selections from progression.spellSelections for this class
@@ -2718,18 +3062,6 @@ export class ClassCard {
 		// Update character's subclass in progression.classes[]
 		if (progressionClass) {
 			progressionClass.subclass = subclassName;
-
-			// Get new subclass data to add subclass features
-			const subclasses = this._classService.getSubclasses(
-				className,
-				classData.source,
-			);
-			const subclassData = subclasses.find((sc) => sc.name === subclassName);
-
-			if (subclassData) {
-				// Update UI with new subclass data
-				this.updateClassDetails(classData, subclassData);
-			}
 		}
 
 		// Emit event to notify about character update
@@ -2744,6 +3076,8 @@ export class ClassCard {
 			// Should use Notifications.js show() method instead
 			console.warn('[ClassCard]', `Subclass changed to ${subclassName}. Please review your class features and spells.`);
 		}
+
+		this.updateClassDetails(classData, subclassData);
 	}
 
 	async _updateFeatureDisplay(className) {

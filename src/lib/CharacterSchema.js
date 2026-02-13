@@ -230,18 +230,9 @@ export const CharacterSchema = {
             // Inventory system
             inventory: {
                 items: [],
-                equipped: {
-                    head: null,
-                    body: null,
-                    hands: [],
-                    feet: null,
-                    back: null,
-                    neck: null,
-                    wrists: [],
-                    fingers: [],
-                    waist: null,
-                },
+                equipped: [],
                 attuned: [],
+                currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
                 weight: {
                     current: 0,
                     capacity: 0,

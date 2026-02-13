@@ -355,6 +355,244 @@ class ClassService extends BaseDataService {
 		};
 		return typeMap[featureTypeCode] || 'other';
 	}
+
+	/**
+	 * Extract nested user choices from a feature's entries.
+	 * Detects two 5etools patterns:
+	 *  1. `type: "options"` blocks (with refSubclassFeature or inline entries)
+	 *  2. `type: "table"` blocks in text that says "choose" (e.g. Dragon Ancestor)
+	 *
+	 * @param {Object} feature - A classFeature or subclassFeature object
+	 * @returns {Array<Object>} Array of choice descriptors, empty if none found
+	 */
+	getFeatureEntryChoices(feature) {
+		if (!feature?.entries || !Array.isArray(feature.entries)) return [];
+
+		const choices = [];
+
+		for (const entry of feature.entries) {
+			if (typeof entry !== 'object' || entry === null) continue;
+
+			// Pattern 1: type:"options" blocks
+			if (entry.type === 'options' && Array.isArray(entry.entries)) {
+				const options = this._resolveOptionsEntries(
+					entry.entries,
+					feature,
+				);
+				if (options.length > 0) {
+					choices.push({
+						type: 'options',
+						featureName: feature.name,
+						level: feature.level,
+						count: entry.count || 1,
+						options,
+					});
+				}
+			}
+
+			// Pattern 2: type:"table" in a feature whose text says "choose"
+			// Exclude random roll tables (first column has dice notation like {@dice d100})
+			if (entry.type === 'table' && Array.isArray(entry.rows)) {
+				const hasChooseText = feature.entries.some(
+					(e) =>
+						typeof e === 'string' &&
+						/\bchoose\b/i.test(e),
+				);
+				const firstColLabel = entry.colLabels?.[0] || '';
+				const isRandomTable = /\{@dice\s+/i.test(firstColLabel);
+
+				if (hasChooseText && !isRandomTable && entry.colLabels?.length >= 2) {
+					const tableOptions = this._resolveTableOptions(entry);
+					if (tableOptions.length > 0) {
+						choices.push({
+							type: 'table',
+							featureName: feature.name,
+							level: feature.level,
+							caption: entry.caption || feature.name,
+							colLabels: entry.colLabels,
+							count: 1,
+							options: tableOptions,
+						});
+					}
+				}
+			}
+		}
+
+		return choices;
+	}
+
+	/**
+	 * Resolve options entries — handles refSubclassFeature refs and inline entries.
+	 * @private
+	 */
+	_resolveOptionsEntries(entries, parentFeature) {
+		const options = [];
+
+		for (const opt of entries) {
+			if (opt.type === 'refSubclassFeature' && opt.subclassFeature) {
+				// Parse ref string: "Name|Class|ClassSource|Subclass|SubclassSource|Level"
+				const resolved = this._resolveSubclassFeatureRef(
+					opt.subclassFeature,
+				);
+				if (resolved) {
+					options.push(resolved);
+				}
+			} else if (opt.type === 'refClassFeature' && opt.classFeature) {
+				const resolved = this._resolveClassFeatureRef(opt.classFeature);
+				if (resolved) {
+					options.push(resolved);
+				}
+			} else if (opt.type === 'entries' && opt.name) {
+				// Inline named entry (e.g. The Third Eye options)
+				options.push({
+					value: opt.name,
+					label: opt.name,
+					entries: opt.entries || [],
+					source: parentFeature.source,
+				});
+			}
+		}
+
+		return options;
+	}
+
+	/**
+	 * Resolve a subclassFeature ref string into a named option.
+	 * Format: "FeatureName|ClassName|ClassSource|SubclassShortName|SubclassSource|Level|FeatureSource?"
+	 * @private
+	 */
+	_resolveSubclassFeatureRef(refString) {
+		const parts = refString.split('|');
+		if (parts.length < 4) return null;
+
+		const featureName = parts[0];
+		const className = parts[1];
+		const classSource = parts[2] || 'PHB';
+		const subclassShortName = parts[3];
+		const subclassSource = parts[4] || '';
+		const levelStr = parts[5];
+		const featureSource = parts[6] || '';
+
+		// Look up the actual feature data
+		const level = parseInt(levelStr, 10) || 0;
+		const features = (this._data?.subclassFeature || []).filter(
+			(f) =>
+				f.name === featureName &&
+				f.className === className &&
+				f.subclassShortName === subclassShortName &&
+				f.level === level,
+		);
+
+		// Prefer matching source, fall back to first
+		const feature =
+			features.find(
+				(f) =>
+					f.source === (featureSource || subclassSource || classSource),
+			) || features[0];
+
+		return {
+			value: featureName,
+			label: featureName,
+			entries: feature?.entries || [],
+			source: feature?.source || featureSource || classSource,
+		};
+	}
+
+	/**
+	 * Resolve a classFeature ref string into a named option.
+	 * @private
+	 */
+	_resolveClassFeatureRef(refString) {
+		const parts = refString.split('|');
+		if (parts.length < 2) return null;
+
+		const featureName = parts[0];
+		const className = parts[1];
+
+		const features = (this._data?.classFeature || []).filter(
+			(f) => f.name === featureName && f.className === className,
+		);
+		const feature = features[0];
+
+		return {
+			value: featureName,
+			label: featureName,
+			entries: feature?.entries || [],
+			source: feature?.source || 'PHB',
+		};
+	}
+
+	/**
+	 * Convert a 5etools table entry into selectable options.
+	 * Each row becomes an option; columns beyond the first are stored as metadata.
+	 * @private
+	 */
+	_resolveTableOptions(tableEntry) {
+		if (!tableEntry.rows || !tableEntry.colLabels) return [];
+
+		const labels = tableEntry.colLabels;
+
+		return tableEntry.rows.map((row) => {
+			const value = this._stripTags(String(row[0] || ''));
+			const metadata = {};
+			for (let i = 1; i < labels.length; i++) {
+				const colKey = labels[i].toLowerCase().replace(/\s+/g, '_');
+				metadata[colKey] = this._stripTags(String(row[i] || ''));
+			}
+			return {
+				value,
+				label: value,
+				metadata,
+			};
+		});
+	}
+
+	/**
+	 * Strip 5etools {@tags} from a string, keeping the display text.
+	 * @private
+	 */
+	_stripTags(text) {
+		return text.replace(/\{@\w+\s+([^|}]+)[^}]*\}/g, '$1');
+	}
+
+	/**
+	 * Get all nested feature choices for a given subclass up to a level.
+	 * Scans every subclass feature's entries for options/table choice patterns.
+	 *
+	 * @param {string} className
+	 * @param {string} subclassShortName
+	 * @param {number} maxLevel
+	 * @param {string} source
+	 * @returns {Array<Object>} Array of choice descriptors with featureName, level, options, etc.
+	 */
+	getSubclassFeatureChoices(className, subclassShortName, maxLevel, source = 'PHB') {
+		const features = this.getSubclassFeatures(
+			className,
+			subclassShortName,
+			maxLevel,
+			source,
+		);
+
+		const allChoices = [];
+		for (const feature of features) {
+			const featureChoices = this.getFeatureEntryChoices(feature);
+			allChoices.push(...featureChoices);
+		}
+
+		return allChoices;
+	}
+
+	/**
+	 * Get nested feature choices for a specific subclass at exactly one level.
+	 */
+	getSubclassFeatureChoicesAtLevel(className, subclassShortName, level, source = 'PHB') {
+		return this.getSubclassFeatureChoices(
+			className,
+			subclassShortName,
+			level,
+			source,
+		).filter((c) => c.level === level);
+	}
 }
 
 // Create and export singleton instance

@@ -110,32 +110,20 @@ export class ItemSelectorModal {
 					return (
 						item.weapon ||
 						item.weaponCategory ||
-						itemTypes.some(
-							(t) =>
-								t === 'M' ||
-								t === 'R' ||
-								t.startsWith('M') ||
-								t.startsWith('R'),
-						)
+						itemTypes.some((t) => t === 'M' || t === 'R')
 					);
 				}
 				if (filterValue === 'armor') {
 					return (
 						item.armor ||
 						itemTypes.some(
-							(t) =>
-								t === 'LA' ||
-								t === 'MA' ||
-								t === 'HA' ||
-								t.startsWith('LA') ||
-								t.startsWith('MA') ||
-								t.startsWith('HA'),
+							(t) => t === 'LA' || t === 'MA' || t === 'HA',
 						)
 					);
 				}
-				// Direct type code matching
+				// Direct type code matching (exact only)
 				const target = String(filterValue).toUpperCase();
-				return itemTypes.some((it) => it === target || it.startsWith(target));
+				return itemTypes.some((it) => it === target);
 			});
 			if (!matchesType) return false;
 		}
@@ -157,6 +145,7 @@ export class ItemSelectorModal {
 			const hasProperty = (prop) => {
 				if (prop === 'magic') return item.rarity && item.rarity !== 'none';
 				if (prop === 'cursed') return item.curse || false;
+				if (prop === 'attunement') return !!item.reqAttune;
 				if (prop === 'consumable') {
 					const codes = this._getItemTypeCodes(item);
 					return codes.some((c) => c === 'P' || c === 'SC' || c === '$');
@@ -199,19 +188,34 @@ export class ItemSelectorModal {
 
 	_getItemTypeName(typeCode) {
 		const types = {
-			W: 'Weapon',
-			A: 'Armor',
+			A: 'Ammunition',
+			AT: 'Artisan Tool',
 			G: 'Adventuring Gear',
+			GS: 'Gaming Set',
+			HA: 'Heavy Armor',
+			INS: 'Instrument',
+			LA: 'Light Armor',
+			M: 'Melee Weapon',
+			MA: 'Medium Armor',
+			MNT: 'Mount',
+			OTH: 'Other',
 			P: 'Potion',
-			SC: 'Scroll',
-			RG: 'Ring',
+			R: 'Ranged Weapon',
 			RD: 'Rod',
+			RG: 'Ring',
+			S: 'Shield',
+			SC: 'Scroll',
+			SCF: 'Spellcasting Focus',
 			ST: 'Staff',
-			WD: 'Wand',
-			$: 'Treasure',
+			T: 'Tool',
 			TAH: 'Tack and Harness',
 			TG: 'Trade Good',
 			VEH: 'Vehicle',
+			WD: 'Wand',
+			$: 'Treasure',
+			$A: 'Treasure (Art)',
+			$C: 'Treasure (Coinage)',
+			$G: 'Treasure (Gemstone)',
 		};
 		return types[typeCode] || 'Item';
 	}
@@ -319,6 +323,7 @@ export class ItemSelectorModal {
 			title: 'Properties',
 			options: [
 				{ label: 'Magic', value: 'magic' },
+				{ label: 'Requires Attunement', value: 'attunement' },
 				{ label: 'Cursed', value: 'cursed' },
 				{ label: 'Consumable', value: 'consumable' },
 			],
@@ -334,13 +339,25 @@ export class ItemSelectorModal {
 			return selected;
 		}
 
+		const existingBaseIds = new Set(
+			(character.inventory?.items || []).map((i) => i.baseItemId),
+		);
+
 		let successCount = 0;
 		const failedItems = [];
+		const skippedItems = [];
 
 		for (const item of selected) {
+			const itemBaseId = item.id || item.name;
+			if (existingBaseIds.has(itemBaseId)) {
+				skippedItems.push(item.name);
+				continue;
+			}
+
 			try {
 				const success = equipmentService.addItem(character, item, 1);
 				if (success) {
+					existingBaseIds.add(itemBaseId);
 					successCount++;
 				} else {
 					failedItems.push(item.name);
@@ -362,6 +379,13 @@ export class ItemSelectorModal {
 
 		if (failedItems.length > 0) {
 			showNotification(`Failed to add: ${failedItems.join(', ')}`, 'error');
+		}
+
+		if (skippedItems.length > 0) {
+			showNotification(
+				`Already owned: ${skippedItems.join(', ')}`,
+				'warning',
+			);
 		}
 
 		// Return array of selected items

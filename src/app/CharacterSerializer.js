@@ -280,12 +280,24 @@ export function serialize(character) {
 			cost: item.cost ? { ...item.cost } : null,
 			weight: item.weight || 0,
 			source: item.source || 'Unknown',
+			type: item.type || null,
+			weapon: item.weapon || false,
+			armor: item.armor || false,
+			shield: item.shield || false,
+			reqAttune: item.reqAttune || false,
 			metadata: item.metadata ? { ...item.metadata } : {},
 		})),
-		equipped: character.inventory?.equipped
-			? { ...character.inventory.equipped }
-			: {},
+		equipped: Array.isArray(character.inventory?.equipped)
+			? [...character.inventory.equipped]
+			: [],
 		attuned: safeArray(character.inventory?.attuned),
+		currency: {
+			cp: character.inventory?.currency?.cp || 0,
+			sp: character.inventory?.currency?.sp || 0,
+			ep: character.inventory?.currency?.ep || 0,
+			gp: character.inventory?.currency?.gp || 0,
+			pp: character.inventory?.currency?.pp || 0,
+		},
 		weight: {
 			current: character.inventory?.weight?.current || 0,
 			capacity: character.inventory?.weight?.capacity || 0,
@@ -315,6 +327,7 @@ export function serialize(character) {
 			name: cls.name,
 			levels: cls.levels,
 			subclass: cls.subclass || '', // Always store as string
+			subclassChoices: cls.subclassChoices ? { ...cls.subclassChoices } : {},
 			hitDice: cls.hitDice,
 			hitPoints: safeArray(cls.hitPoints),
 			features: safeArray(cls.features),

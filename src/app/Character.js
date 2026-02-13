@@ -401,6 +401,10 @@ export class Character {
 		this.features.resistances.add(resistance);
 	}
 
+	removeResistance(resistance) {
+		this.features.resistances.delete(resistance);
+	}
+
 	clearResistances() {
 		this.features.resistances.clear();
 	}
