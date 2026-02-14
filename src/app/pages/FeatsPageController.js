@@ -1,10 +1,8 @@
 import { eventBus, EVENTS } from '../../lib/EventBus.js';
 import { showNotification } from '../../lib/Notifications.js';
-import {
-    FeatListView,
-    FeatSelectorModal,
-    FeatSourcesView,
-} from '../../ui/components/feats/FeatSelectorModal.js';
+import { FeatListView } from '../../ui/components/feats/FeatListView.js';
+import { FeatSelectorModal } from '../../ui/components/feats/FeatSelectorModal.js';
+import { FeatSourcesView } from '../../ui/components/feats/FeatSourcesView.js';
 import { AppState } from '../AppState.js';
 import { BasePageController } from './BasePageController.js';
 

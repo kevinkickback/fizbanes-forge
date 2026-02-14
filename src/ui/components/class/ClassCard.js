@@ -11,7 +11,6 @@ import {
 	getAbilityAbbrDisplay,
 	getSchoolName,
 	SPELL_LEVEL_ORDINALS,
-	toSentenceCase,
 	toTitleCase,
 } from '../../../lib/5eToolsParser.js';
 import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
@@ -22,8 +21,11 @@ import { progressionHistoryService } from '../../../services/ProgressionHistoryS
 import { sourceService } from '../../../services/SourceService.js';
 import { spellSelectionService } from '../../../services/SpellSelectionService.js';
 import { spellService } from '../../../services/SpellService.js';
+import { ClassCardView } from './ClassCardView.js';
+import { ClassDetailsView } from './ClassDetailsView.js';
 import { ClassFeatureSelectorModal } from './ClassFeatureSelectorModal.js';
 import { ClassSpellSelectorModal } from './ClassSpellSelectorModal.js';
+import { SubclassPickerView } from './SubclassPickerView.js';
 
 export class ClassCard {
 	constructor(_container) {
@@ -2489,11 +2491,8 @@ export class ClassCard {
 		await this._syncWithCharacterProgression();
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 
-		// Notify ability score card to update
-		const event = new CustomEvent('abilityScoresChanged', {
-			detail: { character },
-		});
-		document.dispatchEvent(event);
+		// Notify ability score change via EventBus
+		eventBus.emit(EVENTS.ABILITY_SCORES_CHANGED, { character });
 	}
 
 	/**
@@ -2748,11 +2747,8 @@ export class ClassCard {
 				await this._syncWithCharacterProgression();
 				eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
 
-				// Notify ability score card to update
-				const event = new CustomEvent('abilityScoresChanged', {
-					detail: { character },
-				});
-				document.dispatchEvent(event);
+				// Notify ability score change via EventBus
+				eventBus.emit(EVENTS.ABILITY_SCORES_CHANGED, { character });
 			}
 		} catch (error) {
 			console.error('[ClassCard]', 'Error in ASI selection:', error);
@@ -3145,13 +3141,6 @@ export class ClassCard {
 			character.removeProficienciesBySource('Subclass');
 			character.clearTraits('Subclass');
 
-			// Notify UI to clear optional proficiencies from class
-			document.dispatchEvent(
-				new CustomEvent('proficienciesRemoved', {
-					detail: { source: 'Class' },
-				}),
-			);
-
 			// Initialize progression to track classes (needed for multiclass)
 			levelUpService.initializeProgression(character);
 
@@ -3160,24 +3149,10 @@ export class ClassCard {
 
 				// Add proficiencies
 				this._updateProficiencies(classData);
-
-				// Force a refresh after a short delay to ensure everything is updated
-				setTimeout(() => {
-					document.dispatchEvent(
-						new CustomEvent('proficiencyChanged', {
-							detail: { triggerCleanup: true, forcedRefresh: true },
-						}),
-					);
-				}, 100);
 			}
 
-			// Trigger an event to update the UI
-			document.dispatchEvent(
-				new CustomEvent('classChanged', {
-					detail: { classData, subclass: subclassName },
-				}),
-			);
-			document.dispatchEvent(new CustomEvent('characterChanged'));
+			// Notify coordinator to refresh dependent cards
+			this.onBuildChange?.('class');
 		}
 	}
 
@@ -3265,9 +3240,8 @@ export class ClassCard {
 		// Update combined options for all proficiency types
 		this._updateCombinedProficiencyOptions(character);
 
-		// Notify UI to update proficiencies
-		document.dispatchEvent(new CustomEvent('proficiencyChanged'));
-		document.dispatchEvent(new CustomEvent('characterChanged'));
+		// Notify coordinator to refresh dependent cards
+		this.onBuildChange?.('class-proficiency');
 	}
 
 	_updateCombinedProficiencyOptions(character) {
@@ -3546,510 +3520,5 @@ export class ClassCard {
 		}
 
 		return 0;
-	}
-}
-
-//=============================================================================
-// Class Details View - Detailed class information display
-//=============================================================================
-
-class ClassDetailsView {
-	constructor() {
-		this._classInfoPanel = document.getElementById('classInfoPanel');
-	}
-
-	//-------------------------------------------------------------------------
-	// Public API
-	//-------------------------------------------------------------------------
-
-	async updateAllDetails(classData, fluffData = null) {
-		if (!classData) {
-			this.resetAllDetails();
-			return;
-		}
-
-		// Build the complete info panel content
-		let html = '';
-
-		// Class Description Section
-		html += '<div class="info-section">';
-		html += await this._renderClassDescription(classData, fluffData);
-		html += '</div>';
-
-		// Hit Die Section
-		html += '<div class="info-section">';
-		html += '<h6><i class="fas fa-heart"></i> Hit Die</h6>';
-		html += `<div class="info-content">${this._formatHitDie(classData)}</div>`;
-		html += '</div>';
-
-		// Proficiencies Section
-		html += '<div class="info-section">';
-		html += '<h6><i class="fas fa-shield-alt"></i> Proficiencies</h6>';
-		html += '<div class="info-content">';
-		html += await this._renderProficiencies(classData);
-		html += '</div>';
-		html += '</div>';
-
-		// Set the complete content
-		if (this._classInfoPanel) {
-			this._classInfoPanel.innerHTML = html;
-		} else {
-			console.warn('[ClassDetailsView]', 'Info panel element not found!');
-		}
-
-		// Process the entire panel at once to resolve all reference tags
-		await textProcessor.processElement(this._classInfoPanel);
-	}
-
-	async _renderClassDescription(classData, fluffData = null) {
-		let description = '';
-
-		// Extract description from fluff data
-		if (fluffData?.entries) {
-			for (const entry of fluffData.entries) {
-				if (entry.entries && Array.isArray(entry.entries)) {
-					let foundDescription = false;
-					for (let i = 0; i < entry.entries.length; i++) {
-						const subEntry = entry.entries[i];
-						if (typeof subEntry === 'string') {
-							// Skip the first 3 story vignettes, get the 4th paragraph (index 3)
-							if (i >= 3) {
-								description = subEntry;
-								foundDescription = true;
-								break;
-							}
-						}
-					}
-					if (foundDescription) break;
-				}
-			}
-		}
-
-		// Fallback if no fluff found
-		if (!description) {
-			description =
-				classData.description ||
-				`${classData.name} class features and characteristics.`;
-		}
-
-		return `
-			<h5 class="info-title">${classData.name}</h5>
-			<p class="info-description">${description}</p>
-		`;
-	}
-
-	async _renderProficiencies(classData) {
-		let html = '';
-
-		// Skill Proficiencies
-		html += '<div class="proficiency-group">';
-		html += '<strong>Skills:</strong> ';
-		html += `<span>${this._formatSkillProficiencies(classData)}</span>`;
-		html += '</div>';
-
-		// Saving Throws
-		html += '<div class="proficiency-group">';
-		html += '<strong>Saving Throws:</strong> ';
-		const savingThrows = this._formatSavingThrows(classData);
-		html += `<span>${savingThrows.join(', ') || 'None'}</span>`;
-		html += '</div>';
-
-		// Armor Proficiencies
-		html += '<div class="proficiency-group">';
-		html += '<strong>Armor:</strong> ';
-		const armorProfs = this._formatArmorProficiencies(classData);
-		html += `<span>${armorProfs.join(', ') || 'None'}</span>`;
-		html += '</div>';
-
-		// Weapon Proficiencies
-		html += '<div class="proficiency-group">';
-		html += '<strong>Weapons:</strong> ';
-		const weaponProfs = this._formatWeaponProficiencies(classData);
-		html += `<span>${weaponProfs.map((w) => toTitleCase(w)).join(', ') || 'None'}</span>`;
-		html += '</div>';
-
-		// Tool Proficiencies
-		const toolProfs = this._formatToolProficiencies(classData);
-		if (toolProfs.length > 0) {
-			html += '<div class="proficiency-group">';
-			html += '<strong>Tools:</strong> ';
-			html += `<span>${toolProfs.map((t) => toSentenceCase(t)).join(', ')}</span>`;
-			html += '</div>';
-		}
-
-		return html;
-	}
-
-	resetAllDetails() {
-		if (!this._classInfoPanel) return;
-
-		this._classInfoPanel.innerHTML = `
-			<div class="info-section">
-				<h5 class="info-title">Select a Class</h5>
-				<p class="info-description">Choose a class to see details about their abilities, proficiencies, and other characteristics.</p>
-			</div>
-		`;
-	}
-
-	//-------------------------------------------------------------------------
-	// Hit Die Section
-	//-------------------------------------------------------------------------
-
-	_formatHitDie(classData) {
-		if (!classData?.hd) return 'Unknown';
-		const faces = classData.hd.faces || classData.hd;
-		return `1d${faces}`;
-	}
-
-	//-------------------------------------------------------------------------
-	// Skill Proficiencies Section
-	//-------------------------------------------------------------------------
-
-	_formatSkillProficiencies(classData) {
-		if (!classData?.startingProficiencies?.skills) return 'None';
-
-		const skills = classData.startingProficiencies.skills;
-		const parts = [];
-
-		for (const skillEntry of skills) {
-			if (skillEntry.choose) {
-				const count = skillEntry.choose.count || 1;
-				const from = skillEntry.choose.from || [];
-
-				if (from.length === 0 || skillEntry.choose.fromFilter) {
-					// Any skills
-					parts.push(`Choose any ${count} skill${count > 1 ? 's' : ''}`);
-				} else {
-					// Specific list - use skills as-is from JSON
-					parts.push(`Choose ${count} from: ${from.join(', ')}`);
-				}
-			} else {
-				// Fixed proficiencies - use skills as-is from JSON
-				parts.push(...Object.keys(skillEntry));
-			}
-		}
-
-		return parts.join('; ') || 'None';
-	}
-
-	//-------------------------------------------------------------------------
-	// Saving Throws Section
-	//-------------------------------------------------------------------------
-
-	_formatSavingThrows(classData) {
-		if (!classData?.proficiency) return [];
-		return classData.proficiency.map((prof) => attAbvToFull(prof) || prof);
-	}
-
-	//-------------------------------------------------------------------------
-	// Armor Proficiencies Section
-	//-------------------------------------------------------------------------
-
-	_formatArmorProficiencies(classData) {
-		if (!classData?.startingProficiencies?.armor) return [];
-
-		const armorMap = {
-			light: 'Light Armor',
-			medium: 'Medium Armor',
-			heavy: 'Heavy Armor',
-			shield: 'Shields',
-		};
-
-		return classData.startingProficiencies.armor.map((armor) => {
-			if (armorMap[armor]) return armorMap[armor];
-			// Return armor as-is to preserve tags
-			return armor;
-		});
-	}
-
-	//-------------------------------------------------------------------------
-	// Weapon Proficiencies Section
-	//-------------------------------------------------------------------------
-
-	_formatWeaponProficiencies(classData) {
-		if (!classData?.startingProficiencies?.weapons) return [];
-
-		const weaponMap = {
-			simple: 'Simple Weapons',
-			martial: 'Martial Weapons',
-		};
-
-		return classData.startingProficiencies.weapons.map((weapon) => {
-			if (weaponMap[weapon]) return weaponMap[weapon];
-			// Return weapon as-is to preserve tags like {@item dagger|phb|daggers}
-			return weapon;
-		});
-	}
-
-	//-------------------------------------------------------------------------
-	// Tool Proficiencies Section
-	//-------------------------------------------------------------------------
-
-	_formatToolProficiencies(classData) {
-		if (!classData?.startingProficiencies?.tools) return [];
-
-		const tools = [];
-		for (const toolEntry of classData.startingProficiencies.tools) {
-			if (typeof toolEntry === 'string') {
-				// Return tool as-is to preserve tags
-				tools.push(toolEntry);
-			} else if (toolEntry.choose) {
-				// Choice of tools
-				const count = toolEntry.choose.count || 1;
-				tools.push(`Choose ${count} tool${count > 1 ? 's' : ''}`);
-			} else {
-				// Object with tool types - use tool names as-is from JSON
-				for (const [key, value] of Object.entries(toolEntry)) {
-					if (value === true) {
-						tools.push(key);
-					}
-				}
-			}
-		}
-
-		return tools;
-	}
-}
-
-//=============================================================================
-// Class Card View - Main class dropdown and quick description
-//=============================================================================
-
-class ClassCardView {
-	constructor() {
-		this._classSelect = document.getElementById('classSelect');
-
-		this._classQuickDesc = document.getElementById('classQuickDesc');
-
-		// Set up event listeners
-		this._setupEventListeners();
-	}
-
-	//-------------------------------------------------------------------------
-	// Event Setup
-	//-------------------------------------------------------------------------
-
-	_setupEventListeners() {
-		if (this._classSelect) {
-			this._classSelect.addEventListener('change', (event) => {
-				const selectedValue = event.target.value;
-				if (selectedValue) {
-					const [className, source] = selectedValue.split('_');
-					eventBus.emit(EVENTS.CLASS_SELECTED, {
-						name: className,
-						source,
-						value: selectedValue,
-					});
-				}
-			});
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Public API
-	//-------------------------------------------------------------------------
-
-	getClassSelect() {
-		return this._classSelect;
-	}
-
-	getSelectedClassValue() {
-		return this._classSelect.value;
-	}
-
-	setSelectedClassValue(value) {
-		this._classSelect.value = value;
-	}
-
-	populateClassSelect(classes) {
-		this._classSelect.innerHTML = '<option value="">Select a Class</option>';
-
-		if (!classes || classes.length === 0) {
-			console.error(
-				'ClassCardView',
-				'No classes provided to populate dropdown',
-			);
-			return;
-		}
-
-		// Sort classes by name
-		const sortedClasses = [...classes].sort((a, b) =>
-			a.name.localeCompare(b.name),
-		);
-
-		// Add options to select
-		for (const classData of sortedClasses) {
-			const option = document.createElement('option');
-			option.value = `${classData.name}_${classData.source}`;
-			option.textContent = `${classData.name} (${classData.source})`;
-			this._classSelect.appendChild(option);
-		}
-	}
-
-	async updateQuickDescription(classData, fluffData = null) {
-		if (!classData || !this._classQuickDesc) {
-			return;
-		}
-
-		let description = '';
-
-		// Extract description from fluff data
-		if (fluffData?.entries) {
-			// The fluff structure typically has:
-			// - First 3 string entries: Story vignettes (skip these)
-			// - 4th+ entries: Actual class description
-			// We want to find the first descriptive paragraph that's not a story
-
-			for (const entry of fluffData.entries) {
-				if (entry.entries && Array.isArray(entry.entries)) {
-					// Look through nested entries
-					let foundDescription = false;
-					for (let i = 0; i < entry.entries.length; i++) {
-						const subEntry = entry.entries[i];
-						if (typeof subEntry === 'string') {
-							// Skip the first 3 story vignettes, get the 4th paragraph (index 3)
-							if (i >= 3) {
-								description = subEntry;
-								foundDescription = true;
-								break;
-							}
-						}
-					}
-					if (foundDescription) break;
-				}
-			}
-		}
-
-		// Fallback if no fluff found
-		if (!description) {
-			description =
-				classData.description ||
-				`${classData.name} class features and characteristics.`;
-		}
-
-		this._classQuickDesc.innerHTML = `
-            <h5>${classData.name}</h5>
-            <p>${description}</p>
-        `;
-
-		// Process reference tags in the description
-		await textProcessor.processElement(this._classQuickDesc);
-	}
-
-	resetQuickDescription() {
-		this._classQuickDesc.innerHTML = `
-            <div class="placeholder-content">
-                <h5>Select a Class</h5>
-                <p>Choose a class to see details about their abilities, proficiencies, and other characteristics.</p>
-            </div>
-        `;
-	}
-
-	hasClassOption(classValue) {
-		return Array.from(this._classSelect.options).some(
-			(option) => option.value === classValue,
-		);
-	}
-
-	triggerClassSelectChange() {
-		this._classSelect.dispatchEvent(new Event('change', { bubbles: true }));
-	}
-}
-
-//=============================================================================
-// Subclass Picker View - Subclass dropdown
-//=============================================================================
-
-class SubclassPickerView {
-	constructor() {
-		this._subclassSelect = document.getElementById('subclassSelect');
-
-		// Set up event listeners
-		this._setupEventListeners();
-	}
-
-	//-------------------------------------------------------------------------
-	// Event Setup
-	//-------------------------------------------------------------------------
-
-	_setupEventListeners() {
-		if (this._subclassSelect) {
-			this._subclassSelect.addEventListener('change', (event) => {
-				const selectedValue = event.target.value;
-				if (selectedValue) {
-					eventBus.emit(EVENTS.SUBCLASS_SELECTED, {
-						name: selectedValue,
-						value: selectedValue,
-					});
-				}
-			});
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Public API
-	//-------------------------------------------------------------------------
-
-	getSubclassSelect() {
-		return this._subclassSelect;
-	}
-
-	getSelectedSubclassValue() {
-		return this._subclassSelect.value;
-	}
-
-	setSelectedSubclassValue(value) {
-		this._subclassSelect.value = value;
-	}
-
-	populateSubclassSelect(subclasses) {
-		this._subclassSelect.innerHTML =
-			'<option value="">Select a Subclass</option>';
-		this._subclassSelect.disabled = true;
-
-		if (!subclasses || subclasses.length === 0) {
-			return;
-		}
-
-		// Sort subclasses by name
-		const sortedSubclasses = [...subclasses].sort((a, b) =>
-			a.name.localeCompare(b.name),
-		);
-
-		// Add options to select
-		for (const subclass of sortedSubclasses) {
-			const option = document.createElement('option');
-			option.value = subclass.name;
-			const src =
-				subclass.subclassSource ||
-				subclass.source ||
-				subclass.classSource ||
-				'';
-			option.textContent = src ? `${subclass.name} (${src})` : subclass.name;
-			this._subclassSelect.appendChild(option);
-		}
-
-		this._subclassSelect.disabled = false;
-	}
-
-	reset() {
-		this._subclassSelect.innerHTML =
-			'<option value="">Select a Subclass</option>';
-		this._subclassSelect.disabled = true;
-	}
-
-	resetWithMessage(message) {
-		this._subclassSelect.innerHTML = `<option value="">${message}</option>`;
-		this._subclassSelect.disabled = true;
-	}
-
-	hasSubclassOption(subclassName) {
-		return Array.from(this._subclassSelect.options).some(
-			(option) => option.value === subclassName,
-		);
-	}
-
-	triggerSubclassSelectChange() {
-		this._subclassSelect.dispatchEvent(new Event('change', { bubbles: true }));
 	}
 }

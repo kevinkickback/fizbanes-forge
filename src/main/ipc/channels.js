@@ -7,6 +7,7 @@
 export const IPC_CHANNELS = {
 	// Character operations
 	CHARACTER_SAVE: 'character:save',
+	CHARACTER_LOAD: 'character:load',
 	CHARACTER_DELETE: 'character:delete',
 	CHARACTER_LIST: 'character:list',
 	CHARACTER_IMPORT: 'character:import',

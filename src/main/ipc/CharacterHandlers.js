@@ -84,6 +84,32 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
+	// Load a single character by ID
+	ipcMain.handle(IPC_CHANNELS.CHARACTER_LOAD, async (_event, id) => {
+		try {
+			const savePath = preferencesManager.getCharacterSavePath();
+			const filePath = resolveCharacterPath(savePath, id);
+			if (!filePath) {
+				return { success: false, error: 'Invalid character ID' };
+			}
+
+			try {
+				const content = await fs.readFile(filePath, 'utf8');
+				const character = JSON.parse(content);
+				MainLogger.debug('CharacterHandlers', 'Loaded character:', id);
+				return { success: true, character };
+			} catch (readError) {
+				if (readError.code === 'ENOENT') {
+					return { success: false, error: `Character not found: ${id}` };
+				}
+				throw readError;
+			}
+		} catch (error) {
+			MainLogger.error('CharacterHandlers', 'Load character failed:', error);
+			return { success: false, error: error.message };
+		}
+	});
+
 	// Load all characters
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_LIST, async () => {
 		try {

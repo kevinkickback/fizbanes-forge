@@ -110,15 +110,18 @@ async function createCharacter(page, name) {
     });
 }
 
-/** Delete the currently loaded character via the Home page. */
-async function deleteCurrentCharacter(page) {
+/** Delete a specific test character by name via the Home page. */
+async function deleteCharacterByName(page, characterName) {
     await page.locator('button[data-page="home"]').click();
     await page.waitForFunction(
         () => document.body.getAttribute('data-current-page') === 'home',
         { timeout: 10_000 },
     );
-    const deleteBtn = page.locator('.delete-character').first();
-    if (await deleteBtn.isVisible()) {
+    const card = page.locator('.character-card', {
+        has: page.locator('.card-header h5', { hasText: characterName }),
+    });
+    const deleteBtn = card.locator('.delete-character');
+    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deleteBtn.click();
         const confirmBtn = page.locator('#confirmButton');
         await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
@@ -132,16 +135,20 @@ async function deleteCurrentCharacter(page) {
 test.describe('Level Up', () => {
     let electronApp;
     let page;
+    let testCharacterName;
 
     test.beforeEach(async () => {
         test.setTimeout(120_000);
+        testCharacterName = null;
         ({ electronApp, page } = await launchAndWaitForHome());
     });
 
     test.afterEach(async () => {
         if (electronApp) {
             try {
-                await deleteCurrentCharacter(page);
+                if (testCharacterName) {
+                    await deleteCharacterByName(page, testCharacterName);
+                }
             } catch {
                 // Character may not exist or page may be in an unexpected state
             } finally {
@@ -159,6 +166,7 @@ test.describe('Level Up', () => {
 
         // Create a character
         await createCharacter(page, 'LevelUp Button Hero');
+        testCharacterName = 'LevelUp Button Hero';
 
         // Level Up button should now be enabled
         await expect(levelUpBtn).not.toHaveAttribute('disabled', '', {
@@ -168,6 +176,7 @@ test.describe('Level Up', () => {
 
     test('11.2 — Clicking Level Up opens the level-up modal', async () => {
         await createCharacter(page, 'LevelUp Modal Hero');
+        testCharacterName = 'LevelUp Modal Hero';
 
         const levelUpBtn = page.locator('#openLevelUpModalBtn');
         await expect(levelUpBtn).not.toHaveAttribute('disabled', '', {
@@ -191,6 +200,7 @@ test.describe('Level Up', () => {
 
     test('11.3 — Level-up modal shows class selection for multiclass option', async () => {
         await createCharacter(page, 'Multiclass Hero');
+        testCharacterName = 'Multiclass Hero';
 
         await page.locator('#openLevelUpModalBtn').click();
         const modal = page.locator('#levelUpModal');
@@ -211,6 +221,7 @@ test.describe('Level Up', () => {
 
     test('11.4 — Completing level-up increments character level', async () => {
         await createCharacter(page, 'Growing Hero');
+        testCharacterName = 'Growing Hero';
 
         // Open level-up modal
         await page.locator('#openLevelUpModalBtn').click();

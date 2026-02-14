@@ -40,8 +40,8 @@ async function openWizard(page) {
     await page.waitForSelector('#newCharacterModal.show', { timeout: 10_000 });
 }
 
-/** Delete the currently loaded character via the Home page card's delete button. */
-async function deleteCurrentCharacter(page) {
+/** Delete a specific test character by name via the Home page. */
+async function deleteCharacterByName(page, characterName) {
     // Navigate to home to see the character list
     await page.locator('button[data-page="home"]').click();
     await page.waitForFunction(
@@ -49,9 +49,11 @@ async function deleteCurrentCharacter(page) {
         { timeout: 10_000 },
     );
 
-    // Click the delete button on the first character card
-    const deleteBtn = page.locator('.delete-character').first();
-    if (await deleteBtn.isVisible()) {
+    const card = page.locator('.character-card', {
+        has: page.locator('.card-header h5', { hasText: characterName }),
+    });
+    const deleteBtn = card.locator('.delete-character');
+    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deleteBtn.click();
 
         // Confirm in the confirmation modal
@@ -69,16 +71,20 @@ async function deleteCurrentCharacter(page) {
 test.describe('Character Creation Wizard', () => {
     let electronApp;
     let page;
+    let testCharacterName;
 
     test.beforeEach(async () => {
         test.setTimeout(90_000);
+        testCharacterName = null;
         ({ electronApp, page } = await launchAndWaitForHome());
     });
 
     test.afterEach(async () => {
         if (electronApp) {
             try {
-                await deleteCurrentCharacter(page);
+                if (testCharacterName) {
+                    await deleteCharacterByName(page, testCharacterName);
+                }
             } catch {
                 // Character may not exist or page may be in an unexpected state
             } finally {
@@ -174,7 +180,8 @@ test.describe('Character Creation Wizard', () => {
         await openWizard(page);
 
         // ── Step 0: Basics ──
-        await page.locator('#characterName').fill('E2E Test Hero');
+        testCharacterName = 'E2E Test Hero';
+        await page.locator('#characterName').fill(testCharacterName);
         await page.locator('#wizardNextBtn').click();
 
         // Verify we moved to step 1

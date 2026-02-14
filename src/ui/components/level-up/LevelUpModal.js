@@ -377,8 +377,6 @@ export class LevelUpModal {
 			// Update character in memory (save is manual via titlebar)
 			AppState.setCurrentCharacter(character, { skipEvent: true });
 			eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
-			eventBus.emit(EVENTS.MULTICLASS_ADDED, character, { name: className });
-
 
 			// Re-render picker
 			await this._renderLevelPicker();
@@ -475,7 +473,6 @@ export class LevelUpModal {
 			if (classEntry.levels <= 1) {
 				// Remove entire class if at level 1
 				levelUpService.removeClassLevel(character, lastClassName);
-				eventBus.emit(EVENTS.MULTICLASS_REMOVED, character, classEntry);
 				showNotification(`Removed ${lastClassName} class`, 'success');
 			} else {
 				// Just decrement level

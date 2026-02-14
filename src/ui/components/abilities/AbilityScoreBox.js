@@ -145,9 +145,7 @@ class AbilityScoreBoxView {
 		box.appendChild(controlsContainer);
 	}
 
-	updateAbilityScoreValues(isPointBuy) {
-		console.debug('[AbilityScoreBox]', 'updateAbilityScoreValues() called, isPointBuy:', isPointBuy);
-
+	updateAbilityScoreValues() {
 		if (!this._container) {
 			console.warn('[AbilityScoreBox]', 'No container set, skipping update');
 			return;
@@ -169,8 +167,6 @@ class AbilityScoreBoxView {
 
 			const baseScore = abilityScoreService.getBaseScore(ability);
 			const totalScore = abilityScoreService.getTotalScore(ability);
-
-			console.debug('[AbilityScoreBox]', 'Updating', ability, 'base:', baseScore, 'total:', totalScore);
 
 			// Update score and modifier displays
 			box.querySelector('.score').textContent = totalScore;

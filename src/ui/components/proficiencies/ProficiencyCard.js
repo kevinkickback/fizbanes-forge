@@ -8,79 +8,13 @@ import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
 
 import {
 	ARTISAN_TOOLS,
-	MUSICAL_INSTRUMENTS,
 } from '../../../lib/5eToolsParser.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { variantRuleService } from '../../../services/VariantRuleService.js';
+import { InstrumentChoicesView } from './InstrumentChoicesView.js';
 import { ProficiencyDisplayView } from './ProficiencyDisplay.js';
 import { ProficiencyNotesView } from './ProficiencyNotes.js';
 import { ProficiencySelectionView } from './ProficiencySelection.js';
-
-class InstrumentChoicesView {
-	constructor() {
-		this._container = null;
-	}
-
-	render(toolsContainer, slots, onChange) {
-		if (!toolsContainer) return;
-
-		const host = this._getOrCreateHost(toolsContainer);
-
-		if (!slots || slots.length === 0) {
-			host.remove();
-			return;
-		}
-
-		host.innerHTML = this._buildContent(slots);
-		this._wireEvents(host, onChange);
-	}
-
-	_buildContent(slots) {
-		const selectedInstruments = new Set(
-			slots.map((s) => s.selection).filter(Boolean),
-		);
-
-		return `
-			<div class="instrument-choices-grid">
-				${slots
-				.map((slot, index) => {
-					return `
-							<div class="instrument-choice-group">
-								<label class="form-label">${slot.sourceLabel} instrument</label>
-								<select class="form-select form-select-sm instrument-choice-select" data-slot-index="${index}" data-source-label="${slot.sourceLabel}" data-key="${slot.key}">
-									<option value="">Choose...</option>
-									${MUSICAL_INSTRUMENTS.map((inst) => {
-						const isSelected = slot.selection === inst;
-						const isUsedElsewhere =
-							selectedInstruments.has(inst) && !isSelected;
-						return `<option value="${inst}" ${isSelected ? 'selected' : ''} ${isUsedElsewhere ? 'disabled' : ''}>${inst}${isUsedElsewhere ? ' (used)' : ''}</option>`;
-					}).join('')}
-								</select>
-							</div>
-						`;
-				})
-				.join('')}
-			</div>
-		`;
-	}
-
-	_wireEvents(host, onChange) {
-		const selects = host.querySelectorAll('.instrument-choice-select');
-		for (const select of selects) {
-			select.addEventListener('change', onChange);
-		}
-	}
-
-	_getOrCreateHost(toolsContainer) {
-		let host = toolsContainer.querySelector('.instrument-choices-container');
-		if (!host) {
-			host = document.createElement('div');
-			host.className = 'instrument-choices-container';
-			toolsContainer.appendChild(host);
-		}
-		return host;
-	}
-}
 
 export class ProficiencyCard {
 	constructor() {
@@ -301,18 +235,6 @@ export class ProficiencyCard {
 			// Set up click listeners for each proficiency container
 			this._setupContainerClickListeners();
 
-			// Track document listeners
-			this._cleanup.on(
-				document,
-				'characterChanged',
-				this._handleCharacterChanged.bind(this),
-			);
-			this._cleanup.on(
-				document,
-				'proficiencyChanged',
-				this._handleProficiencyChanged.bind(this),
-			);
-
 			// Track eventBus listeners
 			this.onEventBus(
 				EVENTS.CHARACTER_SELECTED,
@@ -402,6 +324,20 @@ export class ProficiencyCard {
 
 		this._eventHandlers = {};
 		console.debug('[ProficiencyCard]', 'EventBus cleanup complete');
+	}
+
+	//-------------------------------------------------------------------------
+	// Public Coordination Methods (called by BuildPageController)
+	//-------------------------------------------------------------------------
+
+	refreshForCharacterChange() {
+		this._handleCharacterChanged();
+	}
+
+	refreshForProficiencyChange(options = {}) {
+		this._handleProficiencyChanged({
+			detail: { triggerCleanup: true, forcedRefresh: true, ...options },
+		});
 	}
 
 	_handleProficiencyAdded(data) {

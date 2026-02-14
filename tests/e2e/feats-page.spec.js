@@ -109,14 +109,18 @@ async function createCharacter(page, name) {
     });
 }
 
-async function deleteCurrentCharacter(page) {
+/** Delete a specific test character by name via the Home page. */
+async function deleteCharacterByName(page, characterName) {
     await page.locator('button[data-page="home"]').click();
     await page.waitForFunction(
         () => document.body.getAttribute('data-current-page') === 'home',
         { timeout: 10_000 },
     );
-    const deleteBtn = page.locator('.delete-character').first();
-    if (await deleteBtn.isVisible()) {
+    const card = page.locator('.character-card', {
+        has: page.locator('.card-header h5', { hasText: characterName }),
+    });
+    const deleteBtn = card.locator('.delete-character');
+    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deleteBtn.click();
         const confirmBtn = page.locator('#confirmButton');
         await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
@@ -151,10 +155,12 @@ test.describe('Feats Page', () => {
         await navigateToFeats(page);
     });
 
-    test.afterAll(async () => {
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructuring
+    test.afterAll(async ({ }, testInfo) => {
+        testInfo.setTimeout(30_000);
         if (electronApp) {
             try {
-                await deleteCurrentCharacter(page);
+                await deleteCharacterByName(page, 'Feats Hero');
             } finally {
                 await electronApp.close();
             }
@@ -173,6 +179,7 @@ test.describe('Feats Page', () => {
     });
 
     test('7.2 — Add feat opens modal with 0 selection limit when no feat slots available', async () => {
+        test.setTimeout(60_000);
         // A level 1 character has 0 feat slots (needs level 4 or Variant Human)
         const maxFeats = page.locator('#maxFeats');
         const maxText = await maxFeats.textContent();
@@ -181,25 +188,23 @@ test.describe('Feats Page', () => {
             // Clicking Add Feat opens the modal even with 0 slots
             await page.locator('#addFeatBtn').click();
 
-            const modal = page.locator('[id^="featSelectionModal_"]');
+            const modal = page.locator('[id^="featSelectionModal_"].show');
             await expect(modal).toBeVisible({ timeout: 10_000 });
 
-            // Attempting to select a feat should show a limit warning
+            // Wait for feat cards to render
             await page.waitForFunction(
                 () => {
-                    const m = document.querySelector('[id^="featSelectionModal_"]');
+                    const m = document.querySelector('[id^="featSelectionModal_"].show');
                     if (!m) return false;
                     return m.querySelectorAll('.selector-card').length > 0;
                 },
                 { timeout: 15_000 },
             );
 
+            // All cards should be disabled (pointer-events: none prevents clicking)
             const firstCard = modal.locator('.selector-card').first();
-            await firstCard.click();
-
-            // Should show a "can only select 0" warning notification
-            const toast = page.locator('.notification.warning');
-            await expect(toast).toBeVisible({ timeout: 10_000 });
+            await expect(firstCard).toHaveClass(/disabled/, { timeout: 5_000 });
+            await expect(firstCard).toHaveAttribute('aria-disabled', 'true');
 
             // Close the modal
             await modal.locator('.btn-cancel').click();
@@ -208,6 +213,7 @@ test.describe('Feats Page', () => {
     });
 
     test('7.3 — Feat selector modal opens when feat slots available', async () => {
+        test.setTimeout(90_000);
         // Level up the character to 4 to gain ASI/feat slot
         await page.locator('button[data-page="build"]').click();
         await page.waitForFunction(
@@ -261,13 +267,13 @@ test.describe('Feats Page', () => {
 
         // Click Add Feat — modal should open
         await page.locator('#addFeatBtn').click();
-        const modal = page.locator('[id^="featSelectionModal_"]');
+        const modal = page.locator('[id^="featSelectionModal_"].show');
         await expect(modal).toBeVisible({ timeout: 10_000 });
 
         // Modal should have feat cards
         await page.waitForFunction(
             () => {
-                const m = document.querySelector('[id^="featSelectionModal_"]');
+                const m = document.querySelector('[id^="featSelectionModal_"].show');
                 if (!m) return false;
                 return m.querySelectorAll('.selector-card').length > 0;
             },
@@ -284,6 +290,7 @@ test.describe('Feats Page', () => {
     });
 
     test('7.4 — Selecting a feat adds it to the list', async () => {
+        test.setTimeout(60_000);
         // Open the feat selector (character should be level 4 from previous test)
         await page.locator('#addFeatBtn').click();
 

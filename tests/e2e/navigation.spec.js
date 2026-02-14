@@ -111,15 +111,18 @@ async function createCharacter(page, name) {
     });
 }
 
-/** Delete the currently loaded character via the Home page. */
-async function deleteCurrentCharacter(page) {
+/** Delete a specific test character by name via the Home page. */
+async function deleteCharacterByName(page, characterName) {
     await page.locator('button[data-page="home"]').click();
     await page.waitForFunction(
         () => document.body.getAttribute('data-current-page') === 'home',
         { timeout: 10_000 },
     );
-    const deleteBtn = page.locator('.delete-character').first();
-    if (await deleteBtn.isVisible()) {
+    const card = page.locator('.character-card', {
+        has: page.locator('.card-header h5', { hasText: characterName }),
+    });
+    const deleteBtn = card.locator('.delete-character');
+    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deleteBtn.click();
         const confirmBtn = page.locator('#confirmButton');
         await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
@@ -133,16 +136,20 @@ async function deleteCurrentCharacter(page) {
 test.describe('Navigation', () => {
     let electronApp;
     let page;
+    let testCharacterName;
 
     test.beforeEach(async () => {
         test.setTimeout(120_000);
+        testCharacterName = null;
         ({ electronApp, page } = await launchAndWaitForHome());
     });
 
     test.afterEach(async () => {
         if (electronApp) {
             try {
-                await deleteCurrentCharacter(page);
+                if (testCharacterName) {
+                    await deleteCharacterByName(page, testCharacterName);
+                }
             } catch {
                 // Character may not exist or page may be in an unexpected state
             } finally {
@@ -219,6 +226,7 @@ test.describe('Navigation', () => {
     test('2.4 — Character-required pages become accessible after character creation', async () => {
         // Create a character
         await createCharacter(page, 'Nav Test Hero');
+        testCharacterName = 'Nav Test Hero';
 
         // All gated pages should now be enabled
         const gatedPages = ['build', 'feats', 'spells', 'equipment', 'details'];
@@ -248,6 +256,7 @@ test.describe('Navigation', () => {
 
     test('2.6 — Build sub-nav items scroll to sections', async () => {
         await createCharacter(page, 'SubNav Hero');
+        testCharacterName = 'SubNav Hero';
 
         // Navigate to build
         await page.locator('button[data-page="build"]').click();

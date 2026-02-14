@@ -6,6 +6,9 @@ This document lists current IPC channels, handler locations, request parameters,
 - **Save**: [src/main/ipc/channels.js](src/main/ipc/channels.js#L11-L17) → [src/main/ipc/CharacterHandlers.js](src/main/ipc/CharacterHandlers.js#L8)
   - Request: `{ characterData: object|string }`
   - Response: `{ success: true, path } | { success: false, error }`
+- **Load**: [channels](src/main/ipc/channels.js#L12) → [CharacterHandlers](src/main/ipc/CharacterHandlers.js#L35)
+  - Request: `id: string`
+  - Response: `{ success: true, character: object } | { success: false, error }`
 - **List**: [channels](src/main/ipc/channels.js#L15) → [CharacterHandlers](src/main/ipc/CharacterHandlers.js#L44)
   - Request: none
   - Response: `{ success: true, characters: object[] } | { success: false, error, characters: [] }`

@@ -8,6 +8,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const IPC_CHANNELS = {
 	// Character operations
 	CHARACTER_SAVE: 'character:save',
+	CHARACTER_LOAD: 'character:load',
 	CHARACTER_DELETE: 'character:delete',
 	CHARACTER_LIST: 'character:list',
 	CHARACTER_IMPORT: 'character:import',
@@ -85,6 +86,8 @@ contextBridge.exposeInMainWorld('characterStorage', {
 	/** Save a character payload to disk. */
 	saveCharacter: (characterData) =>
 		ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_SAVE, characterData),
+	loadCharacter: (id) =>
+		ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_LOAD, id),
 	loadCharacters: () => ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_LIST),
 	deleteCharacter: (id) =>
 		ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_DELETE, id),

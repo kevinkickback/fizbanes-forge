@@ -249,10 +249,6 @@ class AbilityScoreCard {
 
 			// Listen to EventBus CHARACTER_SELECTED (when character is loaded/switched)
 			this._characterSelectedHandler = (character) => {
-				console.debug('[AbilityScoreCard]', 'CHARACTER_SELECTED event received', {
-					name: character?.name,
-				});
-
 				if (!character) return;
 
 				// Sync with current character first
@@ -265,7 +261,6 @@ class AbilityScoreCard {
 
 			// Listen to EventBus CHARACTER_UPDATED (when character data changes)
 			this._characterUpdatedHandler = () => {
-				console.debug('[AbilityScoreCard]', 'CHARACTER_UPDATED event received');
 				this.update();
 			};
 			eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
@@ -273,27 +268,7 @@ class AbilityScoreCard {
 			// Listen for ability score changes from race, class, or other components
 			// Uses EventBus for proper cleanup tracking
 			this._cleanup.onEvent(EVENTS.ABILITY_SCORES_CHANGED, () => {
-				console.debug(
-					'AbilityScoreCard',
-					'ABILITY_SCORES_CHANGED event received',
-				);
 				this.update();
-			});
-
-			// Use DOMCleanup for character changed listener (backwards compatibility)
-			this._cleanup.on(document, 'characterChanged', () => {
-				const character = CharacterManager.getCurrentCharacter();
-				if (!character) return;
-
-				console.debug('[AbilityScoreCard]', 'characterChanged event received', {
-					name: character.name,
-				});
-
-				// Sync with current character first
-				this._syncWithCurrentCharacter();
-
-				// Then render the UI
-				this.render();
 			});
 
 			// Use DOMCleanup for container delegation listeners
@@ -308,14 +283,6 @@ class AbilityScoreCard {
 				300,
 			);
 
-			// Use DOMCleanup for race/subrace change listeners
-			this._cleanup.on(document, 'raceChanged', () => {
-				this._updateAbilityScores();
-			});
-
-			this._cleanup.on(document, 'subraceChanged', () => {
-				this._updateAbilityScores();
-			});
 		} catch (error) {
 			console.error(
 				'AbilityScoreCard',
@@ -381,11 +348,7 @@ class AbilityScoreCard {
 		this.render();
 
 		// Notify that ability scores have changed
-		document.dispatchEvent(
-			new CustomEvent('abilityScoresChanged', {
-				detail: { character },
-			}),
-		);
+		eventBus.emit(EVENTS.ABILITY_SCORES_CHANGED, { character });
 	}
 
 	_handleStandardArraySelection(event) {
@@ -663,14 +626,12 @@ class AbilityScoreCard {
 	}
 
 	update() {
-		console.debug('[AbilityScoreCard]', 'update() called');
 		this._updateAbilityScoreValues();
 		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
 		this._bonusNotesView.render();
 	}
 
 	_renderAbilityScores() {
-		console.debug('[AbilityScoreCard]', '_renderAbilityScores() called');
 		try {
 			// Get the ability score method directly from character
 			const character = CharacterManager.getCurrentCharacter();
@@ -707,12 +668,7 @@ class AbilityScoreCard {
 	//-------------------------------------------------------------------------
 
 	_updateAbilityScoreValues() {
-		console.debug('[AbilityScoreCard]', '_updateAbilityScoreValues() called');
-		const isPointBuy =
-			CharacterManager.getCurrentCharacter()?.variantRules
-				?.abilityScoreMethod === 'pointBuy';
-		console.debug('[AbilityScoreCard]', 'Calling updateAbilityScoreValues on box view');
-		this._abilityScoreBoxView.updateAbilityScoreValues(isPointBuy);
+		this._abilityScoreBoxView.updateAbilityScoreValues();
 	}
 
 	/**
@@ -736,6 +692,19 @@ class AbilityScoreCard {
 		this._abilityScoreBoxView.updateAllAbilityScores();
 		this._abilityChoicesView.render(this._handleAbilityChoice.bind(this));
 		this._bonusNotesView.render();
+	}
+
+	//-------------------------------------------------------------------------
+	// Public Coordination Methods (called by BuildPageController)
+	//-------------------------------------------------------------------------
+
+	refreshForRaceChange() {
+		this._updateAbilityScores();
+	}
+
+	refreshForCharacterChange() {
+		this._syncWithCurrentCharacter();
+		this.render();
 	}
 
 	//-------------------------------------------------------------------------

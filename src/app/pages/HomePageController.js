@@ -67,6 +67,7 @@ export class HomePageController extends BasePageController {
                 await this._renderCharacterList(reloadCharacters);
             };
             this._trackListener(EVENTS.CHARACTER_CREATED, this._homeCharacterCreatedHandler);
+            this._trackListener(EVENTS.CHARACTER_SAVED, this._homeCharacterCreatedHandler);
 
             this._homeCharacterUpdatedHandler = async () => {
                 const reloadCharacters = await CharacterManager.loadCharacterList();

@@ -400,8 +400,6 @@ export class CharacterCreationModal {
 
 			this.bootstrapModal.hide();
 
-			eventBus.emit(EVENTS.CHARACTER_CREATED, character);
-
 			showNotification('New character created successfully', 'success');
 		} catch (error) {
 			console.error(

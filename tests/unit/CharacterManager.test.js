@@ -27,6 +27,7 @@ describe('CharacterManager', () => {
         mockCharacterStorage = {
             generateUUID: vi.fn(),
             saveCharacter: vi.fn(),
+            loadCharacter: vi.fn(),
             loadCharacters: vi.fn(),
             deleteCharacter: vi.fn(),
         };
@@ -128,18 +129,17 @@ describe('CharacterManager', () => {
                 },
             };
 
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
                 success: true,
-                characters: [characterData],
+                character: characterData,
             });
 
-            const character = await CharacterManager.loadCharacter('char-123');
+            const result = await CharacterManager.loadCharacter('char-123');
 
-            expect(character).toBeInstanceOf(Character);
-            expect(character.id).toBe('char-123');
-            expect(character.name).toBe('Loaded Character');
-            expect(AppState.getCurrentCharacter()).toBe(character);
-            expect(AppState.getState().hasUnsavedChanges).toBe(false);
+            expect(result).toBeInstanceOf(Character);
+            expect(result.name).toBe('Loaded Character');
+            expect(AppState.getCurrentCharacter()).toBe(result);
+            expect(AppState.getState().isLoadingCharacter).toBe(false);
         });
 
         it('should set loading state during load', async () => {
@@ -152,11 +152,11 @@ describe('CharacterManager', () => {
                 hitPoints: { current: 10, max: 10, temp: 0 },
             };
 
-            mockCharacterStorage.loadCharacters.mockImplementation(() => {
+            mockCharacterStorage.loadCharacter.mockImplementation(() => {
                 expect(AppState.getState().isLoadingCharacter).toBe(true);
                 return Promise.resolve({
                     success: true,
-                    characters: [validChar],
+                    character: validChar,
                 });
             });
 
@@ -166,8 +166,9 @@ describe('CharacterManager', () => {
         });
 
         it('should clear loading state on error', async () => {
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
                 success: false,
+                error: 'Load failed',
             });
 
             await expect(CharacterManager.loadCharacter('char-123')).rejects.toThrow();
@@ -176,9 +177,9 @@ describe('CharacterManager', () => {
         });
 
         it('should throw NotFoundError if character does not exist', async () => {
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
-                success: true,
-                characters: [{ id: 'other-char', name: 'Other' }],
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
+                success: false,
+                error: 'Character not found: non-existent',
             });
 
             await expect(
@@ -187,8 +188,9 @@ describe('CharacterManager', () => {
         });
 
         it('should throw DataError if load fails', async () => {
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
                 success: false,
+                error: 'Disk error',
             });
 
             await expect(CharacterManager.loadCharacter('char-123')).rejects.toThrow(
@@ -203,21 +205,20 @@ describe('CharacterManager', () => {
                 // Missing required fields that CharacterSchema expects
             };
 
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
                 success: true,
-                characters: [invalidData],
+                character: invalidData,
             });
 
-            // Should throw ValidationError for invalid data
-            await expect(
-                CharacterManager.loadCharacter('char-123'),
-            ).rejects.toThrow(ValidationError);
+            await expect(CharacterManager.loadCharacter('char-123')).rejects.toThrow(
+                ValidationError,
+            );
         });
 
-        it('should handle empty characters array', async () => {
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
-                success: true,
-                characters: [],
+        it('should handle character not found', async () => {
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
+                success: false,
+                error: 'Character not found: char-123',
             });
 
             await expect(CharacterManager.loadCharacter('char-123')).rejects.toThrow(
@@ -528,8 +529,9 @@ describe('CharacterManager', () => {
             );
 
             // DataError
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
                 success: false,
+                error: 'Load failed',
             });
             await expect(CharacterManager.loadCharacter('id')).rejects.toThrow(
                 DataError,
@@ -569,36 +571,34 @@ describe('CharacterManager', () => {
             expect(AppState.getState().hasUnsavedChanges).toBe(false);
 
             // Load - provide full valid character data
-            mockCharacterStorage.loadCharacters.mockResolvedValue({
+            mockCharacterStorage.loadCharacter.mockResolvedValue({
                 success: true,
-                characters: [
-                    {
-                        id: 'char-123',
-                        name: 'Test Char',
-                        allowedSources: ['PHB'],
-                        abilityScores: {
-                            strength: 10,
-                            dexterity: 10,
-                            constitution: 10,
-                            intelligence: 10,
-                            wisdom: 10,
-                            charisma: 10,
-                        },
-                        proficiencies: {
-                            armor: [],
-                            weapons: [],
-                            tools: [],
-                            skills: [],
-                            languages: [],
-                            savingThrows: [],
-                        },
-                        hitPoints: {
-                            current: 10,
-                            max: 10,
-                            temp: 0,
-                        },
+                character: {
+                    id: 'char-123',
+                    name: 'Test Char',
+                    allowedSources: ['PHB'],
+                    abilityScores: {
+                        strength: 10,
+                        dexterity: 10,
+                        constitution: 10,
+                        intelligence: 10,
+                        wisdom: 10,
+                        charisma: 10,
                     },
-                ],
+                    proficiencies: {
+                        armor: [],
+                        weapons: [],
+                        tools: [],
+                        skills: [],
+                        languages: [],
+                        savingThrows: [],
+                    },
+                    hitPoints: {
+                        current: 10,
+                        max: 10,
+                        temp: 0,
+                    },
+                },
             });
             const loaded = await CharacterManager.loadCharacter('char-123');
             expect(loaded.name).toBe('Test Char');

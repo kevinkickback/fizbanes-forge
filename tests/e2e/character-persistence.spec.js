@@ -122,16 +122,19 @@ async function createCharacter(page, name) {
     });
 }
 
-/** Delete the currently loaded character via the Home page. */
-async function deleteCurrentCharacter(page) {
+/** Delete a specific test character by name via the Home page. */
+async function deleteCharacterByName(page, characterName) {
     await page.locator('button[data-page="home"]').click();
     await page.waitForFunction(
         () => document.body.getAttribute('data-current-page') === 'home',
         { timeout: 10_000 },
     );
 
-    const deleteBtn = page.locator('.delete-character').first();
-    if (await deleteBtn.isVisible()) {
+    const card = page.locator('.character-card', {
+        has: page.locator('.card-header h5', { hasText: characterName }),
+    });
+    const deleteBtn = card.locator('.delete-character');
+    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deleteBtn.click();
         const confirmBtn = page.locator('#confirmButton');
         await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
@@ -145,16 +148,20 @@ async function deleteCurrentCharacter(page) {
 test.describe('Character Persistence', () => {
     let electronApp;
     let page;
+    let testCharacterName;
 
     test.beforeEach(async () => {
         test.setTimeout(120_000);
+        testCharacterName = null;
         ({ electronApp, page } = await launchAndWaitForHome());
     });
 
     test.afterEach(async () => {
         if (electronApp) {
             try {
-                await deleteCurrentCharacter(page);
+                if (testCharacterName) {
+                    await deleteCharacterByName(page, testCharacterName);
+                }
             } catch {
                 // Character may not exist or page may be in an unexpected state
             } finally {
@@ -164,7 +171,8 @@ test.describe('Character Persistence', () => {
     });
 
     test('5.3 — Character card in Home shows name, race, class, level', async () => {
-        await createCharacter(page, 'Card Info Hero');
+        testCharacterName = 'Card Info Hero';
+        await createCharacter(page, testCharacterName);
 
         // Navigate to home to see the card
         await page.locator('button[data-page="home"]').click();
@@ -176,7 +184,10 @@ test.describe('Character Persistence', () => {
         // Wait for at least one character card to render
         await page.waitForSelector('.character-card', { timeout: 10_000 });
 
-        const card = page.locator('.character-card').first();
+        // Find the specific card for our test character
+        const card = page.locator('.character-card', {
+            has: page.locator('.card-header h5', { hasText: testCharacterName }),
+        });
 
         // Should display the character name
         const name = await card.locator('.card-header h5').textContent();
@@ -192,7 +203,8 @@ test.describe('Character Persistence', () => {
     });
 
     test('5.4 — Clicking a character card loads that character', async () => {
-        await createCharacter(page, 'Clickable Hero');
+        testCharacterName = 'Clickable Hero';
+        await createCharacter(page, testCharacterName);
 
         // Navigate to home
         await page.locator('button[data-page="home"]').click();
@@ -221,7 +233,8 @@ test.describe('Character Persistence', () => {
     });
 
     test('5.5 — Deleting a character removes it from the list', async () => {
-        await createCharacter(page, 'Doomed Hero');
+        testCharacterName = 'Doomed Hero';
+        await createCharacter(page, testCharacterName);
 
         // Navigate to home
         await page.locator('button[data-page="home"]').click();
@@ -232,13 +245,15 @@ test.describe('Character Persistence', () => {
 
         await page.waitForSelector('.character-card', { timeout: 10_000 });
 
-        // Get the character ID of the card we're about to delete
-        const firstCard = page.locator('.character-card').first();
-        const charId = await firstCard.getAttribute('data-character-id');
+        // Find the specific card for our test character
+        const testCard = page.locator('.character-card', {
+            has: page.locator('.card-header h5', { hasText: testCharacterName }),
+        });
+        const charId = await testCard.getAttribute('data-character-id');
         expect(charId).toBeTruthy();
 
         // Delete the character
-        const deleteBtn = page.locator('.delete-character').first();
+        const deleteBtn = testCard.locator('.delete-character');
         await deleteBtn.click();
 
         const confirmBtn = page.locator('#confirmButton');
@@ -254,10 +269,14 @@ test.describe('Character Persistence', () => {
         await expect(
             page.locator(`.character-card[data-character-id="${charId}"]`),
         ).not.toBeAttached({ timeout: 10_000 });
+
+        // Already deleted — prevent afterEach from trying again
+        testCharacterName = null;
     });
 
     test('5.6 — Delete confirmation modal appears before deletion', async () => {
-        await createCharacter(page, 'Cautious Hero');
+        testCharacterName = 'Cautious Hero';
+        await createCharacter(page, testCharacterName);
 
         await page.locator('button[data-page="home"]').click();
         await page.waitForFunction(
@@ -267,8 +286,11 @@ test.describe('Character Persistence', () => {
 
         await page.waitForSelector('.character-card', { timeout: 10_000 });
 
-        // Click delete
-        await page.locator('.delete-character').first().click();
+        // Click delete on our test character specifically
+        const testCard = page.locator('.character-card', {
+            has: page.locator('.card-header h5', { hasText: testCharacterName }),
+        });
+        await testCard.locator('.delete-character').click();
 
         // Confirmation modal should appear
         const modal = page.locator('#confirmationModal');
@@ -290,7 +312,8 @@ test.describe('Character Persistence', () => {
     });
 
     test('5.1 — Save button exists and reflects saved state after creation', async () => {
-        await createCharacter(page, 'Saveable Hero');
+        testCharacterName = 'Saveable Hero';
+        await createCharacter(page, testCharacterName);
 
         // Should be on build page — the save button should exist
         const saveBtn = page.locator('#saveCharacter');

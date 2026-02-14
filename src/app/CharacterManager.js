@@ -67,13 +67,15 @@ class CharacterManagerImpl {
 		try {
 			AppState.setState({ isLoadingCharacter: true });
 
-			const listResult = await window.characterStorage.loadCharacters();
-			if (!listResult.success) {
-				throw new DataError('Failed to load character list');
+			const loadResult = await window.characterStorage.loadCharacter(id);
+			if (!loadResult.success) {
+				if (loadResult.error?.includes('not found')) {
+					throw new NotFoundError('Character', id);
+				}
+				throw new DataError(loadResult.error || 'Failed to load character');
 			}
 
-			const characters = listResult.characters || [];
-			const characterData = characters.find((c) => c.id === id);
+			const characterData = loadResult.character;
 
 			if (!characterData) {
 				console.warn('[CharacterManager]', 'Character not found:', id);
@@ -215,15 +217,13 @@ class CharacterManagerImpl {
 			return;
 		}
 
-		const baseData = serializeCharacter(character);
-		const mergedData = { ...baseData, ...updates };
-		const updatedCharacter = new Character(mergedData);
+		for (const [key, value] of Object.entries(updates)) {
+			character[key] = value;
+		}
 
-		CharacterSchema.touch(updatedCharacter);
-
-		AppState.setState({ currentCharacter: updatedCharacter });
+		AppState.setCurrentCharacter(character, { skipEvent: true });
 		AppState.setHasUnsavedChanges(true);
-		eventBus.emit(EVENTS.CHARACTER_UPDATED, updatedCharacter);
+		eventBus.emit(EVENTS.CHARACTER_UPDATED, character);
 	}
 
 	getCurrentCharacter() {

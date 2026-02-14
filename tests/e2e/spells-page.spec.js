@@ -114,14 +114,18 @@ async function createCharacter(page, name) {
     });
 }
 
-async function deleteCurrentCharacter(page) {
+/** Delete a specific test character by name via the Home page. */
+async function deleteCharacterByName(page, characterName) {
     await page.locator('button[data-page="home"]').click();
     await page.waitForFunction(
         () => document.body.getAttribute('data-current-page') === 'home',
         { timeout: 10_000 },
     );
-    const deleteBtn = page.locator('.delete-character').first();
-    if (await deleteBtn.isVisible()) {
+    const card = page.locator('.character-card', {
+        has: page.locator('.card-header h5', { hasText: characterName }),
+    });
+    const deleteBtn = card.locator('.delete-character');
+    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deleteBtn.click();
         const confirmBtn = page.locator('#confirmButton');
         await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
@@ -159,7 +163,7 @@ test.describe('Spells Page', () => {
     test.afterAll(async () => {
         if (electronApp) {
             try {
-                await deleteCurrentCharacter(page);
+                await deleteCharacterByName(page, 'Spells Hero');
             } finally {
                 await electronApp.close();
             }
