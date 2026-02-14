@@ -41,6 +41,9 @@ This document lists current IPC channels, handler locations, request parameters,
 - **Check Default**: [channels](src/main/ipc/channels.js#L43) → [DataHandlers](src/main/ipc/DataHandlers.js#L315)
   - Request: none
   - Response: `{ success: true, hasDefaultData: boolean }`
+- **File Exists**: [channels](src/main/ipc/channels.js#L39) → [DataHandlers](src/main/ipc/DataHandlers.js#L360)
+  - Request: `fileName: string` (relative to configured data root)
+  - Response: `boolean`
 - **Download Progress (event)**: [channels](src/main/ipc/channels.js#L44) → sent via `event.sender.send`
   - Payload: `{ status: 'start'|'progress'|'complete'|'error', total, completed, file?, skipped?, success?, error? }`
 
@@ -77,12 +80,26 @@ This document lists current IPC channels, handler locations, request parameters,
 - **Open**: [channels](src/main/ipc/channels.js#L23) → [FileHandlers](src/main/ipc/FileHandlers.js#L84)
   - Request: `filePath: string`
   - Response: `{ success: true } | { success: false, error }`
+- **Open External**: [channels](src/main/ipc/channels.js#L24) → [FileHandlers](src/main/ipc/FileHandlers.js#L120)
+  - Request: `url: string` (must be http/https)
+  - Response: `{ success: true } | { success: false, error }`
 - **Portraits List**: [channels](src/main/ipc/channels.js#L34) → [FileHandlers](src/main/ipc/FileHandlers.js#L95)
   - Request: `dirPath: string` (must be under portraits root)
   - Response: `{ success: true, files: string[] } | { success: false, error }`
 - **Portraits Save**: [channels](src/main/ipc/channels.js#L35) → [FileHandlers](src/main/ipc/FileHandlers.js#L134)
   - Request: `portraitsDir: string`, `imageData: string|Buffer`, `fileName: string`
   - Response: `{ success: true, filePath, fileName } | { success: false, error }`
+
+## PDF
+- **List Templates**: [channels](src/main/ipc/channels.js#L49) → [src/main/ipc/PdfHandlers.js](src/main/ipc/PdfHandlers.js#L35)
+  - Request: none
+  - Response: `{ success: true, templates: { name, filename }[] }`
+- **Preview PDF**: [channels](src/main/ipc/channels.js#L48) → [PdfHandlers](src/main/ipc/PdfHandlers.js#L54)
+  - Request: `characterData: object`, `templateName: string`
+  - Response: `{ success: true, pdfBytes: number[] } | { success: false, error }`
+- **Export PDF**: [channels](src/main/ipc/channels.js#L47) → [PdfHandlers](src/main/ipc/PdfHandlers.js#L80)
+  - Request: `characterData: object`, `templateName: string`
+  - Response: `{ success: true, path } | { success: false, error | canceled }`
 
 ## Notes
 - Renderer must go through preload bridges (e.g., `window.app`, `window.characterStorage`) per architecture in [docs/CODEBASE_ARCHITECTURE.md](docs/CODEBASE_ARCHITECTURE.md#L1). Do not call IPC directly in UI.

@@ -10,8 +10,7 @@
 		"includes": [
 			"**",
 			"!.github",
-			"!data",
-			"!renderer/assets",
+			"!src/data",
 			"!test-results",
 			"!src/ui/assets"
 		]
@@ -53,7 +52,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["electron/**"],
+			"includes": ["src/main/**"],
 			"linter": {
 				"enabled": true,
 				"rules": {
@@ -70,7 +69,7 @@
 			}
 		},
 		{
-			"includes": ["renderer/scripts/**", "renderer/pages/**"],
+			"includes": ["src/app/**", "src/ui/**"],
 			"linter": {
 				"enabled": true,
 				"rules": {

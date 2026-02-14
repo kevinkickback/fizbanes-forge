@@ -88,6 +88,9 @@ export const EVENTS = {
 	MULTICLASS_REMOVED: 'multiclass:removed',
 	FEATURES_ADDED: 'features:added',
 	FEATURES_REMOVED: 'features:removed',
+	PROGRESSION_CHOICES_RECORDED: 'progression:choicesRecorded',
+	PROGRESSION_CHOICES_REMOVED: 'progression:choicesRemoved',
+	PROGRESSION_HISTORY_CLEARED: 'progression:historyCleared',
 
 	// Settings events
 	SETTINGS_SAVE_PATH_CHANGED: 'settings:savePathChanged',

@@ -1,11 +1,14 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { eventBus, EVENTS } from '../../src/lib/EventBus.js';
 import { progressionHistoryService } from '../../src/services/ProgressionHistoryService.js';
 
 describe('ProgressionHistoryService', () => {
     let character;
+    let emitSpy;
 
     beforeEach(() => {
         character = {};
+        emitSpy = vi.spyOn(eventBus, 'emit');
     });
 
     describe('ensureInitialized', () => {
@@ -63,6 +66,21 @@ describe('ProgressionHistoryService', () => {
                 asi: true,
             });
             expect(character.progressionHistory.Fighter['5']).toBeDefined();
+        });
+
+        it('should emit PROGRESSION_CHOICES_RECORDED event', () => {
+            progressionHistoryService.recordChoices(character, 'Fighter', 1, {
+                hitDie: 10,
+            });
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                EVENTS.PROGRESSION_CHOICES_RECORDED,
+                expect.objectContaining({
+                    character,
+                    className: 'Fighter',
+                    level: 1,
+                }),
+            );
         });
     });
 
@@ -134,6 +152,35 @@ describe('ProgressionHistoryService', () => {
             expect(
                 progressionHistoryService.removeChoices(character, 'Fighter', 5),
             ).toBe(false);
+        });
+
+        it('should emit PROGRESSION_CHOICES_REMOVED event on successful removal', () => {
+            progressionHistoryService.recordChoices(character, 'Fighter', 3, {
+                subclass: 'Champion',
+            });
+            emitSpy.mockClear();
+
+            progressionHistoryService.removeChoices(character, 'Fighter', 3);
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                EVENTS.PROGRESSION_CHOICES_REMOVED,
+                expect.objectContaining({
+                    character,
+                    className: 'Fighter',
+                    level: 3,
+                }),
+            );
+        });
+
+        it('should not emit event when removal fails', () => {
+            emitSpy.mockClear();
+
+            progressionHistoryService.removeChoices(character, 'Fighter', 1);
+
+            expect(emitSpy).not.toHaveBeenCalledWith(
+                EVENTS.PROGRESSION_CHOICES_REMOVED,
+                expect.anything(),
+            );
         });
     });
 
@@ -307,6 +354,21 @@ describe('ProgressionHistoryService', () => {
                 progressionHistoryService.clearClassHistory(character, 'Fighter'),
             ).not.toThrow();
         });
+
+        it('should emit PROGRESSION_HISTORY_CLEARED event with className', () => {
+            progressionHistoryService.recordChoices(character, 'Fighter', 1, {});
+            emitSpy.mockClear();
+
+            progressionHistoryService.clearClassHistory(character, 'Fighter');
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                EVENTS.PROGRESSION_HISTORY_CLEARED,
+                expect.objectContaining({
+                    character,
+                    className: 'Fighter',
+                }),
+            );
+        });
     });
 
     describe('clearAllHistory', () => {
@@ -317,6 +379,21 @@ describe('ProgressionHistoryService', () => {
             progressionHistoryService.clearAllHistory(character);
 
             expect(character.progressionHistory).toEqual({});
+        });
+
+        it('should emit PROGRESSION_HISTORY_CLEARED event with null className', () => {
+            progressionHistoryService.recordChoices(character, 'Fighter', 1, {});
+            emitSpy.mockClear();
+
+            progressionHistoryService.clearAllHistory(character);
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                EVENTS.PROGRESSION_HISTORY_CLEARED,
+                expect.objectContaining({
+                    character,
+                    className: null,
+                }),
+            );
         });
     });
 

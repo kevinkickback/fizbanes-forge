@@ -1,6 +1,12 @@
 // Manages recording and retrieval of character class progression choices
 
+import { eventBus, EVENTS } from '../lib/EventBus.js';
+
 class ProgressionHistoryService {
+	constructor() {
+		this.loggerScope = 'ProgressionHistoryService';
+	}
+
 	ensureInitialized(character) {
 		if (!character.progressionHistory) {
 			character.progressionHistory = {};
@@ -21,6 +27,12 @@ class ProgressionHistoryService {
 			choices: { ...choices },
 			timestamp: new Date().toISOString(),
 		};
+
+		eventBus.emit(EVENTS.PROGRESSION_CHOICES_RECORDED, {
+			character,
+			className,
+			level,
+		});
 	}
 
 	getChoices(character, className, level) {
@@ -45,6 +57,13 @@ class ProgressionHistoryService {
 
 		if (levelKey in classHistory) {
 			delete classHistory[levelKey];
+
+			eventBus.emit(EVENTS.PROGRESSION_CHOICES_REMOVED, {
+				character,
+				className,
+				level,
+			});
+
 			return true;
 		}
 
@@ -105,11 +124,21 @@ class ProgressionHistoryService {
 
 		if (className in character.progressionHistory) {
 			delete character.progressionHistory[className];
+
+			eventBus.emit(EVENTS.PROGRESSION_HISTORY_CLEARED, {
+				character,
+				className,
+			});
 		}
 	}
 
 	clearAllHistory(character) {
 		character.progressionHistory = {};
+
+		eventBus.emit(EVENTS.PROGRESSION_HISTORY_CLEARED, {
+			character,
+			className: null,
+		});
 	}
 
 	// Clear specific feature types from all levels of a class (e.g., when changing subclass)
