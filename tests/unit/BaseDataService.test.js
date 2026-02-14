@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { eventBus, EVENTS } from '../../src/lib/EventBus.js';
 
 // Mock TooltipManager to break circular dependency
-vi.mock('../../src/lib/TooltipManager.js', () => ({
+vi.mock('../../src/ui/rendering/TooltipManager.js', () => ({
     initializeTooltipListeners: vi.fn(),
 }));
 

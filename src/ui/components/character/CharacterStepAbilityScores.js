@@ -7,18 +7,19 @@ import {
 	getAbilityModNumber,
 } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
-import { getRaceAbilityData } from '../../../services/AbilityScoreService.js';
+import {
+	calculatePointBuyTotal,
+	getPointBuyCost,
+	getRaceAbilityData,
+	POINT_BUY_BUDGET,
+	STANDARD_ARRAY,
+} from '../../../services/AbilityScoreService.js';
 import { raceService } from '../../../services/RaceService.js';
 
-export const ABILITIES = ABILITY_NAMES.map(n => n.toLowerCase());
-
-export const POINT_COSTS = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
-
-export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+const ABILITIES = ABILITY_NAMES.map(n => n.toLowerCase());
 
 export class CharacterStepAbilityScores {
 	static ABILITIES = ABILITIES;
-	static POINT_COSTS = POINT_COSTS;
 	static STANDARD_ARRAY = STANDARD_ARRAY;
 
 	constructor(session, modal) {
@@ -55,7 +56,7 @@ export class CharacterStepAbilityScores {
 							<i class="fas fa-star"></i> Ability Scores
 						</div>
 						${method === 'pointBuy' ? `<div class="points-remaining-display-header">
-							<strong>Points Remaining:</strong> ${27 - this._calculatePointsUsed()}
+							<strong>Points Remaining:</strong> ${POINT_BUY_BUDGET - this._calculatePointsUsed()}
 						</div>` : ''}
 					</div>
                     <div class="card-body">
@@ -177,17 +178,8 @@ export class CharacterStepAbilityScores {
 	}
 
 	_calculatePointsUsed() {
-		const pointCosts = CharacterStepAbilityScores.POINT_COSTS;
-		const abilities = CharacterStepAbilityScores.ABILITIES;
 		const stagedData = this.session.getStagedData();
-
-		let total = 0;
-		for (const ability of abilities) {
-			const score = stagedData.abilityScores?.[ability] || 8;
-			total += pointCosts[score] || 0;
-		}
-
-		return total;
+		return calculatePointBuyTotal(stagedData.abilityScores);
 	}
 
 	_getRacialBonus(ability) {
@@ -343,12 +335,12 @@ export class CharacterStepAbilityScores {
 			const bonusDisplay = box.querySelector('.bonus');
 			if (bonusDisplay) {
 				if (racialBonus !== 0) {
-					bonusDisplay.style.display = 'block';
+					bonusDisplay.classList.remove('u-hidden');
 					bonusDisplay.textContent =
 						racialBonus >= 0 ? `+${racialBonus}` : `${racialBonus}`;
 					bonusDisplay.classList.toggle('negative', racialBonus < 0);
 				} else {
-					bonusDisplay.style.display = 'none';
+					bonusDisplay.classList.add('u-hidden');
 				}
 			}
 		}
@@ -467,12 +459,11 @@ export class CharacterStepAbilityScores {
 		if (currentScore >= 15) return;
 
 		const pointsUsed = this._calculatePointsUsed();
-		const pointCosts = CharacterStepAbilityScores.POINT_COSTS;
-		const nextCost = pointCosts[currentScore + 1] || 0;
-		const currentCost = pointCosts[currentScore] || 0;
+		const nextCost = getPointBuyCost(currentScore + 1);
+		const currentCost = getPointBuyCost(currentScore);
 		const costDifference = nextCost - currentCost;
 
-		if (pointsUsed + costDifference > 27) {
+		if (pointsUsed + costDifference > POINT_BUY_BUDGET) {
 			console.warn('[Step5AbilityScores]', 'Not enough points remaining');
 			return;
 		}
@@ -637,7 +628,7 @@ export class CharacterStepAbilityScores {
 		);
 		if (pointsDisplay) {
 			const pointsUsed = this._calculatePointsUsed();
-			const pointsRemaining = 27 - pointsUsed;
+			const pointsRemaining = POINT_BUY_BUDGET - pointsUsed;
 			pointsDisplay.innerHTML = `<strong>Points Remaining:</strong> ${pointsRemaining}`;
 		}
 	}
@@ -648,7 +639,7 @@ export class CharacterStepAbilityScores {
 
 		if (method === 'pointBuy') {
 			const pointsUsed = this._calculatePointsUsed();
-			if (pointsUsed > 27) {
+			if (pointsUsed > POINT_BUY_BUDGET) {
 				console.warn('[Step5AbilityScores]', 'Too many points used');
 				return false;
 			}

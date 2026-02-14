@@ -133,7 +133,7 @@ export class SettingsCard {
             if (chooseAppDataButton) {
                 this._cleanup.on(chooseAppDataButton, 'click', async () => {
                     try {
-                        const result = await window.characterStorage.selectFolder();
+                        const result = await window.app.selectFolder();
                         if (result.success) {
                             // Set the base path; character storage will append /characters
                             const sep = result.path.includes('\\') ? '\\' : '/';

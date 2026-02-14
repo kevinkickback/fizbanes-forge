@@ -53,7 +53,7 @@ app.whenReady().then(() => {
 		},
 		{ getMainWindow },
 	);
-	registerFileHandlers({ getMainWindow });
+	registerFileHandlers({ getCharacterSavePath }, { getMainWindow });
 	registerSettingsHandlers({
 		get: getPreference,
 		set: setPreference,
@@ -65,11 +65,6 @@ app.whenReady().then(() => {
 		app,
 	});
 	registerPdfHandlers(
-		{
-			get: getPreference,
-			set: setPreference,
-			getCharacterSavePath,
-		},
 		{ getMainWindow },
 	);
 

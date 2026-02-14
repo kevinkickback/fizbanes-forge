@@ -27,7 +27,7 @@ function resolveTemplatePath(templateName) {
     return resolved;
 }
 
-export function registerPdfHandlers(_preferencesManager, windowManager) {
+export function registerPdfHandlers(windowManager) {
     MainLogger.debug('PdfHandlers', 'Registering PDF handlers');
 
     // List available bundled PDF templates

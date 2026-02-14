@@ -162,39 +162,32 @@ All recommended file splits have been completed:
 | `FeatSelectorModal.js` (564→404) | `FeatListView`, `FeatSourcesView` | `src/ui/components/feats/FeatListView.js`, `FeatSourcesView.js` |
 | `ProficiencyService.js` | N/A — already single-class, no split needed | — |
 
-### 2.2 Duplicate or Overlapping Files
+### 2.2 Duplicate or Overlapping Files — ✅ Resolved
 
-| File A | File B | Issue |
-|--------|--------|-------|
-| `RaceCard.js` (internal `RaceDetailsView`) | `RaceDetailsPanel.js` | Two classes with overlapping trait/size/speed/language formatting. Consolidate to one. |
-| `CharacterStepAbilityScores.js` | `AbilityScoreCard.js` + `AbilityScoreService.js` | Creation step re-implements point buy, standard array, and custom score logic with its own constants (`POINT_COSTS`, `STANDARD_ARRAY`). Should import from service. |
-| `CharacterStepBackground.js` | `BackgroundCard.BackgroundDetailsView` | Duplicated proficiency/equipment formatting logic. |
-| `CharacterStepReview.js` | `ClassService` | Hardcoded `hitDice` map (`{ Barbarian: 12, Fighter: 10, ... }`) instead of using `ClassService.getHitDie()`. |
+All four duplicate/overlapping file pairs have been consolidated:
 
-### 2.3 Layer Violations (Files in Wrong Directory)
+| File A | File B | Resolution |
+|--------|--------|------------|
+| `RaceDetailsView.js` | `RaceDetailsPanel.js` | **Deleted** `RaceDetailsPanel.js` — unused 345-line duplicate (identical class name, never imported). `RaceDetailsView.js` is the sole implementation. |
+| `CharacterStepAbilityScores.js` | `AbilityScoreUtils.js` | **Imports consolidated.** Removed local `POINT_COSTS`, `STANDARD_ARRAY` constants and `_calculatePointsUsed()` reimplementation. Now imports `calculatePointBuyTotal`, `getPointBuyCost`, `POINT_BUY_BUDGET`, `STANDARD_ARRAY` from `AbilityScoreService.js` (which re-exports from `AbilityScoreUtils.js`). All hardcoded `27` budget values replaced with `POINT_BUY_BUDGET`. |
+| `CharacterStepBackground.js` | `BackgroundDetailsView.js` | **Delegates formatting.** Removed 6 duplicated methods (`_formatSkillProficiencies`, `_formatToolProficiencies`, `_formatLanguages`, `_formatEquipmentList`, `_formatSingleEquipment`, partial `_formatEquipment`). Step now instantiates `BackgroundDetailsView` and delegates calls. Equipment uses the richer `unpackUid`/currency/`equipmentType` parsing from `BackgroundDetailsView`. `_extractFeature` delegates but returns full (non-truncated) description. |
+| `CharacterStepReview.js` | `ClassService.getHitDie()` | **Uses service.** Replaced 12-entry hardcoded `hitDice` map with `classService.getHitDie(className, source)`. New classes added to 5etools data are now automatically supported. |
 
-| File | Current | Should Be | Reason |
-|------|---------|-----------|--------|
-| `StatBlockRenderer.js` | `src/lib/` | `src/ui/` or `src/ui/rendering/` | Imports `AbilityScoreService` — a lib file depending on a service inverts the architecture |
-| `TooltipManager.js` | `src/lib/` | `src/ui/` or `src/ui/rendering/` | Imports 12 services, full DOM management |
-| `NotificationCenter.js` | `src/lib/` | `src/ui/components/` | UI modal component managing DOM |
+### 2.3 Layer Violations (Files in Wrong Directory) — ✅ Resolved
 
-### 2.4 IPC Layer Issues
+All three files moved to their correct architectural layers:
 
-**37 channels defined, 28 have handlers, 24 are exposed in preload:**
+| File | Old Location | New Location | Imports Updated |
+|------|-------------|--------------|:---------------:|
+| `StatBlockRenderer.js` | `src/lib/` | `src/ui/rendering/` | 3 internal (services + lib paths) |
+| `TooltipManager.js` | `src/lib/` | `src/ui/rendering/` | 14 internal (12 services + 2 lib paths), 1 external (`TextProcessor.js`), 10 test mocks |
+| `NotificationCenter.js` | `src/lib/` | `src/ui/components/` | 3 internal (lib paths), 1 external (`AppInitializer.js`) |
 
-| Status | Count | Details |
-|--------|:-----:|---------|
-| Fully functional | 24 | Character (6), Data (6), Settings (3), File (3), Portrait (2), PDF (3), Utility (1) |
-| Handler exists, not exposed in preload | 4 | `FILE_READ_JSON`, `FILE_WRITE_JSON`, `FILE_EXISTS`, `UTIL_GET_APP_PATH` |
-| Channel defined, no handler | 2 | `PORTRAITS_GET_DIRECTORY`, `PORTRAITS_SET_DIRECTORY` |
-| Channel defined, handler files deleted | 20 | Equipment (8), Spell (7), Progression (5) |
+Created `src/ui/rendering/` directory for rendering utilities that depend on services. The lib → service dependency inversion no longer exists — these files are now in the UI layer where service imports are architecturally correct.
 
-The 20 placeholder channels (Equipment, Spell, Progression) reference handler files that no longer exist. `IPC_CONTRACTS.md` still documents them as "placeholder" handlers — but the actual handler files have been deleted. These channels and their documentation should be cleaned up.
+### 2.4 IPC Layer Issues ✅ Resolved
 
-**Preload drift:** `Preload.cjs` defines its own `IPC_CHANNELS` object (cannot import ESM `channels.js` in CommonJS). A referenced sync test file (`IpcChannels.test.js`) does not exist, so there is no automated guard against the two channel lists drifting.
-
-**Duplicate exposure:** `window.characterStorage.selectFolder()` and `window.app.selectFolder()` both invoke the same `FILE_SELECT_FOLDER` channel.
+**Resolved:** Removed 20 dead placeholder channels (Equipment 8, Spell 7, Progression 5) and 2 handler-less portrait channels (`PORTRAITS_GET_DIRECTORY`, `PORTRAITS_SET_DIRECTORY`) from `channels.js`. Removed corresponding placeholder documentation sections from `IPC_CONTRACTS.md`. Removed duplicate `selectFolder` from `window.characterStorage` in `Preload.cjs` — `SettingsCard.js` now uses `window.app.selectFolder()`. Updated `IpcChannels.test.js` to remove `EQUIPMENT_`, `SPELL_`, `PROGRESSION_` from group assertion. Kept `FILE_READ_JSON`, `FILE_WRITE_JSON`, `FILE_EXISTS`, `UTIL_GET_APP_PATH` as intentional handler-only (no preload) channels.
 
 ---
 
@@ -210,22 +203,26 @@ This works well. Layer 1 (`DataLoader.cache`) deduplicates raw JSON fetches. Lay
 
 **Minor waste:** DataLoader exports 12 convenience methods (`loadSkills()`, `loadRaces()`, etc.) that are thin wrappers over `loadJSON(filename)`. Some services use them; others call `loadJSON()` directly. The convenience methods add no logic and could be removed.
 
-### 3.2 Character Serialization: Asymmetric Complexity
+### 3.2 Character Serialization: Asymmetric Complexity ✅ Resolved
 
 | Direction | Complexity | Where |
 |-----------|-----------|-------|
 | Serialize (Character → JSON) | 372 lines — property-by-property Map/Set/Array conversion | `CharacterSerializer.serialize()` |
 | Deserialize (JSON → Character) | 1 line — `new Character(data)` | `CharacterSerializer.deserialize()` |
 
-All deserialization logic lives in `Character`'s constructor (~260 lines). The `deserialize()` function is a trivial delegation that could be inlined. The asymmetry isn't harmful but is worth knowing — `CharacterSerializer.js` could be renamed to `characterSerialize.js` (single export) since the "deserialize" half has no logic.
+All deserialization logic lives in `Character`'s constructor (~260 lines). The `deserialize()` function is a trivial delegation but is well-tested and provides a null guard — it stays in `CharacterSerializer.js`.
 
-### 3.3 Rehydration: Necessary but Overlapping
+**Resolved:** Removed dead `deserializeCharacter()` re-export from `Character.js` — it was never imported anywhere. `CharacterSerializer.deserialize()` remains as the canonical entry point (used by 11 tests).
+
+### 3.3 Rehydration: Necessary but Overlapping — No Action
 
 `RehydrationService.rehydrate()` restores runtime-computed data (racial traits, class features, spellcasting entries, background feature descriptions) from the game data services after loading a character from disk. This is conceptually correct — the character JSON stores references (race name + source), and rehydration resolves them to full data.
 
 However, the `Character` constructor already initializes traits, resistances, and darkvision from the saved data. Then `rehydrate()` may re-add some of the same data. The boundary between "what's restored from JSON" and "what's rehydrated from services" is not clearly defined. A character with saved traits gets those traits from the constructor, potentially gets them cleared and re-added by rehydration, creating subtle ordering dependencies.
 
-### 3.4 Redundant `updateCharacter()` Round-Trip
+**No action:** Fixing this requires a medium-effort refactor (Character constructor should only set structural properties, RehydrationService should own all game-data-derived state) with regression risk in the character loading → rehydration → UI rendering pipeline. Not worth the risk for a design smell with no current bugs.
+
+### 3.4 Redundant `updateCharacter()` Round-Trip — No Action
 
 ```
 updateCharacter(updates):
@@ -238,80 +235,96 @@ This full serialize→reconstruct cycle exists to ensure a clean merge. But sinc
 
 ## Section 4: Helpers & Utilities
 
-### 4.1 Duplicate Utility Logic
+### 4.1 Duplicate Utility Logic ✅ Resolved
 
-| Duplicate | Location A | Location B | Fix |
-|-----------|-----------|-----------|-----|
-| `_getSchoolName()` — spell school abbreviation map | `StatBlockRenderer.js` (private) | `5eToolsParser.js` (`getSchoolName`) | Import from `5eToolsParser` |
-| `_getMaxSpellLevel()` | `ClassCard.js` | `ClassSpellSelectorModal.js` | Extract to `ClassService` or a shared utility |
-| Collapse-toggle with `localStorage` | `AbilityScoreBonusNotes.js` | `ProficiencyNotes.js` | Extract `CollapsibleNotesView` base |
-| Point buy costs / standard array constants | `AbilityScoreService.js` | `CharacterStepAbilityScores.js` | Single source of truth in service |
-| Source-prioritized lookup (XPHB → PHB → any) | `ProficiencyService` (×5 methods) | — | Extract shared `findBySourcePriority()` helper |
-| Dynamic `import('./SourceService.js')` | `ProficiencyService` (×3 methods) | — | Import once, cache the module |
-| `_renderEntries()` (5etools JSON → HTML) | `ProficiencyCard.js` | `5eToolsRenderer.js` (lib) | Use the lib function |
+| Duplicate | Status | Resolution |
+|-----------|--------|------------|
+| `_getSchoolName()` — spell school abbreviation map | ✅ Fixed | StatBlockRenderer now imports `getSchoolName` from `5eToolsParser.js` |
+| `_getMaxSpellLevel()` | ✅ Fixed | Extracted to `ClassService.getMaxSpellLevel()`. Both `ClassCard` and `ClassSpellSelectorModal` delegate to it. |
+| Collapse-toggle with `localStorage` | ✅ Fixed | Extracted `renderCollapsibleSection()` + `attachCollapseToggle()` into `src/ui/components/CollapsibleSection.js`. Both consumers refactored. |
+| Point buy costs / standard array constants | ✅ Fixed | Consolidated into `AbilityScoreUtils.js` (done in section 2.2) |
+| Source-prioritized lookup (XPHB → PHB → any) | ✅ Fixed | Extracted `_findBySourcePriority()` helper in `ProficiencyService`. All 3 methods refactored. |
+| Dynamic `import('./SourceService.js')` | ✅ Fixed | Single cached dynamic import via `_getAllowedSourcesSet()` in `ProficiencyService` (4 calls → 1 cached). |
+| `_renderEntries()` (ProficiencyCard vs StatBlockRenderer) | — No action | Different tag resolution strategies (raw HTML vs `processString`) and structural handling make merging impractical without adding more complexity than it saves. |
 
-### 4.2 Dead Code in Lib
+### 4.2 Dead Code in Lib — ✅ Resolved
 
-**5eToolsParser.js:** ~20 named exports are never imported by any source file. The `default` export object is also never imported.
+**5eToolsParser.js:** Removed `default` export object (~30 lines). Deleted 19 dead exported functions (`attrChooseToFull`, `monTypeToFullObj`, `alignmentAbvToFull`, `skillToAbility`, `abilityToSkills`, `packUid`, `sourceToFull`, `sourceToAbv`, `isOneDnD`, `numberToVulgarFraction`, `parseAbilityImprovements`, `formatAbilityImprovements`, `ascSortByProp`, `ascSortByPropLower`, `getAlignmentLabel`, `getAlignmentValue`, `isValidSkill`, `isValidTool`, `isValidLanguage`). Removed `export` from `ascSort` (internal-only). Removed dead helper `pluralize`. Cleaned re-export block from 10 constants to 1 (`DEFAULT_SOURCE`). Net: ~200 lines removed.
 
-**DataLoader.js:** 12 convenience loaders (`loadSkills`, `loadRaces`, etc.) are exported but only a few are used. `clearCacheForUrl`, `invalidateAllCache`, `getCacheStats` are exported but never imported.
+**DataLoader.js:** Deleted 5 dead functions (`setBaseUrl`, `clearCacheForUrl`, `invalidateAllCache`, `getCacheStats`; `clearCache` kept as private). Removed `version` state field. Removed `dataLoader` alias export and 16 dead named exports — only `DataLoader` remains exported. Net: ~50 lines removed.
 
-**StatBlockRenderer.js:** `formatPrerequisite` is exported but never imported externally. `_formatPrerequisite` is a pointless one-line wrapper.
+**StatBlockRenderer.js:** Removed `export` from `formatPrerequisite` (internal-only). Deleted `_formatPrerequisite` wrapper, updated 2 call sites to use `formatPrerequisite` directly.
 
-### 4.3 Bugs Found
+### 4.3 Bugs Found — ✅ Resolved
 
-| Bug | Location | Impact |
-|-----|----------|--------|
-| `renderString()` called but never defined/imported | `StatBlockRenderer.js` L272 | `ReferenceError` when rendering a class tooltip with string-type first entry |
-| `_copyTooltipContent()` called but never defined | `TooltipManager.js` L309 | `ReferenceError` on Ctrl+C inside tooltip with no selection |
+| Bug | Location | Fix |
+|-----|----------|-----|
+| `renderString()` called but never defined/imported | `StatBlockRenderer.js` L272 | Replaced with `Renderer5etools.processString()` (already imported and used elsewhere in the file) |
+| `_copyTooltipContent()` called but never defined | `TooltipManager.js` L309 | Added `_copyTooltipContent()` implementation — extracts `.tooltip-content` text and writes to clipboard via `navigator.clipboard.writeText()` |
 
 ---
 
 ## Section 5: Cross-Domain Duplication
 
-### 5.1 Event Listener Cleanup — Four Patterns
+### 5.1 Event Listener Cleanup — Four Patterns — ✅ Resolved
 
-| Pattern | Used By | Description |
-|---------|---------|-------------|
-| `_cleanup.onEvent()` (DOMCleanup) | AbilityScoreCard, ThemeManager | Auto-tracked, auto-cleaned — **preferred** |
-| `onEventBus()` helper + `_eventHandlers` map | BackgroundCard, RaceCard, ProficiencyCard | Custom re-implementation of the above |
-| `_trackListener()` (BasePageController) | Page controllers | Stores refs, cleans in `cleanup()` |
-| Manual `eventBus.off()` arrays | ClassCard, EquipmentManager, UIHandlersInitializer | Manual tracking and removal |
+Converged UI components and initializers onto `DOMCleanup.onEvent()`:
 
-These should converge on `_cleanup.onEvent()` as the single pattern.
+| File | Before | After |
+|------|--------|-------|
+| RaceCard | Custom `onEventBus()` + `_eventHandlers` map + `_cleanupEventBusListeners()` | `this._cleanup.onEvent()` — removed ~35 lines |
+| BackgroundCard | Same custom pattern | Same migration — removed ~35 lines |
+| ProficiencyCard | Same custom pattern + dead `_setupContainerClickListeners()` | Same migration — removed ~45 lines |
+| ClassCard | Manual handler refs + `eventBus.on/off` pairs | `this._cleanup.onEvent()` — removed ~20 lines |
+| AbilityScoreCard | Mixed: manual `eventBus.on/off` for 2 listeners + `_cleanup.onEvent` for 1 | All 3 via `_cleanup.onEvent()` — removed handler refs and guard-check cleanup |
+| UIHandlersInitializer | `addListener()` + `listeners` Map + manual `eventBus.off` loop | `cleanup.onEvent()` — removed Map and manual cleanup; dropped `eventBus` import |
+| AppInitializer | `_appInitializerListeners` Map + `eventBus.on/off` | Module-level `DOMCleanup` (`_appCleanup`) — removed Map and manual cleanup; dropped `eventBus` import |
 
-### 5.2 Singleton Patterns — Three Approaches
+`BasePageController._trackListener()` left as-is — page controllers are EventBus-only (no DOM cleanup needed), and the pattern is functionally equivalent. Service-layer `_trackListener()` addressed in section 5.3.
 
-| Pattern | Used By |
+### 5.2 Singleton Patterns — Three Approaches — ✅ Resolved
+
+Converged all singletons onto the dominant module-level `new` + named export pattern:
+
+| File | Before | After |
+|------|--------|-------|
+| Modal.js | Constructor-throws-on-second + `getInstance()` + `export const modal` | Removed constructor guard and `getInstance()`; `export const modal = new Modal()` |
+| AbilityScoreCard.js | `getInstance()` bolted on + `export const abilityScoreCard` | Removed `getInstance()`; `export const abilityScoreCard = new AbilityScoreCard()` |
+| AbilityScoreMethodControls.js | `getInstance()` bolted on + `export const methodControlsView` | Removed `getInstance()`; `export const methodControlsView = new MethodControlsView()` |
+| NotificationCenter.js | `getNotificationCenter()` factory function | Removed factory; `export const notificationCenter = new NotificationCenter()` |
+
+Callers updated to import the named export instead of calling `getInstance()`:
+- HomePageController: `import { modal }` (was `import { Modal }` + 4× `Modal.getInstance()`)
+- LevelUpModal: `import { modal }` (was `import { Modal }` + `Modal.getInstance()`)
+- AppInitializer: `import { modal }` + `import { notificationCenter }` (was class imports + factory calls)
+- BuildPageController: `import { abilityScoreCard }` (was `import { AbilityScoreCard }` + `AbilityScoreCard.getInstance()`)
+
+### 5.3 AbilityScoreService and ProficiencyService — Manual Baseclass Re-implementation — ✅ Resolved
+
+Both services now extend `BaseDataService`, inheriting `_trackListener()`, `dispose()`, `_eventListeners[]`, and `DATA_INVALIDATED` subscription:
+
+| Service | Changes |
 |---------|---------|
-| Module-level `new` + named export | `AppState`, `CharacterManager`, `EventBus`, `DataLoader`, `ThemeManager`, `TitlebarController` |
-| `getInstance()` factory + named export | AbilityScore sub-views, `NotificationCenter` |
-| Constructor-throws-on-second-instance | `Modal` |
+| AbilityScoreService | Extends `BaseDataService({ loggerScope: 'AbilityScoreService' })`. Removed manual `_trackListener()`, `dispose()`, and `_eventListeners` field (~20 lines). |
+| ProficiencyService | Extends `BaseDataService({ loggerScope: 'ProficiencyService' })`. Removed manual `_trackListener()`, `_eventListeners` field, and explicit `DATA_INVALIDATED` subscription (~15 lines). Overrides `dispose()` and `resetData()` to also clear `_skillData`, `_languageData`, `_bookData`. |
+| ProficiencyService (skill data) | Replaced independent `DataLoader.loadJSON('skills.json')` with `skillService.getSkillData()` — skills.json is now loaded once via SkillService's cache. |
+| SkillService | Added `getSkillData()` method — lazy-initializes and returns the raw skill array. |
 
-The first pattern is the simplest and dominant; the others add no meaningful benefit.
+### 5.4 Cross-Service Encapsulation Violations — ✅ Resolved
 
-### 5.3 AbilityScoreService and ProficiencyService — Manual Baseclass Re-implementation
+Renamed three private methods to public on `SpellSelectionService`:
 
-Both `AbilityScoreService` and `ProficiencyService` manually implement `_trackListener()`, `dispose()`, and `_eventListeners[]` — the exact same listener lifecycle management that `BaseDataService` provides. Neither extends `BaseDataService`.
-
-`ProficiencyService` also independently loads `skills.json` via its own `_loadSkillData()` method, while `SkillService` loads the same file through `BaseDataService.initWithLoader()`. This means `skills.json` is loaded and cached twice in two separate caching systems.
-
-### 5.4 Cross-Service Encapsulation Violations
-
-Three services call private (`_`-prefixed) methods on `SpellSelectionService`:
-
-| Caller | Private Method Called |
-|--------|---------------------|
-| `CharacterValidationService` | `_getSpellsKnownLimit()`, `_getCantripsKnown()` |
-| `LevelUpService` | `_getStandardSpellSlots()` |
-
-These methods are part of the public contract in practice and should be renamed without the `_` prefix.
+| Method | Callers Updated |
+|--------|----------------|
+| `_getCantripsKnown` → `getCantripsKnown` | SpellSelectionService (internal ×1), CharacterValidationService, ClassCard (×2), ClassSpellSelectorModal (×2) |
+| `_getSpellsKnownLimit` → `getSpellsKnownLimit` | SpellSelectionService (internal ×2), CharacterValidationService, ClassCard (×2), ClassSpellSelectorModal (×2) |
+| `_getStandardSpellSlots` → `getStandardSpellSlots` | SpellSelectionService (internal ×1), LevelUpService |
 
 ---
 
 ## Section 6: Architectural Consistency
 
-### 6.1 State Update Patterns
+### 6.1 State Update Patterns — No Action
 
 | Pattern | Where | Consistent? |
 |---------|-------|:-----------:|
@@ -320,182 +333,30 @@ These methods are part of the public contract in practice and should be renamed 
 | Direct `character.property = value` | CharacterCreationModal, RaceCard, ClassCard, BackgroundCard, LevelUpModal | **No** — bypasses abstraction |
 | `CharacterManager.updateCharacter()` | UIHandlersInitializer only | Underused |
 
-### 6.2 Error Handling Patterns
+Observation only — `updateCharacter()` is a thin wrapper (`character[key] = value` + unsaved flag + event). Enforcing it everywhere would be a large refactor with marginal safety benefit.
 
-| Pattern | Where | Consistent? |
-|---------|-------|:-----------:|
-| Throw `NotFoundError`/`ValidationError` | Most services (14 of 24) | Mostly |
-| Return `null` or fallback string | `ProficiencyService` description methods | **No** — should throw `NotFoundError` |
-| Return `{ error: string }` objects | `CharacterImportService` | Acceptable (main-process context) |
-| Show notification directly | `SourceService` | **No** — service shouldn't own UI notifications |
-| `alert()` | `ClassCard`, `AbilityScoreSelectorModal` | **No** — should use `Notifications` |
+### 6.2 Error Handling Patterns — ✅ Resolved (alert() calls)
 
-### 6.3 IPC Dependency Injection
+Replaced 3 `alert()` calls in `AbilityScoreSelectorModal.js` with `showNotification(..., 'warning')`. Added `import { showNotification }` from `Notifications.js`.
 
-| Handler File | Injection Style | Consistent? |
-|-------------|----------------|:-----------:|
-| CharacterHandlers | `preferencesManager` object (9 functions, only 1 used) | Over-injected |
-| DataHandlers | `{ get, set, app }` from preferences | Clean |
-| SettingsHandlers | `{ get, set, getAll }` from preferences | Clean |
-| FileHandlers | Imports `getCharacterSavePath` directly from `Settings.js` | **Inconsistent** — breaks DI pattern |
-| PdfHandlers | Accepts `_preferencesManager` but never uses it | Dead parameter |
+Remaining observations (not actionable as bugs):
+- `ProficiencyService` description methods return `null` — acceptable for optional data lookups.
+- `SourceService` — no direct UI notification calls found (audit finding was stale).
+- `CharacterImportService` `{ error: string }` — acceptable for main-process context.
 
-### 6.4 CSP Inline Style Violations
+### 6.3 IPC Dependency Injection — No Action (Already Clean)
 
-Per project rules: no `.style.*` for visibility — use `classList.add/remove('u-hidden')`.
+On investigation, both original findings are already resolved:
+- `FileHandlers` receives `preferencesManager` via DI (no direct import from Settings.js).
+- `PdfHandlers` has no dead `_preferencesManager` parameter — signature is `registerPdfHandlers(windowManager)` only.
 
-| Violation | Location |
-|-----------|----------|
-| `el.style.display` | `AbilityScoreBox`, `AppInitializer` (modal cleanup), `ModalCleanupUtility` |
-| `el.style.opacity` | `BaseSelectorModal` |
-| `bonusDisplay.style.display` | `CharacterStepAbilityScores` |
-| `progressBar.style.width` | `Notifications.js` |
-| `container.style.*` (display, zIndex, left, top, transform) | `TooltipManager` |
+### 6.4 CSP Inline Style Violations — ✅ Resolved
 
-The `TooltipManager` positioning requires dynamic values (CSSOM is appropriate for `left`/`top`), but `style.display` and `style.zIndex` should use utility classes.
+Fixed `CharacterStepAbilityScores.js`: replaced `bonusDisplay.style.display = 'block'/'none'` with `classList.remove/add('u-hidden')`.
+
+Remaining `.style.*` usages reviewed and confirmed as legitimate CSSOM (dynamic values):
+- `AppInitializer` + `ModalCleanupUtility`: `body.style.overflow/paddingRight = ''` — clearing Bootstrap's own inline styles
+- `Notifications.js`: `progressBar.style.width` — dynamic computed percentage
+- `TooltipManager`: `style.left/top/zIndex` — dynamic tooltip positioning and stacking
 
 ---
-
-## Section 7: Simplification Opportunities
-
-### 7.1 Collapse `updateCharacter()` Round-Trip
-
-**Current:** `serialize → merge → reconstruct`  
-**Proposed:** Apply updates directly to the Character instance via setters or `Object.assign`. Remove the serialize→reconstruct cycle from `updateCharacter()`.  
-**Risk:** Low — no other caller depends on the reconstruct behavior.
-
-### 7.2 Add Single-Character Load IPC
-
-**Current:** `loadCharacter(id)` → loads ALL files → finds one  
-**Proposed:** Add `CHARACTER_LOAD` handler that reads `{id}.ffp` directly. Keep `CHARACTER_LIST` for the home page.  
-**Risk:** Low — additive change, no existing behavior removed.
-
-### 7.3 Unify Build Page Events to EventBus
-
-**Current:** 7+ DOM CustomEvents + `setTimeout` delays + EventBus events  
-**Proposed:** Replace all DOM CustomEvents with granular EventBus events. Use `BuildPageController` as an orchestration coordinator that sequences updates when needed, removing `setTimeout` hacks.  
-**Risk:** Medium — requires touching RaceCard, ClassCard, BackgroundCard, AbilityScoreCard, ProficiencyCard simultaneously. Recommend migration one card at a time.
-
-### 7.4 Remove Duplicate Event Emissions
-
-**Current:** `CHARACTER_CREATED`, `MULTICLASS_ADDED`, `MULTICLASS_REMOVED` emitted in both service and UI  
-**Proposed:** Remove UI-side emissions; services own event emission.  
-**Risk:** Low — verify no UI listener depends on the UI-side emission specifically.
-
-### 7.5 Consolidate Listener Cleanup Pattern
-
-**Current:** Four different patterns (Section 5.1)  
-**Proposed:** Standardize on `_cleanup.onEvent()` (DOMCleanup). Cards and page controllers already have `_cleanup` instances; sub-views should receive their parent's `_cleanup` instance via constructor.  
-**Risk:** Low — incremental migration.
-
-### 7.6 Extract AbilityScoreService Helpers
-
-**Current:** 985-line service with ~300 lines of pure functions and constants  
-**Proposed:** Move pure functions (`getAbilityData`, `getRaceAbilityData`, `getFixedAbilities`, `getAbilityChoices`, etc.) and constants (`POINT_BUY_COSTS`, `STANDARD_ARRAY`, `POINT_BUY_BUDGET`) to `src/lib/AbilityScoreUtils.js`. Service imports from there. `CharacterStepAbilityScores` imports from there instead of re-defining its own copies.  
-**Risk:** Low — pure extraction, no behavior change.
-
-### 7.7 ProficiencyService: Use SkillService for Skill Data
-
-**Current:** `ProficiencyService._loadSkillData()` loads `skills.json` independently; `SkillService` also loads it.  
-**Proposed:** `ProficiencyService` imports `SkillService` and calls `skillService.getAllSkills()`.  
-**Risk:** Low — both are already initialized at startup.
-
-### 7.8 Move StatBlockRenderer and TooltipManager to UI Layer
-
-**Current:** Both in `src/lib/` but import services (breaking lib → service direction)  
-**Proposed:** Move to `src/ui/rendering/` or `src/ui/utils/`.  
-**Risk:** Low — updates import paths only.
-
-### 7.9 Clean Up IPC Placeholder Channels
-
-**Current:** 20 channels defined for Equipment/Spell/Progression with no handler files  
-**Proposed:** Remove the channel definitions. Re-add when the features are implemented.  
-**Risk:** None — channels are unused.
-
-### 7.10 Split Oversized UI Components
-
-**Current:** `ClassCard.js` (4,056 lines), `ProficiencyCard.js` (1,947), `RaceCard.js` (1,628)  
-**Proposed:** Extract embedded view classes into separate files.  
-**Risk:** Low-medium — requires careful import wiring but no behavior change.
-
----
-
-## Risk Assessment
-
-| Change | Impact | Risk | Complexity | Dependencies |
-|--------|:------:|:----:|:----------:|:------------:|
-| Add single-character load IPC | High (perf) | Low | Low | New handler + preload + CharacterManager |
-| Remove duplicate event emissions | Medium | Low | Low | Verify listener dependencies |
-| Clean up IPC placeholder channels | Low | None | Trivial | `channels.js` only |
-| Extract AbilityScoreService helpers | Medium | Low | Low | New file + import updates |
-| Collapse `updateCharacter()` round-trip | Medium | Low | Low | `CharacterManager.js` only |
-| Consolidate listener cleanup pattern | Medium | Low | Medium | Incremental across all components |
-| Unify build page to EventBus | High (maint.) | Medium | High | RaceCard, ClassCard, BackgroundCard, AbilityScoreCard, ProficiencyCard, BuildPageController |
-| Split ClassCard.js | Medium | Low-Med | Medium | Extract 3 classes + update imports |
-| Move StatBlockRenderer/TooltipManager | Low | Low | Low | Import path updates |
-| ProficiencyService use SkillService | Low | Low | Low | Import + method call change |
-| Fix `renderString` bug | Low | Low | Trivial | 1 line in StatBlockRenderer |
-| Fix `_copyTooltipContent` bug | Low | Low | Trivial | Implement or remove call |
-
----
-
-## Prioritized Recommendations
-
-### High Impact
-
-| # | Recommendation | Section | Effort |
-|:-:|---------------|:-------:|:------:|
-| 1 | **Add single-character load IPC handler** — eliminate load-all-to-find-one | 1.3 | Small |
-| 2 | **Unify build page events to EventBus** — eliminate DOM CustomEvents and setTimeout hacks | 1.4 | Large |
-| 3 | **Remove duplicate event emissions** — `CHARACTER_CREATED`, `MULTICLASS_ADDED/REMOVED` | 1.5 | Small |
-| 4 | **Collapse `updateCharacter()` round-trip** — eliminate unnecessary serialize→reconstruct | 1.2, 3.4 | Small |
-
-### Medium Impact
-
-| # | Recommendation | Section | Effort |
-|:-:|---------------|:-------:|:------:|
-| 5 | ~~**Split `ClassCard.js`** (4,056 lines) into constituent views~~ ✅ | 2.1 | Medium |
-| 6 | ~~**Extract AbilityScoreService helpers** to `lib/AbilityScoreUtils.js`, consolidate duplicated constants~~ ✅ | 4.1, 7.6 | Small |
-| 7 | **Consolidate event listener cleanup** on `_cleanup.onEvent()` pattern | 5.1 | Medium |
-| 8 | **Make `SpellSelectionService` private methods public** — they are called by 2 other services | 5.4 | Trivial |
-| 9 | **Fix CharacterManager.saveCharacter() double `touch()`** — remove the one in `updateCharacter()` | 1.2 | Trivial |
-| 10 | **ProficiencyService: consolidate source-prioritized lookup** into shared helper | 4.1 | Small |
-| 11 | **ProficiencyService: use SkillService** instead of loading skills.json independently | 5.3 | Small |
-
-### Low Impact
-
-| # | Recommendation | Section | Effort |
-|:-:|---------------|:-------:|:------:|
-| 12 | **Clean up 20 IPC placeholder channels** and update IPC_CONTRACTS.md | 2.4 | Trivial |
-| 13 | **Move StatBlockRenderer and TooltipManager** out of `src/lib/` | 2.3 | Small |
-| 14 | **Fix two bugs:** `renderString` in StatBlockRenderer, `_copyTooltipContent` in TooltipManager | 4.3 | Trivial |
-| 15 | **Remove dead code:** unused DataLoader convenience methods, unused Parser exports, unused Settings functions | 4.2 | Small |
-| 16 | **Consolidate duplicate UI logic:** collapse-toggle pattern, background proficiency formatting, hit dice map | 5.2, 4.1 | Small |
-| 17 | **Fix CSP violations:** replace `el.style.display` with `u-hidden` class in 5 locations | 6.4 | Small |
-| 18 | **Standardize IPC handler DI pattern:** `FileHandlers` should receive deps via injection like other handlers | 6.3 | Trivial |
-| 19 | **Remove `selectFolder` duplicate exposure** from preload | 2.4 | Trivial |
-| 20 | **Replace `alert()` calls** with `Notifications` service | 6.2 | Trivial |
-
----
-
-## Appendix: Codebase Metrics
-
-| Layer | Files | Lines (approx.) |
-|-------|------:|----------------:|
-| `src/app/` (incl. pages) | 19 | ~3,500 |
-| `src/services/` | 25 | ~7,500 |
-| `src/lib/` | 14 | ~5,350 |
-| `src/main/` (incl. ipc, pdf) | 14 | ~3,650 |
-| `src/ui/components/` | 43 | ~20,350 |
-| **Total** | **115** | **~40,350** |
-
-| Category | Count |
-|----------|------:|
-| EventBus events defined | ~63 |
-| IPC channels defined | 37 |
-| Services (total) | 25 |
-| BaseDataService services | 14 |
-| Stateless services | 6 |
-| Modals (BaseSelectorModal) | 7 |
-| Modals (standalone Bootstrap) | 6 |
-| Unit tests | 509 |

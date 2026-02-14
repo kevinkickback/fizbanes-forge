@@ -17,9 +17,12 @@ import {
 	updateAbilityScoreArgsSchema,
 	validateInput,
 } from '../lib/ValidationSchemas.js';
+import { BaseDataService } from './BaseDataService.js';
 
-class AbilityScoreService {
+class AbilityScoreService extends BaseDataService {
 	constructor() {
+		super({ loggerScope: 'AbilityScoreService' });
+
 		// Use canonical lowercase abbreviations (str, dex, con, int, wis, cha) from 5eToolsParser
 		this._allAbilities = [...ABILITY_ABBREVIATIONS];
 
@@ -42,25 +45,9 @@ class AbilityScoreService {
 		// Map to store ability choices
 		this.abilityChoices = new Map();
 
-		// Track EventBus listeners for dispose()
-		this._eventListeners = [];
-
 		// Subscribe to character selection (when a character is loaded or selected)
 		this._handleCharacterChangedBound = this._handleCharacterChanged.bind(this);
 		this._trackListener(EVENTS.CHARACTER_SELECTED, this._handleCharacterChangedBound);
-	}
-
-	_trackListener(event, handler) {
-		eventBus.on(event, handler);
-		this._eventListeners.push({ event, handler });
-	}
-
-	dispose() {
-		for (const { event, handler } of this._eventListeners) {
-			eventBus.off(event, handler);
-		}
-		this._eventListeners = [];
-		console.debug('[AbilityScoreService]', 'Disposed');
 	}
 
 	_handleCharacterChanged() {

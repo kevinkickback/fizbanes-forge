@@ -5,13 +5,7 @@ const state = {
 	cache: {},
 	loading: {},
 	baseUrl: '', // Base URL now empty since data is at root
-	version: '1', // Cache version for invalidation
 };
-
-function setBaseUrl(url) {
-	state.baseUrl = url;
-	return dataLoader;
-}
 
 async function loadJSON(url) {
 	const start = performance.now();
@@ -121,26 +115,6 @@ function clearCache() {
 	state.cache = {};
 	state.loading = {};
 	console.debug('[DataLoader]', 'Cache cleared');
-	return dataLoader;
-}
-
-function clearCacheForUrl(url) {
-	delete state.cache[url];
-	delete state.loading[url];
-	console.debug('[DataLoader]', `Cache cleared for ${url}`);
-	return dataLoader;
-}
-
-function invalidateAllCache() {
-	const oldVersion = state.version;
-	state.version = String(Number(state.version) + 1);
-	// Clear in-memory cache when version changes
-	clearCache();
-	console.debug(
-		'DataLoader',
-		`Cache invalidated: v${oldVersion} → v${state.version}. All cached data cleared.`,
-	);
-	return state.version;
 }
 
 function resetAll() {
@@ -149,18 +123,7 @@ function resetAll() {
 	console.debug('[DataLoader]', 'Full reset: L1 cache cleared + DATA_INVALIDATED emitted');
 }
 
-function getCacheStats() {
-	const totalBytes = JSON.stringify(state.cache).length;
-	return {
-		cachedUrls: Object.keys(state.cache).length,
-		loadingUrls: Object.keys(state.loading).length,
-		totalSizeBytes: totalBytes,
-		totalSizeMB: (totalBytes / (1024 * 1024)).toFixed(2),
-	};
-}
-
 const dataLoader = {
-	setBaseUrl,
 	loadJSON,
 	loadSkills,
 	loadRaces,
@@ -170,32 +133,10 @@ const dataLoader = {
 	loadConditions,
 	loadVariantRules,
 	loadSources,
-	clearCache,
-	clearCacheForUrl,
-	getCacheStats,
-	invalidateAllCache,
 	resetAll,
 };
 
 // Legacy convenience alias for DataLoader exports
 const DataLoader = dataLoader;
 
-export {
-	clearCache,
-	clearCacheForUrl,
-	DataLoader,
-	dataLoader,
-	getCacheStats,
-	invalidateAllCache,
-	loadBackgrounds,
-	loadConditions,
-	loadFeats,
-	loadJSON,
-	loadRaceFluff,
-	loadRaces,
-	loadSkills,
-	loadSources,
-	loadVariantRules,
-	resetAll,
-	setBaseUrl
-};
+export { DataLoader };

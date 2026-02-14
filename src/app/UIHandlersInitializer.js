@@ -1,12 +1,11 @@
 import { DOMCleanup } from '../lib/DOMCleanup.js';
-import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { EVENTS } from '../lib/EventBus.js';
 import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 import { CharacterManager } from './CharacterManager.js';
 
 export function setupUiEventHandlers() {
 	const cleanup = DOMCleanup.create();
-	const listeners = new Map();
 
 	const saveButton = document.getElementById('saveCharacter');
 	if (saveButton) {
@@ -99,8 +98,7 @@ export function setupUiEventHandlers() {
 	}
 
 	const addListener = (event, handler) => {
-		eventBus.on(event, handler);
-		listeners.set(event, handler);
+		cleanup.onEvent(event, handler);
 	};
 
 	const onCharacterUpdated = () => {
@@ -122,10 +120,6 @@ export function setupUiEventHandlers() {
 	addListener(EVENTS.CHARACTER_SELECTED, onCharacterSelected);
 
 	return () => {
-		for (const [event, handler] of listeners) {
-			eventBus.off(event, handler);
-		}
-		listeners.clear();
 		cleanup.cleanup();
 	};
 }

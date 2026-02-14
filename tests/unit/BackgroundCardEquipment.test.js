@@ -16,7 +16,7 @@ vi.mock('../../src/services/SourceService.js', () => ({
     },
 }));
 
-vi.mock('../../src/lib/TooltipManager.js', () => ({
+vi.mock('../../src/ui/rendering/TooltipManager.js', () => ({
     initializeTooltipListeners: vi.fn(),
 }));
 

@@ -1,7 +1,7 @@
 // Processes text content, references, and formatting for D&D content.
 
+import { initializeTooltipListeners } from '../ui/rendering/TooltipManager.js';
 import { processString as renderStringWithTags } from './5eToolsRenderer.js';
-import { initializeTooltipListeners } from './TooltipManager.js';
 
 class TextProcessor {
 	static _DISPLAY_NAME_SELECTORS = [

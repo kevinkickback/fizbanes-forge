@@ -2,6 +2,10 @@
 
 import { toTitleCase } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
+import {
+	attachCollapseToggle,
+	renderCollapsibleSection,
+} from '../CollapsibleSection.js';
 
 export class ProficiencyNotesView {
 	constructor() {
@@ -79,16 +83,11 @@ export class ProficiencyNotesView {
 		}
 
 		// Build the notes HTML
-		const isCollapsed = localStorage.getItem(this._storageKey) === 'true';
-		const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
+		const { headerHtml, openTag, closeTag } = renderCollapsibleSection(
+			this._storageKey,
+		);
 
-		let notesHtml = `
-			<div class="sources-collapsible-header u-collapsible-header">
-				<h6 class="mb-0">Sources</h6>
-				<i class="fas ${chevronClass} u-text-md"></i>
-			</div>
-			<div class="sources-collapsible-content ${isCollapsed ? 'u-hidden' : 'u-block'}">
-		`;
+		let notesHtml = `${headerHtml}${openTag}`;
 
 		for (const type in typeGroups) {
 			if (typeGroups[type].length === 0) continue;
@@ -129,37 +128,12 @@ export class ProficiencyNotesView {
 			notesHtml += '</div>';
 		}
 
-		notesHtml += '</div>';
+		notesHtml += closeTag;
 		container.innerHTML = notesHtml;
 
-		// Add click listener to toggle collapse
-		const header = container.querySelector('.sources-collapsible-header');
-		if (header) {
-			header.addEventListener('click', () => this._toggleCollapse(container));
-		}
+		attachCollapseToggle(container, this._storageKey);
 
 		// Process the notes container to resolve reference tags
 		await textProcessor.processElement(container);
-	}
-
-	_toggleCollapse(container) {
-		const content = container.querySelector('.sources-collapsible-content');
-		const icon = container.querySelector('.sources-collapsible-header i');
-
-		if (!content || !icon) return;
-
-		const isCurrentlyCollapsed = content.classList.contains('u-hidden');
-
-		if (isCurrentlyCollapsed) {
-			content.classList.remove('u-hidden');
-			content.classList.add('u-block');
-			icon.className = 'fas fa-chevron-up u-text-md';
-			localStorage.setItem(this._storageKey, 'false');
-		} else {
-			content.classList.remove('u-block');
-			content.classList.add('u-hidden');
-			icon.className = 'fas fa-chevron-down u-text-md';
-			localStorage.setItem(this._storageKey, 'true');
-		}
 	}
 }

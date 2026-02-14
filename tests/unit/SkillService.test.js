@@ -3,7 +3,7 @@ import { ValidationError } from '../../src/lib/Errors.js';
 import { eventBus, EVENTS } from '../../src/lib/EventBus.js';
 
 // Mock TooltipManager to break circular dependency
-vi.mock('../../src/lib/TooltipManager.js', () => ({
+vi.mock('../../src/ui/rendering/TooltipManager.js', () => ({
     initializeTooltipListeners: vi.fn(),
 }));
 

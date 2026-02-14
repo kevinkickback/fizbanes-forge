@@ -377,7 +377,7 @@ class CharacterValidationServiceImpl {
 	// Delegates to SpellSelectionService to avoid duplication
 	_getSpellsKnownFromClassTable(classData, level) {
 		// Delegate to SpellSelectionService which already parses class progression
-		const spellsKnown = spellSelectionService._getSpellsKnownLimit(
+		const spellsKnown = spellSelectionService.getSpellsKnownLimit(
 			classData.name,
 			level,
 		);
@@ -387,7 +387,7 @@ class CharacterValidationServiceImpl {
 	// Delegates to SpellSelectionService to avoid duplication
 	_getCantripsKnownFromClassTable(classData, level) {
 		// Delegate to SpellSelectionService which already parses cantrip progression
-		const cantripsKnown = spellSelectionService._getCantripsKnown(
+		const cantripsKnown = spellSelectionService.getCantripsKnown(
 			classData.name,
 			level,
 		);

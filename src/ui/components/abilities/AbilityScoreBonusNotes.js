@@ -2,6 +2,10 @@
 import { getAbilityAbbrDisplay } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
+import {
+	attachCollapseToggle,
+	renderCollapsibleSection,
+} from '../CollapsibleSection.js';
 
 class BonusNotesView {
 	constructor(bonusesContainer) {
@@ -17,16 +21,11 @@ class BonusNotesView {
 				return;
 			}
 
-			const isCollapsed = localStorage.getItem(this._storageKey) === 'true';
-			const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
+			const { headerHtml, openTag, closeTag } = renderCollapsibleSection(
+				this._storageKey,
+			);
 
-			let bonusContent = `
-				<div class="sources-collapsible-header u-collapsible-header">
-					<h6 class="mb-0">Sources</h6>
-					<i class="fas ${chevronClass} u-text-md"></i>
-				</div>
-				<div class="sources-collapsible-content ${isCollapsed ? 'u-hidden' : 'u-block'}">
-			`;
+			let bonusContent = `${headerHtml}${openTag}`;
 
 			const raceBonuses = this._processRaceBonuses(bonusGroups);
 
@@ -48,14 +47,10 @@ class BonusNotesView {
 				bonusContent += this._createBonusNote(source, bonusText.join(', '));
 			}
 
-			bonusContent += '</div>';
+			bonusContent += closeTag;
 			this._bonusesContainer.innerHTML = bonusContent;
 
-			// Add click listener to toggle collapse
-			const header = this._bonusesContainer.querySelector('.sources-collapsible-header');
-			if (header) {
-				header.addEventListener('click', () => this._toggleCollapse());
-			}
+			attachCollapseToggle(this._bonusesContainer, this._storageKey);
 
 			// Process the bonuses container to resolve any reference tags
 			if (textProcessor && typeof textProcessor.processElement === 'function') {
@@ -63,27 +58,6 @@ class BonusNotesView {
 			}
 		} catch (error) {
 			console.error('[BonusNotes]', 'Error rendering bonus notes:', error);
-		}
-	}
-
-	_toggleCollapse() {
-		const content = this._bonusesContainer.querySelector('.sources-collapsible-content');
-		const icon = this._bonusesContainer.querySelector('.sources-collapsible-header i');
-
-		if (!content || !icon) return;
-
-		const isCurrentlyCollapsed = content.classList.contains('u-hidden');
-
-		if (isCurrentlyCollapsed) {
-			content.classList.remove('u-hidden');
-			content.classList.add('u-block');
-			icon.className = 'fas fa-chevron-up u-text-md';
-			localStorage.setItem(this._storageKey, 'false');
-		} else {
-			content.classList.remove('u-block');
-			content.classList.add('u-hidden');
-			icon.className = 'fas fa-chevron-down u-text-md';
-			localStorage.setItem(this._storageKey, 'true');
 		}
 	}
 

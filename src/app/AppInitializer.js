@@ -1,8 +1,8 @@
 import { DataLoader } from '../lib/DataLoader.js';
+import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { DataError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { cleanupOrphanedBackdrops } from '../lib/ModalCleanupUtility.js';
-import { getNotificationCenter } from '../lib/NotificationCenter.js';
 import {
 	addPersistentNotification,
 	showNotification,
@@ -22,10 +22,11 @@ import { settingsService } from '../services/SettingsService.js';
 import { skillService } from '../services/SkillService.js';
 import { spellService } from '../services/SpellService.js';
 import { variantRuleService } from '../services/VariantRuleService.js';
+import { notificationCenter } from '../ui/components/NotificationCenter.js';
 import { DataConfigurationModal } from '../ui/components/setup/SetupDataConfiguration.js';
 import { LoadingModal } from '../ui/components/setup/SetupModals.js';
 import { AppState } from './AppState.js';
-import { Modal } from './Modal.js';
+import { modal } from './Modal.js';
 import { NavigationController } from './NavigationController.js';
 import { PageHandler } from './PageHandler.js';
 import { themeManager } from './ThemeManager.js';
@@ -39,7 +40,7 @@ if (!window.FF_DEBUG) {
 let _isInitialized = false;
 let _isInitializing = false;
 let _uiHandlersCleanup = null;
-const _appInitializerListeners = new Map();
+const _appCleanup = DOMCleanup.create();
 
 function _getDataSourceDescription(type, value) {
 	if (type === 'local') {
@@ -266,9 +267,9 @@ async function _initializeCoreComponents() {
 			{ name: 'settings service', init: () => settingsService.initialize() },
 			{
 				name: 'notification center',
-				init: () => getNotificationCenter().initialize(),
+				init: () => notificationCenter.initialize(),
 			},
-			{ name: 'modal', init: () => Modal.getInstance().ensureInitialized() },
+			{ name: 'modal', init: () => modal.ensureInitialized() },
 		];
 
 		for (const component of components) {
@@ -319,10 +320,7 @@ export async function initializeAll() {
 
 	if (_isInitialized) {
 		console.info('[AppInitializer]', 'Already initialized, cleaning up for reload');
-		for (const [event, handler] of _appInitializerListeners) {
-			eventBus.off(event, handler);
-		}
-		_appInitializerListeners.clear();
+		_appCleanup.cleanup();
 		if (_uiHandlersCleanup) {
 			try {
 				_uiHandlersCleanup();
@@ -370,7 +368,7 @@ export async function initializeAll() {
 	const existingModal = document.getElementById('loadingModal');
 	if (existingModal) {
 		existingModal.classList.remove('show');
-		existingModal.style.display = 'none';
+		existingModal.classList.add('u-hidden');
 		existingModal.setAttribute('aria-hidden', 'true');
 		existingModal.removeAttribute('aria-modal');
 	}
@@ -419,8 +417,7 @@ export async function initializeAll() {
 			loadingModal.updateDetail(`Loading ${label}...`);
 		}
 	};
-	eventBus.on(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
-	_appInitializerListeners.set(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
+	_appCleanup.onEvent(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
 
 	try {
 		loadingModal.updateDetail('Checking data files...');

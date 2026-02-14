@@ -89,14 +89,5 @@ class MethodControlsView {
 	}
 }
 
-let _instance = null;
-
-MethodControlsView.getInstance = () => {
-	if (!_instance) {
-		_instance = new MethodControlsView();
-	}
-	return _instance;
-};
-
 export { MethodControlsView };
-export const methodControlsView = MethodControlsView.getInstance();
+export const methodControlsView = new MethodControlsView();

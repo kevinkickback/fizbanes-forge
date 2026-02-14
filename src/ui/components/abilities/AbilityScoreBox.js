@@ -41,10 +41,10 @@ class AbilityScoreBoxView {
 		if (totalBonus !== 0) {
 			bonusElement.textContent = `${totalBonus >= 0 ? '+' : ''}${totalBonus}`;
 			bonusElement.className = totalBonus >= 0 ? 'bonus' : 'bonus negative';
-			bonusElement.style.display = 'block';
+			bonusElement.classList.remove('u-hidden');
 		} else {
 			bonusElement.textContent = '';
-			bonusElement.style.display = 'none';
+			bonusElement.classList.add('u-hidden');
 		}
 	}
 

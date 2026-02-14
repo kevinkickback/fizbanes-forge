@@ -61,9 +61,6 @@ describe('IPC Channel Sync', () => {
             'PORTRAITS_',
             'DATA_',
             'UTIL_',
-            'EQUIPMENT_',
-            'SPELL_',
-            'PROGRESSION_',
             'PDF_',
         ];
 

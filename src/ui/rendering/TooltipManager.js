@@ -1,19 +1,19 @@
 // Manages displaying and hiding D&D reference tooltips.
 
-import { actionService } from '../services/ActionService.js';
-import { backgroundService } from '../services/BackgroundService.js';
-import { classService } from '../services/ClassService.js';
-import { conditionService } from '../services/ConditionService.js';
-import { featService } from '../services/FeatService.js';
-import { itemService } from '../services/ItemService.js';
-import { monsterService } from '../services/MonsterService.js';
-import { optionalFeatureService } from '../services/OptionalFeatureService.js';
-import { raceService } from '../services/RaceService.js';
-import { skillService } from '../services/SkillService.js';
-import { spellService } from '../services/SpellService.js';
-import { variantRuleService } from '../services/VariantRuleService.js';
-import { DEFAULT_SOURCE } from './5eToolsParser.js';
-import TextProcessor from './TextProcessor.js';
+import { DEFAULT_SOURCE } from '../../lib/5eToolsParser.js';
+import TextProcessor from '../../lib/TextProcessor.js';
+import { actionService } from '../../services/ActionService.js';
+import { backgroundService } from '../../services/BackgroundService.js';
+import { classService } from '../../services/ClassService.js';
+import { conditionService } from '../../services/ConditionService.js';
+import { featService } from '../../services/FeatService.js';
+import { itemService } from '../../services/ItemService.js';
+import { monsterService } from '../../services/MonsterService.js';
+import { optionalFeatureService } from '../../services/OptionalFeatureService.js';
+import { raceService } from '../../services/RaceService.js';
+import { skillService } from '../../services/SkillService.js';
+import { spellService } from '../../services/SpellService.js';
+import { variantRuleService } from '../../services/VariantRuleService.js';
 import {
 	renderAction,
 	renderBackground,
@@ -98,10 +98,8 @@ function _initTooltipManager() {
 
 function _createTooltip() {
 	const container = document.createElement('div');
-	container.className = 'tooltip-container';
-	container.style.display = 'block';
+	container.className = 'tooltip-container u-block';
 	container.style.zIndex = 10000 + tooltips.length;
-	container.style.pointerEvents = 'auto';
 
 	const tooltip = document.createElement('div');
 	tooltip.className = 'tooltip';
@@ -206,13 +204,12 @@ function _togglePin(tooltipObj) {
 		tooltipObj.tooltip.classList.add('pinned');
 		pinBtn.classList.add('active');
 		pinBtn.title = 'Unpin tooltip';
-		if (dragHandle) dragHandle.style.display = 'flex';
-		tooltipObj.container.style.pointerEvents = 'auto';
+		if (dragHandle) dragHandle.classList.add('show');
 	} else {
 		tooltipObj.tooltip.classList.remove('pinned');
 		pinBtn.classList.remove('active');
 		pinBtn.title = 'Pin tooltip (Ctrl+P)';
-		if (dragHandle) dragHandle.style.display = 'none';
+		if (dragHandle) dragHandle.classList.remove('show');
 	}
 }
 
@@ -287,6 +284,15 @@ function hideAllTooltips() {
 				tooltipObj.container.parentNode.removeChild(tooltipObj.container);
 			}
 		}, 200);
+	});
+}
+
+function _copyTooltipContent(tooltipObj) {
+	const content = tooltipObj.tooltip.querySelector('.tooltip-content');
+	if (!content) return;
+	const text = content.innerText || content.textContent || '';
+	navigator.clipboard.writeText(text.trim()).catch((err) => {
+		console.error('[TooltipManager]', 'Failed to copy tooltip content', err);
 	});
 }
 

@@ -4,21 +4,13 @@ import { initializeBootstrapModal } from '../lib/ModalCleanupUtility.js';
 import { showNotification } from '../lib/Notifications.js';
 import { AppState } from './AppState.js';
 
-let _instance = null;
-
 export class Modal {
 	constructor() {
-		if (_instance) {
-			throw new Error('Modal is a singleton. Use Modal.getInstance() instead.');
-		}
-
 		this._eventHandlers = {
 			onShowModal: null,
 			onCreateCharacter: null,
 		};
 		this._buttonListenersSetup = false;
-
-		_instance = this;
 	}
 
 	setupEventListeners(handlers = {}) {
@@ -316,12 +308,6 @@ export class Modal {
 		}
 	}
 
-	static getInstance() {
-		if (!_instance) {
-			_instance = new Modal();
-		}
-		return _instance;
-	}
 }
 
-export const modal = Modal.getInstance();
+export const modal = new Modal();

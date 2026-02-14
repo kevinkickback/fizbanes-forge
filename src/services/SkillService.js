@@ -39,6 +39,11 @@ class SkillService extends BaseDataService {
 		this._skillMap = null;
 	}
 
+	async getSkillData() {
+		if (!this._data) await this.initialize();
+		return this._data?.skill || [];
+	}
+
 	getSkillsByAbility(abilityName) {
 		const validated = validateInput(
 			skillIdentifierSchema,

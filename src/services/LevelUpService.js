@@ -404,7 +404,7 @@ class LevelUpService {
 
 		// Get spell slots based on total caster level
 		const combinedSlots =
-			spellSelectionService._getStandardSpellSlots(totalCasterLevel);
+			spellSelectionService.getStandardSpellSlots(totalCasterLevel);
 
 		// Note: Warlock pact magic slots remain separate and are tracked per-class
 		// They don't combine with standard spellcasting spell slots

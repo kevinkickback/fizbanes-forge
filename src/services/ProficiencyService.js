@@ -7,40 +7,65 @@ import {
 	removeProficienciesBySourceArgsSchema,
 	validateInput
 } from '../lib/ValidationSchemas.js';
+import { BaseDataService } from './BaseDataService.js';
 import { itemService } from './ItemService.js';
+import { skillService } from './SkillService.js';
 
-export class ProficiencyService {
+export class ProficiencyService extends BaseDataService {
 	constructor() {
+		super({ loggerScope: 'ProficiencyService' });
+
 		this._skillData = null;
 		this._languageData = null;
 		this._bookData = null;
-		this._eventListeners = [];
-
-		this._onDataInvalidated = () => this.resetData();
-		this._trackListener(EVENTS.DATA_INVALIDATED, this._onDataInvalidated);
-	}
-
-	_trackListener(event, handler) {
-		eventBus.on(event, handler);
-		this._eventListeners.push({ event, handler });
+		this._sourceServiceModule = null;
 	}
 
 	dispose() {
-		for (const { event, handler } of this._eventListeners) {
-			eventBus.off(event, handler);
-		}
-		this._eventListeners = [];
+		super.dispose();
 		this._skillData = null;
 		this._languageData = null;
 		this._bookData = null;
-		console.debug('[ProficiencyService]', 'Disposed');
 	}
 
 	resetData() {
+		super.resetData();
 		this._skillData = null;
 		this._languageData = null;
 		this._bookData = null;
-		console.debug('[ProficiencyService]', 'Data reset via invalidation');
+	}
+
+	async _getAllowedSourcesSet() {
+		if (!this._sourceServiceModule) {
+			this._sourceServiceModule = await import('./SourceService.js');
+		}
+		return new Set(
+			this._sourceServiceModule.sourceService
+				.getAllowedSources()
+				.map((s) => s.toUpperCase()),
+		);
+	}
+
+	_findBySourcePriority(items, matchFn, allowedSources) {
+		if (allowedSources.has('XPHB')) {
+			const result = items.find(
+				(item) => matchFn(item) && item.source === 'XPHB',
+			);
+			if (result) return result;
+		}
+		if (allowedSources.has('PHB')) {
+			const result = items.find(
+				(item) => matchFn(item) && item.source === 'PHB',
+			);
+			if (result) return result;
+		}
+		return (
+			items.find(
+				(item) =>
+					matchFn(item) &&
+					allowedSources.has(item.source?.toUpperCase()),
+			) || null
+		);
 	}
 
 
@@ -403,8 +428,7 @@ export class ProficiencyService {
 		if (this._skillData) return this._skillData;
 
 		try {
-			const data = await DataLoader.loadJSON('skills.json');
-			this._skillData = data?.skill || [];
+			this._skillData = await skillService.getSkillData();
 			return this._skillData;
 		} catch (error) {
 			console.error('[ProficiencyService]', 'Failed to load skill data', error);
@@ -436,42 +460,13 @@ export class ProficiencyService {
 		if (!skillData || skillData.length === 0) return null;
 
 		const normalizedSearch = TextProcessor.normalizeForLookup(skillName);
+		const allowedSources = await this._getAllowedSourcesSet();
 
-		// Import sourceService dynamically to avoid circular dependency
-		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(
-			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
+		const skill = this._findBySourcePriority(
+			skillData,
+			(s) => TextProcessor.normalizeForLookup(s.name) === normalizedSearch,
+			allowedSources,
 		);
-
-		// Find the skill - prioritize allowed sources
-		let skill = null;
-
-		// First try XPHB if allowed
-		if (allowedSources.has('XPHB')) {
-			skill = skillData.find(
-				(s) =>
-					TextProcessor.normalizeForLookup(s.name) === normalizedSearch &&
-					s.source === 'XPHB',
-			);
-		}
-
-		// Then try PHB if allowed and not found
-		if (!skill && allowedSources.has('PHB')) {
-			skill = skillData.find(
-				(s) =>
-					TextProcessor.normalizeForLookup(s.name) === normalizedSearch &&
-					s.source === 'PHB',
-			);
-		}
-
-		// Finally try any allowed source
-		if (!skill) {
-			skill = skillData.find(
-				(s) =>
-					TextProcessor.normalizeForLookup(s.name) === normalizedSearch &&
-					allowedSources.has(s.source?.toUpperCase()),
-			);
-		}
 
 		if (!skill) return null;
 
@@ -489,11 +484,7 @@ export class ProficiencyService {
 		const languageData = await this._loadLanguageData();
 		if (!languageData || languageData.length === 0) return [];
 
-		// Import sourceService dynamically to avoid circular dependency
-		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(
-			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
-		);
+		const allowedSources = await this._getAllowedSourcesSet();
 
 		// Get unique language names from allowed sources, prioritizing XPHB then PHB
 		const languageMap = new Map();
@@ -520,42 +511,13 @@ export class ProficiencyService {
 		if (!languageData || languageData.length === 0) return null;
 
 		const normalizedSearch = TextProcessor.normalizeForLookup(languageName);
+		const allowedSources = await this._getAllowedSourcesSet();
 
-		// Import sourceService dynamically to avoid circular dependency
-		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(
-			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
+		const language = this._findBySourcePriority(
+			languageData,
+			(l) => TextProcessor.normalizeForLookup(l.name) === normalizedSearch,
+			allowedSources,
 		);
-
-		// Find the language - prioritize allowed sources
-		let language = null;
-
-		// First try XPHB if allowed
-		if (allowedSources.has('XPHB')) {
-			language = languageData.find(
-				(l) =>
-					TextProcessor.normalizeForLookup(l.name) === normalizedSearch &&
-					l.source === 'XPHB',
-			);
-		}
-
-		// Then try PHB if allowed and not found
-		if (!language && allowedSources.has('PHB')) {
-			language = languageData.find(
-				(l) =>
-					TextProcessor.normalizeForLookup(l.name) === normalizedSearch &&
-					l.source === 'PHB',
-			);
-		}
-
-		// Finally try any allowed source
-		if (!language) {
-			language = languageData.find(
-				(l) =>
-					TextProcessor.normalizeForLookup(l.name) === normalizedSearch &&
-					allowedSources.has(l.source?.toUpperCase()),
-			);
-		}
 
 		if (!language) return null;
 
@@ -582,12 +544,7 @@ export class ProficiencyService {
 		}
 
 		const normalizedSearch = TextProcessor.normalizeForLookup(toolName);
-
-		// Import sourceService dynamically to avoid circular dependency
-		const { sourceService } = await import('./SourceService.js');
-		const allowedSources = new Set(
-			sourceService.getAllowedSources().map((s) => s.toUpperCase()),
-		);
+		const allowedSources = await this._getAllowedSourcesSet();
 
 		// Helper to check if item is a tool (AT=Artisan Tools, T=Tools, GS=Gaming Set, INS=Instrument)
 		const isToolType = (type) => {
@@ -605,38 +562,13 @@ export class ProficiencyService {
 			);
 		};
 
-		// Find the tool - prioritize allowed sources
-		let tool = null;
-
-		// First try XPHB if allowed
-		if (allowedSources.has('XPHB')) {
-			tool = items.find(
-				(item) =>
-					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
-					item.source === 'XPHB' &&
-					isToolType(item.type),
-			);
-		}
-
-		// Then try PHB if allowed and not found
-		if (!tool && allowedSources.has('PHB')) {
-			tool = items.find(
-				(item) =>
-					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
-					item.source === 'PHB' &&
-					isToolType(item.type),
-			);
-		}
-
-		// Finally try any allowed source
-		if (!tool) {
-			tool = items.find(
-				(item) =>
-					TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
-					allowedSources.has(item.source?.toUpperCase()) &&
-					isToolType(item.type),
-			);
-		}
+		const tool = this._findBySourcePriority(
+			items,
+			(item) =>
+				TextProcessor.normalizeForLookup(item.name) === normalizedSearch &&
+				isToolType(item.type),
+			allowedSources,
+		);
 
 		if (!tool) {
 			return {

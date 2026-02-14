@@ -1,6 +1,5 @@
 import { DataLoader } from '../lib/DataLoader.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-import { showNotification } from '../lib/Notifications.js';
 import { sourceIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
@@ -167,20 +166,15 @@ export class SourceService extends BaseDataService {
 					});
 				} else {
 					console.error(
-						'SourceService',
+						'[SourceService]',
 						'Invalid source data format - missing source array',
 						sources,
-					);
-					showNotification(
-						'Error loading source books: Invalid data format',
-						'error',
 					);
 				}
 			},
 			emitPayload: () => ['source', this],
 			onError: (error) => {
 				console.error('[SourceService]', 'Error during initialization', error);
-				showNotification('Error loading source books', 'error');
 				throw error;
 			},
 		});

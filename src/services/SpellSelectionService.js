@@ -67,7 +67,7 @@ class SpellSelectionService {
 			spellsKnown: [],
 			spellsPrepared: [],
 			spellSlots: this.calculateSpellSlots(className, classLevel),
-			cantripsKnown: this._getCantripsKnown(className, classLevel),
+			cantripsKnown: this.getCantripsKnown(className, classLevel),
 			spellcastingAbility: classInfo.spellcastingAbility,
 			ritualCasting: classInfo.ritualCasting || false,
 		};
@@ -103,7 +103,7 @@ class SpellSelectionService {
 		return ritualClasses.includes(className);
 	}
 
-	_getCantripsKnown(className, level) {
+	getCantripsKnown(className, level) {
 		const classData = classService.getClass(className);
 		if (!classData || !classData.cantripProgression) {
 			return 0;
@@ -125,7 +125,7 @@ class SpellSelectionService {
 	/** Spells known for classes with "known" type (Bard, Sorcerer, Warlock, Ranger). 
 	 * For Wizard, returns total spellbook size (not spells per level).
 	 */
-	_getSpellsKnownLimit(className, level) {
+	getSpellsKnownLimit(className, level) {
 		const classData = classService.getClass(className);
 		if (!classData) return 0;
 
@@ -186,10 +186,10 @@ class SpellSelectionService {
 		}
 
 		// Use standard spell slot table for full/half/third casters
-		return this._getStandardSpellSlots(casterLevel);
+		return this.getStandardSpellSlots(casterLevel);
 	}
 
-	_getStandardSpellSlots(casterLevel) {
+	getStandardSpellSlots(casterLevel) {
 		// Standard D&D 5e spell slot progression table
 		const standardSlots = [
 			[],
@@ -526,14 +526,14 @@ class SpellSelectionService {
 			// Classes with fixed spells known (Bard, Sorcerer, Warlock, Ranger)
 			return {
 				type: 'known',
-				limit: this._getSpellsKnownLimit(className, classLevel),
+				limit: this.getSpellsKnownLimit(className, classLevel),
 				current: classSpellcasting.spellsKnown.length,
 			};
 		} else {
 			// Classes that prepare spells (Wizard, Cleric, Druid, Paladin)
 			return {
 				type: 'prepared',
-				spellbookLimit: this._getSpellsKnownLimit(className, classLevel), // Total spells known/in spellbook
+				spellbookLimit: this.getSpellsKnownLimit(className, classLevel), // Total spells known/in spellbook
 				spellbookCurrent: classSpellcasting.spellsKnown.length,
 				preparedLimit: this._getPreparedSpellLimit(character, className, classLevel), // Prepared from spellbook
 				preparedCurrent: classSpellcasting.spellsPrepared.length,

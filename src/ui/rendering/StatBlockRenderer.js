@@ -1,13 +1,14 @@
 /** StatBlockRenderer.js - Renders enhanced stat blocks for tooltips (5etools-inspired). */
 
-import { getAbilityData } from '../services/AbilityScoreService.js';
 import {
 	ABILITY_ABBREVIATIONS,
 	getOrdinalForm,
+	getSchoolName,
 	getSpeedString,
 	sizeAbvToFull,
-} from './5eToolsParser.js';
-import { Renderer5etools } from './5eToolsRenderer.js';
+} from '../../lib/5eToolsParser.js';
+import { Renderer5etools } from '../../lib/5eToolsRenderer.js';
+import { getAbilityData } from '../../services/AbilityScoreService.js';
 
 export function renderSpell(spell) {
 	if (!spell || spell.error) {
@@ -19,7 +20,7 @@ export function renderSpell(spell) {
 	// Title and level
 	const levelText =
 		spell.level === 0 ? 'Cantrip' : `${getOrdinalForm(spell.level)}-level`;
-	const schoolText = spell.school ? ` ${_getSchoolName(spell.school)}` : '';
+	const schoolText = spell.school ? ` ${getSchoolName(spell.school)}` : '';
 	const ritualText = spell.ritual ? ' (ritual)' : '';
 
 	html += `<div class="tooltip-title">${spell.name}</div>`;
@@ -269,7 +270,7 @@ export function renderClass(cls) {
 				firstEntry.length > 150
 					? `${firstEntry.substring(0, 150)}...`
 					: firstEntry;
-			html += renderString(shortDesc);
+			html += Renderer5etools.processString(shortDesc);
 		} else if (firstEntry.entries) {
 			const text = firstEntry.entries[0];
 			if (typeof text === 'string') {
@@ -301,7 +302,7 @@ export function renderFeat(feat) {
 	// Prerequisites
 	if (feat.prerequisite) {
 		html += '<div class="tooltip-metadata">';
-		html += `<strong>Prerequisite:</strong> ${_formatPrerequisite(feat.prerequisite)}<br>`;
+		html += `<strong>Prerequisite:</strong> ${formatPrerequisite(feat.prerequisite)}<br>`;
 		html += '</div>';
 	}
 
@@ -456,7 +457,7 @@ export function renderOptionalFeature(feature) {
 	// Prerequisites
 	if (feature.prerequisite) {
 		html += '<div class="tooltip-metadata">';
-		html += `<strong>Prerequisite:</strong> ${_formatPrerequisite(feature.prerequisite)}<br>`;
+		html += `<strong>Prerequisite:</strong> ${formatPrerequisite(feature.prerequisite)}<br>`;
 		html += '</div>';
 	}
 
@@ -838,19 +839,6 @@ function _renderSource(data) {
 	return `<div class="tooltip-source">${data.source}${page}</div>`;
 }
 
-function _getSchoolName(code) {
-	const schools = {
-		A: 'Abjuration',
-		C: 'Conjuration',
-		D: 'Divination',
-		E: 'Enchantment',
-		I: 'Illusion',
-		N: 'Necromancy',
-		T: 'Transmutation',
-		V: 'Evocation',
-	};
-	return schools[code] || code;
-}
 
 function _getRangeText(range) {
 	if (!range.distance) return 'Special';
@@ -906,7 +894,7 @@ function _getAbilityScoreText(abilities) {
 	return data.asTextShort || data.asText || '';
 }
 
-export function formatPrerequisite(prerequisite) {
+function formatPrerequisite(prerequisite) {
 	if (!prerequisite) return '';
 	if (typeof prerequisite === 'string') return prerequisite;
 
@@ -969,9 +957,4 @@ export function formatPrerequisite(prerequisite) {
 	}
 
 	return parts.join(', ') || '';
-}
-
-// Internal alias for backwards compatibility
-function _formatPrerequisite(prerequisite) {
-	return formatPrerequisite(prerequisite);
 }

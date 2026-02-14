@@ -102,7 +102,6 @@ contextBridge.exposeInMainWorld('characterStorage', {
 			'characterSavePath',
 			path,
 		),
-	selectFolder: () => ipcRenderer.invoke(IPC_CHANNELS.FILE_SELECT_FOLDER),
 	getDefaultSavePath: () =>
 		ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_PATH, 'characterSavePath'),
 	generateUUID: () => ipcRenderer.invoke(IPC_CHANNELS.CHARACTER_GENERATE_UUID),

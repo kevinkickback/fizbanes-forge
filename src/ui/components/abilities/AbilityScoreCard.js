@@ -31,10 +31,6 @@ class AbilityScoreCard {
 		this._abilityChoicesView = null;
 		this._bonusNotesView = null;
 
-		// Listener references (for EventBus only, DOM listeners managed by DOMCleanup)
-		this._characterSelectedHandler = null;
-		this._characterUpdatedHandler = null;
-
 		// Initialization tracking
 		this._initializedMethod = false;
 		this._lastInitializedMethod = null;
@@ -239,34 +235,19 @@ class AbilityScoreCard {
 
 	_setupEventListeners() {
 		try {
-			// Remove existing EventBus listeners to prevent duplicates
-			if (this._characterSelectedHandler) {
-				eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-			}
-			if (this._characterUpdatedHandler) {
-				eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
-			}
-
 			// Listen to EventBus CHARACTER_SELECTED (when character is loaded/switched)
-			this._characterSelectedHandler = (character) => {
+			this._cleanup.onEvent(EVENTS.CHARACTER_SELECTED, (character) => {
 				if (!character) return;
-
-				// Sync with current character first
 				this._syncWithCurrentCharacter();
-
-				// Then render the UI
 				this.render();
-			};
-			eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
+			});
 
 			// Listen to EventBus CHARACTER_UPDATED (when character data changes)
-			this._characterUpdatedHandler = () => {
+			this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, () => {
 				this.update();
-			};
-			eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
+			});
 
 			// Listen for ability score changes from race, class, or other components
-			// Uses EventBus for proper cleanup tracking
 			this._cleanup.onEvent(EVENTS.ABILITY_SCORES_CHANGED, () => {
 				this.update();
 			});
@@ -761,16 +742,6 @@ class AbilityScoreCard {
 	 * Removes event listeners when the card is destroyed
 	 */
 	remove() {
-		// Remove EventBus listeners
-		if (this._characterSelectedHandler) {
-			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		}
-
-		if (this._characterUpdatedHandler) {
-			eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
-		}
-
-		// Clean up all DOM listeners
 		this._cleanup.cleanup();
 	}
 
@@ -795,17 +766,5 @@ class AbilityScoreCard {
 	}
 }
 
-let _instance = null;
-
-/**
- * Singleton accessor for AbilityScoreCard
- */
-AbilityScoreCard.getInstance = () => {
-	if (!_instance) {
-		_instance = new AbilityScoreCard();
-	}
-	return _instance;
-};
-
 export { AbilityScoreCard };
-export const abilityScoreCard = AbilityScoreCard.getInstance();
+export const abilityScoreCard = new AbilityScoreCard();

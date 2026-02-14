@@ -1,12 +1,12 @@
 // Manages the notification center modal and history
 
-import { DOMCleanup } from './DOMCleanup.js';
-import { initializeBootstrapModal } from './ModalCleanupUtility.js';
+import { DOMCleanup } from '../../lib/DOMCleanup.js';
+import { initializeBootstrapModal } from '../../lib/ModalCleanupUtility.js';
 import {
 	clearNotificationHistory,
 	getNotificationHistory,
 	markAllAsRead,
-} from './Notifications.js';
+} from '../../lib/Notifications.js';
 
 export class NotificationCenter {
 	constructor() {
@@ -189,11 +189,4 @@ export class NotificationCenter {
 	}
 }
 
-let _instance = null;
-
-export function getNotificationCenter() {
-	if (!_instance) {
-		_instance = new NotificationCenter();
-	}
-	return _instance;
-}
+export const notificationCenter = new NotificationCenter();

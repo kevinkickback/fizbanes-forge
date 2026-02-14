@@ -2,7 +2,7 @@ import { EVENTS } from '../../lib/EventBus.js';
 import { showNotification } from '../../lib/Notifications.js';
 import { AppState } from '../AppState.js';
 import { CharacterManager } from '../CharacterManager.js';
-import { Modal } from '../Modal.js';
+import { modal } from '../Modal.js';
 import { BasePageController } from './BasePageController.js';
 
 export class HomePageController extends BasePageController {
@@ -15,8 +15,6 @@ export class HomePageController extends BasePageController {
 
     async initialize() {
         try {
-            const modal = Modal.getInstance();
-
             const importBtn = document.getElementById('importCharacterBtn');
             if (importBtn) {
                 const freshBtn = importBtn.cloneNode(true);
@@ -339,7 +337,6 @@ export class HomePageController extends BasePageController {
             e.stopPropagation();
             const characterId = deleteBtn.dataset.characterId;
             if (characterId) {
-                const modal = Modal.getInstance();
                 const confirmed = await modal.showConfirmationModal({
                     title: 'Delete Character',
                     message: 'Are you sure you want to delete this character? This cannot be undone.',
@@ -368,7 +365,6 @@ export class HomePageController extends BasePageController {
             let result = await window.characterStorage.importCharacter();
 
             if (result?.duplicateId) {
-                const modal = Modal.getInstance();
                 const action = await modal.showDuplicateIdModal({
                     characterName: result.character.name,
                     characterId: result.character.id,
@@ -427,7 +423,6 @@ export class HomePageController extends BasePageController {
         if (createBtn) {
             createBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const modal = Modal.getInstance();
                 await modal.showNewCharacterModal(e);
             });
         }

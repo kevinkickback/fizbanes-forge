@@ -27,8 +27,7 @@ export class BackgroundCard {
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
 
-		// EventBus listener tracking
-		this._eventHandlers = {};
+
 
 		// Track current selection
 		this._selectedBackground = null;
@@ -85,7 +84,7 @@ export class BackgroundCard {
 		// sources:allowed-changed fires after CHARACTER_SELECTED and ensures
 		// the list is populated with correctly filtered sources before loading
 		// the saved selection.
-		this.onEventBus(EVENTS.SOURCES_ALLOWED_CHANGED, () => {
+		this._cleanup.onEvent(EVENTS.SOURCES_ALLOWED_CHANGED, () => {
 			this._populateBackgroundList();
 			this._loadSavedBackgroundSelection();
 		});
@@ -99,49 +98,7 @@ export class BackgroundCard {
 	}
 
 	_cleanupEventListeners() {
-		// Remove all eventBus listeners
-		this._cleanupEventBusListeners();
-
-		// Clean up all tracked DOM listeners
 		this._cleanup.cleanup();
-	}
-
-	//-------------------------------------------------------------------------
-	// EventBus Cleanup Helpers
-	//-------------------------------------------------------------------------
-
-	onEventBus(event, handler) {
-		if (typeof handler !== 'function') {
-			console.warn('[BackgroundCard]', 'Handler must be a function', { event });
-			return;
-		}
-
-		eventBus.on(event, handler);
-
-		if (!this._eventHandlers[event]) {
-			this._eventHandlers[event] = [];
-		}
-		this._eventHandlers[event].push(handler);
-	}
-
-	_cleanupEventBusListeners() {
-		for (const [event, handlers] of Object.entries(this._eventHandlers)) {
-			if (Array.isArray(handlers)) {
-				for (const handler of handlers) {
-					try {
-						eventBus.off(event, handler);
-					} catch (e) {
-						console.warn('[BackgroundCard]', 'Error removing listener', {
-							event,
-							error: e,
-						});
-					}
-				}
-			}
-		}
-
-		this._eventHandlers = {};
-		console.debug('[BackgroundCard]', 'EventBus cleanup complete');
 	}
 
 	//-------------------------------------------------------------------------

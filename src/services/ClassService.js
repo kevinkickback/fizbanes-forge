@@ -593,6 +593,45 @@ class ClassService extends BaseDataService {
 			source,
 		).filter((c) => c.level === level);
 	}
+
+	/**
+	 * Get the maximum spell level available for a class at a given character level.
+	 * Accounts for full, half, third, and pact caster progressions.
+	 * @param {string} className
+	 * @param {number} characterLevel
+	 * @param {string} [source]
+	 * @returns {number} Max spell level (0–9)
+	 */
+	getMaxSpellLevel(className, characterLevel, source) {
+		const classData = this.getClass(className, source);
+		if (!classData) return 0;
+
+		const progression = classData.casterProgression;
+		let casterLevel = characterLevel;
+
+		if (progression === '1/2') {
+			casterLevel = Math.floor(characterLevel / 2);
+		} else if (progression === '1/3') {
+			casterLevel = Math.floor(characterLevel / 3);
+		} else if (progression === 'pact') {
+			if (characterLevel >= 9) return 5;
+			if (characterLevel >= 7) return 4;
+			if (characterLevel >= 5) return 3;
+			if (characterLevel >= 3) return 2;
+			return 1;
+		}
+
+		if (casterLevel >= 17) return 9;
+		if (casterLevel >= 15) return 8;
+		if (casterLevel >= 13) return 7;
+		if (casterLevel >= 11) return 6;
+		if (casterLevel >= 9) return 5;
+		if (casterLevel >= 7) return 4;
+		if (casterLevel >= 5) return 3;
+		if (casterLevel >= 3) return 2;
+		if (casterLevel >= 1) return 1;
+		return 0;
+	}
 }
 
 // Create and export singleton instance

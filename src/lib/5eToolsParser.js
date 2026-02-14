@@ -325,20 +325,6 @@ export function getSchoolName(code) {
 	return SPELL_SCHOOLS[code] || code;
 }
 
-export function attrChooseToFull(attList) {
-	if (!attList || !Array.isArray(attList) || attList.length === 0) {
-		return '';
-	}
-
-	if (attList.length === 1) {
-		const fullName = attAbvToFull(attList[0]);
-		return `${fullName}${attList[0] === 'spellcasting' ? ' ability' : ''} modifier`;
-	}
-
-	const attsTemp = attList.map((att) => attAbvToFull(att));
-	return `${attsTemp.join(' or ')} modifier (your choice)`;
-}
-
 export function getSpeedString(ent) {
 	// Handle simple number
 	if (typeof ent === 'number') {
@@ -404,58 +390,6 @@ export function getSpeedString(ent) {
 	return '—';
 }
 
-export function monTypeToFullObj(type) {
-	const out = {
-		types: [],
-		tags: [],
-		asText: '',
-		asTextShort: '',
-	};
-
-	if (type == null) return out;
-
-	// Simple string type (e.g., "humanoid")
-	if (typeof type === 'string') {
-		out.types = [type];
-		out.asText = capitalize(type);
-		out.asTextShort = out.asText;
-		return out;
-	}
-
-	// Complex type object
-	if (type.type) {
-		if (type.type.choose) {
-			out.types = type.type.choose;
-		} else {
-			out.types = [type.type];
-		}
-	}
-
-	// Handle swarm
-	if (type.swarmSize) {
-		out.tags.push('swarm');
-		const sizeText = sizeAbvToFull(type.swarmSize);
-		const typeText = out.types
-			.map((t) => pluralize(capitalize(t)))
-			.join(' or ');
-		out.asText = `swarm of ${sizeText} ${typeText}`;
-		out.asTextShort = out.asText;
-		return out;
-	}
-
-	// Handle tags
-	if (type.tags?.length) {
-		out.tags = type.tags;
-		const tagText = type.tags.map(capitalize).join(', ');
-		out.asText = `${out.types.map(capitalize).join(' or ')} (${tagText})`;
-	} else {
-		out.asText = out.types.map(capitalize).join(' or ');
-	}
-
-	out.asTextShort = out.asText;
-	return out;
-}
-
 export function capitalize(str) {
 	if (!str) return '';
 	return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -477,45 +411,6 @@ export function toSentenceCase(str) {
 		return '';
 	}
 	return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function pluralize(str) {
-	if (!str) return '';
-	// Simple rules for common D&D types
-	if (str.endsWith('s')) return str;
-	if (str.endsWith('y')) return `${str.slice(0, -1)}ies`;
-	return `${str}s`;
-}
-
-export function alignmentAbvToFull(alignment) {
-	if (!alignment) return null;
-
-	const ALIGNMENT_MAP = {
-		L: 'lawful',
-		N: 'neutral',
-		NX: 'neutral (law/chaos axis)',
-		NY: 'neutral (good/evil axis)',
-		C: 'chaotic',
-		G: 'good',
-		E: 'evil',
-		U: 'unaligned',
-		A: 'any alignment',
-	};
-
-	if (typeof alignment === 'object') {
-		if (alignment.special != null) return alignment.special;
-		// Handle complex alignment with chance
-		const alignText = alignment.alignment
-			? alignment.alignment
-				.map((a) => ALIGNMENT_MAP[a.toUpperCase()] || a)
-				.join(' ')
-			: '';
-		const chanceText = alignment.chance ? ` (${alignment.chance}%)` : '';
-		const noteText = alignment.note ? ` (${alignment.note})` : '';
-		return `${alignText}${chanceText}${noteText}`;
-	}
-
-	return ALIGNMENT_MAP[alignment.toUpperCase()] || alignment;
 }
 
 export function getOrdinalForm(i) {
@@ -553,45 +448,17 @@ export function levelToProficiencyBonus(level) {
 	return Math.ceil(level / 4) + 1;
 }
 
-export function skillToAbility(skill) {
-	return SKILL_TO_ABILITY[skill.toLowerCase()] || null;
-}
-
-export function abilityToSkills(ability) {
-	const abilityLower = ability.toLowerCase();
-	return Object.entries(SKILL_TO_ABILITY)
-		.filter(([, abilityAbv]) => abilityAbv === abilityLower)
-		.map(([skill]) => skill);
-}
-
-export function packUid(entity) {
-	if (!entity?.name || !entity?.source) return '';
-	return `${entity.name.toLowerCase().trim()}|${entity.source.toLowerCase().trim()}`;
-}
-
 export function unpackUid(uid) {
 	if (!uid || typeof uid !== 'string') return { name: '', source: '' };
 	const [name, source] = uid.split('|');
 	return { name: name?.trim() || '', source: source?.trim() || '' };
 }
 
-export function sourceToFull(source) {
-	if (!source) return '';
-	const sourceUpper = source.toUpperCase();
-	return SOURCE_TO_FULL[sourceUpper] || source;
-}
 
-export function sourceToAbv(source) {
-	if (!source) return '';
-	const sourceUpper = source.toUpperCase();
-	return SOURCE_TO_ABV[sourceUpper] || source;
-}
 
-export function isOneDnD(source) {
-	if (!source) return false;
-	const sourceUpper = source.toUpperCase();
-	return sourceUpper.startsWith('X'); // XPHB, XDMG, XMM
-}
+
+
+
 
 export function numberToWords(num, opts = {}) {
 	if (Number.isNaN(num)) return '';
@@ -669,71 +536,7 @@ export function numberToWords(num, opts = {}) {
 	return String(num);
 }
 
-export function numberToVulgarFraction(num) {
-	const fractions = {
-		0.125: '⅛',
-		0.25: '¼',
-		0.333: '⅓',
-		0.5: '½',
-		0.666: '⅔',
-		0.75: '¾',
-	};
-	const rounded = Math.round(num * 1000) / 1000;
-	return fractions[rounded] || String(num);
-}
-
-export function parseAbilityImprovements(improvementArray) {
-	if (!Array.isArray(improvementArray)) {
-		return { fixed: {}, choices: [] };
-	}
-
-	const fixed = {};
-	const choices = [];
-
-	for (const improvement of improvementArray) {
-		if (improvement.choose) {
-			// This is a choice
-			choices.push({
-				options: improvement.choose.from || [],
-				count: improvement.choose.count || 1,
-				amount: improvement.choose.amount || 1,
-			});
-		} else {
-			// Fixed bonuses
-			for (const [ability, value] of Object.entries(improvement)) {
-				if (ability !== 'choose') {
-					fixed[ability] = (fixed[ability] || 0) + value;
-				}
-			}
-		}
-	}
-
-	return { fixed, choices };
-}
-
-export function formatAbilityImprovements(parsed) {
-	const parts = [];
-
-	// Add fixed bonuses
-	for (const [ability, value] of Object.entries(parsed.fixed)) {
-		const fullName = attAbvToFull(ability);
-		parts.push(`${fullName} +${value}`);
-	}
-
-	// Add choices
-	for (const choice of parsed.choices) {
-		const options = choice.options.map((a) => attAbvToFull(a)).join(', ');
-		const amount = choice.amount;
-		const count = choice.count;
-		parts.push(
-			`choose ${count > 1 ? `${numberToWords(count)} from ` : ''}${options} +${amount}`,
-		);
-	}
-
-	return parts.join(', ');
-}
-
-export function ascSort(a, b) {
+function ascSort(a, b) {
 	if (a === b) return 0;
 	return a < b ? -1 : 1;
 }
@@ -742,78 +545,10 @@ export function ascSortLower(a, b) {
 	return ascSort(String(a).toLowerCase(), String(b).toLowerCase());
 }
 
-export function ascSortByProp(prop) {
-	return (a, b) => ascSort(a[prop], b[prop]);
-}
-
-export function ascSortByPropLower(prop) {
-	return (a, b) => ascSortLower(a[prop], b[prop]);
-}
-
-export function getAlignmentLabel(value) {
-	const alignment = ALIGNMENTS.find((a) => a.value === value);
-	return alignment ? alignment.label : value;
-}
-
-export function getAlignmentValue(label) {
-	const alignment = ALIGNMENTS.find((a) => a.label === label);
-	return alignment ? alignment.value : label;
-}
-
-export function isValidSkill(skillName) {
-	return STANDARD_SKILL_OPTIONS.includes(skillName);
-}
-
-export function isValidTool(toolName) {
-	return STANDARD_TOOL_OPTIONS.includes(toolName);
-}
-
-export function isValidLanguage(languageName) {
-	return STANDARD_LANGUAGE_OPTIONS.includes(languageName);
-}
-
 // Export additional constants for external use
 export {
 	DEFAULT_SOURCE,
-	LANGUAGES_EXOTIC,
-	LANGUAGES_SECRET,
-	LANGUAGES_STANDARD,
-	SIZE_ABV_TO_FULL,
-	SKILL_TO_ABILITY, SOURCE_TO_ABV,
-	SOURCE_TO_FULL, SOURCES, SPEED_MODES
-};
-
-export default {
-	sizeAbvToFull,
-	getAbilityModNumber,
-	getAbilityModifier,
-	formatModifierNumber,
-	attAbvToFull,
-	attrChooseToFull,
-	getSpeedString,
-	monTypeToFullObj,
-	alignmentAbvToFull,
-	getOrdinalForm,
-	fullAbilityToAbbr,
-	getAbilityAbbrDisplay,
-	levelToProficiencyBonus,
-	skillToAbility,
-	abilityToSkills,
-	packUid,
-	unpackUid,
-	sourceToFull,
-	sourceToAbv,
-	isOneDnD,
-	numberToWords,
-	numberToVulgarFraction,
-	parseAbilityImprovements,
-	formatAbilityImprovements,
-	toTitleCase,
-	toSentenceCase,
-	ascSort,
-	ascSortLower,
-	ascSortByProp,
-	ascSortByPropLower,
+	SIZE_ABV_TO_FULL
 };
 
 /**

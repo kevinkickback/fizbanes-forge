@@ -1,9 +1,9 @@
 // Step 4: Background - background selection with proficiencies, languages, and features
 
-import { toSentenceCase, toTitleCase } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { backgroundService } from '../../../services/BackgroundService.js';
 import { sourceService } from '../../../services/SourceService.js';
+import { BackgroundDetailsView } from '../background/BackgroundDetailsView.js';
 
 export class CharacterStepBackground {
 	constructor(session, modal) {
@@ -11,6 +11,7 @@ export class CharacterStepBackground {
 		this.modal = modal;
 		this._cleanup = DOMCleanup.create();
 		this._backgroundService = backgroundService;
+		this._detailsView = new BackgroundDetailsView();
 	}
 
 	async render() {
@@ -294,109 +295,51 @@ export class CharacterStepBackground {
 	}
 
 	_formatSkillProficiencies(background) {
-		if (!background?.proficiencies?.skills) return 'None';
-
-		const skills = background.proficiencies.skills
-			.map((prof) => {
-				if (prof.choose) {
-					return `Choose ${prof.choose.count || 1} from: ${prof.choose.from?.map(toTitleCase).join(', ') || 'any'}`;
-				}
-				return toTitleCase(prof.skill || prof);
-			})
-			.filter(Boolean);
-
-		return skills.join(', ') || 'None';
+		return this._detailsView._formatSkillProficiencies(background);
 	}
 
 	_formatToolProficiencies(background) {
-		if (!background?.proficiencies?.tools) return 'None';
-
-		const tools = background.proficiencies.tools
-			.map((prof) => {
-				if (prof.choose) {
-					return `Choose ${prof.choose.count || 1} tool${prof.choose.count > 1 ? 's' : ''}`;
-				}
-				return toSentenceCase(prof.tool || prof);
-			})
-			.filter(Boolean);
-
-		return tools.join(', ') || 'None';
+		return this._detailsView._formatToolProficiencies(background);
 	}
 
 	_formatLanguages(background) {
-		if (!background?.proficiencies?.languages) return 'None';
-
-		const languages = background.proficiencies.languages
-			.map((prof) => {
-				if (prof.choose) {
-					const count = prof.choose.count || 1;
-					const suffix =
-						prof.choose.type === 'anystandard'
-							? ' (standard)'
-							: prof.choose.type === 'any'
-								? ' (any)'
-								: '';
-					return `Choose ${count} language${count > 1 ? 's' : ''}${suffix}`;
-				}
-				return toTitleCase(prof.language || prof);
-			})
-			.filter(Boolean);
-
-		return languages.join(', ') || 'None';
+		return this._detailsView._formatLanguages(background);
 	}
 
 	_formatEquipment(background) {
 		if (!background?.equipment) return '<li>None</li>';
 
-		const equipment = [];
+		// Use BackgroundDetailsView's richer equipment formatting, then wrap in <li> tags
+		const formatted = this._detailsView._formatEquipment(background);
+		if (!formatted || formatted === 'None') return '<li>None</li>';
 
-		for (const eq of background.equipment) {
-			if (eq.a && eq.b) {
-				equipment.push(
-					`(a) ${this._formatEquipmentList(eq.a)} or (b) ${this._formatEquipmentList(eq.b)}`,
-				);
-			} else if (Array.isArray(eq)) {
-				equipment.push(this._formatEquipmentList(eq));
-			} else {
-				equipment.push(this._formatSingleEquipment(eq));
-			}
-		}
-
-		return equipment.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
-	}
-
-	_formatEquipmentList(items) {
-		return items.map((item) => this._formatSingleEquipment(item)).join(', ');
-	}
-
-	_formatSingleEquipment(item) {
-		if (typeof item === 'string') {
-			return item;
-		}
-		const qty = item.quantity ? `${item.quantity}x ` : '';
-		const name = item.item || item.name || item.special || '';
-		return `${qty}${name}`.trim();
+		// Split on semicolons (BackgroundDetailsView joins items with '; ')
+		const items = formatted.split('; ').filter(Boolean);
+		return items.map((e) => `<li>${e}</li>`).join('') || '<li>None</li>';
 	}
 
 	_extractFeature(background) {
 		if (!background?.entries) return null;
 
-		const featureEntry = background.entries.find(
-			(entry) =>
-				entry.name?.toLowerCase().includes('feature') || entry.data?.isFeature,
-		);
+		// Delegate core extraction to BackgroundDetailsView
+		const feature = this._detailsView._extractFeature(background);
+		if (!feature) return null;
 
-		if (!featureEntry) return null;
-
-		const description = Array.isArray(featureEntry.entries)
-			? featureEntry.entries
-				.map((e) => (typeof e === 'string' ? e : ''))
+		// Return full description without truncation (creation step shows complete text)
+		const description = Array.isArray(
+			background.entries.find(
+				(entry) => entry.name?.toLowerCase().includes('feature') || entry.data?.isFeature,
+			)?.entries,
+		)
+			? background.entries
+				.find((entry) => entry.name?.toLowerCase().includes('feature') || entry.data?.isFeature)
+				.entries.map((e) => (typeof e === 'string' ? e : ''))
 				.filter(Boolean)
 				.join(' ')
-			: featureEntry.entry || '';
+			: feature.description;
 
 		return {
-			name: featureEntry.name || 'Feature',
+			name: feature.name,
 			description: description.trim(),
 		};
 	}

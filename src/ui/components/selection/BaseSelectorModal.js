@@ -447,11 +447,6 @@ export class BaseSelectorModal {
 					}
 				}
 				el.classList.toggle('blocked', blocked);
-				if (blocked) {
-					el.style.opacity = '0.6';
-				} else {
-					el.style.opacity = '';
-				}
 			});
 
 		if (typeof this.config.onListRendered === 'function') {
@@ -661,7 +656,6 @@ export class BaseSelectorModal {
 						}
 					}
 					el.classList.toggle('blocked', blocked);
-					el.style.opacity = blocked ? '0.6' : '';
 				});
 		}
 	}

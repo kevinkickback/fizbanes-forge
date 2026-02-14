@@ -55,7 +55,7 @@ export class ClassSpellSelectorModal {
 
 			// If there are no spells to learn at this level, bail out with a notice
 			if (!Array.isArray(spellData) || spellData.length === 0) {
-				const maxSpellLevel = this._getMaxSpellLevel(
+				const maxSpellLevel = classService.getMaxSpellLevel(
 					this.className,
 					this.currentLevel,
 				);
@@ -85,7 +85,7 @@ export class ClassSpellSelectorModal {
 			// Build modal title
 			let modalTitle = `Select Spells - ${this.className} (Level ${this.currentLevel})`;
 			if (this.maxCantrips > 0 && this.maxSpells > 0) {
-				const maxSpellLevel = this._getMaxSpellLevel(
+				const maxSpellLevel = classService.getMaxSpellLevel(
 					this.className,
 					this.currentLevel,
 				);
@@ -93,7 +93,7 @@ export class ClassSpellSelectorModal {
 			} else if (this.maxCantrips > 0) {
 				modalTitle = `Learn ${this.maxCantrips} cantrip${this.maxCantrips !== 1 ? 's' : ''}`;
 			} else if (this.maxSpells > 0) {
-				const maxSpellLevel = this._getMaxSpellLevel(
+				const maxSpellLevel = classService.getMaxSpellLevel(
 					this.className,
 					this.currentLevel,
 				);
@@ -103,7 +103,7 @@ export class ClassSpellSelectorModal {
 			// Build filter sets using FilterBuilder (same as UniversalSpellModal)
 			const buildFilters = (_ctx, panel, cleanup) => {
 				if (!panel) return;
-				const maxSpellLevel = this._getMaxSpellLevel(
+				const maxSpellLevel = classService.getMaxSpellLevel(
 					this.className,
 					this.currentLevel,
 				);
@@ -276,7 +276,7 @@ export class ClassSpellSelectorModal {
 							'warning',
 						);
 					} else {
-						const maxSpellLevel = this._getMaxSpellLevel(
+						const maxSpellLevel = classService.getMaxSpellLevel(
 							this.className,
 							this.currentLevel,
 						);
@@ -320,7 +320,7 @@ export class ClassSpellSelectorModal {
 		}
 
 		// Calculate maximum spell level available at this character level
-		const maxSpellLevel = this._getMaxSpellLevel(
+		const maxSpellLevel = classService.getMaxSpellLevel(
 			this.className,
 			this.currentLevel,
 		);
@@ -495,7 +495,7 @@ export class ClassSpellSelectorModal {
 
 		// Add leveled spells category if applicable
 		if (this.maxSpells > 0) {
-			const maxSpellLevel = this._getMaxSpellLevel(
+			const maxSpellLevel = classService.getMaxSpellLevel(
 				this.className,
 				this.currentLevel,
 			);
@@ -511,57 +511,6 @@ export class ClassSpellSelectorModal {
 
 		// Use the shared helper to format badges
 		return formatCategoryCounters(categories);
-	}
-
-	/**
-	 * Get the maximum spell level available for a class at a given level
-	 */
-	_getMaxSpellLevel(className, characterLevel) {
-		const classData =
-			spellSelectionService._getClassSpellcastingInfo(className);
-		if (!classData) return 0;
-
-		// Get the class data from classService to check caster progression
-		const classInfo = classService.getClass(className);
-		const progression = classInfo?.casterProgression;
-
-		let casterLevel = characterLevel;
-
-		// Calculate effective caster level based on progression type
-		if (progression === '1/2') {
-			casterLevel = Math.floor(characterLevel / 2);
-		} else if (progression === '1/3') {
-			casterLevel = Math.floor(characterLevel / 3);
-		} else if (progression === 'pact') {
-			// Warlock uses pact magic - special progression
-			// Warlocks gain spell levels: 1st at level 1, 2nd at level 3, 3rd at level 5, 4th at level 7, 5th at level 9
-			if (characterLevel >= 9) return 5;
-			if (characterLevel >= 7) return 4;
-			if (characterLevel >= 5) return 3;
-			if (characterLevel >= 3) return 2;
-			return 1;
-		}
-
-		// Standard spell level progression for full/half/third casters
-		// Level 1-2: 1st level spells
-		// Level 3-4: 2nd level spells
-		// Level 5-6: 3rd level spells
-		// Level 7-8: 4th level spells
-		// Level 9-10: 5th level spells
-		// Level 11-12: 6th level spells
-		// Level 13-14: 7th level spells
-		// Level 15-16: 8th level spells
-		// Level 17+: 9th level spells
-		if (casterLevel >= 17) return 9;
-		if (casterLevel >= 15) return 8;
-		if (casterLevel >= 13) return 7;
-		if (casterLevel >= 11) return 6;
-		if (casterLevel >= 9) return 5;
-		if (casterLevel >= 7) return 4;
-		if (casterLevel >= 5) return 3;
-		if (casterLevel >= 3) return 2;
-		if (casterLevel >= 1) return 1;
-		return 0;
 	}
 
 	/**
@@ -581,11 +530,11 @@ export class ClassSpellSelectorModal {
 		const previousLevel = this.currentLevel - 1;
 
 		// Calculate cantrips
-		const previousCantrips = spellSelectionService._getCantripsKnown(
+		const previousCantrips = spellSelectionService.getCantripsKnown(
 			this.className,
 			previousLevel,
 		);
-		const currentCantrips = spellSelectionService._getCantripsKnown(
+		const currentCantrips = spellSelectionService.getCantripsKnown(
 			this.className,
 			this.currentLevel,
 		);
@@ -603,11 +552,11 @@ export class ClassSpellSelectorModal {
 		}
 
 		// Get spells known at previous level and current level
-		const previousSpellsKnown = spellSelectionService._getSpellsKnownLimit(
+		const previousSpellsKnown = spellSelectionService.getSpellsKnownLimit(
 			this.className,
 			previousLevel,
 		);
-		const currentSpellsKnown = spellSelectionService._getSpellsKnownLimit(
+		const currentSpellsKnown = spellSelectionService.getSpellsKnownLimit(
 			this.className,
 			this.currentLevel,
 		);

@@ -76,9 +76,7 @@ export function hideBootstrapModal(modalInstance, modalElement) {
             // Force hide the modal element
             if (modalElement) {
                 modalElement.classList.remove('show');
-                modalElement.style.display = 'none';
-                modalElement.setAttribute('aria-hidden', 'true');
-                modalElement.removeAttribute('aria-modal');
+                modalElement.classList.add('u-hidden');
             }
 
             resolve();

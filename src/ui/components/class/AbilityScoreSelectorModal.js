@@ -3,6 +3,7 @@
 import { ABILITY_ABBREVIATIONS, attAbvToFull } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { disposeBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
+import { showNotification } from '../../../lib/Notifications.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
 
 export class AbilityScoreSelectorModal {
@@ -320,17 +321,17 @@ export class AbilityScoreSelectorModal {
 
 		// Validate selection
 		if (this._asiMode === 'plus2' && !ability1) {
-			alert('Please select an ability to improve by +2.');
+			showNotification('Please select an ability to improve by +2.', 'warning');
 			return;
 		}
 
 		if (this._asiMode === 'plus1') {
 			if (!ability1 || !ability2) {
-				alert('Please select two abilities to improve by +1 each.');
+				showNotification('Please select two abilities to improve by +1 each.', 'warning');
 				return;
 			}
 			if (ability1 === ability2) {
-				alert('Please select two different abilities.');
+				showNotification('Please select two different abilities.', 'warning');
 				return;
 			}
 		}

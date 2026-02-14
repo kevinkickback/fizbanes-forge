@@ -580,7 +580,3 @@ export class Character {
 export function serializeCharacter(character) {
 	return CharacterSerializer.serialize(character);
 }
-
-export function deserializeCharacter(data) {
-	return CharacterSerializer.deserialize(data);
-}

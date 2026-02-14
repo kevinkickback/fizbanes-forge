@@ -1,7 +1,7 @@
 // Simplified level picker for character progression (changes held in memory until manual save)
 
 import { AppState } from '../../../app/AppState.js';
-import { Modal } from '../../../app/Modal.js';
+import { modal } from '../../../app/Modal.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
@@ -391,7 +391,6 @@ export class LevelUpModal {
 		if (!character) return;
 
 		// Show confirmation
-		const modal = Modal.getInstance();
 		const confirmed = await modal.showConfirmationModal({
 			title: 'Remove Level',
 			message:

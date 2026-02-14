@@ -1,5 +1,5 @@
 import { showNotification } from '../../lib/Notifications.js';
-import { AbilityScoreCard } from '../../ui/components/abilities/AbilityScoreCard.js';
+import { abilityScoreCard } from '../../ui/components/abilities/AbilityScoreCard.js';
 import { BackgroundCard } from '../../ui/components/background/BackgroundCard.js';
 import { ClassCard } from '../../ui/components/class/ClassCard.js';
 import { ProficiencyCard } from '../../ui/components/proficiencies/ProficiencyCard.js';
@@ -16,7 +16,6 @@ export class BuildPageController extends BasePageController {
 
     async initialize() {
         try {
-            const abilityScoreCard = AbilityScoreCard.getInstance();
             await abilityScoreCard.initialize();
             this._abilityScoreCard = abilityScoreCard;
 

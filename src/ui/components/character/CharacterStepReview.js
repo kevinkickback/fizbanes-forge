@@ -9,6 +9,7 @@ import {
 } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { abilityScoreService } from '../../../services/AbilityScoreService.js';
+import { classService } from '../../../services/ClassService.js';
 import { raceService } from '../../../services/RaceService.js';
 
 export class CharacterStepReview {
@@ -200,23 +201,9 @@ export class CharacterStepReview {
 		const totalConScore = baseConScore + racialConBonus;
 		const conModifier = getAbilityModNumber(totalConScore);
 
-		// Hit die by class (simplified)
-		const hitDice = {
-			Barbarian: 12,
-			Fighter: 10,
-			Paladin: 10,
-			Ranger: 10,
-			Bard: 8,
-			Cleric: 8,
-			Druid: 8,
-			Monk: 8,
-			Rogue: 8,
-			Warlock: 8,
-			Sorcerer: 6,
-			Wizard: 6,
-		};
-
-		const hitDie = hitDice[className] || 8;
+		// Get hit die from ClassService (returns e.g. 'd10')
+		const hitDieStr = classService.getHitDie(className, data.class?.source);
+		const hitDie = Number.parseInt(hitDieStr.replace('d', ''), 10) || 8;
 		const baseHP = hitDie + conModifier;
 
 		return Math.max(1, baseHP);

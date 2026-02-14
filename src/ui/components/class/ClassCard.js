@@ -3,6 +3,7 @@ import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
+import { showNotification } from '../../../lib/Notifications.js';
 
 import {
 	ARTISAN_TOOLS,
@@ -94,43 +95,21 @@ export class ClassCard {
 	}
 
 	_setupEventListeners() {
-		// Store handler references for cleanup
-		this._characterUpdatedHandler = () => {
+		this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, () => {
 			this._syncWithCharacterProgression();
-		};
-		this._characterSelectedHandler = () => {
+		});
+		this._cleanup.onEvent(EVENTS.CHARACTER_SELECTED, () => {
 			this._handleCharacterChanged();
-		};
-		this._sourcesChangedHandler = () => {
+		});
+		this._cleanup.onEvent(EVENTS.SOURCES_ALLOWED_CHANGED, () => {
 			this._loadSavedClassSelection();
-		};
-		this._levelUpCompleteHandler = () => {
+		});
+		this._cleanup.onEvent('LEVEL_UP_COMPLETE', () => {
 			this._handleLevelUpComplete();
-		};
-
-		// Listen to view events via EventBus (dropdown events removed)
-		eventBus.on(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
-		eventBus.on(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		eventBus.on(EVENTS.SOURCES_ALLOWED_CHANGED, this._sourcesChangedHandler);
-		eventBus.on('LEVEL_UP_COMPLETE', this._levelUpCompleteHandler);
+		});
 	}
 
 	_cleanupEventListeners() {
-		// Manually remove all eventBus listeners
-		if (this._characterUpdatedHandler) {
-			eventBus.off(EVENTS.CHARACTER_UPDATED, this._characterUpdatedHandler);
-		}
-		if (this._characterSelectedHandler) {
-			eventBus.off(EVENTS.CHARACTER_SELECTED, this._characterSelectedHandler);
-		}
-		if (this._sourcesChangedHandler) {
-			eventBus.off(EVENTS.SOURCES_ALLOWED_CHANGED, this._sourcesChangedHandler);
-		}
-		if (this._levelUpCompleteHandler) {
-			eventBus.off('LEVEL_UP_COMPLETE', this._levelUpCompleteHandler);
-		}
-
-		// Clean up all tracked DOM listeners
 		this._cleanup.cleanup();
 	}
 
@@ -610,7 +589,7 @@ export class ClassCard {
 		);
 
 		if (!ability1) {
-			alert('Please select an ability to improve.');
+			showNotification('Please select an ability to improve.', 'warning');
 			return;
 		}
 
@@ -623,11 +602,11 @@ export class ClassCard {
 				`asiAbility2_${classLevel}`,
 			)?.value;
 			if (!ability2) {
-				alert('Please select a second ability for +1 bonus.');
+				showNotification('Please select a second ability for +1 bonus.', 'warning');
 				return;
 			}
 			if (ability2 === ability1) {
-				alert('Please select two different abilities.');
+				showNotification('Please select two different abilities.', 'warning');
 				return;
 			}
 			changes[ability2] = 1;
@@ -726,7 +705,7 @@ export class ClassCard {
 			}
 			if (choice.spells > 0) {
 				// Use centralized method to get max spell level
-				const maxSpellLevel = this._getMaxSpellLevel(className, choice.level);
+				const maxSpellLevel = this._classService.getMaxSpellLevel(className, choice.level);
 				const spellCount = selectedLeveledSpells.length;
 				const spellClass =
 					spellCount === choice.spells
@@ -806,13 +785,13 @@ export class ClassCard {
 
 		// For each level, calculate new spells/cantrips available
 		for (let level = 1; level <= classLevel; level++) {
-			const cantripsAtLevel = spellSelectionService._getCantripsKnown(
+			const cantripsAtLevel = spellSelectionService.getCantripsKnown(
 				className,
 				level,
 			);
 			const cantripsAtPrevLevel =
 				level > 1
-					? spellSelectionService._getCantripsKnown(className, level - 1)
+					? spellSelectionService.getCantripsKnown(className, level - 1)
 					: 0;
 			const newCantrips = cantripsAtLevel - cantripsAtPrevLevel;
 
@@ -828,13 +807,13 @@ export class ClassCard {
 				newSpells = classData.spellsKnownProgressionFixed[index] || 0;
 			} else if (classData.spellsKnownProgression) {
 				// Bard, Sorcerer, Warlock, Ranger: total spells known increases
-				const spellsAtLevel = spellSelectionService._getSpellsKnownLimit(
+				const spellsAtLevel = spellSelectionService.getSpellsKnownLimit(
 					className,
 					level,
 				);
 				const spellsAtPrevLevel =
 					level > 1
-						? spellSelectionService._getSpellsKnownLimit(className, level - 1)
+						? spellSelectionService.getSpellsKnownLimit(className, level - 1)
 						: 0;
 				newSpells = spellsAtLevel - spellsAtPrevLevel;
 			}
@@ -846,46 +825,12 @@ export class ClassCard {
 					level,
 					cantrips: newCantrips,
 					spells: newSpells,
-					maxSpellLevel: this._getMaxSpellLevel(className, level),
+					maxSpellLevel: this._classService.getMaxSpellLevel(className, level),
 				});
 			}
 		}
 
 		return choices;
-	}
-
-	_getMaxSpellLevel(className, characterLevel) {
-		const classData = this._classService.getClass(className);
-		if (!classData) return 0;
-
-		const progression = classData.casterProgression;
-		let casterLevel = characterLevel;
-
-		// Calculate effective caster level based on progression type
-		if (progression === '1/2') {
-			casterLevel = Math.floor(characterLevel / 2);
-		} else if (progression === '1/3') {
-			casterLevel = Math.floor(characterLevel / 3);
-		} else if (progression === 'pact') {
-			// Warlock uses pact magic - special progression
-			if (characterLevel >= 9) return 5;
-			if (characterLevel >= 7) return 4;
-			if (characterLevel >= 5) return 3;
-			if (characterLevel >= 3) return 2;
-			return 1;
-		}
-
-		// Standard spell level progression
-		if (casterLevel >= 17) return 9;
-		if (casterLevel >= 15) return 8;
-		if (casterLevel >= 13) return 7;
-		if (casterLevel >= 11) return 6;
-		if (casterLevel >= 9) return 5;
-		if (casterLevel >= 7) return 4;
-		if (casterLevel >= 5) return 3;
-		if (casterLevel >= 3) return 2;
-		if (casterLevel >= 1) return 1;
-		return 0;
 	}
 
 	async _handleSpellSelection(className, level) {

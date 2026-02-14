@@ -2,14 +2,13 @@ import { dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { MainLogger } from '../Logger.js';
-import { getCharacterSavePath } from '../Settings.js';
 import { IPC_CHANNELS } from './channels.js';
 
-export function registerFileHandlers(windowManager) {
+export function registerFileHandlers(preferencesManager, windowManager) {
 	MainLogger.debug('FileHandlers', 'Registering file handlers');
 
 	const getAllowedRoots = () => {
-		const characterRoot = path.resolve(getCharacterSavePath());
+		const characterRoot = path.resolve(preferencesManager.getCharacterSavePath());
 		const portraitsRoot = path.resolve(
 			path.join(path.dirname(characterRoot), 'portraits'),
 		);
