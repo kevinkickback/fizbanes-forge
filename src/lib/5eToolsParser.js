@@ -137,8 +137,6 @@ const LANGUAGES_EXOTIC = [
 	'Undercommon',
 ];
 
-const LANGUAGES_SECRET = ['Druidic', "Thieves' Cant"];
-
 export const ALIGNMENTS = [
 	{ value: 'LG', label: 'Lawful Good' },
 	{ value: 'NG', label: 'Neutral Good' },
@@ -244,48 +242,6 @@ export const DEFAULT_CHARACTER_SIZE = ['M'];
 export const DEFAULT_CHARACTER_SPEED = { walk: 30 };
 
 const DEFAULT_SOURCE = 'PHB';
-
-const SOURCES = {
-	PHB: 'PHB',
-	XPHB: 'XPHB',
-	DMG: 'DMG',
-	XDMG: 'XDMG',
-	MM: 'MM',
-	XMM: 'XMM',
-	SCAG: 'SCAG',
-	XGE: 'XGE',
-	TCE: 'TCE',
-	VRGR: 'VRGR',
-	MPMM: 'MPMM',
-};
-
-const SOURCE_TO_FULL = {
-	PHB: "Player's Handbook (2014)",
-	XPHB: "Player's Handbook (2024)",
-	DMG: "Dungeon Master's Guide (2014)",
-	XDMG: "Dungeon Master's Guide (2024)",
-	MM: 'Monster Manual (2014)',
-	XMM: 'Monster Manual (2024)',
-	SCAG: "Sword Coast Adventurer's Guide",
-	XGE: "Xanathar's Guide to Everything",
-	TCE: "Tasha's Cauldron of Everything",
-	VRGR: "Van Richten's Guide to Ravenloft",
-	MPMM: 'Mordenkainen Presents: Monsters of the Multiverse',
-};
-
-const SOURCE_TO_ABV = {
-	PHB: 'PHB',
-	XPHB: "PHB'24",
-	DMG: 'DMG',
-	XDMG: "DMG'24",
-	MM: 'MM',
-	XMM: "MM'24",
-	SCAG: 'SCAG',
-	XGE: 'XGE',
-	TCE: 'TCE',
-	VRGR: 'VRGR',
-	MPMM: 'MPMM',
-};
 
 export function sizeAbvToFull(abv) {
 	if (!abv) return '';
@@ -548,7 +504,8 @@ export function ascSortLower(a, b) {
 // Export additional constants for external use
 export {
 	DEFAULT_SOURCE,
-	SIZE_ABV_TO_FULL
+	SIZE_ABV_TO_FULL,
+	SKILL_TO_ABILITY
 };
 
 /**
