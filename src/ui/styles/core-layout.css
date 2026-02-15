@@ -11,6 +11,11 @@
 	background-color: var(--background-color);
 }
 
+code {
+	font-size: 1em !important;
+	color: var(--accent-color) !important;
+}
+
 /* Sidebar */
 .sidebar {
 	width: var(--sidebar-width);

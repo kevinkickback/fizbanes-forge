@@ -378,14 +378,14 @@
                             <button class="nav-link active" id="url-tab" data-bs-toggle="tab"
                                 data-bs-target="#url-tab-pane" type="button" role="tab" aria-controls="url-tab-pane"
                                 aria-selected="true">
-                                <i class="fas fa-link"></i> URL Source
+                                <i class="fas fa-link"></i> Remote Source
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="local-tab" data-bs-toggle="tab"
                                 data-bs-target="#local-tab-pane" type="button" role="tab" aria-controls="local-tab-pane"
                                 aria-selected="false">
-                                <i class="fas fa-folder"></i> Local Folder
+                                <i class="fas fa-folder"></i> Local Source
                             </button>
                         </li>
                     </ul>
@@ -396,8 +396,7 @@
                                 <input type="url" id="dataSourceUrl" class="form-control"
                                     placeholder="https://example.com/5etools-src" />
                                 <small class="form-text text-muted">
-                                    Enter the URL to a data repository. Must use <code>5etools</code> folder structure
-                                    & <code>.json</code> schema.
+                                    Enter the URL to a <code>5etools</code> data repository.
                                 </small>
                             </div>
                             <button class="btn btn-primary data-config-submit-btn" data-action="validate-url" disabled>
@@ -425,8 +424,7 @@
                                     </button>
                                 </div>
                                 <small class="form-text text-muted">
-                                    Select a local folder. Must use <code>5etools</code> folder structure &
-                                    <code>.json</code> schema.
+                                    Select the folder containing the <code>5etools</code> data files.
                                 </small>
                             </div>
                             <button class="btn btn-primary data-config-submit-btn" data-action="validate-local"
