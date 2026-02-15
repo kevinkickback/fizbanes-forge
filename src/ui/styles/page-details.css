@@ -49,9 +49,11 @@
 /* Allies & Organizations Card Layout */
 .allies-org-container {
 	display: grid;
-	grid-template-columns: 1fr 2fr;
+	grid-template-columns: 40% 60%;
 	gap: 1.5rem;
 	min-height: 300px;
+	width: 100%;
+	height: 100%;
 }
 
 .allies-org-left-col {
@@ -101,4 +103,39 @@
 	width: 100%;
 	height: 100%;
 	resize: none;
+}
+
+/* Portrait Card */
+.character-portrait-card {
+	width: 200px;
+	height: 200px;
+	border-radius: var(--border-radius);
+	border: 2px solid var(--border-color);
+	background-color: var(--secondary-color);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto;
+}
+
+/* Full viewport card for details page (corrected selectors) */
+#details-portrait .card,
+#details-characteristics .card,
+#details-allies .card,
+#details-history .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#details-portrait .card-body,
+#details-characteristics .card-body,
+#details-allies .card-body,
+#details-history .card-body {
+	flex: 1;
+	display: flex;
 }

@@ -12,6 +12,7 @@ class RouterImpl {
 			template: config.template || `${path}.html`,
 			requiresCharacter: config.requiresCharacter || false,
 			title: config.title || path,
+			sections: config.sections || null,
 		});
 	}
 
@@ -48,6 +49,25 @@ class RouterImpl {
 
 	getAllRoutes() {
 		return Array.from(this.routes.keys());
+	}
+
+	getPageForSection(sectionId) {
+		for (const [page, route] of this.routes) {
+			if (route.sections?.some((s) => s.id === sectionId)) {
+				return page;
+			}
+		}
+		return null;
+	}
+
+	getPagesWithSections() {
+		const result = [];
+		for (const [page, route] of this.routes) {
+			if (route.sections?.length > 1) {
+				result.push({ page, sections: route.sections });
+			}
+		}
+		return result;
 	}
 }
 
@@ -172,6 +192,13 @@ class NavigationControllerImpl {
 			template: 'build.html',
 			requiresCharacter: true,
 			title: 'Build',
+			sections: [
+				{ id: 'build-race', label: 'Race' },
+				{ id: 'build-class', label: 'Class' },
+				{ id: 'build-background', label: 'Background' },
+				{ id: 'build-ability-scores', label: 'Ability Scores' },
+				{ id: 'build-proficiencies', label: 'Proficiencies' },
+			],
 		});
 
 		this.router.register('feats', {
@@ -184,30 +211,43 @@ class NavigationControllerImpl {
 			template: 'equipment.html',
 			requiresCharacter: true,
 			title: 'Equipment',
+			sections: [
+				{ id: 'equipment-inventory', label: 'Inventory' },
+			],
 		});
 
 		this.router.register('spells', {
 			template: 'spells.html',
 			requiresCharacter: true,
 			title: 'Spells',
+			sections: [
+				{ id: 'spells-list', label: 'Spell List' },
+				{ id: 'spells-details', label: 'Spellcasting Details' },
+			],
 		});
 
 		this.router.register('details', {
 			template: 'details.html',
 			requiresCharacter: true,
 			title: 'Details',
+			sections: [
+				{ id: 'details-portrait', label: 'Portrait' },
+				{ id: 'details-characteristics', label: 'Characteristics' },
+				{ id: 'details-allies', label: 'Allies & Organizations' },
+				{ id: 'details-history', label: 'History' },
+			],
+		});
+
+		this.router.register('preview', {
+			template: 'preview.html',
+			requiresCharacter: true,
+			title: 'Character Sheet',
 		});
 
 		this.router.register('settings', {
 			template: 'settings.html',
 			requiresCharacter: false,
 			title: 'Settings',
-		});
-
-		this.router.register('preview', {
-			template: 'preview.html',
-			requiresCharacter: true,
-			title: 'Preview',
 		});
 	}
 
@@ -225,6 +265,7 @@ class NavigationControllerImpl {
 			return;
 		}
 
+		this.generateSubnavs();
 		this.setupEventListeners();
 		this.setupNavigationButtons();
 
@@ -241,16 +282,19 @@ class NavigationControllerImpl {
 		});
 
 		eventBus.on(EVENTS.PAGE_LOADED, (page) => {
-			if (page === 'build' && this.pendingSectionScroll) {
+			const route = this.router.getRoute(page);
+			const hasSections = route?.sections?.length > 1;
+
+			if (hasSections && this.pendingSectionScroll) {
 				this.scrollToSection(this.pendingSectionScroll);
 				this.setActiveSection(this.pendingSectionScroll);
 				this.pendingSectionScroll = null;
 			}
 
-			if (page === 'build') {
-				this.setupBuildSectionObserver();
+			if (hasSections) {
+				this.setupSectionObserver(page);
 			} else {
-				this.destroyBuildSectionObserver();
+				this.destroySectionObserver();
 			}
 		});
 
@@ -308,6 +352,62 @@ class NavigationControllerImpl {
 		});
 	}
 
+	generateSubnavs() {
+		const pagesWithSections = this.router.getPagesWithSections();
+
+		for (const { page, sections } of pagesWithSections) {
+			const navButton = document.querySelector(
+				`.sidebar-nav [data-page="${page}"]`,
+			);
+			if (!navButton) continue;
+
+			const navItem = navButton.closest('.nav-item');
+			if (!navItem) continue;
+
+			// Skip if already upgraded
+			if (navItem.hasAttribute('data-nav-group')) continue;
+
+			// Upgrade the nav-item to support children
+			navItem.classList.add('nav-item--has-children');
+			navItem.setAttribute('data-nav-group', page);
+
+			// Restructure the button contents — wrap existing content in a label span
+			// and add the caret icon
+			const existingIcon = navButton.querySelector('i');
+			const existingLabel = navButton.querySelector('span');
+			const labelWrapper = document.createElement('span');
+			labelWrapper.className = 'nav-link-label';
+			if (existingIcon) labelWrapper.appendChild(existingIcon);
+			if (existingLabel) labelWrapper.appendChild(existingLabel);
+
+			navButton.textContent = '';
+			navButton.appendChild(labelWrapper);
+			navButton.setAttribute('aria-expanded', 'false');
+
+			const caret = document.createElement('i');
+			caret.className = 'fas fa-chevron-up nav-caret';
+			caret.setAttribute('aria-hidden', 'true');
+			navButton.appendChild(caret);
+
+			// Build the subnav list
+			const subnavList = document.createElement('ul');
+			subnavList.className = 'sidebar-subnav';
+			subnavList.setAttribute('aria-label', `${page} sections`);
+
+			for (const section of sections) {
+				const li = document.createElement('li');
+				const btn = document.createElement('button');
+				btn.className = 'nav-sublink';
+				btn.setAttribute('data-section', section.id);
+				btn.textContent = section.label;
+				li.appendChild(btn);
+				subnavList.appendChild(li);
+			}
+
+			navItem.appendChild(subnavList);
+		}
+	}
+
 	async navigateTo(page) {
 
 		AppState.setState({ isNavigating: true });
@@ -359,11 +459,17 @@ class NavigationControllerImpl {
 			return;
 		}
 
+		const targetPage = this.router.getPageForSection(sectionId);
+		if (!targetPage) {
+			console.warn('[NavigationController]', 'No page found for section:', sectionId);
+			return;
+		}
+
 		this.pendingSectionScroll = sectionId;
 		const currentPage = this.router.getCurrentRoute();
-		if (currentPage !== 'build') {
+		if (currentPage !== targetPage) {
 			try {
-				await this.navigateTo('build');
+				await this.navigateTo(targetPage);
 			} catch (error) {
 				console.warn('[NavigationController]', 'Section navigation failed:', {
 					sectionId,
@@ -373,7 +479,7 @@ class NavigationControllerImpl {
 				return;
 			}
 
-			if (this.router.getCurrentRoute() !== 'build') {
+			if (this.router.getCurrentRoute() !== targetPage) {
 				this.pendingSectionScroll = null;
 				return;
 			}
@@ -384,21 +490,27 @@ class NavigationControllerImpl {
 		this.pendingSectionScroll = null;
 	}
 
-	setupBuildSectionObserver() {
-		this.destroyBuildSectionObserver();
+	setupSectionObserver(page) {
+		this.destroySectionObserver();
+
+		const route = this.router.getRoute(page);
+		if (!route?.sections?.length) {
+			return;
+		}
 
 		const sections = [];
-		this.sectionButtons.forEach((_, id) => {
-			const el = document.getElementById(id);
+		for (const section of route.sections) {
+			const el = document.getElementById(section.id);
 			if (el) {
 				sections.push(el);
 			}
-		});
+		}
 
 		if (!sections.length) {
 			console.debug(
 				'[NavigationController]',
-				'No build sections found to observe',
+				'No sections found to observe for',
+				page,
 			);
 			return;
 		}
@@ -439,7 +551,7 @@ class NavigationControllerImpl {
 		});
 	}
 
-	destroyBuildSectionObserver() {
+	destroySectionObserver() {
 		if (this.sectionObserver) {
 			this.sectionObserver.disconnect();
 			this.sectionObserver = null;
@@ -489,14 +601,13 @@ class NavigationControllerImpl {
 		});
 	}
 
-	toggleBuildSubnav(isOpen) {
-		const buildNavItem = document.querySelector('[data-nav-group="build"]');
-		if (buildNavItem) {
-			buildNavItem.classList.toggle('is-open', isOpen);
-			const trigger = buildNavItem.querySelector('[data-page="build"]');
-			if (trigger) {
-				trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-			}
+	toggleSubnav(page, isOpen) {
+		const navItem = document.querySelector(`[data-nav-group="${page}"]`);
+		if (!navItem) return;
+		navItem.classList.toggle('is-open', isOpen);
+		const trigger = navItem.querySelector(`[data-page="${page}"]`);
+		if (trigger) {
+			trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 		}
 	}
 
@@ -509,8 +620,14 @@ class NavigationControllerImpl {
 			}
 		});
 
-		this.toggleBuildSubnav(activePage === 'build');
-		if (activePage !== 'build') {
+		// Toggle subnavs: open the active page's subnav, close all others
+		const pagesWithSections = this.router.getPagesWithSections();
+		for (const { page } of pagesWithSections) {
+			this.toggleSubnav(page, page === activePage);
+		}
+
+		const activeRoute = this.router.getRoute(activePage);
+		if (!activeRoute?.sections?.length) {
 			this.setActiveSection(null);
 		}
 	}
@@ -538,8 +655,9 @@ class NavigationControllerImpl {
 	async handlePageChange(page) {
 		document.body.setAttribute('data-current-page', page);
 
-		if (page !== 'build') {
-			this.destroyBuildSectionObserver();
+		const route = this.router.getRoute(page);
+		if (!route?.sections?.length) {
+			this.destroySectionObserver();
 		}
 	}
 }

@@ -421,6 +421,20 @@
 	font-size: 0.85rem;
 }
 
+/* Full viewport card for spells page */
+#spells-list.card,
+#spells-details.card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#spells-list .card-body,
+#spells-details .card-body {
+	flex: 1;
+	display: flex;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
 	.spellcasting-stats-inline {

@@ -484,7 +484,7 @@
 	flex-direction: column;
 	gap: 1.5rem;
 	margin-bottom: 0;
-	height: 100%;
+	/* height: 100%; */
 }
 
 .character-info-container .form-row {

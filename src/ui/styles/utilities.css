@@ -56,11 +56,11 @@
 }
 
 /* Starting Equipment Section */
-#startingEquipmentSection {
+#equipment-starting {
 	display: none;
 }
 
-#startingEquipmentSection.show {
+#equipment-starting.show {
 	display: block;
 }
 

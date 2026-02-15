@@ -18,6 +18,24 @@ export class DetailsPageController extends BasePageController {
                 return;
             }
 
+            // Portrait Card logic
+            const portraitEl = document.getElementById('characterPortrait');
+            if (portraitEl) {
+                const defaultPlaceholder = 'assets/images/characters/placeholder_char_card0.jpg';
+                const rawPortrait = character.portrait || character.image || character.avatar || defaultPlaceholder;
+                let portraitUrl = rawPortrait;
+                if (!rawPortrait) {
+                    portraitUrl = defaultPlaceholder;
+                } else if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
+                    portraitUrl = rawPortrait;
+                } else if (/^[A-Za-z]:\\/.test(rawPortrait)) {
+                    portraitUrl = `file://${rawPortrait.replace(/\\/g, '/')}`;
+                } else {
+                    portraitUrl = rawPortrait.replace(/\\/g, '/');
+                }
+                portraitEl.style.backgroundImage = `url('${portraitUrl}')`;
+            }
+
             const alignmentInput = document.getElementById('alignment');
             if (alignmentInput) {
                 while (alignmentInput.options.length > 1) {
@@ -165,45 +183,54 @@ export class DetailsPageController extends BasePageController {
         const allyImage = document.getElementById('allyImage');
         const allyInfo = document.getElementById('allyInfo');
         const allyCustomNotes = document.getElementById('allyCustomNotes');
+        const customAllyImageBtn = document.getElementById('customAllyImageBtn');
+        const customAllyImageInput = document.getElementById('customAllyImageInput');
 
-        if (!allySelector || !allyImage || !allyInfo || !allyCustomNotes) return;
+        if (!allySelector || !allyImage || !allyInfo || !allyCustomNotes || !customAllyImageBtn || !customAllyImageInput) return;
+
+        // Restore custom image if present
+        let customImageDataUrl = '';
+        const character = AppState.getCurrentCharacter();
+        if (character?.alliesAndOrganizations?.customImage) {
+            customImageDataUrl = character.alliesAndOrganizations.customImage;
+        }
 
         const updateAllyDisplay = () => {
             const selectedValue = allySelector.value;
 
-            // Check if custom is selected
             if (selectedValue === 'custom') {
-                allyImage.style.backgroundImage = '';
+                allyImage.style.backgroundImage = customImageDataUrl ? `url('${customImageDataUrl}')` : '';
                 allyInfo.classList.add('u-hidden');
                 allyCustomNotes.classList.remove('u-hidden');
+                customAllyImageBtn.classList.remove('u-hidden');
                 return;
             }
 
-            // Show read-only info for predefined organizations
+            customAllyImageBtn.classList.add('u-hidden');
             allyInfo.classList.remove('u-hidden');
             allyCustomNotes.classList.add('u-hidden');
 
-            // Map of ally values to data
+            // Map of ally values to data (now using real images)
             const allyData = {
                 'harpers': {
-                    image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%234169E1" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="20" fill="white" text-anchor="middle" dy=".3em"%3EThe Harpers%3C/text%3E%3C/svg%3E',
-                    description: 'The Harpers are a scattered network of spellcasters and spies who advocate equality and covertly oppose the abuse of power, magical or otherwise.'
+                    image: 'assets/images/organizations/Harpers.png',
+                    description: 'The Harpers, or Those Who Harp, are a semi-secret organization dedicated to preserving historical lore, maintaining the balance between nature and civilization, and defending the innocent from the forces of evil across the Realms. The Harpers involve themselves in many world-changing events that help shape the course of Faerûn’s destiny. Their power and influence wax and wane over the years, as their order undergoes a series of collapses and reformations. Their reputation among the people of the Realms varies just as wildly. They are often seen as wide-eyed idealists, but also just as often as insufferable meddlers who cannot keep their business to themselves.'
                 },
                 'zhentarim': {
-                    image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23FFD700" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="18" fill="black" text-anchor="middle" dy=".3em"%3EThe Zhentarim%3C/text%3E%3C/svg%3E',
-                    description: 'The Zhentarim, also known as the Black Network, is an infamous organization of mercenaries, traders, and thieves who seek profit and power.'
+                    image: 'assets/images/organizations/Zhentarim.png',
+                    description: 'The Zhentarim, also known as the Black Network, is a mercenary company and major mercantile organization in Faerûn. For over 200 years, they have a storied history as a cadre of self-serving thieves, spies, assassins, and malevolent wizards. Their leaders serve dark gods Bane and Cyric. The organization experiences both great successes and major misfortunes, especially regarding their historical strongholds around the Moonsea. As of 1489 DR, the Zhentarim is headquartered in the Western Heartlands at Darkhold Castle, nestled in the valley of the same name.'
                 },
                 'emerald-enclave': {
-                    image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%2332CD32" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="16" fill="white" text-anchor="middle" dy=".3em"%3EEmerald Enclave%3C/text%3E%3C/svg%3E',
-                    description: 'The Emerald Enclave is a far-ranging group that opposes threats to the natural world and helps others survive in the wilderness.'
+                    image: 'assets/images/organizations/EmeraldEnclave.png',
+                    description: "The Emerald Enclave is an organization of druids and other nature worshipers based out of the island of Ilighôn off the coast of the Vilhon Reach. They are referred to by many names, including Caretakers, Nature's Chosen, the Circle, and the Chosen of Silvanus. Despite the power of the Vilhonese nations, as of the 14th century DR they do nothing involving the land and nature without the approval of the Enclave."
                 },
                 'lords-alliance': {
-                    image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23DC143C" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="16" fill="white" text-anchor="middle" dy=".3em"%3ELords\' Alliance%3C/text%3E%3C/svg%3E',
-                    description: 'The Lords\' Alliance is a coalition of rulers from cities across Faerûn who believe that solidarity is needed to keep evil at bay.'
+                    image: 'assets/images/organizations/LordsAlliance.png',
+                    description: "The Lords' Alliance, also known as the Council of Lords, is a partnership of merchant cities founded in the early 14th century DR. Its members are from the Sword Coast, the North, and Western Heartlands, including Waterdeep, Silverymoon, Baldur's Gate, and Neverwinter, as well as other free cities and towns in the region, which make up the bulk of the organization. It is formed to oppose the growing influence of the Black Network in the North, the Shadow Thieves of Amn, rampaging hordes of orcs, and Northlander raiders."
                 },
                 'order-gauntlet': {
-                    image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23C0C0C0" width="200" height="200"/%3E%3Ctext x="50%25" y="40%25" font-size="14" fill="black" text-anchor="middle" dy=".3em"%3EOrder of the%3C/text%3E%3Ctext x="50%25" y="60%25" font-size="14" fill="black" text-anchor="middle" dy=".3em"%3EGauntlet%3C/text%3E%3C/svg%3E',
-                    description: 'The Order of the Gauntlet is a devout and vigilant group that seeks to protect others from the depredations of evildoers.'
+                    image: 'assets/images/organizations/OrderGauntlet.png',
+                    description: 'The Order of the Gauntlet is a coalition of morally upstanding warriors, knights, paladins, and clerics who dedicate themselves to the destruction of evil in Faerûn. They are a unified group, bonded by their fervent religious beliefs or staunch dedication to enforcing justice in the realms. To these brothers and sisters in arms, evil must be dealt with and cannot be ignored.'
                 },
             };
 
@@ -218,5 +245,27 @@ export class DetailsPageController extends BasePageController {
 
         allySelector.addEventListener('change', updateAllyDisplay);
         updateAllyDisplay();
+
+        // Upload button logic
+        customAllyImageBtn.addEventListener('click', () => {
+            customAllyImageInput.click();
+        });
+
+        customAllyImageInput.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                customImageDataUrl = evt.target.result;
+                allyImage.style.backgroundImage = `url('${customImageDataUrl}')`;
+                // Persist to character state
+                const character = AppState.getCurrentCharacter();
+                if (character?.alliesAndOrganizations) {
+                    character.alliesAndOrganizations.customImage = customImageDataUrl;
+                    eventBus.emit(EVENTS.CHARACTER_UPDATED, { character });
+                }
+            };
+            reader.readAsDataURL(file);
+        });
     }
 }
