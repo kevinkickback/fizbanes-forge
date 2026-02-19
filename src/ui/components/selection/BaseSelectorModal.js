@@ -114,7 +114,7 @@ export class BaseSelectorModal {
                     
                     <div class="modal-body u-modal-body-flex">
                         <!-- Search Bar -->
-                        <div class="d-flex gap-2 mb-2">
+                        <div class="d-flex gap-2 mb-3">
                             ${this.config.buildFilters
 				? `<button class="btn btn-outline-secondary spell-filter-toggle-btn" type="button"
                                 title="Toggle filters panel" data-filters-visible="true">
@@ -126,7 +126,7 @@ export class BaseSelectorModal {
                                 placeholder="Search...">
                             <button class="btn btn-outline-secondary" type="button" data-search-clear
                                 title="Clear search">
-                                <i class="fas fa-times"></i> Clear
+                                <i class="fas fa-delete-left"></i>
                             </button>
                         </div>
                         

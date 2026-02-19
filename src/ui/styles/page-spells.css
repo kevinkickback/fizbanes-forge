@@ -372,6 +372,11 @@
 	text-decoration: underline;
 }
 
+/* The visible text label inside the anchor; limits hover targets to the text only */
+.spell-item-name-label {
+	display: inline-block;
+}
+
 .spell-item-actions {
 	display: flex;
 	align-items: center;

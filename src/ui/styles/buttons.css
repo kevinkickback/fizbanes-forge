@@ -4,6 +4,16 @@
    =================================== */
 
 /* Base button improvements */
+.no-hover-lift {
+	transition: none !important;
+	transform: none !important;
+}
+
+.no-hover-lift:hover,
+.no-hover-lift:focus {
+	transform: none !important;
+}
+
 .btn {
 	border-radius: var(--border-radius);
 	font-weight: 500;

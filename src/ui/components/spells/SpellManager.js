@@ -205,7 +205,7 @@ export class SpellsManager {
 						<a href="#" class="spell-item-name reference-link" 
 							data-hover-type="spell" 
 							data-hover-name="${spell.name}" 
-							data-hover-source="${spellSource}">${spell.name}</a>
+							data-hover-source="${spellSource}"><span class="spell-item-name-label">${spell.name}</span></a>
 						<div class="spell-item-actions">
 							${spell.ritual ? '<i class="fas fa-ring text-info" title="Ritual"></i>' : ''}
 							${spell.concentration ? '<i class="fas fa-hourglass-half text-warning" title="Concentration"></i>' : ''}

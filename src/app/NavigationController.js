@@ -646,7 +646,7 @@ class NavigationControllerImpl {
 				} else {
 					button.setAttribute('disabled', 'true');
 					button.classList.add('disabled');
-					button.title = `${route.title || page} - Load or create a character first`;
+					button.title = `${route.title || page}`;
 				}
 			}
 		});

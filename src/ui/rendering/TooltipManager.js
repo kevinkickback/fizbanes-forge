@@ -479,6 +479,12 @@ export function initializeTooltipListeners() {
 	}
 	document.addEventListener('mouseover', (event) => {
 		const link = event.target.closest(HoverSelector);
+		// If the reference link is inside a compact spell item, only trigger
+		// when hovering the name element itself (prevents hovering the whole
+		// compact row from opening the tooltip).
+		if (link && link.closest('.spell-item-compact') && !event.target.closest('.spell-item-name-label')) {
+			return;
+		}
 		const hoverMeta = getHoverMeta(link);
 		if (!hoverMeta) return;
 		const { hoverType, hoverName, hoverSource } = hoverMeta;

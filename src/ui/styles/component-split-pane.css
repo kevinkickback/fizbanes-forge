@@ -37,7 +37,7 @@
 	width: 40%;
 	min-width: 350px;
 	max-width: 600px;
-	background: black;
+	background: var(--info-pane-bg);
 	border-radius: 0.375rem;
 	overflow-y: auto;
 	position: relative;
@@ -118,14 +118,12 @@
 }
 
 .race-card-body .race-item {
-	padding: 1rem;
+	padding: 0.5rem;
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
 	border-radius: 0.375rem;
 	transition: all 0.2s ease;
 	cursor: pointer;
-	/* Removed flex: 1 to prevent stretching when filtered */
-	min-height: 60px;
 }
 
 .race-card-body .race-item .race-item-wrapper {
@@ -137,14 +135,14 @@
 }
 
 .race-card-body .race-item:hover {
-	border-color: var(--bs-primary);
-	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+	border-color: var(--accent-color);
+	box-shadow: 0 2px 8px rgba(var(--accent-color-rgb), 0.15);
 	background: var(--hover-bg);
 }
 
 .race-card-body .race-item.selected {
-	background: rgba(var(--bs-primary-rgb), 0.1);
-	border-color: var(--bs-primary);
+	background-color: var(--accent-10);
+	border-color: var(--accent-color);
 }
 
 .race-card-body .inline-dropdown-container {
@@ -158,6 +156,7 @@
 .race-card-body .inline-dropdown-container select {
 	font-size: 0.875rem;
 	padding: 0.25rem 0.5rem;
+	float: right;
 }
 
 /* Background card styles (split pane layout) */
@@ -176,7 +175,7 @@
 }
 
 .background-card-body .background-item {
-	padding: 1rem;
+	padding: 0.5rem;
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
 	border-radius: 0.375rem;
@@ -185,14 +184,14 @@
 }
 
 .background-card-body .background-item:hover {
-	border-color: var(--bs-primary);
-	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+	border-color: var(--accent-color);
+	box-shadow: 0 2px 8px rgba(var(--accent-color-rgb), 0.15);
 	background: var(--hover-bg);
 }
 
 .background-card-body .background-item.selected {
-	background: rgba(var(--bs-primary-rgb), 0.1);
-	border-color: var(--bs-primary);
+	background-color: var(--accent-10);
+	border-color: var(--accent-color);
 }
 
 .background-card-body .inline-dropdown-container {
@@ -205,6 +204,7 @@
 .background-card-body .inline-dropdown-container select {
 	font-size: 0.875rem;
 	padding: 0.25rem 0.5rem;
+	float: right;
 }
 
 .split-card-body .info-content {
@@ -259,7 +259,14 @@
 
 /* Class tabs when in body (for multiclass) */
 .choices-panel .class-tabs {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	max-width: 100%;
+	overflow-x: auto;
 	margin-bottom: 1rem;
+	box-sizing: border-box;
 }
 
 .choices-panel .class-tabs .nav-pills {
@@ -273,12 +280,10 @@
 }
 
 .choices-panel .class-tabs .nav-link {
-	max-width: 150px;
 	text-align: center;
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	padding: 0.5rem 1rem;
 }

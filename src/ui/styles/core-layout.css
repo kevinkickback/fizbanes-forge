@@ -56,15 +56,11 @@ body.debug-mode .nav-item.debug-only {
 	min-height: 100%;
 }
 
-.nav-item {
-	margin-bottom: 0.5rem;
-}
-
 .nav-link {
 	display: flex;
 	align-items: center;
 	padding: 0.5rem 0.75rem;
-	color: var(--text-muted);
+	color: var(--text-color);
 	background: transparent;
 	border: none;
 	width: 100%;
@@ -81,8 +77,13 @@ body.debug-mode .nav-item.debug-only {
 }
 
 .nav-link.active {
-	background: var(--accent-color);
-	color: white;
+	background: var(--accent-color) !important;
+	color: var(--text-color) !important;
+}
+
+#dataConfigModal .nav-link.active {
+	border-bottom-left-radius: 0px !important;
+	border-bottom-right-radius: 0px !important;
 }
 
 .nav-link i {

@@ -13,6 +13,11 @@
 	transition: all 0.2s ease;
 }
 
+.choices-panel .form-control,
+.choices-panel .form-select {
+	width: 80%;
+}
+
 /* Prevent autofill styling override */
 .form-control:-webkit-autofill,
 .form-control:-webkit-autofill:hover,
@@ -77,9 +82,12 @@
 
 /* Input groups */
 .input-group {
-	box-shadow: var(--shadow-sm);
 	border-radius: var(--border-radius);
 	overflow: hidden;
+}
+
+.choices-panel .input-group {
+	box-shadow: 1px 8px 15px var(--accent-10);
 }
 
 .input-group .form-control {

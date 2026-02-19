@@ -2555,6 +2555,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	justify-content: center;
 	gap: 0.5rem;
 	flex-wrap: nowrap;
+	flex-direction: row;
 }
 
 #newCharacterModal .ability-score-box .ability-controls .btn-sm {

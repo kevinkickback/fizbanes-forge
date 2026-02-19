@@ -28,14 +28,14 @@ class MethodControlsView {
 
 		// Create decrease button
 		const decreaseBtn = document.createElement('button');
-		decreaseBtn.className = 'btn btn-sm btn-light';
+		decreaseBtn.className = 'btn btn-sm';
 		decreaseBtn.dataset.action = 'decrease';
 		decreaseBtn.dataset.ability = ability;
 		decreaseBtn.textContent = '-';
 
 		// Create increase button
 		const increaseBtn = document.createElement('button');
-		increaseBtn.className = 'btn btn-sm btn-light';
+		increaseBtn.className = 'btn btn-sm';
 		increaseBtn.dataset.action = 'increase';
 		increaseBtn.dataset.ability = ability;
 		increaseBtn.textContent = '+';

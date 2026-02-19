@@ -374,10 +374,7 @@
                             aria-labelledby="url-tab">
                             <div class="mb-3">
                                 <input type="url" id="dataSourceUrl" class="form-control"
-                                    placeholder="https://example.com/5etools-src" />
-                                <small class="form-text text-muted">
-                                    Enter the URL to a <code>5etools</code> data repository.
-                                </small>
+                                    placeholder="Enter the URL to a 5etools data repository..." />
                             </div>
                             <button class="btn btn-primary data-config-submit-btn" data-action="validate-url" disabled>
                                 <span class="spinner-border spinner-border-sm data-config-spinner d-none"
@@ -398,14 +395,11 @@
                             <div class="mb-3">
                                 <div class="input-group">
                                     <input type="text" id="localFolderPath" class="form-control"
-                                        placeholder="C:/path/to/data" readonly />
-                                    <button class="btn btn-outline-secondary" id="browseLocalFolderBtn">
+                                        placeholder="Select the folder containing the 5etools data files..." readonly />
+                                    <button class="btn btn-outline-secondary no-hover-lift" id="browseLocalFolderBtn">
                                         <i class="fas fa-folder-open"></i> Browse
                                     </button>
                                 </div>
-                                <small class="form-text text-muted">
-                                    Select the folder containing the <code>5etools</code> data files.
-                                </small>
                             </div>
                             <button class="btn btn-primary data-config-submit-btn" data-action="validate-local"
                                 disabled>

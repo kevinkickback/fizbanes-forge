@@ -2998,6 +2998,13 @@ export class ClassCard {
 			progressionClass.subclass = subclassName;
 		}
 
+		// Get the new subclassData for the selected subclass
+		let subclassData = null;
+		const subclasses = this._classService.getSubclasses(className, classData.source);
+		if (subclasses && subclassName) {
+			subclassData = subclasses.find((sc) => sc.name === subclassName);
+		}
+
 		// Emit event to notify about character update
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
