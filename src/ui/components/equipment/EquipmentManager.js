@@ -114,7 +114,7 @@ export class EquipmentManager {
 
 		if (items.length === 0) {
 			container.innerHTML =
-				'<p class="text-muted">No items in inventory. Click "Add Item" to add equipment.</p>';
+				'<br><p class="text-muted text-center">No items currently in inventory.</p>';
 			return;
 		}
 
@@ -128,10 +128,10 @@ export class EquipmentManager {
 			let equipBtn = '';
 			if (canEquip) {
 				equipBtn = !isEquipped
-					? `<button class="btn btn-sm btn-outline-primary" data-equip-item="${item.id}" title="Equip">
+					? `<button class="btn btn-outline-primary" data-equip-item="${item.id}" title="Equip">
 						<i class="fas fa-shield-alt"></i>
 					</button>`
-					: `<button class="btn btn-sm btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
+					: `<button class="btn btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
 						<i class="fas fa-times-circle"></i>
 					</button>`;
 			}
@@ -139,10 +139,10 @@ export class EquipmentManager {
 			let attuneBtn = '';
 			if (canAttune) {
 				attuneBtn = !isAttuned
-					? `<button class="btn btn-sm btn-outline-info" data-attune-item="${item.id}" title="Attune">
+					? `<button class="btn btn-outline-info" data-attune-item="${item.id}" title="Attune">
 						<i class="fas fa-star"></i>
 					</button>`
-					: `<button class="btn btn-sm btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
+					: `<button class="btn btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
 						<i class="fas fa-star-half-alt"></i>
 					</button>`;
 			}
@@ -153,7 +153,7 @@ export class EquipmentManager {
                         <div>
                             <h6 class="mb-1"><a href="#" class="reference-link" data-hover-type="item" data-hover-name="${item.name}" data-hover-source="${item.source}">${item.name}</a></h6>
                             <small class="text-muted">
-                                <label class="qty-label">Qty<input type="number" min="1" class="qty-input" data-qty-item="${item.id}" value="${item.quantity}"></label>
+                                <label class="qty-label">Qty: <input type="number" min="1" class="qty-input" data-qty-item="${item.id}" value="${item.quantity}"></label>
                                 <span class="ms-2">|</span> <span class="ms-2">Weight: ${item.weight || 0} lb</span>
                                 ${isEquipped ? '<span class="badge bg-success ms-2">Equipped</span>' : ''}
                                 ${isAttuned ? '<span class="badge bg-info ms-2">Attuned</span>' : ''}
@@ -162,7 +162,7 @@ export class EquipmentManager {
                         <div class="btn-group">
                             ${equipBtn}
                             ${attuneBtn}
-                            <button class="btn btn-sm btn-outline-danger" data-remove-item="${item.id}" title="Remove">
+                            <button class="btn btn-outline-danger" data-remove-item="${item.id}" title="Remove">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>

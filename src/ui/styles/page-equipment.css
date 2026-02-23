@@ -3,6 +3,21 @@
    ======================================== */
 
 /* Equipment List */
+
+.inventory-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+	gap: 0.75rem;
+}
+
+.inventory-list .item-row {
+	margin-bottom: 0; /* remove mb-2 spacing */
+}
+
+.inventory-list .card-body {
+	padding: 0.7rem;
+}
+
 .equipment-list {
 	display: flex;
 	flex-direction: column;
@@ -77,7 +92,6 @@
 	color: var(--text-color);
 	font-size: 0.7rem;
 	line-height: 1.4;
-	-moz-appearance: textfield;
 }
 
 .currency-input::-webkit-outer-spin-button,
@@ -104,7 +118,6 @@
 	color: var(--text-color);
 	font-size: 0.75rem;
 	line-height: 1.4;
-	-moz-appearance: textfield;
 }
 
 .qty-input::-webkit-outer-spin-button,

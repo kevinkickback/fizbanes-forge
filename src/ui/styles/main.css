@@ -258,12 +258,6 @@ small.text-muted {
 		--sidebar-width: 60px;
 	}
 
-	/* Responsive character card grid */
-	.character-card-grid {
-		grid-template-columns: 1fr;
-		max-width: 500px;
-	}
-
 	.sidebar {
 		width: var(--sidebar-width);
 	}

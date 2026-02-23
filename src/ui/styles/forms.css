@@ -13,9 +13,9 @@
 	transition: all 0.2s ease;
 }
 
-.choices-panel .form-control,
-.choices-panel .form-select {
-	width: 80%;
+.choices-panel select.form-control,
+.choices-panel select.form-select {
+	width: 100%;
 }
 
 /* Prevent autofill styling override */

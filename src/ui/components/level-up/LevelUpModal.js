@@ -38,6 +38,7 @@ export class LevelUpModal {
 
 			console.debug('[LevelUpModal]', 'Opening for character', character.name);
 
+
 			// Get modal element
 			this.modalEl = document.getElementById('levelUpModal');
 			if (!this.modalEl) {
@@ -48,6 +49,8 @@ export class LevelUpModal {
 				showNotification('Could not open level up modal', 'error');
 				return;
 			}
+			// Remove inert when showing
+			this.modalEl.removeAttribute('inert');
 
 			// Fresh cleanup instance
 			this._cleanup = DOMCleanup.create();
@@ -71,6 +74,11 @@ export class LevelUpModal {
 	 */
 	async hide() {
 		if (!this.bootstrapModal) return;
+
+		// Set inert when hiding
+		if (this.modalEl) {
+			this.modalEl.setAttribute('inert', '');
+		}
 
 		// Use centralized hide utility
 		await hideBootstrapModal(this.bootstrapModal, this.modalEl);

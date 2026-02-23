@@ -233,6 +233,7 @@ class NavigationControllerImpl {
 			sections: [
 				{ id: 'details-portrait', label: 'Portrait' },
 				{ id: 'details-characteristics', label: 'Characteristics' },
+				{ id: 'details-appearance', label: 'Appearance' },
 				{ id: 'details-allies', label: 'Allies & Organizations' },
 				{ id: 'details-history', label: 'History' },
 			],

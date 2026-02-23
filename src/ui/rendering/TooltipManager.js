@@ -482,7 +482,7 @@ export function initializeTooltipListeners() {
 		// If the reference link is inside a compact spell item, only trigger
 		// when hovering the name element itself (prevents hovering the whole
 		// compact row from opening the tooltip).
-		if (link && link.closest('.spell-item-compact') && !event.target.closest('.spell-item-name-label')) {
+		if (link?.closest('.spell-item-compact') && !event.target.closest('.spell-item-name-label')) {
 			return;
 		}
 		const hoverMeta = getHoverMeta(link);

@@ -1,31 +1,21 @@
 /* Details Page Styles */
 
-/* Character Information and Appearance Cards */
-.character-info-container .form-group:not(:has(textarea)) {
-	max-width: 250px;
-}
-
-.character-info-container textarea.form-control {
-	min-height: 80px;
-	height: auto;
-	resize: vertical;
-}
-
 /* Personality Traits 2x2 Grid */
-.traits-grid {
+.characteristics-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	grid-template-rows: auto auto;
+	grid-template-rows: 1fr 1fr; /* equal height rows */
 	gap: 1rem;
+	height: 100%; /* must have defined height */
 }
 
-.traits-grid .form-group {
+.characteristics-grid .form-group {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
 }
 
-.traits-grid .form-label {
+.characteristics-grid .form-label {
 	margin-bottom: 0.5rem;
 	font-size: 0.9rem;
 	color: var(--text-color);
@@ -34,16 +24,62 @@
 	font-weight: 500;
 }
 
-.traits-grid textarea.form-control {
-	min-height: 80px;
-	resize: vertical;
+.characteristics-grid textarea.form-control {
+	flex: 1 1 auto;
+	min-height: 0; /* IMPORTANT: prevents overflow */
+	height: auto;
+	resize: none; /* optional */
 	overflow: auto;
+	background: var(--secondary-color);
 }
 
 @media (max-width: 768px) {
-	.traits-grid {
+	.characteristics-grid {
 		grid-template-columns: 1fr;
 	}
+}
+
+.details-info-container {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: 100%;
+}
+
+.details-info-container .form-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5rem;
+	width: 100%;
+}
+
+.details-info-container .form-group {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin-bottom: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.details-info-container .form-control,
+.details-info-container .form-select {
+	background-color: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	color: #ffffff;
+	transition: var(--transition);
+	padding: 0.4rem 0.75rem;
+	font-size: 0.9rem;
+	min-width: 200px;
+}
+
+.details-info-container textarea.form-control,
+.characteristics-grid textarea.form-control {
+	flex: 1 1 auto;
+	min-height: 0;
+	height: auto;
+	resize: none;
+	overflow: auto;
+	background: var(--secondary-color);
 }
 
 /* Allies & Organizations Card Layout */
@@ -91,6 +127,7 @@
 	width: 100%;
 	height: 100%;
 	resize: none;
+	background: var(--secondary-color);
 }
 
 /* History Card */
@@ -103,6 +140,7 @@
 	width: 100%;
 	height: 100%;
 	resize: none;
+	background: var(--secondary-color);
 }
 
 /* Portrait Card */
@@ -125,6 +163,7 @@
 /* Full viewport card for details page (corrected selectors) */
 #details-portrait .card,
 #details-characteristics .card,
+#details-appearance .card,
 #details-allies .card,
 #details-history .card {
 	height: calc(100vh - 100px);
@@ -134,6 +173,7 @@
 
 #details-portrait .card-body,
 #details-characteristics .card-body,
+#details-appearance .card-body,
 #details-allies .card-body,
 #details-history .card-body {
 	flex: 1;

@@ -195,11 +195,19 @@ export class HomePageController extends BasePageController {
                     ? character.progression.classes
                     : [];
                 const characterLevel = character.getTotalLevel();
-                const classDisplay = progressionClasses.length
-                    ? progressionClasses
-                        .map((cls) => cls.name || 'Unknown Class')
-                        .join('<br>')
-                    : 'No Class';
+                let classDisplay = 'No Class';
+                if (progressionClasses.length) {
+                    const classNames = progressionClasses.map(cls => cls.name || 'Unknown Class');
+                    if (classNames.length <= 3) {
+                        classDisplay = classNames.join('<br>');
+                    } else {
+                        const shown = classNames.slice(0, 3).join('<br>');
+                        const remaining = classNames.slice(3);
+                        const moreCount = remaining.length;
+                        const tooltipContent = remaining.join('<br>');
+                        classDisplay = `${shown}<br><span class="u-cursor-pointer" data-bs-toggle="tooltip" data-bs-html="true" title="${tooltipContent}">+ ${moreCount} more</span>`;
+                    }
+                }
 
                 const rawPortrait =
                     character.portrait || character.image || character.avatar || defaultPlaceholder;
@@ -218,53 +226,53 @@ export class HomePageController extends BasePageController {
                     : 'Unknown';
 
                 return `
-					<div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
-						<div class="character-portrait" data-portrait-url="${portraitUrl}"></div>
-						<div class="card-header py-2">
-							<h5 class="mb-0">
-								<i class="fas fa-user me-2"></i>
-								${character.name || 'Unnamed Character'}
-							</h5>
-							${isActive ? '<div class="active-profile-badge">Active</div>' : ''}
-						</div>
-						<div class="card-body">
-							<div class="character-info">
-									<div class="character-details">
-										<div class="detail-item">
-											<i class="fas fa-crown me-2"></i>
-											<span>Level ${characterLevel}</span>
-										</div>
-										<div class="detail-item">
-											<i class="fas fa-user-friends me-2"></i>
-											<span>${characterRace}</span>
-										</div>
-										<div class="detail-item">
-											<i class="fas fa-hat-wizard me-2"></i>
-											<span>${classDisplay}</span>
-										</div>
-									</div>
-								</div>
+                    <div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
+                        <div class="character-portrait" data-portrait-url="${portraitUrl}"></div>
+                        <div class="card-header py-2">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user me-2"></i>
+                                ${character.name || 'Unnamed Character'}
+                            </h5>
+                            ${isActive ? '<div class="active-profile-badge">Active</div>' : ''}
+                        </div>
+                        <div class="card-body">
+                            <div class="character-info">
+                                    <div class="character-details">
+                                        <div class="detail-item">
+                                            <i class="fas fa-crown me-2"></i>
+                                            <span>Level ${characterLevel}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <i class="fas fa-user-friends me-2"></i>
+                                            <span>${characterRace}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <i class="fas fa-hat-wizard me-2"></i>
+                                            <span>${classDisplay}</span>
+                                        </div>
+                                    </div>
+                                </div>
 
-								<div class="card-actions-wrap mt-3">
-									<div class="card-actions">
-										<button class="btn btn-lg btn-outline-secondary export-character" 
-											data-character-id="${character.id}" 
-											title="Export Character">
-											<i class="fas fa-file-export"></i>
-										</button>
-										<button class="btn btn-lg btn-outline-danger delete-character" 
-											data-character-id="${character.id}" 
-											title="Delete Character">
-											<i class="fas fa-trash"></i>
-										</button>
-									</div>
-									<div class="last-modified">
-										<i class="fas fa-clock me-2"></i>
-										<span>Last modified: ${lastModified}</span>
-									</div>
-								</div>
-						</div>
-					</div>
+                                <div class="card-actions-wrap mt-3">
+                                    <div class="card-actions">
+                                        <button class="btn btn-lg btn-outline-secondary export-character" 
+                                            data-character-id="${character.id}" 
+                                            title="Export Character">
+                                            <i class="fas fa-file-export"></i>
+                                        </button>
+                                        <button class="btn btn-lg btn-outline-danger delete-character" 
+                                            data-character-id="${character.id}" 
+                                            title="Delete Character">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="last-modified">
+                                        <i class="fas fa-clock me-2"></i>
+                                        <span>Last modified: ${lastModified}</span>
+                                    </div>
+                                </div>
+                        </div>
+                    </div>
             `;
             })
             .join('');
@@ -281,6 +289,13 @@ export class HomePageController extends BasePageController {
                 el.style.backgroundImage = `url('${defaultPlaceholder}')`;
             };
             img.src = url;
+        });
+
+        // Initialize Bootstrap tooltips for "+ X more" elements
+        characterList.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+            if (window.bootstrap?.Tooltip) {
+                new window.bootstrap.Tooltip(el);
+            }
         });
     }
 

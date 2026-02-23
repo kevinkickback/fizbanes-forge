@@ -528,7 +528,8 @@
 	color: var(--accent-secondary);
 }
 
-.character-info-container .form-control {
+.character-info-container .form-control,
+.character-info-container .form-select {
 	background-color: var(--secondary-color);
 	border: 1px solid var(--border-color);
 	color: #ffffff;
@@ -864,7 +865,6 @@
 
 #classChoicesAccordion .accordion-button:focus {
 	box-shadow: none;
-	border-color: var(--border-color);
 }
 
 #classChoicesAccordion .accordion-button::after {
