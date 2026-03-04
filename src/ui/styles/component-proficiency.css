@@ -216,8 +216,7 @@
 }
 
 #proficienciesAccordion .accordion-item:hover {
-	border-color: var(--bs-primary);
-	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+	border-color: var(--accent-color);
 }
 
 #proficienciesAccordion .accordion-button {
@@ -238,7 +237,7 @@
 	box-shadow: none;
 }
 
-#proficienciesAccordion .accordion-button:hover {
+#proficienciesAccordion .accordion-button:is(.collapsed):hover {
 	background: var(--hover-color);
 }
 
@@ -271,11 +270,11 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
-	justify-content: center;
 }
 
 #proficienciesAccordion .proficiency-grid .proficiency-item {
-	flex: 1 1 0;
+	flex: auto;
+	max-width: 220px;
 	justify-content: center;
 	text-align: center;
 }

@@ -14,6 +14,11 @@
 	margin-bottom: 0; /* remove mb-2 spacing */
 }
 
+.inventory-list .empty-placeholder {
+	grid-column: 1 / -1; /* span all columns */
+	text-align: center;
+}
+
 .inventory-list .card-body {
 	padding: 0.7rem;
 }
@@ -109,15 +114,13 @@
 }
 
 .qty-input {
-	width: 2.5rem;
-	padding: 0 0.2rem;
+	width: 2.3rem;
 	text-align: center;
 	border: 1px solid var(--border-color);
 	border-radius: 3px;
 	background: var(--bg-color);
 	color: var(--text-color);
 	font-size: 0.75rem;
-	line-height: 1.4;
 }
 
 .qty-input::-webkit-outer-spin-button,

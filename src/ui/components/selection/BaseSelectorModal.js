@@ -89,6 +89,7 @@ export class BaseSelectorModal {
 		}
 
 		this.modal = modal;
+		this.modal.classList.remove('u-hidden');
 
 		// Dispose and recreate Bootstrap modal
 		disposeBootstrapModal(this.bootstrapModal);
@@ -174,7 +175,7 @@ export class BaseSelectorModal {
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-secondary btn-cancel">
                             Cancel
                         </button>
                         <button type="button" class="btn btn-primary btn-confirm" disabled>

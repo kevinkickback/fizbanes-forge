@@ -38,8 +38,6 @@
 @import url("./page-spells.css");
 @import url("./page-equipment.css");
 
-/* ===== Global Styles ===== */
-
 /* Responsive titlebar sizing */
 @media (min-width: 1280px) {
 	:root {
@@ -52,16 +50,6 @@
 		--titlebar-height: 52px;
 	}
 }
-
-/* Prevent dragging HTML elements & text selection */
-/* *,
-*::after,
-*::before {
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-user-drag: none;
-    -webkit-app-region: no-drag;
-} */
 
 /* Global Styles */
 body {
@@ -79,8 +67,6 @@ body {
 .sidebar {
 	scroll-behavior: smooth;
 }
-
-/* ===== Cards ===== */
 
 /* Cards */
 .card {
@@ -248,8 +234,6 @@ small.text-muted {
 	padding: 0;
 }
 
-/* ===== Responsive Design ===== */
-
 @media (max-width: 768px) {
 	:root {
 		--race-content-width: 100%;
@@ -341,8 +325,6 @@ small.text-muted {
 ::-webkit-scrollbar-thumb:hover {
 	background: var(--accent-hover);
 }
-
-/* ===== Settings Page ===== */
 
 #saveFolderPath {
 	background-color: var(--secondary-color);

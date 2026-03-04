@@ -114,7 +114,7 @@ export class EquipmentManager {
 
 		if (items.length === 0) {
 			container.innerHTML =
-				'<br><p class="text-muted text-center">No items currently in inventory.</p>';
+				'<p class="empty-placeholder">No items currently in inventory.</p>';
 			return;
 		}
 
@@ -153,8 +153,8 @@ export class EquipmentManager {
                         <div>
                             <h6 class="mb-1"><a href="#" class="reference-link" data-hover-type="item" data-hover-name="${item.name}" data-hover-source="${item.source}">${item.name}</a></h6>
                             <small class="text-muted">
-                                <label class="qty-label">Qty: <input type="number" min="1" class="qty-input" data-qty-item="${item.id}" value="${item.quantity}"></label>
-                                <span class="ms-2">|</span> <span class="ms-2">Weight: ${item.weight || 0} lb</span>
+                                <label class="qty-label">QTY: <input type="number" min="1" class="qty-input" data-qty-item="${item.id}" value="${item.quantity}"></label>
+                                <span class="ms-2 fw-bold"> </span> <span class="ms-2">  WEIGHT: ${item.weight || 0} lb</span>
                                 ${isEquipped ? '<span class="badge bg-success ms-2">Equipped</span>' : ''}
                                 ${isAttuned ? '<span class="badge bg-info ms-2">Attuned</span>' : ''}
                             </small>

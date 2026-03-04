@@ -51,6 +51,7 @@ export class LevelUpModal {
 			}
 			// Remove inert when showing
 			this.modalEl.removeAttribute('inert');
+			this.modalEl.classList.remove('u-hidden');
 
 			// Fresh cleanup instance
 			this._cleanup = DOMCleanup.create();

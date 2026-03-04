@@ -231,3 +231,8 @@
 .u-modal-themed .modal-footer {
 	border-top-color: var(--border-color);
 }
+
+.pipe {
+	display: inline-block;
+	transform: scaleY(1.5);
+}
