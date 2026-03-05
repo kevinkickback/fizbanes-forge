@@ -530,7 +530,8 @@ export class SpellsManager {
 		const classNames = Object.keys(character?.spellcasting?.classes || {});
 		return classNames.filter((className) => {
 			const classData = character.spellcasting.classes[className];
-			const classLevel = classData?.level || 1;
+			const classEntry = character.progression?.classes?.find((c) => c.name === className);
+			const classLevel = classEntry?.levels || classData?.level || 1;
 			const limitInfo = spellSelectionService.getSpellLimitInfo(
 				character,
 				className,

@@ -298,7 +298,8 @@ export class PreparedSpellSelectorModal {
         if (!character) return false;
 
         const classData = character?.spellcasting?.classes?.[item.className];
-        const classLevel = classData?.level || 1;
+        const classEntry = character.progression?.classes?.find((c) => c.name === item.className);
+        const classLevel = classEntry?.levels || classData?.level || 1;
         const limit = spellSelectionService._getPreparedSpellLimit(
             character,
             item.className,
@@ -316,7 +317,8 @@ export class PreparedSpellSelectorModal {
     _onSelectBlocked(item) {
         const character = AppState.getCurrentCharacter();
         const classData = character?.spellcasting?.classes?.[item.className];
-        const classLevel = classData?.level || 1;
+        const classEntry = character.progression?.classes?.find((c) => c.name === item.className);
+        const classLevel = classEntry?.levels || classData?.level || 1;
         const limit = spellSelectionService._getPreparedSpellLimit(
             character,
             item.className,
@@ -334,7 +336,8 @@ export class PreparedSpellSelectorModal {
         const targetClasses = this.selectedClassName ? [this.selectedClassName] : this.classNames;
         const categories = targetClasses.map((className) => {
             const classData = character?.spellcasting?.classes?.[className];
-            const classLevel = classData?.level || 1;
+            const classEntry = character.progression?.classes?.find((c) => c.name === className);
+            const classLevel = classEntry?.levels || classData?.level || 1;
             const max = spellSelectionService._getPreparedSpellLimit(
                 character,
                 className,

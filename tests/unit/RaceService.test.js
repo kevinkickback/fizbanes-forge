@@ -318,6 +318,98 @@ describe('RaceService', () => {
         });
     });
 
+    describe('Variant; prefix cleaning', () => {
+        const variantRaces = [
+            {
+                name: 'Half-Elf',
+                source: 'PHB',
+                ability: [{ cha: 2 }],
+            },
+            {
+                name: 'Tiefling',
+                source: 'PHB',
+                ability: [{ int: 1, cha: 2 }],
+            },
+        ];
+
+        const variantSubraces = [
+            {
+                name: "Variant; Devil's Tongue",
+                raceName: 'Tiefling',
+                raceSource: 'PHB',
+                source: 'SCAG',
+            },
+            {
+                name: 'Variant; Hellfire',
+                raceName: 'Tiefling',
+                raceSource: 'PHB',
+                source: 'SCAG',
+            },
+            {
+                name: 'Variant; Aquatic Elf Descent',
+                raceName: 'Half-Elf',
+                raceSource: 'PHB',
+                source: 'SCAG',
+            },
+            {
+                name: 'High Half-Elf',
+                raceName: 'Half-Elf',
+                raceSource: 'PHB',
+                source: 'PHB',
+            },
+        ];
+
+        beforeEach(async () => {
+            const originalLoader = await import('../../src/lib/DataLoader.js');
+            vi.spyOn(originalLoader.DataLoader, 'loadRaces').mockResolvedValue({
+                race: variantRaces,
+                subrace: variantSubraces,
+            });
+            vi.spyOn(originalLoader.DataLoader, 'loadRaceFluff').mockResolvedValue({
+                raceFluff: [],
+            });
+            await raceService.initialize();
+        });
+
+        it('should strip "Variant;" prefix from subrace names', () => {
+            const subraces = raceService.getSubraces('Tiefling', 'PHB');
+            const names = subraces.map((sr) => sr.name);
+
+            expect(names).toContain("Devil's Tongue");
+            expect(names).toContain('Hellfire');
+            expect(names).not.toContain("Variant; Devil's Tongue");
+            expect(names).not.toContain('Variant; Hellfire');
+        });
+
+        it('should strip "Variant;" prefix for Half-Elf subraces', () => {
+            const subraces = raceService.getSubraces('Half-Elf', 'PHB');
+            const names = subraces.map((sr) => sr.name);
+
+            expect(names).toContain('Aquatic Elf Descent');
+            expect(names).not.toContain('Variant; Aquatic Elf Descent');
+        });
+
+        it('should not alter names without "Variant;" prefix', () => {
+            const subraces = raceService.getSubraces('Half-Elf', 'PHB');
+            const names = subraces.map((sr) => sr.name);
+
+            expect(names).toContain('High Half-Elf');
+        });
+
+        it('should allow getSubrace lookup using cleaned name', () => {
+            const subrace = raceService.getSubrace('Tiefling', "Devil's Tongue", 'PHB');
+
+            expect(subrace.name).toBe("Devil's Tongue");
+            expect(subrace.raceName).toBe('Tiefling');
+        });
+
+        it('should allow getSubrace lookup for Half-Elf cleaned name', () => {
+            const subrace = raceService.getSubrace('Half-Elf', 'Aquatic Elf Descent', 'PHB');
+
+            expect(subrace.name).toBe('Aquatic Elf Descent');
+        });
+    });
+
     describe('getBaseSubrace', () => {
         beforeEach(async () => {
             const originalLoader = await import('../../src/lib/DataLoader.js');

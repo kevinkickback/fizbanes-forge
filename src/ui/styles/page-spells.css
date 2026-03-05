@@ -297,6 +297,7 @@
 }
 
 .spell-class-levels {
+	margin-top: 0.3em;
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 0;

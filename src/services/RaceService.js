@@ -68,8 +68,17 @@ function createRaceKey(name, source = 'PHB') {
 	return `${name?.toLowerCase()}:${source}`;
 }
 
+function cleanSubraceName(name) {
+	if (name?.startsWith('Variant;')) {
+		return name.split(';')[1].trim();
+	}
+	return name;
+}
+
 function buildRaceBundle(race, explicitSubraces, raceSource) {
-	const namedSubraces = explicitSubraces.filter((sr) => sr.name);
+	const namedSubraces = explicitSubraces
+		.filter((sr) => sr.name)
+		.map((sr) => ({ ...sr, name: cleanSubraceName(sr.name) }));
 	const baseSubraces = explicitSubraces.filter((sr) => !sr.name);
 
 	const derivedFromRace = deriveVersionSubracesFromRace(race, raceSource);
@@ -111,11 +120,7 @@ function deriveFromAbstractImplementation(
 }
 
 function deriveFromSimpleVersion(version, raceName, source) {
-	let variantName = version.name;
-
-	if (variantName?.includes(';')) {
-		variantName = variantName.split(';')[1].trim();
-	}
+	const variantName = cleanSubraceName(version.name);
 
 	return {
 		name: variantName || version.name,

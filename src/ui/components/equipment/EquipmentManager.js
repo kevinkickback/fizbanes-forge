@@ -256,10 +256,11 @@ export class EquipmentManager {
 	}
 
 	handleRemoveItem(itemId) {
-		this._executeAction(
-			(char) => equipmentService.removeItem(char, itemId, 1),
-			'Failed to remove item',
-		);
+		this._executeAction((char) => {
+			const item = char.inventory?.items?.find((i) => i.id === itemId);
+			const quantity = item ? item.quantity : 1;
+			return equipmentService.removeItem(char, itemId, quantity);
+		}, 'Failed to remove item');
 	}
 
 	handleEquipItem(itemId) {

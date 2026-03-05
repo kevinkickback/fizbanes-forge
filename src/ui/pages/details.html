@@ -69,95 +69,96 @@
                 </div>
             </div>
         </div>
-        <!-- Appearance Card Inserted Here -->
-        <div class="col-12 mb-4" id="details-appearance">
-            <div class="card">
-                <div class="card-header py-2">
-                    <h5 class="mb-0">Appearance</h5>
-                </div>
-                <div class="card-body character-info-card-body">
-                    <div class="details-info-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">Age</label>
-                                <input type="text" class="form-control" id="age">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Height</label>
-                                <input type="text" class="form-control" id="height">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Weight</label>
-                                <input type="text" class="form-control" id="weight">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Eyes</label>
-                                <input type="text" class="form-control" id="eyeColor">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Skin</label>
-                                <input type="text" class="form-control" id="skinColor">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Hair</label>
-                                <input type="text" class="form-control" id="hairColor">
-                            </div>
-                        </div>
-                        <hr class="my-4">
+    </div>
+    <!-- Appearance Card Inserted Here -->
+    <div class="col-12 mb-4" id="details-appearance">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Appearance</h5>
+            </div>
+            <div class="card-body character-info-card-body">
+                <div class="details-info-container">
+                    <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Additional Features</label>
-                            <textarea class="form-control" id="additionalFeatures"></textarea>
+                            <label class="form-label">Age</label>
+                            <input type="text" class="form-control" id="age">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Height</label>
+                            <input type="text" class="form-control" id="height">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Weight</label>
+                            <input type="text" class="form-control" id="weight">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Eyes</label>
+                            <input type="text" class="form-control" id="eyeColor">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Skin</label>
+                            <input type="text" class="form-control" id="skinColor">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hair</label>
+                            <input type="text" class="form-control" id="hairColor">
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        <!-- End Appearance Card -->
-        <div class="col-12 mb-4" id="details-allies">
-            <div class="card">
-                <div class="card-header py-2">
-                    <h5 class="mb-0">Allies & Organizations</h5>
-                </div>
-                <div class="card-body">
-                    <div class="allies-org-container">
-                        <div class="allies-org-left-col">
-                            <div class="d-flex align-items-center gap-2">
-                                <select class="form-select" id="allySelector">
-                                    <option value="">Select Organization</option>
-                                    <option value="harpers">The Harpers</option>
-                                    <option value="zhentarim">The Zhentarim</option>
-                                    <option value="emerald-enclave">Emerald Enclave</option>
-                                    <option value="lords-alliance">Lords' Alliance</option>
-                                    <option value="order-gauntlet">Order of the Gauntlet</option>
-                                    <option value="custom">Custom</option>
-                                </select>
-                                <input type="file" accept="image/*" id="customAllyImageInput" class="u-hidden"
-                                    aria-label="Upload custom organization image">
-                                <button type="button" id="customAllyImageBtn" class="btn btn-outline-secondary u-hidden"
-                                    title="Upload Image">
-                                    <i class="fa fa-upload"></i>
-                                </button>
-                            </div>
-                            <div id="allyImage" class="ally-image"></div>
-                        </div>
-                        <div class="allies-org-right-col">
-                            <div class="ally-info" id="allyInfo"></div>
-                            <textarea class="form-control u-hidden" id="allyCustomNotes"
-                                placeholder="Enter custom organization details..."></textarea>
-                        </div>
+                    <hr class="my-4">
+                    <div class="form-group">
+                        <label class="form-label">Additional Features</label>
+                        <textarea class="form-control" id="additionalFeatures"></textarea>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 mb-4" id="details-history">
-            <div class="card">
-                <div class="card-header py-2">
-                    <h5 class="mb-0">History</h5>
-                </div>
-                <div class="card-body history-card-body">
-                    <textarea class="form-control" id="backstory"
-                        placeholder="Enter character background and history..."></textarea>
                 </div>
             </div>
         </div>
     </div>
+    <!-- End Appearance Card -->
+    <div class="col-12 mb-4" id="details-allies">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">Allies & Organizations</h5>
+            </div>
+            <div class="card-body">
+                <div class="allies-org-container">
+                    <div class="allies-org-left-col">
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select" id="allySelector">
+                                <option value="">Select Organization</option>
+                                <option value="harpers">The Harpers</option>
+                                <option value="zhentarim">The Zhentarim</option>
+                                <option value="emerald-enclave">Emerald Enclave</option>
+                                <option value="lords-alliance">Lords' Alliance</option>
+                                <option value="order-gauntlet">Order of the Gauntlet</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                            <input type="file" accept="image/*" id="customAllyImageInput" class="u-hidden"
+                                aria-label="Upload custom organization image">
+                            <button type="button" id="customAllyImageBtn" class="btn btn-outline-secondary u-hidden"
+                                title="Upload Image">
+                                <i class="fa fa-upload"></i>
+                            </button>
+                        </div>
+                        <div id="allyImage" class="ally-image"></div>
+                    </div>
+                    <div class="allies-org-right-col">
+                        <div class="ally-info" id="allyInfo"></div>
+                        <textarea class="form-control u-hidden" id="allyCustomNotes"
+                            placeholder="Enter custom organization details..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 mb-4" id="details-history">
+        <div class="card">
+            <div class="card-header py-2">
+                <h5 class="mb-0">History</h5>
+            </div>
+            <div class="card-body history-card-body">
+                <textarea class="form-control" id="backstory"
+                    placeholder="Enter character background and history..."></textarea>
+            </div>
+        </div>
+    </div>
+</div>

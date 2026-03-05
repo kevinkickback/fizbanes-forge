@@ -18,7 +18,12 @@ vi.mock('../../src/services/SpellService.js', () => ({
 // Mock EventBus
 vi.mock('../../src/lib/EventBus.js', () => ({
     eventBus: { emit: vi.fn(), on: vi.fn(), off: vi.fn() },
-    EVENTS: { SPELL_ADDED: 'spell:added', SPELL_REMOVED: 'spell:removed' },
+    EVENTS: {
+        SPELL_ADDED: 'spell:added',
+        SPELL_REMOVED: 'spell:removed',
+        SPELL_PREPARED: 'spell:prepared',
+        SPELL_UNPREPARED: 'spell:unprepared',
+    },
 }));
 
 // Mock ValidationSchemas
@@ -161,6 +166,130 @@ describe('SpellSelectionService', () => {
                 spellsKnown: [],
                 itemSpells: [],
             });
+        });
+    });
+
+    describe('_getPreparedSpellLimit', () => {
+        function makeCharacter(intScore) {
+            return {
+                getAbilityModifier: (ability) => {
+                    if (ability === 'intelligence') return Math.floor((intScore - 10) / 2);
+                    return 0;
+                },
+            };
+        }
+
+        beforeEach(() => {
+            classService.getClass.mockReturnValue({
+                name: 'Wizard',
+                spellcastingAbility: 'int',
+                preparedSpells: true,
+            });
+        });
+
+        it('should return level + INT modifier for a Level 2 Wizard with INT 14 (+2)', () => {
+            const character = makeCharacter(14);
+            expect(spellSelectionService._getPreparedSpellLimit(character, 'Wizard', 2)).toBe(4);
+        });
+
+        it('should return level + INT modifier for a Level 2 Wizard with INT 13 (+1)', () => {
+            const character = makeCharacter(13);
+            expect(spellSelectionService._getPreparedSpellLimit(character, 'Wizard', 2)).toBe(3);
+        });
+
+        it('should return minimum of 1 for a Level 1 Wizard with INT 8 (-1)', () => {
+            const character = makeCharacter(8);
+            expect(spellSelectionService._getPreparedSpellLimit(character, 'Wizard', 1)).toBe(1);
+        });
+
+        it('should return 8 for a Level 5 Cleric with WIS 16 (+3)', () => {
+            classService.getClass.mockReturnValue({
+                name: 'Cleric',
+                spellcastingAbility: 'wis',
+                preparedSpells: true,
+            });
+            const character = {
+                getAbilityModifier: (ability) => (ability === 'wisdom' ? 3 : 0),
+            };
+            expect(spellSelectionService._getPreparedSpellLimit(character, 'Cleric', 5)).toBe(8);
+        });
+
+        it('should return 0 for a non-spellcasting class', () => {
+            classService.getClass.mockReturnValue({ name: 'Fighter' }); // no spellcastingAbility
+            const character = makeCharacter(14);
+            expect(spellSelectionService._getPreparedSpellLimit(character, 'Fighter', 5)).toBe(0);
+        });
+    });
+
+    describe('prepareSpell', () => {
+        function makeCharacter(intScore, classLevel) {
+            return {
+                id: 'test-char',
+                getAbilityModifier: (ability) => {
+                    if (ability === 'intelligence') return Math.floor((intScore - 10) / 2);
+                    return 0;
+                },
+                progression: {
+                    classes: [{ name: 'Wizard', levels: classLevel }],
+                },
+                spellcasting: {
+                    classes: {
+                        Wizard: {
+                            level: 1, // intentionally stale — progression.classes[].levels is the truth
+                            spellsKnown: [
+                                { name: 'Magic Missile', level: 1, source: 'PHB' },
+                                { name: 'Shield', level: 1, source: 'PHB' },
+                                { name: 'Misty Step', level: 2, source: 'PHB' },
+                                { name: 'Fireball', level: 3, source: 'PHB' },
+                                { name: 'Mage Armor', level: 1, source: 'PHB' },
+                            ],
+                            spellsPrepared: [],
+                        },
+                    },
+                },
+            };
+        }
+
+        beforeEach(() => {
+            classService.getClass.mockReturnValue({
+                name: 'Wizard',
+                spellcastingAbility: 'int',
+                preparedSpells: true,
+            });
+        });
+
+        it('should prepare a spell when under the limit', () => {
+            // Level 2 Wizard, INT 14 (+2) → limit = 4
+            const character = makeCharacter(14, 2);
+            expect(() =>
+                spellSelectionService.prepareSpell(character, 'Wizard', 'Magic Missile'),
+            ).not.toThrow();
+            expect(character.spellcasting.classes.Wizard.spellsPrepared).toHaveLength(1);
+        });
+
+        it('should use progression.classes[].levels (not spellcasting.classes[].level) for the limit', () => {
+            // spellcasting.classes.Wizard.level is stale at 1 → limit would be 1+2=3
+            // progression.classes[].levels is 2 → correct limit is 2+2=4
+            const character = makeCharacter(14, 2);
+            spellSelectionService.prepareSpell(character, 'Wizard', 'Magic Missile');
+            spellSelectionService.prepareSpell(character, 'Wizard', 'Shield');
+            spellSelectionService.prepareSpell(character, 'Wizard', 'Mage Armor');
+            // With stale level=1 and INT+2, limit would be 3 and the 4th prepare would throw.
+            // With correct level=2 and INT+2, limit is 4 — should succeed.
+            expect(() =>
+                spellSelectionService.prepareSpell(character, 'Wizard', 'Misty Step'),
+            ).not.toThrow();
+            expect(character.spellcasting.classes.Wizard.spellsPrepared).toHaveLength(4);
+        });
+
+        it('should throw ValidationError when prepared limit is reached', () => {
+            // Level 2, INT 10 (+0) → limit = 2
+            const character = makeCharacter(10, 2);
+            spellSelectionService.prepareSpell(character, 'Wizard', 'Magic Missile');
+            spellSelectionService.prepareSpell(character, 'Wizard', 'Shield');
+            expect(() =>
+                spellSelectionService.prepareSpell(character, 'Wizard', 'Mage Armor'),
+            ).toThrow();
         });
     });
 });

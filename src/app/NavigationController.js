@@ -450,6 +450,9 @@ class NavigationControllerImpl {
 
 		document.body.setAttribute('data-current-page', pageName);
 
+		const scrollContainer = document.querySelector('.main-content');
+		if (scrollContainer) scrollContainer.scrollTop = 0;
+
 		eventBus.emit(EVENTS.PAGE_LOADED, pageName);
 
 		AppState.setState({ isNavigating: false });

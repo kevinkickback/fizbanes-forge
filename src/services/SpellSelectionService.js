@@ -392,10 +392,12 @@ class SpellSelectionService {
 		}
 
 		// Check prepared limit
+		const classEntryForLimit = character.progression?.classes?.find((c) => c.name === className);
+		const classLevelForLimit = classEntryForLimit?.levels || classSpellcasting.level || 1;
 		const preparedLimit = this._getPreparedSpellLimit(
 			character,
 			className,
-			classSpellcasting.level,
+			classLevelForLimit,
 		);
 		if (classSpellcasting.spellsPrepared.length >= preparedLimit) {
 			throw new ValidationError(`Prepared spell limit reached (${preparedLimit})`, {

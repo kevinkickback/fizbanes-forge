@@ -49,6 +49,10 @@ export class ClassCard {
 		// DOM cleanup manager
 		this._cleanup = DOMCleanup.create();
 
+		// Reentrancy guard for _renderClassChoices
+		this._renderingChoices = false;
+		this._pendingChoicesRender = null;
+
 		// Initialize the component
 		this.initialize();
 	}
@@ -1341,8 +1345,18 @@ export class ClassCard {
 	}
 
 	async _renderClassChoices(className, choices, passiveFeatures = []) {
+		// Prevent concurrent renders that cause duplicate listeners
+		if (this._renderingChoices) {
+			this._pendingChoicesRender = { className, choices, passiveFeatures };
+			return;
+		}
+		this._renderingChoices = true;
+
 		const container = document.getElementById('classChoicesContent');
-		if (!container) return;
+		if (!container) {
+			this._renderingChoices = false;
+			return;
+		}
 
 		// Preserve accordion state before re-rendering
 		const expandedLevels = new Set();
@@ -1422,13 +1436,24 @@ export class ClassCard {
 		}
 
 		html += '</div>';
-		container.innerHTML = html;
+		try {
+			container.innerHTML = html;
 
-		// Resolve {@tag} references in passive feature descriptions
-		await textProcessor.processElement(container);
+			// Resolve {@tag} references in passive feature descriptions
+			await textProcessor.processElement(container);
 
-		// Attach listeners
-		this._attachClassChoiceListeners(container, className);
+			// Attach listeners
+			this._attachClassChoiceListeners(container, className);
+		} finally {
+			this._renderingChoices = false;
+
+			// If a render was requested while we were busy, run it now
+			if (this._pendingChoicesRender) {
+				const pending = this._pendingChoicesRender;
+				this._pendingChoicesRender = null;
+				await this._renderClassChoices(pending.className, pending.choices, pending.passiveFeatures);
+			}
+		}
 	}
 
 	_renderFeatureChoice(choice, className) {
@@ -2909,8 +2934,6 @@ export class ClassCard {
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
 		});
-
-		this._updateFeatureDisplay(className);
 	}
 
 	_updateSubclassSelection(className, selectedNames) {
@@ -2998,13 +3021,6 @@ export class ClassCard {
 			progressionClass.subclass = subclassName;
 		}
 
-		// Get the new subclassData for the selected subclass
-		let subclassData = null;
-		const subclasses = this._classService.getSubclasses(className, classData.source);
-		if (subclasses && subclassName) {
-			subclassData = subclasses.find((sc) => sc.name === subclassName);
-		}
-
 		// Emit event to notify about character update
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
@@ -3017,8 +3033,6 @@ export class ClassCard {
 			// Should use Notifications.js show() method instead
 			console.warn('[ClassCard]', `Subclass changed to ${subclassName}. Please review your class features and spells.`);
 		}
-
-		this.updateClassDetails(classData, subclassData);
 	}
 
 	async _updateFeatureDisplay(className) {

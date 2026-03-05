@@ -65,6 +65,10 @@ class LevelUpService {
 			if (src && !classEntry.source) {
 				classEntry.source = src;
 			}
+			// Sync spellcasting level with progression
+			if (char.spellcasting?.classes?.[cls]) {
+				char.spellcasting.classes[cls].level = lvl;
+			}
 			return classEntry;
 		}
 
@@ -204,7 +208,7 @@ class LevelUpService {
 			if (character.spellcasting.classes[classEntry.name]) {
 				const newSlots = spellSelectionService.calculateSpellSlots(
 					classEntry.name,
-					classEntry.level,
+					classEntry.levels,
 				);
 
 				// Preserve current slot usage, update max
@@ -239,7 +243,7 @@ class LevelUpService {
 			totalHP += hitDiceValue;
 
 			// Additional levels: average or rolled
-			for (let i = 1; i < classEntry.level; i++) {
+			for (let i = 1; i < classEntry.levels; i++) {
 				const hpThisLevel =
 					classEntry.hitPoints[i] || Math.ceil(hitDiceValue / 2);
 				totalHP += hpThisLevel;
