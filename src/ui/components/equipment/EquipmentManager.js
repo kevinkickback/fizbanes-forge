@@ -5,6 +5,10 @@ import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
+import {
+	attachCollapseToggle,
+	renderCollapsibleSection,
+} from '../CollapsibleSection.js';
 import { ItemSelectorModal } from './ItemSelectorModal.js';
 
 export class EquipmentManager {
@@ -104,6 +108,45 @@ export class EquipmentManager {
 		this.renderInventory(character);
 		this.renderWeight(character);
 		this.renderCurrency(character);
+		this.renderSources(character);
+	}
+
+	renderSources(character) {
+		const container = document.getElementById('equipmentSources');
+		if (!container) return;
+
+		const items = equipmentService.getInventoryItems(character);
+		if (items.length === 0) {
+			container.innerHTML = '';
+			return;
+		}
+
+		// Group items by addedFrom source
+		const sourceGroups = {};
+		for (const item of items) {
+			const source = item.metadata?.addedFrom || 'Manual';
+			if (!sourceGroups[source]) sourceGroups[source] = [];
+			sourceGroups[source].push(item);
+		}
+
+		const { headerHtml, openTag, closeTag } = renderCollapsibleSection(
+			'equipmentSourcesCollapsed',
+		);
+
+		let html = `${headerHtml}${openTag}`;
+
+		for (const [source, sourceItems] of Object.entries(sourceGroups).sort(([a], [b]) => a.localeCompare(b))) {
+			html += `<div class="proficiency-note"><strong>${source}:</strong> `;
+			html += sourceItems
+				.map(i => i.quantity > 1 ? `${i.name} (×${i.quantity})` : i.name)
+				.sort((a, b) => a.localeCompare(b))
+				.join(', ');
+			html += '</div>';
+		}
+
+		html += closeTag;
+		container.innerHTML = html;
+		attachCollapseToggle(container, 'equipmentSourcesCollapsed');
 	}
 
 	renderInventory(character) {

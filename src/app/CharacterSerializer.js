@@ -89,6 +89,7 @@ export function serialize(character) {
 		id: character.id,
 		name: character.name,
 		portrait: character.portrait || '',
+		embeddedPortrait: character.embeddedPortrait || null,
 		allowedSources: Array.from(character.allowedSources || []),
 		playerName: character.playerName,
 		level: character.level,

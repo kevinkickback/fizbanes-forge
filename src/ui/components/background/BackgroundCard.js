@@ -8,6 +8,7 @@ import TextProcessor from '../../../lib/TextProcessor.js';
 
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { backgroundService } from '../../../services/BackgroundService.js';
+import { equipmentService } from '../../../services/EquipmentService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { BackgroundDetailsView } from './BackgroundDetailsView.js';
 
@@ -437,6 +438,13 @@ export class BackgroundCard {
 		}
 		character.background.equipmentChoices = { 0: choiceKey };
 
+		const effectiveBg = this._selectedVariant || this._selectedBackground;
+		equipmentService.applyBackgroundEquipment(
+			character,
+			effectiveBg,
+			character.background.equipmentChoices,
+		);
+
 		eventBus.emit(EVENTS.CHARACTER_UPDATED, {
 			character: CharacterManager.getCurrentCharacter(),
 		});
@@ -631,7 +639,8 @@ export class BackgroundCard {
 			character.removeProficienciesBySource('Background');
 
 			if (!background) {
-				// Clear background
+				// Clear background items and currency before wiping background data
+				equipmentService.applyBackgroundEquipment(character, null, null);
 				character.background = {};
 			} else {
 				// Set background
@@ -655,6 +664,13 @@ export class BackgroundCard {
 				} else {
 					character.background.equipmentChoices = null;
 				}
+
+				// Add background items to inventory
+				equipmentService.applyBackgroundEquipment(
+					character,
+					effectiveBg,
+					character.background.equipmentChoices,
+				);
 
 				// Add background proficiencies
 				await this._updateBackgroundProficiencies(background);

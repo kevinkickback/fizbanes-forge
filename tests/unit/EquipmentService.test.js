@@ -7,7 +7,15 @@ vi.mock('../../src/ui/rendering/TooltipManager.js', () => ({
     initializeTooltipListeners: vi.fn(),
 }));
 
+// Mock ItemService so resolveBackgroundEquipment tests control lookup results
+vi.mock('../../src/services/ItemService.js', () => ({
+    itemService: {
+        getItem: vi.fn(),
+    },
+}));
+
 import { equipmentService } from '../../src/services/EquipmentService.js';
+import { itemService } from '../../src/services/ItemService.js';
 
 function createCharacterWithInventory(overrides = {}) {
     return {
@@ -17,6 +25,7 @@ function createCharacterWithInventory(overrides = {}) {
             items: [],
             equipped: [],
             attuned: [],
+            currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
             weight: { current: 0, capacity: 150 },
         },
         ...overrides,
@@ -490,6 +499,409 @@ describe('EquipmentService', () => {
 
         it('should return null for character without inventory', () => {
             expect(equipmentService.findItemById({}, 'item-1')).toBeNull();
+        });
+    });
+
+    describe('removeItemsBySource', () => {
+        it('should remove all items with matching addedFrom source', () => {
+            equipmentService.addItem(character, createItemData(), 1, 'Background');
+            equipmentService.addItem(character, createItemData({ name: 'Shield' }), 1, 'Background');
+            vi.clearAllMocks();
+
+            const removed = equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(character.inventory.items).toHaveLength(0);
+            expect(removed).toHaveLength(2);
+        });
+
+        it('should not remove items from a different source', () => {
+            equipmentService.addItem(character, createItemData(), 1, 'Background');
+            equipmentService.addItem(character, createItemData({ name: 'Dagger' }), 1, 'Manual');
+
+            equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(character.inventory.items).toHaveLength(1);
+            expect(character.inventory.items[0].metadata.addedFrom).toBe('Manual');
+        });
+
+        it('should unequip items before removal', () => {
+            const item = equipmentService.addItem(character, createItemData({ weapon: true }), 1, 'Background');
+            equipmentService.equipItem(character, item.id);
+            expect(character.inventory.equipped).toContain(item.id);
+
+            equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(character.inventory.equipped).not.toContain(item.id);
+            expect(character.inventory.items).toHaveLength(0);
+        });
+
+        it('should unattune items before removal', () => {
+            const item = equipmentService.addItem(character, createItemData({ reqAttune: true }), 1, 'Background');
+            character.inventory.attuned.push(item.id);
+            item.attuned = true;
+
+            equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(character.inventory.attuned).not.toContain(item.id);
+            expect(character.inventory.items).toHaveLength(0);
+        });
+
+        it('should update inventory weight after removal', () => {
+            equipmentService.addItem(character, createItemData({ weight: 5 }), 1, 'Background');
+            expect(character.inventory.weight.current).toBe(5);
+
+            equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(character.inventory.weight.current).toBe(0);
+        });
+
+        it('should emit INVENTORY_UPDATED event', () => {
+            equipmentService.addItem(character, createItemData(), 1, 'Background');
+            vi.clearAllMocks();
+
+            equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(emitSpy).toHaveBeenCalledWith(EVENTS.INVENTORY_UPDATED, character);
+        });
+
+        it('should return empty array when no items match', () => {
+            equipmentService.addItem(character, createItemData(), 1, 'Manual');
+
+            const removed = equipmentService.removeItemsBySource(character, 'Background');
+
+            expect(removed).toEqual([]);
+        });
+
+        it('should return empty array for character without inventory', () => {
+            const noInventory = { id: 'x' };
+            const removed = equipmentService.removeItemsBySource(noInventory, 'Background');
+            expect(removed).toEqual([]);
+        });
+
+        it('should throw ValidationError for null character', () => {
+            expect(() => equipmentService.removeItemsBySource(null, 'Background')).toThrow(ValidationError);
+        });
+
+        it('should throw ValidationError for empty source string', () => {
+            expect(() => equipmentService.removeItemsBySource(character, '')).toThrow(ValidationError);
+        });
+    });
+
+    describe('addCurrency', () => {
+        it('should add currency to inventory', () => {
+            equipmentService.addCurrency(character, { gp: 10, sp: 5 });
+
+            expect(character.inventory.currency.gp).toBe(10);
+            expect(character.inventory.currency.sp).toBe(5);
+        });
+
+        it('should accumulate currency across multiple calls', () => {
+            equipmentService.addCurrency(character, { gp: 10 });
+            equipmentService.addCurrency(character, { gp: 5, cp: 3 });
+
+            expect(character.inventory.currency.gp).toBe(15);
+            expect(character.inventory.currency.cp).toBe(3);
+        });
+
+        it('should ignore undefined denominations', () => {
+            equipmentService.addCurrency(character, { gp: 7 });
+
+            expect(character.inventory.currency.sp).toBe(0);
+            expect(character.inventory.currency.cp).toBe(0);
+        });
+
+        it('should emit INVENTORY_UPDATED event', () => {
+            equipmentService.addCurrency(character, { gp: 1 });
+
+            expect(emitSpy).toHaveBeenCalledWith(EVENTS.INVENTORY_UPDATED, character);
+        });
+
+        it('should throw ValidationError for character without inventory currency', () => {
+            expect(() =>
+                equipmentService.addCurrency({ id: 'x' }, { gp: 1 }),
+            ).toThrow(ValidationError);
+        });
+    });
+
+    describe('resolveBackgroundEquipment', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it('should resolve string item refs via itemService', () => {
+            itemService.getItem.mockReturnValue({ name: 'Dagger', source: 'XPHB', weight: 1 });
+
+            const { items } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: ['dagger|xphb'] }] },
+                null,
+            );
+
+            expect(items).toHaveLength(1);
+            expect(items[0].name).toBe('Dagger');
+            expect(itemService.getItem).toHaveBeenCalledWith('dagger', 'xphb');
+        });
+
+        it('should fall back to placeholder when itemService throws NotFoundError', () => {
+            itemService.getItem.mockImplementation(() => {
+                throw new NotFoundError('Item', 'unknown|phb');
+            });
+
+            const { items } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: ['unknown|phb'] }] },
+                null,
+            );
+
+            expect(items).toHaveLength(1);
+            expect(items[0].name).toBe('unknown');
+            expect(items[0].weight).toBe(0);
+        });
+
+        it('should convert currency values (value field) to currency object', () => {
+            const { items, currency } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: [{ value: 5000 }] }] },
+                null,
+            );
+
+            expect(items).toHaveLength(0);
+            expect(currency.gp).toBe(50);
+        });
+
+        it('should convert partial copper value correctly', () => {
+            const { currency } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: [{ value: 1600 }] }] },
+                null,
+            );
+
+            expect(currency.gp).toBe(16);
+        });
+
+        it('should resolve item ref objects with quantity', () => {
+            itemService.getItem.mockReturnValue({ name: 'Book', source: 'PHB', weight: 5 });
+
+            const { items } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: [{ item: 'book|phb', quantity: 2 }] }] },
+                null,
+            );
+
+            expect(items[0].quantity).toBe(2);
+        });
+
+        it('should add containsValue from item ref as currency', () => {
+            itemService.getItem.mockReturnValue({ name: 'Pouch', source: 'PHB', weight: 1 });
+
+            const { currency } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: [{ item: 'pouch|phb', containsValue: 1500 }] }] },
+                null,
+            );
+
+            expect(currency.gp).toBe(15);
+        });
+
+        it('should resolve special items as placeholders', () => {
+            const { items } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: [{ special: 'incense sticks', quantity: 5 }] }] },
+                null,
+            );
+
+            expect(items[0].name).toBe('incense sticks');
+            expect(items[0].quantity).toBe(5);
+            expect(items[0].weight).toBe(0);
+        });
+
+        it('should resolve equipmentType items as display name placeholders', () => {
+            const { items } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: [{ equipmentType: 'toolArtisan' }] }] },
+                null,
+            );
+
+            expect(items[0].name).toBe("Artisan's Tools (any)");
+        });
+
+        it('should include fixed _ items always', () => {
+            itemService.getItem.mockReturnValue({ name: 'Dagger', source: 'PHB', weight: 1 });
+
+            const { items } = equipmentService.resolveBackgroundEquipment(
+                { equipment: [{ _: ['dagger|phb'], a: [], b: [] }] },
+                { 0: 'a' },
+            );
+
+            expect(items.some((i) => i.name === 'Dagger')).toBe(true);
+        });
+
+        it('should include items from the selected choice key', () => {
+            itemService.getItem
+                .mockReturnValueOnce({ name: 'Prayer Book', source: 'PHB', weight: 1 })
+                .mockReturnValueOnce({ name: 'Pouch', source: 'PHB', weight: 1 });
+
+            const bg = {
+                equipment: [
+                    { _: [{ item: 'pouch|phb' }] },
+                    { a: [{ item: 'prayer book|phb' }], b: [{ special: 'prayer wheel' }] },
+                ],
+            };
+
+            const { items } = equipmentService.resolveBackgroundEquipment(bg, { 0: 'a' });
+
+            expect(items.some((i) => i.name === 'Prayer Book')).toBe(true);
+            expect(items.every((i) => i.name !== 'prayer wheel')).toBe(true);
+        });
+
+        it('should resolve choice items from a separate equipment entry (Acolyte-style)', () => {
+            itemService.getItem
+                .mockReturnValueOnce({ name: 'Holy Symbol', source: 'PHB', weight: 1 })
+                .mockReturnValueOnce({ name: 'Prayer Book', source: 'PHB', weight: 5 });
+
+            const bg = {
+                equipment: [
+                    { _: [{ item: 'holy symbol|phb' }] },
+                    { a: [{ item: 'prayer book|phb' }], b: [{ special: 'prayer wheel' }] },
+                ],
+            };
+
+            const { items } = equipmentService.resolveBackgroundEquipment(bg, { 0: 'a' });
+
+            expect(items.some(i => i.name === 'Holy Symbol')).toBe(true);
+            expect(items.some(i => i.name === 'Prayer Book')).toBe(true);
+        });
+
+        it('should resolve choice b from a separate equipment entry', () => {
+            itemService.getItem
+                .mockReturnValueOnce({ name: 'Holy Symbol', source: 'PHB', weight: 1 });
+
+            const bg = {
+                equipment: [
+                    { _: [{ item: 'holy symbol|phb' }] },
+                    { a: [{ item: 'prayer book|phb' }], b: [{ special: 'prayer wheel' }] },
+                ],
+            };
+
+            const { items } = equipmentService.resolveBackgroundEquipment(bg, { 0: 'b' });
+
+            expect(items.some(i => i.name === 'Holy Symbol')).toBe(true);
+            expect(items.some(i => i.name === 'prayer wheel')).toBe(true);
+            expect(items.every(i => i.name !== 'Prayer Book')).toBe(true);
+        });
+
+        it('should return empty results for background with no equipment', () => {
+            const { items, currency } = equipmentService.resolveBackgroundEquipment({}, null);
+
+            expect(items).toHaveLength(0);
+            expect(currency.gp).toBe(0);
+        });
+    });
+
+    describe('applyBackgroundEquipment', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+            itemService.getItem.mockReturnValue({ name: 'Dagger', source: 'PHB', weight: 1 });
+        });
+
+        it('should add items from background to inventory', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: ['dagger|phb'] }] },
+                null,
+            );
+
+            expect(character.inventory.items).toHaveLength(1);
+            expect(character.inventory.items[0].metadata.addedFrom).toBe('Background');
+        });
+
+        it('should remove previous background items when called again', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: ['dagger|phb'] }] },
+                null,
+            );
+            expect(character.inventory.items).toHaveLength(1);
+
+            itemService.getItem.mockReturnValue({ name: 'Shield', source: 'PHB', weight: 6 });
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: ['shield|phb'] }] },
+                null,
+            );
+
+            expect(character.inventory.items).toHaveLength(1);
+            expect(character.inventory.items[0].name).toBe('Shield');
+        });
+
+        it('should add currency from background', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: [{ value: 5000 }] }] },
+                null,
+            );
+
+            expect(character.inventory.currency.gp).toBe(50);
+        });
+
+        it('should subtract previous background currency when switching', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: [{ value: 5000 }] }] },
+                null,
+            );
+            expect(character.inventory.currency.gp).toBe(50);
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: [{ value: 1000 }] }] },
+                null,
+            );
+
+            expect(character.inventory.currency.gp).toBe(10);
+        });
+
+        it('should track addedCurrency on character.background', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: [{ value: 5000 }] }] },
+                null,
+            );
+
+            expect(character.background.addedCurrency).toEqual(
+                expect.objectContaining({ gp: 50 }),
+            );
+        });
+
+        it('should handle null background (clear only)', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+            equipmentService.addItem(character, createItemData(), 1, 'Background');
+
+            equipmentService.applyBackgroundEquipment(character, null, null);
+
+            expect(character.inventory.items).toHaveLength(0);
+        });
+
+        it('should not affect manually added items', () => {
+            character.background = { name: 'Test', source: 'PHB' };
+            equipmentService.addItem(character, createItemData({ name: 'Manual Sword' }), 1, 'Manual');
+
+            equipmentService.applyBackgroundEquipment(
+                character,
+                { equipment: [{ _: ['dagger|phb'] }] },
+                null,
+            );
+
+            expect(character.inventory.items).toHaveLength(2);
+            expect(character.inventory.items.some((i) => i.name === 'Manual Sword')).toBe(true);
+        });
+
+        it('should do nothing for null character', () => {
+            expect(() =>
+                equipmentService.applyBackgroundEquipment(null, {}, null),
+            ).not.toThrow();
         });
     });
 });

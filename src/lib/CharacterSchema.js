@@ -7,6 +7,11 @@ const characterValidationSchema = z.object({
     name: z.string().min(1, 'Character name is required'),
     playerName: z.string().optional(),
     portrait: z.string().optional(),
+    embeddedPortrait: z.object({
+        data: z.string(),
+        mimeType: z.string(),
+        originalFilename: z.string(),
+    }).nullable().optional(),
 
     abilityScores: z.object({
         strength: z.number().int().min(1).max(30),

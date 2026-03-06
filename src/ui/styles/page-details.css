@@ -180,3 +180,78 @@
 	display: flex;
 	overflow-y: auto;
 }
+
+/* Portrait selector - responsive layout for details page */
+#details-portrait .card-body {
+	align-items: flex-start;
+	justify-content: flex-start;
+	padding: 1.5rem;
+	height: 100%;
+}
+
+#details-portrait .character-icon-selector-horizontal {
+	width: 100%;
+	height: 100%;
+	gap: 1.5rem;
+}
+
+/* Preview takes 50% width and 100% height (with max constraints) */
+#details-portrait .portrait-preview-horizontal {
+	flex: 0 0 50%;
+	width: 50%;
+	height: 100%;
+	max-width: 650px;
+	max-height: none;
+}
+
+#details-portrait .portrait-preview-horizontal img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+/* Options take remaining 50% width */
+#details-portrait .portrait-options {
+	flex: 1 1 50%;
+	max-height: 100%;
+	min-height: 300px;
+	overflow-y: auto;
+}
+
+/* Responsive grid - auto-fit columns based on available width */
+#details-portrait .icon-grid-horizontal {
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 0.75rem;
+}
+
+/* Buttons scale to fill grid cells */
+#details-portrait .portrait-icon-btn {
+	width: 100%;
+	height: 120px;
+	max-width: 140px;
+	max-height: 140px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 992px) {
+	#details-portrait .portrait-preview-horizontal {
+		flex: 0 0 40%;
+		width: 40%;
+		max-width: 300px;
+	}
+	#details-portrait .icon-grid-horizontal {
+		grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	#details-portrait .character-icon-selector-horizontal {
+		flex-direction: column;
+	}
+	#details-portrait .portrait-preview-horizontal {
+		flex: 0 0 auto;
+		width: 100%;
+		height: 300px;
+		max-width: none;
+	}
+}

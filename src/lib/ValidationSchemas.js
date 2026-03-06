@@ -269,6 +269,14 @@ export const removeItemArgsSchema = z.object({
     quantity: z.number().int().min(1).default(1),
 });
 
+export const removeItemsBySourceArgsSchema = z.object({
+    character: z.any().refine(
+        (val) => val && typeof val === 'object',
+        { message: 'Character must be an object' }
+    ),
+    source: z.string().min(1, 'Source is required'),
+});
+
 // SpellSelectionService schemas
 export const addSpellArgsSchema = z.object({
     character: z.any().refine(

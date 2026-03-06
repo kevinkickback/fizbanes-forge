@@ -1,6 +1,7 @@
 // Step 0: Basics - character name, gender, and portrait selection
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { PortraitSelector } from '../shared/PortraitSelector.js';
 
 export class CharacterStepBasics {
 	constructor(session, modal) {
@@ -91,172 +92,18 @@ export class CharacterStepBasics {
 
 		if (!grid || !preview) return;
 
-		// Default portrait images
-		const defaults = [
-			'assets/images/characters/placeholder_char_card.jpg',
-			'assets/images/characters/placeholder_char_card2.jpg',
-			'assets/images/characters/placeholder_char_card3.jpg',
-			'assets/images/characters/placeholder_char_card4.jpg',
-			'assets/images/characters/placeholder_char_card5.jpg',
-			'assets/images/characters/placeholder_char_card6.jpg',
-			'assets/images/characters/placeholder_char_card7.jpg',
-			'assets/images/characters/placeholder_char_card8.jpg',
-			'assets/images/characters/placeholder_char_card9.jpg',
-			'assets/images/characters/placeholder_char_card10.jpg',
-			'assets/images/characters/placeholder_char_card11.jpg',
-		];
+		// Pre-populate so save() preserves value without user interaction
+		this.selectedPortrait = this.session.get('portrait') || null;
 
-		grid.innerHTML = '';
-
-		// Add upload button
-		const uploadBtn = document.createElement('button');
-		uploadBtn.type = 'button';
-		uploadBtn.className = 'portrait-icon-btn upload';
-		uploadBtn.setAttribute('aria-label', 'Upload portrait');
-		uploadBtn.innerHTML = '<i class="fas fa-upload" aria-hidden="true"></i>';
-		this._cleanup.on(uploadBtn, 'click', () => {
-			if (uploadInput) uploadInput.click();
-		});
-		grid.appendChild(uploadBtn);
-
-		// Add default portraits
-		let firstPortraitBtn = null;
-		for (const src of defaults) {
-			const btn = this._createPortraitButton(src, preview, grid);
-			grid.appendChild(btn);
-			if (!firstPortraitBtn) firstPortraitBtn = btn;
-		}
-
-		// Auto-select first portrait or previously selected one
-		const currentPortrait = this.session.get('portrait');
-		if (currentPortrait) {
-			preview.src = currentPortrait;
-			this.selectedPortrait = currentPortrait;
-		} else if (firstPortraitBtn) {
-			firstPortraitBtn.click();
-		}
-
-		// Load user portraits from portraits folder
-		await this._loadUserPortraits(grid, preview);
-
-		// Handle file uploads
-		if (uploadInput) {
-			this._cleanup.on(uploadInput, 'change', async (ev) => {
-				await this._handlePortraitUpload(ev, preview, grid);
-			});
-		}
-	}
-
-	_createPortraitButton(src, preview, grid) {
-		const btn = document.createElement('button');
-		btn.type = 'button';
-		btn.className = 'portrait-icon-btn';
-		btn.innerHTML = `<img src="${src}" alt="Portrait option" />`;
-		btn.setAttribute('data-src', src);
-
-		this._cleanup.on(btn, 'click', () => {
-			this.selectedPortrait = src;
-			preview.src = src;
-
-			// Remove selection from all buttons
-			const allBtns = grid.querySelectorAll('.portrait-icon-btn');
-			for (const b of allBtns) {
-				b.classList.remove('selected');
-			}
-			btn.classList.add('selected');
+		const selector = new PortraitSelector({
+			grid,
+			preview,
+			uploadInput,
+			cleanup: this._cleanup,
+			onSelect: (src) => { this.selectedPortrait = src; },
 		});
 
-		return btn;
-	}
-
-	async _loadUserPortraits(grid, preview) {
-		try {
-			const characterPath = await window.characterStorage?.getDefaultSavePath();
-			if (!characterPath || typeof characterPath !== 'string') return;
-
-			const sep = characterPath.includes('\\') ? '\\' : '/';
-			const idx = characterPath.lastIndexOf(sep);
-			const basePath = idx > 0 ? characterPath.slice(0, idx) : characterPath;
-			const portraitsPath = `${basePath}${sep}portraits`;
-
-			const result =
-				await window.characterStorage?.listPortraits?.(portraitsPath);
-			if (result?.success && Array.isArray(result.files)) {
-				for (const filePath of result.files) {
-					const fileSrc = filePath.startsWith('file://')
-						? filePath
-						: `file://${filePath.replace(/\\/g, '/')}`;
-
-					const btn = this._createPortraitButton(fileSrc, preview, grid);
-					grid.appendChild(btn);
-				}
-			}
-		} catch (error) {
-			console.warn('[Step0Basics]', 'Failed to load user portraits', error);
-		}
-	}
-
-	async _handlePortraitUpload(ev, preview, grid) {
-		const file = ev.target.files?.[0];
-		if (!file) return;
-
-		try {
-			const characterPath = await window.characterStorage?.getDefaultSavePath();
-			if (!characterPath || typeof characterPath !== 'string') {
-				console.warn(
-					'[Step0Basics]',
-					'Could not determine portraits directory',
-				);
-				return;
-			}
-
-			const sep = characterPath.includes('\\') ? '\\' : '/';
-			const idx = characterPath.lastIndexOf(sep);
-			const basePath = idx > 0 ? characterPath.slice(0, idx) : characterPath;
-			const portraitsPath = `${basePath}${sep}portraits`;
-
-			// Read file as data URL
-			const reader = new FileReader();
-			reader.onload = async () => {
-				const dataUrl = reader.result;
-				if (typeof dataUrl !== 'string') return;
-
-				try {
-					const saveResult = await window.characterStorage?.savePortrait(
-						portraitsPath,
-						dataUrl,
-						file.name,
-					);
-
-					if (saveResult?.success && saveResult.filePath) {
-						const fileUrl = saveResult.filePath.startsWith('file://')
-							? saveResult.filePath
-							: `file://${saveResult.filePath.replace(/\\/g, '/')}`;
-
-						this.selectedPortrait = fileUrl;
-						preview.src = fileUrl;
-
-						// Create and add button for the uploaded portrait
-						const btn = this._createPortraitButton(fileUrl, preview, grid);
-						grid.appendChild(btn);
-						btn.classList.add('selected');
-
-						// Clear other selection highlights
-						const allBtns = grid.querySelectorAll('.portrait-icon-btn');
-						for (const b of allBtns) {
-							if (b !== btn) {
-								b.classList.remove('selected');
-							}
-						}
-					}
-				} catch (error) {
-					console.error('[Step0Basics]', 'Error saving portrait:', error);
-				}
-			};
-			reader.readAsDataURL(file);
-		} catch (error) {
-			console.error('[Step0Basics]', 'Error handling portrait upload:', error);
-		}
+		await selector.initialize(this.session.get('portrait'));
 	}
 
 	async validate() {

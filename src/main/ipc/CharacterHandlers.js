@@ -24,6 +24,96 @@ function resolveCharacterPath(savePath, id) {
 	return resolved;
 }
 
+const IMAGE_MIME_TYPES = {
+	'.png': 'image/png',
+	'.jpg': 'image/jpeg',
+	'.jpeg': 'image/jpeg',
+	'.webp': 'image/webp',
+	'.gif': 'image/gif',
+};
+
+/**
+ * Embeds the character's portrait image as a base64 data URL into embeddedPortrait.
+ * Skips embedding for asset paths, data URLs, empty portraits, or unsupported types.
+ * On file-read failure, logs a warning and leaves embeddedPortrait unchanged.
+ * @param {Object} character - Plain character object (mutated in place)
+ */
+export async function embedPortraitData(character) {
+	const portrait = character.portrait;
+	if (!portrait || portrait.startsWith('assets/') || portrait.startsWith('data:')) {
+		return;
+	}
+
+	const ext = path.extname(portrait).toLowerCase();
+	const mimeType = IMAGE_MIME_TYPES[ext];
+	if (!mimeType) {
+		MainLogger.warn('CharacterHandlers', 'Unsupported portrait extension, skipping embed:', ext);
+		return;
+	}
+
+	try {
+		const buffer = await fs.readFile(portrait);
+		character.embeddedPortrait = {
+			data: `data:${mimeType};base64,${buffer.toString('base64')}`,
+			mimeType,
+			originalFilename: path.basename(portrait),
+		};
+	} catch (error) {
+		MainLogger.warn('CharacterHandlers', 'Could not embed portrait, skipping:', error.message);
+	}
+}
+
+/**
+ * Extracts the embedded portrait from the character into the portraits folder.
+ * Updates character.portrait to the extracted file path (whether newly written or already existing).
+ * If the file already exists, skips writing. On error, logs a warning without modifying portrait.
+ * @param {Object} character - Plain character object (mutated in place)
+ * @param {string} savePath - Character save directory path
+ */
+export async function extractEmbeddedPortrait(character, savePath) {
+	const embedded = character.embeddedPortrait;
+	if (!embedded?.data || !embedded?.originalFilename) {
+		return;
+	}
+
+	const portraitsDir = path.join(path.dirname(savePath), 'portraits');
+
+	const ext = path.extname(embedded.originalFilename).toLowerCase();
+	const base = path.basename(embedded.originalFilename, ext);
+	const safeBase = base.replace(/[^a-zA-Z0-9_-]/g, '_');
+	const safeName = safeBase ? `${safeBase}${ext}` : `portrait${ext || '.png'}`;
+
+	const targetPath = path.join(portraitsDir, safeName);
+	if (!path.resolve(targetPath).startsWith(path.resolve(portraitsDir))) {
+		MainLogger.warn('CharacterHandlers', 'Portrait extraction path traversal attempt blocked');
+		return;
+	}
+
+	try {
+		await fs.access(targetPath);
+		// File already exists — just update the portrait path
+		character.portrait = targetPath;
+	} catch {
+		// File does not exist — extract it
+		try {
+			await fs.mkdir(portraitsDir, { recursive: true });
+
+			const match = embedded.data.match(/^data:[^;]+;base64,(.+)$/s);
+			if (!match) {
+				MainLogger.warn('CharacterHandlers', 'Invalid embedded portrait data URL, skipping extraction');
+				return;
+			}
+
+			const buffer = Buffer.from(match[1], 'base64');
+			await fs.writeFile(targetPath, buffer);
+			character.portrait = targetPath;
+			MainLogger.debug('CharacterHandlers', 'Extracted portrait to:', targetPath);
+		} catch (error) {
+			MainLogger.warn('CharacterHandlers', 'Could not extract portrait:', error.message);
+		}
+	}
+}
+
 export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.debug('CharacterHandlers', 'Registering character handlers');
 
@@ -53,6 +143,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			);
 
 			const savePath = preferencesManager.getCharacterSavePath();
+			await embedPortraitData(character);
 			// Save using the character ID as filename (simple, predictable)
 			const id = character.id || uuidv4();
 			const filePath = resolveCharacterPath(savePath, id);
@@ -96,6 +187,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			try {
 				const content = await fs.readFile(filePath, 'utf8');
 				const character = JSON.parse(content);
+				await extractEmbeddedPortrait(character, savePath);
 				MainLogger.debug('CharacterHandlers', 'Loaded character:', id);
 				return { success: true, character };
 			} catch (readError) {
@@ -128,8 +220,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				try {
 					const filePath = path.join(savePath, file);
 					const content = await fs.readFile(filePath, 'utf8');
-					const character = JSON.parse(content);
-					characters.push(character);
+					const character = JSON.parse(content);						await extractEmbeddedPortrait(character, savePath);					characters.push(character);
 				} catch (error) {
 					MainLogger.error(
 						'CharacterHandlers',
@@ -320,6 +411,7 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				throw writeError;
 			}
 
+			await extractEmbeddedPortrait(character, savePath);
 			MainLogger.debug('CharacterHandlers', 'Character imported:', character.id);
 			return { success: true, character };
 		} catch (error) {

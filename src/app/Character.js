@@ -81,6 +81,7 @@ export class Character {
 		};
 
 		this.portrait = data.portrait || '';
+		this.embeddedPortrait = data.embeddedPortrait || null;
 
 		this.feats = [];
 		this.featSources = new Map();

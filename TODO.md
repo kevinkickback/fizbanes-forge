@@ -1,12 +1,8 @@
 # TODO
 
 ## Logic
-- [ ] Automatically add items from background into user equipment
 - [ ] Add more mappings to 2014 PDF generations
 - [ ] Fix race/class/proficiencies accordian border hover color
-- [ ] Embed portrait images directly into save files (.ffp) (become self containted)
-      Extract image to user's defined portraits folder on load (if it doesn't exsist already)
-      Update portraits path in save file after image extraction if needed
 
 ## UI/UX Improvements
 - [ ] Add HP and AC display somewhere in the app
@@ -18,6 +14,7 @@
 - Added additional input fields to Details page
 - Enhanced Allies and Organizations section with images and improved descriptions
 - Added missing starting equipment choices for backgrounds
+- Automatically add items from background into user equipment
 - Added missing conditional class options (e.g. Dragon element for Draconic Sorcerer)
 - Added sub-menu navigation to the Details and Spells pages
 - Updated various UI styles, overall layout adjustments.
@@ -28,3 +25,4 @@
 - Various backend improvements and refactoring
 - Fixed some subrace names containing the word "variant;"
 - Fixed remove item button reducing the qauntity instead of removing the item
+- Character portraits are now embeded into save files

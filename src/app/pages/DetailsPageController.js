@@ -1,13 +1,17 @@
 import { ALIGNMENTS, toSentenceCase } from '../../lib/5eToolsParser.js';
+import { DOMCleanup } from '../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../lib/EventBus.js';
 import { showNotification } from '../../lib/Notifications.js';
 import { deityService } from '../../services/DeityService.js';
+import { PortraitSelector } from '../../ui/components/shared/PortraitSelector.js';
 import { AppState } from '../AppState.js';
+import { CharacterManager } from '../CharacterManager.js';
 import { BasePageController } from './BasePageController.js';
 
 export class DetailsPageController extends BasePageController {
     constructor() {
         super('DetailsPageController');
+        this._cleanup = DOMCleanup.create();
     }
 
     async initialize() {
@@ -18,22 +22,31 @@ export class DetailsPageController extends BasePageController {
                 return;
             }
 
-            // Portrait Card logic
+            // Portrait Card - initialize selector
             const portraitEl = document.getElementById('characterPortrait');
-            if (portraitEl) {
-                const defaultPlaceholder = 'assets/images/characters/placeholder_char_card0.jpg';
-                const rawPortrait = character.portrait || character.image || character.avatar || defaultPlaceholder;
-                let portraitUrl = rawPortrait;
-                if (!rawPortrait) {
-                    portraitUrl = defaultPlaceholder;
-                } else if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
-                    portraitUrl = rawPortrait;
-                } else if (/^[A-Za-z]:\\/.test(rawPortrait)) {
-                    portraitUrl = `file://${rawPortrait.replace(/\\/g, '/')}`;
+            const portraitGrid = document.getElementById('detailsPortraitGrid');
+            const portraitUpload = document.getElementById('detailsPortraitUpload');
+
+            if (portraitEl && portraitGrid) {
+                const rawPortrait = character.portrait || character.image || character.avatar || '';
+                let currentPortrait = rawPortrait;
+                if (/^[A-Za-z]:\\/.test(rawPortrait)) {
+                    currentPortrait = `file://${rawPortrait.replace(/\\/g, '/')}`;
                 } else {
-                    portraitUrl = rawPortrait.replace(/\\/g, '/');
+                    currentPortrait = rawPortrait.replace(/\\/g, '/');
                 }
-                portraitEl.style.backgroundImage = `url('${portraitUrl}')`;
+
+                const portraitSelector = new PortraitSelector({
+                    grid: portraitGrid,
+                    preview: portraitEl,
+                    uploadInput: portraitUpload,
+                    cleanup: this._cleanup,
+                    onSelect: (src) => {
+                        CharacterManager.updateCharacter({ portrait: src });
+                    },
+                });
+
+                await portraitSelector.initialize(currentPortrait || null);
             }
 
             const alignmentInput = document.getElementById('alignment');
@@ -267,5 +280,10 @@ export class DetailsPageController extends BasePageController {
             };
             reader.readAsDataURL(file);
         });
+    }
+
+    cleanup() {
+        this._cleanup.cleanup();
+        super.cleanup();
     }
 }
