@@ -176,8 +176,8 @@
 	padding: 0.5rem;
 	border-radius: var(--border-radius);
 	border: 1px solid var(--border-color);
-	display: flex !important;
-	flex-direction: row !important;
+	display: flex;
+	flex-direction: row;
 	flex-wrap: nowrap;
 	width: 29rem;
 	gap: 0.5rem;

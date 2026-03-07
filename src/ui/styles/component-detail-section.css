@@ -1,0 +1,56 @@
+/* ===================================
+   COMPONENT: Detail Section
+   Shared detail-section styling used
+   on race, class, and background pages
+   =================================== */
+
+.detail-section {
+	background: rgba(36, 36, 36, 0.5);
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--border-radius);
+	border-left: 2px solid var(--accent-color);
+	margin-bottom: 0.5rem;
+}
+
+.detail-section h6 {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.35rem;
+	margin-top: 0;
+	line-height: 1.2;
+}
+
+.detail-section p {
+	margin-bottom: 0;
+	margin-top: 0.25rem;
+	line-height: 1.4;
+	color: var(--text-color);
+}
+
+.detail-section ul {
+	list-style: none;
+	padding-left: 0;
+	margin-top: 0.25rem;
+	margin-bottom: 0;
+}
+
+.detail-section li {
+	position: relative;
+	padding-left: 1rem;
+	line-height: 1.4;
+	margin-bottom: 0.15rem;
+	color: var(--text-color);
+}
+
+.detail-section li:last-child {
+	margin-bottom: 0;
+}
+
+.detail-section li:before {
+	content: "•";
+	position: absolute;
+	left: 0;
+	color: var(--accent-color);
+}

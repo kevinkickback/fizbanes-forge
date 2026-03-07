@@ -18,7 +18,7 @@
 }
 
 .spellcasting-class-info {
-	background: var(--secondary-color) !important;
+	background: var(--secondary-color);
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius);
 	padding: 1rem;
@@ -38,6 +38,7 @@
 	line-height: 1.5;
 }
 
+/* Override: Bootstrap's .text-muted uses !important — must match to win */
 .spellcasting-class-info .text-muted {
 	color: var(--text-muted) !important;
 }
@@ -81,7 +82,7 @@
 }
 
 .spellcasting-class-info .badge {
-	background: var(--accent-color) !important;
+	background: var(--accent-color);
 	color: var(--text-color);
 }
 /* ============================================
@@ -103,7 +104,7 @@
 .spells-container .card-header {
 	background: var(--secondary-color);
 	border-bottom: 1px solid var(--border-color);
-	padding: 0.75rem 1.25rem !important;
+	padding: 0.75rem 1.25rem;
 	flex-wrap: wrap;
 }
 
@@ -187,16 +188,6 @@
 	gap: 0.5rem;
 	flex-wrap: wrap;
 	justify-content: center;
-}
-
-.slot-badge {
-	display: inline-block;
-	background: var(--accent-color);
-	color: var(--text-color);
-	padding: 0.35rem 0.6rem;
-	border-radius: calc(var(--border-radius) / 2);
-	font-size: 0.8rem;
-	font-weight: 600;
 }
 
 /* Spell List Container - Clean rebuild */
@@ -389,27 +380,6 @@
 .spell-item-actions i {
 	font-size: 0.85rem;
 	opacity: 0.8;
-}
-
-.btn-spell-remove {
-	background: none;
-	border: none;
-	color: var(--text-muted);
-	cursor: pointer;
-	padding: 0.25rem 0.35rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: calc(var(--border-radius) / 2);
-	transition:
-		background-color 100ms ease-in-out,
-		color 100ms ease-in-out;
-	font-size: 0.85rem;
-}
-
-.btn-spell-remove:hover {
-	background: rgba(255, 0, 0, 0.2);
-	color: #ff6b6b;
 }
 
 /* Alert size optimization */

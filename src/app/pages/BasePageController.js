@@ -1,4 +1,4 @@
-import { eventBus } from '../../lib/EventBus.js';
+import { DOMCleanup } from '../../lib/DOMCleanup.js';
 
 /**
  * Base class for per-page controllers. Subclasses implement initialize()
@@ -7,19 +7,11 @@ import { eventBus } from '../../lib/EventBus.js';
 export class BasePageController {
     constructor(name) {
         this._name = name;
-        this._eventListeners = [];
-    }
-
-    _trackListener(event, handler) {
-        eventBus.on(event, handler);
-        this._eventListeners.push({ event, handler });
+        this._cleanup = DOMCleanup.create();
     }
 
     cleanup() {
-        for (const { event, handler } of this._eventListeners) {
-            eventBus.off(event, handler);
-        }
-        this._eventListeners = [];
+        this._cleanup.cleanup();
         console.debug(`[${this._name}]`, 'Cleaned up');
     }
 }

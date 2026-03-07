@@ -105,7 +105,7 @@ export const EVENTS = {
 };
 
 // Wrapper class to maintain existing API while using EventEmitter3 internally
-class EventBusImpl extends EventEmitter {
+class EventBus extends EventEmitter {
 	constructor() {
 		super();
 		// Use window.FF_DEBUG (exposed from preload) instead of process.env
@@ -316,5 +316,5 @@ class EventBusImpl extends EventEmitter {
 	}
 }
 
-export const eventBus = new EventBusImpl();
-export { EventBusImpl };
+export const eventBus = new EventBus();
+export { EventBus };

@@ -4,6 +4,7 @@
    =================================== */
 
 /* Base button improvements */
+/* Override: negates .btn:hover transform/transition for opt-out elements */
 .no-hover-lift {
 	transition: none !important;
 	transform: none !important;
@@ -33,8 +34,8 @@
 }
 
 .btn:focus {
-	outline: none !important;
-	box-shadow: var(--shadow-md) !important;
+	outline: none;
+	box-shadow: var(--shadow-md);
 }
 
 /* Primary button */
@@ -171,6 +172,28 @@
 	border-bottom-left-radius: 0;
 }
 
+/* Spell remove button */
+.btn-spell-remove {
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: 0.25rem 0.35rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: calc(var(--border-radius) / 2);
+	transition:
+		background-color 100ms ease-in-out,
+		color 100ms ease-in-out;
+	font-size: 0.85rem;
+}
+
+.btn-spell-remove:hover {
+	background: rgba(255, 0, 0, 0.2);
+	color: #ff6b6b;
+}
+
 .btn-group .btn:not(:first-child):not(:last-child) {
 	border-radius: 0;
 }
@@ -183,9 +206,9 @@
 		in srgb,
 		var(--accent-color) 12%,
 		var(--secondary-color)
-	) !important;
-	border-color: var(--accent-color) !important;
-	color: var(--text-color) !important;
+	);
+	border-color: var(--accent-color);
+	color: var(--text-color);
 	transform: translateY(0);
 }
 
@@ -196,8 +219,8 @@
 		in srgb,
 		var(--accent-color) 12%,
 		var(--secondary-color)
-	) !important;
-	border-color: var(--accent-color) !important;
-	color: var(--text-color) !important;
+	);
+	border-color: var(--accent-color);
+	color: var(--text-color);
 	transform: translateY(0);
 }

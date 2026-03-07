@@ -1,0 +1,318 @@
+/* ===================================
+   GLOBAL STYLES
+   Extracted from main.css — global rules
+   that apply across the entire app.
+   =================================== */
+
+/* Responsive titlebar sizing */
+@media (min-width: 1280px) {
+	:root {
+		--titlebar-height: 60px;
+	}
+}
+
+@media (max-width: 768px) {
+	:root {
+		--titlebar-height: 52px;
+	}
+}
+
+/* Global Styles */
+body {
+	font-family: "Roboto", "Segoe UI", system-ui, -apple-system, sans-serif;
+	background-color: var(--background-color);
+	color: var(--text-color);
+	line-height: 1.6;
+	margin: 0;
+	padding: 0;
+	overflow: hidden; /* Native app shouldn't scroll the entire body */
+}
+
+/* Smooth scrolling for content areas */
+.main-content,
+.sidebar {
+	scroll-behavior: smooth;
+}
+
+/* Cards */
+.card {
+	background: var(--card-background);
+	border-radius: var(--border-radius-lg);
+	box-shadow: var(--shadow-md);
+	border: 1px solid var(--border-color);
+	margin-bottom: 1.5rem;
+	overflow: hidden;
+}
+
+/* Card Headers */
+.card-header {
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+	padding: 0.75rem 1.25rem;
+	color: var(--text-color);
+	line-height: 1.2;
+	display: flex;
+	align-items: center;
+	min-height: 48px;
+}
+
+.card-header h5 {
+	font-size: 1rem;
+	font-weight: 600;
+	margin: 0;
+	line-height: 1.2;
+}
+
+.card-body {
+	padding: 1.5rem;
+}
+
+/* Reference Links */
+.reference-link {
+	cursor: help;
+	position: relative;
+	display: inline;
+	color: var(--accent-secondary);
+	text-decoration: none;
+	transition: color 0.2s ease;
+	white-space: normal;
+}
+
+/* Help class for general tooltips */
+.help,
+.help-subtle {
+	cursor: help;
+	color: var(--text-muted);
+	text-decoration: underline dotted;
+}
+
+.help-subtle {
+	text-decoration: none;
+	opacity: 0.8;
+}
+
+.required-indicator {
+	color: var(--accent-color);
+	font-weight: bold;
+	margin-right: 0.25rem;
+}
+
+/* ===== Text Color Contrast Overrides ===== */
+/* Override: Bootstrap's .text-muted uses !important — must match to win */
+.text-muted {
+	color: var(--text-light) !important;
+}
+
+/* Ensure small elements have proper contrast */
+small {
+	color: var(--text-light);
+}
+
+/* Override: Bootstrap's .text-muted uses !important — must match to win */
+small.text-muted {
+	color: var(--text-light) !important;
+}
+
+/* Ensure descriptions and body text are visible */
+.text-content {
+	color: var(--text-color);
+}
+
+/* Card body text contrast */
+.card-body {
+	color: var(--text-color);
+}
+
+.card-body p {
+	color: var(--text-color);
+}
+
+/* List items in detail sections */
+.detail-section li {
+	color: var(--text-color);
+}
+
+.detail-section li.text-content {
+	color: var(--text-light);
+}
+
+/* Equipment List */
+.equipment-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.equipment-item {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	padding: 1rem;
+	transition: var(--transition);
+	color: var(--text-color);
+}
+
+.equipment-item:hover {
+	background: var(--primary-color);
+	border-color: var(--accent-color);
+}
+
+.equipment-item h4,
+.equipment-item h5,
+.equipment-item h6 {
+	color: var(--text-color);
+	margin-bottom: 0.5rem;
+}
+
+.equipment-item p {
+	color: var(--text-light);
+	margin-bottom: 0.5rem;
+}
+
+/* Override: Bootstrap's .text-muted uses !important — must match to win */
+.equipment-item .text-muted {
+	color: var(--text-muted) !important;
+}
+
+/* Notifications */
+.alert {
+	border-radius: var(--border-radius);
+	border: none;
+	box-shadow: var(--box-shadow);
+}
+
+.alert-info {
+	background: var(--accent-color);
+	color: white;
+}
+
+.alert-danger {
+	background: var(--danger-color);
+	color: white;
+}
+
+.alert-success {
+	background: var(--success-color);
+	color: white;
+}
+
+/* Template Pages */
+[id$="Page"] {
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+@media (max-width: 768px) {
+	:root {
+		--race-content-width: 100%;
+		--class-content-width: 100%;
+		--background-content-width: 100%;
+		--sidebar-width: 60px;
+	}
+
+	.sidebar {
+		width: var(--sidebar-width);
+	}
+
+	.main-content {
+		width: calc(100% - var(--sidebar-width));
+		margin-left: var(--sidebar-width);
+		padding: 1.5rem 0.75rem;
+	}
+
+	.floating-actions {
+		left: var(--sidebar-width); /* This will now use the updated sidebar width */
+	}
+
+	.sidebar .nav-link span,
+	.sidebar-header h1 {
+		display: none;
+	}
+
+	/* Adjust ability score container for smaller screens */
+	.ability-score-container {
+		gap: 0.75rem;
+		padding: 0.75rem;
+	}
+
+	.ability-score-box {
+		padding: 0.75rem;
+	}
+
+	.card-body.race-card-body {
+		padding-right: 1.5rem;
+		padding-bottom: 250px;
+	}
+
+	.race-image-container {
+		width: auto; /* Allow natural width */
+		max-width: 80%; /* Limit maximum width */
+		height: 200px;
+		top: auto;
+		bottom: 1.5rem;
+		right: 50%; /* Center horizontally */
+		transform: translateX(50%); /* Center horizontally */
+		margin: 0 auto; /* Additional centering */
+	}
+
+	.race-image img,
+	.class-image img,
+	.background-image img {
+		max-width: 100% !important;
+		max-height: 100% !important;
+		width: auto !important;
+		height: auto !important;
+		object-fit: contain !important;
+		display: block;
+		margin: 0 auto;
+	}
+}
+
+/* Additional breakpoint for very small screens */
+@media (max-width: 576px) {
+	.ability-score-container {
+		gap: 0.5rem;
+		padding: 0.5rem;
+	}
+}
+
+#saveFolderPath {
+	background-color: var(--secondary-color);
+	color: var(--text-muted);
+	cursor: not-allowed;
+}
+
+#chooseFolderBtn {
+	white-space: nowrap;
+}
+
+/* ========================================
+   VIEWPORT HEIGHT - AUTO SIZING
+   ======================================== */
+
+/* Full viewport card for ability scores page */
+#build-ability-scores .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-ability-scores .card-body {
+	flex: 1;
+	display: flex;
+}
+
+/* Full viewport card for proficiencies page */
+#build-proficiencies .card {
+	height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+#build-proficiencies .card-body {
+	flex: 1;
+	display: flex;
+	min-height: 0;
+	overflow: hidden;
+}

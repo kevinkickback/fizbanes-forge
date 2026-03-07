@@ -227,13 +227,40 @@ export class Modal {
 				: 'Unknown';
 
 			titleElement.textContent = 'Character Already Exists';
-			messageElement.innerHTML = `
-                A character with this file ID already exists. What would you like to do?<br><br>
-                <i class="fas fa-user character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">Character Name:</strong> ${characterName}<br>
-                <i class="fas fa-fingerprint character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">File ID:</strong> ${characterId}<br>
-                <i class="fas fa-clock character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">Date Created:</strong> ${createdDate}<br>
-                <i class="fas fa-pen character-exists-icon"></i>&nbsp;&nbsp;<strong class="character-exists-label">Last Modified:</strong> ${modifiedDate}
-            `;
+			messageElement.textContent = '';
+
+			const intro = document.createTextNode('A character with this file ID already exists. What would you like to do?');
+			messageElement.appendChild(intro);
+			messageElement.appendChild(document.createElement('br'));
+			messageElement.appendChild(document.createElement('br'));
+
+			const fields = [
+				{ icon: 'fa-user', label: 'Character Name:', value: characterName },
+				{ icon: 'fa-fingerprint', label: 'File ID:', value: characterId },
+				{ icon: 'fa-clock', label: 'Date Created:', value: createdDate },
+				{ icon: 'fa-pen', label: 'Last Modified:', value: modifiedDate },
+			];
+
+			fields.forEach((field, index) => {
+				const icon = document.createElement('i');
+				icon.className = `fas ${field.icon} character-exists-icon`;
+				messageElement.appendChild(icon);
+
+				const nbsp = document.createTextNode('\u00A0\u00A0');
+				messageElement.appendChild(nbsp);
+
+				const strong = document.createElement('strong');
+				strong.className = 'character-exists-label';
+				strong.textContent = field.label;
+				messageElement.appendChild(strong);
+
+				const valueText = document.createTextNode(` ${field.value}`);
+				messageElement.appendChild(valueText);
+
+				if (index < fields.length - 1) {
+					messageElement.appendChild(document.createElement('br'));
+				}
+			});
 			confirmButton.textContent = 'Overwrite';
 
 			confirmButton.className = 'btn btn-danger';

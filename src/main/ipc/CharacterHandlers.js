@@ -12,6 +12,8 @@ import { CharacterImportService } from '../../services/CharacterImportService.js
 // Allows UUIDs, alphanumeric strings, hyphens, and underscores only.
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
+const MAX_CHARACTER_SIZE = 10 * 1024 * 1024; // 10MB
+
 function resolveCharacterPath(savePath, id) {
 	if (!id || typeof id !== 'string' || !SAFE_ID_PATTERN.test(id)) {
 		return null;
@@ -120,6 +122,10 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 	// Save character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_SAVE, async (_event, characterData) => {
 		try {
+			if (typeof characterData === 'string' && Buffer.byteLength(characterData) > MAX_CHARACTER_SIZE) {
+				return { success: false, error: 'Character data exceeds maximum size limit' };
+			}
+
 			// Handle both serialized string and object
 			const character =
 				typeof characterData === 'string'
@@ -186,6 +192,9 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 			try {
 				const content = await fs.readFile(filePath, 'utf8');
+				if (Buffer.byteLength(content) > MAX_CHARACTER_SIZE) {
+					return { success: false, error: 'Character file exceeds maximum size limit' };
+				}
 				const character = JSON.parse(content);
 				await extractEmbeddedPortrait(character, savePath);
 				MainLogger.debug('CharacterHandlers', 'Loaded character:', id);
@@ -220,7 +229,11 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				try {
 					const filePath = path.join(savePath, file);
 					const content = await fs.readFile(filePath, 'utf8');
-					const character = JSON.parse(content);						await extractEmbeddedPortrait(character, savePath);					characters.push(character);
+					if (Buffer.byteLength(content) > MAX_CHARACTER_SIZE) {
+						MainLogger.warn('CharacterHandlers', `Skipping oversized file: ${file}`);
+						continue;
+					}
+					const character = JSON.parse(content); await extractEmbeddedPortrait(character, savePath); characters.push(character);
 				} catch (error) {
 					MainLogger.error(
 						'CharacterHandlers',

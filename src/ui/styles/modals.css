@@ -55,14 +55,14 @@
 	/* Bootstrap handles z-index dynamically for proper stacking */
 }
 
-/* Special exception: Force confirmation dialog above all other modals */
+/* Override: Bootstrap sets modal z-index via JS inline style — !important required */
 #confirmationModal.modal.show {
-	z-index: 1070 !important;
+	z-index: var(--z-modal) !important;
 }
 
-/* Ensure confirmation modal's backdrop appears above level-up modal but below confirmation content */
+/* Override: Bootstrap sets backdrop z-index via JS inline style — !important required */
 body > .modal-backdrop.show ~ .modal-backdrop.show {
-	z-index: 1060 !important;
+	z-index: var(--z-modal-backdrop) !important;
 }
 
 /* Modal dialog */
@@ -220,7 +220,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 .modal-footer {
 	background-color: var(--primary-color);
 	border-top: 1px solid var(--modal-border);
-	padding: 0.5rem 1.25rem !important;
+	padding: 0.5rem 1.25rem;
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
@@ -257,7 +257,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 }
 
 /* ===== Segmented Buttons ===== */
-/* Override Bootstrap's btn-group default border-radius behavior */
+/* Override: Bootstrap's btn-group border-radius uses complex :not() selectors — !important required */
 .btn-group .btn:not(:first-child):not(:last-child) {
 	border-radius: 0 !important;
 }
@@ -294,344 +294,6 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	);
 	border-color: var(--accent-color);
 	color: var(--text-color);
-}
-
-/* ===== Portrait Selector ===== */
-.character-icon-selector {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-.character-icon-selector-horizontal {
-	display: flex;
-	flex-direction: row;
-	gap: 1rem;
-	align-items: flex-start;
-	flex-shrink: 0;
-}
-.portrait-preview {
-	width: 72px;
-	height: 72px;
-	border-radius: 999px;
-	border: 2px solid var(--border-color);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: var(--secondary-color);
-}
-.portrait-preview-horizontal {
-	width: 170px;
-	height: 260px;
-	border-radius: var(--border-radius);
-	border: 2px solid var(--border-color);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: var(--secondary-color);
-	flex-shrink: 0;
-	align-self: flex-start;
-}
-.portrait-preview img,
-.portrait-preview-horizontal img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	border-radius: inherit;
-}
-.portrait-options {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	overflow-y: auto;
-	max-height: 260px;
-}
-
-/* Increase top gap before Character Name in Basics section */
-.icon-grid {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 0.5rem;
-}
-.icon-grid-horizontal {
-	display: grid;
-	grid-template-columns: repeat(6, 1fr);
-	gap: 0.5rem;
-}
-.portrait-icon-btn {
-	border: 1px solid var(--border-color);
-	background: var(--secondary-color);
-	color: var(--text-color);
-	border-radius: var(--border-radius);
-	padding: 0.35rem;
-	cursor: pointer;
-	width: 80px;
-	height: 80px;
-	transition:
-		border-color 0.2s ease,
-		box-shadow 0.2s ease;
-}
-.portrait-icon-btn:hover {
-	border-color: var(--accent-color);
-}
-.portrait-icon-btn.upload {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-.portrait-icon-btn.upload i {
-	font-size: 2.5rem;
-	color: var(--text-color);
-}
-.portrait-icon-btn.selected {
-	border-color: var(--accent-color);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 30%, transparent);
-}
-.portrait-icon-btn img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	border-radius: var(--border-radius);
-}
-
-/* ===== Source Badges ===== */
-.badge.source-badge {
-	background-color: var(--accent-color);
-	color: #fff;
-	border-radius: 999px;
-	padding: 0.25rem 0.5rem;
-	font-weight: 600;
-}
-
-/* ===== Review Section ===== */
-#newCharacterReviewList {
-	color: var(--text-color);
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-	gap: 0.75rem;
-	align-items: start;
-}
-
-#newCharacterReviewList .review-name {
-	grid-column: 2 / -1;
-}
-
-#newCharacterReviewList .review-sources {
-	grid-column: 2 / -1;
-}
-
-#newCharacterReviewList li {
-	margin: 0;
-	color: var(--text-color);
-	padding: 0.2rem 0.5rem;
-	background: var(--secondary-color);
-	border-radius: var(--border-radius);
-	border: 1px solid var(--border-color);
-}
-
-#newCharacterReviewList strong {
-	color: var(--text-light);
-}
-
-#newCharacterReviewList .review-icon {
-	color: var(--accent-color);
-	margin-right: 0.35rem;
-	font-size: 0.85em;
-}
-
-#newCharacterReviewList .review-value {
-	color: var(--accent-color);
-}
-
-.review-bottom-anchor {
-	height: 0;
-	flex-shrink: 0;
-}
-
-.review-portrait-preview {
-	display: flex;
-	align-items: flex-start;
-	gap: 1rem;
-	padding: 0.5rem;
-	background: var(--secondary-color);
-	border-radius: var(--border-radius);
-	border: 1px solid var(--border-color);
-	width: 100%;
-	justify-content: center;
-}
-
-.review-portrait-preview img {
-	width: 100%;
-	max-width: 240px;
-	height: auto;
-	aspect-ratio: 5 / 7;
-	object-fit: cover;
-	border-radius: var(--border-radius);
-}
-
-.review-info-compact {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	margin-bottom: 0.5rem;
-}
-
-.review-item {
-	display: grid;
-	grid-template-columns: 140px 1fr;
-	gap: 0.75rem;
-	align-items: center;
-	padding: 0.4rem 0.6rem;
-	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-	min-height: 32px;
-}
-
-.review-item .review-label {
-	font-weight: 600;
-	font-size: 0.85rem;
-	color: var(--text-muted);
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
-.review-item .review-label i {
-	color: var(--accent-color);
-	font-size: 0.8rem;
-	width: 14px;
-	text-align: center;
-}
-
-.review-item .review-value {
-	color: var(--text-color);
-	font-weight: 500;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.review-sources-compact {
-	padding: 0.6rem;
-	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-}
-
-.review-sources-label {
-	font-size: 0.85rem;
-	color: var(--text-muted);
-	margin-bottom: 0.5rem;
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
-.review-sources-label i {
-	color: var(--accent-color);
-}
-
-.review-sources-badges {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.4rem;
-}
-
-.ability-scores-review {
-	padding: 0.6rem;
-	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	overflow: hidden;
-}
-
-.ability-scores-review h6 {
-	margin-bottom: 0.5rem;
-	font-size: 0.9rem;
-	color: var(--text-muted);
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
-.ability-scores-review h6 i {
-	color: var(--accent-color);
-}
-
-.review-sources-container {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-height: 0;
-}
-
-.review-sources-header-with-badges {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
-	align-content: flex-start;
-	gap: 0.5rem;
-	flex: 1;
-	max-height: 100px;
-	overflow-y: auto;
-	overflow-x: hidden;
-}
-
-.review-sources-header-with-badges .sources-label {
-	font-size: 0.9rem;
-	color: var(--text-muted);
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	white-space: nowrap;
-	flex-shrink: 0;
-}
-
-.review-sources-header-with-badges .sources-label i {
-	color: var(--accent-color);
-}
-
-.review-sources-badges-inline {
-	display: contents;
-}
-
-.ability-scores-grid {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 0.5rem;
-}
-
-.ability-score-summary {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.4rem 0.6rem;
-	background: var(--secondary-color);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-}
-
-.ability-score-summary .ability-label {
-	font-weight: 600;
-	color: var(--text-muted);
-	font-size: 0.8rem;
-	min-width: 2rem;
-}
-
-.ability-score-summary .ability-score {
-	font-weight: 700;
-	color: var(--text-color);
-	font-size: 1rem;
-}
-
-.ability-score-summary .ability-modifier {
-	color: var(--accent-color);
-	font-size: 0.85rem;
-	margin-left: auto;
 }
 
 .modal-lg .modal-content,
@@ -736,75 +398,6 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	font-weight: 500;
 	font-size: 0.9rem;
 }
-
-/* ===== Feat List Styles ===== */
-.feat-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 0.5rem 0.75rem;
-}
-
-.feat-item {
-	cursor: pointer;
-	transition:
-		border-color 0.15s ease,
-		box-shadow 0.15s ease,
-		background-color 0.15s ease,
-		transform 0.15s ease;
-	position: relative;
-}
-
-.feat-item.selected {
-	border-color: var(--accent-color);
-	background: var(--secondary-color);
-	box-shadow: 0 0 12px color-mix(in srgb, var(--accent-color) 25%, transparent);
-}
-
-.feat-item.selected::before {
-	content: "";
-	position: absolute;
-	left: -2px;
-	top: 8px;
-	bottom: 8px;
-	width: 4px;
-	border-radius: 8px;
-	background: var(--accent-color);
-}
-
-.feat-item:focus-visible {
-	outline: 2px solid var(--accent-color);
-	outline-offset: 2px;
-}
-
-.feat-item:hover {
-	transform: translateY(-1px);
-	border-color: var(--accent-color);
-}
-
-.feat-selected-indicator {
-	position: absolute;
-	top: 0.35rem;
-	right: 0.35rem;
-	background: var(--accent-color);
-	color: var(--text-color);
-	padding: 0.2rem 0.5rem;
-	border-radius: 999px;
-	font-size: 0.75rem;
-	font-weight: 600;
-	opacity: 0;
-	transform: translateY(-4px);
-	transition:
-		opacity 0.15s ease,
-		transform 0.15s ease;
-}
-
-.feat-item.selected .feat-selected-indicator {
-	opacity: 1;
-	transform: translateY(0);
-}
-
-/* ===== Modal Form Section Styles ===== */
 
 /* ===== Modal Form Section Styles ===== */
 .modal-body .form-section {
@@ -1003,7 +596,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 10000;
+	z-index: var(--z-overlay);
 	opacity: 0;
 	transition: opacity 0.3s ease;
 }
@@ -1112,7 +705,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 10000;
+	z-index: var(--z-overlay);
 	opacity: 0;
 	transition: opacity 0.3s ease;
 }
@@ -1185,6 +778,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	font-size: 0.85rem;
 }
 
+/* Override: JS toggles visibility via .show class — base state needs !important to match */
 .refresh-progress-confirm {
 	display: none !important;
 	align-self: stretch;
@@ -1259,7 +853,7 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	}
 
 	.modal-header {
-		padding: 0.5rem 1.25rem !important;
+		padding: 0.5rem 1.25rem;
 	}
 
 	.modal-body {
@@ -1270,322 +864,6 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 		grid-template-columns: 1fr;
 		gap: 0.25rem;
 	}
-}
-
-/* ===== Spell Selection Modal - Filter Collapse ===== */
-.spell-filter-row-wrapper {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-}
-
-.spell-filter-toggle-btn {
-	transition: all 0.3s ease-in-out;
-	height: 38px;
-	padding: 1.5rem 1.5rem !important;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 38px;
-	flex-shrink: 0;
-}
-
-.spell-filter-toggle-btn[data-filters-visible="true"] {
-	background-color: var(--accent-color);
-	border-color: var(--accent-color);
-	color: #fff;
-}
-
-.spell-filter-toggle-btn[data-filters-visible="true"]:hover {
-	background-color: var(--accent-hover);
-	border-color: var(--accent-hover);
-	color: #fff;
-}
-
-.spell-filter-toggle-btn[data-filters-visible="false"] {
-	background-color: transparent;
-	border-color: var(--border-color);
-	color: var(--text-muted);
-}
-
-.spell-filter-row {
-	display: flex;
-	flex-wrap: nowrap;
-	flex: 1;
-	min-height: 0;
-	max-height: 100%;
-	gap: 0;
-}
-
-.spell-filters-column {
-	transition:
-		flex 0.3s ease-in-out,
-		max-width 0.3s ease-in-out,
-		padding 0.3s ease-in-out,
-		margin 0.3s ease-in-out,
-		opacity 0.3s ease-in-out;
-	overflow-y: auto;
-	position: relative;
-	flex: 0 0 calc(33.333% - 1rem);
-	margin-right: 1rem;
-	padding-right: 0.5rem;
-}
-
-.spell-filters-column.collapsed {
-	max-width: 0 !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	flex: 0 !important;
-	opacity: 0;
-	overflow: hidden;
-}
-
-/* Spell results column */
-.spell-results-column {
-	transition:
-		flex 0.3s ease-in-out,
-		max-width 0.3s ease-in-out;
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	max-height: 100%;
-	gap: 0.5rem;
-	overflow: hidden;
-}
-
-.spell-filter-row .spell-filters-column.collapsed ~ .spell-results-column {
-	max-width: 100% !important;
-	flex: 1 !important;
-}
-
-/* Responsive spell list container */
-.spell-list-scroll-container {
-	flex: 1;
-	overflow-y: scroll !important;
-	overflow-x: hidden;
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	min-height: 200px;
-	max-height: 100%;
-}
-
-/* Custom scrollbar for spell list */
-.spell-list-scroll-container::-webkit-scrollbar {
-	width: 8px;
-}
-
-.spell-list-scroll-container::-webkit-scrollbar-track {
-	background: var(--primary-color);
-	border-radius: 4px;
-}
-
-.spell-list-scroll-container::-webkit-scrollbar-thumb {
-	background: var(--accent-color);
-	border-radius: 4px;
-}
-
-.spell-list-scroll-container::-webkit-scrollbar-thumb:hover {
-	background: var(--accent-hover);
-}
-
-/* Level-up selector at-max-selections visual feedback */
-.spell-list-container.at-max-selections {
-	opacity: 0.65;
-	position: relative;
-}
-
-/* Selected spells section */
-.selected-spells-section {
-	flex-shrink: 0;
-	padding: 0.75rem;
-	background: var(--secondary-color);
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	min-height: 80px;
-	max-height: 120px;
-	overflow-y: auto;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.selected-spells-section h6 {
-	margin: 0 0 0.5rem 0;
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-light);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-/* Generic selected items section styling for all universal modals */
-.selected-items-section,
-.selected-equipment-section {
-	flex-shrink: 0;
-	padding: 0.75rem;
-	background: var(--secondary-color);
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	min-height: 48px;
-	max-height: 200px;
-	overflow-y: auto;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.selected-items-section h6,
-.selected-equipment-section h6 {
-	margin: 0 0 0.5rem 0;
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-light);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-/* ===== Equipment Selection Modal - Filter Collapse ===== */
-.equipment-filter-row-wrapper {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-}
-
-.equipment-filter-toggle-btn {
-	transition: all 0.3s ease-in-out;
-	height: 38px;
-	padding: 1.5rem 1.5rem !important;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 38px;
-	flex-shrink: 0;
-}
-
-.equipment-filter-toggle-btn[data-filters-visible="true"] {
-	background-color: var(--accent-color);
-	border-color: var(--accent-color);
-	color: #fff;
-}
-
-.equipment-filter-toggle-btn[data-filters-visible="true"]:hover {
-	background-color: var(--accent-hover);
-	border-color: var(--accent-hover);
-	color: #fff;
-}
-
-.equipment-filter-toggle-btn[data-filters-visible="false"] {
-	background-color: transparent;
-	border-color: var(--border-color);
-	color: var(--text-muted);
-}
-
-.equipment-filter-row {
-	display: flex;
-	flex-wrap: nowrap;
-	flex: 1;
-	min-height: 0;
-	max-height: 100%;
-	gap: 0;
-}
-
-.equipment-filters-column {
-	transition:
-		flex 0.3s ease-in-out,
-		max-width 0.3s ease-in-out,
-		padding 0.3s ease-in-out,
-		margin 0.3s ease-in-out,
-		opacity 0.3s ease-in-out;
-	overflow-y: auto;
-	position: relative;
-	flex: 0 0 calc(33.333% - 1rem);
-	margin-right: 1rem;
-}
-
-.equipment-filters-column.collapsed {
-	max-width: 0 !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	flex: 0 !important;
-	opacity: 0;
-	overflow: hidden;
-}
-
-/* Equipment results column */
-.equipment-results-column {
-	transition:
-		flex 0.3s ease-in-out,
-		max-width 0.3s ease-in-out;
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	max-height: 100%;
-	gap: 0.5rem;
-}
-
-.equipment-filter-row
-	.equipment-filters-column.collapsed
-	~ .equipment-results-column {
-	max-width: 100% !important;
-	flex: 1 !important;
-}
-
-/* Responsive equipment list container */
-.equipment-list-scroll-container {
-	flex: 1;
-	overflow-y: scroll !important;
-	overflow-x: hidden;
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	min-height: 200px;
-	max-height: 100%;
-}
-
-/* Custom scrollbar for equipment list */
-.equipment-list-scroll-container::-webkit-scrollbar {
-	width: 8px;
-}
-
-.equipment-list-scroll-container::-webkit-scrollbar-track {
-	background: var(--primary-color);
-	border-radius: 4px;
-}
-
-.equipment-list-scroll-container::-webkit-scrollbar-thumb {
-	background: var(--accent-color);
-	border-radius: 4px;
-}
-
-.equipment-list-scroll-container::-webkit-scrollbar-thumb:hover {
-	background: var(--accent-hover);
-}
-
-/* Selected equipment section */
-.selected-equipment-section {
-	flex-shrink: 0;
-	padding: 0.75rem;
-	background: var(--secondary-color);
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	min-height: 80px;
-	max-height: 120px;
-	overflow-y: auto;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.selected-equipment-section h6 {
-	margin: 0 0 0.5rem 0;
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-light);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
 }
 
 /* Handle very small devices */
@@ -1610,85 +888,6 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	.modal .source-toggle .source-name {
 		font-size: 0.85rem;
 	}
-}
-
-/* ===== Level Up Modal - Class Selection Cards ===== */
-.class-selection-card {
-	background-color: var(--card-background);
-}
-
-.class-selection-card:hover {
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-	border-color: var(--accent-color) !important;
-}
-
-.class-selection-card:active {
-	transform: translateY(0);
-}
-
-/* Class card selected state */
-.class-card-selected {
-	border-color: var(--accent-color) !important;
-	background-color: color-mix(
-		in srgb,
-		var(--accent-color) 12%,
-		var(--card-background)
-	) !important;
-}
-
-/* ===== Level Up Modal - Feature Selection ===== */
-.feature-choice-card {
-	background-color: var(--card-background);
-	border-color: var(--border-color);
-}
-
-.feature-choice-card .card-header {
-	background-color: var(--secondary-color) !important;
-}
-
-.feature-options-scroll {
-	border-top: 1px solid var(--border-color);
-	scrollbar-width: thin;
-}
-
-.feature-options-scroll::-webkit-scrollbar {
-	width: 6px;
-}
-
-.feature-options-scroll::-webkit-scrollbar-track {
-	background: transparent;
-}
-
-.feature-options-scroll::-webkit-scrollbar-thumb {
-	background: var(--accent-color);
-	border-radius: 3px;
-}
-
-.feature-option-card {
-	border-color: var(--border-color);
-	cursor: pointer;
-}
-
-.feature-option-card:first-child {
-	border-top: none;
-}
-
-.feature-option-card:hover {
-	background-color: var(--highlight-bg, rgba(88, 166, 255, 0.08)) !important;
-}
-
-.feature-option-card.selected {
-	background-color: var(--highlight-bg, rgba(88, 166, 255, 0.15)) !important;
-	border-color: var(--accent-color) !important;
-}
-
-.feature-option-card .form-check-input {
-	margin-top: 0.25rem;
-}
-
-.feature-option-card strong {
-	color: var(--accent-color);
-	font-weight: 600;
 }
 
 /* ===================================
@@ -1781,486 +980,67 @@ body > .modal-backdrop.show ~ .modal-backdrop.show {
 	margin-bottom: 0;
 }
 
-/* ===================================
-   FEAT SELECTION MODAL
-   =================================== */
-
-.feat-item {
-	cursor: pointer;
-	transition: all 0.2s ease;
+/* ===== Blocked State ===== */
+.blocked {
+	opacity: 0.6;
 }
 
-.feat-item:hover {
-	background: var(--secondary-color);
+/* ===== Setup / Data Configuration ===== */
+
+.data-download-status {
+	display: none;
+	margin-top: 10px;
 }
 
-.feat-item.selected {
-	background: var(--overlay-success-15);
-	border-color: var(--accent-color);
+.data-download-status.show {
+	display: block;
 }
 
-.feat-item.disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-	background: var(--secondary-color);
-}
-
-/* ===================================
-   SPELL LIST MODAL
-   =================================== */
-
-.spell-list-container {
+.data-download-progress {
 	display: flex;
 	flex-direction: column;
-	gap: 0.75rem;
-	padding: 0.5rem;
+	gap: 0.5rem;
 }
 
-.spell-card {
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-	background: var(--card-background);
-	overflow: hidden;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
-
-.spell-card:hover {
-	border-color: var(--accent-color);
-	background: var(--accent-10);
-}
-
-.spell-card.selected {
-	border-color: var(--accent-color);
-	background: var(--accent-15);
-	box-shadow: 0 0 0 2px var(--accent-color);
-}
-
-.spell-card.disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-	pointer-events: none;
-	background: var(--secondary-color);
-}
-
-.spell-card-header {
+.data-download-progress-bar {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	padding: 0.75rem 1rem;
-	background: var(--secondary-color);
-	border-bottom: 1px solid var(--border-color);
-}
-
-.spell-card.selected .spell-card-header {
-	background: var(--accent-15);
-}
-
-.spell-card-header strong {
-	color: var(--text-color);
-	font-size: 1rem;
-}
-
-.spell-card-body {
-	padding: 1rem;
-}
-
-.spell-stats {
-	margin-bottom: 0.75rem;
-	padding-bottom: 0.75rem;
-	border-bottom: 1px solid var(--border-color);
-}
-
-.spell-stat-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
+	justify-content: space-between;
 	gap: 1rem;
-	margin-bottom: 0.5rem;
 }
 
-.spell-stat-row:last-child {
-	margin-bottom: 0;
+.progress-container {
+	flex-grow: 1;
+	height: 6px;
+	background: var(--bootstrap-border-light);
+	border-radius: 3px;
+	overflow: hidden;
 }
 
-.spell-stat {
-	color: var(--text-color);
-	font-size: 0.9rem;
+.progress-fill {
+	width: 0%;
+	height: 100%;
+	background: var(--bootstrap-primary);
+	transition: width 0.3s ease;
 }
 
-.spell-stat strong {
-	color: var(--text-light);
+.data-download-status-text {
+	font-size: 0.875rem;
+	color: var(--bootstrap-text-muted);
 }
 
-.spell-description {
-	color: var(--text-light);
-	font-size: 0.9rem;
-	line-height: 1.5;
+.data-config-spinner {
+	display: none;
 }
 
-.selected-spells-container {
-	min-height: 2rem;
-}
-
-.selected-spells-list {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25rem;
-}
-
-.selected-spells-list .badge {
+.data-config-spinner.show {
 	display: inline-flex;
-	align-items: center;
-	padding: 0.5rem 0.75rem;
-}
-
-.selected-spells-list .btn-close {
-	padding: 0;
-	margin: 0;
-	opacity: 0.7;
-}
-
-.selected-spells-list .btn-close:hover {
-	opacity: 1;
-}
-
-/* ===================================
-   EQUIPMENT SELECTION MODAL
-   =================================== */
-
-.item-card {
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-	background: var(--card-background);
-	overflow: hidden;
-	cursor: pointer;
-	transition: all 0.2s ease;
-	margin-bottom: 0.75rem;
-}
-
-.item-card:hover {
-	border-color: var(--accent-color);
-	background: var(--accent-10);
-}
-
-.item-card.selected {
-	border-color: var(--accent-color);
-	background: var(--accent-15);
-	box-shadow: 0 0 0 2px var(--accent-color);
-}
-
-.item-card-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 0.75rem 1rem;
-	background: var(--secondary-color);
-	border-bottom: 1px solid var(--border-color);
-}
-
-.item-card.selected .item-card-header {
-	background: var(--accent-15);
-}
-
-.item-card-header strong {
-	color: var(--text-color);
-	font-size: 1rem;
-}
-
-.item-card-body {
-	padding: 1rem;
-}
-
-.item-stats {
-	margin-bottom: 0.75rem;
-	padding-bottom: 0.75rem;
-	border-bottom: 1px solid var(--border-color);
-}
-
-.item-stat-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 1rem;
-	margin-bottom: 0.5rem;
-}
-
-.item-stat-row:last-child {
-	margin-bottom: 0;
-}
-
-.item-stat {
-	color: var(--text-color);
-	font-size: 0.9rem;
-}
-
-.item-stat strong {
-	color: var(--text-light);
-}
-
-.item-description {
-	color: var(--text-light);
-	font-size: 0.9rem;
-	line-height: 1.5;
-}
-
-.selected-equipment-list {
-	min-height: 2rem;
-}
-
-.feature-option-card .text-muted {
-	max-width: 100%;
-	word-break: break-word;
-}
-
-/* ===== Character Creation Modal - Race Details ===== */
-.step-2-race #modalRaceDetails {
-	padding-top: 1rem;
-	border-top: 1px solid var(--border-color);
-}
-
-.step-2-race .detail-section h6 {
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-color);
-	margin-bottom: 0.5rem;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-.step-2-race .detail-section ul {
-	list-style: none;
-	padding: 0;
-	margin: 0;
-}
-
-.step-2-race .detail-section li {
-	color: var(--text-light);
-	font-size: 0.9rem;
-}
-
-.step-2-race .detail-section li.placeholder-text {
-	color: var(--text-muted);
-	font-style: italic;
-}
-
-.step-2-race .traits-section h6 {
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-color);
-	margin-bottom: 0.75rem;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-.step-2-race .traits-grid {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-}
-
-.step-2-race .trait-tag {
-	display: inline-block;
-	padding: 0.375rem 0.75rem;
-	background-color: var(--secondary-color);
-	color: var(--text-color);
-	border-radius: var(--border-radius);
-	font-size: 0.875rem;
-	border: 1px solid var(--border-color);
-	transition: background-color 0.2s ease;
-}
-
-.step-2-race .trait-tag:hover {
-	background-color: var(--hover-color);
-}
-
-/* ===== Character Creation Modal - Class Details ===== */
-.step-3-class #modalClassDetails {
-	padding-top: 1rem;
-	border-top: 1px solid var(--border-color);
-}
-
-.step-3-class .detail-section h6 {
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-color);
-	margin-bottom: 0.5rem;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-.step-3-class .detail-section ul {
-	list-style: none;
-	padding: 0;
-	margin: 0;
-}
-
-.step-3-class .detail-section li {
-	color: var(--text-light);
-	font-size: 0.9rem;
-}
-
-.step-3-class .detail-section li.placeholder-text {
-	color: var(--text-muted);
-	font-style: italic;
-}
-
-.step-3-class .traits-section h6 {
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--text-color);
-	margin-bottom: 0.75rem;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-.step-3-class .traits-grid {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-}
-
-.step-3-class .trait-tag {
-	display: inline-block;
-	padding: 0.375rem 0.75rem;
-	background-color: var(--secondary-color);
-	color: var(--text-color);
-	border-radius: var(--border-radius);
-	font-size: 0.875rem;
-	border: 1px solid var(--border-color);
-	transition: background-color 0.2s ease;
-}
-
-.step-3-class .trait-tag:hover {
-	background-color: var(--hover-color);
-}
-/* ===================================
-   Level Up Modal Styles (Simplified)
-   =================================== */
-
-#levelUpModal .modal-dialog {
-	max-width: 800px;
-}
-
-.level-up-modal-body {
-	padding: 1.5rem;
-	min-height: 300px;
-}
-
-.level-picker {
-	display: flex;
-	flex-direction: column;
-	gap: 1.5rem;
-}
-
-.level-picker h5 {
-	font-size: 1.25rem;
-	font-weight: 600;
-	color: var(--text-color);
-	margin: 0;
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.level-picker h5 .badge {
-	font-size: 1rem;
-	padding: 0.5rem 0.75rem;
-	background-color: var(--accent-color);
-}
-
-.level-picker h6 {
-	font-size: 0.95rem;
-	font-weight: 600;
-	color: var(--text-muted);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	margin-bottom: 1rem;
-}
-
-/* Class cards in level picker */
-.level-picker .class-level-card {
-	background: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-	padding: 1rem;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	transition: all 0.2s ease;
-}
-
-.level-picker .class-level-card:hover {
-	border-color: var(--accent-color);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	transform: translateY(-1px);
-}
-
-.level-picker .class-level-card .class-info {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-}
-
-.level-picker .class-level-card .class-name {
-	font-weight: 600;
-	font-size: 1.05rem;
-	color: var(--text-color);
-}
-
-.level-picker .class-level-card .badge {
-	background-color: var(--secondary-color);
-	color: var(--text-color);
-	padding: 0.375rem 0.75rem;
-	border-radius: var(--border-radius);
-	font-size: 0.85rem;
-	font-weight: 500;
-}
-
-.level-picker .class-level-card .btn-sm {
-	padding: 0.5rem 1rem;
-	font-size: 0.875rem;
-	font-weight: 500;
-	display: flex;
-	align-items: center;
-	gap: 0.375rem;
-	border-radius: var(--border-radius);
-}
-
-/* Multiclass section */
-.level-picker .multiclass-section {
-	padding: 1.25rem;
-	background: var(--secondary-color);
-	border-radius: var(--border-radius);
-	border: 1px solid var(--border-color);
-}
-
-.level-picker .multiclass-section .form-select {
-	margin-bottom: 0.75rem;
-}
-
-.level-picker .multiclass-section .btn {
-	width: 100%;
-	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 0.5rem;
 }
 
-/* Remove level section */
-.level-picker .remove-level-section {
-	padding-top: 1rem;
-	border-top: 1px solid var(--border-color);
-	text-align: center;
-}
-
-.level-picker .remove-level-section .btn-outline-danger {
-	border: 1px solid var(--danger-color);
-	color: var(--danger-color);
-	background: transparent;
-	font-size: 0.875rem;
-	padding: 0.5rem 1rem;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
+.data-config-spinner i {
+	margin-right: 0.5rem;
 }
 
 .level-picker .remove-level-section .btn-outline-danger:hover {

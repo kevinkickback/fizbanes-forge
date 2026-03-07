@@ -1,6 +1,6 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
-class AppStateImpl {
+class _AppState {
 	constructor() {
 		this.state = {
 			isLoading: false,
@@ -103,4 +103,4 @@ class AppStateImpl {
 	}
 }
 
-export const AppState = new AppStateImpl();
+export const AppState = new _AppState();

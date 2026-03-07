@@ -1,7 +1,7 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import { AppState } from './AppState.js';
 
-class RouterImpl {
+class Router {
 	constructor() {
 		this.routes = new Map();
 		this.currentRoute = null;
@@ -71,7 +71,7 @@ class RouterImpl {
 	}
 }
 
-class PageLoaderImpl {
+class PageLoader {
 	constructor() {
 		this.templateCache = new Map();
 		this.contentArea = null;
@@ -166,7 +166,7 @@ class PageLoaderImpl {
 	}
 }
 
-class NavigationControllerImpl {
+class _NavigationController {
 	constructor() {
 		this.isInitialized = false;
 		this.navButtons = new Map();
@@ -175,8 +175,8 @@ class NavigationControllerImpl {
 		this.sectionObserver = null;
 		this.sectionElements = [];
 
-		this.router = new RouterImpl();
-		this.pageLoader = new PageLoaderImpl();
+		this.router = new Router();
+		this.pageLoader = new PageLoader();
 
 		this.registerRoutes();
 	}
@@ -313,7 +313,11 @@ class NavigationControllerImpl {
 	}
 
 	setupNavigationButtons() {
-		const handleNavClick = async (e) => {
+		if (this._handleNavClick) {
+			document.removeEventListener('click', this._handleNavClick);
+		}
+
+		this._handleNavClick = async (e) => {
 			const sectionButton = e.target.closest('[data-section]');
 			if (sectionButton) {
 				e.preventDefault();
@@ -329,7 +333,7 @@ class NavigationControllerImpl {
 			}
 		};
 
-		document.addEventListener('click', handleNavClick);
+		document.addEventListener('click', this._handleNavClick);
 
 		this.cacheNavigationButtons();
 		this.cacheSectionButtons();
@@ -666,4 +670,4 @@ class NavigationControllerImpl {
 	}
 }
 
-export const NavigationController = new NavigationControllerImpl();
+export const NavigationController = new _NavigationController();

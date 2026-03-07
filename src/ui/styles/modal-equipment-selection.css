@@ -1,0 +1,230 @@
+/* ===== Equipment Selection Modal - Filter Collapse ===== */
+.equipment-filter-row-wrapper {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.equipment-filter-toggle-btn {
+	transition: all 0.3s ease-in-out;
+	height: 38px;
+	padding: 1.5rem 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 38px;
+	flex-shrink: 0;
+}
+
+.equipment-filter-toggle-btn[data-filters-visible="true"] {
+	background-color: var(--accent-color);
+	border-color: var(--accent-color);
+	color: #fff;
+}
+
+.equipment-filter-toggle-btn[data-filters-visible="true"]:hover {
+	background-color: var(--accent-hover);
+	border-color: var(--accent-hover);
+	color: #fff;
+}
+
+.equipment-filter-toggle-btn[data-filters-visible="false"] {
+	background-color: transparent;
+	border-color: var(--border-color);
+	color: var(--text-muted);
+}
+
+.equipment-filter-row {
+	display: flex;
+	flex-wrap: nowrap;
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0;
+}
+
+.equipment-filters-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out,
+		padding 0.3s ease-in-out,
+		margin 0.3s ease-in-out,
+		opacity 0.3s ease-in-out;
+	overflow-y: auto;
+	position: relative;
+	flex: 0 0 calc(33.333% - 1rem);
+	margin-right: 1rem;
+}
+
+/* Override: state toggle — must override base flex/layout on .equipment-filters-column */
+.equipment-filters-column.collapsed {
+	max-width: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	flex: 0 !important;
+	opacity: 0;
+	overflow: hidden;
+}
+
+/* Equipment results column */
+.equipment-results-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0.5rem;
+}
+
+/* Override: state toggle — collapsed sibling expands results column */
+.equipment-filter-row .equipment-filters-column.collapsed
+	~ .equipment-results-column {
+	max-width: 100% !important;
+	flex: 1 !important;
+}
+
+/* Override: forces consistent scroll behavior regardless of content */
+.equipment-list-scroll-container {
+	flex: 1;
+	overflow-y: scroll !important;
+	overflow-x: hidden;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 200px;
+	max-height: 100%;
+}
+
+/* Custom scrollbar for equipment list */
+.equipment-list-scroll-container::-webkit-scrollbar {
+	width: 8px;
+}
+
+.equipment-list-scroll-container::-webkit-scrollbar-track {
+	background: var(--primary-color);
+	border-radius: 4px;
+}
+
+.equipment-list-scroll-container::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 4px;
+}
+
+.equipment-list-scroll-container::-webkit-scrollbar-thumb:hover {
+	background: var(--accent-hover);
+}
+
+/* Selected equipment section */
+.selected-equipment-section {
+	flex-shrink: 0;
+	padding: 0.75rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 80px;
+	max-height: 120px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.selected-equipment-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-light);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* ===================================
+   EQUIPMENT SELECTION MODAL
+   =================================== */
+
+.item-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	margin-bottom: 0.75rem;
+}
+
+.item-card:hover {
+	border-color: var(--accent-color);
+	background: var(--accent-10);
+}
+
+.item-card.selected {
+	border-color: var(--accent-color);
+	background: var(--accent-15);
+	box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.item-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.item-card.selected .item-card-header {
+	background: var(--accent-15);
+}
+
+.item-card-header strong {
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.item-card-body {
+	padding: 1rem;
+}
+
+.item-stats {
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.item-stat-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.item-stat-row:last-child {
+	margin-bottom: 0;
+}
+
+.item-stat {
+	color: var(--text-color);
+	font-size: 0.9rem;
+}
+
+.item-stat strong {
+	color: var(--text-light);
+}
+
+.item-description {
+	color: var(--text-light);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.selected-equipment-list {
+	min-height: 2rem;
+}
+
+.feature-option-card .text-muted {
+	max-width: 100%;
+	word-break: break-word;
+}

@@ -117,10 +117,12 @@ function clearCache() {
 	console.debug('[DataLoader]', 'Cache cleared');
 }
 
+// Auto-clear cache when data is invalidated by external sources
+eventBus.on(EVENTS.DATA_INVALIDATED, clearCache);
+
 function resetAll() {
-	clearCache();
 	eventBus.emit(EVENTS.DATA_INVALIDATED);
-	console.debug('[DataLoader]', 'Full reset: L1 cache cleared + DATA_INVALIDATED emitted');
+	console.debug('[DataLoader]', 'Full reset: cache cleared + DATA_INVALIDATED emitted');
 }
 
 const dataLoader = {
@@ -133,6 +135,7 @@ const dataLoader = {
 	loadConditions,
 	loadVariantRules,
 	loadSources,
+	clearCache,
 	resetAll,
 };
 

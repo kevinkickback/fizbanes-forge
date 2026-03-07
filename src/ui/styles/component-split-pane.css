@@ -3,6 +3,8 @@
    ======================================== */
 
 /* Split Pane Layout - Generic */
+/* !important required: page-specific selectors (e.g. .card-body.class-card-body)
+   have higher specificity and set flex-direction: column, which breaks the split layout */
 .split-card-body {
 	display: flex !important;
 	flex-direction: row !important;

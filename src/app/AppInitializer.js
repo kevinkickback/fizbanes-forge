@@ -324,7 +324,9 @@ export async function initializeAll() {
 		if (_uiHandlersCleanup) {
 			try {
 				_uiHandlersCleanup();
-			} catch { }
+			} catch (error) {
+				console.warn('[AppInitializer]', 'UI handlers cleanup failed:', error);
+			}
 			_uiHandlersCleanup = null;
 		}
 		_isInitialized = false;

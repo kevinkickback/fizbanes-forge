@@ -3,7 +3,7 @@ import { backgroundService } from './BackgroundService.js';
 import { classService } from './ClassService.js';
 import { raceService } from './RaceService.js';
 
-class RehydrationServiceImpl {
+class RehydrationService {
     rehydrate(character) {
         if (!character) return;
 
@@ -192,4 +192,4 @@ class RehydrationServiceImpl {
     }
 }
 
-export const rehydrationService = new RehydrationServiceImpl();
+export const rehydrationService = new RehydrationService();

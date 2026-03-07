@@ -33,7 +33,7 @@ export class PreviewPageController extends BasePageController {
             }
 
             // Auto-refresh when character is updated if a preview is already showing
-            this._trackListener(EVENTS.CHARACTER_UPDATED, () => {
+            this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, () => {
                 if (this._templateName && !this._isGenerating && this._renderer.getPageCount() > 0) {
                     this._generatePreview();
                 }

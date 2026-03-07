@@ -71,6 +71,7 @@
 	margin-bottom: 0.5rem;
 }
 
+/* Override: Bootstrap's .text-muted uses !important — must match to win */
 .equipment-item .text-muted {
 	color: var(--text-muted) !important;
 }

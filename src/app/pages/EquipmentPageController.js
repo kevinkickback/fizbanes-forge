@@ -24,11 +24,11 @@ export class EquipmentPageController extends BasePageController {
             this._equipmentManager.render();
 
             const updateHandler = () => this._equipmentManager.render();
-            this._trackListener(EVENTS.CHARACTER_UPDATED, updateHandler);
-            this._trackListener(EVENTS.ITEM_ADDED, updateHandler);
-            this._trackListener(EVENTS.ITEM_REMOVED, updateHandler);
-            this._trackListener(EVENTS.ITEM_EQUIPPED, updateHandler);
-            this._trackListener(EVENTS.ITEM_UNEQUIPPED, updateHandler);
+            this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, updateHandler);
+            this._cleanup.onEvent(EVENTS.ITEM_ADDED, updateHandler);
+            this._cleanup.onEvent(EVENTS.ITEM_REMOVED, updateHandler);
+            this._cleanup.onEvent(EVENTS.ITEM_EQUIPPED, updateHandler);
+            this._cleanup.onEvent(EVENTS.ITEM_UNEQUIPPED, updateHandler);
         } catch (error) {
             console.error('[EquipmentPageController]', 'Error initializing equipment page', error);
             showNotification('Error loading equipment page', 'error');

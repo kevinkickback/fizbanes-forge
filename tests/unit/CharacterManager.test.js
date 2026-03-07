@@ -295,6 +295,21 @@ describe('CharacterManager', () => {
 
             expect(character.lastModified).not.toBe(originalTimestamp);
         });
+
+        it('should restore lastModified if save fails', async () => {
+            const character = new Character({ id: 'char-123', name: 'Save Test' });
+            const originalTimestamp = character.lastModified;
+            AppState.setCurrentCharacter(character);
+
+            mockCharacterStorage.saveCharacter.mockResolvedValue({
+                success: false,
+                error: 'Disk full',
+            });
+
+            await expect(CharacterManager.saveCharacter()).rejects.toThrow(DataError);
+
+            expect(character.lastModified).toBe(originalTimestamp);
+        });
     });
 
     describe('deleteCharacter', () => {

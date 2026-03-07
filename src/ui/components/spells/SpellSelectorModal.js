@@ -386,8 +386,6 @@ export class SpellSelectorModal {
 			noVerbal: this.noVerbal,
 			noSomatic: this.noSomatic,
 			noMaterial: this.noMaterial,
-			noSomatic: this.noSomatic,
-			noMaterial: this.noMaterial,
 			onFilterChange: (value, filterType) => {
 				if (filterType) {
 					// Type filters (switches)

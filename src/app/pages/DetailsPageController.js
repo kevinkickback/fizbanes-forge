@@ -1,5 +1,4 @@
 import { ALIGNMENTS, toSentenceCase } from '../../lib/5eToolsParser.js';
-import { DOMCleanup } from '../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../lib/EventBus.js';
 import { showNotification } from '../../lib/Notifications.js';
 import { deityService } from '../../services/DeityService.js';
@@ -11,7 +10,6 @@ import { BasePageController } from './BasePageController.js';
 export class DetailsPageController extends BasePageController {
     constructor() {
         super('DetailsPageController');
-        this._cleanup = DOMCleanup.create();
     }
 
     async initialize() {
@@ -282,8 +280,4 @@ export class DetailsPageController extends BasePageController {
         });
     }
 
-    cleanup() {
-        this._cleanup.cleanup();
-        super.cleanup();
-    }
 }

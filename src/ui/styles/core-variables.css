@@ -119,6 +119,14 @@
 	--transition-slow: all 0.3s ease;
 	--box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 
+	/* Z-Index Scale */
+	--z-sticky: 1000;
+	--z-modal-backdrop: 1060;
+	--z-modal: 1070;
+	--z-tooltip: 9999;
+	--z-overlay: 10000;
+	--z-notification: 11000;
+
 	/* Content Layout Widths */
 	--race-content-width: 62%;
 	--race-image-width: 30%;

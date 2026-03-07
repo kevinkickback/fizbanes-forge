@@ -1,0 +1,48 @@
+/* ===================================
+   COMPONENT: Tags (trait-tag, feature-tag)
+   Shared tag styling for build pages
+   =================================== */
+
+.traits-grid,
+.features-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.trait-tag {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 0.25rem 0.75rem;
+	color: var(--text-color);
+	font-size: 0.85rem;
+	cursor: help;
+	transition: var(--transition);
+	display: inline-block;
+	text-align: center;
+}
+
+.trait-tag:hover {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	transform: translateY(-1px);
+}
+
+.feature-tag {
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 0.25rem 0.75rem;
+	color: var(--text-color);
+	font-size: 0.85rem;
+	cursor: help;
+	transition: var(--transition);
+}
+
+.feature-tag:hover {
+	background: var(--accent-color);
+	border-color: var(--accent-color);
+	transform: translateY(-1px);
+}

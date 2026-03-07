@@ -1,0 +1,90 @@
+/* ===== Feat List Styles ===== */
+.feat-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem;
+}
+
+.feat-item {
+	cursor: pointer;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease,
+		background-color 0.15s ease,
+		transform 0.15s ease;
+	position: relative;
+}
+
+.feat-item.selected {
+	border-color: var(--accent-color);
+	background: var(--secondary-color);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--accent-color) 25%, transparent);
+}
+
+.feat-item.selected::before {
+	content: "";
+	position: absolute;
+	left: -2px;
+	top: 8px;
+	bottom: 8px;
+	width: 4px;
+	border-radius: 8px;
+	background: var(--accent-color);
+}
+
+.feat-item:focus-visible {
+	outline: 2px solid var(--accent-color);
+	outline-offset: 2px;
+}
+
+.feat-item:hover {
+	transform: translateY(-1px);
+	border-color: var(--accent-color);
+}
+
+.feat-selected-indicator {
+	position: absolute;
+	top: 0.35rem;
+	right: 0.35rem;
+	background: var(--accent-color);
+	color: var(--text-color);
+	padding: 0.2rem 0.5rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	opacity: 0;
+	transform: translateY(-4px);
+	transition:
+		opacity 0.15s ease,
+		transform 0.15s ease;
+}
+
+.feat-item.selected .feat-selected-indicator {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+/* ===================================
+   FEAT SELECTION MODAL
+   =================================== */
+
+.feat-item {
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.feat-item:hover {
+	background: var(--secondary-color);
+}
+
+.feat-item.selected {
+	background: var(--overlay-success-15);
+	border-color: var(--accent-color);
+}
+
+.feat-item.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background: var(--secondary-color);
+}

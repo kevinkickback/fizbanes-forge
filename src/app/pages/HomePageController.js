@@ -58,14 +58,14 @@ export class HomePageController extends BasePageController {
             this._homeCharacterSelectedHandler = (character) => {
                 this._updateCharacterCardSelection(character?.id);
             };
-            this._trackListener(EVENTS.CHARACTER_SELECTED, this._homeCharacterSelectedHandler);
+            this._cleanup.onEvent(EVENTS.CHARACTER_SELECTED, this._homeCharacterSelectedHandler);
 
             this._homeCharacterCreatedHandler = async () => {
                 const reloadCharacters = await CharacterManager.loadCharacterList();
                 await this._renderCharacterList(reloadCharacters);
             };
-            this._trackListener(EVENTS.CHARACTER_CREATED, this._homeCharacterCreatedHandler);
-            this._trackListener(EVENTS.CHARACTER_SAVED, this._homeCharacterCreatedHandler);
+            this._cleanup.onEvent(EVENTS.CHARACTER_CREATED, this._homeCharacterCreatedHandler);
+            this._cleanup.onEvent(EVENTS.CHARACTER_SAVED, this._homeCharacterCreatedHandler);
 
             this._homeCharacterUpdatedHandler = async () => {
                 const reloadCharacters = await CharacterManager.loadCharacterList();
@@ -75,7 +75,7 @@ export class HomePageController extends BasePageController {
                     this._updateCharacterCardSelection(currentCharacter.id);
                 }
             };
-            this._trackListener(EVENTS.CHARACTER_UPDATED, this._homeCharacterUpdatedHandler);
+            this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, this._homeCharacterUpdatedHandler);
         } catch (error) {
             console.error('[HomePageController]', 'Error initializing home page', error);
             showNotification('Error loading home page', 'error');
@@ -187,95 +187,51 @@ export class HomePageController extends BasePageController {
         const activeCharacterId = currentCharacter?.id;
         const defaultPlaceholder = 'assets/images/characters/placeholder_char_card0.jpg';
 
-        characterList.innerHTML = sortedCharacters
-            .map((character) => {
-                const isActive = character.id === activeCharacterId;
-                const characterRace = character.race?.name || 'No Race';
-                const progressionClasses = Array.isArray(character.progression?.classes)
-                    ? character.progression.classes
-                    : [];
-                const characterLevel = character.getTotalLevel();
-                let classDisplay = 'No Class';
-                if (progressionClasses.length) {
-                    const classNames = progressionClasses.map(cls => cls.name || 'Unknown Class');
-                    if (classNames.length <= 3) {
-                        classDisplay = classNames.join('<br>');
-                    } else {
-                        const shown = classNames.slice(0, 3).join('<br>');
-                        const remaining = classNames.slice(3);
-                        const moreCount = remaining.length;
-                        const tooltipContent = remaining.join('<br>');
-                        classDisplay = `${shown}<br><span class="u-cursor-pointer" data-bs-toggle="tooltip" data-bs-html="true" title="${tooltipContent}">+ ${moreCount} more</span>`;
-                    }
+        // Dispose existing Bootstrap tooltips before re-render
+        characterList.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+            if (window.bootstrap?.Tooltip) {
+                const existing = window.bootstrap.Tooltip.getInstance(el);
+                if (existing) existing.dispose();
+            }
+        });
+
+        characterList.innerHTML = '';
+
+        for (const character of sortedCharacters) {
+            const isActive = character.id === activeCharacterId;
+            const characterRace = character.race?.name || 'No Race';
+            const progressionClasses = Array.isArray(character.progression?.classes)
+                ? character.progression.classes
+                : [];
+            const characterLevel = character.getTotalLevel();
+
+            const rawPortrait =
+                character.portrait || character.image || character.avatar || defaultPlaceholder;
+            const portraitUrl = (() => {
+                if (!rawPortrait) return defaultPlaceholder;
+                if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
+                    return rawPortrait;
                 }
+                if (/^[A-Za-z]:\\/.test(rawPortrait)) {
+                    return `file://${rawPortrait.replace(/\\/g, '/')}`;
+                }
+                return rawPortrait.replace(/\\/g, '/');
+            })();
+            const lastModified = character.lastModified
+                ? new Date(character.lastModified).toLocaleDateString()
+                : 'Unknown';
 
-                const rawPortrait =
-                    character.portrait || character.image || character.avatar || defaultPlaceholder;
-                const portraitUrl = (() => {
-                    if (!rawPortrait) return defaultPlaceholder;
-                    if (rawPortrait.startsWith('data:') || rawPortrait.startsWith('file://')) {
-                        return rawPortrait;
-                    }
-                    if (/^[A-Za-z]:\\/.test(rawPortrait)) {
-                        return `file://${rawPortrait.replace(/\\/g, '/')}`;
-                    }
-                    return rawPortrait.replace(/\\/g, '/');
-                })();
-                const lastModified = character.lastModified
-                    ? new Date(character.lastModified).toLocaleDateString()
-                    : 'Unknown';
-
-                return `
-                    <div class="card character-card ${isActive ? 'selected' : ''}" data-character-id="${character.id}">
-                        <div class="character-portrait" data-portrait-url="${portraitUrl}"></div>
-                        <div class="card-header py-2">
-                            <h5 class="mb-0">
-                                <i class="fas fa-user me-2"></i>
-                                ${character.name || 'Unnamed Character'}
-                            </h5>
-                            ${isActive ? '<div class="active-profile-badge">Active</div>' : ''}
-                        </div>
-                        <div class="card-body">
-                            <div class="character-info">
-                                    <div class="character-details">
-                                        <div class="detail-item">
-                                            <i class="fas fa-crown me-2"></i>
-                                            <span>Level ${characterLevel}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <i class="fas fa-user-friends me-2"></i>
-                                            <span>${characterRace}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <i class="fas fa-hat-wizard me-2"></i>
-                                            <span>${classDisplay}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="card-actions-wrap mt-3">
-                                    <div class="card-actions">
-                                        <button class="btn btn-lg btn-outline-secondary export-character" 
-                                            data-character-id="${character.id}" 
-                                            title="Export Character">
-                                            <i class="fas fa-file-export"></i>
-                                        </button>
-                                        <button class="btn btn-lg btn-outline-danger delete-character" 
-                                            data-character-id="${character.id}" 
-                                            title="Delete Character">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                    <div class="last-modified">
-                                        <i class="fas fa-clock me-2"></i>
-                                        <span>Last modified: ${lastModified}</span>
-                                    </div>
-                                </div>
-                        </div>
-                    </div>
-            `;
-            })
-            .join('');
+            const cardEl = this._createCharacterCard({
+                character,
+                isActive,
+                characterRace,
+                progressionClasses,
+                characterLevel,
+                portraitUrl,
+                lastModified,
+            });
+            characterList.appendChild(cardEl);
+        }
 
         // Apply portrait backgrounds using data attributes (CSP-compliant).
         // Validate each image — fall back to the placeholder when it fails to load.
@@ -297,6 +253,98 @@ export class HomePageController extends BasePageController {
                 new window.bootstrap.Tooltip(el);
             }
         });
+    }
+
+    _createCharacterCard({ character, isActive, characterRace, progressionClasses, characterLevel, portraitUrl, lastModified }) {
+        const template = document.createElement('template');
+        template.innerHTML = `
+            <div class="card character-card">
+                <div class="character-portrait"></div>
+                <div class="card-header py-2">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        <span class="character-name-text"></span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="character-info">
+                        <div class="character-details">
+                            <div class="detail-item">
+                                <i class="fas fa-crown me-2"></i>
+                                <span class="character-level-text"></span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-user-friends me-2"></i>
+                                <span class="character-race-text"></span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-hat-wizard me-2"></i>
+                                <span class="character-class-text"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions-wrap mt-3">
+                        <div class="card-actions">
+                            <button class="btn btn-lg btn-outline-secondary export-character" title="Export Character">
+                                <i class="fas fa-file-export"></i>
+                            </button>
+                            <button class="btn btn-lg btn-outline-danger delete-character" title="Delete Character">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="last-modified">
+                            <i class="fas fa-clock me-2"></i>
+                            <span class="last-modified-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        const card = template.content.firstElementChild;
+
+        card.dataset.characterId = character.id;
+        if (isActive) card.classList.add('selected');
+
+        card.querySelector('.character-portrait').dataset.portraitUrl = portraitUrl;
+        card.querySelector('.character-name-text').textContent = character.name || 'Unnamed Character';
+
+        if (isActive) {
+            const badge = document.createElement('div');
+            badge.className = 'active-profile-badge';
+            badge.textContent = 'Active';
+            card.querySelector('.card-header').appendChild(badge);
+        }
+
+        card.querySelector('.character-level-text').textContent = `Level ${characterLevel}`;
+        card.querySelector('.character-race-text').textContent = characterRace;
+
+        // Build class display safely (no innerHTML with user data)
+        const classSpan = card.querySelector('.character-class-text');
+        if (!progressionClasses.length) {
+            classSpan.textContent = 'No Class';
+        } else {
+            const classNames = progressionClasses.map(cls => cls.name || 'Unknown Class');
+            const shown = classNames.slice(0, 3);
+            shown.forEach((name, i) => {
+                if (i > 0) classSpan.appendChild(document.createElement('br'));
+                classSpan.appendChild(document.createTextNode(name));
+            });
+            if (classNames.length > 3) {
+                classSpan.appendChild(document.createElement('br'));
+                const moreSpan = document.createElement('span');
+                moreSpan.className = 'u-cursor-pointer';
+                moreSpan.dataset.bsToggle = 'tooltip';
+                moreSpan.dataset.bsHtml = 'true';
+                moreSpan.title = classNames.slice(3).join(', ');
+                moreSpan.textContent = `+ ${classNames.length - 3} more`;
+                classSpan.appendChild(moreSpan);
+            }
+        }
+
+        card.querySelector('.export-character').dataset.characterId = character.id;
+        card.querySelector('.delete-character').dataset.characterId = character.id;
+        card.querySelector('.last-modified-text').textContent = `Last modified: ${lastModified}`;
+
+        return card;
     }
 
     _setupCharacterCardListeners(container) {

@@ -130,57 +130,6 @@
 	margin-bottom: 0;
 }
 
-.detail-section {
-	background: rgba(36, 36, 36, 0.5);
-	padding: 0.5rem 0.75rem; /* Reduced top/bottom padding */
-	border-radius: var(--border-radius);
-	border-left: 2px solid var(--accent-color);
-	margin-bottom: 0.5rem;
-}
-
-.detail-section h6 {
-	color: var(--text-muted);
-	font-size: 0.8rem;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	margin-bottom: 0.35rem; /* Increased from 0.15rem */
-	margin-top: 0;
-	line-height: 1.2;
-}
-
-.detail-section p {
-	margin-bottom: 0;
-	margin-top: 0.25rem; /* Increased from 0.15rem */
-	line-height: 1.4; /* Tighter line height for content */
-	color: #ffffff; /* Ensure text is clearly visible */
-}
-
-.detail-section ul {
-	list-style: none;
-	padding-left: 0;
-	margin-top: 0.25rem; /* Increased from 0.15rem */
-	margin-bottom: 0;
-}
-
-.detail-section li {
-	position: relative;
-	padding-left: 1rem;
-	line-height: 1.4;
-	margin-bottom: 0.15rem;
-	color: #ffffff;
-}
-
-.detail-section li:last-child {
-	margin-bottom: 0;
-}
-
-.detail-section li:before {
-	content: "•";
-	position: absolute;
-	left: 0;
-	color: var(--accent-color);
-}
-
 /* Proficiency styles */
 .proficiency-container {
 	display: flex;
@@ -324,17 +273,17 @@
 	background-color: var(--secondary-color);
 	padding: 12px 16px;
 	border-radius: 4px;
-	border-left: 4px solid #6c757d;
+	border-left: 4px solid var(--text-muted);
 	font-size: 0.85rem;
-	color: #f8f9fa;
+	color: var(--text-light);
 }
 
 .data-source-container {
 	background-color: var(--secondary-color);
 	padding: 12px 16px;
 	border-radius: 4px;
-	border-left: 4px solid #6c757d;
-	color: #f8f9fa;
+	border-left: 4px solid var(--text-muted);
+	color: var(--text-light);
 }
 
 /* Reset button */
@@ -362,11 +311,11 @@
 	background-color: var(--secondary-color);
 	border-radius: var(--border-radius);
 	border-left: 2px solid var(--accent-color);
-	color: #ffffff;
+	color: var(--text-color);
 }
 
 .proficiency-note strong {
-	color: #ffffff;
+	color: var(--text-color);
 	font-weight: 600;
 }
 
@@ -532,7 +481,7 @@
 .character-info-container .form-select {
 	background-color: var(--secondary-color);
 	border: 1px solid var(--border-color);
-	color: #ffffff;
+	color: var(--text-color);
 	transition: var(--transition);
 	padding: 0.4rem 0.75rem;
 	font-size: 0.9rem;
@@ -649,45 +598,6 @@
 	}
 }
 
-.source-toggle {
-	display: flex;
-	align-items: center;
-	padding: 0.3rem 0.75rem;
-	border-radius: var(--border-radius);
-	background-color: var(--secondary-color);
-	border: 1px solid var(--border-color);
-	color: var(--text-muted);
-	transition: var(--transition);
-	position: relative;
-	cursor: pointer;
-	width: 100%;
-	height: 100%;
-	min-height: 2rem;
-}
-
-.source-toggle i {
-	margin-right: 0.5rem;
-	color: var(--text-muted);
-	flex-shrink: 0;
-	font-size: 1.2rem;
-}
-
-.source-toggle.selected {
-	background-color: rgba(25, 118, 210, 0.15);
-	border-color: var(--accent-color);
-	color: var(--text-color);
-}
-
-.source-toggle.selected i {
-	color: var(--accent-color);
-}
-
-.source-toggle:hover {
-	background-color: rgba(25, 118, 210, 0.1);
-	transform: translateY(-2px);
-	box-shadow: var(--box-shadow);
-}
-
 #sourceBookSelection {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -696,21 +606,6 @@
 	padding: 0 0.5rem 0.5rem 0.5rem;
 	width: 100%;
 	padding-left: 0.5rem;
-}
-
-/* Add some nice animation for the source toggles */
-.source-toggle {
-	transform-origin: center;
-	transition: all 0.2s ease;
-}
-
-.source-toggle:active {
-	transform: scale(0.98);
-}
-
-.source-toggle .source-name {
-	flex: 1;
-	font-weight: 500;
 }
 
 /* Source Book Header */
@@ -807,6 +702,7 @@
 	flex-direction: column;
 }
 
+/* Override: Bootstrap's .mb-3 uses !important — must match to win */
 .card-body.class-card-body > .mb-3 {
 	margin-bottom: 0 !important;
 }
@@ -826,7 +722,7 @@
 	background: var(--card-background);
 	border: 1px solid var(--border-color);
 	margin-bottom: 0.75rem;
-	border-radius: var(--border-radius) !important;
+	border-radius: var(--border-radius);
 	overflow: hidden;
 	transition: all 0.2s ease;
 }

@@ -12,7 +12,7 @@ import { rehydrationService } from '../services/RehydrationService.js';
 import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
 
-class CharacterManagerImpl {
+class _CharacterManager {
 	async createCharacter(name) {
 		const failedServices = AppState.getFailedServices();
 		if (Array.isArray(failedServices) && failedServices.length > 0) {
@@ -118,6 +118,7 @@ class CharacterManagerImpl {
 			throw new NotFoundError('Character', 'current');
 		}
 
+		const originalTimestamp = character.lastModified;
 		try {
 			CharacterSchema.touch(character);
 
@@ -151,6 +152,7 @@ class CharacterManagerImpl {
 
 			return true;
 		} catch (error) {
+			character.lastModified = originalTimestamp;
 			console.error('[CharacterManager]', 'Save failed:', error);
 			throw error;
 		}
@@ -231,4 +233,4 @@ class CharacterManagerImpl {
 	}
 }
 
-export const CharacterManager = new CharacterManagerImpl();
+export const CharacterManager = new _CharacterManager();

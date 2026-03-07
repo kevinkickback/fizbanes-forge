@@ -65,7 +65,7 @@
 .details-info-container .form-select {
 	background-color: var(--secondary-color);
 	border: 1px solid var(--border-color);
-	color: #ffffff;
+	color: var(--text-color);
 	transition: var(--transition);
 	padding: 0.4rem 0.75rem;
 	font-size: 0.9rem;

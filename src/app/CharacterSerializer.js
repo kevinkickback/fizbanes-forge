@@ -20,8 +20,9 @@ function mapToObject(map) {
 				return [key, value];
 			}),
 		);
-	} catch {
-		return {}; // Return empty object on error
+	} catch (error) {
+		console.warn('[CharacterSerializer]', 'Map serialization failed:', error);
+		return {};
 	}
 }
 
@@ -225,7 +226,8 @@ export function serialize(character) {
 				),
 			};
 		}
-	} catch {
+	} catch (error) {
+		console.warn('[CharacterSerializer]', 'Proficiency serialization failed:', error);
 		serializedData.optionalProficiencies = {
 			armor: { allowed: 0, selected: [] },
 			weapons: { allowed: 0, selected: [] },

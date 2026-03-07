@@ -30,7 +30,7 @@
 /* Custom D&D Tooltips */
 .tooltip-container {
 	position: fixed;
-	z-index: 9999;
+	z-index: var(--z-tooltip);
 	pointer-events: none;
 }
 
@@ -442,7 +442,7 @@
 /* Tooltip Container Styling */
 #tooltip-container {
 	position: fixed;
-	z-index: 9999;
+	z-index: var(--z-tooltip);
 	pointer-events: none;
 }
 

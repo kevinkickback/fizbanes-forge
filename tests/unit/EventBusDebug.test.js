@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EventBusImpl } from '../../src/lib/EventBus.js';
+import { EventBus } from '../../src/lib/EventBus.js';
 
 describe('EventBus Debug Mode', () => {
     let testBus;
 
     beforeEach(() => {
         // Create a fresh instance for each test
-        testBus = new EventBusImpl();
+        testBus = new EventBus();
         testBus.enableDebugMode();
     });
 
@@ -203,11 +203,11 @@ describe('EventBus Debug Mode', () => {
             const originalDebug = window.FF_DEBUG;
 
             window.FF_DEBUG = true;
-            const debugBus = new EventBusImpl();
+            const debugBus = new EventBus();
             expect(debugBus.isDebugMode()).toBe(true);
 
             window.FF_DEBUG = false;
-            const normalBus = new EventBusImpl();
+            const normalBus = new EventBus();
             expect(normalBus.isDebugMode()).toBe(false);
 
             // Restore

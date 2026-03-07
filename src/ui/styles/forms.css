@@ -18,7 +18,7 @@
 	width: 100%;
 }
 
-/* Prevent autofill styling override */
+/* Override: Chromium autofill requires !important to suppress native UA styles */
 .form-control:-webkit-autofill,
 .form-control:-webkit-autofill:hover,
 .form-control:-webkit-autofill:focus,

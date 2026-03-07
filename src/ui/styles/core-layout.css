@@ -11,9 +11,9 @@
 	background-color: var(--background-color);
 }
 
-code {
-	font-size: 1em !important;
-	color: var(--accent-color) !important;
+body code {
+	font-size: 1em;
+	color: var(--accent-color);
 }
 
 /* Sidebar */
@@ -29,7 +29,7 @@ code {
 	overflow-y: auto;
 	transition: all 0.2s ease;
 	border-right: 1px solid var(--border-color);
-	z-index: 1000;
+	z-index: var(--z-sticky);
 	box-sizing: border-box;
 	box-shadow: var(--shadow-lg);
 }
@@ -76,14 +76,14 @@ body.debug-mode .nav-item.debug-only {
 	color: var(--text-color);
 }
 
-.nav-link.active {
-	background: var(--accent-color) !important;
-	color: var(--text-color) !important;
+.sidebar .nav-link.active {
+	background: var(--accent-color);
+	color: var(--text-color);
 }
 
 #dataConfigModal .nav-link.active {
-	border-bottom-left-radius: 0px !important;
-	border-bottom-right-radius: 0px !important;
+	border-bottom-left-radius: 0px;
+	border-bottom-right-radius: 0px;
 }
 
 .nav-link i {

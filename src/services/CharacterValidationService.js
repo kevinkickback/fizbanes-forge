@@ -4,7 +4,7 @@ import { classService } from './ClassService.js';
 import { spellSelectionService } from './SpellSelectionService.js';
 import { spellService } from './SpellService.js';
 
-class CharacterValidationServiceImpl {
+class CharacterValidationService {
 	constructor() {
 		this.loggerScope = 'CharacterValidationService';
 	}
@@ -569,4 +569,4 @@ class CharacterValidationServiceImpl {
 }
 
 // Export singleton instance
-export const characterValidationService = new CharacterValidationServiceImpl();
+export const characterValidationService = new CharacterValidationService();

@@ -15,7 +15,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 1rem;
-	z-index: 1000;
+	z-index: var(--z-sticky);
 	-webkit-app-region: drag;
 	user-select: none;
 }
@@ -59,6 +59,7 @@
 	white-space: nowrap;
 }
 
+/* Override: JS toggles visibility via utility classes that use !important — must match */
 .titlebar-unsaved-indicator {
 	display: none !important;
 }

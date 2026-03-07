@@ -138,7 +138,7 @@
 
 .proficiency-item.selection-error {
 	animation: shake 0.4s ease-in-out;
-	border-color: var(--danger-color) !important;
+	border-color: var(--danger-color);
 	box-shadow: 0 0 5px var(--danger-color);
 }
 
@@ -206,7 +206,7 @@
 	background: var(--card-background);
 	border: 1px solid var(--border-color);
 	margin-bottom: 0.75rem;
-	border-radius: var(--border-radius) !important;
+	border-radius: var(--border-radius);
 	overflow: hidden;
 	transition: all 0.2s ease;
 }

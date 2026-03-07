@@ -1,0 +1,352 @@
+/* ===== Review Section ===== */
+#newCharacterReviewList {
+	color: var(--text-color);
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 0.75rem;
+	align-items: start;
+}
+
+#newCharacterReviewList .review-name {
+	grid-column: 2 / -1;
+}
+
+#newCharacterReviewList .review-sources {
+	grid-column: 2 / -1;
+}
+
+#newCharacterReviewList li {
+	margin: 0;
+	color: var(--text-color);
+	padding: 0.2rem 0.5rem;
+	background: var(--secondary-color);
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+}
+
+#newCharacterReviewList strong {
+	color: var(--text-light);
+}
+
+#newCharacterReviewList .review-icon {
+	color: var(--accent-color);
+	margin-right: 0.35rem;
+	font-size: 0.85em;
+}
+
+#newCharacterReviewList .review-value {
+	color: var(--accent-color);
+}
+
+.review-bottom-anchor {
+	height: 0;
+	flex-shrink: 0;
+}
+
+.review-portrait-preview {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	padding: 0.5rem;
+	background: var(--secondary-color);
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+	width: 100%;
+	justify-content: center;
+}
+
+.review-portrait-preview img {
+	width: 100%;
+	max-width: 240px;
+	height: auto;
+	aspect-ratio: 5 / 7;
+	object-fit: cover;
+	border-radius: var(--border-radius);
+}
+
+.review-info-compact {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.review-item {
+	display: grid;
+	grid-template-columns: 140px 1fr;
+	gap: 0.75rem;
+	align-items: center;
+	padding: 0.4rem 0.6rem;
+	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	min-height: 32px;
+}
+
+.review-item .review-label {
+	font-weight: 600;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.review-item .review-label i {
+	color: var(--accent-color);
+	font-size: 0.8rem;
+	width: 14px;
+	text-align: center;
+}
+
+.review-item .review-value {
+	color: var(--text-color);
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.review-sources-compact {
+	padding: 0.6rem;
+	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+}
+
+.review-sources-label {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.review-sources-label i {
+	color: var(--accent-color);
+}
+
+.review-sources-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.ability-scores-review {
+	padding: 0.6rem;
+	background: color-mix(in srgb, var(--accent-color) 8%, var(--secondary-color));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.ability-scores-review h6 {
+	margin-bottom: 0.5rem;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.ability-scores-review h6 i {
+	color: var(--accent-color);
+}
+
+.review-sources-container {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.review-sources-header-with-badges {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	align-content: flex-start;
+	gap: 0.5rem;
+	flex: 1;
+	max-height: 100px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.review-sources-header-with-badges .sources-label {
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.review-sources-header-with-badges .sources-label i {
+	color: var(--accent-color);
+}
+
+.review-sources-badges-inline {
+	display: contents;
+}
+
+.ability-scores-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0.5rem;
+}
+
+.ability-score-summary {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.4rem 0.6rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+}
+
+.ability-score-summary .ability-label {
+	font-weight: 600;
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	min-width: 2rem;
+}
+
+.ability-score-summary .ability-score {
+	font-weight: 700;
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.ability-score-summary .ability-modifier {
+	color: var(--accent-color);
+	font-size: 0.85rem;
+	margin-left: auto;
+}
+
+/* ===== Character Creation Modal - Race Details ===== */
+.step-2-race #modalRaceDetails {
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color);
+}
+
+.step-2-race .detail-section h6 {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-color);
+	margin-bottom: 0.5rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.step-2-race .detail-section ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.step-2-race .detail-section li {
+	color: var(--text-light);
+	font-size: 0.9rem;
+}
+
+.step-2-race .detail-section li.placeholder-text {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.step-2-race .traits-section h6 {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-color);
+	margin-bottom: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.step-2-race .traits-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.step-2-race .trait-tag {
+	display: inline-block;
+	padding: 0.375rem 0.75rem;
+	background-color: var(--secondary-color);
+	color: var(--text-color);
+	border-radius: var(--border-radius);
+	font-size: 0.875rem;
+	border: 1px solid var(--border-color);
+	transition: background-color 0.2s ease;
+}
+
+.step-2-race .trait-tag:hover {
+	background-color: var(--hover-color);
+}
+
+/* ===== Character Creation Modal - Class Details ===== */
+.step-3-class #modalClassDetails {
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color);
+}
+
+.step-3-class .detail-section h6 {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-color);
+	margin-bottom: 0.5rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.step-3-class .detail-section ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.step-3-class .detail-section li {
+	color: var(--text-light);
+	font-size: 0.9rem;
+}
+
+.step-3-class .detail-section li.placeholder-text {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.step-3-class .traits-section h6 {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-color);
+	margin-bottom: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.step-3-class .traits-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.step-3-class .trait-tag {
+	display: inline-block;
+	padding: 0.375rem 0.75rem;
+	background-color: var(--secondary-color);
+	color: var(--text-color);
+	border-radius: var(--border-radius);
+	font-size: 0.875rem;
+	border: 1px solid var(--border-color);
+	transition: background-color 0.2s ease;
+}
+
+.step-3-class .trait-tag:hover {
+	background-color: var(--hover-color);
+}

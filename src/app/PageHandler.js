@@ -20,7 +20,7 @@ const PAGE_CONTROLLERS = {
 	preview: PreviewPageController,
 };
 
-class PageHandlerImpl {
+class _PageHandler {
 	constructor() {
 		this.isInitialized = false;
 		this._activeController = null;
@@ -76,4 +76,4 @@ class PageHandlerImpl {
 }
 
 // Export singleton instance
-export const PageHandler = new PageHandlerImpl();
+export const PageHandler = new _PageHandler();

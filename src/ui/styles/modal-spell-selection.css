@@ -1,0 +1,293 @@
+/* ===== Spell Selection Modal - Filter Collapse ===== */
+.spell-filter-row-wrapper {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.spell-filter-toggle-btn {
+	transition: all 0.3s ease-in-out;
+	height: 38px;
+	padding: 1.5rem 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 38px;
+	flex-shrink: 0;
+}
+
+.spell-filter-toggle-btn[data-filters-visible="true"] {
+	background-color: var(--accent-color);
+	border-color: var(--accent-color);
+	color: #fff;
+}
+
+.spell-filter-toggle-btn[data-filters-visible="true"]:hover {
+	background-color: var(--accent-hover);
+	border-color: var(--accent-hover);
+	color: #fff;
+}
+
+.spell-filter-toggle-btn[data-filters-visible="false"] {
+	background-color: transparent;
+	border-color: var(--border-color);
+	color: var(--text-muted);
+}
+
+.spell-filter-row {
+	display: flex;
+	flex-wrap: nowrap;
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0;
+}
+
+.spell-filters-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out,
+		padding 0.3s ease-in-out,
+		margin 0.3s ease-in-out,
+		opacity 0.3s ease-in-out;
+	overflow-y: auto;
+	position: relative;
+	flex: 0 0 calc(33.333% - 1rem);
+	margin-right: 1rem;
+	padding-right: 0.5rem;
+}
+
+/* Override: state toggle — must override base flex/layout properties on .spell-filters-column */
+.spell-filters-column.collapsed {
+	max-width: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	flex: 0 !important;
+	opacity: 0;
+	overflow: hidden;
+}
+
+/* Spell results column */
+.spell-results-column {
+	transition:
+		flex 0.3s ease-in-out,
+		max-width 0.3s ease-in-out;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	max-height: 100%;
+	gap: 0.5rem;
+	overflow: hidden;
+}
+
+/* Override: state toggle — collapsed sibling expands results column */
+.spell-filter-row .spell-filters-column.collapsed ~ .spell-results-column {
+	max-width: 100% !important;
+	flex: 1 !important;
+}
+
+/* Override: forces consistent scroll behavior regardless of content */
+.spell-list-scroll-container {
+	flex: 1;
+	overflow-y: scroll !important;
+	overflow-x: hidden;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 200px;
+	max-height: 100%;
+}
+
+/* Custom scrollbar for spell list */
+.spell-list-scroll-container::-webkit-scrollbar {
+	width: 8px;
+}
+
+.spell-list-scroll-container::-webkit-scrollbar-track {
+	background: var(--primary-color);
+	border-radius: 4px;
+}
+
+.spell-list-scroll-container::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 4px;
+}
+
+.spell-list-scroll-container::-webkit-scrollbar-thumb:hover {
+	background: var(--accent-hover);
+}
+
+/* Level-up selector at-max-selections visual feedback */
+.spell-list-container.at-max-selections {
+	opacity: 0.65;
+	position: relative;
+}
+
+/* Selected spells section */
+.selected-spells-section {
+	flex-shrink: 0;
+	padding: 0.75rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 80px;
+	max-height: 120px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.selected-spells-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-light);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* Generic selected items section styling for all universal modals */
+.selected-items-section,
+.selected-equipment-section {
+	flex-shrink: 0;
+	padding: 0.75rem;
+	background: var(--secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	min-height: 48px;
+	max-height: 200px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.selected-items-section h6,
+.selected-equipment-section h6 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-light);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* ===================================
+   SPELL LIST MODAL
+   =================================== */
+
+.spell-list-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.5rem;
+}
+
+.spell-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.spell-card:hover {
+	border-color: var(--accent-color);
+	background: var(--accent-10);
+}
+
+.spell-card.selected {
+	border-color: var(--accent-color);
+	background: var(--accent-15);
+	box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.spell-card.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+	background: var(--secondary-color);
+}
+
+.spell-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--secondary-color);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.spell-card.selected .spell-card-header {
+	background: var(--accent-15);
+}
+
+.spell-card-header strong {
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.spell-card-body {
+	padding: 1rem;
+}
+
+.spell-stats {
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.spell-stat-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.spell-stat-row:last-child {
+	margin-bottom: 0;
+}
+
+.spell-stat {
+	color: var(--text-color);
+	font-size: 0.9rem;
+}
+
+.spell-stat strong {
+	color: var(--text-light);
+}
+
+.spell-description {
+	color: var(--text-light);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.selected-spells-container {
+	min-height: 2rem;
+}
+
+.selected-spells-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.selected-spells-list .badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 0.75rem;
+}
+
+.selected-spells-list .btn-close {
+	padding: 0;
+	margin: 0;
+	opacity: 0.7;
+}
+
+.selected-spells-list .btn-close:hover {
+	opacity: 1;
+}

@@ -106,9 +106,9 @@ export class FeatsPageController extends BasePageController {
             this._updateFeatAvailabilitySection(c);
         };
 
-        this._trackListener(EVENTS.FEATS_SELECTED, onFeatsSelected);
-        this._trackListener(EVENTS.CHARACTER_UPDATED, onCharacterUpdatedForFeats);
-        this._trackListener(EVENTS.CHARACTER_SELECTED, onCharacterSelectedForFeats);
+        this._cleanup.onEvent(EVENTS.FEATS_SELECTED, onFeatsSelected);
+        this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, onCharacterUpdatedForFeats);
+        this._cleanup.onEvent(EVENTS.CHARACTER_SELECTED, onCharacterSelectedForFeats);
     }
 
     _updateFeatUIState(character) {

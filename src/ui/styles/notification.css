@@ -6,7 +6,7 @@
 	/* Constrain to sidebar width */
 	width: var(--sidebar-width, 80px);
 	/* Ensure notifications appear above modal overlays */
-	z-index: 11000;
+	z-index: var(--z-notification);
 	display: flex;
 	flex-direction: column-reverse;
 	gap: 0.5rem;
@@ -266,12 +266,12 @@
 
 /* Empty state styling - better contrast */
 .notification-center-list > .text-center {
-	color: var(--text-light) !important;
+	color: var(--text-light);
 }
 
 .notification-center-list > .text-center i {
 	color: var(--text-light);
-	opacity: 0.7 !important;
+	opacity: 0.7;
 }
 
 /* Notification Badge */
