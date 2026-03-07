@@ -69,6 +69,7 @@ class EquipmentService {
 			attuned: false,
 			cost: item.cost ? { ...item.cost } : null,
 			weight: item.weight || 0,
+			ac: item.ac || 0,
 			source: item.source || 'Unknown',
 			type: item.type || null,
 			weapon: item.weapon || false,
@@ -304,6 +305,42 @@ class EquipmentService {
 		const baseCapacity = strength * this.CARRY_CAPACITY_MULTIPLIER;
 		const modifier = this._getCarryCapacityModifier(character);
 		return Math.floor(baseCapacity * modifier);
+	}
+
+	/**
+	 * Compute the character's effective Armor Class from equipped items.
+	 * Rules: unarmored = 10 + DEX; light = ac + DEX; medium = ac + min(DEX, 2);
+	 * heavy = flat ac; shield always adds its ac bonus (default +2).
+	 */
+	computeArmorClass(character) {
+		const dex = character.abilityScores?.dexterity ?? 10;
+		const dexMod = Math.floor((dex - 10) / 2);
+		const items = character.inventory?.items || [];
+
+		const armor = items.find((i) => i.equipped && this.isArmor(i));
+		const shield = items.find((i) => i.equipped && this.isShield(i));
+
+		let ac;
+		if (!armor) {
+			ac = 10 + dexMod;
+		} else {
+			const typeCode = this._getTypeCode(armor);
+			const armorAc = armor.ac || 0;
+			if (typeCode === 'LA') {
+				ac = armorAc + dexMod;
+			} else if (typeCode === 'MA') {
+				ac = armorAc + Math.min(dexMod, 2);
+			} else {
+				// Heavy armor: flat AC, no DEX bonus
+				ac = armorAc;
+			}
+		}
+
+		if (shield) {
+			ac += shield.ac || 2;
+		}
+
+		return ac;
 	}
 
 	_updateInventoryWeight(character) {

@@ -526,6 +526,25 @@ export class BackgroundCard {
 				});
 			backgroundItem.classList.add('selected');
 
+			// Scroll the background list to show the selected item if any part is not visible
+			requestAnimationFrame(() => {
+				if (this._backgroundList) {
+					const padding = 20;
+					const itemTop = backgroundItem.offsetTop;
+					const itemHeight = backgroundItem.offsetHeight;
+					const itemBottom = itemTop + itemHeight;
+					const listScrollTop = this._backgroundList.scrollTop;
+					const listHeight = this._backgroundList.offsetHeight;
+					const listScrollBottom = listScrollTop + listHeight;
+
+					if (itemBottom + padding > listScrollBottom) {
+						this._backgroundList.scrollTop = itemBottom + padding - listHeight;
+					} else if (itemTop - padding < listScrollTop) {
+						this._backgroundList.scrollTop = Math.max(0, itemTop - padding);
+					}
+				}
+			});
+
 			// Get the background data
 			const background = this._backgroundService.selectBackground(
 				character.background.name,

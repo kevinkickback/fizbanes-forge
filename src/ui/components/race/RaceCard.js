@@ -584,7 +584,10 @@ export class RaceCard {
 						);
 						if (standardOption) {
 							subraceSelect.value = '__standard__';
-							this._selectedSubrace = null;
+							this._selectedSubrace = this._raceService.getBaseSubrace(
+								race.name,
+								race.source,
+							);
 							console.debug('[RaceCard]', 'Standard race option selected');
 						}
 					}
@@ -719,6 +722,12 @@ export class RaceCard {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character || !race) return;
 
+		// Fall back to base (unnamed) subrace when no explicit subrace is selected.
+		// This handles races like Human where ability bonuses are stored in the
+		// base subrace entry rather than on the race object itself.
+		const effectiveSubrace =
+			subrace || this._raceService.getBaseSubrace(race.name, race.source);
+
 		// Clear existing ability bonuses from race and subrace
 		character.clearAbilityBonuses('Race');
 		character.clearAbilityBonuses('Subrace');
@@ -732,7 +741,7 @@ export class RaceCard {
 			}
 
 			// Use 5etools-based ability score parsing
-			const abilityData = getRaceAbilityData(race, subrace);
+			const abilityData = getRaceAbilityData(race, effectiveSubrace);
 
 			// Add fixed ability improvements
 			for (const improvement of abilityData.fixed) {

@@ -163,6 +163,19 @@ describe('CharacterSerializer', () => {
             expect(serialized.inventory.items).toHaveLength(1);
         });
 
+        it('should preserve ac on inventory items', () => {
+            character.inventory.items = [
+                { name: 'Chain Mail', type: 'HA', armor: true, ac: 16, equipped: true },
+                { name: 'Shield', type: 'S', ac: 2, equipped: true },
+                { name: 'Longsword', weapon: true, ac: 0, equipped: false },
+            ];
+            const serialized = CharacterSerializer.serialize(character);
+
+            expect(serialized.inventory.items[0].ac).toBe(16);
+            expect(serialized.inventory.items[1].ac).toBe(2);
+            expect(serialized.inventory.items[2].ac).toBe(0);
+        });
+
         it('should preserve spellcasting structure', () => {
             character.spellcasting.classes = {
                 Wizard: { spellsKnown: ['Fireball'] },

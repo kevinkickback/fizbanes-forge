@@ -836,8 +836,8 @@
 }
 
 #classChoicesAccordion .accordion-item:hover {
-	border-color: var(--bs-primary);
-	box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.15);
+	border-color: var(--accent-color);
+	box-shadow: 0 2px 8px var(--accent-10);
 }
 
 /* Accordion button (level header) */
@@ -859,7 +859,7 @@
 	box-shadow: none;
 }
 
-#classChoicesAccordion .accordion-button:hover {
+#classChoicesAccordion .accordion-button.collapsed:hover {
 	background: var(--hover-color);
 }
 

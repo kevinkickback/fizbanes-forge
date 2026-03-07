@@ -171,10 +171,10 @@ export class EquipmentManager {
 			let equipBtn = '';
 			if (canEquip) {
 				equipBtn = !isEquipped
-					? `<button class="btn btn-outline-primary" data-equip-item="${item.id}" title="Equip">
+					? `<button class="btn btn-outline-success" data-equip-item="${item.id}" title="Equip">
 						<i class="fas fa-shield-alt"></i>
 					</button>`
-					: `<button class="btn btn-outline-warning" data-unequip-item="${item.id}" title="Unequip">
+					: `<button class="btn btn-outline-success" data-unequip-item="${item.id}" title="Unequip">
 						<i class="fas fa-times-circle"></i>
 					</button>`;
 			}
@@ -185,21 +185,23 @@ export class EquipmentManager {
 					? `<button class="btn btn-outline-info" data-attune-item="${item.id}" title="Attune">
 						<i class="fas fa-star"></i>
 					</button>`
-					: `<button class="btn btn-outline-secondary" data-unattune-item="${item.id}" title="Unattune">
+					: `<button class="btn btn-outline-info" data-unattune-item="${item.id}" title="Unattune">
 						<i class="fas fa-star-half-alt"></i>
 					</button>`;
 			}
 
+			const cardClasses = ['item-row', 'card', 'card-sm', 'mb-2'];
+			if (isAttuned) cardClasses.push('item-attuned');
+			if (isEquipped) cardClasses.push('item-equipped');
+
 			html += `
-                <div class="item-row card card-sm mb-2">
+                <div class="${cardClasses.join(' ')}">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-1"><a href="#" class="reference-link" data-hover-type="item" data-hover-name="${item.name}" data-hover-source="${item.source}">${item.name}</a></h6>
+                            <h6 class="mb-1">${isAttuned ? '<span class="badge bg-info me-2">Attuned</span>' : ''}${isEquipped ? '<span class="badge bg-success me-2">Equipped</span>' : ''}<a href="#" class="reference-link" data-hover-type="item" data-hover-name="${item.name}" data-hover-source="${item.source}">${item.name}</a></h6>
                             <small class="text-muted">
                                 <label class="qty-label">QTY: <input type="number" min="1" class="qty-input" data-qty-item="${item.id}" value="${item.quantity}"></label>
                                 <span class="ms-2 fw-bold"> </span> <span class="ms-2">  WEIGHT: ${item.weight || 0} lb</span>
-                                ${isEquipped ? '<span class="badge bg-success ms-2">Equipped</span>' : ''}
-                                ${isAttuned ? '<span class="badge bg-info ms-2">Attuned</span>' : ''}
                             </small>
                         </div>
                         <div class="btn-group">

@@ -8,6 +8,7 @@ import { textProcessor } from '../../../lib/TextProcessor.js';
 import { featService } from '../../../services/FeatService.js';
 import { sourceService } from '../../../services/SourceService.js';
 import { BaseSelectorModal } from '../selection/BaseSelectorModal.js';
+import { editionSetToMode, filterByEdition, hasConflictingSources, inheritReprintDescriptions } from '../selection/EditionFilter.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 
 export class FeatSelectorModal {
@@ -23,6 +24,7 @@ export class FeatSelectorModal {
 		this.ignoreSelectionLimit = false;
 		this.descriptionCache = new Map();
 		this._resolveSelection = null;
+		this.editionFilters = new Set(['2024', '2014']);
 	}
 
 	async show() {
@@ -138,7 +140,14 @@ export class FeatSelectorModal {
 			}
 		});
 
-		return filtered.sort((a, b) => a.name.localeCompare(b.name));
+		inheritReprintDescriptions(filtered);
+		const editionFiltered = filterByEdition(
+			filtered,
+			editionSetToMode(this.editionFilters),
+			sourceService.getAllowedSources(),
+		);
+
+		return editionFiltered.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
 	_featMatchesFilters() {
@@ -292,6 +301,24 @@ export class FeatSelectorModal {
 		collapseWrapper.appendChild(body);
 		card.appendChild(collapseWrapper);
 		panel.appendChild(card);
+
+		const allowedSources = sourceService.getAllowedSources();
+		if (hasConflictingSources(allowedSources)) {
+			const editionBuilder = new FilterBuilder(panel, cleanup);
+			editionBuilder.addCheckboxGroup({
+				title: 'Edition',
+				options: [
+					{ label: '2024', value: '2024' },
+					{ label: '2014', value: '2014' },
+				],
+				stateSet: this.editionFilters,
+				onChange: async () => {
+					await this._reloadItems();
+				},
+				columns: 2,
+				minRequired: 1,
+			});
+		}
 	}
 
 	_updateSelectionUi(state) {

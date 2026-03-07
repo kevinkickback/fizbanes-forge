@@ -14,6 +14,23 @@
 	margin-bottom: 0; /* remove mb-2 spacing */
 }
 
+.item-row.item-attuned {
+	border-color: var(--info-color);
+}
+
+.item-row.item-equipped {
+	border-color: var(--success-color);
+}
+
+.item-row.item-attuned.item-equipped {
+	border-color: transparent;
+	background-image:
+		linear-gradient(var(--card-background), var(--card-background)),
+		linear-gradient(to bottom, var(--success-color) 50%, var(--info-color) 50%);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+}
+
 .inventory-list .empty-placeholder {
 	grid-column: 1 / -1; /* span all columns */
 	text-align: center;

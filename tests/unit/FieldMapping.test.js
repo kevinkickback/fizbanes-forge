@@ -330,7 +330,77 @@ describe('FieldMapping', () => {
 
         it('should compute basic armor class', () => {
             const { textFields } = buildFieldMap(makeCharacter());
-            // DEX 12 → +1 mod → AC 11
+            // DEX 12 → +1 mod, no armor equipped → AC 11
+            expect(textFields.AC).toBe('11');
+        });
+
+        it('should compute AC with equipped heavy armor', () => {
+            const char = makeCharacter({
+                inventory: {
+                    items: [
+                        { name: 'Chain Mail', type: 'HA', armor: true, ac: 16, equipped: true },
+                    ],
+                },
+            });
+            const { textFields } = buildFieldMap(char);
+            // Heavy armor: flat 16, DEX ignored
+            expect(textFields.AC).toBe('16');
+        });
+
+        it('should compute AC with equipped light armor', () => {
+            const char = makeCharacter({
+                abilityScores: { strength: 16, dexterity: 16, constitution: 14, intelligence: 10, wisdom: 13, charisma: 8 },
+                abilityBonuses: { strength: [], dexterity: [], constitution: [{ value: 2, source: 'Race' }], intelligence: [], wisdom: [{ value: 1, source: 'Race' }], charisma: [] },
+                inventory: {
+                    items: [
+                        { name: 'Leather Armor', type: 'LA', armor: true, ac: 11, equipped: true },
+                    ],
+                },
+            });
+            const { textFields } = buildFieldMap(char);
+            // Light armor: 11 + DEX +3 = 14
+            expect(textFields.AC).toBe('14');
+        });
+
+        it('should cap DEX at +2 for medium armor', () => {
+            const char = makeCharacter({
+                abilityScores: { strength: 16, dexterity: 18, constitution: 14, intelligence: 10, wisdom: 13, charisma: 8 },
+                abilityBonuses: { strength: [], dexterity: [], constitution: [{ value: 2, source: 'Race' }], intelligence: [], wisdom: [{ value: 1, source: 'Race' }], charisma: [] },
+                inventory: {
+                    items: [
+                        { name: 'Scale Mail', type: 'MA', armor: true, ac: 14, equipped: true },
+                    ],
+                },
+            });
+            const { textFields } = buildFieldMap(char);
+            // Medium armor: 14 + min(4, 2) = 16
+            expect(textFields.AC).toBe('16');
+        });
+
+        it('should add shield bonus on top of armor', () => {
+            const char = makeCharacter({
+                inventory: {
+                    items: [
+                        { name: 'Plate Armor', type: 'HA', armor: true, ac: 18, equipped: true },
+                        { name: 'Shield', type: 'S', ac: 2, equipped: true },
+                    ],
+                },
+            });
+            const { textFields } = buildFieldMap(char);
+            // Plate 18 + shield 2 = 20
+            expect(textFields.AC).toBe('20');
+        });
+
+        it('should ignore unequipped armor', () => {
+            const char = makeCharacter({
+                inventory: {
+                    items: [
+                        { name: 'Chain Mail', type: 'HA', armor: true, ac: 16, equipped: false },
+                    ],
+                },
+            });
+            const { textFields } = buildFieldMap(char);
+            // Unequipped — falls back to unarmored: 10 + DEX +1 = 11
             expect(textFields.AC).toBe('11');
         });
 

@@ -99,7 +99,7 @@ export class CharacterStepAbilityScores {
 
 				return `
                 <div class="ability-score-box" data-ability="${ability}">
-                    <h6>${ability.toUpperCase()}</h6>
+                    <h6 class="ability-label">${ability.toUpperCase()}</h6>
                     <div class="score">${totalScore}</div>
                     <div class="modifier">${modifier}</div>
                     ${racialBonus !== 0 ? `<div class="bonus ${racialBonus < 0 ? 'negative' : ''} u-block">${racialBonus >= 0 ? '+' : ''}${racialBonus}</div>` : '<div class="bonus u-hidden"></div>'}
@@ -384,18 +384,20 @@ export class CharacterStepAbilityScores {
 	}
 
 	_addPointBuyControls(container, ability) {
-		const stagedData = this.session.getStagedData();
-		const baseScore = stagedData.abilityScores?.[ability] || 8;
+		const buttonGroup = document.createElement('div');
+		buttonGroup.className = 'd-flex align-items-center justify-content-center gap-1';
 
 		const decreaseBtn = document.createElement('button');
-		decreaseBtn.className = 'btn btn-sm btn-light me-1';
+		decreaseBtn.className = 'btn btn-sm';
+		decreaseBtn.dataset.action = 'decrease';
+		decreaseBtn.dataset.ability = ability;
 		decreaseBtn.textContent = '-';
-		decreaseBtn.disabled = baseScore <= 8;
 
 		const increaseBtn = document.createElement('button');
-		increaseBtn.className = 'btn btn-sm btn-light';
+		increaseBtn.className = 'btn btn-sm';
+		increaseBtn.dataset.action = 'increase';
+		increaseBtn.dataset.ability = ability;
 		increaseBtn.textContent = '+';
-		increaseBtn.disabled = baseScore >= 15;
 
 		this._cleanup.on(decreaseBtn, 'click', () =>
 			this._handlePointBuyDecrease(ability),
@@ -404,8 +406,9 @@ export class CharacterStepAbilityScores {
 			this._handlePointBuyIncrease(ability),
 		);
 
-		container.appendChild(decreaseBtn);
-		container.appendChild(increaseBtn);
+		buttonGroup.appendChild(decreaseBtn);
+		buttonGroup.appendChild(increaseBtn);
+		container.appendChild(buttonGroup);
 	}
 
 	_addStandardArrayControls(container, ability) {
@@ -441,7 +444,7 @@ export class CharacterStepAbilityScores {
 
 		const input = document.createElement('input');
 		input.type = 'number';
-		input.className = 'form-control form-control-sm';
+		input.className = 'form-control form-control-sm ability-custom-input';
 		input.min = 3;
 		input.max = 20;
 		input.value = baseScore;
@@ -456,7 +459,10 @@ export class CharacterStepAbilityScores {
 	_handlePointBuyIncrease(ability) {
 		const stagedData = this.session.getStagedData();
 		const currentScore = stagedData.abilityScores?.[ability] || 8;
-		if (currentScore >= 15) return;
+		if (currentScore >= 15) {
+			this._flashBorder(ability);
+			return;
+		}
 
 		const pointsUsed = this._calculatePointsUsed();
 		const nextCost = getPointBuyCost(currentScore + 1);
@@ -464,7 +470,7 @@ export class CharacterStepAbilityScores {
 		const costDifference = nextCost - currentCost;
 
 		if (pointsUsed + costDifference > POINT_BUY_BUDGET) {
-			console.warn('[Step5AbilityScores]', 'Not enough points remaining');
+			this._flashBorder(ability);
 			return;
 		}
 
@@ -486,7 +492,10 @@ export class CharacterStepAbilityScores {
 	_handlePointBuyDecrease(ability) {
 		const stagedData = this.session.getStagedData();
 		const currentScore = stagedData.abilityScores?.[ability] || 8;
-		if (currentScore <= 8) return;
+		if (currentScore <= 8) {
+			this._flashBorder(ability);
+			return;
+		}
 
 		// Update staged data
 		if (!stagedData.abilityScores) {
@@ -608,18 +617,6 @@ export class CharacterStepAbilityScores {
 			const modifierEl = box.querySelector('.modifier');
 			if (scoreEl) scoreEl.textContent = totalScore;
 			if (modifierEl) modifierEl.textContent = modifier;
-
-			// Update button states for point buy
-			const method = stagedData.abilityScoreMethod || 'pointBuy';
-			if (method === 'pointBuy') {
-				const controls = box.querySelector('.ability-controls');
-				if (controls) {
-					const decreaseBtn = controls.querySelector('button:first-child');
-					const increaseBtn = controls.querySelector('button:last-child');
-					if (decreaseBtn) decreaseBtn.disabled = baseScore <= 8;
-					if (increaseBtn) increaseBtn.disabled = baseScore >= 15;
-				}
-			}
 		}
 
 		// Update point buy info if visible
@@ -672,6 +669,13 @@ export class CharacterStepAbilityScores {
 
 	async save() {
 		// No action needed - scores are saved in session
+	}
+
+	_flashBorder(ability) {
+		const box = document.querySelector(`.ability-score-box[data-ability="${ability}"]`);
+		if (!box) return;
+		box.classList.add('flash-border');
+		setTimeout(() => box.classList.remove('flash-border'), 500);
 	}
 
 	destroy() {

@@ -15,6 +15,7 @@ import {
 	BaseSelectorModal,
 	formatCategoryCounters,
 } from '../selection/BaseSelectorModal.js';
+import { editionSetToMode, filterByEdition, hasConflictingSources, inheritReprintDescriptions } from '../selection/EditionFilter.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 
 export class ClassSpellSelectorModal {
@@ -38,6 +39,9 @@ export class ClassSpellSelectorModal {
 		this.noSomatic = null;
 		this.noMaterial = null;
 
+		// Edition filter mode
+		this.editionFilters = new Set(['2024', '2014']);
+
 		// Generic selector instance
 		this._selector = null;
 
@@ -51,10 +55,10 @@ export class ClassSpellSelectorModal {
 			this._calculateSpellLimits();
 
 			// Load spell data
-			const spellData = await this._loadSpellData();
+			this._spellData = await this._loadSpellData();
 
 			// If there are no spells to learn at this level, bail out with a notice
-			if (!Array.isArray(spellData) || spellData.length === 0) {
+			if (!Array.isArray(this._spellData) || this._spellData.length === 0) {
 				const maxSpellLevel = classService.getMaxSpellLevel(
 					this.className,
 					this.currentLevel,
@@ -78,7 +82,7 @@ export class ClassSpellSelectorModal {
 				.map((prevSpell) => {
 					const spellName =
 						typeof prevSpell === 'string' ? prevSpell : prevSpell.name;
-					return spellData.find((spell) => spell.name === spellName);
+					return this._spellData.find((spell) => spell.name === spellName);
 				})
 				.filter(Boolean);
 
@@ -110,7 +114,7 @@ export class ClassSpellSelectorModal {
 				const builder = new FilterBuilder(panel, cleanup);
 
 				// Build level options from available spells
-				const availableLevels = [...new Set(spellData.map((s) => s.level))]
+				const availableLevels = [...new Set(this._spellData.map((s) => s.level))]
 					.filter((l) => l <= maxSpellLevel)
 					.sort((a, b) => a - b);
 
@@ -129,7 +133,7 @@ export class ClassSpellSelectorModal {
 
 				// Build school options
 				const schoolOptions = Array.from(
-					new Set(spellData.map((s) => s.school).filter(Boolean)),
+					new Set(this._spellData.map((s) => s.school).filter(Boolean)),
 				)
 					.sort()
 					.map((code) => ({ label: getSchoolName(code) || code, value: code }));
@@ -187,12 +191,32 @@ export class ClassSpellSelectorModal {
 						},
 					],
 				});
+
+				const allowedSources = sourceService.getAllowedSources();
+				if (hasConflictingSources(allowedSources)) {
+					builder.addCheckboxGroup({
+						title: 'Edition',
+						options: [
+							{ label: '2024', value: '2024' },
+							{ label: '2014', value: '2014' },
+						],
+						stateSet: this.editionFilters,
+						onChange: async () => {
+							this._spellData = await this._loadSpellData();
+							this._selector.state.items = this._spellData;
+							this._selector.state.page = 0;
+							this._selector._renderList();
+						},
+						columns: 2,
+						minRequired: 1,
+					});
+				}
 			};
 
 			this._selector = new BaseSelectorModal({
 				modalId: `spellSelectorModal_${Date.now()}`,
 				modalTitle,
-				loadItems: () => spellData,
+				loadItems: () => this._spellData,
 				selectionMode: 'multiple',
 				selectionLimit: this.maxSpells + this.maxCantrips,
 				initialSelectedItems: initialSelections,
@@ -464,7 +488,12 @@ export class ClassSpellSelectorModal {
 			return a.name.localeCompare(b.name);
 		});
 
-		return availableSpells;
+		inheritReprintDescriptions(availableSpells);
+		return filterByEdition(
+			availableSpells,
+			editionSetToMode(this.editionFilters),
+			sourceService.getAllowedSources(),
+		);
 	}
 
 	/**

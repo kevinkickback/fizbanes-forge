@@ -904,4 +904,154 @@ describe('EquipmentService', () => {
             ).not.toThrow();
         });
     });
+
+    describe('addItem ac field', () => {
+        it('should store ac value from armor item data', () => {
+            const item = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Chain Mail', type: 'HA', armor: true, ac: 16 }),
+            );
+            expect(item.ac).toBe(16);
+        });
+
+        it('should default ac to 0 for non-armor items', () => {
+            const item = equipmentService.addItem(character, createItemData());
+            expect(item.ac).toBe(0);
+        });
+
+        it('should store ac for shields', () => {
+            const item = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S', ac: 2 }),
+            );
+            expect(item.ac).toBe(2);
+        });
+    });
+
+    describe('computeArmorClass', () => {
+        it('should return 10 + DEX mod when unarmored', () => {
+            character.abilityScores.dexterity = 14; // +2 mod
+            expect(equipmentService.computeArmorClass(character)).toBe(12);
+        });
+
+        it('should return 10 when DEX is 10 and unarmored', () => {
+            character.abilityScores.dexterity = 10;
+            expect(equipmentService.computeArmorClass(character)).toBe(10);
+        });
+
+        it('should handle negative DEX modifier when unarmored', () => {
+            character.abilityScores.dexterity = 8; // -1 mod
+            expect(equipmentService.computeArmorClass(character)).toBe(9);
+        });
+
+        it('should add full DEX mod for light armor', () => {
+            character.abilityScores.dexterity = 16; // +3 mod
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Leather Armor', type: 'LA', armor: true, ac: 11 }),
+            );
+            equipmentService.equipItem(character, armor.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(14); // 11 + 3
+        });
+
+        it('should cap DEX mod at +2 for medium armor', () => {
+            character.abilityScores.dexterity = 18; // +4 mod
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Chain Shirt', type: 'MA', armor: true, ac: 13 }),
+            );
+            equipmentService.equipItem(character, armor.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(15); // 13 + 2 (capped)
+        });
+
+        it('should apply full DEX mod up to cap for medium armor', () => {
+            character.abilityScores.dexterity = 12; // +1 mod
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Scale Mail', type: 'MA', armor: true, ac: 14 }),
+            );
+            equipmentService.equipItem(character, armor.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(15); // 14 + 1
+        });
+
+        it('should use flat AC for heavy armor (no DEX bonus)', () => {
+            character.abilityScores.dexterity = 18; // +4 mod — should be ignored
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Chain Mail', type: 'HA', armor: true, ac: 16 }),
+            );
+            equipmentService.equipItem(character, armor.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(16);
+        });
+
+        it('should add shield bonus on top of heavy armor', () => {
+            character.abilityScores.dexterity = 10;
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Plate Armor', type: 'HA', armor: true, ac: 18 }),
+            );
+            const shield = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S', ac: 2 }),
+            );
+            equipmentService.equipItem(character, armor.id);
+            equipmentService.equipItem(character, shield.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(20); // 18 + 2
+        });
+
+        it('should add shield bonus on top of light armor', () => {
+            character.abilityScores.dexterity = 14; // +2
+            const armor = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Leather Armor', type: 'LA', armor: true, ac: 11 }),
+            );
+            const shield = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S', ac: 2 }),
+            );
+            equipmentService.equipItem(character, armor.id);
+            equipmentService.equipItem(character, shield.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(15); // 11 + 2 + 2
+        });
+
+        it('should add shield bonus to unarmored AC', () => {
+            character.abilityScores.dexterity = 14; // +2
+            const shield = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S', ac: 2 }),
+            );
+            equipmentService.equipItem(character, shield.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(14); // 10 + 2 + 2
+        });
+
+        it('should default shield ac to 2 when not stored', () => {
+            character.abilityScores.dexterity = 10;
+            const shield = equipmentService.addItem(
+                character,
+                createItemData({ name: 'Shield', type: 'S' }), // no ac on source item
+            );
+            equipmentService.equipItem(character, shield.id);
+            expect(equipmentService.computeArmorClass(character)).toBe(12); // 10 + 0(DEX) + 2(default shield)
+        });
+
+        it('should not count unequipped armor', () => {
+            character.abilityScores.dexterity = 10;
+            equipmentService.addItem(
+                character,
+                createItemData({ name: 'Chain Mail', type: 'HA', armor: true, ac: 16 }),
+            );
+            // Item added but NOT equipped
+            expect(equipmentService.computeArmorClass(character)).toBe(10);
+        });
+
+        it('should return 10 when inventory is empty', () => {
+            character.abilityScores.dexterity = 10;
+            expect(equipmentService.computeArmorClass(character)).toBe(10);
+        });
+
+        it('should default to 10 DEX when abilityScores missing', () => {
+            const char = { inventory: { items: [], equipped: [], attuned: [], currency: {}, weight: { current: 0, capacity: 150 } } };
+            expect(equipmentService.computeArmorClass(char)).toBe(10);
+        });
+    });
 });

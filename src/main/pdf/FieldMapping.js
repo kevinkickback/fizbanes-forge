@@ -391,6 +391,47 @@ function computeSpellDCs(characterData, modifiers, profBonus) {
     return dcs;
 }
 
+// ── Armor Class Computation ──────────────────────────────────────────────────
+
+/**
+ * Compute effective AC from equipped inventory items and DEX modifier.
+ * Rules: unarmored = 10 + DEX; light = ac + DEX; medium = ac + min(DEX, 2);
+ * heavy = flat ac; shield always adds its ac value (default +2).
+ * @param {Array} items - Serialized inventory item instances
+ * @param {number} dexModifier
+ * @returns {number}
+ */
+function computeArmorClass(items, dexModifier) {
+    const getTypeCode = (item) => String(item.type || '').split('|')[0].toUpperCase();
+    const equippedItems = items.filter(i => i.equipped);
+    const armor = equippedItems.find(i => {
+        const tc = getTypeCode(i);
+        return i.armor || tc === 'LA' || tc === 'MA' || tc === 'HA';
+    });
+    const shield = equippedItems.find(i => getTypeCode(i) === 'S');
+
+    let ac;
+    if (!armor) {
+        ac = 10 + dexModifier;
+    } else {
+        const typeCode = getTypeCode(armor);
+        const armorAc = armor.ac || 0;
+        if (typeCode === 'LA') {
+            ac = armorAc + dexModifier;
+        } else if (typeCode === 'MA') {
+            ac = armorAc + Math.min(dexModifier, 2);
+        } else {
+            ac = armorAc;
+        }
+    }
+
+    if (shield) {
+        ac += shield.ac || 2;
+    }
+
+    return ac;
+}
+
 // ── Shared Value Computation ──────────────────────────────────────────────────
 
 function computeCharacterValues(characterData) {
@@ -441,8 +482,13 @@ function computeCharacterValues(characterData) {
     // Compute spell save DCs from spellcasting classes
     const spellDCs = computeSpellDCs(characterData, modifiers, profBonus);
 
+    const armorClass = computeArmorClass(
+        characterData.inventory?.items || [],
+        modifiers.dexterity,
+    );
+
     return {
-        scores, modifiers, profBonus, totalLevel, hpMax,
+        scores, modifiers, profBonus, totalLevel, hpMax, armorClass,
         saveValues, skillValues, passivePerception, spellDCs,
         classLevel: formatClassLevel(characterData),
         race: formatRace(characterData),
@@ -503,9 +549,7 @@ function buildFieldMap2014(characterData, values) {
     textFields.Speed = characterData.speed?.walk ? `${characterData.speed.walk} ft` : '30 ft';
 
     // --- Armor Class ---
-    // Basic AC: 10 + DEX mod (unarmored). TODO: factor in equipped armor/shields.
-    const baseAC = 10 + values.modifiers.dexterity;
-    textFields.AC = String(baseAC);
+    textFields.AC = String(values.armorClass);
 
     // --- Hit Points ---
     textFields['HP Max'] = values.hpMax ? String(values.hpMax) : '';
@@ -665,7 +709,7 @@ function buildFieldMap2024(characterData, values) {
     textFields.Text_29 = formatModifier(values.modifiers.charisma);
 
     // --- Combat Stats (header right) ---
-    textFields.Text_14 = '';  // AC
+    textFields.Text_14 = String(values.armorClass);  // AC
     textFields.Text_7 = formatModifier(values.profBonus);
     textFields.Text_8 = formatModifier(values.modifiers.dexterity);  // Initiative
     textFields.Text_9 = characterData.speed?.walk ? `${characterData.speed.walk} ft` : '30 ft';

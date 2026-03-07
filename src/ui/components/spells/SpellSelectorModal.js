@@ -11,6 +11,7 @@ import {
 	formatCategoryCounters,
 } from '../selection/BaseSelectorModal.js';
 import { ClassSwitcher } from '../selection/ClassSwitcher.js';
+import { editionSetToMode, filterByEdition, hasConflictingSources, inheritReprintDescriptions } from '../selection/EditionFilter.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 
 export class SpellSelectorModal {
@@ -30,6 +31,7 @@ export class SpellSelectorModal {
 		this._maxCacheSize = 150; // Maximum cached spell descriptions
 		this.classSwitcher = null;
 		this._controller = null;
+		this.editionFilters = new Set(['2024', '2014']);
 	}
 
 	async show() {
@@ -206,10 +208,16 @@ export class SpellSelectorModal {
 				id:
 					spell.id ||
 					`${spell.name}|${spell.source}`.toLowerCase().replace(/\s+/g, '-'),
-			}))
-			.sort((a, b) => a.name.localeCompare(b.name));
+			}));
 
-		return valid;
+		inheritReprintDescriptions(valid);
+		const editionFiltered = filterByEdition(
+			valid,
+			editionSetToMode(this.editionFilters),
+			sourceService.getAllowedSources(),
+		);
+
+		return editionFiltered.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
 	_spellMatchesFilters(spell, state) {
@@ -378,6 +386,8 @@ export class SpellSelectorModal {
 			noVerbal: this.noVerbal,
 			noSomatic: this.noSomatic,
 			noMaterial: this.noMaterial,
+			noSomatic: this.noSomatic,
+			noMaterial: this.noMaterial,
 			onFilterChange: (value, filterType) => {
 				if (filterType) {
 					// Type filters (switches)
@@ -431,6 +441,24 @@ export class SpellSelectorModal {
 				],
 			},
 		});
+
+		const allowedSources = sourceService.getAllowedSources();
+		if (hasConflictingSources(allowedSources)) {
+			const builder = new FilterBuilder(panel, cleanup);
+			builder.addCheckboxGroup({
+				title: 'Edition',
+				options: [
+					{ label: '2024', value: '2024' },
+					{ label: '2014', value: '2014' },
+				],
+				stateSet: this.editionFilters,
+				onChange: async () => {
+					await this._controller._reloadItems();
+				},
+				columns: 2,
+				minRequired: 1,
+			});
+		}
 	}
 
 	_getCountDisplay(selectedItems) {

@@ -344,6 +344,8 @@ export class CharacterCreationModal {
 
 					character.race.abilityChoices = abilityChoices;
 				}
+
+				await this._applyRaceProficiencies(character, stagedData.race);
 			}
 
 			if (stagedData.class) {
@@ -366,6 +368,8 @@ export class CharacterCreationModal {
 				}
 
 				character.progression.classes.push(classEntry);
+
+				await this._applyClassProficiencies(character, stagedData.class);
 			}
 
 			if (stagedData.background) {
@@ -383,6 +387,7 @@ export class CharacterCreationModal {
 				);
 				if (background) {
 					await this._applyBackgroundProficiencies(character, background);
+					await this._applyBackgroundEquipment(character, background);
 				}
 			}
 
@@ -432,6 +437,227 @@ export class CharacterCreationModal {
 		this.bootstrapModal = null;
 
 		eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_CLOSED);
+	}
+
+	async _applyClassProficiencies(character, stagedClass) {
+		if (!character || !stagedClass) return;
+
+		const { classService } = await import(
+			'../../../services/ClassService.js'
+		);
+		const { attAbvToFull } = await import(
+			'../../../lib/5eToolsParser.js'
+		);
+
+		let classData;
+		try {
+			classData = classService.getClass(
+				stagedClass.name,
+				stagedClass.source || 'PHB',
+			);
+		} catch {
+			return;
+		}
+		if (!classData) return;
+
+		// Saving throws
+		if (classData.proficiency) {
+			for (const prof of classData.proficiency) {
+				const fullName = attAbvToFull(prof) || prof;
+				character.addProficiency('savingThrows', fullName, 'Class');
+			}
+		}
+
+		const sp = classData.startingProficiencies;
+		if (!sp) return;
+
+		// Armor
+		if (sp.armor) {
+			const armorMap = {
+				light: 'Light Armor', medium: 'Medium Armor',
+				heavy: 'Heavy Armor', shield: 'Shields',
+			};
+			for (const armor of sp.armor) {
+				character.addProficiency('armor', armorMap[armor] || armor, 'Class');
+			}
+		}
+
+		// Weapons
+		if (sp.weapons) {
+			const weaponMap = { simple: 'Simple Weapons', martial: 'Martial Weapons' };
+			for (const weapon of sp.weapons) {
+				character.addProficiency('weapons', weaponMap[weapon] || weapon, 'Class');
+			}
+		}
+
+		// Tools (fixed proficiencies)
+		if (sp.tools) {
+			for (const toolEntry of sp.tools) {
+				if (typeof toolEntry === 'string') {
+					if (!/\b(any|choose|of your choice)\b/i.test(toolEntry)) {
+						character.addProficiency('tools', toolEntry, 'Class');
+					}
+				} else if (typeof toolEntry === 'object') {
+					for (const [key, value] of Object.entries(toolEntry)) {
+						if (value === true) {
+							character.addProficiency('tools', key, 'Class');
+						}
+					}
+				}
+			}
+		}
+
+		// Tool proficiency choices (from toolProficiencies field)
+		if (sp.toolProficiencies) {
+			for (const profObj of sp.toolProficiencies) {
+				for (const [tool, hasProf] of Object.entries(profObj)) {
+					if (
+						hasProf === true &&
+						tool !== 'any' && tool !== 'anyMusicalInstrument' &&
+						tool !== 'anyArtisansTool' && tool !== 'choose'
+					) {
+						character.addProficiency('tools', tool, 'Class');
+					}
+				}
+			}
+		}
+
+		// Skill proficiency choices (set up optional structure for later selection)
+		if (sp.skills) {
+			const skillOptions = [];
+			let skillChoiceCount = 0;
+			for (const skillEntry of sp.skills) {
+				if (skillEntry.choose) {
+					skillChoiceCount = skillEntry.choose.count || 0;
+					if (skillEntry.choose.from) {
+						skillOptions.push(...skillEntry.choose.from);
+					}
+				}
+			}
+			if (skillChoiceCount > 0 && skillOptions.length > 0) {
+				character.optionalProficiencies.skills.class.allowed = skillChoiceCount;
+				character.optionalProficiencies.skills.class.options = skillOptions;
+				character.optionalProficiencies.skills.class.selected = [];
+			}
+		}
+
+		console.debug('[CharacterCreationModal]', 'Applied class proficiencies', {
+			savingThrows: character.proficiencies.savingThrows,
+			armor: character.proficiencies.armor,
+			weapons: character.proficiencies.weapons,
+		});
+	}
+
+	async _applyRaceProficiencies(character, stagedRace) {
+		if (!character || !stagedRace) return;
+
+		const { raceService } = await import(
+			'../../../services/RaceService.js'
+		);
+
+		let raceData;
+		try {
+			raceData = raceService.getRace(
+				stagedRace.name,
+				stagedRace.source || 'PHB',
+			);
+		} catch {
+			return;
+		}
+		if (!raceData) return;
+
+		// Language proficiencies
+		if (raceData.languageProficiencies) {
+			for (const profObj of raceData.languageProficiencies) {
+				for (const [key, value] of Object.entries(profObj)) {
+					const keyLower = key.toLowerCase();
+					if (
+						value === true &&
+						keyLower !== 'anystandard' && keyLower !== 'any' &&
+						keyLower !== 'choose' && keyLower !== 'other'
+					) {
+						character.addProficiency('languages', key, 'Race');
+					} else if (keyLower === 'other' && value === true) {
+						if (raceData.name !== 'Common') {
+							character.addProficiency('languages', raceData.name, 'Race');
+						}
+					}
+				}
+			}
+		}
+
+		// Weapon proficiencies
+		if (raceData.weaponProficiencies) {
+			for (const profObj of raceData.weaponProficiencies) {
+				for (const [weapon, hasProf] of Object.entries(profObj)) {
+					if (hasProf === true) {
+						const name = weapon.includes('|') ? weapon.split('|')[0] : weapon;
+						character.addProficiency('weapons', name, 'Race');
+					}
+				}
+			}
+		}
+
+		// Tool proficiencies (fixed only)
+		if (raceData.toolProficiencies) {
+			for (const profObj of raceData.toolProficiencies) {
+				for (const [tool, hasProf] of Object.entries(profObj)) {
+					if (hasProf === true && tool !== 'any') {
+						character.addProficiency('tools', tool, 'Race');
+					}
+				}
+			}
+		}
+
+		// Skill proficiencies (fixed only)
+		if (raceData.skillProficiencies) {
+			for (const profObj of raceData.skillProficiencies) {
+				for (const [skill, hasProf] of Object.entries(profObj)) {
+					if (hasProf === true && skill !== 'choose' && skill !== 'any') {
+						character.addProficiency('skills', skill, 'Race');
+					}
+				}
+			}
+		}
+
+		console.debug('[CharacterCreationModal]', 'Applied race proficiencies', {
+			languages: character.proficiencies.languages,
+			weapons: character.proficiencies.weapons,
+		});
+	}
+
+	async _applyBackgroundEquipment(character, background) {
+		if (!character || !background) return;
+
+		const { equipmentService } = await import(
+			'../../../services/EquipmentService.js'
+		);
+
+		// Determine default equipment choices (first option for each choice group)
+		let equipmentChoices = null;
+		if (background.equipment) {
+			for (const eq of background.equipment) {
+				const keys = Object.keys(eq).filter(k => k !== '_').sort();
+				if (keys.length > 1) {
+					equipmentChoices = { 0: keys[0] };
+					break;
+				}
+			}
+		}
+
+		if (equipmentChoices) {
+			character.background.equipmentChoices = equipmentChoices;
+		}
+
+		equipmentService.applyBackgroundEquipment(
+			character,
+			background,
+			equipmentChoices,
+		);
+
+		console.debug('[CharacterCreationModal]', 'Applied background equipment', {
+			itemCount: character.inventory?.items?.length || 0,
+		});
 	}
 
 	async _applyBackgroundProficiencies(character, background) {

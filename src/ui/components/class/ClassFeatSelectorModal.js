@@ -7,6 +7,8 @@ import {
 	BaseSelectorModal,
 	formatCounter,
 } from '../selection/BaseSelectorModal.js';
+import { editionSetToMode, filterByEdition, hasConflictingSources, inheritReprintDescriptions } from '../selection/EditionFilter.js';
+import { FilterBuilder } from '../selection/FilterBuilder.js';
 
 // Feat selector adapter for BaseSelectorModal with prerequisite checking
 
@@ -28,6 +30,9 @@ export class ClassFeatSelectorModal {
 
 		// Description caching
 		this._descriptionCache = new Map();
+
+		// Edition filter mode
+		this.editionFilters = new Set(['2024', '2014']);
 
 		// Promise resolver for awaiting selection
 		this._resolveSelection = null;
@@ -132,6 +137,26 @@ export class ClassFeatSelectorModal {
 								// Trigger re-render of items and counter to reflect new limit state
 								this._selector._updateConfirmButton();
 								this._selector._renderList();
+							});
+						}
+
+						const allowedSources = sourceService.getAllowedSources();
+						if (hasConflictingSources(allowedSources)) {
+							const editionBuilder = new FilterBuilder(panel, cleanup);
+							editionBuilder.addCheckboxGroup({
+								title: 'Edition',
+								options: [
+									{ label: '2024', value: '2024' },
+									{ label: '2014', value: '2014' },
+								],
+								stateSet: this.editionFilters,
+								onChange: () => {
+									this._loadAndFilterFeats(character);
+									this._selector.state.items = this._filteredFeats;
+									this._selector.state.page = 0;
+									this._selector._renderList();
+								},
+								columns: 2, minRequired: 1,
 							});
 						}
 					}
@@ -275,7 +300,7 @@ export class ClassFeatSelectorModal {
 	_loadAndFilterFeats(character) {
 		const allFeats = this.featService.getAllFeats();
 
-		this._filteredFeats = allFeats
+		const sourceFiltered = allFeats
 			.filter((feat) => sourceService.isSourceAllowed(feat.source))
 			.filter(
 				(feat) =>
@@ -286,6 +311,13 @@ export class ClassFeatSelectorModal {
 				...f,
 				id: f.id || `feat-${index}`,
 			}));
+
+		inheritReprintDescriptions(sourceFiltered);
+		this._filteredFeats = filterByEdition(
+			sourceFiltered,
+			editionSetToMode(this.editionFilters),
+			sourceService.getAllowedSources(),
+		);
 	}
 
 	_getCurrentMaxSelections() {

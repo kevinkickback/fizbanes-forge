@@ -2,6 +2,7 @@
 
 import { getSchoolName } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
+import { showNotification } from '../../../lib/Notifications.js';
 import { spellService } from '../../../services/SpellService.js';
 
 export class FilterBuilder {
@@ -17,6 +18,7 @@ export class FilterBuilder {
 		onChange,
 		columns = 2,
 		collapsible = true,
+		minRequired = 0,
 	}) {
 		if (!this.container || !stateSet) return;
 
@@ -67,6 +69,11 @@ export class FilterBuilder {
 				input.checked = stateSet.has(opt.value);
 
 				this.cleanup.on(input, 'change', () => {
+					if (!input.checked && minRequired > 0 && stateSet.size <= minRequired) {
+						input.checked = true;
+						showNotification('At least one edition must be selected', 'warning');
+						return;
+					}
 					if (input.checked) {
 						stateSet.add(opt.value);
 					} else {
@@ -112,6 +119,11 @@ export class FilterBuilder {
 				input.checked = stateSet.has(opt.value);
 
 				this.cleanup.on(input, 'change', () => {
+					if (!input.checked && minRequired > 0 && stateSet.size <= minRequired) {
+						input.checked = true;
+						showNotification('At least one edition must be selected', 'warning');
+						return;
+					}
 					if (input.checked) {
 						stateSet.add(opt.value);
 					} else {
@@ -214,6 +226,79 @@ export class FilterBuilder {
 				body.appendChild(wrapper);
 			});
 
+			card.appendChild(body);
+		}
+
+		this.container.appendChild(card);
+	}
+
+	addRadioGroup({
+		title,
+		name,
+		options = [],
+		selectedValue,
+		onChange,
+		collapsible = true,
+	}) {
+		if (!this.container) return;
+
+		const card = document.createElement('div');
+		card.className = 'card mb-3';
+		const radioName = name || `radio-${title?.replace(/\s+/g, '-') || 'group'}`;
+
+		const buildRadios = (parent) => {
+			options.forEach((opt, idx) => {
+				const wrapper = document.createElement('div');
+				wrapper.className = 'form-check mb-1';
+				const id = `${radioName}-${idx}`;
+				wrapper.innerHTML = `
+					<input class="form-check-input" type="radio" name="${radioName}" id="${id}" value="${opt.value}" ${opt.value === selectedValue ? 'checked' : ''}>
+					<label class="form-check-label" for="${id}">${opt.label}</label>
+				`;
+				const input = wrapper.querySelector('input');
+				this.cleanup.on(input, 'change', () => {
+					if (input.checked) onChange?.(opt.value);
+				});
+				parent.appendChild(wrapper);
+			});
+		};
+
+		if (title && collapsible) {
+			const collapseId = `collapse${title.replace(/\s+/g, '')}`;
+			const header = document.createElement('div');
+			header.className = 'card-header';
+			header.setAttribute('data-bs-toggle', 'collapse');
+			header.setAttribute('data-bs-target', `#${collapseId}`);
+			header.setAttribute('aria-expanded', 'true');
+			header.setAttribute('aria-controls', collapseId);
+			header.classList.add('u-cursor-pointer');
+			header.innerHTML = `
+				<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
+					<span>${title}</span>
+					<i class="fas fa-chevron-down"></i>
+				</h6>
+			`;
+			card.appendChild(header);
+
+			const collapseDiv = document.createElement('div');
+			collapseDiv.className = 'collapse show';
+			collapseDiv.id = collapseId;
+
+			const body = document.createElement('div');
+			body.className = 'card-body';
+			buildRadios(body);
+			collapseDiv.appendChild(body);
+			card.appendChild(collapseDiv);
+		} else {
+			const body = document.createElement('div');
+			body.className = 'card-body';
+			if (title) {
+				const header = document.createElement('h6');
+				header.className = 'mb-3';
+				header.textContent = title;
+				body.appendChild(header);
+			}
+			buildRadios(body);
 			card.appendChild(body);
 		}
 

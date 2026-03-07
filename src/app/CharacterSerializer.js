@@ -286,6 +286,7 @@ export function serialize(character) {
 			attuned: item.attuned || false,
 			cost: item.cost ? { ...item.cost } : null,
 			weight: item.weight || 0,
+			ac: item.ac || 0,
 			source: item.source || 'Unknown',
 			type: item.type || null,
 			weapon: item.weapon || false,

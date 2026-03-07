@@ -4,7 +4,9 @@ import { showNotification } from '../../../lib/Notifications.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { equipmentService } from '../../../services/EquipmentService.js';
 import { itemService } from '../../../services/ItemService.js';
+import { sourceService } from '../../../services/SourceService.js';
 import { BaseSelectorModal } from '../selection/BaseSelectorModal.js';
+import { editionSetToMode, filterByEdition, hasConflictingSources, inheritReprintDescriptions } from '../selection/EditionFilter.js';
 import { FilterBuilder } from '../selection/FilterBuilder.js';
 
 export class ItemSelectorModal {
@@ -16,6 +18,7 @@ export class ItemSelectorModal {
 		this.typeFilters = new Set();
 		this.rarityFilters = new Set();
 		this.propertyFilters = new Set();
+		this.editionFilters = new Set(['2024', '2014']);
 	}
 
 	async show() {
@@ -68,20 +71,28 @@ export class ItemSelectorModal {
 		const regularItems = itemService.getAllItems?.() || [];
 		const baseItems = itemService.getAllBaseItems?.() || [];
 
-		// Combine and deduplicate
+		const allowedSources = new Set(
+			sourceService.getAllowedSources().map((s) => (s || '').toLowerCase()),
+		);
+
+		// Combine and deduplicate, filtering by allowed sources
 		const itemMap = new Map();
 
 		// Add regular items
 		for (const item of regularItems) {
 			if (item?.name) {
+				const src = (item.source || '').toLowerCase();
+				if (!allowedSources.has(src)) continue;
 				const key = `${item.name}|${item.source || 'PHB'}`;
 				itemMap.set(key, { ...item, id: key });
 			}
 		}
 
-		// Add base items
+		// Add base items (only if not already present from regular items)
 		for (const item of baseItems) {
 			if (item?.name) {
+				const src = (item.source || '').toLowerCase();
+				if (!allowedSources.has(src)) continue;
 				const key = `${item.name}|${item.source || 'PHB'}`;
 				if (!itemMap.has(key)) {
 					itemMap.set(key, { ...item, id: key });
@@ -89,10 +100,18 @@ export class ItemSelectorModal {
 			}
 		}
 
-		const combined = Array.from(itemMap.values()).sort((a, b) =>
+		const allowedArr = sourceService.getAllowedSources();
+		const allItems = Array.from(itemMap.values());
+		inheritReprintDescriptions(allItems);
+		const filtered = filterByEdition(
+			allItems,
+			editionSetToMode(this.editionFilters),
+			allowedArr,
+		);
+
+		return filtered.sort((a, b) =>
 			(a.name || '').localeCompare(b.name || ''),
 		);
-		return combined;
 	}
 
 	_itemMatchesFilters(item, state) {
@@ -331,6 +350,23 @@ export class ItemSelectorModal {
 			onChange: () => this._controller._renderList(),
 			columns: 2,
 		});
+
+		const allowedSources = sourceService.getAllowedSources();
+		if (hasConflictingSources(allowedSources)) {
+			builder.addCheckboxGroup({
+				title: 'Edition',
+				options: [
+					{ label: '2024', value: '2024' },
+					{ label: '2014', value: '2014' },
+				],
+				stateSet: this.editionFilters,
+				onChange: async () => {
+					await this._controller._reloadItems();
+				},
+				columns: 2,
+				minRequired: 1,
+			});
+		}
 	}
 
 	async _handleConfirm(selected) {
