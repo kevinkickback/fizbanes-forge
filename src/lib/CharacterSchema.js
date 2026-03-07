@@ -25,8 +25,16 @@ const characterValidationSchema = z.object({
     abilityBonuses: z.record(z.string(), z.array(z.unknown())).optional(),
     pendingAbilityChoices: z.array(z.unknown()).optional(),
 
-    race: z.unknown().nullable().optional(),
-    background: z.unknown().nullable().optional(),
+    race: z.object({
+        name: z.string(),
+        source: z.string(),
+        subrace: z.string().optional(),
+        abilityChoices: z.array(z.unknown()).optional(),
+    }).passthrough().nullable().optional(),
+    background: z.object({
+        name: z.string(),
+        source: z.string(),
+    }).passthrough().nullable().optional(),
     backgroundFeature: z.string().optional(),
     size: z.union([z.string(), z.array(z.unknown())]).optional(),
     speed: z.record(z.string(), z.number()).optional(),
@@ -82,7 +90,7 @@ const characterValidationSchema = z.object({
 
     createdAt: z.string().optional(),
     lastModified: z.string().optional(),
-}).passthrough();
+});
 
 
 

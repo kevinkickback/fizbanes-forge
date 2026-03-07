@@ -3,6 +3,13 @@ import { backgroundService } from './BackgroundService.js';
 import { classService } from './ClassService.js';
 import { raceService } from './RaceService.js';
 
+/**
+ * Rehydrates character traits from source data on load/import.
+ *
+ * Error strategy: LOG-and-continue. Failures are logged with console.debug
+ * but never thrown, because rehydration is best-effort — missing source data
+ * should not block character loading.
+ */
 class RehydrationService {
     rehydrate(character) {
         if (!character) return;

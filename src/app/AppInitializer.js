@@ -2,7 +2,7 @@ import { DataLoader } from '../lib/DataLoader.js';
 import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { DataError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-import { cleanupOrphanedBackdrops } from '../lib/ModalCleanupUtility.js';
+import { cleanupOrphanedBackdrops, resetModalBodyState } from '../lib/ModalCleanupUtility.js';
 import {
 	addPersistentNotification,
 	showNotification,
@@ -385,9 +385,7 @@ export async function initializeAll() {
 	for (const backdrop of existingBackdrops) {
 		backdrop.remove();
 	}
-	document.body.classList.remove('modal-open');
-	document.body.style.overflow = '';
-	document.body.style.paddingRight = '';
+	resetModalBodyState();
 
 	const loadingModal = new LoadingModal();
 	loadingModal.show();

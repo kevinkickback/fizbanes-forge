@@ -29,7 +29,7 @@ export class FilterBuilder {
 			const collapseId = `collapse${title.replace(/\s+/g, '')}`;
 			const header = document.createElement('div');
 			header.className = 'card-header';
-			header.style.cursor = 'pointer';
+			header.classList.add('u-cursor-pointer');
 			header.setAttribute('data-bs-toggle', 'collapse');
 			header.setAttribute('data-bs-target', `#${collapseId}`);
 			header.setAttribute('aria-expanded', 'true');
@@ -167,7 +167,7 @@ export class FilterBuilder {
 			const collapseId = `collapse${title.replace(/\s+/g, '')}`;
 			const header = document.createElement('div');
 			header.className = 'card-header';
-			header.style.cursor = 'pointer';
+			header.classList.add('u-cursor-pointer');
 			header.setAttribute('data-bs-toggle', 'collapse');
 			header.setAttribute('data-bs-target', `#${collapseId}`);
 			header.setAttribute('aria-expanded', 'true');

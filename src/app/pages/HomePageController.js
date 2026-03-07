@@ -166,14 +166,14 @@ export class HomePageController extends BasePageController {
             this._showEmptyState(characterList);
             const topButtonRow = document.querySelector('.row.mb-4');
             if (topButtonRow) {
-                topButtonRow.style.display = 'none';
+                topButtonRow.classList.add('u-hidden');
             }
             return;
         }
 
         const topButtonRow = document.querySelector('.row.mb-4');
         if (topButtonRow) {
-            topButtonRow.style.display = '';
+            topButtonRow.classList.remove('u-hidden');
         }
         characterList.classList.remove('empty-state-mode');
 

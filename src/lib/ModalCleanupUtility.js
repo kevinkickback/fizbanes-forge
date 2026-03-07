@@ -1,5 +1,11 @@
 // Utility for cleaning up orphaned modal backdrops and preventing z-index stacking issues
 
+export function resetModalBodyState() {
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+}
+
 export function cleanupOrphanedBackdrops() {
     try {
         const backdrops = document.querySelectorAll('.modal-backdrop');
@@ -32,9 +38,7 @@ export function cleanupOrphanedBackdrops() {
             }
 
             // Also ensure body classes are reset
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
+            resetModalBodyState();
         }
     } catch (error) {
         console.error('[ModalCleanup]', 'Error cleaning up orphaned backdrops', error);

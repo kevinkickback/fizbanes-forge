@@ -9,6 +9,7 @@ import TextProcessor, { textProcessor } from '../../../lib/TextProcessor.js';
 import {
 	ARTISAN_TOOLS,
 } from '../../../lib/5eToolsParser.js';
+import { proficiencyDescriptionService } from '../../../services/ProficiencyDescriptionService.js';
 import { proficiencyService } from '../../../services/ProficiencyService.js';
 import { variantRuleService } from '../../../services/VariantRuleService.js';
 import { InstrumentChoicesView } from './InstrumentChoicesView.js';
@@ -819,7 +820,7 @@ export class ProficiencyCard {
 
 		try {
 			if (type === 'skills') {
-				const info = await proficiencyService.getSkillDescription(proficiency);
+				const info = await proficiencyDescriptionService.getSkillDescription(proficiency);
 				if (info) {
 					// Join description entries as raw text - textProcessor.processElement will handle tag resolution
 					const descriptionText = Array.isArray(info.description)
@@ -839,7 +840,7 @@ export class ProficiencyCard {
 				}
 			} else if (type === 'languages') {
 				const info =
-					await proficiencyService.getLanguageDescription(proficiency);
+					await proficiencyDescriptionService.getLanguageDescription(proficiency);
 				if (info) {
 					const speakersText =
 						info.typicalSpeakers.length > 0
@@ -865,7 +866,7 @@ export class ProficiencyCard {
 					`;
 				}
 			} else if (type === 'tools') {
-				const info = await proficiencyService.getToolDescription(proficiency);
+				const info = await proficiencyDescriptionService.getToolDescription(proficiency);
 				if (info) {
 					// Render tool description using helper that handles 5etools entry structures
 					const descriptionHtml = this._renderEntries(info.description);
@@ -882,7 +883,7 @@ export class ProficiencyCard {
 				}
 			} else if (type === 'savingThrows') {
 				const abilityName = proficiency;
-				const savingThrowInfo = await proficiencyService.getSavingThrowInfo();
+				const savingThrowInfo = await proficiencyDescriptionService.getSavingThrowInfo();
 
 				// Render saving throw description using helper
 				const descriptionHtml = savingThrowInfo?.entries
@@ -900,7 +901,7 @@ export class ProficiencyCard {
 					</div>
 				`;
 			} else if (type === 'armor') {
-				const info = await proficiencyService.getArmorDescription(proficiency);
+				const info = await proficiencyDescriptionService.getArmorDescription(proficiency);
 				if (info) {
 					const extraInfo = [];
 					if (info.ac) extraInfo.push(`AC: ${info.ac}`);
@@ -923,7 +924,7 @@ export class ProficiencyCard {
 					`;
 				}
 			} else if (type === 'weapons') {
-				const info = await proficiencyService.getWeaponDescription(proficiency);
+				const info = await proficiencyDescriptionService.getWeaponDescription(proficiency);
 				if (info) {
 					const extraInfo = [];
 					if (info.damage)

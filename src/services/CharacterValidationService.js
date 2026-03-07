@@ -1,4 +1,9 @@
-/** Validates character completeness and detects missing choices using 5etools data. */
+/**
+ * Validates character completeness and detects missing choices using 5etools data.
+ *
+ * Error strategy: LOG-and-continue. Validation issues are collected and returned
+ * as arrays, never thrown, because partial validation results are still useful.
+ */
 
 import { classService } from './ClassService.js';
 import { spellSelectionService } from './SpellSelectionService.js';

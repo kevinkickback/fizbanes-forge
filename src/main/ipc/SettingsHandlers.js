@@ -15,6 +15,14 @@ const ALLOWED_KEYS = new Set([
 	'dataSourceCachePath',
 ]);
 
+const VALUE_VALIDATORS = {
+	theme: (v) => ['auto', 'light', 'dark'].includes(v),
+	autoSave: (v) => typeof v === 'boolean',
+	autoSaveInterval: (v) => Number.isInteger(v) && v >= 5000 && v <= 300000,
+	dataSourceType: (v) => v === null || ['url', 'local'].includes(v),
+	logLevel: (v) => ['debug', 'info', 'warn', 'error'].includes(v),
+};
+
 export function registerSettingsHandlers(preferencesManager) {
 	MainLogger.debug('SettingsHandlers', 'Registering settings handlers');
 
@@ -28,6 +36,10 @@ export function registerSettingsHandlers(preferencesManager) {
 	ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_PATH, (_event, key, value) => {
 		if (!ALLOWED_KEYS.has(key)) {
 			return { success: false, error: 'Access to the requested key is denied' };
+		}
+		const validator = VALUE_VALIDATORS[key];
+		if (validator && !validator(value)) {
+			return { success: false, error: `Invalid value for setting '${key}'` };
 		}
 		preferencesManager.set(key, value);
 		return { success: true };

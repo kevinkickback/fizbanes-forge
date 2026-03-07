@@ -1,4 +1,9 @@
-// Manages recording and retrieval of character class progression choices
+/**
+ * Manages recording and retrieval of character class progression choices.
+ *
+ * Error strategy: LOG-and-continue. Failures are logged but never thrown,
+ * because missing history should not block character operations.
+ */
 
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 

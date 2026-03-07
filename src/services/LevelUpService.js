@@ -1,6 +1,7 @@
 import { attAbvToLower } from '../lib/5eToolsParser.js';
 import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { DEFAULT_ASI_LEVELS } from '../lib/GameRules.js';
 import {
 	addClassLevelArgsSchema,
 	removeClassLevelArgsSchema,
@@ -134,7 +135,7 @@ class LevelUpService {
 		const classData = classService.getClass(className);
 		if (!classData?.classFeatures) {
 			// Fallback to standard ASI levels if no class data found
-			return [4, 8, 12, 16, 19];
+			return [...DEFAULT_ASI_LEVELS];
 		}
 
 		const asiLevels = new Set();
@@ -177,7 +178,7 @@ class LevelUpService {
 		}
 
 		// Fallback to standard ASI levels
-		return [4, 8, 12, 16, 19];
+		return [...DEFAULT_ASI_LEVELS];
 	}
 
 	recordLevelUp(character, fromLevel, toLevel, changes = {}) {

@@ -1,655 +1,781 @@
-# Fizbane's Forge — Remediation & Architecture Plan
+# Fizbane's Forge — AI Remediation Plan
 
-**Source:** `AI_Codebase_Audit.md` + focused architecture re-audit
-**Target Audience:** AI coding agent
-**Date:** March 6, 2026
+Actionable tasks derived from [AI_Codebase_Audit.md](AI_Codebase_Audit.md). Each task is self-contained, references exact files/lines, and is written for an AI agent to execute without ambiguity.
 
----
-
-## How To Use This Document
-
-This plan is divided into **phases of work**, ordered by priority. Each phase contains **discrete tasks**. Each task is self-contained: it states what to change, where, why, and what the acceptance criteria are.
-
-**Rules for the agent:**
-- Complete tasks in order within each phase. Do not jump phases.
-- After each task, run `npm test` to verify nothing broke.
-- Do not refactor, rename, or reformat anything not listed in the task.
-- If a task says "move selectors", that means cut from the source file and paste into the target file — do not leave duplicates.
-- Preserve all existing visual behavior. These are structural changes, not redesigns.
+**Scope exclusion:** Tests are out of scope for this plan.
 
 ---
 
-## Phase 1 — CSS Architecture: Eliminate Double-Loading & Junk Drawer
+## Table of Contents
 
-**Goal:** Establish a single clear CSS loading strategy and clean up `main.css`.
-
-### Task 1.1 — Fix CSS double-loading in `index.html`
-
-**Problem:** `src/ui/index.html` directly loads 5 CSS files that are ALSO `@import`ed inside `main.css`, causing the browser to parse them twice.
-
-| File | Loaded in `index.html` | Also `@import`ed in `main.css` |
-|------|----------------------|-------------------------------|
-| `themes.css` | Line 31 `<link>` | Line 6 `@import` |
-| `titlebar.css` | Line 32 `<link>` | Line 9 `@import` |
-| `modals.css` | Line 34 `<link>` | Line 21 `@import` |
-| `utilities.css` | Line 35 `<link>` | Line 12 `@import` |
-| `fontawesome/css/all.min.css` | Line 30 `<link>` | Line 3 `@import` |
-
-Additionally, `page-preview.css` and `page-details.css` are loaded via `<link>` in `index.html` but NOT via `@import` in `main.css` — inconsistent with all other page CSS files.
-
-**Fix:** Use `main.css` as the single orchestrator. Remove the duplicate `<link>` tags from `index.html`. Add `page-preview.css` and `page-details.css` to `main.css`'s `@import` list so all page CSS is loaded consistently.
-
-**File:** `src/ui/index.html`
-**Action:** Remove these lines:
-```html
-<link rel="stylesheet" href="assets/fontawesome/css/all.min.css" />
-<link rel="stylesheet" href="styles/themes.css" />
-<link rel="stylesheet" href="styles/titlebar.css" />
-<link rel="stylesheet" href="styles/modals.css" />
-<link rel="stylesheet" href="styles/utilities.css" />
-<link rel="stylesheet" href="styles/page-preview.css" />
-<link rel="stylesheet" href="styles/page-details.css" />
-```
-Keep only:
-```html
-<link rel="stylesheet" href="styles/main.css" />
-```
-
-**File:** `src/ui/styles/main.css`
-**Action:** Add these two imports to the `/* Pages */` section:
-```css
-@import url("./page-preview.css");
-@import url("./page-details.css");
-```
-
-**Acceptance:** Only one `<link>` for `main.css` in `index.html`. All 28 other CSS files loaded via `@import` inside `main.css`. No visual changes.
+- [Phase 1 — Inline Style Violations](#phase-1--inline-style-violations)
+- [Phase 2 — Hardcoded Constants → Data-Driven](#phase-2--hardcoded-constants--data-driven)
+- [Phase 3 — Error Handling Standardization](#phase-3--error-handling-standardization)
+- [Phase 4 — Settings Value Validation](#phase-4--settings-value-validation)
+- [Phase 5 — Schema Strictness](#phase-5--schema-strictness)
+- [Phase 6 — File Size Validation](#phase-6--file-size-validation)
+- [Phase 7 — Prerequisite Logic Deduplication](#phase-7--prerequisite-logic-deduplication)
+- [Phase 8 — Modal Cleanup Deduplication](#phase-8--modal-cleanup-deduplication)
+- [Phase 9 — ProficiencyService Decomposition](#phase-9--proficiencyservice-decomposition)
+- [Phase 10 — ClassCard Decomposition](#phase-10--classcard-decomposition)
 
 ---
 
-### Task 1.2 — Extract inline styles from `main.css` into proper files
+## Phase 1 — Inline Style Violations
 
-**Problem:** `main.css` serves two roles — import orchestrator AND a dumping ground for ~300 lines of global styles (cards, equipment items, alerts, responsive rules, scrollbar overrides, ID-specific form styles). This makes it a "junk drawer."
+**Goal:** Replace `.style.display` and `.style.cursor` / `.style.whiteSpace` usage with CSS utility classes. Leave truly dynamic values (position, width %, backgroundImage) alone since CSSOM is not blocked by CSP — only document the convention.
 
-**Fix:** Split `main.css` into two files:
-1. `main.css` — ONLY `@import` statements. Nothing else.
-2. `global.css` — All the inline global styles currently living in `main.css` (everything after the last `@import`).
+### Task 1.1 — Replace `.style.display` with utility classes
 
-**Actions:**
-1. Create `src/ui/styles/global.css` containing everything from `main.css` line 42 onward (starting at the `@media (min-width: 1280px)` responsive overrides, through body, cards, equipment items, alerts, reference links, text overrides, responsive rules, scrollbar overrides, and the `#saveFolderPath`/`#chooseFolderBtn` rules).
-2. In `main.css`, remove all non-import content and add `@import url("./global.css");` after the Core Styles imports (before Form & Input Components).
+These instances use `.style.display` to show/hide elements, which conflicts with `!important` in utility CSS classes and violates the project's convention.
 
-**Result after this task — `main.css` should be ONLY imports:**
-```css
-/* Import External CSS */
-@import url("../assets/bootstrap/dist/css/bootstrap.min.css");
-@import url("../assets/fontawesome/css/all.min.css");
+**File: `src/app/pages/HomePageController.js`**
+- **Line 169:** `topButtonRow.style.display = 'none'` → replace with `topButtonRow.classList.add('u-hidden')`
+- **Line 176:** `topButtonRow.style.display = ''` → replace with `topButtonRow.classList.remove('u-hidden')`
 
-/* Core Styles */
-@import url("./themes.css");
-@import url("./core-variables.css");
-@import url("./core-layout.css");
-@import url("./titlebar.css");
-@import url("./scrollbars.css");
-@import url("./animations.css");
-@import url("./utilities.css");
-@import url("./notification.css");
-@import url("./tooltip.css");
-@import url("./global.css");
+**File: `src/app/pages/FeatsPageController.js`**
+- **Line 132:** `selectionCounter.style.display = availability.max > 0 ? '' : 'none'` → replace with:
+  ```javascript
+  selectionCounter.classList.toggle('u-hidden', availability.max <= 0);
+  ```
 
-/* Form & Input Components */
-@import url("./buttons.css");
-@import url("./forms.css");
+### Task 1.2 — Replace `.style.cursor` with CSS class
 
-/* Modals */
-@import url("./modals.css");
-@import url("./modal-setup.css");
-@import url("./modal-selection-item.css");
+**File: `src/ui/components/feats/FeatSelectorModal.js`**
+- **Line 261:** `header.style.cursor = 'pointer'` → replace with `header.classList.add('u-cursor-pointer')`
 
-/* Reusable Components */
-@import url("./component-character-card.css");
-@import url("./component-ability-scores.css");
-@import url("./component-split-pane.css");
-@import url("./component-proficiency.css");
+**File: `src/ui/components/selection/FilterBuilder.js`**
+- **Line 32:** `header.style.cursor = 'pointer'` → replace with `header.classList.add('u-cursor-pointer')`
+- **Line 170:** `header.style.cursor = 'pointer'` → replace with `header.classList.add('u-cursor-pointer')`
 
-/* Pages */
-@import url("./page-build-race.css");
-@import url("./page-build-class.css");
-@import url("./page-build-background.css");
-@import url("./page-build-ability-scores.css");
-@import url("./page-build-proficiencies.css");
-@import url("./page-feats.css");
-@import url("./page-spells.css");
-@import url("./page-equipment.css");
-@import url("./page-preview.css");
-@import url("./page-details.css");
-```
+### Task 1.3 — Replace `.style.whiteSpace` with CSS class
 
-**Acceptance:** `main.css` contains zero non-import CSS rules. `global.css` contains all the global styles. No visual changes. `npm test` passes.
+**File: `src/ui/components/settings/SettingsCard.js`**
+- **Line 103:** `dataSourceDisplay.style.whiteSpace = 'pre-line'` → Add a CSS utility class `u-pre-line` to `src/ui/styles/utilities.css`:
+  ```css
+  .u-pre-line { white-space: pre-line !important; }
+  ```
+  Then replace the JS line with: `dataSourceDisplay.classList.add('u-pre-line')`
+
+### Task 1.4 — Document CSSOM convention for dynamic values
+
+The following usages are **acceptable** because they set truly dynamic values that can't be predetermined with utility classes. No code changes needed — add a brief comment block at the top of each file.
+
+**Acceptable CSSOM usage (no change needed):**
+- `TooltipManager.js` — `.style.left`, `.style.top`, `.style.zIndex` (dynamic tooltip positioning)
+- `HomePageController.js` — `.style.backgroundImage` (user-provided portrait URL)
+- `DetailsPageController.js` — `.style.backgroundImage` (ally/portrait images)
+- `Notifications.js` — `.style.width` (progress bar percentage)
+- `SetupDataConfiguration.js` — `.style.width` (download progress bar percentage)
+- `SetupModals.js` — `.style.width` (progress bar percentage)
+- `AppInitializer.js` / `ModalCleanupUtility.js` / `SetupModals.js` — `.style.overflow` / `.style.paddingRight` (Bootstrap modal body reset — addressed in Phase 8)
 
 ---
 
-### Task 1.3 — Merge dead/trivial CSS files
+## Phase 2 — Hardcoded Constants → Data-Driven
 
-**Problem:** Three CSS files are too trivial to justify separate files.
+**Goal:** Replace hardcoded D&D rule constants with data sourced from existing JSON files where available. For constants that don't exist in the data, centralize them in a new `src/lib/GameRules.js` module.
 
-| File | Lines | Content |
-|------|-------|---------|
-| `page-build-ability-scores.css` | 8 | Only viewport height |
-| `page-build-proficiencies.css` | 11 | Only viewport height |
-| `modal-selection-item.css` | 37 | `.item-card` styles duplicated in `modals.css` |
+### Task 2.1 — Create `src/lib/GameRules.js` for non-data constants
 
-**Fix:**
-1. Move the contents of `page-build-ability-scores.css` and `page-build-proficiencies.css` into `global.css` (they set viewport heights for template pages — a global concern).
-2. Check whether selectors in `modal-selection-item.css` are still referenced in the HTML/JS. If they are also fully defined in `modals.css`, delete `modal-selection-item.css`. If they provide unique styles, merge them into `modals.css`.
-3. Remove the `@import` lines for deleted files from `main.css`.
+Create a new module exporting constants that **do not exist** in the JSON data files:
 
-**Acceptance:** Three fewer CSS files. Same visual behavior. E2E tests pass.
-
----
-
-### Task 1.4 — Merge `modal-setup.css` into `modals.css`
-
-**Problem:** `modal-setup.css` is 39 lines of data-download progress bar styling. It is only used during the setup wizard, which lives inside a modal. It does not justify a separate file.
-
-**Fix:** Append the contents of `modal-setup.css` to the end of `modals.css` under a clear comment header `/* ===== Setup / Data Configuration ===== */`. Delete `modal-setup.css`. Remove its `@import` from `main.css`.
-
-**Acceptance:** One fewer CSS file. Setup wizard renders identically.
-
----
-
-## Phase 2 — CSS Architecture: Eliminate Style Leakage
-
-**Goal:** Page CSS files (`page-*.css`) should contain ONLY layout and positioning rules specific to that page. They must NOT define new component styles (buttons, form controls, badges, cards, tags) — those belong in component CSS files.
-
-**The rule:** If a selector in a `page-*.css` file introduces styling for a reusable element (button, form control, badge, tag, card) that isn't purely a layout/positioning override scoped to that page, it must be moved to the appropriate component file.
-
-### Task 2.1 — Audit and fix `page-build-class.css` (worst offender)
-
-**Problem:** `page-build-class.css` (582 lines) defines new styles for generic component selectors that should not live in a page file:
-
-| Selector | Problem | Move to |
-|----------|---------|---------|
-| `.btn-sm` (padding/font override) | Button variant styling | `buttons.css` — only if not already defined. If already defined, determine whether this is an override scoped to the build page or a new style. If scoped, prefix with `.class-selection .btn-sm`. If new, move. |
-| `.form-control`, `.form-select` (color overrides) | Redefines form colors | Remove if identical to `forms.css`. If different, scope them under a page container: `.class-selection .form-control`. |
-| `.form-label` | Redefines label styling | Same approach as above. |
-| `.proficiency-item` | Duplicates `component-proficiency.css` | Remove if identical. If different, scope under `.class-selection .proficiency-item`. |
-| `.source-toggle` | New component not in any component file | Move to `forms.css` or create a shared location visible to both page and modal contexts. |
-| `.trait-tag`, `.feature-tag` | Generic tag components | See Task 2.5. |
-| `.detail-section` | Shared between race and class pages | See Task 2.5. |
-
-**Approach for each selector:**
-1. Compare the selector's properties in `page-build-class.css` against the same selector in its canonical file (e.g., `forms.css`, `buttons.css`, `component-proficiency.css`).
-2. If properties are **identical** → delete from page file (redundant).
-3. If properties are **purely additive layout** (margin, padding, width, grid placement) → keep in page file but scope under the page's root container selector.
-4. If properties define **new visual styling** (colors, borders, shadows, font) → move to the component file.
-
-**Acceptance:** `page-build-class.css` contains only selectors prefixed with `.class-selection` or class-page-specific layout selectors. No bare `.form-control`, `.btn-sm`, etc.
-
----
-
-### Task 2.2 — Audit and fix `page-build-race.css`
-
-**Same approach as Task 2.1.** Key selectors to evaluate:
-
-| Selector | Move to |
-|----------|---------|
-| `.form-select` override | Scope or remove |
-| `.proficiency-item` | Remove if same as `component-proficiency.css` |
-| `.detail-section` | See Task 2.5 |
-| `.trait-tag` | See Task 2.5 |
-
-**Acceptance:** Same criteria as Task 2.1.
-
----
-
-### Task 2.3 — Audit and fix `page-details.css`
-
-Key selectors to evaluate:
-
-| Selector | Move to |
-|----------|---------|
-| `.form-control`, `.form-select` overrides | Scope under `.details-page` or remove |
-| `.form-group` | Scope or move to `forms.css` |
-| `.card-body` modifications | Scope under page container |
-
-**Acceptance:** Same criteria as Task 2.1.
-
----
-
-### Task 2.4 — Audit and fix `page-spells.css`
-
-| Selector | Move to |
-|----------|---------|
-| `.btn-spell-remove` | Move to `buttons.css` as a named variant |
-
-**Acceptance:** `page-spells.css` contains no bare button definitions.
-
----
-
-### Task 2.5 — Extract shared selectors used across multiple page files
-
-**Problem:** Several selectors are defined identically in multiple page files:
-
-| Selector | Defined in |
-|----------|-----------|
-| `.trait-tag` | `page-build-background.css`, `page-build-race.css` |
-| `.feature-tag` | `page-build-background.css`, `page-build-class.css` |
-| `.detail-section` | `page-build-class.css`, `page-build-race.css` |
-| `.source-toggle` | `page-build-class.css`, `modals.css` |
-
-**Fix:** For each duplicated selector:
-1. Compare definitions across files. Take the more complete version.
-2. Move the canonical definition into one of:
-   - An existing component file where it logically fits (e.g., `component-split-pane.css` for `.detail-section` if it's part of the split layout).
-   - A new component file if none fits. Suggested: `component-tags.css` for `.trait-tag` and `.feature-tag`.
-3. Delete the duplicate definitions from all page files.
-4. If the new file is created, add its `@import` to `main.css` under `/* Reusable Components */`.
-
-**Acceptance:** Each selector exists in exactly one file. No duplicate definitions.
-
----
-
-## Phase 3 — CSS Architecture: Centralize Scattered Concerns
-
-### Task 3.1 — Centralize z-index values
-
-**Problem:** z-index values are hardcoded across multiple files with no central scale:
-- `modals.css`: various values around 1050–1070
-- `notification.css`: 11000
-- `tooltip.css`: 9999
-
-**Fix:** Add a z-index scale to `core-variables.css`:
-```css
---z-dropdown: 1020;
---z-sticky: 1030;
---z-modal-backdrop: 1040;
---z-modal: 1050;
---z-tooltip: 9999;
---z-notification: 11000;
-```
-
-Then replace all hardcoded z-index values in `modals.css`, `notification.css`, and `tooltip.css` with `var(--z-*)` references.
-
-**Acceptance:** No hardcoded z-index numeric values outside `core-variables.css`. All files use CSS variables.
-
----
-
-### Task 3.2 — Centralize badge styles
-
-**Problem:** Badge styles are fragmented across 5+ files with no canonical source.
-
-**Fix:** Create `src/ui/styles/component-badge.css`. Audit all badge selectors across the codebase:
-- `modals.css` — `.badge.source-badge`, review badges
-- `component-proficiency.css` — `#proficienciesAccordion .badge`
-- `component-character-card.css` — `.character-card .badge.bg-accent`
-- `page-spells.css` — `.slot-badge`
-
-Move shared/generic badge styling into the new file. Leave context-specific badge overrides (scoped under their parent selectors) in their original files.
-
-Add `@import url("./component-badge.css");` to `main.css` under `/* Reusable Components */`.
-
-**Acceptance:** Generic badge appearance defined once. Context-specific overrides remain scoped.
-
----
-
-### Task 3.3 — Reduce `!important` usage
-
-**Problem:** ~20+ `!important` declarations, primarily in `buttons.css` (active states, focus outlines), `modals.css` (form overrides), and `global.css` (text-muted overrides).
-
-**Fix:** For each `!important`:
-1. Determine if it's fighting Bootstrap specificity. If so, increase selector specificity instead (e.g., `body .text-muted` instead of `.text-muted !important`).
-2. If it's fighting another custom rule, fix the cascade order or specificity.
-3. Only `!important` that should remain: utility classes in `utilities.css` (this is the standard convention — utilities are meant to win).
-
-**Acceptance:** `!important` usage reduced to utilities.css and cases with a clear documented reason.
-
----
-
-### Task 3.4 — Hardcoded color values
-
-**Problem:** Several files use hardcoded hex/rgb values instead of CSS variables:
-- `global.css` (formerly in main.css): `#ffffff`, `#b0b0b0` in `.equipment-item` styles
-- Scattered `rgba()` values for shadows
-
-**Fix:** Replace hardcoded color values with existing CSS variables or add new variables to `core-variables.css` if no suitable variable exists. Do NOT change visual appearance — match the existing color to the closest variable or define a new one.
-
-**Acceptance:** Zero hardcoded hex/rgb/rgba color values outside of `themes.css` and `core-variables.css` (where they are defined).
-
----
-
-### Task 3.5 — Scrollbar styles defined twice
-
-**Problem:** `scrollbars.css` defines webkit scrollbar styles. `global.css` (formerly main.css lines ~307-322) also defines `::-webkit-scrollbar*` styles. They may conflict.
-
-**Fix:** Compare both. Keep the version in `scrollbars.css` as canonical. Remove the duplicate from `global.css`.
-
-**Acceptance:** Scrollbar styles defined in exactly one file.
-
----
-
-## Phase 4 — CSS Architecture: The `modals.css` Decomposition
-
-**Goal:** Reduce `modals.css` from 2,128 lines to ~800-1,000 by extracting component-scoped styles.
-
-### Task 4.1 — Analyze `modals.css` for extractable blocks
-
-**Action (read-only):** Read `modals.css` fully and identify self-contained blocks that correspond to specific UI components rather than modal infrastructure. Document each block with its line range and proposed destination file.
-
-Expected extractable blocks:
-- Character creation wizard step styles
-- Spell selection modal styles
-- Equipment selection styles
-- ASI (Ability Score Improvement) modal styles
-- Level-up modal styles
-- Item card/selection styles
-
-Do NOT extract yet — just document the plan.
-
----
-
-### Task 4.2 — Extract blocks per the plan from 4.1
-
-For each block identified in 4.1:
-1. If a corresponding component CSS file already exists (e.g., `component-ability-scores.css`), move the styles there.
-2. If no file exists, decide whether the block is large enough (50+ lines) to justify a new file. If yes, create it.
-3. Update `main.css` imports if new files are created.
-4. Test visually that all modals still render correctly.
-
-**Acceptance:** `modals.css` ≤ 1,200 lines. All extracted styles are in component files. E2E tests pass.
-
----
-
-## Phase 5 — JS Architecture: Singleton & Pattern Consistency
-
-### Task 5.1 — Standardize singleton export pattern in `src/app/`
-
-**Problem:** 7 singletons in `src/app/` use two different patterns:
-
-| Pattern A (4 files) | Pattern B (3 files) |
-|---------------------|---------------------|
-| `class XImpl { ... }` | `class X { ... }` |
-| `export const X = new XImpl();` | `export const x = new X();` |
-| PascalCase export | camelCase export |
-
-Services (`src/services/`) consistently use: `export const xService = new XService();` (camelCase, no Impl).
-
-**Fix:** Standardize `src/app/` to match the service pattern — no `Impl` suffix, camelCase exports:
-- `AppState.js`: Keep `AppState` PascalCase (it's effectively a global namespace used everywhere — renaming it would be too disruptive). No change.
-- `Modal.js`: Already `export const modal = ...`. No change.
-- `ThemeManager.js`: Already `export const themeManager = ...`. No change.
-- `TitlebarController.js`: Already `export const titlebarController = ...`. No change.
-- `CharacterManager.js`: Rename class from `CharacterManagerImpl` to `CharacterManager`. BUT the export `CharacterManager` is PascalCase and widely imported. Changing the export name would require updating every import across the codebase. **Decision: Remove the `Impl` suffix from the internal class name only. Keep the export name as-is to avoid a disruptive rename.** Same for `NavigationController`, `PageHandler`.
-
-**Specific changes:**
-1. `CharacterManager.js`: Rename `class CharacterManagerImpl` → `class CharacterManagerInternal` or simply remove `Impl` if the export shadows the class name (check if this causes conflicts — in JS, the exported const shadows the class in module scope, so `class CharacterManager { } export const CharacterManager = ...` is a conflict). If so, use a `_` prefix: `class _CharacterManager`.
-2. `NavigationController.js`: Same approach for `RouterImpl`, `PageLoaderImpl`, `NavigationControllerImpl`.
-3. `PageHandler.js`: Same for `PageHandlerImpl`.
-
-**Acceptance:** No `Impl` suffixed class names in the codebase. All tests pass.
-
----
-
-### Task 5.2 — Standardize `BasePageController` to use `DOMCleanup`
-
-**Problem:** `BasePageController.js` (23 lines) uses raw `EventBus.on()`/`EventBus.off()` for listener tracking. All UI components in `src/ui/components/` use `DOMCleanup`. This inconsistency means page controllers manage cleanup differently from the components they contain.
-
-**Fix:** Refactor `BasePageController` to use `DOMCleanup.create()`:
-1. Import `DOMCleanup` from `src/lib/DOMCleanup.js`.
-2. In constructor/initialize, create `this._cleanup = DOMCleanup.create()`.
-3. Replace `_trackListener(event, handler)` with `this._cleanup.onEvent(event, handler)`.
-4. Replace the manual `cleanup()` loop with `this._cleanup.cleanup()`.
-5. Update all subclasses if they call `_trackListener` directly.
-
-**Acceptance:** `BasePageController` and all page controllers use `DOMCleanup` for event tracking. Tests pass.
-
----
-
-## Phase 6 — JS Architecture: Fix Critical Workflow Bugs
-
-### Task 6.1 — Fix `isLoadingCharacter` not reset on error
-
-**File:** `src/app/CharacterManager.js` — `loadCharacter()` method.
-
-**Problem:** `AppState.setState({ isLoadingCharacter: true })` is set but the `finally` block that resets it may not execute in all error paths, or the state may already have been consumed by UI code that sees `isLoadingCharacter: true` permanently.
-
-**Fix:** Ensure `AppState.setState({ isLoadingCharacter: false })` is in the `finally` block and confirm it executes for all code paths. Verify the `finally` block exists and covers `return`, `throw`, and normal flow.
-
-**Acceptance:** Write a unit test that verifies `isLoadingCharacter` is `false` after a failed load.
-
----
-
-### Task 6.2 — Fix silent error swallowing
-
-**Files & locations:**
-
-1. `src/app/AppInitializer.js` — Find the empty `catch (error) { }` block (around the backdrop cleanup). Replace with `console.warn('[AppInitializer]', 'Backdrop cleanup failed:', error);`.
-
-2. `src/app/CharacterSerializer.js` — Find the `catch` block that returns a default empty structure during proficiency serialization. Replace with logging: `console.warn('[CharacterSerializer]', 'Proficiency serialization failed:', error);` before returning the default.
-
-**Acceptance:** No empty `catch {}` blocks anywhere in `src/app/`. Grep for `catch.*\{[\s]*\}` should return zero results.
-
----
-
-### Task 6.3 — Fix save transaction integrity
-
-**File:** `src/app/CharacterManager.js` — `saveCharacter()` method.
-
-**Problem:** `CharacterSchema.touch()` mutates the character timestamp before the IPC save call. If the save fails, the timestamp is wrong.
-
-**Fix:** Save the original `lastModified` value before calling `touch()`. In the `catch` block, restore the original value:
 ```javascript
-const originalTimestamp = character.lastModified;
-try {
-    CharacterSchema.touch(character);
-    // ... save ...
-} catch (error) {
-    character.lastModified = originalTimestamp;
-    throw error;
+// src/lib/GameRules.js
+// Centralized D&D 5e game rule constants that are not available in data JSON files.
+
+/** Standard array for ability score generation */
+export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+
+/** Point buy budget */
+export const POINT_BUY_BUDGET = 27;
+
+/** Point buy cost per score value */
+export const POINT_BUY_COSTS = new Map([
+    [8, 0], [9, 1], [10, 2], [11, 3],
+    [12, 4], [13, 5], [14, 7], [15, 9],
+]);
+
+/** Point buy score range */
+export const POINT_BUY_MIN = 8;
+export const POINT_BUY_MAX = 15;
+
+/** Ability score bounds */
+export const ABILITY_SCORE_MIN = 1;
+export const ABILITY_SCORE_MAX = 20;
+export const ABILITY_SCORE_ABSOLUTE_MAX = 30;
+
+/** Equipment rules */
+export const MAX_ATTUNEMENT_SLOTS = 3;
+export const CARRY_CAPACITY_MULTIPLIER = 15;
+export const LIGHT_ENCUMBRANCE_MULTIPLIER = 5;
+export const HEAVY_ENCUMBRANCE_MULTIPLIER = 10;
+
+/** Character file size limit (bytes) */
+export const MAX_CHARACTER_SIZE = 10 * 1024 * 1024;
+
+/** Default ASI levels fallback (used when class data unavailable) */
+export const DEFAULT_ASI_LEVELS = [4, 8, 12, 16, 19];
+```
+
+### Task 2.2 — Update `AbilityScoreService.js` and `AbilityScoreUtils.js`
+
+Replace hardcoded ability constants with imports from `GameRules.js`:
+- `src/lib/AbilityScoreUtils.js` — Replace local `STANDARD_ARRAY`, `POINT_BUY_COSTS`, and `POINT_BUY_BUDGET` definitions with imports from `GameRules.js`. Keep the re-exports if other files import them from `AbilityScoreUtils.js`.
+- `src/services/AbilityScoreService.js` — Replace any local copies of these constants with imports from `GameRules.js` (either directly or via `AbilityScoreUtils.js`).
+
+### Task 2.3 — Update `EquipmentService.js`
+
+Replace hardcoded equipment constants:
+- `src/services/EquipmentService.js` — Replace `this.MAX_ATTUNEMENT_SLOTS = 3`, `this.CARRY_CAPACITY_MULTIPLIER = 15`, etc. in the constructor with imports from `GameRules.js`. Use module-level constants instead of instance properties.
+
+### Task 2.4 — Update `LevelUpService.js` fallback
+
+- `src/services/LevelUpService.js` — In `_getASILevelsForClass()`, replace the hardcoded fallback `[4, 8, 12, 16, 19]` with `DEFAULT_ASI_LEVELS` from `GameRules.js`.
+
+### Task 2.5 — Update `CharacterHandlers.js`
+
+- `src/main/ipc/CharacterHandlers.js` — Replace `const MAX_CHARACTER_SIZE = 10 * 1024 * 1024` with an import from `GameRules.js`.
+
+### Task 2.6 — Read spell slot tables from class JSON data
+
+The spell slot progression tables (standard slots and pact magic) **exist** in the class JSON data at `class[].classTableGroups[].rowsSpellProgression`. However, `SpellSelectionService.js` hardcodes 20-row lookup tables.
+
+**Action:** Modify `SpellSelectionService` to extract spell slot progression from class data loaded by `ClassService` instead of using hardcoded tables.
+
+**Implementation approach:**
+1. In `SpellSelectionService`, add a method `_getSpellSlotsFromClassData(className, level)` that:
+   - Calls `classService.getClass(className)` to get the class definition
+   - Reads `classTableGroups[].rowsSpellProgression[level - 1]` for standard casters
+   - For Warlock/pact magic, reads from `classTableGroups[].rows[level - 1]` (columns for Spell Slots and Slot Level)
+2. Replace `getStandardSpellSlots()` to use this data-driven approach, with the current hardcoded table as a **fallback** only if class data is unavailable.
+3. Replace `_getPactMagicSlots()` similarly, reading Warlock table data.
+
+**Key data paths in class JSON:**
+- Standard caster: `class[0].classTableGroups[X].rowsSpellProgression` — array of 20 arrays, each containing slot counts by spell level
+- Warlock pact magic: `class[0].classTableGroups[0].rows` — array of 20 arrays, column indices for Spell Slots (index 2) and Slot Level (index 3)
+
+### Task 2.7 — Read ritual caster data from class JSON
+
+The ritual casting flag is derivable from class data. Each class's spellcasting entry in the JSON includes a `ritualCasting` property.
+
+**Action:** Update `SpellSelectionService._hasRitualCasting()`:
+1. Replace the hardcoded `['Bard', 'Cleric', 'Druid', 'Wizard']` list with a call to `classService.getClass(className)`.
+2. Check `classData.spellcastingAbility` (has spellcasting) and look for ritual casting information in the class features or `additionalSpells` data.
+3. Keep the hardcoded list as a **fallback** if class data lookup fails.
+
+---
+
+## Phase 3 — Error Handling Standardization
+
+**Goal:** Standardize services on the THROW pattern (already used by 7+ services). Reserve RETURN-object pattern for IPC boundary only. Document LOG pattern as intentional for resilient services.
+
+### Task 3.1 — Classify services into tiers
+
+**Tier 1 — THROW (no changes needed, already correct):**
+`ActionService`, `BackgroundService`, `ConditionService`, `DeityService`, `EquipmentService`, `FeatService`, `SkillService`, `SpellSelectionService`
+
+**Tier 2 — MIXED (need cleanup to prefer THROW):**
+`ClassService`, `ItemService`, `LevelUpService`, `MonsterService`, `OptionalFeatureService`, `ProficiencyService`, `RaceService`
+
+**Tier 3 — LOG-only (intentional resilience, document as acceptable):**
+`CharacterValidationService`, `RehydrationService`, `ProgressionHistoryService`
+
+**Tier 4 — RETURN-only (IPC-boundary pattern):**
+`CharacterImportService` — This runs at the IPC boundary (import workflow). Its return-object pattern is acceptable because it communicates multi-step progress. Add a code comment documenting this is intentional.
+
+### Task 3.2 — Clean up MIXED-pattern services
+
+For each Tier 2 service, audit `console.warn()` calls that silently swallow errors and determine if they should throw instead.
+
+**Rules for the AI agent:**
+- `console.warn` during **data loading/initialization** (e.g., "failed to load optional file X") → **KEEP as warn** — partial data is OK during init.
+- `console.warn` during **public method execution** with invalid inputs → **CHANGE to throw `ValidationError`** — callers should know the operation failed.
+- `console.debug` for informational logging → **KEEP** — these are trace-level and harmless.
+
+**Specific files to review and fix:**
+- `src/services/ClassService.js` — Review `console.warn` at ~L65, L86. If these are "optional file didn't load" during init, keep as warn. If they indicate a user-facing operation failed, change to throw.
+- `src/services/ProficiencyService.js` — Review `console.warn` at ~L185 in `setOptionalProficiencies()`. If this is called during normal operation with invalid args, change to throw `ValidationError`.
+- `src/services/LevelUpService.js` — Review `console.warn` at ~L227, L272. If these are recoverable fallback situations (e.g., using default ASI levels), keep as warn.
+
+### Task 3.3 — Add intentional-pattern comments to Tier 3 services
+
+Add a class-level comment to each Tier 3 service explaining the LOG pattern is intentional:
+
+```javascript
+/**
+ * Rehydrates character traits from source data on load/import.
+ * 
+ * Error strategy: LOG-and-continue. Failures are logged with console.debug
+ * but never thrown, because rehydration is best-effort — missing source data
+ * should not block character loading.
+ */
+```
+
+Add similar comments to `CharacterValidationService` and `ProgressionHistoryService`.
+
+### Task 3.4 — Add intentional-pattern comment to CharacterImportService
+
+```javascript
+/**
+ * Handles character file import workflow.
+ * 
+ * Error strategy: RETURN-object. This service returns { success, error, step }
+ * objects instead of throwing because it communicates multi-step progress
+ * to the UI (read → validate → conflict-detect → resolve). This is intentional
+ * at the IPC/workflow boundary.
+ */
+```
+
+---
+
+## Phase 4 — Settings Value Validation
+
+**Goal:** Add value-range validation to `SettingsHandlers.js` so the renderer can't set invalid setting values.
+
+### Task 4.1 — Add value validation to `src/main/ipc/SettingsHandlers.js`
+
+After the `ALLOWED_KEYS` check in the `SETTINGS_SET_PATH` handler, add value validation:
+
+```javascript
+const VALUE_VALIDATORS = {
+    theme: (v) => ['auto', 'light', 'dark'].includes(v),
+    autoSave: (v) => typeof v === 'boolean',
+    autoSaveInterval: (v) => Number.isInteger(v) && v >= 5000 && v <= 300000,
+    dataSourceType: (v) => v === null || ['url', 'local'].includes(v),
+    logLevel: (v) => ['debug', 'info', 'warn', 'error'].includes(v),
+    // characterSavePath, dataSourceValue, dataSourceCachePath, 
+    // lastOpenedCharacter: string validation only
+    // windowBounds: object — validated by Settings.js schema
+};
+
+// Inside SETTINGS_SET_PATH handler, after ALLOWED_KEYS check:
+const validator = VALUE_VALIDATORS[key];
+if (validator && !validator(value)) {
+    return { success: false, error: `Invalid value for setting '${key}'` };
 }
 ```
 
-**Acceptance:** If `saveCharacter()` throws, the character's `lastModified` is unchanged.
+---
+
+## Phase 5 — Schema Strictness
+
+**Goal:** Remove `.passthrough()` from `CharacterSchema.js` and tighten loose `z.unknown()` types where feasible.
+
+### Task 5.1 — Remove `.passthrough()` from character validation schema
+
+**File: `src/lib/CharacterSchema.js`**
+
+Remove the `.passthrough()` call on the `characterValidationSchema`. This will cause the schema to strip unknown properties during validation, preventing malformed data from persisting.
+
+**Before:**
+```javascript
+}).passthrough();
+```
+
+**After:**
+```javascript
+});
+```
+
+**Risk:** If any saved character files contain properties not in the schema, they will be stripped on next validation. To mitigate, run a search for any properties used on character objects that aren't in the schema and add them first.
+
+### Task 5.2 — Tighten `z.unknown()` types incrementally
+
+Replace the **highest-impact** `z.unknown()` usages with structured schemas. Do this incrementally — one property at a time — and verify nothing breaks:
+
+**Priority targets:**
+1. `race: z.unknown().nullable().optional()` → Define a race schema:
+   ```javascript
+   race: z.object({
+       name: z.string(),
+       source: z.string(),
+       subrace: z.string().optional(),
+       abilityChoices: z.array(z.unknown()).optional(),
+   }).nullable().optional()
+   ```
+2. `background: z.unknown().nullable().optional()` → Define a background schema:
+   ```javascript
+   background: z.object({
+       name: z.string(),
+       source: z.string(),
+   }).passthrough().nullable().optional()
+   ```
+
+Leave deeply nested properties (`features`, `equipment`, `spellcasting`) as `z.unknown()` for now — they have complex structures that vary significantly.
 
 ---
 
-## Phase 7 — JS Architecture: Fix Memory Leaks
+## Phase 6 — File Size Validation
 
-### Task 7.1 — Fix `NavigationController` document listener leak
+**Goal:** Validate file sizes BEFORE reading content into memory for portrait and character import operations.
 
-**File:** `src/app/NavigationController.js`
+### Task 6.1 — Check file size before JSON parse in character import
 
-**Problem:** A click listener is attached to `document` but never cleaned up.
+**File: `src/main/ipc/CharacterHandlers.js`**
 
-**Fix:** Track the listener reference and remove it in the cleanup/dispose path of the navigation controller.
-
-**Acceptance:** No stacking of document-level click listeners on repeated navigation initialization. Verify by adding a test or logging.
-
----
-
-### Task 7.2 — Fix `HomePageController` listener and tooltip leaks
-
-**File:** `src/app/pages/HomePageController.js`
-
-**Problem:**
-1. Event listeners added to the character list container on every `_renderCharacterList()` call without removing old ones.
-2. Bootstrap tooltips created but never disposed on re-render.
-
-**Fix:**
-1. Before adding new container listeners, remove old ones (or use `DOMCleanup` to track them and clean up before re-render).
-2. Before re-rendering the character list, dispose all existing Bootstrap tooltip instances: query all `[data-bs-toggle="tooltip"]` elements, get their tooltip instances, and call `.dispose()`.
-
-**Acceptance:** Memory profiling shows no growing tooltip or listener count after 10 re-renders.
-
----
-
-### Task 7.3 — Add `DataLoader` cache eviction
-
-**File:** `src/lib/DataLoader.js`
-
-**Problem:** `state.cache` grows unbounded.
-
-**Fix:** Add a `clearCache()` export function that empties `state.cache`. Wire it to the `EVENTS.DATA_INVALIDATED` event in `AppInitializer.js` or wherever data refresh is triggered. Do NOT implement a complex LRU — a full clear on data invalidation is sufficient for a desktop app.
+In the `CHARACTER_IMPORT` handler, before reading the file content, add a size check:
 
 ```javascript
-export function clearCache() {
-    state.cache = {};
-    console.debug('[DataLoader]', 'Cache cleared');
+const stats = await fs.stat(filePath);
+if (stats.size > MAX_CHARACTER_SIZE) {
+    return { success: false, error: `File exceeds maximum size of ${MAX_CHARACTER_SIZE / (1024 * 1024)}MB` };
+}
+// Then read and parse
+const content = await fs.readFile(filePath, 'utf8');
+```
+
+### Task 6.2 — Add size limit to portrait embedding
+
+**File: `src/main/ipc/CharacterHandlers.js`**
+
+In the `embedPortraitData()` function, before `fs.readFile`:
+
+```javascript
+const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024; // 5MB limit for portraits
+const stats = await fs.stat(portraitPath);
+if (stats.size > MAX_PORTRAIT_SIZE) {
+    return { success: false, error: 'Portrait file exceeds 5MB size limit' };
 }
 ```
 
-**Acceptance:** `clearCache()` exists and is called when data source changes.
+Add `MAX_PORTRAIT_SIZE` to `src/lib/GameRules.js` as well.
 
----
+### Task 6.3 — Add size limit to PDF portrait embedding
 
-## Phase 8 — Security Fixes
+**File: `src/main/pdf/PdfExporter.js`**
 
-### Task 8.1 — Replace `innerHTML` with safe DOM construction
+In the portrait embedding function, add:
 
-**Files:**
-1. `src/app/Modal.js` — `showDuplicateIdModal()` at the `messageElement.innerHTML = ...` assignment.
-2. `src/app/pages/HomePageController.js` — character card template rendering.
-
-**Fix for Modal.js:** Replace the innerHTML template with DOM node construction:
 ```javascript
-// Instead of messageElement.innerHTML = `...${characterName}...`
-messageElement.textContent = '';
-// Build nodes programmatically using document.createElement + textContent
-```
-
-**Fix for HomePageController.js:** For the character card template, the character name and class/race labels should be set via `textContent` on individual elements after the template is inserted, rather than interpolated into the HTML string.
-
-**Acceptance:** Grep for `innerHTML.*\$\{` in `src/app/` returns zero results. (Note: `innerHTML` with static strings like `'<option>None</option>'` is fine.)
-
----
-
-### Task 8.2 — Add JSON size limit to IPC handlers
-
-**Files:** `src/main/ipc/CharacterHandlers.js`, `src/main/ipc/DataHandlers.js`
-
-**Fix:** Before `JSON.parse(characterData)`, check the byte length:
-```javascript
-const MAX_CHARACTER_SIZE = 10 * 1024 * 1024; // 10MB
-if (typeof characterData === 'string' && Buffer.byteLength(characterData) > MAX_CHARACTER_SIZE) {
-    return { success: false, error: 'Character data exceeds maximum size limit' };
+const stats = await fs.stat(portraitPath);
+if (stats.size > MAX_PORTRAIT_SIZE) {
+    console.warn('[PdfExporter]', 'Portrait file exceeds size limit, skipping embed');
+    return; // Skip portrait, don't crash
 }
 ```
 
-Apply similar checks in `DataHandlers.js` for any user-supplied JSON payloads.
-
-**Acceptance:** Oversized payloads are rejected with a clear error. Normal payloads continue to work.
-
 ---
 
-## Phase 9 — Testing Gaps (High-Priority Services)
+## Phase 7 — Prerequisite Logic Deduplication
 
-### Task 9.1 — Create unit tests for `ClassService`
+**Goal:** Extract shared prerequisite checking logic from `FeatService` and `OptionalFeatureService` into a reusable utility.
 
-**File to create:** `tests/unit/ClassService.test.js`
+### Task 7.1 — Create `src/lib/PrerequisiteValidator.js`
 
-**Coverage targets:**
-- Class loading and caching
-- Subclass resolution
-- Feature extraction (including pipe-delimited parsing)
-- Spell slot calculation for classes
-- Error cases (missing class, invalid source)
+Create a utility that handles the common prerequisite checks shared between feats and optional features:
 
-Follow existing test patterns from `tests/unit/BackgroundService.test.js` or `tests/unit/RaceService.test.js`.
-
----
-
-### Task 9.2 — Create unit tests for `SpellService`
-
-**File to create:** `tests/unit/SpellService.test.js`
-
-**Coverage targets:**
-- Spell lookup by name/source
-- Spell filtering by class, level, school
-- Class spell list loading
-- Error cases
-
----
-
-### Task 9.3 — Create unit tests for `CharacterValidationService`
-
-**File to create:** `tests/unit/CharacterValidationService.test.js`
-
-**Coverage targets:**
-- Valid character passes validation
-- Invalid characters fail with descriptive errors
-- Edge cases (missing fields, wrong types, empty arrays)
-
----
-
-### Task 9.4 — Create unit tests for `CharacterImportService`
-
-**File to create:** `tests/unit/CharacterImportService.test.js`
-
-**Coverage targets:**
-- Clean import (no conflicts)
-- Duplicate ID detection
-- Conflict resolution (overwrite, keep both, cancel)
-
----
-
-### Task 9.5 — Create unit tests for `FeatService`
-
-**File to create:** `tests/unit/FeatService.test.js`
-
-**Coverage targets:**
-- Feat loading and lookup
-- Source filtering
-- Error cases
-
----
-
-## Phase 10 — Map/Object Type Safety
-
-### Task 10.1 — Document Map vs Object usage in Character
-
-**Action (read-only first):** Audit `Character.js` constructor and identify every property that uses `Map` or `Set` at runtime. Cross-reference with `CharacterSerializer.js` to confirm which lose their type on round-trip.
-
-Make a list:
-- Property name
-- Runtime type (Map/Set/Array/Object)
-- Serialized type
-- Deserialized type (what `new Character(data)` receives)
-- Is there a mismatch?
-
----
-
-### Task 10.2 — Fix Map/Object round-trip in `RehydrationService`
-
-Based on findings from 10.1, ensure `RehydrationService.rehydrate()` (or `Character` constructor) properly converts plain objects back to Maps and arrays back to Sets where the runtime code expects them.
-
-**Fix:** In the `Character` constructor, add conversion logic for affected properties:
 ```javascript
-// Example for proficiencySources
-if (data.proficiencySources && !(data.proficiencySources instanceof Map)) {
-    this.proficiencySources = new Map(
-        Object.entries(data.proficiencySources).map(([k, v]) => [k, new Map(Object.entries(v))])
-    );
-} else {
-    this.proficiencySources = data.proficiencySources || new Map();
+// src/lib/PrerequisiteValidator.js
+import { classService } from '../services/ClassService.js';
+
+/**
+ * Check if a character meets a single prerequisite condition.
+ * Used by FeatService and OptionalFeatureService.
+ * 
+ * @param {Object} prereq - Single prerequisite object from 5etools data
+ * @param {Object} character - Character object
+ * @param {Object} [options] - Options like { ignoreRacePrereq, className }
+ * @returns {{ met: boolean, reason?: string }}
+ */
+export function checkPrerequisite(prereq, character, options = {}) {
+    if (!character) return { met: false, reason: 'No character' };
+
+    // Level requirement
+    if (prereq.level !== undefined) {
+        let charLevel = character.getTotalLevel();
+        if (options.className && character.progression?.classes) {
+            const classEntry = character.progression.classes.find(
+                (c) => c.name === options.className,
+            );
+            if (classEntry) charLevel = classEntry.levels || 1;
+        }
+        const requiredLevel = typeof prereq.level === 'object'
+            ? prereq.level.level || 1
+            : prereq.level;
+        if (charLevel < requiredLevel) {
+            return { met: false, reason: `Requires ${options.className || 'character'} level ${requiredLevel}` };
+        }
+    }
+
+    // Ability score requirement
+    if (Array.isArray(prereq.ability)) {
+        const abilityScores = character.abilityScores || {};
+        const meetsAbility = prereq.ability.some((abilityReq) => {
+            if (typeof abilityReq === 'string') {
+                return (abilityScores[abilityReq] || 0) >= 13;
+            }
+            if (typeof abilityReq === 'object' && abilityReq.ability) {
+                return (abilityScores[abilityReq.ability] || 0) >= (abilityReq.score || 13);
+            }
+            return false;
+        });
+        if (!meetsAbility) {
+            return { met: false, reason: 'Does not meet ability score requirement' };
+        }
+    }
+
+    // Race requirement
+    if (!options.ignoreRacePrereq && Array.isArray(prereq.race)) {
+        const characterRace = character.race?.name?.toLowerCase() || '';
+        const meetsRace = prereq.race.some((raceReq) => {
+            const reqName = typeof raceReq === 'string' ? raceReq : raceReq.name;
+            return reqName && characterRace === reqName.toLowerCase();
+        });
+        if (!meetsRace) {
+            return { met: false, reason: 'Race requirement not met' };
+        }
+    }
+
+    // Class requirement
+    if (Array.isArray(prereq.class)) {
+        const primaryClass = character.getPrimaryClass();
+        const characterClass = primaryClass?.name?.toLowerCase() || '';
+        const meetsClass = prereq.class.some((classReq) => {
+            const reqName = typeof classReq === 'string' ? classReq : classReq.name;
+            return reqName && characterClass === reqName.toLowerCase();
+        });
+        if (!meetsClass) {
+            return { met: false, reason: 'Class requirement not met' };
+        }
+    }
+
+    // Spellcasting requirement
+    if (prereq.spellcasting === true) {
+        const classes = character.progression?.classes || [];
+        const hasSpellcasting = classes.some((cls) => {
+            const classData = classService?.getClass?.(cls.name, cls.source);
+            return classData?.spellcastingAbility;
+        });
+        if (!hasSpellcasting) {
+            return { met: false, reason: 'Requires spellcasting ability' };
+        }
+    }
+
+    // Spell known requirement
+    if (prereq.spell) {
+        const requiredSpells = Array.isArray(prereq.spell) ? prereq.spell : [prereq.spell];
+        const missing = requiredSpells.filter((spellRef) => {
+            const spellName = spellRef.split('#')[0].split('|')[0].toLowerCase();
+            if (character.spellcasting?.classes) {
+                for (const cs of Object.values(character.spellcasting.classes)) {
+                    if (cs.spellsKnown?.some((s) => s.name.toLowerCase() === spellName)) return false;
+                    if (cs.cantrips?.some((s) => s.name.toLowerCase() === spellName)) return false;
+                    if (cs.preparedSpells?.some((s) => s.name.toLowerCase() === spellName)) return false;
+                }
+            }
+            return true;
+        });
+        if (missing.length > 0) {
+            const names = missing.map((r) => r.split('#')[0].split('|')[0]).join(', ');
+            return { met: false, reason: `Requires spell: ${names}` };
+        }
+    }
+
+    // Pact requirement
+    if (prereq.pact) {
+        const hasPact = character.features?.some((f) =>
+            f.name?.toLowerCase().includes(prereq.pact.toLowerCase()),
+        );
+        if (!hasPact) {
+            return { met: false, reason: `Requires ${prereq.pact}` };
+        }
+    }
+
+    // Patron requirement
+    if (prereq.patron) {
+        const hasPatron = character.features?.some((f) =>
+            f.name?.toLowerCase().includes(prereq.patron.toLowerCase()),
+        );
+        if (!hasPatron) {
+            return { met: false, reason: `Requires patron: ${prereq.patron}` };
+        }
+    }
+
+    return { met: true };
+}
+
+/**
+ * Check all prerequisites on a feature/feat (AND logic).
+ * Returns { met: boolean, reasons: string[] }
+ */
+export function checkAllPrerequisites(item, character, options = {}) {
+    if (!item.prerequisite || !Array.isArray(item.prerequisite)) {
+        return { met: true, reasons: [] };
+    }
+    const reasons = [];
+    for (const prereq of item.prerequisite) {
+        const result = checkPrerequisite(prereq, character, options);
+        if (!result.met) reasons.push(result.reason);
+    }
+    return { met: reasons.length === 0, reasons };
 }
 ```
 
-Apply the same pattern for each Map/Set property.
+### Task 7.2 — Refactor `FeatService.isFeatValidForCharacter()`
 
-**Acceptance:** A character can be serialized, saved, loaded, deserialized, and all Map/Set operations still work. Write a test that does a full round-trip.
+Replace `_validatePrerequisiteCondition()` in `src/services/FeatService.js` with calls to `checkAllPrerequisites()`:
+
+```javascript
+import { checkAllPrerequisites } from '../lib/PrerequisiteValidator.js';
+
+isFeatValidForCharacter(feat, character, options = {}) {
+    const result = checkAllPrerequisites(feat, character, options);
+    return result.met;
+}
+```
+
+Remove the private `_validatePrerequisiteCondition()` method entirely.
+
+### Task 7.3 — Refactor `OptionalFeatureService.meetsPrerequisites()`
+
+Replace the 100-line `meetsPrerequisites()` method in `src/services/OptionalFeatureService.js` with:
+
+```javascript
+import { checkAllPrerequisites } from '../lib/PrerequisiteValidator.js';
+
+meetsPrerequisites(feature, character, className = null) {
+    return checkAllPrerequisites(feature, character, { className });
+}
+```
 
 ---
 
-## Phase Summary
+## Phase 8 — Modal Cleanup Deduplication
 
-| Phase | Tasks | Focus | Risk |
-|-------|-------|-------|------|
-| 1 | 1.1–1.4 | CSS loading & junk drawer cleanup | Low — structural moves only |
-| 2 | 2.1–2.5 | CSS style leakage elimination | Medium — must verify visual parity |
-| 3 | 3.1–3.5 | CSS centralization (z-index, badges, !important, colors) | Low |
-| 4 | 4.1–4.2 | modals.css decomposition | Medium — large file, careful extraction |
-| 5 | 5.1–5.2 | JS singleton & DOMCleanup consistency | Low |
-| 6 | 6.1–6.3 | Critical workflow bug fixes | Medium — state management edge cases |
-| 7 | 7.1–7.3 | Memory leak fixes | Medium |
-| 8 | 8.1–8.2 | Security hardening | Low |
-| 9 | 9.1–9.5 | Test coverage for critical services | Low — additive only |
-| 10 | 10.1–10.2 | Map/Object type safety | High — serialization changes |
+**Goal:** Centralize the `document.body.style.overflow = ''` / `document.body.style.paddingRight = ''` pattern to `ModalCleanupUtility` only.
+
+### Task 8.1 — Audit and remove duplicate modal body resets
+
+The modal body reset pattern appears in 3 places:
+
+1. **`src/lib/ModalCleanupUtility.js` (L36-37)** — This is the canonical location. **KEEP.**
+2. **`src/app/AppInitializer.js` (L389-390)** — Duplicate. **Replace** with a call to `ModalCleanupUtility.cleanupModalState()` (or the static method that handles this).
+3. **`src/ui/components/setup/SetupModals.js` (L25-26)** — Duplicate. **Replace** with a call to `ModalCleanupUtility.cleanupModalState()`.
+
+**Implementation:**
+- Read `ModalCleanupUtility.js` to find the exact exported function name that handles the body cleanup (there should be a static or exported function).
+- Replace the inline `.style.overflow = ''` / `.style.paddingRight = ''` in AppInitializer and SetupModals with calls to that function.
+- If no standalone function exists, extract one: `export function resetModalBodyState()` in `ModalCleanupUtility.js` and call it from all 3 locations.
+
+---
+
+## Phase 9 — ProficiencyService Decomposition
+
+**Goal:** Split the 600+ line `ProficiencyService` into focused sub-modules while maintaining the same public API.
+
+### Task 9.1 — Extract description methods into `src/services/ProficiencyDescriptionService.js`
+
+Extract these methods from `ProficiencyService.js` into a new standalone service:
+- `_loadSkillData()` / `getSkillDescription()`
+- `_loadLanguageData()` / `getLanguageDescription()` / `getStandardLanguages()`
+- `_loadBookData()` / `_findBookEntry()` / `getSavingThrowInfo()`
+- `getToolDescription()`
+- `getArmorDescription()`
+- `getWeaponDescription()`
+- `_getAllowedSourcesSet()` (shared utility, may need to stay or be passed as parameter)
+
+**New service structure:**
+```javascript
+// src/services/ProficiencyDescriptionService.js
+export class ProficiencyDescriptionService {
+    constructor() {
+        this._skillData = null;
+        this._languageData = null;
+        this._bookData = null;
+    }
+    
+    async getSkillDescription(skillName) { ... }
+    async getLanguageDescription(languageName) { ... }
+    async getStandardLanguages() { ... }
+    async getToolDescription(toolName) { ... }
+    async getArmorDescription(armorName) { ... }
+    async getWeaponDescription(weaponName) { ... }
+    async getSavingThrowInfo(ability) { ... }
+    
+    dispose() { ... }
+}
+
+export const proficiencyDescriptionService = new ProficiencyDescriptionService();
+```
+
+**Update callers:** Search for all imports/usages of the moved methods. They are likely called from UI components like `ProficiencyCard.js`. Update those imports to use the new service.
+
+### Task 9.2 — Slim down `ProficiencyService.js`
+
+After extraction, `ProficiencyService.js` should contain only:
+- Core proficiency management: `addProficiency()`, `removeProficienciesBySource()`, `getProficiencySources()`
+- Optional proficiency management: `setOptionalProficiencies()`, `initializeProficiencyStructures()`, `_recalculateOptionalProficiencies()`, `_refundOptionalSkill()`, `_removeProficiencyFromSource()`
+- `_findBySourcePriority()` (internal utility)
+
+This should reduce `ProficiencyService.js` from ~600 to ~250 lines.
+
+---
+
+## Phase 10 — ClassCard Decomposition
+
+**Goal:** Decompose the 3,036-line `ClassCard.js` into focused sub-components. Existing extractions (`ClassCardView`, `ClassDetailsView`, `SubclassPickerView`, modals) are already done. This phase targets the remaining monolith.
+
+**Strategy:** Extract by domain. Each extraction creates a new file under `src/ui/components/class/` and the main `ClassCard` delegates to it.
+
+### Task 10.1 — Extract `ClassChoiceInfoPanel.js` (~326 lines)
+
+**Methods to extract (lines ~1889–2310):**
+- `_setupChoiceHoverListeners()`
+- `_showSubclassInfo(item)`
+- `_showSpellSelectionInfo(item)`
+- `_showFeatureInfo(item)`
+- `_showASIInfo(item)`
+- `_showPassiveFeatureInfo(item)`
+- `_renderFeatureEntries(entries)`
+- `_renderNoChoiceFeature(feature)`
+- `_getFeatureDescription(feature)`
+- `_getFeatureTypeName(type)`
+
+**New class:**
+```javascript
+// src/ui/components/class/ClassChoiceInfoPanel.js
+export class ClassChoiceInfoPanel {
+    constructor(infoContainer, cleanup) { ... }
+    setupHoverListeners(choicesContainer) { ... }
+    async showSubclassInfo(item) { ... }
+    async showSpellSelectionInfo(item) { ... }
+    async showFeatureInfo(item) { ... }
+    async showASIInfo(item) { ... }
+    async showPassiveFeatureInfo(item) { ... }
+    // ...private render helpers
+}
+```
+
+**In `ClassCard.js`:** Replace all `_show*Info()` calls with `this._infoPanel.show*Info()`. Remove the extracted methods.
+
+### Task 10.2 — Extract `ClassASIController.js` (~235 lines)
+
+**Methods to extract (lines ~402–636 and ~1760–1870):**
+- `_renderASISection(className)`
+- `_attachASISectionListeners(classLevel)`
+- `_handleASIApplication(classLevel)`
+- `_renderASIChoice(choice, _className)`
+- `_hideASISection()`
+- `_getFeatureIcon(type)` (shared utility — could also go to a shared module)
+
+**New class:**
+```javascript
+// src/ui/components/class/ClassASIController.js
+export class ClassASIController {
+    constructor(asiContainer, cleanup) { ... }
+    renderSection(className) { ... }
+    renderChoice(choice, className) { ... }
+    hide() { ... }
+    // ...private helpers
+}
+```
+
+### Task 10.3 — Extract `ClassSpellNotificationController.js` (~200 lines)
+
+**Methods to extract (lines ~637–963 and ~1709–1760):**
+- `_renderSpellNotification(className)`
+- `_getSpellChoicesForLevels(className, classLevel)`
+- `_handleSpellSelection(className, level)` (opens modal)
+- `updateSpellSelection(className, level, selectedSpells)`
+- `_renderSpellChoice(choice, className)`
+- `_hideSpellNotification()`
+
+**New class:**
+```javascript
+// src/ui/components/class/ClassSpellNotificationController.js
+export class ClassSpellNotificationController {
+    constructor(spellContainer, cleanup, onSpellUpdate) { ... }
+    render(className) { ... }
+    async handleSelection(className, level) { ... }
+    async updateSelection(className, level, selectedSpells) { ... }
+    hide() { ... }
+}
+```
+
+### Task 10.4 — Extract `ClassChoiceQueryService.js` (~260 lines)
+
+**Methods to extract (lines ~1051–1310):**
+- `_getClassChoicesAtLevel(className, level, subclassData)`
+- `_getNoChoiceFeaturesAtLevel(className, level, classData)`
+- `_getSubclassDescription(subclass)`
+
+These are pure data query methods with no DOM interaction — they belong in a service-like utility, not a UI component.
+
+**New module:**
+```javascript
+// src/ui/components/class/ClassChoiceQueryService.js
+export class ClassChoiceQueryService {
+    getChoicesAtLevel(className, level, subclassData) { ... }
+    getNoChoiceFeaturesAtLevel(className, level, classData) { ... }
+    getSubclassDescription(subclass) { ... }
+}
+```
+
+### Task 10.5 — Extract `ClassChoiceRenderer.js` (~150 lines)
+
+**Methods to extract (lines ~1347–1670):**
+- `_renderClassChoices(className, choices, passiveFeatures)` — orchestrator
+- `_renderFeatureChoice(choice, className)` — dispatcher
+- `_renderSubclassChoice(choice, className)`
+- `_renderSubclassFeatureChoice(choice, _className)`
+- `_formatChoiceOptionLabel(opt, choice)`
+- `_toChoiceKey(featureName)`
+- `_toChoiceDefinition(raw)`
+
+**New class:**
+```javascript
+// src/ui/components/class/ClassChoiceRenderer.js
+export class ClassChoiceRenderer {
+    constructor(choicesContainer, cleanup, delegates) { ... }
+    async renderChoices(className, choices, passiveFeatures) { ... }
+    // ...private render dispatch methods
+}
+```
+
+The `delegates` parameter receives callbacks for opening modals, applying ASI, etc., decoupling this renderer from ClassCard directly.
+
+### Task 10.6 — Slim `ClassCard.js` to orchestrator
+
+After all extractions, `ClassCard.js` should contain only:
+- Constructor: Create sub-controllers, wire DOM references
+- `initialize()` / `cleanup()` lifecycle
+- Class selection & tab management (~140 lines)
+- `_updateClassChoices()` — delegates to sub-controllers
+- `_loadSavedClassSelection()` / `_syncWithCharacterProgression()`
+- Event listener setup / `_handleCharacterChanged()` / `_handleLevelUpComplete()`
+
+**Target size:** ~400–500 lines (down from 3,036).
+
+### Decomposition Order
+
+Execute extractions in this order to minimize merge conflicts:
+1. **Task 10.1** (InfoPanel) — most isolated, fewest dependencies on other ClassCard methods
+2. **Task 10.4** (QueryService) — pure logic, no DOM
+3. **Task 10.2** (ASIController) — self-contained UI block
+4. **Task 10.3** (SpellNotificationController) — self-contained UI block
+5. **Task 10.5** (ChoiceRenderer) — depends on the above being extracted first
+6. **Task 10.6** (Slim orchestrator) — final cleanup
+
+---
+
+## Execution Notes for AI Agents
+
+### General Rules
+1. **Read before editing.** Always read the full file (or the relevant section ±50 lines) before making changes.
+2. **One phase at a time.** Complete and verify each phase before starting the next.
+3. **Preserve existing behavior.** These are refactors, not feature changes. No functional behavior should change.
+4. **Follow existing conventions.** Match the codebase's naming (`camelCase` methods, `_` prefix for private, `PascalCase` classes), import style (ESM), and error patterns.
+5. **Use DOMCleanup for any new DOM event listeners.** Follow the pattern at `this._cleanup.on(element, 'event', handler)`.
+6. **Singleton exports for new services.** Follow the pattern: `export const fooService = new FooService()`.
+7. **No new tests** — tests are out of scope for this plan.
+8. **Do not refactor unrelated code.** Only touch what each task specifies.
+
+### Verification After Each Phase
+- Run `npm run check:lint` to verify no lint errors introduced.
+- Run `npm start` to verify the app launches and basic navigation works.
+- Check the browser console for new errors or warnings.
+
+---
+
+*End of remediation plan.*

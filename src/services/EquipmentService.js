@@ -2,6 +2,12 @@ import { unpackUid } from '../lib/5eToolsParser.js';
 import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
+	CARRY_CAPACITY_MULTIPLIER,
+	HEAVY_ENCUMBRANCE_MULTIPLIER,
+	LIGHT_ENCUMBRANCE_MULTIPLIER,
+	MAX_ATTUNEMENT_SLOTS,
+} from '../lib/GameRules.js';
+import {
 	addItemArgsSchema,
 	removeItemArgsSchema,
 	removeItemsBySourceArgsSchema,
@@ -11,10 +17,10 @@ import { itemService } from './ItemService.js';
 
 class EquipmentService {
 	constructor() {
-		this.MAX_ATTUNEMENT_SLOTS = 3;
-		this.CARRY_CAPACITY_MULTIPLIER = 15;
-		this.LIGHT_ENCUMBRANCE_MULTIPLIER = 5;
-		this.HEAVY_ENCUMBRANCE_MULTIPLIER = 10;
+		this.MAX_ATTUNEMENT_SLOTS = MAX_ATTUNEMENT_SLOTS;
+		this.CARRY_CAPACITY_MULTIPLIER = CARRY_CAPACITY_MULTIPLIER;
+		this.LIGHT_ENCUMBRANCE_MULTIPLIER = LIGHT_ENCUMBRANCE_MULTIPLIER;
+		this.HEAVY_ENCUMBRANCE_MULTIPLIER = HEAVY_ENCUMBRANCE_MULTIPLIER;
 	}
 
 	_getTypeCode(item) {

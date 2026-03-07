@@ -6,13 +6,12 @@ import { MainLogger } from '../Logger.js';
 import { IPC_CHANNELS } from './channels.js';
 
 import { CharacterSchema } from '../../lib/CharacterSchema.js';
+import { MAX_CHARACTER_SIZE, MAX_PORTRAIT_SIZE } from '../../lib/GameRules.js';
 import { CharacterImportService } from '../../services/CharacterImportService.js';
 
 // Validate that a character ID is safe for use as a filename.
 // Allows UUIDs, alphanumeric strings, hyphens, and underscores only.
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
-
-const MAX_CHARACTER_SIZE = 10 * 1024 * 1024; // 10MB
 
 function resolveCharacterPath(savePath, id) {
 	if (!id || typeof id !== 'string' || !SAFE_ID_PATTERN.test(id)) {
@@ -54,6 +53,11 @@ export async function embedPortraitData(character) {
 	}
 
 	try {
+		const stats = await fs.stat(portrait);
+		if (stats.size > MAX_PORTRAIT_SIZE) {
+			MainLogger.warn('CharacterHandlers', 'Portrait file exceeds size limit, skipping embed');
+			return;
+		}
 		const buffer = await fs.readFile(portrait);
 		character.embeddedPortrait = {
 			data: `data:${mimeType};base64,${buffer.toString('base64')}`,
@@ -346,6 +350,12 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				}
 
 				sourceFilePath = result.filePaths[0];
+
+				// Validate file size before reading content
+				const stats = await fs.stat(sourceFilePath);
+				if (stats.size > MAX_CHARACTER_SIZE) {
+					return { success: false, error: `File exceeds maximum size of ${MAX_CHARACTER_SIZE / (1024 * 1024)}MB` };
+				}
 
 				// Use service to read, validate, and check for conflicts
 				const importResult =

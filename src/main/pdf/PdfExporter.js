@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
+import { MAX_PORTRAIT_SIZE } from '../../lib/GameRules.js';
 import { MainLogger } from '../Logger.js';
 import { buildFieldMap } from './FieldMapping.js';
 
@@ -240,6 +241,12 @@ async function embedPortrait(pdfDoc, form, portraitPath) {
     const resolvedPath = path.isAbsolute(portraitPath)
         ? portraitPath
         : path.join(RENDERER_ROOT, portraitPath);
+
+    const stats = await fs.stat(resolvedPath);
+    if (stats.size > MAX_PORTRAIT_SIZE) {
+        MainLogger.warn('PdfExporter', 'Portrait file exceeds size limit, skipping embed');
+        return;
+    }
 
     const imageBytes = await fs.readFile(resolvedPath);
 

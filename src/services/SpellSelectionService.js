@@ -172,6 +172,11 @@ class SpellSelectionService {
 			return {};
 		}
 
+		// Try data-driven approach from class JSON first
+		const dataSlots = this._getSpellSlotsFromClassData(classData, level);
+		if (dataSlots) return dataSlots;
+
+		// Fallback to hardcoded tables
 		const progression = classData.casterProgression;
 		let casterLevel = level;
 
@@ -187,6 +192,63 @@ class SpellSelectionService {
 
 		// Use standard spell slot table for full/half/third casters
 		return this.getStandardSpellSlots(casterLevel);
+	}
+
+	_getSpellSlotsFromClassData(classData, level) {
+		if (!classData.classTableGroups) return null;
+
+		if (classData.casterProgression === 'pact') {
+			return this._getPactMagicSlotsFromData(classData, level);
+		}
+
+		const spellTable = classData.classTableGroups.find(g => g.rowsSpellProgression);
+		if (!spellTable?.rowsSpellProgression) return null;
+
+		const index = level - 1;
+		if (index < 0 || index >= spellTable.rowsSpellProgression.length) return null;
+
+		const levelSlots = spellTable.rowsSpellProgression[index];
+		if (!levelSlots) return null;
+
+		const result = {};
+		for (let spellLevel = 1; spellLevel <= 9; spellLevel++) {
+			if (levelSlots[spellLevel - 1]) {
+				result[spellLevel] = {
+					max: levelSlots[spellLevel - 1],
+					current: levelSlots[spellLevel - 1],
+				};
+			}
+		}
+		return result;
+	}
+
+	_getPactMagicSlotsFromData(classData, level) {
+		const rows = classData.classTableGroups?.[0]?.rows;
+		if (!rows) return null;
+
+		const index = level - 1;
+		if (index < 0 || index >= rows.length) return null;
+
+		const row = rows[index];
+		if (!row || row.length < 4) return null;
+
+		const slotCount = row[2];
+		const slotLevelStr = String(row[3]);
+
+		// Parse slot level from filter link: "{@filter 5th|spells|level=5|class=Warlock}"
+		const levelMatch = slotLevelStr.match(/level=(\d+)/);
+		const slotLevel = levelMatch ? parseInt(levelMatch[1], 10) : 1;
+
+		if (!slotCount) return {};
+
+		const count = Array.isArray(slotCount) ? slotCount[0] : slotCount;
+		return {
+			[slotLevel]: {
+				max: count,
+				current: count,
+				isPactMagic: true,
+			},
+		};
 	}
 
 	getStandardSpellSlots(casterLevel) {

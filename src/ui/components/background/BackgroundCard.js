@@ -947,10 +947,10 @@ export class BackgroundCard {
 					}
 				} else {
 					// No specific options means any language - load from service
-					const { proficiencyService } = await import(
-						'../../../services/ProficiencyService.js'
+					const { proficiencyDescriptionService } = await import(
+						'../../../services/ProficiencyDescriptionService.js'
 					);
-					const allLanguages = await proficiencyService.getStandardLanguages();
+					const allLanguages = await proficiencyDescriptionService.getStandardLanguages();
 					console.debug('[BackgroundCard]', 'Loaded standard languages:', allLanguages);
 					for (const lang of allLanguages) {
 						const norm = TextProcessor.normalizeForLookup(lang);
@@ -1045,10 +1045,10 @@ export class BackgroundCard {
 						}
 					} else {
 						// No specific options means any language - load from service
-						const { proficiencyService } = await import(
-							'../../../services/ProficiencyService.js'
+						const { proficiencyDescriptionService } = await import(
+							'../../../services/ProficiencyDescriptionService.js'
 						);
-						const allLanguages = await proficiencyService.getStandardLanguages();
+						const allLanguages = await proficiencyDescriptionService.getStandardLanguages();
 						console.debug('[BackgroundCard]', 'Loaded standard languages for empty options:', allLanguages.length);
 						for (const lang of allLanguages) {
 							const norm = TextProcessor.normalizeForLookup(lang);

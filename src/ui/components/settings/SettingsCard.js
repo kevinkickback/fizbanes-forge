@@ -100,7 +100,7 @@ export class SettingsCard {
                 dataSourceDisplay.textContent = `Source Type: URL\nURL: ${sourceValue}`;
             } else if (sourceType === 'local') {
                 dataSourceDisplay.textContent = `Source Type: Local Folder\nPath: ${sourceValue}`;
-                dataSourceDisplay.style.whiteSpace = 'pre-line';
+                dataSourceDisplay.classList.add('u-pre-line');
             }
         } catch (error) {
             console.error('[SettingsCard]', 'Error updating data source display', error);

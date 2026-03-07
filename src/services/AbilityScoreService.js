@@ -11,6 +11,7 @@ import {
 	POINT_BUY_BUDGET,
 } from '../lib/AbilityScoreUtils.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { POINT_BUY_COSTS, STANDARD_ARRAY } from '../lib/GameRules.js';
 import TextProcessor from '../lib/TextProcessor.js';
 import {
 	handleAbilityChoiceArgsSchema,
@@ -26,20 +27,9 @@ class AbilityScoreService extends BaseDataService {
 		// Use canonical lowercase abbreviations (str, dex, con, int, wis, cha) from 5eToolsParser
 		this._allAbilities = [...ABILITY_ABBREVIATIONS];
 
-		// Point buy costs for ability scores
-		this._pointBuyCosts = new Map([
-			[8, 0],
-			[9, 1],
-			[10, 2],
-			[11, 3],
-			[12, 4],
-			[13, 5],
-			[14, 7],
-			[15, 9],
-		]);
+		this._pointBuyCosts = POINT_BUY_COSTS;
 
-		// Standard array values that can be assigned to abilities
-		this._standardArrayValues = [15, 14, 13, 12, 10, 8];
+		this._standardArrayValues = [...STANDARD_ARRAY];
 		this._assignedStandardArrayValues = {};
 
 		// Map to store ability choices

@@ -703,11 +703,11 @@ export class CharacterCreationModal {
 				character.optionalProficiencies.languages.background.allowed = count;
 
 				if (type === 'any' || type === 'anystandard' || from.length === 0) {
-					const { proficiencyService } = await import(
-						'../../../services/ProficiencyService.js'
+					const { proficiencyDescriptionService } = await import(
+						'../../../services/ProficiencyDescriptionService.js'
 					);
 					character.optionalProficiencies.languages.background.options =
-						await proficiencyService.getStandardLanguages();
+						await proficiencyDescriptionService.getStandardLanguages();
 				} else {
 					character.optionalProficiencies.languages.background.options = from;
 				}

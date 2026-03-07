@@ -1,7 +1,7 @@
 // Bootstrap modal components for app initialization and data refresh.
 
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
-import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
+import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal, resetModalBodyState } from '../../../lib/ModalCleanupUtility.js';
 
 //=============================================================================
 // Loading Modal - Initial app startup
@@ -21,9 +21,7 @@ export class LoadingModal {
 		for (const backdrop of existingBackdrops) {
 			backdrop.remove();
 		}
-		document.body.classList.remove('modal-open');
-		document.body.style.overflow = '';
-		document.body.style.paddingRight = '';
+		resetModalBodyState();
 
 		this.modal = document.getElementById('loadingModal');
 		if (!this.modal) {

@@ -3,6 +3,14 @@ import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import { CharacterSchema } from '../lib/CharacterSchema.js';
 
+/**
+ * Handles character file import workflow.
+ *
+ * Error strategy: RETURN-object. This service returns { success, error, step }
+ * objects instead of throwing because it communicates multi-step progress
+ * to the UI (read → validate → conflict-detect → resolve). This is intentional
+ * at the IPC/workflow boundary.
+ */
 export class CharacterImportService {
 	constructor(savePath) {
 		this.savePath = savePath;

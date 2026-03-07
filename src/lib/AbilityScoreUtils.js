@@ -5,6 +5,11 @@ import {
     numberToWords,
     toSentenceCase,
 } from './5eToolsParser.js';
+import {
+    POINT_BUY_BUDGET,
+    POINT_BUY_COSTS,
+    STANDARD_ARRAY,
+} from './GameRules.js';
 
 //=============================================================================
 // Helper Functions
@@ -12,22 +17,7 @@ import {
 
 const ABILITIES = ABILITY_ABBREVIATIONS;
 
-export { formatModifierNumber as formatModifier };
-
-const POINT_BUY_COSTS = new Map([
-    [8, 0],
-    [9, 1],
-    [10, 2],
-    [11, 3],
-    [12, 4],
-    [13, 5],
-    [14, 7],
-    [15, 9],
-]);
-
-export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
-
-export const POINT_BUY_BUDGET = 27;
+export { formatModifierNumber as formatModifier, POINT_BUY_BUDGET, STANDARD_ARRAY };
 
 export function getPointBuyCost(score) {
     return POINT_BUY_COSTS.get(score) || 0;

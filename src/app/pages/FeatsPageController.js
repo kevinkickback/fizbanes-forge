@@ -129,7 +129,7 @@ export class FeatsPageController extends BasePageController {
         if (maxFeatsEl) maxFeatsEl.textContent = availability.max ?? 0;
 
         if (selectionCounter) {
-            selectionCounter.style.display = availability.max > 0 ? '' : 'none';
+            selectionCounter.classList.toggle('u-hidden', availability.max <= 0);
         }
 
         if (addFeatBtn) {
