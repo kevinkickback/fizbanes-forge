@@ -17,7 +17,7 @@ class _AppState {
 	}
 
 	getState() {
-		return this.state;
+		return { ...this.state };
 	}
 
 	get(key) {

@@ -38,8 +38,7 @@ export class HomePageController extends BasePageController {
                 sortSelect.parentNode.replaceChild(newSortSelect, sortSelect);
 
                 newSortSelect.addEventListener('change', async () => {
-                    const reloadCharacters = await CharacterManager.loadCharacterList();
-                    await this._renderCharacterList(reloadCharacters);
+                    this._reorderCards();
                 });
             }
 
@@ -151,6 +150,24 @@ export class HomePageController extends BasePageController {
         }
 
         return sorted;
+    }
+
+    _reorderCards() {
+        const characterList = document.getElementById('characterList');
+        if (!characterList || !this.currentCharacters?.length) return;
+
+        const sortSelect = document.getElementById('sortSelect');
+        const sortOption = sortSelect ? sortSelect.value : 'name';
+        const sorted = this._sortCharacters(this.currentCharacters, sortOption);
+        this.currentCharacters = sorted;
+
+        // Reorder existing DOM nodes rather than rebuilding
+        for (const character of sorted) {
+            const card = characterList.querySelector(`[data-character-id="${character.id}"]`);
+            if (card) {
+                characterList.appendChild(card);
+            }
+        }
     }
 
     async _renderCharacterList(characters) {

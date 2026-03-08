@@ -1,4 +1,3 @@
-import { unpackUid } from '../lib/5eToolsParser.js';
 import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import {
@@ -13,7 +12,7 @@ import {
 	removeItemsBySourceArgsSchema,
 	validateInput,
 } from '../lib/ValidationSchemas.js';
-import { itemService } from './ItemService.js';
+import { backgroundEquipmentResolverService } from './BackgroundEquipmentResolverService.js';
 
 class EquipmentService {
 	constructor() {
@@ -294,11 +293,7 @@ class EquipmentService {
 	}
 
 	_getCarryCapacityModifier(character) {
-		if (character.traits?.includes('Powerful Build')) {
-			return 2;
-		}
-
-		if (character.race?.traits?.includes('Powerful Build')) {
+		if (character.features?.traits?.has('Powerful Build')) {
 			return 2;
 		}
 
@@ -433,96 +428,11 @@ class EquipmentService {
 	}
 
 	_copperToCurrency(value) {
-		const gp = Math.floor(value / 100);
-		const remainder = value % 100;
-		const sp = Math.floor(remainder / 10);
-		const cp = remainder % 10;
-		return { gp, sp, cp };
+		return backgroundEquipmentResolverService._copperToCurrency(value);
 	}
 
 	resolveBackgroundEquipment(background, equipmentChoices) {
-		const EQUIPMENT_TYPE_LABELS = {
-			toolArtisan: "Artisan's Tools (any)",
-			instrumentMusical: 'Musical Instrument (any)',
-			setGaming: 'Gaming Set (any)',
-		};
-
-		const items = [];
-		const currency = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
-
-		const collectItems = (arr) => {
-			for (const entry of arr) {
-				if (typeof entry === 'string') {
-					const { name, source } = unpackUid(entry);
-					if (!name) continue;
-					try {
-						const resolved = itemService.getItem(name, source || 'PHB');
-						items.push({ ...resolved, quantity: 1 });
-					} catch {
-						items.push({ name, source: source || 'PHB', weight: 0, quantity: 1 });
-					}
-				} else if (entry.value != null && !entry.item && !entry.special) {
-					const converted = this._copperToCurrency(entry.value);
-					currency.gp += converted.gp;
-					currency.sp += converted.sp;
-					currency.cp += converted.cp;
-				} else if (entry.equipmentType) {
-					const name =
-						EQUIPMENT_TYPE_LABELS[entry.equipmentType] || entry.equipmentType;
-					items.push({ name, source: 'PHB', weight: 0, quantity: 1 });
-				} else if (entry.item) {
-					const { name, source } = unpackUid(entry.item);
-					const qty = entry.quantity || 1;
-					if (entry.containsValue) {
-						const converted = this._copperToCurrency(entry.containsValue);
-						currency.gp += converted.gp;
-						currency.sp += converted.sp;
-						currency.cp += converted.cp;
-					}
-					try {
-						const resolved = itemService.getItem(
-							entry.displayName || name,
-							source || 'PHB',
-						);
-						items.push({ ...resolved, quantity: qty });
-					} catch {
-						items.push({
-							name: entry.displayName || name,
-							source: source || 'PHB',
-							weight: 0,
-							quantity: qty,
-						});
-					}
-				} else if (entry.special) {
-					items.push({
-						name: entry.special,
-						source: 'PHB',
-						weight: 0,
-						quantity: entry.quantity || 1,
-					});
-				}
-			}
-		};
-
-		if (!background?.equipment) return { items, currency };
-
-		let choiceIndex = 0;
-		for (let i = 0; i < background.equipment.length; i++) {
-			const eq = background.equipment[i];
-
-			if (eq._) collectItems(eq._);
-
-			const choiceKeys = Object.keys(eq).filter(k => k !== '_').sort();
-			if (choiceKeys.length > 1) {
-				const choiceKey = equipmentChoices?.[choiceIndex];
-				if (choiceKey && eq[choiceKey]) {
-					collectItems(eq[choiceKey]);
-				}
-				choiceIndex++;
-			}
-		}
-
-		return { items, currency };
+		return backgroundEquipmentResolverService.resolve(background, equipmentChoices);
 	}
 
 	applyBackgroundEquipment(character, background, equipmentChoices) {

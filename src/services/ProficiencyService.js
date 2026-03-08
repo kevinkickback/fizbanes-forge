@@ -1,6 +1,7 @@
 import { toSentenceCase } from '../lib/5eToolsParser.js';
 import { ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
+import { PROFICIENCY_TYPES } from '../lib/GameRules.js';
 import TextProcessor from '../lib/TextProcessor.js';
 import {
 	addProficiencyArgsSchema,
@@ -22,7 +23,12 @@ export class ProficiencyService extends BaseDataService {
 		super.resetData();
 	}
 
-
+	_syncProficiencyArray(character, type) {
+		if (!character.proficiencySources?.[type]) return;
+		character.proficiencies[type] = Array.from(
+			character.proficiencySources[type].keys(),
+		);
+	}
 
 	/**
 	 * Adds a proficiency to a character
@@ -53,9 +59,6 @@ export class ProficiencyService extends BaseDataService {
 		);
 
 		const wasNew = !existingProf;
-		if (wasNew) {
-			char.proficiencies[profType].push(profName);
-		}
 
 		const trackKey = existingProf || profName;
 		if (!char.proficiencySources[profType].has(trackKey)) {
@@ -63,7 +66,9 @@ export class ProficiencyService extends BaseDataService {
 		}
 		char.proficiencySources[profType].get(trackKey).add(profSource);
 
-		if (profType === 'skills' && !profSource.includes('Choice')) {
+		this._syncProficiencyArray(char, profType);
+
+		if (profType === PROFICIENCY_TYPES.SKILLS && !profSource.includes('Choice')) {
 			this._refundOptionalSkill(char, profName, profSource);
 		}
 
@@ -109,16 +114,11 @@ export class ProficiencyService extends BaseDataService {
 
 					if (sources.size === 0) {
 						char.proficiencySources[type].delete(proficiency);
-
-						if (char.proficiencies[type]) {
-							const index = char.proficiencies[type].indexOf(proficiency);
-							if (index !== -1) {
-								char.proficiencies[type].splice(index, 1);
-							}
-						}
 					}
 				}
 			}
+
+			this._syncProficiencyArray(char, type);
 		}
 
 		eventBus.emit(EVENTS.PROFICIENCY_REMOVED_BY_SOURCE, {
@@ -182,12 +182,12 @@ export class ProficiencyService extends BaseDataService {
 		}
 
 		const types = [
-			'skills',
-			'savingThrows',
-			'languages',
-			'tools',
-			'armor',
-			'weapons',
+			PROFICIENCY_TYPES.SKILLS,
+			PROFICIENCY_TYPES.SAVING_THROWS,
+			PROFICIENCY_TYPES.LANGUAGES,
+			PROFICIENCY_TYPES.TOOLS,
+			PROFICIENCY_TYPES.ARMOR,
+			PROFICIENCY_TYPES.WEAPONS,
 		];
 
 		if (!character.proficiencies) {
@@ -212,7 +212,7 @@ export class ProficiencyService extends BaseDataService {
 			character.optionalProficiencies = {};
 		}
 
-		const optionalTypes = ['skills', 'languages', 'tools'];
+		const optionalTypes = [PROFICIENCY_TYPES.SKILLS, PROFICIENCY_TYPES.LANGUAGES, PROFICIENCY_TYPES.TOOLS];
 		for (const type of optionalTypes) {
 			if (!character.optionalProficiencies[type]) {
 				character.optionalProficiencies[type] = {
@@ -241,10 +241,10 @@ export class ProficiencyService extends BaseDataService {
 			}
 		}
 
-		if (character.proficiencies.languages.length === 0) {
+		if (character.proficiencies[PROFICIENCY_TYPES.LANGUAGES].length === 0) {
 			this.addProficiency(
 				character,
-				'languages',
+				PROFICIENCY_TYPES.LANGUAGES,
 				'Common',
 				'Default',
 			);
@@ -317,7 +317,7 @@ export class ProficiencyService extends BaseDataService {
 
 				this._removeProficiencyFromSource(
 					character,
-					'skills',
+					PROFICIENCY_TYPES.SKILLS,
 					matchingProf,
 					`${toSentenceCase(source)} Choice`,
 				);
@@ -327,10 +327,10 @@ export class ProficiencyService extends BaseDataService {
 		}
 
 		if (refunded) {
-			this._recalculateOptionalProficiencies(character, 'skills');
+			this._recalculateOptionalProficiencies(character, PROFICIENCY_TYPES.SKILLS);
 
 			eventBus.emit(EVENTS.PROFICIENCY_REFUNDED, {
-				type: 'skills',
+				type: PROFICIENCY_TYPES.SKILLS,
 				proficiency,
 				character,
 			});
@@ -365,16 +365,9 @@ export class ProficiencyService extends BaseDataService {
 
 		if (sources.size === 0) {
 			character.proficiencySources[type].delete(foundProf);
-
-			if (character.proficiencies[type]) {
-				const index = character.proficiencies[type].findIndex(
-					(p) => TextProcessor.normalizeForLookup(p) === targetLower,
-				);
-				if (index > -1) {
-					character.proficiencies[type].splice(index, 1);
-				}
-			}
 		}
+
+		this._syncProficiencyArray(character, type);
 	}
 }
 

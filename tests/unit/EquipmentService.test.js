@@ -21,6 +21,9 @@ function createCharacterWithInventory(overrides = {}) {
     return {
         id: 'char-test-1',
         abilityScores: { strength: 10 },
+        features: {
+            traits: new Map(),
+        },
         inventory: {
             items: [],
             equipped: [],
@@ -438,14 +441,13 @@ describe('EquipmentService', () => {
 
         it('should double capacity for Powerful Build trait', () => {
             character.abilityScores.strength = 10;
-            character.traits = ['Powerful Build'];
+            character.features.traits.set('Powerful Build', { name: 'Powerful Build', source: 'race' });
             expect(equipmentService.calculateCarryCapacity(character)).toBe(300);
         });
 
-        it('should double capacity for Powerful Build on race traits', () => {
+        it('should not double capacity without Powerful Build trait', () => {
             character.abilityScores.strength = 10;
-            character.race = { traits: ['Powerful Build'] };
-            expect(equipmentService.calculateCarryCapacity(character)).toBe(300);
+            expect(equipmentService.calculateCarryCapacity(character)).toBe(150);
         });
     });
 

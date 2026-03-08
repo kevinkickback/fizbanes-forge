@@ -16,35 +16,25 @@ describe('ProficiencyService', () => {
 
     describe('Constructor', () => {
         it('should initialize with default values', () => {
-            expect(proficiencyService._skillData).toBe(null);
-            expect(proficiencyService._languageData).toBe(null);
-            expect(proficiencyService._bookData).toBe(null);
+            expect(proficiencyService._data).toBe(null);
         });
     });
 
     describe('resetData', () => {
         it('should clear all cached data fields', () => {
-            proficiencyService._skillData = [{ name: 'Athletics' }];
-            proficiencyService._languageData = [{ name: 'Common' }];
-            proficiencyService._bookData = { data: [] };
+            proficiencyService._data = [{ name: 'Athletics' }];
 
             proficiencyService.resetData();
 
-            expect(proficiencyService._skillData).toBe(null);
-            expect(proficiencyService._languageData).toBe(null);
-            expect(proficiencyService._bookData).toBe(null);
+            expect(proficiencyService._data).toBe(null);
         });
 
         it('should reset when DATA_INVALIDATED event is emitted', () => {
-            proficiencyService._skillData = [{ name: 'Athletics' }];
-            proficiencyService._languageData = [{ name: 'Common' }];
-            proficiencyService._bookData = { data: [] };
+            proficiencyService._data = [{ name: 'Athletics' }];
 
             eventBus.emit(EVENTS.DATA_INVALIDATED);
 
-            expect(proficiencyService._skillData).toBe(null);
-            expect(proficiencyService._languageData).toBe(null);
-            expect(proficiencyService._bookData).toBe(null);
+            expect(proficiencyService._data).toBe(null);
         });
     });
 
@@ -439,7 +429,7 @@ describe('ProficiencyService', () => {
             );
         });
 
-        it('should handle null character gracefully', () => {
+        it('should throw ValidationError for null character', () => {
             expect(() =>
                 proficiencyService.setOptionalProficiencies(
                     null,
@@ -448,10 +438,10 @@ describe('ProficiencyService', () => {
                     2,
                     ['Athletics'],
                 ),
-            ).not.toThrow();
+            ).toThrow(ValidationError);
         });
 
-        it('should handle missing type parameter', () => {
+        it('should throw ValidationError for missing type parameter', () => {
             expect(() =>
                 proficiencyService.setOptionalProficiencies(
                     character,
@@ -460,10 +450,10 @@ describe('ProficiencyService', () => {
                     2,
                     ['Athletics'],
                 ),
-            ).not.toThrow();
+            ).toThrow(ValidationError);
         });
 
-        it('should handle missing source parameter', () => {
+        it('should throw ValidationError for missing source parameter', () => {
             expect(() =>
                 proficiencyService.setOptionalProficiencies(
                     character,
@@ -472,7 +462,7 @@ describe('ProficiencyService', () => {
                     2,
                     ['Athletics'],
                 ),
-            ).not.toThrow();
+            ).toThrow(ValidationError);
         });
 
         it('should create optional proficiency structure if missing', () => {

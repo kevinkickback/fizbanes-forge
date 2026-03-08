@@ -77,6 +77,24 @@ class SpellService extends BaseDataService {
 		return this._data?.spell || [];
 	}
 
+	/**
+	 * Batch O(1) lookup by name array.
+	 * Returns a Map of name → spell (or null if not found).
+	 */
+	getSpells(names, source = 'PHB') {
+		const results = new Map();
+		if (!Array.isArray(names)) return results;
+		for (const name of names) {
+			const spell = this.lookupByNameAndSource(
+				this._spellLookupMap,
+				name,
+				source,
+			);
+			results.set(name, spell || null);
+		}
+		return results;
+	}
+
 	/** O(1) lookup by name, then checks source.
 	 * @param {string} name - Spell name
 	 * @param {string} [source='PHB'] - Source book

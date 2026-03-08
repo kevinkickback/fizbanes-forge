@@ -431,6 +431,11 @@ export function processString(text) {
 	return renderStringWithTags(text);
 }
 
+export function stripTags(text) {
+	if (!text) return '';
+	return text.replace(/\{@\w+\s+([^|}]+)[^}]*\}/g, '$1');
+}
+
 export function processEntries(entries) {
 	if (!Array.isArray(entries)) {
 		return processString(String(entries));
@@ -458,5 +463,6 @@ export const Renderer5etools = {
 	renderStringWithTags,
 	processString,
 	processEntries,
+	stripTags,
 	escapeHtml,
 };

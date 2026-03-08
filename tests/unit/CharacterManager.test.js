@@ -507,6 +507,15 @@ describe('CharacterManager', () => {
             expect(updated.name).toBe('New Name');
             expect(updated.playerName).toBe('New Player');
         });
+
+        it('should reject invalid update keys', () => {
+            const character = new Character({ id: 'char-123', name: 'Original' });
+            AppState.setCurrentCharacter(character);
+
+            expect(() =>
+                CharacterManager.updateCharacter({ invalidKey: 'bad' }),
+            ).toThrow(ValidationError);
+        });
     });
 
     describe('getCurrentCharacter', () => {

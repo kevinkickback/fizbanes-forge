@@ -1,17 +1,43 @@
 import { DataError } from './Errors.js';
 import { eventBus, EVENTS } from './EventBus.js';
 
+const MAX_CACHE_SIZE = 200;
+
 const state = {
 	cache: {},
 	loading: {},
+	cacheAccessOrder: [],
 	baseUrl: '', // Base URL now empty since data is at root
 };
+
+function _addToCache(url, data) {
+	// Evict least recently used if cache is full
+	if (Object.keys(state.cache).length >= MAX_CACHE_SIZE && !state.cache[url]) {
+		const lruUrl = state.cacheAccessOrder.shift();
+		if (lruUrl) {
+			delete state.cache[lruUrl];
+			console.debug('[DataLoader]', `Evicted LRU entry: ${lruUrl}`);
+		}
+	}
+
+	state.cache[url] = data;
+	_updateCacheAccess(url);
+}
+
+function _updateCacheAccess(url) {
+	const index = state.cacheAccessOrder.indexOf(url);
+	if (index > -1) {
+		state.cacheAccessOrder.splice(index, 1);
+	}
+	state.cacheAccessOrder.push(url);
+}
 
 async function loadJSON(url) {
 	const start = performance.now();
 
 	// Check in-memory cache first
 	if (state.cache[url]) {
+		_updateCacheAccess(url);
 		console.debug('[DataLoader]', `Cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
 		return state.cache[url];
 	}
@@ -55,8 +81,8 @@ async function loadJSON(url) {
 				);
 			}
 
-			// Cache in memory for same-session reuse
-			state.cache[url] = data;
+			// Cache in memory for same-session reuse (LRU bounded)
+			_addToCache(url, data);
 			delete state.loading[url];
 
 			console.debug('[DataLoader]', `Loaded ${url} from disk, duration: ${(performance.now() - loadStart).toFixed(2)}ms, total: ${(performance.now() - start).toFixed(2)}ms`);
@@ -114,6 +140,7 @@ async function loadSources() {
 function clearCache() {
 	state.cache = {};
 	state.loading = {};
+	state.cacheAccessOrder = [];
 	console.debug('[DataLoader]', 'Cache cleared');
 }
 

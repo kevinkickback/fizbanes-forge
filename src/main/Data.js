@@ -426,7 +426,7 @@ export async function buildDataManifest(remoteUrl) {
 }
 
 /** Fetch plain text from a URL. */
-function fetchTextFromUrl(urlString, timeout = 10000) {
+function fetchTextFromUrl(urlString, timeout = 30000) {
 	return new Promise((resolve) => {
 		const urlObj = new URL(urlString);
 		const protocol = urlObj.protocol === 'https:' ? https : http;
@@ -474,9 +474,11 @@ export async function downloadDataFromUrl(
 	manifest,
 	onProgress,
 ) {
+	const OVERALL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 	const baseUrl = buildRawDataBaseUrl(url);
 	const failed = [];
 	let skippedCount = 0;
+	let aborted = false;
 
 	MainLogger.debug('DataFolderManager', 'Starting download', {
 		url,
@@ -484,6 +486,11 @@ export async function downloadDataFromUrl(
 		targetDir,
 		filesCount: manifest.length,
 	});
+
+	const overallTimer = setTimeout(() => {
+		aborted = true;
+		MainLogger.warn('DataFolderManager', 'Overall download timeout reached (5 min)');
+	}, OVERALL_TIMEOUT_MS);
 
 	try {
 		// Check if target directory exists (incremental update case)
@@ -506,6 +513,18 @@ export async function downloadDataFromUrl(
 		const total = manifest.length;
 
 		for (const relPath of manifest) {
+			if (aborted) {
+				const remaining = manifest.length - completed;
+				MainLogger.warn('DataFolderManager', `Download timed out with ${remaining} files remaining`);
+				return {
+					success: false,
+					downloaded: manifest.length - failed.length - skippedCount - remaining,
+					skipped: skippedCount,
+					failed,
+					error: 'Download timed out after 5 minutes',
+				};
+			}
+
 			const remoteUrl = `${baseUrl}/${relPath.replace(/\\/g, '/')}`;
 			const localPath = path.join(targetDir, relPath);
 
@@ -620,6 +639,8 @@ export async function downloadDataFromUrl(
 	} catch (error) {
 		MainLogger.error('DataFolderManager', 'Download failed:', error);
 		return { success: false, downloaded: 0, error: error.message };
+	} finally {
+		clearTimeout(overallTimer);
 	}
 }
 

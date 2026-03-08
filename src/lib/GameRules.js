@@ -35,3 +35,34 @@ export const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024;
 
 /** Default ASI levels fallback (used when class data unavailable) */
 export const DEFAULT_ASI_LEVELS = [4, 8, 12, 16, 19];
+
+export const PROFICIENCY_TYPES = Object.freeze({
+    SKILLS: 'skills',
+    SAVING_THROWS: 'savingThrows',
+    WEAPONS: 'weapons',
+    TOOLS: 'tools',
+    ARMOR: 'armor',
+    LANGUAGES: 'languages',
+});
+
+/** Default hit dice per class (fallback when class JSON lacks hd field) */
+export const DEFAULT_HIT_DICE = Object.freeze({
+    Barbarian: 'd12',
+    Bard: 'd8',
+    Cleric: 'd8',
+    Druid: 'd8',
+    Fighter: 'd10',
+    Monk: 'd8',
+    Paladin: 'd10',
+    Ranger: 'd10',
+    Rogue: 'd8',
+    Sorcerer: 'd6',
+    Warlock: 'd8',
+    Wizard: 'd6',
+});
+
+/** Parse a hit dice string (e.g. "d8") into its numeric face value. Returns 8 as default. */
+export function parseHitDice(hitDice) {
+    const match = hitDice?.match(/d(\d+)/);
+    return match ? parseInt(match[1], 10) : 8;
+}

@@ -68,6 +68,7 @@ describe('embedPortraitData()', () => {
 
     it('should embed a PNG portrait as a base64 data URL', async () => {
         const fakeBuffer = Buffer.from('fake-image-bytes');
+        fsMock.stat.mockResolvedValueOnce({ size: 1024 });
         fsMock.readFile.mockResolvedValueOnce(fakeBuffer);
         const character = { portrait: '/portraits/hero.png' };
 
@@ -83,6 +84,7 @@ describe('embedPortraitData()', () => {
 
     it('should embed a JPEG portrait correctly', async () => {
         const fakeBuffer = Buffer.from('jpeg-bytes');
+        fsMock.stat.mockResolvedValueOnce({ size: 1024 });
         fsMock.readFile.mockResolvedValueOnce(fakeBuffer);
         const character = { portrait: '/portraits/warrior.jpg' };
 
@@ -94,6 +96,7 @@ describe('embedPortraitData()', () => {
 
     it('should embed a WebP portrait correctly', async () => {
         const fakeBuffer = Buffer.from('webp-bytes');
+        fsMock.stat.mockResolvedValueOnce({ size: 1024 });
         fsMock.readFile.mockResolvedValueOnce(fakeBuffer);
         const character = { portrait: '/portraits/mage.webp' };
 

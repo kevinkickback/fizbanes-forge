@@ -35,7 +35,7 @@ export class Character {
 			}
 		}
 
-		this.background = data.background || '';
+		this.background = data.background || null;
 		this.backgroundFeature = data.backgroundFeature || '';
 		this.createdAt = data.createdAt || new Date().toISOString();
 		this.lastModified = data.lastModified || new Date().toISOString();
@@ -262,6 +262,12 @@ export class Character {
 		this.progressionHistory = data.progressionHistory || {};
 
 		proficiencyService.initializeProficiencyStructures(this);
+	}
+
+	getProficienciesByType(type) {
+		const sources = this.proficiencySources?.[type];
+		if (!sources || sources.size === 0) return [];
+		return Array.from(sources.keys());
 	}
 
 	getAbilityScore(ability) {

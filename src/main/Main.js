@@ -25,6 +25,16 @@ import {
 import { createMainWindow, getMainWindow } from './Window.js';
 
 // Environment variables loaded from .env file (see .env.example)
+// Defense-in-depth: force debug flags off in packaged/production builds
+if (app.isPackaged && process.env.FF_DEBUG === 'true') {
+	console.warn('[Main] FF_DEBUG forced off in packaged build');
+	process.env.FF_DEBUG = 'false';
+}
+if (app.isPackaged && process.env.FF_DEVTOOLS === 'true') {
+	console.warn('[Main] FF_DEVTOOLS forced off in packaged build');
+	process.env.FF_DEVTOOLS = 'false';
+}
+
 const DEBUG_MODE = process.env.FF_DEBUG === 'true' || false;
 const ENABLE_DEVTOOLS = process.env.FF_DEVTOOLS === 'true';
 

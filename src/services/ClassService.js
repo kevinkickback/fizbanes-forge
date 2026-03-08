@@ -1,5 +1,7 @@
+import { stripTags } from '../lib/5eToolsRenderer.js';
 import { DataLoader } from '../lib/DataLoader.js';
 import { NotFoundError } from '../lib/Errors.js';
+import { DEFAULT_HIT_DICE } from '../lib/GameRules.js';
 import {
 	classIdentifierSchema,
 	subclassIdentifierSchema,
@@ -202,23 +204,7 @@ class ClassService extends BaseDataService {
 			}
 		}
 
-		// Fallback to defaults if not found in class data
-		const defaultHitDice = {
-			Barbarian: 'd12',
-			Bard: 'd8',
-			Cleric: 'd8',
-			Druid: 'd8',
-			Fighter: 'd10',
-			Monk: 'd8',
-			Paladin: 'd10',
-			Ranger: 'd10',
-			Rogue: 'd8',
-			Sorcerer: 'd6',
-			Warlock: 'd8',
-			Wizard: 'd6',
-		};
-
-		return defaultHitDice[className] || 'd8';
+		return DEFAULT_HIT_DICE[className] || 'd8';
 	}
 
 	/** Alias for getClass() for backward compatibility */
@@ -533,11 +519,11 @@ class ClassService extends BaseDataService {
 		const labels = tableEntry.colLabels;
 
 		return tableEntry.rows.map((row) => {
-			const value = this._stripTags(String(row[0] || ''));
+			const value = stripTags(String(row[0] || ''));
 			const metadata = {};
 			for (let i = 1; i < labels.length; i++) {
 				const colKey = labels[i].toLowerCase().replace(/\s+/g, '_');
-				metadata[colKey] = this._stripTags(String(row[i] || ''));
+				metadata[colKey] = stripTags(String(row[i] || ''));
 			}
 			return {
 				value,
@@ -545,14 +531,6 @@ class ClassService extends BaseDataService {
 				metadata,
 			};
 		});
-	}
-
-	/**
-	 * Strip 5etools {@tags} from a string, keeping the display text.
-	 * @private
-	 */
-	_stripTags(text) {
-		return text.replace(/\{@\w+\s+([^|}]+)[^}]*\}/g, '$1');
 	}
 
 	/**

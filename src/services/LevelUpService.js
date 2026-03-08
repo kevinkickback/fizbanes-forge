@@ -1,7 +1,7 @@
 import { attAbvToLower } from '../lib/5eToolsParser.js';
 import { NotFoundError, ValidationError } from '../lib/Errors.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
-import { DEFAULT_ASI_LEVELS } from '../lib/GameRules.js';
+import { DEFAULT_ASI_LEVELS, parseHitDice } from '../lib/GameRules.js';
 import {
 	addClassLevelArgsSchema,
 	removeClassLevelArgsSchema,
@@ -240,7 +240,7 @@ class LevelUpService {
 
 		for (const classEntry of character.progression.classes) {
 			// First level: full hit die
-			const hitDiceValue = this._parseHitDice(classEntry.hitDice);
+			const hitDiceValue = parseHitDice(classEntry.hitDice);
 			totalHP += hitDiceValue;
 
 			// Additional levels: average or rolled
@@ -256,11 +256,6 @@ class LevelUpService {
 		totalHP += Math.max(totalLevel, conMod * totalLevel);
 
 		return Math.max(1, totalHP);
-	}
-
-	_parseHitDice(hitDice) {
-		const match = hitDice?.match(/d(\d+)/);
-		return match ? parseInt(match[1], 10) : 8;
 	}
 
 	_mapAbilityAbbreviation(abbr) {

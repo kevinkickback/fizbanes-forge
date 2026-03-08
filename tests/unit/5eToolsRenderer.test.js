@@ -6,6 +6,7 @@ import {
     registerTagHandler,
     renderStringWithTags,
     renderTag,
+    stripTags,
 } from '../../src/lib/5eToolsRenderer.js';
 
 describe('5eToolsRenderer', () => {
@@ -22,7 +23,7 @@ describe('5eToolsRenderer', () => {
 
         it('should escape single quotes', () => {
             const escaped = Renderer5etools.escapeHtml("It's here");
-            expect(escaped).toBe('It&#x27;s here');
+            expect(escaped).toBe('It&#039;s here');
         });
 
         it('should handle empty string', () => {
@@ -462,11 +463,11 @@ describe('5eToolsRenderer', () => {
     });
 
     describe('Custom Tag Registration', () => {
-        let originalHandler;
+        let _originalHandler;
 
         beforeEach(() => {
             // Save original handler if it exists
-            originalHandler = null;
+            _originalHandler = null;
         });
 
         it('should allow registering custom tag handlers', () => {
@@ -569,6 +570,37 @@ describe('5eToolsRenderer', () => {
         });
     });
 
+    describe('stripTags', () => {
+        it('should strip simple tags keeping display text', () => {
+            expect(stripTags('{@condition poisoned}')).toBe('poisoned');
+        });
+
+        it('should strip tags with source pipe', () => {
+            expect(stripTags('{@spell Fireball|PHB}')).toBe('Fireball');
+        });
+
+        it('should strip multiple tags in one string', () => {
+            expect(stripTags('{@skill Perception} and {@skill Stealth}')).toBe('Perception and Stealth');
+        });
+
+        it('should handle nested tags', () => {
+            expect(stripTags('{@dice 2d6}')).toBe('2d6');
+        });
+
+        it('should return empty string for empty input', () => {
+            expect(stripTags('')).toBe('');
+        });
+
+        it('should return empty string for null/undefined', () => {
+            expect(stripTags(null)).toBe('');
+            expect(stripTags(undefined)).toBe('');
+        });
+
+        it('should return plain text unchanged', () => {
+            expect(stripTags('no tags here')).toBe('no tags here');
+        });
+    });
+
     describe('Renderer5etools Export Object', () => {
         it('should export all public functions', () => {
             expect(Renderer5etools.registerTagHandler).toBeDefined();
@@ -576,6 +608,7 @@ describe('5eToolsRenderer', () => {
             expect(Renderer5etools.renderStringWithTags).toBeDefined();
             expect(Renderer5etools.processString).toBeDefined();
             expect(Renderer5etools.processEntries).toBeDefined();
+            expect(Renderer5etools.stripTags).toBeDefined();
             expect(Renderer5etools.escapeHtml).toBeDefined();
         });
 

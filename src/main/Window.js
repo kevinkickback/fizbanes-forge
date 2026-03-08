@@ -1,6 +1,6 @@
 /** BrowserWindow lifecycle helper: create, persist bounds, and expose window ops. */
 
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { MainLogger } from './Logger.js';
 
@@ -33,13 +33,13 @@ export function createMainWindow({
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: true,
-			devTools: debugMode || enableDevTools,
+			devTools: !app.isPackaged && (debugMode || enableDevTools),
 		},
 		show: false, // Don't show until ready
 	});
 
 	// Open DevTools in debug mode or when explicitly enabled (before loading)
-	if (debugMode || enableDevTools) {
+	if (!app.isPackaged && (debugMode || enableDevTools)) {
 		MainLogger.debug('WindowManager', 'Opening DevTools');
 		mainWindow.webContents.openDevTools({ mode: 'detach' });
 	}

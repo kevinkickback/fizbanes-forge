@@ -571,11 +571,11 @@ describe('FieldMapping', () => {
 
         it('should include features and traits', () => {
             const { textFields } = buildFieldMap(makeCharacter());
-            const features = textFields['Class Features'];
-            expect(features).toContain('Darkvision 60 ft.');
-            expect(features).toContain('Poison');
-            expect(features).toContain('Dwarven Resilience');
-            expect(features).toContain('Great Weapon Master');
+            const racialTraits = textFields['Racial Traits'];
+            expect(racialTraits).toContain('Darkvision 60 ft.');
+            expect(racialTraits).toContain('Poison');
+            expect(racialTraits).toContain('Dwarven Resilience');
+            expect(textFields['Feat Name 1']).toBe('Great Weapon Master');
         });
 
         it('should format proficiencies listing', () => {

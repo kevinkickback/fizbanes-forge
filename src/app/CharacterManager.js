@@ -12,6 +12,28 @@ import { rehydrationService } from '../services/RehydrationService.js';
 import { AppState } from './AppState.js';
 import { Character, serializeCharacter } from './Character.js';
 
+const ALLOWED_UPDATE_KEYS = new Set([
+	'name',
+	'playerName',
+	'portrait',
+	'height',
+	'weight',
+	'gender',
+	'age',
+	'skinColor',
+	'eyeColor',
+	'hairColor',
+	'alignment',
+	'deity',
+	'backstory',
+	'personalityTraits',
+	'ideals',
+	'bonds',
+	'flaws',
+	'additionalFeatures',
+	'experience',
+]);
+
 class _CharacterManager {
 	async createCharacter(name) {
 		const failedServices = AppState.getFailedServices();
@@ -220,6 +242,9 @@ class _CharacterManager {
 		}
 
 		for (const [key, value] of Object.entries(updates)) {
+			if (!ALLOWED_UPDATE_KEYS.has(key)) {
+				throw new ValidationError(`Invalid update key: ${key}`);
+			}
 			character[key] = value;
 		}
 

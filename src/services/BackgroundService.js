@@ -93,12 +93,14 @@ class BackgroundService extends BaseDataService {
 			background.languageProficiencies
 		) {
 			normalized.proficiencies = {
-				skills: this._normalizeSkillProficiencies(
+				skills: this._normalizeProficiencies(
 					background.skillProficiencies,
+					'skill',
 				),
-				tools: this._normalizeToolProficiencies(background.toolProficiencies),
-				languages: this._normalizeLanguageProficiencies(
+				tools: this._normalizeProficiencies(background.toolProficiencies, 'tool'),
+				languages: this._normalizeProficiencies(
 					background.languageProficiencies,
+					'language',
 				),
 			};
 		}
@@ -111,81 +113,28 @@ class BackgroundService extends BaseDataService {
 		return normalized;
 	}
 
-	_normalizeSkillProficiencies(skillProfs) {
-		if (!skillProfs) return [];
+	_normalizeProficiencies(rawData, type) {
+		if (!rawData) return [];
 
 		const normalized = [];
 
-		// Iterate through each skill proficiency object
-		for (const skillEntry of skillProfs) {
-			for (const [key, value] of Object.entries(skillEntry)) {
-				// Skip the 'choose' property
-				if (key === 'choose') {
-					if (value) {
-						// Handle proficiency choice
-						normalized.push({
-							choose: value,
-						});
-					}
-				} else if (value === true) {
-					// Convert skill name to proper format (handle abbreviations)
-					normalized.push({
-						skill: this._normalizeSkillName(key),
-					});
-				}
-			}
-		}
-
-		return normalized;
-	}
-
-	_normalizeToolProficiencies(toolProfs) {
-		if (!toolProfs) return [];
-
-		const normalized = [];
-
-		for (const toolEntry of toolProfs) {
-			for (const [key, value] of Object.entries(toolEntry)) {
-				if (key === 'choose') {
-					if (value) {
-						normalized.push({
-							choose: value,
-						});
-					}
-				} else if (value === true) {
-					normalized.push({
-						tool: key,
-					});
-				}
-			}
-		}
-
-		return normalized;
-	}
-
-	_normalizeLanguageProficiencies(langProfs) {
-		if (!langProfs) return [];
-
-		const normalized = [];
-
-		for (const langEntry of langProfs) {
-			for (const [key, value] of Object.entries(langEntry)) {
+		for (const entry of rawData) {
+			for (const [key, value] of Object.entries(entry)) {
 				const keyLower = key.toLowerCase();
 
 				if (keyLower === 'choose' && value) {
 					normalized.push({ choose: value });
 				} else if (
+					type === 'language' &&
 					(keyLower === 'any' || keyLower === 'anystandard') &&
 					typeof value === 'number'
 				) {
 					normalized.push({
-						choose: {
-							count: value,
-							type: keyLower,
-						},
+						choose: { count: value, type: keyLower },
 					});
 				} else if (value === true) {
-					normalized.push({ language: key });
+					const name = type === 'skill' ? this._normalizeSkillName(key) : key;
+					normalized.push({ [type]: name });
 				}
 			}
 		}

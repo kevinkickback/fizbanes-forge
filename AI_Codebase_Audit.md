@@ -1,11 +1,9 @@
-# Fizbane's Forge — Independent Codebase Audit (Archived)
+# Codebase Audit — Fizbane's Forge
 
-> **Note:** The actionable remediation plan derived from this audit is in [AI_Remediation_Plan.md](AI_Remediation_Plan.md).
-
-**Date:** 2025-03-06  
-**Scope:** Full codebase (134 source files, ~52,360 lines JS/CJS; 48 test files, ~11,896 lines)  
-**Framework:** Electron 34 + Bootstrap 5, ESM (renderer), CJS (main/preload)  
-**Auditor:** Automated analysis with manual file-level review
+**Date:** 2026-03-07  
+**Scope:** Full independent audit of all source, tests, configuration, and architecture  
+**Stack:** Electron 34 · JavaScript (ES Modules) · Bootstrap 5 · Vitest · Playwright  
+**Version Audited:** 0.3.0
 
 ---
 
@@ -20,502 +18,564 @@
 7. [Performance & Scalability](#7-performance--scalability)
 8. [Testing & Coverage](#8-testing--coverage)
 9. [Documentation](#9-documentation)
-10. [Summary Scoreboard](#10-summary-scoreboard)
 
 ---
 
 ## 1. Executive Summary
 
-Fizbane's Forge is a well-structured Electron application with **strong security hardening**, **excellent architecture documentation**, and **consistent patterns** across its service layer. The codebase demonstrates disciplined use of a centralized event bus, memory cleanup utilities, and a layered service architecture.
+Fizbane's Forge is a well-structured Electron application with a clear layered architecture (Main → Preload → Renderer), a robust service layer, and comprehensive Electron security hardening. The project demonstrates strong engineering discipline in several areas: context isolation, input validation schemas, standardized error classes, memory management via `DOMCleanup`, and a substantial test suite (815+ tests across 47 files).
 
-**Key Strengths:**
-- Electron security best practices consistently applied (contextIsolation, sandbox, CSP, IPC whitelist)
-- Clean service layer with BaseDataService pattern, input validation, and standardized error classes
-- DOMCleanup utility rigorously used for memory management
-- Comprehensive architecture documentation (~700 lines)
-- 815 unit tests with clear naming conventions
+However, the audit identified several categories of issues ranging from confirmed runtime bugs to architectural concerns that will compound as the project grows:
 
-**Key Concerns:**
-- Monolithic UI components (ClassCard.js at 3,036 lines)
-- Inline style manipulation violating declared CSP policy
-- Inconsistent error handling patterns (throw vs. return vs. log)
-- Missing input validation on settings values
-- Several files exceed reasonable size bounds, increasing maintenance burden
+| Severity | Count | Summary |
+|----------|-------|---------|
+| **Critical** | 3 | Runtime bugs that cause incorrect behavior now |
+| **High** | 8 | Security gaps, architectural violations, data integrity risks |
+| **Medium** | 16 | Code quality issues, missing validation, complexity hotspots |
+| **Low** | 12 | Style inconsistencies, minor improvements, documentation gaps |
 
-**Overall Rating: 7.0/10** — Production-ready with targeted improvements needed.
+**Top 3 areas requiring attention:**
+1. Several confirmed runtime bugs (traits lookup, potential CSP violations)
+2. Service layer complexity hotspots (3 services over 500 LOC each)
+3. Test coverage gaps in 7+ services and all UI components
 
 ---
 
 ## 2. Code Quality & Complexity
 
-### 2.1 Monolithic Components
+### 2.1 Oversized Modules
 
-| File | Lines | Severity | Description |
-|------|-------|----------|-------------|
-| `src/ui/components/class/ClassCard.js` | 3,036 | **High** | Handles class selection, subclass picking, spell selection, ASI/feat choices, feature rendering, and hover panels all in one file. Contains 50+ methods with several exceeding 200 lines. |
-| `src/ui/components/proficiencies/ProficiencyCard.js` | 1,584 | **High** | Manages all proficiency categories (skills, languages, tools, armor, weapons) in a single component. |
-| `src/ui/components/race/RaceCard.js` | 970 | **Medium** | Race selection + trait display + subrace management combined. |
-| `src/ui/components/background/BackgroundCard.js` | 924 | **Medium** | Background selection + equipment resolution + info panel. |
-| `src/services/ProficiencyService.js` | ~600 | **Medium** | Manages skills, languages, tools, armor, weapons — violates Single Responsibility Principle. |
-| `src/services/AbilityScoreService.js` | ~600 | **Medium** | Point buy, standard array, racial bonuses, and ability choice tracking in one service. |
+Several modules significantly exceed reasonable single-responsibility budgets:
 
-**Suggested Improvement:** Extract `ClassCard.js` into at least 4 components: `ClassSelector`, `SubclassSelector`, `FeatureChoiceRenderer`, and `SpellSelectionCoordinator`. Split `ProficiencyService` into dedicated sub-modules per proficiency type.
+| File | LOC | Severity | Issue |
+|------|-----|----------|-------|
+| `src/services/SpellSelectionService.js` | 651 | **High** | Combines spell slot calculation, spell limit tracking, spell selection recording, and multiclass slot combination. Should be split into at least 3 focused modules (SlotCalculator, LimitManager, SelectionRecorder). |
+| `src/services/ClassService.js` | 546 | **High** | Contains 5etools tag-stripping regex logic, hit dice parsing, feature choice extraction, and multiclass requirement parsing — mixing data access with parsing responsibilities. |
+| `src/services/CharacterValidationService.js` | 525 | **High** | Validates class progression, spells, subclasses, feats, ASI choices, and generates summary reports — doing at least 4 distinct jobs. |
+| `src/app/AppInitializer.js` | 504 | **Medium** | Handles data source validation, downloading, service initialization, UI bootstrapping, and debug setup. Mixed concerns make testing difficult. |
+| `src/app/Character.js` | 494 | **Medium** | Mutable domain object with 50+ properties and behavioral methods spanning abilities, proficiencies, features, equipment, spellcasting, and appearance. Approaches "god object" territory. |
+| `src/services/EquipmentService.js` | 484 | **Medium** | Single method `resolveBackgroundEquipment()` alone is 115 lines handling 4+ data types. |
+| `src/app/CharacterSerializer.js` | 381 | **Medium** | Manual property-by-property serialization is repetitive and fragile — any new `Character` property requires a matching serializer update or data is silently lost on save/load round-trips. |
 
-### 2.2 Large Functions
+**Suggested improvement:** Extract focused sub-modules. For example, `SpellSelectionService` → `SpellSlotCalculator`, `SpellLimitService`, `SpellSelectionRecorder`. This reduces per-file cognitive load and improves testability.
 
-| File | Function | Est. Lines | Severity |
-|------|----------|------------|----------|
-| `src/app/AppInitializer.js` | `initializeAll()` | ~300 | **High** |
-| `src/ui/components/class/ClassCard.js` | `_renderClassChoices()` | ~400 | **High** |
-| `src/ui/components/class/ClassCard.js` | `_getClassChoicesAtLevel()` | ~350 | **High** |
-| `src/ui/components/class/ClassCard.js` | `_updateClassChoices()` | ~250 | **High** |
-| `src/main/ipc/CharacterHandlers.js` | `CHARACTER_IMPORT` handler | ~150 | **Medium** |
-| `src/main/Data.js` | `validateLocalDataFolder()` | ~110 | **Medium** |
-| `src/app/Character.js` | constructor | ~150 | **Medium** |
-| `src/app/CharacterSerializer.js` | `serialize()` | ~200 | **Medium** |
+### 2.2 Duplicated Logic
 
-**Suggested Improvement:** Break `initializeAll()` into staged methods (`_loadCoreServices`, `_loadGameData`, `_initializeUI`). Decompose ClassCard's rendering into composable render functions.
-
-### 2.3 Duplicated Logic
-
-| Pattern | Locations | Severity |
-|---------|-----------|----------|
-| Prerequisite checking (level, ability, class, spellcasting) | `FeatService.isFeatValidForCharacter()`, `OptionalFeatureService.meetsPrerequisites()` | **Medium** |
-| Feature choice detection via string parsing | `ClassService.getFeatureEntryChoices()`, `CharacterValidationService._checkFeatureChoice()` | **Medium** |
-| Legacy data normalization | `BackgroundService`, `RaceService`, `ProficiencyService` | **Low** |
-| Modal body/overflow reset | `AppInitializer`, `ModalCleanupUtility`, `SetupModals` (3 places) | **Low** |
-| PDF field mapping (skill maps) | `FieldMapping.js` MPMB vs. WotC templates duplicate 18 skill entries | **Low** |
-
-**Suggested Improvement:** Extract a shared `PrerequisiteValidator` utility. Centralize modal cleanup to `ModalCleanupUtility` only.
-
-### 2.4 Hardcoded Constants Scattered Across Codebase
-
-| Constant | Location(s) | Severity |
+| Location | Description | Severity |
 |----------|-------------|----------|
-| Standard ability array `[15,14,13,12,10,8]` | `AbilityScoreService` | **Low** |
-| Point buy range `[8-15]`, cost table | `AbilityScoreService` | **Low** |
-| Spell slot progression table (20 rows) | `SpellSelectionService.getStandardSpellSlots()` | **Low** |
-| Pact magic slot table (20 rows) | `SpellSelectionService._getPactMagicSlots()` | **Low** |
-| `MAX_ATTUNEMENT_SLOTS = 3` | `EquipmentService` | **Low** |
-| `CARRY_CAPACITY_MULTIPLIER = 15` | `EquipmentService` | **Low** |
-| Banned sources `['MPMM', 'AAG', 'BGG', ...]` | `SourceService` | **Low** |
-| Fallback ASI levels `[4, 8, 12, 16, 19]` | `LevelUpService` | **Low** |
-| `MAX_CHARACTER_SIZE = 10MB` | `CharacterHandlers.js` | **Low** |
+| `src/services/ClassService.js` | Hit dice parsing implemented twice: `_parseHitDice()` method AND inline regex in other methods. | **Medium** |
+| `src/services/BackgroundService.js` | Three near-identical methods (`_normalizeSkillProficiencies`, `_normalizeToolProficiencies`, `_normalizeLanguageProficiencies`) with copy-pasted structure. Should be a single parameterized function. | **Medium** |
+| `src/main/ipc/CharacterHandlers.js` + `FileHandlers.js` | Filename sanitization logic (removing non-alphanumeric characters) duplicated across handlers. | **Low** |
+| `src/services/ItemService.js` | `getAllBaseItems()` and `getAllItems()` have nearly identical structure. | **Low** |
+| `src/main/Preload.cjs` + `src/main/ipc/channels.js` | IPC channel name strings duplicated in both files. Although a sync test exists, inline duplication remains a maintenance risk. | **Low** |
 
-**Suggested Improvement:** Extract D&D game rule constants into a dedicated `src/lib/GameRules.js` module for centralized maintenance.
+### 2.3 Excessive Nesting & Complexity
+
+| File | Function | Issue | Severity |
+|------|----------|-------|----------|
+| `src/services/ClassService.js` | `getFeatureEntryChoices()` | Performs 5etools DOM/data traversal with regex tag stripping — should delegate to `5eToolsRenderer.js` | **High** |
+| `src/main/ipc/DataHandlers.js` | `refreshCurrentDataSource()` | 6 levels of nesting across ~110 lines | **Medium** |
+| `src/services/SpellSelectionService.js` | `calculateSpellSlots()` | Pact magic vs standard casting mixed in a single branching method | **Medium** |
+| `src/services/LevelUpService.js` | `checkMulticlassRequirements()` | OR/AND boolean logic mixing with unclear operator precedence | **Medium** |
+| `src/services/CharacterValidationService.js` | `_parseChoiceCount()` | Multiple regex patterns that could match wrong counts in edge cases | **Low** |
+
+### 2.4 Confirmed Runtime Bugs
+
+| File | Line | Bug | Severity |
+|------|------|-----|----------|
+| `src/services/EquipmentService.js` | 297, 301 | **`character.traits?.includes('Powerful Build')` and `character.race?.traits?.includes('Powerful Build')` both fail.** `character.traits` does not exist (no such top-level property). `character.features.traits` is a `Map` (not an Array), so `.includes()` will throw `TypeError`. The correct check would be `character.features?.traits?.has('Powerful Build')`. Result: Powerful Build racial trait never applies to carry capacity. | **Critical** |
+| `src/services/ClassService.js` | Various | `_resolveTableOptions()` strips 5etools tags using regex `/{@\w+\s+([^|}]+)[^}]*}/g` instead of using the existing `5eToolsRenderer.js` pipeline. This can produce incorrect output for nested or escaped tags. | **Medium** |
+| `src/services/SpellSelectionService.js` | ~93 | `_hasRitualCasting()` contains a hardcoded class list. If new classes are added to the data source, this silently fails to grant ritual casting. | **Medium** |
 
 ---
 
 ## 3. Architecture & Design
 
-### 3.1 Layered Architecture — Well Implemented
+### 3.1 Overall Architecture Assessment
 
-The project follows a clear three-layer architecture:
+The application follows a well-defined layered architecture:
 
 ```
-Main Process (src/main/)     → Window lifecycle, IPC, file I/O, settings
-    ↕ IPC Bridge (Preload.cjs)
-Renderer Process
-    ├─ Services (src/services/) → Data access, business logic, state
-    ├─ App Layer (src/app/)     → App state, navigation, serialization
-    └─ UI Layer (src/ui/)       → Components, rendering, styles
+Main Process (Node.js)
+  ├── Main.js (lifecycle)
+  ├── Window.js (BrowserWindow config)
+  ├── Settings.js (electron-store preferences)
+  ├── Data.js (data source management)
+  └── ipc/ (handler registration)
+       ↕ IPC via contextBridge
+Renderer (Browser context)
+  ├── AppInitializer.js (bootstrap)
+  ├── AppState.js (shared state)
+  ├── EventBus.js (pub/sub)
+  ├── Services (data + operational)
+  ├── Controllers (page lifecycle)
+  └── UI Components (modals, cards)
 ```
-
-**Verdict:** Architecture is clean and well-documented. The separation of concerns is enforced by the Electron process boundary and consistently followed.
-
-### 3.2 Service Layer Design
 
 **Strengths:**
-- `BaseDataService` provides consistent initialization, lookup maps, event cleanup, and deduplication of parallel init calls — used by 15 of 25 services.
-- All 25 services export singletons, ensuring single data loads.
-- 20/25 services use Zod schemas via `validateInput()` for parameter validation.
-- Standardized error classes (`NotFoundError`, `ValidationError`, `DataError`) from `src/lib/Errors.js`.
+- Clear separation between main and renderer processes
+- Service layer enforces data access boundaries
+- EventBus provides decoupled communication
+- `DOMCleanup` provides systematic resource management
+- `BaseSelectorModal` provides reusable modal infrastructure
 
-**Weaknesses:**
+**Weaknesses identified below.**
 
-| Issue | Severity | Description |
-|-------|----------|-------------|
-| Singleton testing difficulty | **Medium** | All services export singletons (`export const fooService = new FooService()`). Mocking requires `vi.mock()` module replacement rather than constructor injection. |
-| No orchestration layer | **Medium** | Multi-service operations (level-up, character creation) are coordinated by UI components or standalone services with tight coupling. Consider a `CharacterBuildOrchestrator`. |
-| Service coupling depth | **Medium** | `LevelUpService` → 3 services, `CharacterValidationService` → 3 services, `RehydrationService` → 3 services. No circular deps currently, but graph is dense. |
-| Missing validation in orchestrators | **Low** | `CharacterValidationService`, `RehydrationService`, `ProgressionHistoryService` don't validate their `character` parameter. |
+### 3.2 Data Normalization in Wrong Layer
 
-### 3.3 State Management
+| File | Issue | Severity |
+|------|-------|----------|
+| `src/services/BackgroundService.js` | `_normalizeBackgroundStructure()` performs data reshaping (legacy format conversion, proficiency normalization) inside the service layer. This should happen in `DataLoader` or a migration utility so that services receive pre-normalized data. | **Medium** |
+| `src/services/ClassService.js` | Tag stripping and feature parsing duplicates logic that belongs in `5eToolsParser.js` or `5eToolsRenderer.js`. | **High** |
 
-**AppState (`src/app/AppState.js`)** — Simple centralized state with EventBus broadcast on mutations. ~50 lines, clean.
+### 3.3 Mutable State Leaks
 
-**Concerns:**
+| File | Issue | Severity |
+|------|-------|----------|
+| `src/app/AppState.js` | `getState()` returns a direct reference to the internal state object. Callers can mutate state without triggering events: `AppState.getState().currentCharacter = null` bypasses all change detection. Should return a shallow copy or use `Object.freeze()`. | **Medium** |
+| `src/app/Character.js` | Domain object is mutated in-place by multiple consumers (UI cards, services, controllers). While the architecture documents this pattern, it creates implicit coupling — any consumer can break invariants. | **Low** |
 
-| Issue | Severity | Description |
-|-------|----------|-------------|
-| No immutability enforcement | **Medium** | `AppState.getCurrentCharacter()` returns a mutable reference. External code can mutate without triggering events. |
-| No transaction/rollback support | **Medium** | Multi-step operations (e.g., level-up: update class → update spells → update proficiencies) can leave partial state on failure. |
-| Race condition risk | **Low** | `CharacterManager.isLoadingCharacter` flag has no timeout protection. A hung IPC call leaves the flag true permanently. |
+### 3.4 Dual Data Structures in ProficiencyService
 
-### 3.4 Event System
+`src/services/ProficiencyService.js` maintains proficiency data in two parallel structures: `character.proficiencies[type][]` (Array) and `character.proficiencySources[type]` (Map). These must be kept in sync manually. If they diverge, the UI will show stale or incorrect proficiency data.
 
-`EventBus` wraps `EventEmitter3` with debug logging, leak detection, and event history. Events are string constants centralized in `src/lib/EventBus.js`.
+**Severity:** High  
+**Suggestion:** Consolidate to a single source-of-truth structure (e.g., the Map with derived arrays via getter).
 
-**Concern:** No TypeScript or JSDoc-typed event catalog. Events are magic strings spread across the codebase. A central events registry with payload types would improve discoverability.
+### 3.5 Inconsistent Error Return Patterns
+
+Three different error signaling strategies are used without clear rules for when to use which:
+
+| Strategy | Used By | Pattern |
+|----------|---------|---------|
+| Throw custom errors | Most services (ClassService, SpellService, EquipmentService) | `throw new NotFoundError(...)` |
+| Return error objects | CharacterImportService, IPC handlers | `{ success: false, error: string }` |
+| Log and continue | CharacterValidationService, RehydrationService | `console.warn(...)` + partial results |
+
+While each has valid use cases, the boundary rules are not documented. A developer adding a new service must guess which pattern applies.
+
+**Severity:** Medium  
+**Suggestion:** Document error strategy selection criteria (e.g., "Use throw for service-to-service; use return objects for IPC boundaries; use log-and-continue only for best-effort rehydration").
+
+### 3.6 Hardcoded Game Data in Code
+
+| File | Hardcoded Data | Risk | Severity |
+|------|----------------|------|----------|
+| `src/services/ClassService.js` | `defaultHitDice` fallback object for all classes | Breaks if new official classes are added to 5etools | **Medium** |
+| `src/services/SpellSelectionService.js` | Full standard spell slot progression table (lines 260-280) | Duplicates PHB data; should be loaded from data files | **Medium** |
+| `src/services/SpellSelectionService.js` | `_hasRitualCasting()` class list | Silently fails for new ritual-casting classes | **Medium** |
+| `src/services/LevelUpService.js` | `DEFAULT_ASI_LEVELS` fallback | May not match all class progressions | **Low** |
 
 ---
 
 ## 4. Workflow & Process Flaws
 
-### 4.1 Error Handling Inconsistencies
+### 4.1 Data Download Has No Timeout
 
-The codebase uses **three different error patterns**, sometimes within the same module:
+`src/main/ipc/DataHandlers.js` initiates HTTP downloads for game data but implements no maximum timeout for individual file fetches or the overall download operation. On network failure or a slow/unresponsive server, the application will hang indefinitely.
 
-| Pattern | Used By | Issue |
-|---------|---------|-------|
-| Throw typed errors (`NotFoundError`, `ValidationError`) | Most services | Correct pattern |
-| Return `{ success: false, error: string }` | IPC handlers, `CharacterImportService` | Breaks exception contract; callers must check `.success` |
-| Log warning and continue silently | `CharacterValidationService`, `RehydrationService`, `ProficiencyService` | Masks failures; hard to debug |
+**Severity:** High  
+**Suggestion:** Add per-request timeouts (e.g., 30s) and an overall download timeout (e.g., 5 minutes).
 
-**Severity:** **Medium**  
-**Suggested Improvement:** Standardize on throwing errors in services; use structured responses only at the IPC boundary. Add middleware to convert service exceptions to IPC response objects.
+### 4.2 DataHandlers Cache State Leak
 
-### 4.2 IPC Channel Duplication
+`src/main/ipc/DataHandlers.js` tracks in-flight downloads in `state.loading[url]`. If a download fails, entries in this map may not be cleaned up, causing the URL to appear perpetually "loading" and preventing retry.
 
-IPC channel names are defined in `src/main/ipc/channels.js` **and** hardcoded in `src/main/Preload.cjs`. A unit test verifies synchronization, but this is a maintenance risk.
+**Severity:** High  
+**Suggestion:** Add `finally` cleanup block to remove `state.loading[url]` on both success and failure.
 
-**Severity:** **Medium**  
-**Suggested Improvement:** Have `Preload.cjs` import from `channels.js` (requires CJS/ESM bridging), or generate one from the other in the build step.
+### 4.3 DataLoader Memory Leak
 
-### 4.3 Silent Failures in File Operations
+`src/lib/DataLoader.js` implements an in-memory JSON cache with no size limit or TTL. In a long-running session where the user reconfigures data sources multiple times, the cache can grow without bound. Additionally, `state.loading[url]` entries may not be deleted on fetch errors.
 
-| Handler | Issue | Severity |
-|---------|-------|----------|
-| `FILE_EXISTS` | Returns `{ exists: false }` on permission errors — indistinguishable from "not found" | **Low** |
-| `DATA_FILE_EXISTS` | Same pattern | **Low** |
-| `DATA_LOAD_JSON` | Catches read errors, returns structured error instead of propagating | **Low** |
+**Severity:** Medium  
+**Suggestion:** Add a cache size limit (e.g., LRU with configurable max entries, similar to `MonsterService`'s approach) or clear the cache on data source change.
 
-### 4.4 Settings Value Validation Gap
+### 4.4 TextProcessor MutationObserver Never Disconnected
 
-`SettingsHandlers.js` validates setting **keys** against an `ALLOWED_KEYS` whitelist but does **not validate values**. The renderer can set `autoSaveInterval` to `-1`, `0`, or `999999` without checks.
+`src/lib/TextProcessor.js` creates a global `MutationObserver` that is never disconnected, even when the observed content is removed. While unlikely to cause issues in a single-page Electron app, this violates cleanup discipline and could cause subtle bugs during page transitions.
 
-**Severity:** **Medium**  
-**Suggested Improvement:** Add value validation per key (ranges, enums) in the handler or delegate to `Settings.js` schema validation.
+**Severity:** Low  
+**Suggestion:** Add a `disconnect()` method and call it during page cleanup.
 
-### 4.5 Schema Permissiveness
+### 4.5 CharacterManager.updateCharacter() Lacks Validation
 
-`CharacterSchema.js` uses `.passthrough()` on the Zod validation schema, which allows unknown properties to pass validation. This defeats part of the schema's purpose and could allow malformed data to persist.
+`src/app/CharacterManager.js` `updateCharacter()` applies key-value pairs to the character object without validating types or keys:
 
-Several properties use `z.unknown()` (e.g., `race`, `background`, `features`, `equipment`) — providing structure validation for the top level but no validation for nested data.
+```javascript
+for (const [key, value] of Object.entries(updates)) {
+    character[key] = value; // No validation!
+}
+```
 
-**Severity:** **Medium**  
-**Suggested Improvement:** Remove `.passthrough()` and define stricter nested schemas, or use `.strict()` to reject unknown keys.
+A call like `updateCharacter({ abilityScores: "invalid" })` would corrupt the character.
+
+**Severity:** Medium  
+**Suggestion:** Validate update keys against an allowlist or run schema validation after applying updates.
+
+### 4.6 No Download Integrity Verification
+
+`src/main/Data.js` downloads game data files from user-configured URLs but performs no integrity verification (checksums, signatures, or hash comparison). A MITM attacker on the network could inject malicious JSON payloads.
+
+**Severity:** Medium  
+**Suggestion:** Implement SHA256 checksum verification for downloaded files against a known manifest.
 
 ---
 
 ## 5. Security & Compliance
 
-### 5.1 Electron Hardening — Excellent
+### 5.1 Electron Hardening — EXCELLENT
 
-| Control | Status | Notes |
-|---------|--------|-------|
-| `contextIsolation: true` | ✅ Applied | Renderer has no access to Node APIs |
-| `nodeIntegration: false` | ✅ Applied | `require()` blocked in renderer |
-| `sandbox: true` | ✅ Applied | Additional process isolation |
-| Preload whitelist | ✅ Applied | Only explicit IPC methods exposed via `contextBridge` |
-| Navigation blocked | ✅ Applied | `will-navigate` prevented; `setWindowOpenHandler` returns deny |
-| No `remote` module | ✅ Confirmed | Not imported anywhere |
-| No `eval()` or `new Function()` | ✅ Confirmed | Not found in codebase |
-| No `webSecurity: false` | ✅ Confirmed | Default secure |
+The application implements all recommended Electron security best practices:
 
-### 5.2 Content Security Policy
+| Control | Status | Location |
+|---------|--------|----------|
+| `contextIsolation: true` | ✅ Enabled | `src/main/Window.js` |
+| `nodeIntegration: false` | ✅ Disabled | `src/main/Window.js` |
+| `sandbox: true` | ✅ Enabled | `src/main/Window.js` |
+| Navigation blocking | ✅ `will-navigate` blocked | `src/main/Window.js` |
+| Popup blocking | ✅ `setWindowOpenHandler` denies | `src/main/Window.js` |
+| Context bridge only | ✅ All IPC via `contextBridge` | `src/main/Preload.cjs` |
+| IPC channel whitelist | ✅ Explicit channel definitions | `src/main/ipc/channels.js` |
 
-```html
+### 5.2 Content Security Policy — STRONG (with minor violations)
+
+CSP defined in `src/ui/index.html`:
+```
 default-src 'self';
-script-src 'self' 'sha256-fL88hGdHNPru1EmXHDYzI3DSaRgYHHpdbj9zLhBV3Rs=';
+script-src 'self' 'sha256-...';
 style-src 'self';
 img-src 'self' data:;
 font-src 'self' data:;
 connect-src 'self';
 object-src 'none';
-base-uri 'self'
 ```
 
-**CSP Assessment:** Strong policy. `object-src 'none'` blocks plugins. No `unsafe-inline` or `unsafe-eval`. The one script hash is for an `<script type="importmap">` block (safe, no executable code).
+**Active CSP violations found in source code:**
 
-### 5.3 CSP Violations — Inline Styles
+| File | Line | Violation | Severity |
+|------|------|-----------|----------|
+| `src/app/pages/HomePageController.js` | 242, 245 | `el.style.backgroundImage = url(...)` — inline style assignment. While CSSOM (`.style.*`) is technically **not blocked** by `style-src 'self'` (CSP restricts `<style>` elements and `style=""` attributes, not CSSOM), this pattern circumvents the project's own stricter convention of avoiding `.style.*` for elements using utility classes. | **Low** |
+| `src/app/pages/DetailsPageController.js` | 213, 249, 252, 271 | `el.style.backgroundImage = url(...)` — same pattern for ally/portrait images. | **Low** |
 
-The CSP declares `style-src 'self'` (no inline styles), but **32 instances of `.style.*` manipulation** exist in the codebase:
+**Note:** The `.style.backgroundImage` usages are for dynamically setting user-provided portrait URLs. This is one of the project's documented exceptions ("For truly dynamic values, use CSSOM with a data-* attribute pattern"). However, the `data-*` attribute pattern mentioned in the convention is not actually used — the assignment is directly to `.style.backgroundImage`.
 
-| File | Instances | Concern |
-|------|-----------|---------|
-| `src/ui/rendering/TooltipManager.js` | 5 | `.style.left`, `.style.top`, `.style.zIndex` — dynamic positioning |
-| `src/app/pages/HomePageController.js` | 4 | `.style.display`, `.style.backgroundImage` |
-| `src/app/pages/DetailsPageController.js` | 4 | `.style.backgroundImage` |
-| `src/ui/components/setup/SetupDataConfiguration.js` | 4 | `.style.width` for progress bars |
-| `src/ui/components/setup/SetupModals.js` | 3 | `.style.overflow`, `.style.width` |
-| `src/lib/Notifications.js` | 2 | `.style.width` for progress bars |
-| `src/lib/ModalCleanupUtility.js` | 2 | `.style.overflow`, `.style.paddingRight` |
-| `src/app/AppInitializer.js` | 2 | `.style.overflow`, `.style.paddingRight` |
-| `src/ui/components/selection/FilterBuilder.js` | 2 | `.style.cursor` |
-| Other files | 4 | Various `.style.*` usage |
+### 5.3 `openExternal()` URL Validation
 
-**Severity:** **Medium**  
-**Note:** CSSOM (`.style.*` in JS) is technically separate from inline `style=""` attributes and is **not blocked by CSP `style-src`**. The CSP only blocks `<style>` elements and `style=""` attributes in HTML. So these are **not actual CSP violations** — but they bypass the utility-class pattern the project declares as a convention, and some (like `.style.display`) can conflict with `!important` in utility CSS classes.
+`src/main/ipc/FileHandlers.js` validates that URLs start with `http://` or `https://` before calling `shell.openExternal()`. This correctly prevents `file://`, `javascript://`, and other dangerous schemes.
 
-**Suggested Improvement:** Replace `.style.display` usage with `classList.add/remove('u-hidden')`. For truly dynamic values (positions, progress widths, background images), CSSOM usage is acceptable. Document this distinction in conventions.
+**Remaining risk:** No hostname restriction. URLs like `http://169.254.169.254/metadata` (cloud metadata endpoints) or `http://localhost:PORT` could be opened. In practice, this is low-risk since the user must trigger the action.
 
-### 5.4 Path Traversal Protection
+**Severity:** Low
 
-| Handler | Protection | Assessment |
-|---------|------------|------------|
-| `FileHandlers.js` | `resolveUnderAllowedRoots()` — whitelist of allowed directories | ✅ Strong |
-| `CharacterHandlers.js` | `SAFE_ID_PATTERN` regex + `startsWith()` check | ✅ Strong |
-| `DataHandlers.js` | `resolveSafePath()` strips prefix + `startsWith()` check | ⚠️ Adequate but doesn't check symlinks |
-| `PdfHandlers.js` | `resolveTemplatePath()` + forced `.pdf` extension | ✅ Strong |
+### 5.4 DevTools Exposure in Debug Mode
 
-### 5.5 URL Handling
+`src/app/AppInitializer.js` exposes `window.__debug` with full EventBus access when `FF_DEBUG=true`. This includes the ability to emit arbitrary events, view event history, and access metrics. The guard correctly checks `window.FF_DEBUG === true` and removes the object when debug is disabled.
 
-`shell.openExternal()` in `FileHandlers.js` validates URLs start with `http://` or `https://`, but does not restrict hostnames. A crafted URL like `http://localhost:9999/malicious` or `http://169.254.169.254/metadata` could be opened.
+**Risk:** If `FF_DEBUG=true` is accidentally left in a `.env` file in a distributed build, internal state is exposed via DevTools. However, since `FF_DEVTOOLS` is a separate flag and DevTools are only opened programmatically, this risk is low in practice.
 
-**Severity:** **Low** (requires user to trigger; Electron is a desktop app, not a web server)  
-**Suggested Improvement:** Consider restricting to known domains or adding a user confirmation dialog.
+**Severity:** Low  
+**Suggestion:** Add an `app.isPackaged` check in the main process to prevent debug mode in production builds regardless of `.env` settings.
 
-### 5.6 File Size Validation
+### 5.5 IPC Handler Security — STRONG
 
-| Operation | Size Check | Issue |
-|-----------|-----------|-------|
-| Character import (`CHARACTER_IMPORT`) | `MAX_CHARACTER_SIZE` (10MB) checked **after** `JSON.parse()` | **Low** — the file is fully read and parsed before size is validated. Check `stat().size` before reading. |
-| Portrait embedding (`embedPortraitData`) | No size limit | **Medium** — Could load an arbitrarily large file into memory. |
-| PDF portrait embedding (`PdfExporter`) | No size limit | **Medium** — Same concern. |
+| Handler File | Path Traversal Protection | Input Validation | Assessment |
+|-------------|--------------------------|------------------|------------|
+| CharacterHandlers.js | ✅ UUID whitelist regex + `path.resolve().startsWith()` | ✅ Schema validation, size limits | Strong |
+| DataHandlers.js | ✅ `resolveSafePath()` with containment check | ✅ JSON-only restriction | Good (but complex) |
+| FileHandlers.js | ✅ Three-tier allowlist roots | ✅ Extension whitelist, base64 validation | Excellent |
+| PdfHandlers.js | ✅ Basename extraction + `.pdf` enforcement | ✅ Character data required | Strong |
+| SettingsHandlers.js | N/A | ✅ Key allowlist + per-key type validators | Excellent |
 
-### 5.7 Dependency Review
+### 5.6 Path Traversal in Settings
 
-| Dependency | Version | Assessment |
-|------------|---------|------------|
-| `electron` | ^34.3.0 | Current major — ✅ |
-| `bootstrap` | ^5.3.2 | Current — ✅ |
-| `zod` | ^4.3.5 | Current — ✅ |
-| `dotenv` | ^17.2.4 | Current — ✅ |
-| `electron-store` | ^11.0.2 | Maintained — ✅ |
-| `pdf-lib` | ^1.17.1 | Last GitHub release May 2023, low activity — ⚠️ Monitor |
-| `pdfjs-dist` | ^4.10.38 | Mozilla-maintained, active — ✅ |
-| `uuid` | ^9.0.1 | Current — ✅ |
-| `eventemitter3` | ^5.0.4 | Stable, minimal — ✅ |
+`src/main/Settings.js` stores `characterSavePath` without normalizing or validating that it doesn't escape expected directories. While the IPC handlers validate paths before operations, the setting itself accepts any string.
 
-**No known CVEs** in the current dependency tree at time of audit.
+**Severity:** Low (mitigated by handler-level validation)
 
 ---
 
 ## 6. Best Practices & Standards
 
-### 6.1 Naming Conventions
+### 6.1 Naming Consistency
 
-| Area | Convention | Compliance |
-|------|-----------|------------|
-| Files | PascalCase for classes, camelCase for utilities | ✅ Consistent |
-| Classes | PascalCase | ✅ Consistent |
-| Methods | camelCase, `_` prefix for private | ✅ Consistent |
-| Constants | UPPER_SNAKE_CASE | ✅ Consistent |
-| Events | UPPER_SNAKE_CASE in EventBus | ✅ Consistent |
-| CSS | BEM-like with `u-` prefix for utilities | ✅ Consistent |
-| IPC Channels | `category:action` format | ✅ Consistent |
+**Good patterns observed:**
+- Services consistently use `PascalCase` class names with `Service` suffix
+- Error classes follow `PascalCase` + `Error` suffix convention
+- EventBus events use `UPPER_SNAKE_CASE` constants
+- Test files use matching `*.test.js` names
+- CSS uses `component-*`, `page-*`, `modal-*` prefixes
 
-### 6.2 Module Organization
+**Inconsistencies:**
 
-- **Services:** One service per file, singleton export, consistent `initialize()` → `getX()` → `dispose()` lifecycle — ✅ Good
-- **Components:** Generally one component per file, but several are too large (see §2.1) — ⚠️ Needs splitting
-- **Pages:** Controller per page with `BasePageController` abstract class — ✅ Good
-- **IPC:** Handlers grouped by domain (Character, Data, File, Pdf, Settings) — ✅ Good
+| Issue | Location | Severity |
+|-------|----------|----------|
+| Module-level helper functions outside class | `src/services/RaceService.js` — 6 top-level helpers (`groupSubracesByRace`, `createRaceKey`, etc.) that should be private static methods | **Low** |
+| Magic strings for proficiency types | `src/services/ProficiencyService.js` — `'skills'`, `'savingThrows'`, `'weapons'`, `'tools'`, `'armor'`, `'languages'` repeated throughout instead of using a constant enum | **Low** |
+| Inconsistent null-vs-throw for missing resources | `BackgroundService.getBackground()` returns `null`; `ClassService.getClass()` throws `NotFoundError` | **Medium** |
+
+### 6.2 File Organization
+
+**Strengths:**
+- Clear separation: `src/main/` (Node), `src/app/` (renderer core), `src/services/` (data layer), `src/lib/` (utilities), `src/ui/` (components + styles)
+- 37 CSS files organized by component/page/modal category
+- UI components grouped by feature domain (class/, race/, spells/, etc.)
+
+**Concerns:**
+
+| Issue | Severity |
+|-------|----------|
+| `src/app/pages/` controllers vs `src/ui/components/` — the boundary between "page controllers" and "UI components" is unclear. Both contain rendering logic and event handling. | **Low** |
+| `src/lib/AbilityScoreUtils.js` contains D&D business logic (point buy costs, race ability parsing) that arguably belongs in `AbilityScoreService` or a shared rules module. | **Low** |
 
 ### 6.3 SOLID Principles Assessment
 
-| Principle | Compliance | Notes |
+| Principle | Adherence | Notes |
 |-----------|-----------|-------|
-| **S** — Single Responsibility | ⚠️ Partial | `ClassCard.js` and `ProficiencyService.js` violate; most other modules comply |
-| **O** — Open/Closed | ✅ Good | `BaseDataService` extensible; `BaseSelectorModal` pattern reusable |
-| **L** — Liskov Substitution | ✅ Good | Service hierarchy respects contracts |
-| **I** — Interface Segregation | ✅ Good | Services expose focused public APIs |
-| **D** — Dependency Inversion | ⚠️ Partial | Singleton exports create tight coupling; no DI container |
+| **S**ingle Responsibility | ⚠️ Mixed | `SpellSelectionService`, `CharacterValidationService`, and `Character.js` violate SRP with multiple responsibilities per class. |
+| **O**pen/Closed | ✅ Good | `BaseDataService` extension pattern, `BaseSelectorModal` configuration. Services are generally open for extension. |
+| **L**iskov Substitution | ✅ Good | All services extending `BaseDataService` are substitutable. |
+| **I**nterface Segregation | ⚠️ Partial | The `Character` class exposes ~50 properties to all consumers regardless of need. Services consume the full object when they only need a subset. |
+| **D**ependency Inversion | ✅ Good | IPC handlers receive dependencies via constructor injection. Services depend on abstractions (EventBus, DataLoader). |
 
-### 6.4 DRY Principle
+### 6.4 DRY Violations
 
-Moderate compliance. Main violations:
-- Prerequisite checking duplicated across services (see §2.3)
-- Modal body/overflow reset in 3 places
-- PDF field mappings have duplicated skill entries for 2 templates
-- Data format normalization repeated across 3 services
-
-### 6.5 Code Formatting
-
-Biome.js enforced with tabs, consistent rules. ESM for renderer, CJS for main/preload (Electron requirement). No formatting inconsistencies observed.
+| Location | Duplication | Severity |
+|----------|-------------|----------|
+| `BackgroundService.js` | Three proficiency normalization methods with identical structure | **Medium** |
+| `ClassService.js` | Hit dice parsing in two separate code paths | **Medium** |
+| `CharacterSerializer.js` | Property-by-property copy-paste serialization for 50+ fields | **Medium** |
+| `CharacterHandlers.js` / `FileHandlers.js` | Filename sanitization regex duplicated | **Low** |
 
 ---
 
 ## 7. Performance & Scalability
 
-### 7.1 Data Loading
+### 7.1 Identified Performance Concerns
 
-`AppInitializer.initializeAll()` initializes 13 services. Most services use `Promise.allSettled()` for parallel data loading — ✅ Good.
+| File | Issue | Impact | Severity |
+|------|-------|--------|----------|
+| `src/services/CharacterValidationService.js` | `_checkSpellsFromData()` calls `spellService.getSpell()` individually for every spell in `spellsKnown`. For a high-level multiclass character with 30+ spells, this is O(n) individual lookups instead of a batch query. | Slow validation on spell-heavy characters | **Medium** |
+| `src/services/SpellSelectionService.js` | `getAvailableSpellsForClass()` iterates ALL loaded spells and filters — O(n) where n = total spell count (hundreds). | Visible lag when opening spell selection modal | **Medium** |
+| `src/app/pages/HomePageController.js` | Full DOM re-render on every sort or filter change. The entire character card list is rebuilt from scratch instead of using differential updates. | Jank with many saved characters | **Medium** |
+| `src/services/EquipmentService.js` | `resolveBackgroundEquipment()` performs multiple `itemService.getItem()` lookups sequentially (4+ per background). | Slow background selection | **Low** |
+| `src/lib/DataLoader.js` | No cache size limit — all loaded JSON stays in memory forever. A session that loads monster details, all spells, all items, etc. will accumulate significant memory. | Memory pressure in long sessions | **Medium** |
 
-**Concern:** Service initialization order is sequential in the initializer but data loading within services is parallel. Some services depend on others being loaded first (e.g., `FeatService` depends on `ClassService`), but this dependency is implicit rather than explicit.
+### 7.2 Positive Performance Patterns
 
-**Severity:** **Low**  
-**Suggested Improvement:** Document service initialization order; consider explicit dependency declaration.
+| Pattern | Location | Notes |
+|---------|----------|-------|
+| LRU cache (max 100) | `MonsterService.js` | On-demand detail loading with eviction — good model for other large datasets |
+| Promise deduplication | `BaseDataService.initWithLoader()` | Prevents duplicate data fetches during concurrent init |
+| `requestAnimationFrame` batching | `TextProcessor.js` | Batches DOM processing to avoid layout thrashing |
+| Lookup maps (O(1)) | All `BaseDataService` subclasses | Pre-computed Maps for name-based lookup |
+| Notification debouncing | `Notifications.js` | 3-second deduplication window prevents toast spam |
 
-### 7.2 Memory Patterns
+### 7.3 Synchronous Blocking Risks
 
-| Pattern | Assessment |
-|---------|------------|
-| `BaseDataService` holds all loaded data in memory | ✅ Acceptable for game data sizes (~50MB JSON total) |
-| `MonsterService` uses LRU cache (100 entries) | ✅ Good — prevents unbounded growth |
-| `DataLoader` deduplicates concurrent requests | ✅ Good — prevents duplicate loads |
-| `NavigationController` caches page templates indefinitely | ⚠️ Minor — templates never evicted, but count is bounded (7 pages) |
-| `CharacterSerializer` creates intermediate objects | ⚠️ Minor — not streaming, but character data is small |
-
-### 7.3 DOM Performance
-
-| Pattern | Assessment |
-|---------|------------|
-| `TextProcessor` uses `requestAnimationFrame` batching | ✅ Good |
-| `TextProcessor` uses `MutationObserver` for dynamic content | ✅ Good |
-| `EventBus._checkForListenerLeaks()` runs on every registration | ⚠️ Minor — could debounce |
-| `ClassCard` rebuilds large DOM trees on every choice change | ⚠️ Medium — consider diffing or virtual lists for large option sets |
-| Tooltip positioning uses CSSOM (`.style.left/top`) | ✅ Acceptable for tooltip count |
-
-### 7.4 No Identified N+1 or Unbounded Loop Issues
-
-Service lookups use O(1) maps via `buildLookupMap()`. No database queries. File I/O is bounded by user-initiated actions.
+No significant synchronous blocking was found. All data loading uses async/await patterns. The application correctly uses `Promise.allSettled()` for parallel service initialization, allowing partial failures without blocking startup.
 
 ---
 
 ## 8. Testing & Coverage
 
-### 8.1 Test Inventory
+### 8.1 Test Infrastructure
 
-| Category | Files | Tests | Lines |
-|----------|-------|-------|-------|
-| Unit (Vitest + jsdom) | 30 | 815 | ~10,500 |
-| E2E (Playwright + Electron) | 18 | Variable | ~1,400 |
-| **Total** | **48** | **815+** | **~11,896** |
+| Aspect | Details |
+|--------|---------|
+| **Unit Framework** | Vitest 2.1.9 + jsdom |
+| **E2E Framework** | Playwright (Electron) |
+| **Unit Test Count** | 815+ tests across 30 files |
+| **E2E Test Count** | 17 spec files |
+| **Naming Convention** | `should [action]` pattern — consistently applied |
+| **Mocking** | `vi.fn()`, `vi.spyOn()`, `vi.clearAllMocks()` — clean patterns |
+| **E2E Patterns** | `waitForSelector` over `waitForTimeout` — good stability |
 
-**Test-to-Source Ratio:** ~0.23 (11,896 test lines / 52,360 source lines) — adequate for this project type.
-
-### 8.2 Test Quality
+### 8.2 Test Quality Assessment — GOOD
 
 **Strengths:**
-- Consistent `should [action]` naming convention
-- Proper use of `vi.mock()` for dependency isolation
-- Both success and failure paths tested in `CharacterManager` tests
-- Edge cases covered: null, undefined, empty strings, missing resources
-- `DOMCleanup.test.js` properly mocks DOM APIs
+- Comprehensive happy-path and error-path testing
+- Proper mock isolation with `beforeEach` cleanup
+- Event emission verification via `vi.spyOn(eventBus, 'emit')`
+- Structured helper functions (`createCharacterWithInventory()`, `createItemData()`)
+- E2E tests use proper `finally` blocks for app cleanup
+- E2E fixtures capture console output for debugging
 
 **Weaknesses:**
+- No snapshot tests for complex data structures (serialization output, validation reports)
+- Limited boundary/edge-case testing in some services
+- No mutation testing configured
 
-| Issue | Severity | Description |
-|-------|----------|-------------|
-| Heavy mock coupling | **Medium** | `LevelUpService.test.js` has 6 `vi.mock()` calls. Changes to mock signatures require manual test updates. |
-| No integration tests | **Medium** | Services are tested in isolation; no tests verify multi-service operations (e.g., full level-up flow). |
-| IPC layer untested | **Medium** | `Preload.cjs` exposes 24 channels but no tests verify the preload/handler contract end-to-end. |
-| `Settings.js` untested | **Medium** | 120+ lines of preference management and schema validation have no dedicated tests. |
-| UI components largely untested | **Low** | `ClassCard.js` (3,036 lines) has no unit tests. UI testing relies on E2E only. |
-| Default value brittleness | **Low** | `Character.test.js` asserts exact default values (e.g., ability scores = 10). Schema changes require test updates. |
+### 8.3 Coverage Gaps
 
-### 8.3 Critical Untested Areas
+**Services WITHOUT unit tests (7 of 26):**
 
-1. **IPC contract verification** — Channel names in `Preload.cjs` must match `channels.js`; only one test checks this sync.
-2. **Settings persistence** — `Settings.js` schema validation, fallback logic, and `clearInvalidConfig` behavior.
-3. **Multi-service orchestration** — Character creation → race selection → class selection → equipment resolution flow.
-4. **ClassCard rendering logic** — 3,036 lines of complex UI state management with no unit tests.
-5. **PDF generation** — `PdfExporter.js` field mapping correctness for both MPMB and WotC templates.
+| Service | LOC | Risk Assessment |
+|---------|-----|-----------------|
+| `SettingsService.js` | 75 | Low risk (thin wrapper) |
+| `SourceService.js` | 100+ | **Medium risk** — source filtering logic affects all data display |
+| `MonsterService.js` | 100 | Low risk (LRU cache + simple lookup) |
+| `AbilityScoreService.js` | 150 | **Medium risk** — ability score calculations are core game logic |
+| `VariantRuleService.js` | 70 | Low risk (simple lookup) |
+| `OptionalFeatureService.js` | 60 | Low risk (delegates to PrerequisiteValidator) |
+| `ProficiencyDescriptionService.js` | 80 | Low risk (lookup + filter) |
 
-### 8.4 Test Configuration
+**Other untested areas:**
 
-- `vitest.config.js`: jsdom environment, globals enabled, proper coverage exclusions — ✅ Sound
-- `playwright.config.js`: 15s timeout, trace on retry, no parallel (correct for Electron) — ✅ Sound
+| Area | File Count | Risk |
+|------|------------|------|
+| UI Components (cards, modals, views) | ~40 files | **High** — complex interactive logic untested |
+| Page Controllers | 8 files | **Medium** — event handling and DOM coordination |
+| `AppInitializer.js` | 1 file (504 LOC) | **Medium** — bootstrap sequence with many branches |
+| `BaseSelectorModal.js` | 1 file (250+ LOC) | **Medium** — reusable foundation for all selection modals |
+| `DataLoader.js` | 1 file | **Medium** — cache and loading deduplication logic |
+| Main process files (Main.js, Window.js, Data.js) | 4 files | **Low** — covered by E2E tests indirectly |
+
+### 8.4 E2E Coverage — COMPREHENSIVE
+
+E2E tests cover all major user flows:
+- ✅ App lifecycle (startup, shutdown)
+- ✅ Character creation wizard (7 steps)
+- ✅ Character persistence (save, load, delete)
+- ✅ All page navigation
+- ✅ Equipment, feats, spells management
+- ✅ Level-up mechanics
+- ✅ Theme settings
+- ✅ Modal interaction patterns
+- ✅ Notification system
+- ✅ Home page sorting
+
+### 8.5 Test Configuration
+
+`vitest.config.js` correctly excludes `src/main/` (Node.js code) and `src/ui/` (DOM-heavy code) from unit test coverage reporting, focusing metrics on the testable service and lib layers.
 
 ---
 
 ## 9. Documentation
 
-### 9.1 Architecture Documentation — Excellent
+### 9.1 Architecture Documentation — EXCELLENT
 
-`docs/CODEBASE_ARCHITECTURE.md` (~700 lines) is comprehensive:
-- Layered overview with startup sequence
-- State & event flow documentation with code examples
-- Error handling conventions with do's/don'ts
-- Service breakdown and lifecycle documentation
-- Character lifecycle (creation → loading → persistence)
-- Navigation & page management
-- UI component patterns and memory cleanup
+`docs/CODEBASE_ARCHITECTURE.md` is a comprehensive 200+ line document covering:
+- Layered overview with file references
+- Startup sequence
+- State and event flow with code examples (correct and incorrect patterns)
+- Error handling strategy
+- Service categories (data, operational, infrastructure)
+- Character lifecycle
+- Navigation and page system
+- Feature crosswalk examples
 - IPC boundaries
 - Testing guidance
+- Conventions and guardrails
 
-**Assessment:** Among the best architecture documentation seen for a project of this size. Clear, actionable, with correct/incorrect examples.
+This is significantly above average for a project of this size.
 
-### 9.2 Test Documentation — Good
+### 9.2 IPC Contract Documentation
 
-`tests/README.md` provides run commands, coverage overview, test writing guidelines, fixture usage, and debugging tips.
+`docs/IPC_CONTRACTS.md` documents all IPC channels, expected payloads, and return types — providing a clear API reference for main↔renderer communication.
 
-### 9.3 README — Adequate
+### 9.3 Test Documentation
 
-User-facing README with feature list, screenshots, getting started guide, and data requirements. Clear about licensing (GPL-3.0).
+`tests/README.md` provides testing guidelines, naming conventions, and framework-specific patterns.
 
-### 9.4 Code Comments — Minimal but Appropriate
+### 9.4 Documentation Gaps
 
-The codebase favors self-documenting code with minimal inline comments. Comments exist where logic is non-obvious (e.g., PDF template handling, D&D rule calculations). No excessive or outdated comments observed.
+| Gap | Severity |
+|-----|----------|
+| No API documentation for the service layer (method signatures, expected inputs, return types). Developers must read source code. | **Medium** |
+| No contributor guide beyond the copilot instructions. Onboarding for human developers is undocumented. | **Low** |
+| `src/services/SpellSelectionService.js` character.spellcasting data structure is deeply nested but has no schema documentation. The implicit contract is only discoverable by reading code. | **Medium** |
+| Error strategy selection criteria (when to throw vs return error objects vs log-and-continue) not documented. | **Medium** |
+| The `.env.example` file exists but is not referenced from the README. | **Low** |
 
-### 9.5 Documentation Gaps
+### 9.5 Code Comments — APPROPRIATE
 
-| Gap | Severity | Description |
-|-----|----------|-------------|
-| No EventBus event catalog | **Medium** | Events are string constants, but no central reference lists all events with payload types. |
-| Service initialization order undocumented | **Low** | `AppInitializer` loads services in a specific order, but dependencies aren't explicitly documented. |
-| `IPC_CONTRACTS.md` exists but scope unclear | **Low** | Document exists in `docs/` but wasn't verified to be comprehensive. |
-| No API reference for services | **Low** | Architecture doc describes patterns but not individual method signatures. |
-
----
-
-## 10. Summary Scoreboard
-
-| Dimension | Score | Key Factor |
-|-----------|-------|-----------|
-| **Security** | **8.5/10** | Excellent Electron hardening; minor gaps in file size validation and URL filtering |
-| **Architecture** | **8.0/10** | Clean layered design; service layer well-patterned; singleton coupling is a trade-off |
-| **Code Quality** | **6.0/10** | Monolithic components (ClassCard 3K lines) anchor this down; most other code is clean |
-| **Error Handling** | **6.5/10** | Three inconsistent patterns; standardization needed |
-| **Testing** | **7.0/10** | 815 tests with good quality; gaps in IPC, settings, UI components, and integration |
-| **Performance** | **8.0/10** | Good caching, O(1) lookups, RAF batching; no major bottlenecks |
-| **Documentation** | **8.5/10** | Outstanding architecture docs; minor gaps in event catalog and API reference |
-| **Best Practices** | **7.5/10** | Good naming, formatting, module organization; DRY violations in a few areas |
-| **Overall** | **7.0/10** | Solid foundation with targeted improvements needed |
+The codebase follows a good "comments only when non-obvious" discipline. Most code is self-documenting through clear naming. JSDoc is used sparingly for complex public APIs, which is correct — over-documentation would reduce maintainability.
 
 ---
 
-## Appendix: Priority Improvement Roadmap
+## Appendix A: Full Issue Register
 
-### 🔴 High Priority
+### Critical (Fix Now)
 
-1. **Split `ClassCard.js`** (3,036 lines) into 4+ focused components
-2. **Add portrait/file size validation** before reading into memory in `CharacterHandlers.js` and `PdfExporter.js`
-3. **Standardize error handling** — throw in services, structured responses only at IPC boundary
-4. **Add settings value validation** in `SettingsHandlers.js` (ranges, enums)
-5. **Remove `.passthrough()`** from `CharacterSchema.js` validation schema
+| # | File | Issue | Section |
+|---|------|-------|---------|
+| C1 | `src/services/EquipmentService.js:297,301` | `character.traits?.includes()` and `character.race?.traits?.includes()` — `traits` is a `Map` at `character.features.traits`, not an Array. `.includes()` will throw TypeError. Powerful Build never applies. | §2.4 |
+| C2 | `src/main/ipc/DataHandlers.js` | Download cache entries (`state.loading[url]`) not cleaned up on network errors — causes permanent "loading" state preventing retry | §4.2 |
+| C3 | `src/main/ipc/DataHandlers.js` | No timeout on HTTP downloads — app hangs indefinitely on network failure | §4.1 |
 
-### 🟠 Medium Priority
+### High (Fix Soon)
 
-6. **Add integration tests** for multi-service workflows (level-up, character creation)
-7. **Add IPC contract tests** verifying all 24 `Preload.cjs` channels
-8. **Add `Settings.js` unit tests**
-9. **Replace `.style.display` usage** with `classList` utility classes (`u-hidden`, `u-block`)
-10. **Extract game rule constants** into `src/lib/GameRules.js`
-11. **Split `ProficiencyService.js`** into sub-modules by proficiency type
-12. **Extract `PrerequisiteValidator`** shared utility from `FeatService` and `OptionalFeatureService`
+| # | File | Issue | Section |
+|---|------|-------|---------|
+| H1 | `src/services/SpellSelectionService.js` | 651 LOC — combines 3 responsibilities; difficult to test and maintain | §2.1 |
+| H2 | `src/services/ClassService.js` | Reimplements 5etools tag parsing with regex instead of using `5eToolsRenderer.js` | §2.3 |
+| H3 | `src/services/ProficiencyService.js` | Dual data structures (Array + Map) require manual sync — data integrity risk | §3.4 |
+| H4 | `src/services/CharacterValidationService.js` | 525 LOC — validates 7+ categories in a single class | §2.1 |
+| H5 | `src/main/Data.js` | No integrity verification (checksums) on downloaded data files | §4.6 |
+| H6 | `src/services/EquipmentService.js` | `resolveBackgroundEquipment()` at 115 lines handles 4+ data types in one method | §2.1 |
+| H7 | 7 services | Missing unit tests for `SourceService`, `AbilityScoreService`, and 5 others | §8.3 |
+| H8 | ~40 UI component files | No unit tests for any UI components (cards, modals, views) | §8.3 |
 
-### 🟢 Low Priority
+### Medium (Plan Fix)
 
-13. Centralize modal body/overflow cleanup to `ModalCleanupUtility` only
-14. Add EventBus event catalog with payload types
-15. Document service initialization order and implicit dependencies
-16. Add timeout/cancellation support for loading flags (`isLoadingCharacter`)
-17. Consider dependency injection for services to improve testability
-18. Add PDF generation tests for field mapping correctness
+| # | File | Issue | Section |
+|---|------|-------|---------|
+| M1 | `src/app/AppState.js` | `getState()` returns mutable reference — bypasses change detection | §3.3 |
+| M2 | `src/app/CharacterManager.js` | `updateCharacter()` applies updates without validation | §4.5 |
+| M3 | `src/services/BackgroundService.js` | Three near-identical proficiency normalization methods | §6.4 |
+| M4 | `src/services/ClassService.js` | Hardcoded `defaultHitDice` fallback breaks with new classes | §3.6 |
+| M5 | `src/services/SpellSelectionService.js` | Hardcoded standard spell slot progression table | §3.6 |
+| M6 | `src/services/SpellSelectionService.js` | `_hasRitualCasting()` hardcoded class list | §3.6 |
+| M7 | `src/services/ClassService.js` | Duplicated hit dice parsing in two code paths | §2.2 |
+| M8 | `src/app/CharacterSerializer.js` | Manual property-by-property serialization — fragile and repetitive | §2.1 |
+| M9 | `src/services/CharacterValidationService.js` | O(n) individual spell lookups instead of batch query | §7.1 |
+| M10 | `src/services/SpellSelectionService.js` | O(n) spell iteration in `getAvailableSpellsForClass()` | §7.1 |
+| M11 | `src/lib/DataLoader.js` | No cache size limit — unbounded memory growth | §7.1 |
+| M12 | `src/app/pages/HomePageController.js` | Full DOM re-render on every sort/filter change | §7.1 |
+| M13 | `src/services/BackgroundService.js` | `getBackground()` returns `null` while peers throw `NotFoundError` | §6.1 |
+| M14 | Multiple services | Error strategy (throw vs return vs log-and-continue) not documented | §3.5 |
+| M15 | Service layer | ~60-70% of public service methods lack `validateInput()` schema checks | §6.1 |
+| M16 | `src/app/AppInitializer.js` | 504 LOC with mixed data/UI/debug concerns | §2.1 |
+
+### Low (Improve When Convenient)
+
+| # | File | Issue | Section |
+|---|------|-------|---------|
+| L1 | `src/services/RaceService.js` | 6 module-level helper functions should be private methods | §6.1 |
+| L2 | `src/services/ProficiencyService.js` | Magic strings for proficiency types — should use constants | §6.1 |
+| L3 | `src/main/Preload.cjs` + `channels.js` | IPC channel names duplicated in two files | §2.2 |
+| L4 | `CharacterHandlers.js` + `FileHandlers.js` | Filename sanitization logic duplicated | §2.2 |
+| L5 | `src/services/ItemService.js` | `getAllBaseItems()` / `getAllItems()` near-identical structure | §2.2 |
+| L6 | `src/lib/TextProcessor.js` | Global MutationObserver never disconnected | §4.4 |
+| L7 | `src/main/Window.js` | DevTools flag doesn't check `app.isPackaged` — could leak in production builds | §5.4 |
+| L8 | `src/main/ipc/FileHandlers.js` | `openExternal()` accepts any HTTP URL without hostname restriction | §5.3 |
+| L9 | `src/app/pages/HomePageController.js` | `.style.backgroundImage` usage without `data-*` attribute pattern | §5.2 |
+| L10 | `src/app/pages/DetailsPageController.js` | `.style.backgroundImage` usage without `data-*` attribute pattern | §5.2 |
+| L11 | No contributor guide | Human developer onboarding not documented | §9.4 |
+| L12 | `src/services/SpellSelectionService.js` | Spellcasting data structure has no schema documentation | §9.4 |
 
 ---
 
-*End of audit report.*
+## Appendix B: Metrics Summary
+
+| Metric | Value |
+|--------|-------|
+| Total source files (src/) | ~110 |
+| Total LOC (services) | ~4,574 |
+| Total LOC (lib) | ~2,800 |
+| Total LOC (app core) | ~2,200 |
+| Total LOC (main process) | ~1,400 |
+| Total CSS files | 37 |
+| Total unit tests | 815+ |
+| Total unit test files | 30 |
+| Total E2E test files | 17 |
+| Services with unit tests | 19/26 (73%) |
+| Services without unit tests | 7 (27%) |
+| UI components with unit tests | 2/~40 (5%) |
+| Dependencies (runtime) | 5 |
+| Dependencies (dev) | 7 |
+
+---
+
+*End of audit.*

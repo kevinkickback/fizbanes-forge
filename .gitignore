@@ -23,7 +23,6 @@ src/data/
 
 # Test artifacts
 *.pdf
-!src/ui/assets/pdf/*.pdf
 playwright-report/
 test-results/
 
