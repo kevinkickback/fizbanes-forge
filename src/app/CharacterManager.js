@@ -245,6 +245,9 @@ class _CharacterManager {
 			if (!ALLOWED_UPDATE_KEYS.has(key)) {
 				throw new ValidationError(`Invalid update key: ${key}`);
 			}
+			if (typeof value !== 'string') {
+				throw new ValidationError(`Invalid value type for "${key}": expected string, got ${typeof value}`);
+			}
 			character[key] = value;
 		}
 

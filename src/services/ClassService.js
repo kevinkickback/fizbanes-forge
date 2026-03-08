@@ -11,6 +11,14 @@ import { BaseDataService } from './BaseDataService.js';
 class ClassService extends BaseDataService {
 	constructor() {
 		super({ loggerScope: 'ClassService' });
+		this._classFeatureIndex = new Map();
+		this._subclassFeatureIndex = new Map();
+	}
+
+	resetData() {
+		super.resetData();
+		this._classFeatureIndex.clear();
+		this._subclassFeatureIndex.clear();
 	}
 
 	async initialize() {
@@ -42,6 +50,7 @@ class ClassService extends BaseDataService {
 					subclassFluff: [],
 				};
 
+				const failedClassFiles = [];
 				for (const result of allClasses) {
 					if (result.status === 'fulfilled') {
 						const classData = result.value;
@@ -64,6 +73,7 @@ class ClassService extends BaseDataService {
 							aggregated.subclassFeature.push(...classData.subclassFeature);
 						}
 					} else {
+						failedClassFiles.push(classFiles[allClasses.indexOf(result)]);
 						console.warn(
 							'ClassService',
 							'Failed to load class file:',
@@ -72,6 +82,11 @@ class ClassService extends BaseDataService {
 					}
 				}
 
+				if (failedClassFiles.length > 0) {
+					console.warn('[ClassService]', `${failedClassFiles.length}/${classFiles.length} class files failed to load:`, failedClassFiles);
+				}
+
+				let failedFluffCount = 0;
 				for (const result of allFluff) {
 					if (result.status === 'fulfilled') {
 						const fluffData = result.value;
@@ -85,12 +100,17 @@ class ClassService extends BaseDataService {
 							aggregated.subclassFluff.push(...fluffData.subclassFluff);
 						}
 					} else {
+						failedFluffCount++;
 						console.warn(
 							'ClassService',
 							'Failed to load class fluff file:',
 							result.reason?.message,
 						);
 					}
+				}
+
+				if (failedFluffCount > 0) {
+					console.warn('[ClassService]', `${failedFluffCount}/${fluffFiles.length} class fluff files failed to load`);
 				}
 
 				return aggregated;
@@ -105,6 +125,8 @@ class ClassService extends BaseDataService {
 						classFluff: [],
 						subclassFluff: [],
 					};
+
+					this._buildFeatureIndexes(dataset);
 
 					console.debug('[ClassService]', 'Class data loaded', {
 						classes: dataset.class.length,
@@ -128,6 +150,27 @@ class ClassService extends BaseDataService {
 
 	getAllClasses() {
 		return this._data?.class || [];
+	}
+
+	_buildFeatureIndexes(dataset) {
+		this._classFeatureIndex.clear();
+		this._subclassFeatureIndex.clear();
+
+		for (const feature of dataset.classFeature) {
+			const key = feature.className;
+			if (!this._classFeatureIndex.has(key)) {
+				this._classFeatureIndex.set(key, []);
+			}
+			this._classFeatureIndex.get(key).push(feature);
+		}
+
+		for (const feature of dataset.subclassFeature) {
+			const key = `${feature.className}|${feature.subclassShortName}`;
+			if (!this._subclassFeatureIndex.has(key)) {
+				this._subclassFeatureIndex.set(key, []);
+			}
+			this._subclassFeatureIndex.get(key).push(feature);
+		}
 	}
 
 	/** Get a specific class by name and source. */
@@ -165,9 +208,11 @@ class ClassService extends BaseDataService {
 	getClassFeatures(className, level, source = 'PHB') {
 		if (!this._data?.classFeature) return [];
 
-		return this._data.classFeature.filter(
+		const features = this._classFeatureIndex.get(className);
+		if (!features) return [];
+
+		return features.filter(
 			(feature) =>
-				feature.className === className &&
 				(feature.classSource === source || feature.source === source) &&
 				feature.level <= level,
 		);
@@ -245,10 +290,11 @@ class ClassService extends BaseDataService {
 	getSubclassFeatures(className, subclassShortName, level, source = 'PHB') {
 		if (!this._data?.subclassFeature) return [];
 
-		return this._data.subclassFeature.filter(
+		const features = this._subclassFeatureIndex.get(`${className}|${subclassShortName}`);
+		if (!features) return [];
+
+		return features.filter(
 			(feature) =>
-				feature.className === className &&
-				feature.subclassShortName === subclassShortName &&
 				(feature.classSource === source || feature.source === source) &&
 				feature.level <= level,
 		);
@@ -461,11 +507,10 @@ class ClassService extends BaseDataService {
 
 		// Look up the actual feature data
 		const level = parseInt(levelStr, 10) || 0;
-		const features = (this._data?.subclassFeature || []).filter(
+		const indexed = this._subclassFeatureIndex.get(`${className}|${subclassShortName}`) || [];
+		const features = indexed.filter(
 			(f) =>
 				f.name === featureName &&
-				f.className === className &&
-				f.subclassShortName === subclassShortName &&
 				f.level === level,
 		);
 
@@ -486,6 +531,7 @@ class ClassService extends BaseDataService {
 
 	/**
 	 * Resolve a classFeature ref string into a named option.
+	 * Format: "FeatureName|ClassName|ClassSource|Level|FeatureSource?"
 	 * @private
 	 */
 	_resolveClassFeatureRef(refString) {
@@ -495,10 +541,10 @@ class ClassService extends BaseDataService {
 		const featureName = parts[0];
 		const className = parts[1];
 
-		const features = (this._data?.classFeature || []).filter(
-			(f) => f.name === featureName && f.className === className,
+		const indexed = this._classFeatureIndex.get(className) || [];
+		const feature = indexed.find(
+			(f) => f.name === featureName,
 		);
-		const feature = features[0];
 
 		return {
 			value: featureName,

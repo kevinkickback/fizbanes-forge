@@ -86,7 +86,38 @@ function serializeComplexProficiency(optionalProficiencies, type) {
 export function serialize(character) {
 	if (!character) return null;
 
-	const serializedData = {
+	return {
+		..._serializeIdentity(character),
+		..._serializeAbilities(character),
+		..._serializeRaceAndBackground(character),
+		..._serializeFeatures(character),
+		..._serializeProficiencies(character),
+		..._serializeOptionalProficiencies(character),
+		pendingAbilityChoices: Array.isArray(character.pendingAbilityChoices)
+			? [...character.pendingAbilityChoices]
+			: [],
+		instrumentChoices: Array.isArray(character.instrumentChoices)
+			? character.instrumentChoices.map((slot) => ({
+				key: slot.key,
+				sourceLabel: slot.sourceLabel,
+				slotIndex: slot.slotIndex,
+				selection: slot.selection || null,
+			}))
+			: [],
+		variantRules: character.variantRules ? { ...character.variantRules } : undefined,
+		hitPoints: {
+			current: character.hitPoints?.current || 0,
+			max: character.hitPoints?.max || 0,
+			temp: character.hitPoints?.temp || 0,
+		},
+		..._serializeInventory(character),
+		..._serializeSpellcasting(character),
+		..._serializeProgression(character),
+	};
+}
+
+function _serializeIdentity(character) {
+	return {
 		id: character.id,
 		name: character.name,
 		portrait: character.portrait || '',
@@ -116,10 +147,18 @@ export function serialize(character) {
 			selectedAlly: '',
 			customNotes: '',
 		},
+	};
+}
 
+function _serializeAbilities(character) {
+	return {
 		abilityScores: { ...character.abilityScores },
 		abilityBonuses: { ...character.abilityBonuses },
+	};
+}
 
+function _serializeRaceAndBackground(character) {
+	return {
 		race: character.race
 			? {
 				name: character.race.name || '',
@@ -139,36 +178,20 @@ export function serialize(character) {
 				: { name: character.background }
 			: {},
 		backgroundFeature: character.backgroundFeature || '',
-
 		size: character.size || 'Medium',
 		speed: character.speed
 			? { ...character.speed }
 			: { walk: 30, fly: 0, swim: 0, climb: 0, burrow: 0 },
+	};
+}
 
+function _serializeFeatures(character) {
+	return {
 		features: {
 			darkvision: character.features?.darkvision || 0,
 			resistances: Array.from(character.features?.resistances || []),
 			traits: mapToObject(character.features?.traits),
 		},
-
-		proficiencies: {
-			armor: safeArray(character.proficiencies?.armor),
-			weapons: safeArray(character.proficiencies?.weapons),
-			tools: safeArray(character.proficiencies?.tools),
-			skills: safeArray(character.proficiencies?.skills),
-			languages: safeArray(character.proficiencies?.languages),
-			savingThrows: safeArray(character.proficiencies?.savingThrows),
-		},
-
-		proficiencySources: {
-			armor: mapToObject(character.proficiencySources?.armor),
-			weapons: mapToObject(character.proficiencySources?.weapons),
-			tools: mapToObject(character.proficiencySources?.tools),
-			skills: mapToObject(character.proficiencySources?.skills),
-			languages: mapToObject(character.proficiencySources?.languages),
-			savingThrows: mapToObject(character.proficiencySources?.savingThrows),
-		},
-
 		feats: Array.isArray(character.feats)
 			? character.feats.map((feat) => ({
 				name: feat?.name || '',
@@ -177,191 +200,161 @@ export function serialize(character) {
 			: [],
 		featSources: mapToObject(character.featSources),
 	};
+}
 
-	// Serialize optional proficiencies
+function _serializeProficiencies(character) {
+	return {
+		proficiencies: {
+			armor: safeArray(character.proficiencies?.armor),
+			weapons: safeArray(character.proficiencies?.weapons),
+			tools: safeArray(character.proficiencies?.tools),
+			skills: safeArray(character.proficiencies?.skills),
+			languages: safeArray(character.proficiencies?.languages),
+			savingThrows: safeArray(character.proficiencies?.savingThrows),
+		},
+		proficiencySources: {
+			armor: mapToObject(character.proficiencySources?.armor),
+			weapons: mapToObject(character.proficiencySources?.weapons),
+			tools: mapToObject(character.proficiencySources?.tools),
+			skills: mapToObject(character.proficiencySources?.skills),
+			languages: mapToObject(character.proficiencySources?.languages),
+			savingThrows: mapToObject(character.proficiencySources?.savingThrows),
+		},
+	};
+}
+
+function _serializeOptionalProficiencies(character) {
 	try {
-		if (character.optionalProficiencies) {
-			serializedData.optionalProficiencies = {
-				// Simple types
+		if (!character.optionalProficiencies) return {};
+		return {
+			optionalProficiencies: {
 				armor: character.optionalProficiencies.armor
 					? {
 						allowed: character.optionalProficiencies.armor.allowed || 0,
-						selected: safeArray(
-							character.optionalProficiencies.armor.selected,
-						),
+						selected: safeArray(character.optionalProficiencies.armor.selected),
 					}
 					: { allowed: 0, selected: [] },
-
 				weapons: character.optionalProficiencies.weapons
 					? {
 						allowed: character.optionalProficiencies.weapons.allowed || 0,
-						selected: safeArray(
-							character.optionalProficiencies.weapons.selected,
-						),
+						selected: safeArray(character.optionalProficiencies.weapons.selected),
 					}
 					: { allowed: 0, selected: [] },
-
 				savingThrows: character.optionalProficiencies.savingThrows
 					? {
-						allowed:
-							character.optionalProficiencies.savingThrows.allowed || 0,
-						selected: safeArray(
-							character.optionalProficiencies.savingThrows.selected,
-						),
+						allowed: character.optionalProficiencies.savingThrows.allowed || 0,
+						selected: safeArray(character.optionalProficiencies.savingThrows.selected),
 					}
 					: { allowed: 0, selected: [] },
-
-				// Complex types with source-specific details
-				skills: serializeComplexProficiency(
-					character.optionalProficiencies,
-					'skills',
-				),
-				languages: serializeComplexProficiency(
-					character.optionalProficiencies,
-					'languages',
-				),
-				tools: serializeComplexProficiency(
-					character.optionalProficiencies,
-					'tools',
-				),
-			};
-		}
+				skills: serializeComplexProficiency(character.optionalProficiencies, 'skills'),
+				languages: serializeComplexProficiency(character.optionalProficiencies, 'languages'),
+				tools: serializeComplexProficiency(character.optionalProficiencies, 'tools'),
+			},
+		};
 	} catch (error) {
 		console.warn('[CharacterSerializer]', 'Proficiency serialization failed:', error);
-		serializedData.optionalProficiencies = {
-			armor: { allowed: 0, selected: [] },
-			weapons: { allowed: 0, selected: [] },
-			savingThrows: { allowed: 0, selected: [] },
-			skills: { allowed: 0, options: [], selected: [] },
-			languages: { allowed: 0, options: [], selected: [] },
-			tools: { allowed: 0, options: [], selected: [] },
+		return {
+			optionalProficiencies: {
+				armor: { allowed: 0, selected: [] },
+				weapons: { allowed: 0, selected: [] },
+				savingThrows: { allowed: 0, selected: [] },
+				skills: { allowed: 0, options: [], selected: [] },
+				languages: { allowed: 0, options: [], selected: [] },
+				tools: { allowed: 0, options: [], selected: [] },
+			},
 		};
 	}
+}
 
-	// Add pendingAbilityChoices if they exist
-	if (
-		character.pendingAbilityChoices &&
-		Array.isArray(character.pendingAbilityChoices)
-	) {
-		serializedData.pendingAbilityChoices = [...character.pendingAbilityChoices];
-	} else {
-		serializedData.pendingAbilityChoices = [];
-	}
-
-	// Add instrument choices if they exist
-	if (
-		character.instrumentChoices &&
-		Array.isArray(character.instrumentChoices)
-	) {
-		serializedData.instrumentChoices = character.instrumentChoices.map(
-			(slot) => ({
-				key: slot.key,
-				sourceLabel: slot.sourceLabel,
-				slotIndex: slot.slotIndex,
-				selection: slot.selection || null,
-			}),
-		);
-	} else {
-		serializedData.instrumentChoices = [];
-	}
-
-	// Add variant rules if they exist
-	if (character.variantRules) {
-		serializedData.variantRules = { ...character.variantRules };
-	}
-
-	// Add hit points
-	serializedData.hitPoints = {
-		current: character.hitPoints?.current || 0,
-		max: character.hitPoints?.max || 0,
-		temp: character.hitPoints?.temp || 0,
-	};
-
-	// Add inventory system
-	serializedData.inventory = {
-		items: (character.inventory?.items || []).map((item) => ({
-			id: item.id,
-			name: item.name,
-			baseItemId: item.baseItemId,
-			quantity: item.quantity || 1,
-			equipped: item.equipped || false,
-			attuned: item.attuned || false,
-			cost: item.cost ? { ...item.cost } : null,
-			weight: item.weight || 0,
-			ac: item.ac || 0,
-			source: item.source || 'Unknown',
-			type: item.type || null,
-			weapon: item.weapon || false,
-			armor: item.armor || false,
-			shield: item.shield || false,
-			reqAttune: item.reqAttune || false,
-			metadata: item.metadata ? { ...item.metadata } : {},
-		})),
-		equipped: Array.isArray(character.inventory?.equipped)
-			? [...character.inventory.equipped]
-			: [],
-		attuned: safeArray(character.inventory?.attuned),
-		currency: {
-			cp: character.inventory?.currency?.cp || 0,
-			sp: character.inventory?.currency?.sp || 0,
-			ep: character.inventory?.currency?.ep || 0,
-			gp: character.inventory?.currency?.gp || 0,
-			pp: character.inventory?.currency?.pp || 0,
-		},
-		weight: {
-			current: character.inventory?.weight?.current || 0,
-			capacity: character.inventory?.weight?.capacity || 0,
-		},
-	};
-
-	// Add spellcasting system
-	serializedData.spellcasting = {
-		classes: character.spellcasting?.classes
-			? { ...character.spellcasting.classes }
-			: {},
-		multiclass: character.spellcasting?.multiclass
-			? { ...character.spellcasting.multiclass }
-			: {
-				isCastingMulticlass: false,
-				combinedSlots: {},
+function _serializeInventory(character) {
+	return {
+		inventory: {
+			items: (character.inventory?.items || []).map((item) => ({
+				id: item.id,
+				name: item.name,
+				baseItemId: item.baseItemId,
+				quantity: item.quantity || 1,
+				equipped: item.equipped || false,
+				attuned: item.attuned || false,
+				cost: item.cost ? { ...item.cost } : null,
+				weight: item.weight || 0,
+				ac: item.ac || 0,
+				source: item.source || 'Unknown',
+				type: item.type || null,
+				weapon: item.weapon || false,
+				armor: item.armor || false,
+				shield: item.shield || false,
+				reqAttune: item.reqAttune || false,
+				metadata: item.metadata ? { ...item.metadata } : {},
+			})),
+			equipped: Array.isArray(character.inventory?.equipped)
+				? [...character.inventory.equipped]
+				: [],
+			attuned: safeArray(character.inventory?.attuned),
+			currency: {
+				cp: character.inventory?.currency?.cp || 0,
+				sp: character.inventory?.currency?.sp || 0,
+				ep: character.inventory?.currency?.ep || 0,
+				gp: character.inventory?.currency?.gp || 0,
+				pp: character.inventory?.currency?.pp || 0,
 			},
-		other: {
-			spellsKnown: safeArray(character.spellcasting?.other?.spellsKnown),
-			itemSpells: safeArray(character.spellcasting?.other?.itemSpells),
+			weight: {
+				current: character.inventory?.weight?.current || 0,
+				capacity: character.inventory?.weight?.capacity || 0,
+			},
 		},
 	};
+}
 
-	// Add progression system
-	serializedData.progression = {
-		classes: (character.progression?.classes || []).map((cls) => ({
-			name: cls.name,
-			levels: cls.levels,
-			subclass: cls.subclass || '', // Always store as string
-			subclassChoices: cls.subclassChoices ? { ...cls.subclassChoices } : {},
-			hitDice: cls.hitDice,
-			hitPoints: safeArray(cls.hitPoints),
-			features: safeArray(cls.features),
-			spellSlots: cls.spellSlots ? { ...cls.spellSlots } : {},
-		})),
-		experiencePoints: character.progression?.experiencePoints || 0,
-		levelUps: (character.progression?.levelUps || []).map((levelUp) => ({
-			fromLevel: levelUp.fromLevel,
-			toLevel: levelUp.toLevel,
-			appliedFeats: safeArray(levelUp.appliedFeats),
-			appliedFeatures: safeArray(levelUp.appliedFeatures),
-			changedAbilities: levelUp.changedAbilities
-				? { ...levelUp.changedAbilities }
+function _serializeSpellcasting(character) {
+	return {
+		spellcasting: {
+			classes: character.spellcasting?.classes
+				? { ...character.spellcasting.classes }
 				: {},
-			timestamp: levelUp.timestamp,
-		})),
+			multiclass: character.spellcasting?.multiclass
+				? { ...character.spellcasting.multiclass }
+				: {
+					isCastingMulticlass: false,
+					combinedSlots: {},
+				},
+			other: {
+				spellsKnown: safeArray(character.spellcasting?.other?.spellsKnown),
+				itemSpells: safeArray(character.spellcasting?.other?.itemSpells),
+			},
+		},
 	};
+}
 
-	// Add progression history
-	serializedData.progressionHistory = character.progressionHistory
-		? JSON.parse(JSON.stringify(character.progressionHistory))
-		: {};
-
-	return serializedData;
+function _serializeProgression(character) {
+	return {
+		progression: {
+			classes: (character.progression?.classes || []).map((cls) => ({
+				name: cls.name,
+				levels: cls.levels,
+				subclass: cls.subclass || '',
+				subclassChoices: cls.subclassChoices ? { ...cls.subclassChoices } : {},
+				hitDice: cls.hitDice,
+				hitPoints: safeArray(cls.hitPoints),
+				features: safeArray(cls.features),
+				spellSlots: cls.spellSlots ? { ...cls.spellSlots } : {},
+			})),
+			experiencePoints: character.progression?.experiencePoints || 0,
+			levelUps: (character.progression?.levelUps || []).map((levelUp) => ({
+				fromLevel: levelUp.fromLevel,
+				toLevel: levelUp.toLevel,
+				appliedFeats: safeArray(levelUp.appliedFeats),
+				appliedFeatures: safeArray(levelUp.appliedFeatures),
+				changedAbilities: levelUp.changedAbilities
+					? { ...levelUp.changedAbilities }
+					: {},
+				timestamp: levelUp.timestamp,
+			})),
+		},
+		progressionHistory: character.progressionHistory
+			? JSON.parse(JSON.stringify(character.progressionHistory))
+			: {},
+	};
 }
 
 /**

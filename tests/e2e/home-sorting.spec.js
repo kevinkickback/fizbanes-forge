@@ -1,27 +1,10 @@
-import { _electron as electron } from '@playwright/test';
 import { expect, test } from '../fixtures.js';
+import { launchAndWaitForHome } from './helpers.js';
 
 /**
  * 15. Home Page — Sorting
  * Verifies the sort-select control on the home page.
  */
-
-async function launchAndWaitForHome() {
-    const electronApp = await electron.launch({ args: ['.'] });
-
-    let page = electronApp
-        .windows()
-        .find((win) => !win.url().startsWith('devtools://'));
-    if (!page) {
-        page = await electronApp.waitForEvent(
-            'window',
-            (win) => !win.url().startsWith('devtools://'),
-        );
-    }
-
-    await page.waitForSelector('#pageContent', { timeout: 60_000 });
-    return { electronApp, page };
-}
 
 test.describe('Home Page Sorting', () => {
     let electronApp;

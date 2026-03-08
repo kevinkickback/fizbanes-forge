@@ -312,11 +312,164 @@ async function _initializeCoreComponents() {
 	}
 }
 
+async function _ensureDataSource(loadingModal) {
+	loadingModal.updateDetail('Checking data files...');
+	loadingModal.updateProgress(5);
+
+	const saved = await window.app.getDataSource();
+	if (!saved?.success || !saved.type || !saved.value) {
+		loadingModal.hide();
+	}
+
+	const dataReady = await _checkDataFolder();
+	if (!dataReady) {
+		throw new DataError('Data folder not configured');
+	}
+
+	if (!saved?.success || !saved.type || !saved.value) {
+		loadingModal.show();
+	}
+
+	const config = await window.app.settings.getAll();
+	const cachePath = config.dataSourceCachePath;
+	const hasCache =
+		config.dataSourceType === 'local' ||
+		(config.dataSourceType === 'url' && cachePath);
+
+	console.debug('[AppInitializer]', 'Data source check:', {
+		type: config.dataSourceType,
+		value: config.dataSourceValue,
+		hasCache,
+		cachePath,
+	});
+
+	if (!hasCache && config.dataSourceType === 'url') {
+		await _downloadInitialData(loadingModal);
+	} else if (hasCache && !window.FF_DEBUG) {
+		await _refreshCachedData(loadingModal, config);
+	}
+}
+
+async function _downloadInitialData(loadingModal) {
+	console.info('[AppInitializer]', 'Remote source with no cache, downloading');
+	loadingModal.updateProgress(15);
+	loadingModal.updateDetail('Connecting to remote server...');
+
+	const progressListener = (progress) => {
+		if (progress.status === 'start') {
+			loadingModal.updateDetail(`Downloading ${progress.total} files...`);
+		} else if (progress.status === 'progress' && progress.file) {
+			const fileName = progress.file.split('/').pop();
+			loadingModal.updateDetail(
+				`Downloading: ${fileName} (${progress.completed}/${progress.total})`,
+			);
+		} else if (progress.status === 'complete') {
+			loadingModal.updateDetail(
+				`Downloaded ${progress.downloaded} file(s)`,
+			);
+		}
+	};
+
+	const unsubscribe = window.app.onDataDownloadProgress(progressListener);
+
+	try {
+		const refreshResult = await window.app.refreshDataSource();
+		if (!refreshResult?.success) {
+			throw new DataError(refreshResult?.error || 'Failed to download data');
+		}
+	} catch (error) {
+		console.error('[AppInitializer]', 'Failed to download data:', error);
+		showNotification(`Failed to download data: ${error.message}`, 'error');
+		throw error;
+	} finally {
+		unsubscribe?.();
+	}
+}
+
+async function _refreshCachedData(loadingModal, config) {
+	const autoUpdate = !!config.autoUpdateData;
+	if (!autoUpdate) {
+		console.debug('[AppInitializer]', 'Skipping data source refresh');
+		return;
+	}
+
+	console.debug('[AppInitializer]', 'Calling refreshDataSource');
+	loadingModal.updateProgress(15);
+
+	const dataSource = await window.app.getDataSource();
+	const sourceDesc = _getDataSourceDescription(
+		dataSource?.type || 'unknown',
+		dataSource?.value || '',
+	);
+
+	if (dataSource?.type === 'local') {
+		loadingModal.updateDetail(`Checking ${sourceDesc} for changes...`);
+	} else if (dataSource?.type === 'url') {
+		loadingModal.updateDetail(
+			`Connecting to ${sourceDesc.replace('remote: ', '')}...`,
+		);
+	}
+
+	const progressListener = (progress) => {
+		if (progress.status === 'start') {
+			loadingModal.updateDetail(`Checking ${progress.total} files...`);
+		} else if (progress.status === 'progress' && progress.file) {
+			const fileName = progress.file.split('/').pop();
+			if (progress.skipped) {
+				loadingModal.updateDetail(
+					`Verified: ${fileName} (${progress.completed}/${progress.total})`,
+				);
+			} else {
+				loadingModal.updateDetail(
+					`Downloading: ${fileName} (${progress.completed}/${progress.total})`,
+				);
+			}
+		} else if (progress.status === 'complete') {
+			if (progress.downloaded > 0) {
+				loadingModal.updateDetail(
+					`Downloaded ${progress.downloaded} file(s), ${progress.skipped || 0} unchanged`,
+				);
+			} else {
+				loadingModal.updateDetail('All files up to date');
+			}
+		}
+	};
+
+	const unsubscribe = window.app.onDataDownloadProgress(progressListener);
+
+	try {
+		console.debug('[AppInitializer]', 'Calling refreshDataSource');
+		const refreshResult = await window.app.refreshDataSource();
+		console.debug('[AppInitializer]', 'refreshDataSource result:', refreshResult);
+
+		unsubscribe();
+
+		if (!refreshResult?.success) {
+			console.warn(
+				'[AppInitializer]',
+				`Data source update failed: ${refreshResult?.error || 'Unknown error'}`,
+			);
+			await _promptDataSourceFix(
+				refreshResult?.error || 'Data source is invalid',
+			);
+			throw new DataError('Data source update failed');
+		} else {
+			DataLoader.resetAll();
+			console.debug('[AppInitializer]', 'Checked/updated data source');
+		}
+	} catch (error) {
+		unsubscribe();
+		console.warn('[AppInitializer]', 'Data source update failed', error);
+	}
+}
+
 export async function initializeAll() {
 	if (_isInitializing) {
 		console.warn('[AppInitializer]', 'Initialization already in progress');
 		return { success: false, errors: ['Initialization already in progress'] };
 	}
+
+	_isInitializing = true;
 
 	if (_isInitialized) {
 		console.info('[AppInitializer]', 'Already initialized, cleaning up for reload');
@@ -332,60 +485,15 @@ export async function initializeAll() {
 		_isInitialized = false;
 	}
 
-	_isInitializing = true;
-
 	const result = {
 		success: true,
 		loadedComponents: [],
 		errors: [],
 	};
 
-	if (window.FF_DEBUG === true) {
-		document.body.classList.add('debug-mode');
-
-		// Expose debug utilities to DevTools console
-		window.__debug = {
-			eventBus,
-			history: (eventName = null) => eventBus.getHistory(eventName),
-			metrics: (eventName = null) => eventBus.getMetrics(eventName),
-			clearHistory: () => eventBus.clearHistory(),
-			clearMetrics: () => eventBus.clearMetrics(),
-			enable: () => eventBus.enableDebugMode(),
-			disable: () => eventBus.disableDebugMode(),
-		};
-		console.log('[AppInitializer] Debug utilities available via window.__debug');
-	} else {
-		document.body.classList.remove('debug-mode');
-		delete window.__debug;
-	}
-
-	try {
-		themeManager.init(eventBus);
-		result.loadedComponents.push('ThemeManager');
-	} catch (error) {
-		console.warn('[AppInitializer]', 'Failed to initialize theme manager', error);
-		result.errors.push(error);
-	}
-
-	const existingModal = document.getElementById('loadingModal');
-	if (existingModal) {
-		existingModal.classList.remove('show');
-		existingModal.classList.add('u-hidden');
-		existingModal.setAttribute('aria-hidden', 'true');
-		existingModal.removeAttribute('aria-modal');
-	}
-
-	try {
-		cleanupOrphanedBackdrops();
-	} catch (error) {
-		console.warn('[AppInitializer]', 'Error cleaning up backdrops', error);
-	}
-
-	const existingBackdrops = document.querySelectorAll('.modal-backdrop');
-	for (const backdrop of existingBackdrops) {
-		backdrop.remove();
-	}
-	resetModalBodyState();
+	_initDebugMode();
+	_initThemeManager(result);
+	_cleanupExistingModals();
 
 	const loadingModal = new LoadingModal();
 	loadingModal.show();
@@ -420,180 +528,14 @@ export async function initializeAll() {
 	_appCleanup.onEvent(EVENTS.DATA_FILE_LOADING, onDataFileLoading);
 
 	try {
-		loadingModal.updateDetail('Checking data files...');
-		loadingModal.updateProgress(5);
-
-		const saved = await window.app.getDataSource();
-		if (!saved?.success || !saved.type || !saved.value) {
-			loadingModal.hide();
-		}
-
-		const dataReady = await _checkDataFolder();
-		if (!dataReady) {
-			throw new DataError('Data folder not configured');
-		}
-
-		if (!saved?.success || !saved.type || !saved.value) {
-			loadingModal.show();
-		}
-
-		const config = await window.app.settings.getAll();
-		const cachePath = config.dataSourceCachePath;
-		const hasCache =
-			config.dataSourceType === 'local' ||
-			(config.dataSourceType === 'url' && cachePath);
-
-		console.debug('[AppInitializer]', 'Data source check:', {
-			type: config.dataSourceType,
-			value: config.dataSourceValue,
-			hasCache,
-			cachePath,
-		});
-
-		if (!hasCache && config.dataSourceType === 'url') {
-			console.info('[AppInitializer]', 'Remote source with no cache, downloading');
-			loadingModal.updateProgress(15);
-			loadingModal.updateDetail('Connecting to remote server...');
-
-			const progressListener = (progress) => {
-				if (progress.status === 'start') {
-					loadingModal.updateDetail(`Downloading ${progress.total} files...`);
-				} else if (progress.status === 'progress' && progress.file) {
-					const fileName = progress.file.split('/').pop();
-					loadingModal.updateDetail(
-						`Downloading: ${fileName} (${progress.completed}/${progress.total})`,
-					);
-				} else if (progress.status === 'complete') {
-					loadingModal.updateDetail(
-						`Downloaded ${progress.downloaded} file(s)`,
-					);
-				}
-			};
-
-			const unsubscribe = window.app.onDataDownloadProgress(progressListener);
-
-			try {
-				const refreshResult = await window.app.refreshDataSource();
-				if (!refreshResult?.success) {
-					throw new DataError(refreshResult?.error || 'Failed to download data');
-				}
-			} catch (error) {
-				console.error('[AppInitializer]', 'Failed to download data:', error);
-				showNotification(`Failed to download data: ${error.message}`, 'error');
-				throw error;
-			} finally {
-				unsubscribe?.();
-			}
-		}
-
-		if (hasCache && !window.FF_DEBUG) {
-			const autoUpdate = !!config.autoUpdateData;
-			const shouldRefresh = autoUpdate;
-
-			console.debug('[AppInitializer]', 'Cache check:', {
-				hasCache,
-				autoUpdate,
-				shouldRefresh,
-			});
-
-			if (shouldRefresh) {
-				console.debug('[AppInitializer]', 'Calling refreshDataSource');
-				loadingModal.updateProgress(15);
-
-				const dataSource = await window.app.getDataSource();
-				const sourceDesc = _getDataSourceDescription(
-					dataSource?.type || 'unknown',
-					dataSource?.value || '',
-				);
-
-				if (dataSource?.type === 'local') {
-					loadingModal.updateDetail(`Checking ${sourceDesc} for changes...`);
-				} else if (dataSource?.type === 'url') {
-					loadingModal.updateDetail(
-						autoUpdate
-							? `Connecting to ${sourceDesc.replace('remote: ', '')}...`
-							: `Downloading from ${sourceDesc.replace('remote: ', '')}...`,
-					);
-				}
-
-				const progressListener = (progress) => {
-					if (progress.status === 'start') {
-						loadingModal.updateDetail(`Checking ${progress.total} files...`);
-					} else if (progress.status === 'progress' && progress.file) {
-						const fileName = progress.file.split('/').pop();
-						if (progress.skipped) {
-							loadingModal.updateDetail(
-								`Verified: ${fileName} (${progress.completed}/${progress.total})`,
-							);
-						} else {
-							loadingModal.updateDetail(
-								`Downloading: ${fileName} (${progress.completed}/${progress.total})`,
-							);
-						}
-					} else if (progress.status === 'complete') {
-						if (progress.downloaded > 0) {
-							loadingModal.updateDetail(
-								`Downloaded ${progress.downloaded} file(s), ${progress.skipped || 0} unchanged`,
-							);
-						} else {
-							loadingModal.updateDetail('All files up to date');
-						}
-					}
-				};
-
-				const unsubscribe = window.app.onDataDownloadProgress(progressListener);
-
-				try {
-					console.debug('[AppInitializer]', 'Calling refreshDataSource');
-					const refreshResult = await window.app.refreshDataSource();
-					console.debug('[AppInitializer]', 'refreshDataSource result:', refreshResult);
-
-					unsubscribe();
-
-					if (!refreshResult?.success) {
-						console.warn(
-							'[AppInitializer]',
-							`Data source update failed: ${refreshResult?.error || 'Unknown error'}`,
-						);
-						await _promptDataSourceFix(
-							refreshResult?.error || 'Data source is invalid',
-						);
-						throw new DataError('Data source update failed');
-					} else {
-						DataLoader.resetAll();
-						console.debug('[AppInitializer]', 'Checked/updated data source');
-					}
-				} catch (error) {
-					unsubscribe();
-					console.warn('[AppInitializer]', 'Data source update failed', error);
-				}
-			} else {
-				console.debug('[AppInitializer]', 'Skipping data source refresh');
-			}
-		}
+		await _ensureDataSource(loadingModal);
 
 		loadingModal.updateProgress(30);
 		isGameDataLoading = true;
 		const dataLoadResult = await _loadAllGameData(loadingModal);
 		isGameDataLoading = false;
 
-		AppState.setFailedServices(dataLoadResult.failedServices || []);
-		_updateServiceFailureBanner(dataLoadResult.failedServices || []);
-
-		if (dataLoadResult.failedServices?.length) {
-			showNotification(
-				`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
-				'warning',
-			);
-			addPersistentNotification(
-				`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
-				'warning',
-			);
-		}
-
-		if (!dataLoadResult.success) {
-			result.errors.push(...dataLoadResult.errors);
-		}
+		_handleDataLoadResult(dataLoadResult, result);
 
 		loadingModal.updateDetail('Setting up UI controllers...');
 		loadingModal.updateProgress(70);
@@ -615,7 +557,6 @@ export async function initializeAll() {
 		loadingModal.updateProgress(100);
 		loadingModal.updateDetail('Ready');
 
-		// Wait a brief moment before hiding, then await the hide
 		await new Promise(resolve => setTimeout(resolve, 200));
 		await loadingModal.hide();
 
@@ -635,6 +576,77 @@ export async function initializeAll() {
 		result.success = false;
 		result.errors.push(error);
 		throw error;
+	}
+}
+
+function _initDebugMode() {
+	if (window.FF_DEBUG === true) {
+		document.body.classList.add('debug-mode');
+		window.__debug = {
+			eventBus,
+			history: (eventName = null) => eventBus.getHistory(eventName),
+			metrics: (eventName = null) => eventBus.getMetrics(eventName),
+			clearHistory: () => eventBus.clearHistory(),
+			clearMetrics: () => eventBus.clearMetrics(),
+			enable: () => eventBus.enableDebugMode(),
+			disable: () => eventBus.disableDebugMode(),
+		};
+		console.log('[AppInitializer] Debug utilities available via window.__debug');
+	} else {
+		document.body.classList.remove('debug-mode');
+		delete window.__debug;
+	}
+}
+
+function _initThemeManager(result) {
+	try {
+		themeManager.init(eventBus);
+		result.loadedComponents.push('ThemeManager');
+	} catch (error) {
+		console.warn('[AppInitializer]', 'Failed to initialize theme manager', error);
+		result.errors.push(error);
+	}
+}
+
+function _cleanupExistingModals() {
+	const existingModal = document.getElementById('loadingModal');
+	if (existingModal) {
+		existingModal.classList.remove('show');
+		existingModal.classList.add('u-hidden');
+		existingModal.setAttribute('aria-hidden', 'true');
+		existingModal.removeAttribute('aria-modal');
+	}
+
+	try {
+		cleanupOrphanedBackdrops();
+	} catch (error) {
+		console.warn('[AppInitializer]', 'Error cleaning up backdrops', error);
+	}
+
+	const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+	for (const backdrop of existingBackdrops) {
+		backdrop.remove();
+	}
+	resetModalBodyState();
+}
+
+function _handleDataLoadResult(dataLoadResult, result) {
+	AppState.setFailedServices(dataLoadResult.failedServices || []);
+	_updateServiceFailureBanner(dataLoadResult.failedServices || []);
+
+	if (dataLoadResult.failedServices?.length) {
+		showNotification(
+			`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
+			'warning',
+		);
+		addPersistentNotification(
+			`Some game data failed to load: ${dataLoadResult.failedServices.join(', ')}`,
+			'warning',
+		);
+	}
+
+	if (!dataLoadResult.success) {
+		result.errors.push(...dataLoadResult.errors);
 	}
 }
 

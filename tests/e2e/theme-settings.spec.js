@@ -1,28 +1,11 @@
-import { _electron as electron } from '@playwright/test';
 import { expect, test } from '../fixtures.js';
+import { launchAndWaitForHome } from './helpers.js';
 
 /**
  * 3. Theme & Settings
  * Verifies theme toggling, persistence across navigation,
  * and the settings page rendering.
  */
-
-async function launchAndWaitForHome() {
-	const electronApp = await electron.launch({ args: ['.'] });
-
-	let page = electronApp
-		.windows()
-		.find((win) => !win.url().startsWith('devtools://'));
-	if (!page) {
-		page = await electronApp.waitForEvent(
-			'window',
-			(win) => !win.url().startsWith('devtools://'),
-		);
-	}
-
-	await page.waitForSelector('#pageContent', { timeout: 60_000 });
-	return { electronApp, page };
-}
 
 test.describe('Theme & Settings', () => {
 	let electronApp;

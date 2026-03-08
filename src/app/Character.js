@@ -3,15 +3,44 @@ import {
 	DEFAULT_CHARACTER_SPEED,
 	getAbilityModNumber,
 } from '../lib/5eToolsParser.js';
+import { CLASS_ASI_LEVELS, DEFAULT_ASI_LEVELS } from '../lib/GameRules.js';
 import { proficiencyService } from '../services/ProficiencyService.js';
 import * as CharacterSerializer from './CharacterSerializer.js';
 
 export class Character {
 	constructor(data = {}) {
+		this._initIdentity(data);
+		this._initRace(data);
+		this._initAbilityScores(data);
+		this._initFeatures(data);
+		this._initProficiencies(data);
+		this._initDescription(data);
+		this._initEquipmentAndProgression(data);
+
+		proficiencyService.initializeProficiencyStructures(this);
+	}
+
+	_initIdentity(data) {
 		this.id = data.id || null;
 		this.name = data.name || '';
 		this.playerName = data.playerName || '';
+		this.background = data.background || null;
+		this.backgroundFeature = data.backgroundFeature || '';
+		this.createdAt = data.createdAt || new Date().toISOString();
+		this.lastModified = data.lastModified || new Date().toISOString();
+		this.portrait = data.portrait || '';
+		this.embeddedPortrait = data.embeddedPortrait || null;
 
+		this.allowedSources = new Set(
+			Array.isArray(data.allowedSources)
+				? data.allowedSources
+				: data.allowedSources instanceof Set
+					? Array.from(data.allowedSources)
+					: ['PHB'],
+		);
+	}
+
+	_initRace(data) {
 		this.race = data.race || {
 			name: '',
 			source: '',
@@ -35,19 +64,11 @@ export class Character {
 			}
 		}
 
-		this.background = data.background || null;
-		this.backgroundFeature = data.backgroundFeature || '';
-		this.createdAt = data.createdAt || new Date().toISOString();
-		this.lastModified = data.lastModified || new Date().toISOString();
+		this.size = data.size || DEFAULT_CHARACTER_SIZE;
+		this.speed = data.speed || { ...DEFAULT_CHARACTER_SPEED };
+	}
 
-		this.allowedSources = new Set(
-			Array.isArray(data.allowedSources)
-				? data.allowedSources
-				: data.allowedSources instanceof Set
-					? Array.from(data.allowedSources)
-					: ['PHB'],
-		);
-
+	_initAbilityScores(data) {
 		this.abilityScores = data.abilityScores || {
 			strength: 8,
 			dexterity: 8,
@@ -66,12 +87,10 @@ export class Character {
 			charisma: [],
 		};
 
-		// Initialize pending ability choices
 		this.pendingAbilityChoices = data.pendingAbilityChoices || [];
+	}
 
-		this.size = data.size || DEFAULT_CHARACTER_SIZE;
-		this.speed = data.speed || { ...DEFAULT_CHARACTER_SPEED };
-
+	_initFeatures(data) {
 		this.features = {
 			darkvision: data.features?.darkvision || 0,
 			resistances: new Set(data.features?.resistances || []),
@@ -80,13 +99,21 @@ export class Character {
 			),
 		};
 
-		this.portrait = data.portrait || '';
-		this.embeddedPortrait = data.embeddedPortrait || null;
-
 		this.feats = [];
 		this.featSources = new Map();
 		this.setFeats(data.feats || [], 'Imported');
 
+		this.pendingChoices = new Map(
+			data.pendingChoices ? Object.entries(data.pendingChoices) : [],
+		);
+
+		this.variantRules = data.variantRules || {
+			variantfeat: false,
+			abilityScoreMethod: 'custom',
+		};
+	}
+
+	_initProficiencies(data) {
 		this.proficiencies = data.proficiencies || {
 			armor: [],
 			weapons: [],
@@ -127,71 +154,24 @@ export class Character {
 			armor: { allowed: 0, selected: [] },
 			weapons: { allowed: 0, selected: [] },
 			savingThrows: { allowed: 0, selected: [] },
-			skills: {
-				allowed: 0,
-				options: [],
-				selected: [],
-				race: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-				class: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-				background: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-			},
-			languages: {
-				allowed: 0,
-				options: [],
-				selected: [],
-				race: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-				class: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-				background: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-			},
-			tools: {
-				allowed: 0,
-				options: [],
-				selected: [],
-				race: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-				class: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-				background: {
-					allowed: 0,
-					options: [],
-					selected: [],
-				},
-			},
+			skills: this._createSourcedProficiencySlot(data.optionalProficiencies?.skills),
+			languages: this._createSourcedProficiencySlot(data.optionalProficiencies?.languages),
+			tools: this._createSourcedProficiencySlot(data.optionalProficiencies?.tools),
 		};
+	}
 
-		this.pendingChoices = new Map(
-			data.pendingChoices ? Object.entries(data.pendingChoices) : [],
-		);
+	_createSourcedProficiencySlot(data) {
+		return {
+			allowed: data?.allowed || 0,
+			options: data?.options || [],
+			selected: data?.selected || [],
+			race: { allowed: 0, options: [], selected: [], ...data?.race },
+			class: { allowed: 0, options: [], selected: [], ...data?.class },
+			background: { allowed: 0, options: [], selected: [], ...data?.background },
+		};
+	}
+
+	_initDescription(data) {
 		this.height = data.height || '';
 		this.weight = data.weight || '';
 		this.gender = data.gender || '';
@@ -212,7 +192,9 @@ export class Character {
 			selectedAlly: '',
 			customNotes: '',
 		};
+	}
 
+	_initEquipmentAndProgression(data) {
 		this.instrumentChoices = data.instrumentChoices || [];
 
 		this.equipment = data.equipment || {
@@ -225,11 +207,6 @@ export class Character {
 			current: 0,
 			max: 0,
 			temp: 0,
-		};
-
-		this.variantRules = data.variantRules || {
-			variantfeat: false,
-			abilityScoreMethod: 'custom',
 		};
 
 		this.inventory = data.inventory || {
@@ -260,8 +237,6 @@ export class Character {
 		};
 
 		this.progressionHistory = data.progressionHistory || {};
-
-		proficiencyService.initializeProficiencyStructures(this);
 	}
 
 	getProficienciesByType(type) {
@@ -540,13 +515,7 @@ export class Character {
 				const className = classEntry.name;
 				const classLevel = classEntry.levels || 0;
 
-				// Determine ASI levels for this class
-				let asiLevels = [4, 8, 12, 16, 19]; // Standard
-				if (className === 'Fighter') {
-					asiLevels = [4, 6, 8, 12, 14, 16, 19];
-				} else if (className === 'Rogue') {
-					asiLevels = [4, 8, 10, 12, 16, 19];
-				}
+				const asiLevels = CLASS_ASI_LEVELS[className] || DEFAULT_ASI_LEVELS;
 
 				// Count ASI opportunities for this class
 				const asiCount = asiLevels.filter((level) => level <= classLevel).length;

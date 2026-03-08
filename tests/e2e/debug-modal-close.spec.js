@@ -1,5 +1,5 @@
-import { _electron as electron } from '@playwright/test';
 import { expect, test } from '../fixtures.js';
+import { clickCreateCharacterBtn, deleteCharacterByName, launchAndWaitForHome } from './helpers.js';
 
 /**
  * Regression test: spell modal should close after subclass + spell confirm.
@@ -7,30 +7,6 @@ import { expect, test } from '../fixtures.js';
  *       duplicate click handlers on spell buttons, spawning two modals.
  *       Only the second closes on confirm; the first stays visible.
  */
-
-async function launchApp() {
-    const electronApp = await electron.launch({ args: ['.'] });
-    let page = electronApp
-        .windows()
-        .find((win) => !win.url().startsWith('devtools://'));
-    if (!page) {
-        page = await electronApp.waitForEvent(
-            'window',
-            (win) => !win.url().startsWith('devtools://'),
-        );
-    }
-    await page.waitForSelector('#pageContent', { timeout: 60_000 });
-    return { electronApp, page };
-}
-
-async function clickCreateCharacterBtn(page) {
-    const emptyStateBtn = page.locator('#welcomeCreateCharacterBtn');
-    if (await emptyStateBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await emptyStateBtn.click();
-    } else {
-        await page.locator('#newCharacterBtn').click();
-    }
-}
 
 async function createWizard(page, name) {
     await clickCreateCharacterBtn(page);
@@ -59,7 +35,7 @@ async function createWizard(page, name) {
         },
         { timeout: 15_000 },
     );
-    await raceSelect.selectOption({ index: 1 });
+    await raceSelect.selectOption({ label: /Human/ });
     await page.locator('#wizardNextBtn').click();
     await expect(
         page.locator('#newCharacterStepper .list-group-item[data-step="3"]'),
@@ -74,11 +50,7 @@ async function createWizard(page, name) {
         },
         { timeout: 15_000 },
     );
-    const wizardIndex = await classSelect.evaluate((sel) => {
-        const idx = [...sel.options].findIndex((o) => /wizard/i.test(o.text));
-        return idx >= 0 ? idx : sel.options.length - 1;
-    });
-    await classSelect.selectOption({ index: wizardIndex });
+    await classSelect.selectOption({ label: /Wizard/ });
     await page.locator('#wizardNextBtn').click();
     await expect(
         page.locator('#newCharacterStepper .list-group-item[data-step="4"]'),
@@ -92,7 +64,7 @@ async function createWizard(page, name) {
         },
         { timeout: 15_000 },
     );
-    await bgSelect.selectOption({ index: 1 });
+    await bgSelect.selectOption({ label: /Acolyte/ });
     await page.locator('#wizardNextBtn').click();
     await expect(
         page.locator('#newCharacterStepper .list-group-item[data-step="5"]'),
@@ -110,27 +82,6 @@ async function createWizard(page, name) {
     await expect(page.locator('#titlebarCharacterName')).toHaveText(name, {
         timeout: 10_000,
     });
-}
-
-async function deleteCharacterByName(page, characterName) {
-    await page.locator('button[data-page="home"]').click();
-    await page.waitForFunction(
-        () => document.body.getAttribute('data-current-page') === 'home',
-        { timeout: 10_000 },
-    );
-    const card = page.locator('.character-card', {
-        has: page.locator('.card-header h5', { hasText: characterName }),
-    });
-    const deleteBtn = card.locator('.delete-character');
-    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await deleteBtn.click();
-        const confirmBtn = page.locator('#confirmButton');
-        await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
-        await confirmBtn.click();
-        await expect(page.locator('#confirmationModal')).not.toBeVisible({
-            timeout: 5_000,
-        });
-    }
 }
 
 async function levelUpCharacter(page) {
@@ -168,7 +119,7 @@ async function expandAccordions(page) {
     await page.evaluate(() => {
         document
             .querySelectorAll('#classChoicesAccordion .accordion-collapse')
-            .forEach((c) => c.classList.add('show'));
+            .forEach((c) => { c.classList.add('show'); });
         document
             .querySelectorAll('#classChoicesAccordion .accordion-button')
             .forEach((b) => {
@@ -181,7 +132,7 @@ async function expandAccordions(page) {
 
 test('spell modal closes after confirming subclass then spell selection', async () => {
     test.setTimeout(120_000);
-    const { electronApp, page } = await launchApp();
+    const { electronApp, page } = await launchAndWaitForHome();
 
     try {
         await createWizard(page, 'Spell Modal Close Test');

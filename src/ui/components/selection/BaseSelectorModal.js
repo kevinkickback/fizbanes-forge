@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { disposeBootstrapModal, hideBootstrapModal, initializeBootstrapModal } from '../../../lib/ModalCleanupUtility.js';
 import { showNotification } from '../../../lib/Notifications.js';
@@ -54,6 +55,7 @@ export class BaseSelectorModal {
 			descriptionCache: null,
 			fetchDescription: null,
 			descriptionContainerSelector: null,
+			maxCacheSize: 200,
 			onCacheSet: null, // Optional callback when cache entry is set (id) => void
 			...config,
 		};
@@ -476,7 +478,7 @@ export class BaseSelectorModal {
 			const id = this._getItemId(item);
 			return `
                 <span class="badge bg-secondary me-2 mb-2">
-                    ${item.name}
+                    ${escapeHtml(item.name)}
                     <button class="btn-close btn-close-white ms-2 u-text-xs" data-deselect="${id}"></button>
                 </span>
             `;
@@ -557,6 +559,11 @@ export class BaseSelectorModal {
 						desc ||
 						'<span class="text-muted small">No description available.</span>';
 					cache.set(id, html);
+					// Evict oldest entry if cache exceeds max size
+					if (cache.size > this.config.maxCacheSize) {
+						const oldest = cache.keys().next().value;
+						cache.delete(oldest);
+					}
 					// Notify cache management callback if provided
 					if (this.config.onCacheSet) {
 						this.config.onCacheSet(id);

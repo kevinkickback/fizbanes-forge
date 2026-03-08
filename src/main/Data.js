@@ -644,6 +644,10 @@ export async function downloadDataFromUrl(
 	}
 }
 
+// Domains allowed for remote data source URLs (SSRF prevention).
+// Extend this list if hosting 5etools data on other services.
+const ALLOWED_DATA_SOURCE_DOMAINS = ['github.com', 'raw.githubusercontent.com'];
+
 /** Validate a remote data source URL by fetching and checking races.json. */
 export async function validateDataSourceURL(url) {
 	try {
@@ -651,6 +655,10 @@ export async function validateDataSourceURL(url) {
 		const urlObj = new URL(url);
 		if (!['http:', 'https:'].includes(urlObj.protocol)) {
 			return { valid: false, error: 'URL must use HTTP or HTTPS protocol' };
+		}
+
+		if (!ALLOWED_DATA_SOURCE_DOMAINS.some(d => urlObj.hostname === d || urlObj.hostname.endsWith(`.${d}`))) {
+			return { valid: false, error: `Data source must be hosted on: ${ALLOWED_DATA_SOURCE_DOMAINS.join(', ')}` };
 		}
 
 		// Always treat the input as a folder (repo root or data folder)

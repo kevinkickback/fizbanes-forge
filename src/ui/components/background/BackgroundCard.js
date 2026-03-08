@@ -2,6 +2,7 @@
 
 import { AppState } from '../../../app/AppState.js';
 import { CharacterManager } from '../../../app/CharacterManager.js';
+import { escapeHtml } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import TextProcessor from '../../../lib/TextProcessor.js';
@@ -172,9 +173,9 @@ export class BackgroundCard {
 
 		itemWrapper.innerHTML = `
             <div class="d-flex align-items-center gap-2">
-                <input type="radio" name="background" value="${background.name}_${background.source}" class="form-check-input">
+                <input type="radio" name="background" value="${escapeHtml(background.name)}_${escapeHtml(background.source)}" class="form-check-input">
                 <div class="flex-grow-1">
-                    <strong>${background.name}</strong>
+                    <strong>${escapeHtml(background.name)}</strong>
                 </div>
             </div>
         `;
@@ -380,8 +381,8 @@ export class BackgroundCard {
 
 		// Title shows variant name if provided
 		const title = variant
-			? `${background.name} (${variant.name})`
-			: background.name;
+			? `${escapeHtml(background.name)} (${escapeHtml(variant.name)})`
+			: escapeHtml(background.name);
 		let html = `<h6>${title}</h6>`;
 
 		// Add description

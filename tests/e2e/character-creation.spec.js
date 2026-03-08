@@ -1,5 +1,5 @@
-import { _electron as electron } from '@playwright/test';
 import { expect, test } from '../fixtures.js';
+import { clickCreateCharacterBtn, deleteCharacterByName, launchAndWaitForHome } from './helpers.js';
 
 /**
  * 4. Character Creation (New Character Wizard)
@@ -7,65 +7,10 @@ import { expect, test } from '../fixtures.js';
  * step navigation, and successful character creation.
  */
 
-async function launchAndWaitForHome() {
-    const electronApp = await electron.launch({ args: ['.'] });
-
-    let page = electronApp
-        .windows()
-        .find((win) => !win.url().startsWith('devtools://'));
-    if (!page) {
-        page = await electronApp.waitForEvent(
-            'window',
-            (win) => !win.url().startsWith('devtools://'),
-        );
-    }
-
-    await page.waitForSelector('#pageContent', { timeout: 60_000 });
-    return { electronApp, page };
-}
-
-/** Click whichever "create character" button is visible (empty-state vs normal). */
-async function clickCreateCharacterBtn(page) {
-    const emptyStateBtn = page.locator('#welcomeCreateCharacterBtn');
-    if (await emptyStateBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await emptyStateBtn.click();
-    } else {
-        await page.locator('#newCharacterBtn').click();
-    }
-}
-
 /** Open the New Character modal and wait for it to be visible. */
 async function openWizard(page) {
     await clickCreateCharacterBtn(page);
     await page.waitForSelector('#newCharacterModal.show', { timeout: 10_000 });
-}
-
-/** Delete a specific test character by name via the Home page. */
-async function deleteCharacterByName(page, characterName) {
-    // Navigate to home to see the character list
-    await page.locator('button[data-page="home"]').click();
-    await page.waitForFunction(
-        () => document.body.getAttribute('data-current-page') === 'home',
-        { timeout: 10_000 },
-    );
-
-    const card = page.locator('.character-card', {
-        has: page.locator('.card-header h5', { hasText: characterName }),
-    });
-    const deleteBtn = card.locator('.delete-character');
-    if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await deleteBtn.click();
-
-        // Confirm in the confirmation modal
-        const confirmBtn = page.locator('#confirmButton');
-        await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
-        await confirmBtn.click();
-
-        // Wait for modal to close
-        await expect(page.locator('#confirmationModal')).not.toBeVisible({
-            timeout: 5_000,
-        });
-    }
 }
 
 test.describe('Character Creation Wizard', () => {
@@ -217,8 +162,7 @@ test.describe('Character Creation Wizard', () => {
             { timeout: 15_000 },
         );
 
-        // Select the first available race (index 1 to skip placeholder)
-        await raceSelect.selectOption({ index: 1 });
+        await raceSelect.selectOption({ label: /Human/ });
         await page.locator('#wizardNextBtn').click();
 
         // Verify step 3
@@ -238,7 +182,7 @@ test.describe('Character Creation Wizard', () => {
             { timeout: 15_000 },
         );
 
-        await classSelect.selectOption({ index: 1 });
+        await classSelect.selectOption({ label: /Fighter/ });
         await page.locator('#wizardNextBtn').click();
 
         // Verify step 4
@@ -258,7 +202,7 @@ test.describe('Character Creation Wizard', () => {
             { timeout: 15_000 },
         );
 
-        await bgSelect.selectOption({ index: 1 });
+        await bgSelect.selectOption({ label: /Acolyte/ });
         await page.locator('#wizardNextBtn').click();
 
         // Verify step 5

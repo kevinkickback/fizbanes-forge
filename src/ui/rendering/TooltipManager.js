@@ -1,6 +1,7 @@
 // Manages displaying and hiding D&D reference tooltips.
 
 import { DEFAULT_SOURCE } from '../../lib/5eToolsParser.js';
+import { EVENTS, eventBus } from '../../lib/EventBus.js';
 import TextProcessor from '../../lib/TextProcessor.js';
 import { actionService } from '../../services/ActionService.js';
 import { backgroundService } from '../../services/BackgroundService.js';
@@ -617,6 +618,10 @@ export function initializeTooltipListeners() {
 				globalHideTimeout = null;
 			}
 		}
+	});
+
+	eventBus.on(EVENTS.PAGE_CHANGED, () => {
+		hideAllTooltips();
 	});
 }
 

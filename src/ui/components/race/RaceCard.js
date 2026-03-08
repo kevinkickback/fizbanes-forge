@@ -7,6 +7,7 @@ import { NotFoundError } from '../../../lib/Errors.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 
 import {
+	escapeHtml,
 	STANDARD_LANGUAGE_OPTIONS,
 	STANDARD_SKILL_OPTIONS,
 	STANDARD_TOOL_OPTIONS,
@@ -167,9 +168,9 @@ export class RaceCard {
 
 		itemWrapper.innerHTML = `
             <div class="d-flex align-items-center gap-2">
-                <input type="radio" name="race" value="${race.name}_${race.source}" class="form-check-input">
+                <input type="radio" name="race" value="${escapeHtml(race.name)}_${escapeHtml(race.source)}" class="form-check-input">
                 <div class="flex-grow-1">
-                    <strong>${race.name}</strong>
+                    <strong>${escapeHtml(race.name)}</strong>
                 </div>
             </div>
         `;

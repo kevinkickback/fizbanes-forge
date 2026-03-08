@@ -1,6 +1,7 @@
 // ClassCardView.js
 // Main class dropdown and quick description view
 
+import { escapeHtml } from '../../../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 
@@ -117,7 +118,7 @@ export class ClassCardView {
         }
 
         this._classQuickDesc.innerHTML = `
-            <h5>${classData.name}</h5>
+            <h5>${escapeHtml(classData.name)}</h5>
             <p>${description}</p>
         `;
 

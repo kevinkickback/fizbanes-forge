@@ -4,42 +4,41 @@ import { eventBus, EVENTS } from './EventBus.js';
 const MAX_CACHE_SIZE = 200;
 
 const state = {
-	cache: {},
+	cache: new Map(),
 	loading: {},
-	cacheAccessOrder: [],
 	baseUrl: '', // Base URL now empty since data is at root
 };
 
 function _addToCache(url, data) {
-	// Evict least recently used if cache is full
-	if (Object.keys(state.cache).length >= MAX_CACHE_SIZE && !state.cache[url]) {
-		const lruUrl = state.cacheAccessOrder.shift();
-		if (lruUrl) {
-			delete state.cache[lruUrl];
-			console.debug('[DataLoader]', `Evicted LRU entry: ${lruUrl}`);
-		}
+	// Delete first so re-insert moves it to end (most recent)
+	if (state.cache.has(url)) {
+		state.cache.delete(url);
 	}
 
-	state.cache[url] = data;
-	_updateCacheAccess(url);
+	// Evict least recently used if cache is full
+	if (state.cache.size >= MAX_CACHE_SIZE) {
+		const lruUrl = state.cache.keys().next().value;
+		state.cache.delete(lruUrl);
+		console.debug('[DataLoader]', `Evicted LRU entry: ${lruUrl}`);
+	}
+
+	state.cache.set(url, data);
 }
 
 function _updateCacheAccess(url) {
-	const index = state.cacheAccessOrder.indexOf(url);
-	if (index > -1) {
-		state.cacheAccessOrder.splice(index, 1);
-	}
-	state.cacheAccessOrder.push(url);
+	const data = state.cache.get(url);
+	state.cache.delete(url);
+	state.cache.set(url, data);
 }
 
 async function loadJSON(url) {
 	const start = performance.now();
 
 	// Check in-memory cache first
-	if (state.cache[url]) {
+	if (state.cache.has(url)) {
 		_updateCacheAccess(url);
 		console.debug('[DataLoader]', `Cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
-		return state.cache[url];
+		return state.cache.get(url);
 	}
 
 	// Check if already loading
@@ -138,9 +137,8 @@ async function loadSources() {
 }
 
 function clearCache() {
-	state.cache = {};
+	state.cache.clear();
 	state.loading = {};
-	state.cacheAccessOrder = [];
 	console.debug('[DataLoader]', 'Cache cleared');
 }
 

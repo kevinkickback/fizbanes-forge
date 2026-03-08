@@ -12,17 +12,25 @@ import { raceService } from './RaceService.js';
  */
 class RehydrationService {
     rehydrate(character) {
-        if (!character) return;
+        if (!character) return { warnings: [] };
 
-        this._rehydrateRacialFeatures(character);
-        this._rehydrateClassFeatures(character);
-        this._rehydrateSpellcasting(character);
-        this._rehydrateBackgroundFeature(character);
+        const warnings = [];
 
-        console.debug('[RehydrationService]', 'Rehydration complete for', character.name);
+        this._rehydrateRacialFeatures(character, warnings);
+        this._rehydrateClassFeatures(character, warnings);
+        this._rehydrateSpellcasting(character, warnings);
+        this._rehydrateBackgroundFeature(character, warnings);
+
+        if (warnings.length > 0) {
+            console.warn('[RehydrationService]', `Rehydration for "${character.name}" completed with ${warnings.length} warning(s):`, warnings);
+        } else {
+            console.debug('[RehydrationService]', 'Rehydration complete for', character.name);
+        }
+
+        return { warnings };
     }
 
-    _rehydrateRacialFeatures(character) {
+    _rehydrateRacialFeatures(character, warnings) {
         const raceName = character.race?.name;
         const raceSource = character.race?.source || 'PHB';
         if (!raceName) return;
@@ -31,7 +39,7 @@ class RehydrationService {
         try {
             raceData = raceService.getRace(raceName, raceSource);
         } catch {
-            console.debug('[RehydrationService]', `Race not found: ${raceName} (${raceSource})`);
+            warnings.push(`Race not found: ${raceName} (${raceSource})`);
             return;
         }
 
@@ -45,7 +53,7 @@ class RehydrationService {
                     const subraceData = raceService.getSubrace(raceName, subraceName, raceSource);
                     this._applyTraits(character, subraceData, 'Subrace');
                 } catch {
-                    console.debug('[RehydrationService]', `Subrace not found: ${subraceName}`);
+                    warnings.push(`Subrace not found: ${subraceName}`);
                 }
             }
         }
@@ -76,7 +84,7 @@ class RehydrationService {
         }
     }
 
-    _rehydrateClassFeatures(character) {
+    _rehydrateClassFeatures(character, warnings) {
         const classes = character.progression?.classes;
         if (!Array.isArray(classes) || classes.length === 0) return;
 
@@ -99,7 +107,7 @@ class RehydrationService {
                     character.addTrait(feature.name, feature, cls.name);
                 }
             } catch {
-                console.debug('[RehydrationService]', `Class features not found: ${cls.name}`);
+                warnings.push(`Class features not found: ${cls.name}`);
             }
 
             // Subclass features
@@ -116,13 +124,13 @@ class RehydrationService {
                         }
                     }
                 } catch {
-                    console.debug('[RehydrationService]', `Subclass features not found: ${cls.subclass}`);
+                    warnings.push(`Subclass features not found: ${cls.subclass}`);
                 }
             }
         }
     }
 
-    _rehydrateBackgroundFeature(character) {
+    _rehydrateBackgroundFeature(character, warnings) {
         const bgName = character.background?.name;
         const bgSource = character.background?.source || 'PHB';
         if (!bgName || character.backgroundFeature) return;
@@ -143,11 +151,11 @@ class RehydrationService {
                 character.backgroundFeature = desc ? `${name}\n${desc}` : name;
             }
         } catch {
-            console.debug('[RehydrationService]', `Background not found: ${bgName}`);
+            warnings.push(`Background not found: ${bgName} (${bgSource})`);
         }
     }
 
-    _rehydrateSpellcasting(character) {
+    _rehydrateSpellcasting(character, _warnings) {
         const classes = character.progression?.classes;
         if (!Array.isArray(classes) || classes.length === 0) return;
 

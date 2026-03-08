@@ -1,3 +1,4 @@
+import { DOMCleanup } from '../lib/DOMCleanup.js';
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 
 import { initializeBootstrapModal } from '../lib/ModalCleanupUtility.js';
@@ -10,6 +11,7 @@ export class Modal {
 			onShowModal: null,
 			onCreateCharacter: null,
 		};
+		this._cleanup = DOMCleanup.create();
 		this._buttonListenersSetup = false;
 	}
 
@@ -23,6 +25,7 @@ export class Modal {
 
 	ensureInitialized() {
 		try {
+			this._cleanup.cleanup();
 			this._setupButtonEventListeners();
 			this._buttonListenersSetup = true;
 		} catch (error) {
@@ -35,32 +38,17 @@ export class Modal {
 	}
 
 	_setupButtonEventListeners() {
-		this._setupButtonEventListener('newCharacterBtn', (e) => {
+		const button = document.getElementById('newCharacterBtn');
+		if (!button) return;
+
+		const handler = (e) => {
 			e.preventDefault();
 			eventBus.emit(EVENTS.NEW_CHARACTER_MODAL_OPENED);
 			if (this._eventHandlers.onShowModal) {
 				this._eventHandlers.onShowModal(e);
 			}
-		});
-	}
-
-	_setupButtonEventListener(buttonId, handler) {
-		try {
-			const button = document.getElementById(buttonId);
-			if (!button) {
-				return;
-			}
-
-			const newButton = button.cloneNode(true);
-			button.parentNode.replaceChild(newButton, button);
-			newButton.addEventListener('click', handler);
-		} catch (error) {
-			console.error(
-				'[Modal]',
-				`Error setting up button listener for ${buttonId}:`,
-				error,
-			);
-		}
+		};
+		this._cleanup.on(button, 'click', handler);
 	}
 
 	async showNewCharacterModal(e) {
@@ -104,82 +92,25 @@ export class Modal {
 				return false;
 			}
 
-			const modalElement = document.getElementById('confirmationModal');
-			const titleElement = document.getElementById('confirmationModalLabel');
-			const messageElement = document.getElementById('confirmationMessage');
-			const confirmButton = document.getElementById('confirmButton');
-			const cancelButton = modalElement?.querySelector('.btn-secondary');
-			const closeButton = modalElement?.querySelector('.btn-close');
+			const elements = this._getModalElements();
+			if (!elements) return false;
 
-			if (
-				!modalElement ||
-				!titleElement ||
-				!messageElement ||
-				!confirmButton ||
-				!cancelButton ||
-				!closeButton
-			) {
-				console.error(
-					'[Modal]',
-					'One or more confirmation modal elements not found',
-				);
-				return false;
-			}
+			const { modalElement, titleElement, messageElement, confirmButton, cancelButton, closeButton } = elements;
 
 			titleElement.textContent = title;
 			messageElement.textContent = message;
 			confirmButton.textContent = confirmButtonText;
 			cancelButton.textContent = cancelButtonText;
-
 			confirmButton.className = `btn ${confirmButtonClass}`;
 
-			const modal = initializeBootstrapModal(modalElement);
-			if (!modal) {
-				console.error('[Modal]', 'Failed to initialize confirmation modal');
-				return false;
-			}
-
-			return new Promise((resolve) => {
-				let resolved = false;
-				let resolveValue = false;
-
-				const handleConfirm = () => {
-					resolveValue = true;
-					modal.hide();
-				};
-
-				const handleCancel = () => {
-					resolveValue = false;
-					modal.hide();
-				};
-
-				const handleHidden = () => {
-					cleanup();
-					if (!resolved) {
-						resolved = true;
-						resolve(resolveValue);
-					}
-				};
-
-				const cleanup = () => {
-					confirmButton.removeEventListener('click', handleConfirm);
-					cancelButton.removeEventListener('click', handleCancel);
-					closeButton.removeEventListener('click', handleCancel);
-					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
-
-					try {
-						modal.dispose();
-					} catch (e) {
-						console.warn('[Modal]', 'Error disposing confirmation modal', e);
-					}
-				};
-
-				confirmButton.addEventListener('click', handleConfirm);
-				cancelButton.addEventListener('click', handleCancel);
-				closeButton.addEventListener('click', handleCancel);
-				modalElement.addEventListener('hidden.bs.modal', handleHidden);
-
-				modal.show();
+			return this._showPromiseModal({
+				modalElement,
+				buttons: [
+					{ element: confirmButton, value: true },
+					{ element: cancelButton, value: false },
+					{ element: closeButton, value: false },
+				],
+				defaultValue: false,
 			});
 		} catch (error) {
 			console.error('[Modal]', 'Error showing confirmation dialog:', error);
@@ -200,24 +131,10 @@ export class Modal {
 				return 'cancel';
 			}
 
-			const modalElement = document.getElementById('confirmationModal');
-			const titleElement = document.getElementById('confirmationModalLabel');
-			const messageElement = document.getElementById('confirmationMessage');
-			const confirmButton = document.getElementById('confirmButton');
-			const cancelButton = modalElement?.querySelector('.btn-secondary');
-			const closeButton = modalElement?.querySelector('.btn-close');
+			const elements = this._getModalElements();
+			if (!elements) return 'cancel';
 
-			if (
-				!modalElement ||
-				!titleElement ||
-				!messageElement ||
-				!confirmButton ||
-				!cancelButton ||
-				!closeButton
-			) {
-				console.error('[Modal]', 'One or more modal elements not found');
-				return 'cancel';
-			}
+			const { modalElement, titleElement, messageElement, confirmButton, cancelButton, closeButton } = elements;
 
 			const createdDate = createdAt
 				? new Date(createdAt).toLocaleDateString()
@@ -262,7 +179,6 @@ export class Modal {
 				}
 			});
 			confirmButton.textContent = 'Overwrite';
-
 			confirmButton.className = 'btn btn-danger';
 
 			const keepBothButton = document.createElement('button');
@@ -275,64 +191,77 @@ export class Modal {
 			const buttonContainer = cancelButton.parentElement;
 			buttonContainer.insertBefore(keepBothButton, cancelButton);
 
-			const modal = initializeBootstrapModal(modalElement);
-			if (!modal) {
-				console.error('[Modal]', 'Failed to initialize duplicate ID modal');
-				return 'cancel';
-			}
-
-			return new Promise((resolve) => {
-				let resolved = false;
-				let resolveValue = 'cancel';
-
-				const handleOverwrite = () => {
-					resolveValue = 'overwrite';
-					modal.hide();
-				};
-
-				const handleKeepBoth = () => {
-					resolveValue = 'keepBoth';
-					modal.hide();
-				};
-
-				const handleCloseIcon = () => {
-					resolveValue = 'cancel';
-					modal.hide();
-				};
-
-				const handleHidden = () => {
-					cleanup();
-					if (!resolved) {
-						resolved = true;
-						resolve(resolveValue);
-					}
-				};
-
-				const cleanup = () => {
-					confirmButton.removeEventListener('click', handleOverwrite);
-					keepBothButton.removeEventListener('click', handleKeepBoth);
-					closeButton.removeEventListener('click', handleCloseIcon);
-					modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+			return this._showPromiseModal({
+				modalElement,
+				buttons: [
+					{ element: confirmButton, value: 'overwrite' },
+					{ element: keepBothButton, value: 'keepBoth' },
+					{ element: closeButton, value: 'cancel' },
+				],
+				defaultValue: 'cancel',
+				onCleanup: () => {
 					keepBothButton.remove();
 					cancelButton.classList.remove('u-hidden');
-					try {
-						modal.dispose();
-					} catch (e) {
-						console.warn('[Modal]', 'Error disposing duplicate ID modal', e);
-					}
-				};
-
-				confirmButton.addEventListener('click', handleOverwrite);
-				keepBothButton.addEventListener('click', handleKeepBoth);
-				closeButton.addEventListener('click', handleCloseIcon);
-				modalElement.addEventListener('hidden.bs.modal', handleHidden);
-
-				modal.show();
+				},
 			});
 		} catch (error) {
 			console.error('[Modal]', 'Error showing duplicate ID modal:', error);
 			return 'cancel';
 		}
+	}
+
+	_getModalElements() {
+		const modalElement = document.getElementById('confirmationModal');
+		const titleElement = document.getElementById('confirmationModalLabel');
+		const messageElement = document.getElementById('confirmationMessage');
+		const confirmButton = document.getElementById('confirmButton');
+		const cancelButton = modalElement?.querySelector('.btn-secondary');
+		const closeButton = modalElement?.querySelector('.btn-close');
+
+		if (!modalElement || !titleElement || !messageElement || !confirmButton || !cancelButton || !closeButton) {
+			console.error('[Modal]', 'One or more modal elements not found');
+			return null;
+		}
+
+		return { modalElement, titleElement, messageElement, confirmButton, cancelButton, closeButton };
+	}
+
+	_showPromiseModal({ modalElement, buttons, defaultValue, onCleanup }) {
+		const bsModal = initializeBootstrapModal(modalElement);
+		if (!bsModal) {
+			console.error('[Modal]', 'Failed to initialize Bootstrap modal');
+			return Promise.resolve(defaultValue);
+		}
+
+		const modalCleanup = DOMCleanup.create();
+
+		return new Promise((resolve) => {
+			let resolved = false;
+			let resolveValue = defaultValue;
+
+			for (const { element, value } of buttons) {
+				modalCleanup.on(element, 'click', () => {
+					resolveValue = value;
+					bsModal.hide();
+				});
+			}
+
+			modalCleanup.on(modalElement, 'hidden.bs.modal', () => {
+				modalCleanup.cleanup();
+				onCleanup?.();
+				try {
+					bsModal.dispose();
+				} catch (e) {
+					console.warn('[Modal]', 'Error disposing modal', e);
+				}
+				if (!resolved) {
+					resolved = true;
+					resolve(resolveValue);
+				}
+			});
+
+			bsModal.show();
+		});
 	}
 
 }

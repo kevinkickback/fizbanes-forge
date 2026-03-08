@@ -36,6 +36,12 @@ export const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024;
 /** Default ASI levels fallback (used when class data unavailable) */
 export const DEFAULT_ASI_LEVELS = [4, 8, 12, 16, 19];
 
+/** Class-specific ASI level overrides */
+export const CLASS_ASI_LEVELS = Object.freeze({
+    Fighter: [4, 6, 8, 12, 14, 16, 19],
+    Rogue: [4, 8, 10, 12, 16, 19],
+});
+
 export const PROFICIENCY_TYPES = Object.freeze({
     SKILLS: 'skills',
     SAVING_THROWS: 'savingThrows',

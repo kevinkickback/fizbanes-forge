@@ -28,6 +28,7 @@ class SpellService extends BaseDataService {
 				);
 
 				const aggregated = { spell: [] };
+				const failedFiles = [];
 				for (const result of allSpells) {
 					if (result.status === 'fulfilled') {
 						const spellData = result.value;
@@ -35,12 +36,17 @@ class SpellService extends BaseDataService {
 							aggregated.spell.push(...spellData.spell);
 						}
 					} else {
+						failedFiles.push(spellFiles[allSpells.indexOf(result)]);
 						console.warn(
 							'SpellService',
 							'Failed to load spell file:',
 							result.reason?.message,
 						);
 					}
+				}
+
+				if (failedFiles.length > 0) {
+					console.warn('[SpellService]', `${failedFiles.length}/${spellFiles.length} spell files failed to load:`, failedFiles);
 				}
 
 				aggregated.classLookup = classLookup;

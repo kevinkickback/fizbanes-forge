@@ -1,7 +1,7 @@
 // Info panel controller for class choice hover interactions
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
-import { attAbvToFull, getSchoolName } from '../../../lib/5eToolsParser.js';
+import { attAbvToFull, escapeHtml, getSchoolName } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { optionalFeatureService } from '../../../services/OptionalFeatureService.js';
 import { spellService } from '../../../services/SpellService.js';
@@ -72,12 +72,12 @@ export class ClassChoiceInfoPanel {
 						<strong>Available Options:</strong>
 						<ul class="mt-2">
 							${subclasses
-								.slice(0, 8)
-								.map(
-									(sc) =>
-										`<li><strong>${sc.name}</strong> (${sc.subclassSource || sc.source})</li>`,
-								)
-								.join('')}
+					.slice(0, 8)
+					.map(
+						(sc) =>
+							`<li><strong>${sc.name}</strong> (${sc.subclassSource || sc.source})</li>`,
+					)
+					.join('')}
 							${subclasses.length > 8 ? `<li class="text-muted">...and ${subclasses.length - 8} more</li>` : ''}
 						</ul>
 					</div>
@@ -110,7 +110,7 @@ export class ClassChoiceInfoPanel {
 		for (const feature of features) {
 			if (feature.entries) {
 				entriesHtml += `<div class="feature-entry mb-3">
-					<strong>Level ${feature.level}: ${feature.name}</strong>
+					<strong>Level ${feature.level}: ${escapeHtml(feature.name)}</strong>
 					<div class="mt-1">${this._renderFeatureEntries(feature.entries)}</div>
 				</div>`;
 			}
@@ -118,8 +118,8 @@ export class ClassChoiceInfoPanel {
 
 		const html = `
 			<div class="info-section">
-				<h5><i class="fas fa-star me-2"></i>${subclass.name}</h5>
-				<p class="text-muted small">Source: ${subclass.subclassSource || subclass.source || classSource}</p>
+				<h5><i class="fas fa-star me-2"></i>${escapeHtml(subclass.name)}</h5>
+				<p class="text-muted small">Source: ${escapeHtml(subclass.subclassSource || subclass.source || classSource)}</p>
 				<div class="mt-3">
 					${entriesHtml || '<p class="text-muted">No feature details available.</p>'}
 				</div>
@@ -182,15 +182,15 @@ export class ClassChoiceInfoPanel {
 				spellsHtml += `
 					<div class="spell-info-item mb-3 pb-2 border-bottom">
 						<div class="d-flex justify-content-between align-items-start">
-							<strong>${spell.name}</strong>
+							<strong>${escapeHtml(spell.name)}</strong>
 							<span class="badge bg-secondary">${levelText}</span>
 						</div>
-						<div class="text-muted small">${schoolText}</div>
+						<div class="text-muted small">${escapeHtml(schoolText)}</div>
 						${descriptionText ? `<p class="small mt-1 mb-0">${descriptionText}</p>` : ''}
 					</div>
 				`;
 			} else {
-				spellsHtml += `<div class="spell-info-item mb-2"><strong>${spellName}</strong></div>`;
+				spellsHtml += `<div class="spell-info-item mb-2"><strong>${escapeHtml(spellName)}</strong></div>`;
 			}
 		}
 
@@ -250,13 +250,13 @@ export class ClassChoiceInfoPanel {
 
 				featuresHtml += `
 					<div class="feature-info-item mb-3 pb-2 border-bottom">
-						<strong>${feature.name}</strong>
-						<div class="text-muted small">Source: ${feature.source}</div>
+						<strong>${escapeHtml(feature.name)}</strong>
+						<div class="text-muted small">Source: ${escapeHtml(feature.source)}</div>
 						${descriptionText ? `<div class="mt-1">${descriptionText}</div>` : ''}
 					</div>
 				`;
 			} else {
-				featuresHtml += `<div class="feature-info-item mb-2"><strong>${featureName}</strong></div>`;
+				featuresHtml += `<div class="feature-info-item mb-2"><strong>${escapeHtml(featureName)}</strong></div>`;
 			}
 		}
 
@@ -317,8 +317,8 @@ export class ClassChoiceInfoPanel {
 
 				const html = `
 					<div class="info-section">
-						<h5><i class="fas fa-scroll me-2"></i>${feat.name}</h5>
-						<p class="text-muted small">Source: ${feat.source}</p>
+						<h5><i class="fas fa-scroll me-2"></i>${escapeHtml(feat.name)}</h5>
+						<p class="text-muted small">Source: ${escapeHtml(feat.source)}</p>
 						${prerequisiteText ? `<p><strong>Prerequisite:</strong> ${prerequisiteText}</p>` : ''}
 						<div class="mt-3">
 							${entriesHtml || '<p class="text-muted">No description available.</p>'}
@@ -370,7 +370,7 @@ export class ClassChoiceInfoPanel {
 		if (!feature) {
 			this._infoPanel.innerHTML = `
 				<div class="info-section">
-					<h5><i class="fas fa-bookmark me-2"></i>${featureName}</h5>
+					<h5><i class="fas fa-bookmark me-2"></i>${escapeHtml(featureName)}</h5>
 					<p class="text-muted">Feature details not available.</p>
 				</div>
 			`;
@@ -387,12 +387,12 @@ export class ClassChoiceInfoPanel {
 
 		const html = `
 			<div class="info-section">
-				<h5><i class="fas fa-bookmark me-2"></i>${feature.name}</h5>
+				<h5><i class="fas fa-bookmark me-2"></i>${escapeHtml(feature.name)}</h5>
 				<p class="text-muted small">Level ${feature.level} Feature</p>
 				<div class="mt-2">
 					${entriesHtml || '<p class="text-muted">No description available.</p>'}
 				</div>
-				<p class="text-muted small mt-3">${sourceLine}</p>
+				<p class="text-muted small mt-3">${escapeHtml(sourceLine)}</p>
 			</div>
 		`;
 

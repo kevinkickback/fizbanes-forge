@@ -1,6 +1,7 @@
 // Renders the class choices accordion and dispatches to sub-renderers.
 
 import { CharacterManager } from '../../../app/CharacterManager.js';
+import { escapeHtml } from '../../../lib/5eToolsParser.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { progressionHistoryService } from '../../../services/ProgressionHistoryService.js';
 import { getFeatureIcon } from './ClassChoiceInfoPanel.js';
@@ -177,11 +178,11 @@ export class ClassChoiceRenderer {
 				<div class="d-flex justify-content-between align-items-start">
 					<div class="flex-grow-1">
 						<div class="d-flex align-items-center mb-1">
-							<strong>${getFeatureIcon(choice.type)} ${choice.name}</strong>
+							<strong>${getFeatureIcon(choice.type)} ${escapeHtml(choice.name)}</strong>
 							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
 						</div>
 						<div class="text-muted small" data-selected-display="${choice.id}">
-							${selectedDisplay}
+							${escapeHtml(selectedDisplay)}
 						</div>
 					</div>
 					<button 
@@ -212,16 +213,16 @@ export class ClassChoiceRenderer {
 
 		return `
 			<div class="choice-item border-bottom pb-2 mb-2" data-choice-card="${choice.id}"
-				data-hover-type="subclass" data-hover-class="${className}" data-hover-source="${classSource}"
-				${currentSubclass ? `data-hover-subclass="${currentSubclass}"` : ''}>
+				data-hover-type="subclass" data-hover-class="${escapeHtml(className)}" data-hover-source="${escapeHtml(classSource)}"
+				${currentSubclass ? `data-hover-subclass="${escapeHtml(currentSubclass)}"` : ''}>
 				<div class="d-flex justify-content-between align-items-start">
 					<div class="flex-grow-1">
 						<div class="d-flex align-items-center mb-1">
-							<strong><i class="fas fa-star"></i> ${choice.name}</strong>
+							<strong><i class="fas fa-star"></i> ${escapeHtml(choice.name)}</strong>
 							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
 						</div>
 						<div class="text-muted small" data-selected-display="${choice.id}">
-							${selectedDisplay}
+							${escapeHtml(selectedDisplay)}
 						</div>
 					</div>
 					<button 
@@ -258,10 +259,10 @@ export class ClassChoiceRenderer {
 				<div class="d-flex justify-content-between align-items-start">
 					<div class="flex-grow-1">
 						<div class="d-flex align-items-center mb-1">
-							<strong><i class="${choice.icon}"></i> ${choice.name}</strong>
+							<strong><i class="${choice.icon}"></i> ${escapeHtml(choice.name)}</strong>
 							${isComplete ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
 						</div>
-						<div class="text-muted small">${selectedDisplay}</div>
+						<div class="text-muted small">${escapeHtml(selectedDisplay)}</div>
 					</div>
 					<button class="btn btn-sm btn-outline-primary"
 						data-subclass-choice-btn="${choice.choiceKey}"
@@ -279,11 +280,11 @@ export class ClassChoiceRenderer {
 			feature.entries?.find((e) => typeof e === 'string') || '';
 		return `
 			<div class="passive-feature-item choice-item" data-hover-type="passive-feature"
-				data-hover-feature-name="${feature.name}" data-hover-feature-level="${feature.level}"
-				data-hover-feature-source="${feature.source || 'PHB'}">
+				data-hover-feature-name="${escapeHtml(feature.name)}" data-hover-feature-level="${feature.level}"
+				data-hover-feature-source="${escapeHtml(feature.source || 'PHB')}">
 				<div class="d-flex align-items-center mb-1">
 					<i class="fas fa-bookmark me-2 u-text-accent"></i>
-					<strong>${feature.name}</strong>
+					<strong>${escapeHtml(feature.name)}</strong>
 				</div>
 				<div class="small text-muted">${firstString ? `<p>${firstString}</p>` : ''}</div>
 			</div>

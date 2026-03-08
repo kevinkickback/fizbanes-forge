@@ -3,6 +3,7 @@
 
 import { AppState } from '../../../app/AppState.js';
 import { Character } from '../../../app/Character.js';
+import { escapeHtml } from '../../../lib/5eToolsParser.js';
 import { eventBus, EVENTS } from '../../../lib/EventBus.js';
 import { textProcessor } from '../../../lib/TextProcessor.js';
 import { featService } from '../../../services/FeatService.js';
@@ -31,10 +32,10 @@ export class FeatListView {
                 const desc = await this._buildFeatDescription(feat);
 
                 return `
-					<div class="feat-list-item" data-feat-name="${name}">
+					<div class="feat-list-item" data-feat-name="${escapeHtml(name)}">
 						<div class="feat-list-item-info">
 							<div class="feat-list-item-header">
-								<strong class="feat-list-item-name">${name}</strong>
+								<strong class="feat-list-item-name">${escapeHtml(name)}</strong>
 							</div>
 							<div class="feat-list-item-desc">${desc}</div>
 						</div>

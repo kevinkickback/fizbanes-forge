@@ -97,7 +97,7 @@ class _AppState {
 	clear() {
 		console.warn('[AppState]', 'Clearing all state');
 		const oldState = this.state;
-		const initialState = new AppStateImpl().state;
+		const initialState = new _AppState().state;
 		this.state = { ...initialState };
 		eventBus.emit(EVENTS.STATE_CHANGED, this.state, oldState);
 	}

@@ -1,6 +1,6 @@
 // Small helper to build checkbox/radio/switch filter groups with DOMCleanup tracking.
 
-import { getSchoolName } from '../../../lib/5eToolsParser.js';
+import { escapeHtml, getSchoolName } from '../../../lib/5eToolsParser.js';
 import { DOMCleanup } from '../../../lib/DOMCleanup.js';
 import { showNotification } from '../../../lib/Notifications.js';
 import { spellService } from '../../../services/SpellService.js';
@@ -61,8 +61,8 @@ export class FilterBuilder {
 					.toLowerCase();
 				col.innerHTML = `
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="${id}" value="${opt.value}">
-                        <label class="form-check-label" for="${id}">${opt.label}</label>
+                        <input class="form-check-input" type="checkbox" id="${id}" value="${escapeHtml(opt.value)}">
+                        <label class="form-check-label" for="${id}">${escapeHtml(opt.label)}</label>
                     </div>
                 `;
 				const input = col.querySelector('input');
@@ -111,8 +111,8 @@ export class FilterBuilder {
 					.toLowerCase();
 				col.innerHTML = `
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="${id}" value="${opt.value}">
-                        <label class="form-check-label" for="${id}">${opt.label}</label>
+                        <input class="form-check-input" type="checkbox" id="${id}" value="${escapeHtml(opt.value)}">
+                        <label class="form-check-label" for="${id}">${escapeHtml(opt.label)}</label>
                     </div>
                 `;
 				const input = col.querySelector('input');
@@ -150,7 +150,7 @@ export class FilterBuilder {
 		const switchId = id || `switch-${Math.random().toString(16).slice(2)}`;
 		wrapper.innerHTML = `
             <input class="form-check-input" type="checkbox" role="switch" id="${switchId}" ${checked ? 'checked' : ''}>
-            <label class="form-check-label" for="${switchId}">${label}</label>
+            <label class="form-check-label" for="${switchId}">${escapeHtml(label)}</label>
         `;
 		const input = wrapper.querySelector('input');
 		this.cleanup.on(input, 'change', () => onChange?.(input.checked));
@@ -174,7 +174,7 @@ export class FilterBuilder {
 			header.setAttribute('aria-controls', collapseId);
 			header.innerHTML = `
 				<h6 class="mb-0 d-flex align-items-center justify-content-between w-100">
-					<span>${title}</span>
+					<span>${escapeHtml(title)}</span>
 					<i class="fas fa-chevron-down"></i>
 				</h6>
 			`;
@@ -193,7 +193,7 @@ export class FilterBuilder {
 				const switchId = id || `switch-${Math.random().toString(16).slice(2)}`;
 				wrapper.innerHTML = `
                     <input class="form-check-input" type="checkbox" role="switch" id="${switchId}" ${checked ? 'checked' : ''}>
-                    <label class="form-check-label" for="${switchId}">${label}</label>
+                    <label class="form-check-label" for="${switchId}">${escapeHtml(label)}</label>
                 `;
 				const input = wrapper.querySelector('input');
 				this.cleanup.on(input, 'change', () => onChange?.(input.checked));

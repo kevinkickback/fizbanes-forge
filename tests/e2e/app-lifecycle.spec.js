@@ -1,28 +1,11 @@
-import { _electron as electron } from '@playwright/test';
 import { expect, test } from '../fixtures.js';
+import { launchApp } from './helpers.js';
 
 /**
  * 1. Application Lifecycle
  * Verifies the Electron app launches, the loading sequence completes,
  * and the home page renders in a clean state.
  */
-
-/** Helper: launch app, acquire renderer page, and return both. */
-async function launchApp() {
-	const electronApp = await electron.launch({ args: ['.'] });
-
-	let page = electronApp
-		.windows()
-		.find((win) => !win.url().startsWith('devtools://'));
-	if (!page) {
-		page = await electronApp.waitForEvent(
-			'window',
-			(win) => !win.url().startsWith('devtools://'),
-		);
-	}
-
-	return { electronApp, page };
-}
 
 test.describe('Application Lifecycle', () => {
 	let electronApp;
