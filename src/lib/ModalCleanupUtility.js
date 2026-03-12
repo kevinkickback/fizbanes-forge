@@ -1,5 +1,3 @@
-// Utility for cleaning up orphaned modal backdrops and preventing z-index stacking issues
-
 export function resetModalBodyState() {
     document.body.classList.remove('modal-open');
     document.body.style.overflow = '';
@@ -11,14 +9,12 @@ export function cleanupOrphanedBackdrops() {
         const backdrops = document.querySelectorAll('.modal-backdrop');
         const openModals = document.querySelectorAll('.modal.show');
 
-        // If there are more backdrops than open modals, remove the extras
         if (backdrops.length > openModals.length) {
             console.debug(
                 'ModalCleanup',
                 `Found ${backdrops.length} backdrops but only ${openModals.length} open modals. Cleaning up orphaned backdrops.`
             );
 
-            // Remove backdrops that don't correspond to open modals
             const backdropCount = backdrops.length;
             const toKeep = openModals.length;
 
@@ -27,7 +23,6 @@ export function cleanupOrphanedBackdrops() {
             }
         }
 
-        // If there are no open modals, remove all backdrops
         if (openModals.length === 0 && backdrops.length > 0) {
             console.debug(
                 'ModalCleanup',
@@ -37,7 +32,6 @@ export function cleanupOrphanedBackdrops() {
                 backdrop.remove();
             }
 
-            // Also ensure body classes are reset
             resetModalBodyState();
         }
     } catch (error) {
@@ -49,7 +43,6 @@ export function disposeBootstrapModal(modalInstance) {
     if (!modalInstance) return;
 
     try {
-        // Check if already disposed by checking internal state
         if (typeof modalInstance.dispose === 'function' && modalInstance._element) {
             modalInstance.dispose();
         }
@@ -74,10 +67,8 @@ export function hideBootstrapModal(modalInstance, modalElement) {
             if (cleaned) return;
             cleaned = true;
 
-            // Clean up backdrops
             cleanupOrphanedBackdrops();
 
-            // Force hide the modal element
             if (modalElement) {
                 modalElement.classList.remove('show');
                 modalElement.classList.add('u-hidden');
@@ -88,7 +79,6 @@ export function hideBootstrapModal(modalInstance, modalElement) {
 
         try {
             if (modalInstance && modalElement) {
-                // Wait for Bootstrap's hide event
                 modalElement.addEventListener('hidden.bs.modal', () => {
                     performCleanup();
                 }, { once: true });
@@ -101,10 +91,8 @@ export function hideBootstrapModal(modalInstance, modalElement) {
                     }
                 }, 500);
 
-                // Trigger Bootstrap hide
                 modalInstance.hide();
             } else {
-                // No Bootstrap instance, clean up immediately
                 performCleanup();
             }
         } catch (error) {
@@ -127,10 +115,8 @@ export function initializeBootstrapModal(modalElement, options = {}) {
             return null;
         }
 
-        // Clean up any orphaned backdrops before creating a new modal
         cleanupOrphanedBackdrops();
 
-        // Check for and dispose of existing instance
         const existing = bs.Modal.getInstance(modalElement);
         if (existing) {
             // If the modal is mid-transition (show/hide animation in progress),
@@ -151,7 +137,6 @@ export function initializeBootstrapModal(modalElement, options = {}) {
             }
         }
 
-        // Create and return new instance
         return new bs.Modal(modalElement, options);
     } catch (error) {
         console.error('[ModalCleanup]', 'Error initializing Bootstrap modal', error);

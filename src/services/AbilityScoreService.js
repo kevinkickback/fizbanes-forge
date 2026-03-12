@@ -32,10 +32,8 @@ class AbilityScoreService extends BaseDataService {
 		this._standardArrayValues = [...STANDARD_ARRAY];
 		this._assignedStandardArrayValues = {};
 
-		// Map to store ability choices
 		this.abilityChoices = new Map();
 
-		// Subscribe to character selection (when a character is loaded or selected)
 		this._handleCharacterChangedBound = this._handleCharacterChanged.bind(this);
 		this._trackListener(EVENTS.CHARACTER_SELECTED, this._handleCharacterChangedBound);
 	}
@@ -44,10 +42,8 @@ class AbilityScoreService extends BaseDataService {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return;
 
-		// Reset assigned values when character changes
 		this._assignedStandardArrayValues = {};
 
-		// Rehydrate stored racial ability choices into the manager/map
 		const abilityChoices = Array.isArray(character.race?.abilityChoices)
 			? character.race.abilityChoices
 			: character.race?.abilityChoices &&
@@ -62,7 +58,6 @@ class AbilityScoreService extends BaseDataService {
 			this.setRacialAbilityChoices(abilityChoices);
 		}
 
-		// Initialize any ability-related state for the new character
 		this._notifyAbilityScoresChanged();
 	}
 
@@ -79,7 +74,6 @@ class AbilityScoreService extends BaseDataService {
 		const trimmedName = abilityName.trim();
 		if (!trimmedName) return '';
 
-		// Normalize abbreviations (str, dex, etc.) to full names before lookup
 		const fullName = attAbvToFull(trimmedName);
 		return TextProcessor.normalizeForLookup(fullName);
 	}
@@ -92,9 +86,8 @@ class AbilityScoreService extends BaseDataService {
 		const normalizedAbility = this.normalizeAbilityName(ability);
 		const character = CharacterManager.getCurrentCharacter();
 
-		if (!character) return 8; // Default base score
+		if (!character) return 8;
 
-		// Get the ability score from the character
 		const abilityScore = character.abilityScores?.[normalizedAbility];
 
 		// Handle both formats: direct number or object with score property
@@ -110,7 +103,7 @@ class AbilityScoreService extends BaseDataService {
 			return abilityScore.score;
 		}
 
-		return 8; // Default fallback
+		return 8;
 	}
 
 	getTotalScore(ability) {
@@ -119,10 +112,8 @@ class AbilityScoreService extends BaseDataService {
 
 		if (!character) return 8;
 
-		// Start with base score
 		let totalScore = this.getBaseScore(normalizedAbility);
 
-		// Add racial bonuses
 		if (
 			character.race?.abilityBonuses &&
 			typeof character.race.abilityBonuses[normalizedAbility] === 'number'
@@ -130,7 +121,6 @@ class AbilityScoreService extends BaseDataService {
 			totalScore += character.race.abilityBonuses[normalizedAbility];
 		}
 
-		// Add all other ability bonuses from any source
 		if (
 			character.abilityBonuses &&
 			Array.isArray(character.abilityBonuses[normalizedAbility])
@@ -173,7 +163,6 @@ class AbilityScoreService extends BaseDataService {
 			return;
 		}
 
-		// Initialize ability scores object if it doesn't exist
 		if (!character.abilityScores) {
 			character.abilityScores = {};
 		}
@@ -181,7 +170,6 @@ class AbilityScoreService extends BaseDataService {
 		// Store directly as a number rather than as an object with score property
 		character.abilityScores[normalizedAbility] = validated.score;
 
-		// Notify listeners about the change
 		this._notifyAbilityScoresChanged();
 	}
 
@@ -250,10 +238,8 @@ class AbilityScoreService extends BaseDataService {
 			return false;
 		}
 
-		// Assign the value
 		this._assignedStandardArrayValues[normalizedAbility] = value;
 
-		// Update the ability score
 		this.updateAbilityScore(normalizedAbility, value);
 
 		return true;
@@ -290,7 +276,6 @@ class AbilityScoreService extends BaseDataService {
 			return;
 		}
 
-		// Normalize incoming choices and clear current state
 		this.abilityChoices.clear();
 		const normalizedChoices = Array.isArray(choices)
 			? choices.filter(Boolean).map((choice, index) => {
@@ -314,17 +299,14 @@ class AbilityScoreService extends BaseDataService {
 			})
 			: [];
 
-		// Persist normalized choices on the character
 		character.race.abilityChoices = normalizedChoices;
 
-		// Re-apply bonuses and cached selections from the saved choices
 		for (const choice of normalizedChoices) {
 			if (!choice.ability) continue;
 			this.abilityChoices.set(choice.index, choice.ability);
 			character.addAbilityBonus?.(choice.ability, choice.value, choice.source);
 		}
 
-		// Notify listeners about the change
 		this._notifyAbilityScoresChanged();
 	}
 
@@ -340,13 +322,11 @@ class AbilityScoreService extends BaseDataService {
 
 		const groups = new Map();
 
-		// Group bonuses by source for each ability
 		for (const ability of this._allAbilities) {
 			const fullName = attAbvToFull(ability).toLowerCase();
 			const bonuses = character.abilityBonuses?.[fullName] || [];
 			if (bonuses.length === 0) continue;
 
-			// Group by source
 			for (const bonus of bonuses) {
 				const source = bonus.source;
 				if (!groups.has(source)) {
@@ -366,14 +346,12 @@ class AbilityScoreService extends BaseDataService {
 			return [];
 		}
 
-		// Get all ability-related pending choices
 		const pendingChoices = character
 			.getPendingAbilityChoices()
 			.filter((choice) => {
 				return choice.type === 'ability';
 			});
 
-		// Ensure each choice has all required fields
 		const formattedChoices = pendingChoices.map((choice) => ({
 			type: 'ability',
 			amount: choice.amount || 1,
@@ -391,18 +369,15 @@ class AbilityScoreService extends BaseDataService {
 		const character = CharacterManager.getCurrentCharacter();
 		if (!character) return allAbilities;
 
-		// Get all pending choices
 		const pendingChoices = character.getPendingAbilityChoices?.() || [];
 		const currentChoice = pendingChoices[currentChoiceIndex];
 
-		// Collect all selected abilities except the current one
 		for (const [index, ability] of this.abilityChoices.entries()) {
 			if (index !== currentChoiceIndex && ability) {
 				selectedAbilities.add(ability);
 			}
 		}
 
-		// Get abilities that already have racial bonuses
 		const abilitiesWithRacialBonuses = new Set();
 		for (const ability of this._allAbilities) {
 			const bonuses = character.abilityBonuses?.[ability] || [];
@@ -417,20 +392,15 @@ class AbilityScoreService extends BaseDataService {
 			}
 		}
 
-		// For choices with source restrictions, filter to only allowed abilities
 		let availableAbilities = allAbilities;
 		if (currentChoice?.choices && currentChoice.choices.length > 0) {
 			availableAbilities = currentChoice.choices.map((a) => {
-				// Convert abbreviated ability names to full lowercase names
 				const fullName = attAbvToFull(a);
 				return fullName ? fullName.toLowerCase() : a;
 			});
 		}
 
-		// Return abilities that:
-		// 1. Haven't been selected by other choices
-		// 2. Don't already have racial bonuses (if racial choice)
-		// 3. Are in the allowed choices list for this choice
+		// Filter to abilities not already selected and not having racial bonuses
 		return availableAbilities.filter(
 			(ability) =>
 				!selectedAbilities.has(ability) &&
@@ -456,13 +426,11 @@ class AbilityScoreService extends BaseDataService {
 		bonus = validated.bonus;
 		source = validated.source;
 
-		// Clear the previous ability bonus for this specific choice index
 		const previousAbility = this.abilityChoices.get(choiceIndex);
 		if (previousAbility) {
 			character.removeAbilityBonus?.(previousAbility, bonus, source);
 		}
 
-		// Update stored choices
 		if (ability) {
 			const normalizedSource = source?.includes('Choice')
 				? source
@@ -473,7 +441,6 @@ class AbilityScoreService extends BaseDataService {
 			this.abilityChoices.delete(choiceIndex);
 		}
 
-		// Persist the selection on the character for reloads
 		if (character.race) {
 			if (!Array.isArray(character.race.abilityChoices)) {
 				character.race.abilityChoices = [];
@@ -494,12 +461,10 @@ class AbilityScoreService extends BaseDataService {
 				character.race.abilityChoices[choiceIndex] = null;
 			}
 
-			// Remove any empty slots to keep the array compact
 			character.race.abilityChoices =
 				character.race.abilityChoices.filter(Boolean);
 		}
 
-		// Notify listeners of the change
 		this._notifyAbilityScoresChanged();
 	}
 
@@ -615,5 +580,4 @@ export {
 	validateAbilitySelections
 } from '../lib/AbilityScoreUtils.js';
 
-// Create and export singleton instance
 export const abilityScoreService = new AbilityScoreService();

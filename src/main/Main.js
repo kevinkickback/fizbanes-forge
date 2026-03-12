@@ -1,6 +1,4 @@
 import 'dotenv/config';
-/** Electron application entry point. */
-
 import { app } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +22,6 @@ import {
 } from './Settings.js';
 import { createMainWindow, getMainWindow } from './Window.js';
 
-// Environment variables loaded from .env file (see .env.example)
 // Defense-in-depth: force debug flags off in packaged/production builds
 if (app.isPackaged && process.env.FF_DEBUG === 'true') {
 	console.warn('[Main] FF_DEBUG forced off in packaged build');
@@ -45,10 +42,8 @@ const rendererRoot = path.join(__dirname, '..', 'ui');
 app.whenReady().then(() => {
 	MainLogger.debug('App', 'Application ready');
 
-	// Initialize preferences
 	initPreferences(app);
 
-	// Register all IPC handlers directly
 	registerCharacterHandlers(
 		{
 			get: getPreference,
@@ -78,7 +73,6 @@ app.whenReady().then(() => {
 		{ getMainWindow },
 	);
 
-	// Create main window
 	createMainWindow({
 		preferencesManager: {
 			getWindowBounds,

@@ -15,7 +15,6 @@ class SpellSelectionService {
 		this.loggerScope = 'SpellSelectionService';
 		this._availableSpellsCache = null;
 
-		// Invalidate cache when spell data reloads
 		eventBus.on(EVENTS.SPELLS_LOADED, () => {
 			this._availableSpellsCache = null;
 		});
@@ -60,7 +59,6 @@ class SpellSelectionService {
 			};
 		}
 
-		// Get class info to determine spellcasting ability, cantrips, etc.
 		const classInfo = this._getClassSpellcastingInfo(className);
 
 		if (!classInfo) {
@@ -68,7 +66,6 @@ class SpellSelectionService {
 			return null;
 		}
 
-		// Initialize spellcasting for this class
 		character.spellcasting.classes[className] = {
 			level: classLevel,
 			spellsKnown: [],
@@ -105,7 +102,6 @@ class SpellSelectionService {
 	}
 
 	_hasRitualCasting(className, classData) {
-		// Check class features for a "Ritual Casting" or "Ritual Adept" sub-entry
 		const features = classData?.classFeatures;
 		if (Array.isArray(features)) {
 			for (const feat of features) {
@@ -161,7 +157,6 @@ class SpellSelectionService {
 		const classData = classService.getClass(className);
 		if (!classData) return 0;
 
-		// Check for spellsKnownProgression (Bard, Sorcerer, Warlock, Ranger)
 		if (classData.spellsKnownProgression) {
 			const index = Math.max(
 				0,
@@ -170,12 +165,9 @@ class SpellSelectionService {
 			return classData.spellsKnownProgression[index] || 0;
 		}
 
-		// Check for spellsKnownProgressionFixed (Wizard - learns X spells per level)
-		// For Wizard, calculate total spellbook size = 6 at level 1, then +2 per level
 		if (classData.spellsKnownProgressionFixed) {
 			if (level <= 0) return 0;
 
-			// Sum up spells learned from level 1 to current level
 			let totalSpells = 0;
 			for (let i = 0; i < Math.min(level, classData.spellsKnownProgressionFixed.length); i++) {
 				totalSpells += classData.spellsKnownProgressionFixed[i] || 0;
@@ -224,7 +216,6 @@ class SpellSelectionService {
 
 		const classSpellcasting = char.spellcasting.classes[cls];
 
-		// Check if spell already known
 		if (
 			classSpellcasting.spellsKnown.some(
 				(s) =>
@@ -237,7 +228,6 @@ class SpellSelectionService {
 			});
 		}
 
-		// Store full spell object
 		classSpellcasting.spellsKnown.push(spell);
 
 		eventBus.emit(EVENTS.SPELL_ADDED, char, cls, spell);
@@ -274,7 +264,6 @@ class SpellSelectionService {
 
 		const removed = classSpellcasting.spellsKnown.splice(index, 1)[0];
 
-		// Also remove from prepared if applicable
 		const preparedIndex = classSpellcasting.spellsPrepared.findIndex(
 			(s) => s.name === name,
 		);
@@ -297,7 +286,6 @@ class SpellSelectionService {
 
 		const classSpellcasting = character.spellcasting.classes[className];
 
-		// Must be a known spell
 		const knownSpell = classSpellcasting.spellsKnown.find(
 			(s) => s.name === spellName,
 		);
@@ -308,7 +296,6 @@ class SpellSelectionService {
 			});
 		}
 
-		// Check if already prepared
 		if (classSpellcasting.spellsPrepared.some((s) => s.name === spellName)) {
 			throw new ValidationError(`Spell ${spellName} is already prepared`, {
 				className,
@@ -316,7 +303,6 @@ class SpellSelectionService {
 			});
 		}
 
-		// Check prepared limit
 		const classEntryForLimit = character.progression?.classes?.find((c) => c.name === className);
 		const classLevelForLimit = classEntryForLimit?.levels || classSpellcasting.level || 1;
 		const preparedLimit = this._getPreparedSpellLimit(
@@ -427,7 +413,6 @@ class SpellSelectionService {
 	}
 
 	getAvailableSpellsForClass(className) {
-		// Return cached result if available
 		if (this._availableSpellsCache?.has(className)) {
 			return this._availableSpellsCache.get(className);
 		}
@@ -438,7 +423,6 @@ class SpellSelectionService {
 			spellService.isSpellAvailableForClass(spell, className),
 		);
 
-		// Cache for subsequent calls
 		if (!this._availableSpellsCache) {
 			this._availableSpellsCache = new Map();
 		}
@@ -468,9 +452,9 @@ class SpellSelectionService {
 			// Classes that prepare spells (Wizard, Cleric, Druid, Paladin)
 			return {
 				type: 'prepared',
-				spellbookLimit: this.getSpellsKnownLimit(className, classLevel), // Total spells known/in spellbook
+				spellbookLimit: this.getSpellsKnownLimit(className, classLevel),
 				spellbookCurrent: classSpellcasting.spellsKnown.length,
-				preparedLimit: this._getPreparedSpellLimit(character, className, classLevel), // Prepared from spellbook
+				preparedLimit: this._getPreparedSpellLimit(character, className, classLevel),
 				preparedCurrent: classSpellcasting.spellsPrepared.length,
 				// For backwards compatibility
 				limit: this._getPreparedSpellLimit(character, className, classLevel),
@@ -538,5 +522,4 @@ class SpellSelectionService {
 	}
 }
 
-// Export singleton
 export const spellSelectionService = new SpellSelectionService();

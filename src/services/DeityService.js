@@ -27,7 +27,6 @@ class DeityService extends BaseDataService {
 		);
 	}
 
-	/** Get unique deity names sorted alphabetically. */
 	getDeityNames() {
 		const names = new Set();
 		for (const deity of this.deities) {
@@ -38,7 +37,6 @@ class DeityService extends BaseDataService {
 		return Array.from(names).sort();
 	}
 
-	/** Get deity by name with validation */
 	getDeity(name) {
 		const validated = validateInput(
 			deityIdentifierSchema,

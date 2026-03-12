@@ -1,24 +1,16 @@
 import { z } from 'zod';
 import { ValidationError } from './Errors.js';
 
-/**
- * Common validation schemas for use across services
- */
-
-// Source book identifiers (e.g., "PHB", "XGE")
 export const sourceSchema = z.string().min(1).toUpperCase();
 
-// Entity name validation
 export const nameSchema = z.string().min(1);
 
-// Optional source with default
 export const optionalSourceSchema = z
     .string()
     .min(1)
     .toUpperCase()
     .default('PHB');
 
-// Race service schemas
 export const raceIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
@@ -31,7 +23,6 @@ export const subraceIdentifierSchema = z.object({
     raceSource: optionalSourceSchema,
 });
 
-// Class service schemas
 export const classIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
@@ -45,13 +36,11 @@ export const subclassIdentifierSchema = z.object({
     source: optionalSourceSchema,
 });
 
-// Background service schemas
 export const backgroundIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
 });
 
-// Spell service schemas
 export const spellIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
@@ -64,7 +53,6 @@ export const spellFilterSchema = z.object({
     source: sourceSchema.optional(),
 });
 
-// Item service schemas
 export const itemIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
@@ -77,13 +65,11 @@ export const itemFilterSchema = z.object({
     attunement: z.boolean().optional(),
 });
 
-// Feat service schemas
 export const featIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
 });
 
-// Proficiency schemas
 export const proficiencyTypeSchema = z.enum([
     'armor',
     'weapons',
@@ -99,7 +85,6 @@ export const addProficiencySchema = z.object({
     source: z.string().min(1),
 });
 
-// Ability score schemas
 export const abilitySchema = z.enum([
     'strength',
     'dexterity',
@@ -130,38 +115,30 @@ export const abilityBonusSchema = z.object({
     source: z.string().min(1),
 });
 
-// Character level schemas
 export const levelSchema = z.number().int().min(1).max(20);
 
-// Source filter array
 export const sourceArraySchema = z.array(sourceSchema);
 
-// Deity service schemas
 export const deityIdentifierSchema = z.object({
     name: nameSchema,
 });
 
-// Monster service schemas
 export const monsterIdentifierSchema = z.object({
     id: z.string().min(1),
 });
 
-// Skill service schemas
 export const skillIdentifierSchema = z.object({
     abilityName: z.string().min(1),
 });
 
-// Condition service schemas
 export const conditionIdentifierSchema = z.object({
     name: nameSchema,
 });
 
-// Action service schemas
 export const actionIdentifierSchema = z.object({
     name: nameSchema,
 });
 
-// Optional feature service schemas
 export const optionalFeatureIdentifierSchema = z.object({
     name: nameSchema,
     source: optionalSourceSchema,
@@ -172,12 +149,10 @@ export const optionalFeatureTypeSchema = z.union([
     z.array(z.string().min(1)),
 ]);
 
-// Variant rule service schemas
 export const variantRuleIdentifierSchema = z.object({
     name: nameSchema,
 });
 
-// ProficiencyService schemas
 export const addProficiencyArgsSchema = z.object({
     character: z.any().refine(
         (val) => val && typeof val === 'object',
@@ -196,7 +171,6 @@ export const removeProficienciesBySourceArgsSchema = z.object({
     source: z.string().min(1, 'Source is required'),
 });
 
-// AbilityScoreService schemas
 export const abilityNameSchema = z.enum([
     'strength',
     'dexterity',
@@ -224,7 +198,6 @@ export const handleAbilityChoiceArgsSchema = z.object({
     source: z.string().min(1, 'Source is required'),
 });
 
-// LevelUpService schemas
 export const addClassLevelArgsSchema = z.object({
     character: z.any().refine(
         (val) => val && typeof val === 'object',
@@ -243,7 +216,6 @@ export const removeClassLevelArgsSchema = z.object({
     className: z.string().min(1, 'Class name is required'),
 });
 
-// EquipmentService schemas
 export const addItemArgsSchema = z.object({
     character: z.any().refine(
         (val) => val && typeof val === 'object',
@@ -277,7 +249,6 @@ export const removeItemsBySourceArgsSchema = z.object({
     source: z.string().min(1, 'Source is required'),
 });
 
-// SpellSelectionService schemas
 export const addSpellArgsSchema = z.object({
     character: z.any().refine(
         (val) => val && typeof val === 'object',
@@ -299,12 +270,8 @@ export const removeSpellArgsSchema = z.object({
     spellName: z.string().min(1, 'Spell name is required'),
 });
 
-// SourceService schemas
 export const sourceIdentifierSchema = z.string().min(1, 'Source identifier is required');
 
-/**
- * Helper to validate and transform input
- */
 export function validateInput(schema, input, errorMessage = 'Invalid input') {
     const result = schema.safeParse(input);
     if (!result.success) {

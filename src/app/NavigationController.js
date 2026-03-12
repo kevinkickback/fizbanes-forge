@@ -369,15 +369,11 @@ class _NavigationController {
 			const navItem = navButton.closest('.nav-item');
 			if (!navItem) continue;
 
-			// Skip if already upgraded
 			if (navItem.hasAttribute('data-nav-group')) continue;
 
-			// Upgrade the nav-item to support children
 			navItem.classList.add('nav-item--has-children');
 			navItem.setAttribute('data-nav-group', page);
 
-			// Restructure the button contents — wrap existing content in a label span
-			// and add the caret icon
 			const existingIcon = navButton.querySelector('i');
 			const existingLabel = navButton.querySelector('span');
 			const labelWrapper = document.createElement('span');
@@ -394,7 +390,6 @@ class _NavigationController {
 			caret.setAttribute('aria-hidden', 'true');
 			navButton.appendChild(caret);
 
-			// Build the subnav list
 			const subnavList = document.createElement('ul');
 			subnavList.className = 'sidebar-subnav';
 			subnavList.setAttribute('aria-label', `${page} sections`);
@@ -628,7 +623,6 @@ class _NavigationController {
 			}
 		});
 
-		// Toggle subnavs: open the active page's subnav, close all others
 		const pagesWithSections = this.router.getPagesWithSections();
 		for (const { page } of pagesWithSections) {
 			this.toggleSubnav(page, page === activePage);

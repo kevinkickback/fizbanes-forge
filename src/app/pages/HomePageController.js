@@ -264,7 +264,6 @@ export class HomePageController extends BasePageController {
             img.src = url;
         });
 
-        // Initialize Bootstrap tooltips for "+ X more" elements
         characterList.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
             if (window.bootstrap?.Tooltip) {
                 new window.bootstrap.Tooltip(el);
@@ -334,7 +333,6 @@ export class HomePageController extends BasePageController {
         card.querySelector('.character-level-text').textContent = `Level ${characterLevel}`;
         card.querySelector('.character-race-text').textContent = characterRace;
 
-        // Build class display safely (no innerHTML with user data)
         const classSpan = card.querySelector('.character-class-text');
         if (!progressionClasses.length) {
             classSpan.textContent = 'No Class';
@@ -468,7 +466,6 @@ export class HomePageController extends BasePageController {
                 const reloadCharacters = await CharacterManager.loadCharacterList();
                 await this._renderCharacterList(reloadCharacters);
             } else if (result?.canceled) {
-                // User canceled import
             } else {
                 showNotification('Failed to import character', 'error');
             }

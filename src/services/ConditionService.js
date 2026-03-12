@@ -19,12 +19,10 @@ class ConditionService extends BaseDataService {
 		return true;
 	}
 
-	/** Get all conditions */
 	getAllConditions() {
 		return this._data?.condition || [];
 	}
 
-	/** Get condition by name with validation */
 	getCondition(name) {
 		const validated = validateInput(
 			conditionIdentifierSchema,

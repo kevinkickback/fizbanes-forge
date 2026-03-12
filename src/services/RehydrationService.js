@@ -4,8 +4,6 @@ import { classService } from './ClassService.js';
 import { raceService } from './RaceService.js';
 
 /**
- * Rehydrates character traits from source data on load/import.
- *
  * Error strategy: LOG-and-continue. Failures are logged with console.debug
  * but never thrown, because rehydration is best-effort — missing source data
  * should not block character loading.
@@ -58,12 +56,10 @@ class RehydrationService {
             }
         }
 
-        // Darkvision — rehydrate if unset
         if (!character.features.darkvision && raceData.darkvision) {
             character.features.darkvision = raceData.darkvision;
         }
 
-        // Resistances — rehydrate if empty
         if (character.features.resistances.size === 0 && raceData.resist) {
             for (const entry of raceData.resist) {
                 if (typeof entry === 'string') {
@@ -110,7 +106,6 @@ class RehydrationService {
                 warnings.push(`Class features not found: ${cls.name}`);
             }
 
-            // Subclass features
             if (cls.subclass) {
                 try {
                     const subclassData = classService.getSubclass(cls.name, cls.subclass, source);
@@ -172,10 +167,8 @@ class RehydrationService {
 
             const existing = character.spellcasting.classes[cls.name];
 
-            // If class entry already exists with spellcasting ability, skip
             if (existing?.spellcastingAbility) continue;
 
-            // Look up class data to determine spellcasting ability
             let classData;
             try {
                 classData = classService.getClass(cls.name);

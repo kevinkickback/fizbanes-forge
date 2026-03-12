@@ -27,12 +27,10 @@ export class PreviewPageController extends BasePageController {
             await this._loadTemplateList();
             this._bindListeners();
 
-            // Restore cached preview if it matches the current character
             if (_previewCache && _previewCache.characterId === character.id) {
                 await this._restoreFromCache();
             }
 
-            // Auto-refresh when character is updated if a preview is already showing
             this._cleanup.onEvent(EVENTS.CHARACTER_UPDATED, () => {
                 if (this._templateName && !this._isGenerating && this._renderer.getPageCount() > 0) {
                     this._generatePreview();
@@ -63,10 +61,8 @@ export class PreviewPageController extends BasePageController {
                 select.appendChild(option);
             }
 
-            // Select the first template by default
             this._templateName = result.templates[0].filename;
 
-            // Restore last-used template if still available
             try {
                 const saved = await window.app.settings.get('pdfTemplateName');
                 if (saved && result.templates.some(t => t.filename === saved)) {
@@ -74,7 +70,6 @@ export class PreviewPageController extends BasePageController {
                     select.value = saved;
                 }
             } catch {
-                // No saved preference — use default
             }
         } catch (error) {
             console.error('[PreviewPageController]', 'Failed to load templates', error);
@@ -135,7 +130,6 @@ export class PreviewPageController extends BasePageController {
 
             this._updatePageIndicator(numPages);
 
-            // Enable export button after successful generation
             const exportBtn = document.getElementById('previewExportBtn');
             if (exportBtn) exportBtn.disabled = false;
         } catch (error) {
@@ -232,7 +226,6 @@ export class PreviewPageController extends BasePageController {
             const { numPages } = await this._renderer.render(new Uint8Array(_previewCache.pdfBytes), container);
             this._updatePageIndicator(numPages);
 
-            // Restore template selection to match cached preview
             if (_previewCache.templateName) {
                 this._templateName = _previewCache.templateName;
                 const select = document.getElementById('previewTemplateSelect');

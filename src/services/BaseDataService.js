@@ -1,7 +1,6 @@
 import { eventBus, EVENTS } from '../lib/EventBus.js';
 import TextProcessor from '../lib/TextProcessor.js';
 
-/** Shared helpers for renderer data services: caching, initialization, and event emission. */
 export class BaseDataService {
 	constructor({
 		loadEvent = null,

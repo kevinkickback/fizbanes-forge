@@ -48,7 +48,6 @@ class _PageHandler {
 
 	async handlePageLoaded(pageName) {
 		try {
-			// Cleanup previous page controller
 			if (this._activeController) {
 				this._activeController.cleanup();
 				this._activeController = null;
@@ -75,5 +74,4 @@ class _PageHandler {
 	}
 }
 
-// Export singleton instance
 export const PageHandler = new _PageHandler();

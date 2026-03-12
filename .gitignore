@@ -25,6 +25,7 @@ src/data/
 *.pdf
 playwright-report/
 test-results/
+TODO.md
 
 # Environment
 .env

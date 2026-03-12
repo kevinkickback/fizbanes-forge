@@ -1,6 +1,3 @@
-// Temporary user notifications with debouncing and auto-close
-
-// Suppress noisy success/info toasts for changes already visible in the UI
 function shouldSuppressNotification(message, type) {
 	if (!message || !type) return false;
 
@@ -8,12 +5,10 @@ function shouldSuppressNotification(message, type) {
 	// Never suppress errors or warnings - user must see these
 	if (t === 'error' || t === 'danger' || t === 'warning') return false;
 
-	// Only suppress success and info toasts for routine, inline-visible changes
 	if (t !== 'success' && t !== 'info') return false;
 
 	const m = String(message).trim();
 
-	// Suppress routine CRUD operations that are visually obvious
 	const suppressPatterns = [
 		// Character operations - card create/delete/rename is visible
 		/^new character created/i,
@@ -41,17 +36,15 @@ function shouldSuppressNotification(message, type) {
 		/^(selected|deselected|applied)/i,
 	];
 
-	// If message matches any suppress pattern, block the toast
 	if (suppressPatterns.some((re) => re.test(m))) return true;
 
-	// Allow explicit user-initiated save/export commands (has "successfully")
 	if (
 		/saved successfully|exported successfully|imported successfully/i.test(m)
 	) {
 		return false;
 	}
 
-	return false; // Default: allow notification
+	return false;
 }
 
 const NOTIFICATION_CONFIG = Object.freeze({
@@ -97,9 +90,8 @@ function addToNotificationHistory(message, type) {
 		read: false,
 	};
 
-	notificationHistory.unshift(notification); // Add to front
+	notificationHistory.unshift(notification);
 
-	// Keep history size manageable
 	if (notificationHistory.length > MAX_HISTORY) {
 		notificationHistory = notificationHistory.slice(0, MAX_HISTORY);
 	}
@@ -112,7 +104,6 @@ function createNotificationElement(message, type) {
 	const notification = document.createElement('div');
 	notification.className = `notification ${type}`;
 
-	// Map notification types to icons
 	const iconMap = {
 		success: 'fa-check-circle',
 		danger: 'fa-exclamation-circle',
@@ -141,7 +132,6 @@ function createNotificationElement(message, type) {
 }
 
 export function showNotification(message, type = 'info') {
-	// Policy gate: avoid noisy success/info toasts for inline-visible updates
 	try {
 		if (shouldSuppressNotification(message, type)) {
 			return;
@@ -149,26 +139,21 @@ export function showNotification(message, type = 'info') {
 	} catch (_) {
 		// Fail open if policy throws for any reason
 	}
-	// Check if this is a duplicate notification within the debounce window
 	const now = Date.now();
 	if (
 		lastNotification.message === message &&
 		lastNotification.type === type &&
 		now - lastNotification.timestamp < NOTIFICATION_CONFIG.DEBOUNCE_DELAY
 	) {
-		return; // Skip duplicate notification
+		return;
 	}
 
-	// Update last notification
 	lastNotification = { message, type, timestamp: now };
 
-	// Add to notification history for notification center and keep a handle
 	const historyEntry = addToNotificationHistory(message, type);
 
-	// Get or create notification container
 	const notificationContainer = getOrCreateNotificationContainer();
 
-	// Create and add notification element
 	const notification = createNotificationElement(message, type);
 	notificationContainer.appendChild(notification);
 
@@ -178,7 +163,6 @@ export function showNotification(message, type = 'info') {
 	let paused = false;
 	let rafId = null;
 
-	// Function to close notification with animation
 	const closeNotification = (isManualClose = false) => {
 		if (rafId) {
 			cancelAnimationFrame(rafId);
@@ -187,14 +171,11 @@ export function showNotification(message, type = 'info') {
 		notification.classList.add('notification-closing');
 		setTimeout(() => {
 			notification.remove();
-			// Remove container if empty
 			if (notificationContainer.children.length === 0) {
 				notificationContainer.remove();
 			}
-			// Reset last notification if manually closed
 			if (isManualClose) {
 				lastNotification = { message: '', type: '', timestamp: 0 };
-				// Mark the corresponding history entry as read to decrement badge
 				if (historyEntry?.id) {
 					markNotificationAsRead(historyEntry.id);
 				}
@@ -202,7 +183,6 @@ export function showNotification(message, type = 'info') {
 		}, NOTIFICATION_CONFIG.CLOSE_ANIMATION_DURATION);
 	};
 
-	// Add close button handler
 	const closeButton = notification.querySelector('.notification-close');
 	closeButton.addEventListener('click', () => closeNotification(true));
 
@@ -234,13 +214,11 @@ export function showNotification(message, type = 'info') {
 		lastTick = performance.now();
 	});
 
-	// Start progress animation loop
 	progressBar.style.width = '100%';
 	lastTick = performance.now();
 	rafId = requestAnimationFrame(tick);
 }
 
-// Export notification center functions
 export function getNotificationHistory() {
 	return [...notificationHistory];
 }

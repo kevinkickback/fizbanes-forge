@@ -3,15 +3,14 @@ import { NotFoundError } from '../lib/Errors.js';
 import { monsterIdentifierSchema, validateInput } from '../lib/ValidationSchemas.js';
 import { BaseDataService } from './BaseDataService.js';
 
-/** Manages monster/creature data and provides access to monsters. */
 class MonsterService extends BaseDataService {
 	constructor() {
 		super({ loggerScope: 'MonsterService' });
-		this._monsterIndex = null; // { id: file }
-		this._monsterSummary = []; // [{ name, source, ... }]
-		this._monsterDetailsCache = new Map(); // id -> details (LRU cache)
-		this._cacheAccessOrder = []; // Track access order for LRU eviction
-		this._maxCacheSize = 100; // Maximum cache entries
+		this._monsterIndex = null;
+		this._monsterSummary = [];
+		this._monsterDetailsCache = new Map();
+		this._cacheAccessOrder = [];
+		this._maxCacheSize = 100;
 	}
 
 	async initialize() {
@@ -96,7 +95,6 @@ class MonsterService extends BaseDataService {
 	}
 
 	_addToCache(id, details) {
-		// Evict least recently used if cache is full
 		if (this._monsterDetailsCache.size >= this._maxCacheSize) {
 			const lruId = this._cacheAccessOrder.shift();
 			this._monsterDetailsCache.delete(lruId);
@@ -108,7 +106,6 @@ class MonsterService extends BaseDataService {
 	}
 
 	_updateCacheAccess(id) {
-		// Remove from current position and add to end (most recent)
 		const index = this._cacheAccessOrder.indexOf(id);
 		if (index > -1) {
 			this._cacheAccessOrder.splice(index, 1);

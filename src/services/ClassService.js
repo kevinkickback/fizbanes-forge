@@ -173,7 +173,6 @@ class ClassService extends BaseDataService {
 		}
 	}
 
-	/** Get a specific class by name and source. */
 	getClass(name, source = 'PHB') {
 		const validated = validateInput(
 			classIdentifierSchema,
@@ -185,7 +184,6 @@ class ClassService extends BaseDataService {
 			throw new NotFoundError('Class', `${validated.name} (${validated.source})`);
 		}
 
-		// Try to find exact source match first
 		const exactMatch = this._data.class.find(
 			(c) => c.name === validated.name && c.source === validated.source,
 		);
@@ -204,7 +202,6 @@ class ClassService extends BaseDataService {
 		return byName.find((c) => c.edition !== 'modern') || byName[0];
 	}
 
-	/** Get class features for a specific class up to a given level. */
 	getClassFeatures(className, level, source = 'PHB') {
 		if (!this._data?.classFeature) return [];
 
@@ -218,7 +215,6 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/** Get all subclasses for a specific class. */
 	getSubclasses(className, source = 'PHB') {
 		if (!this._data?.subclass) return [];
 
@@ -229,7 +225,6 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/** Get the hit die for a class from 5etools data. */
 	getHitDie(className, source = 'PHB') {
 		if (!this._data?.class) return 'd8';
 
@@ -244,7 +239,6 @@ class ClassService extends BaseDataService {
 				return `d${hdValue}`;
 			}
 			if (typeof hdValue === 'string') {
-				// Already in 'd8' format
 				return hdValue.startsWith('d') ? hdValue : `d${hdValue}`;
 			}
 		}
@@ -257,7 +251,6 @@ class ClassService extends BaseDataService {
 		return this.getClass(className, source);
 	}
 
-	/** Get a specific subclass by name. */
 	getSubclass(className, subclassName, source = 'PHB') {
 		const validated = validateInput(
 			subclassIdentifierSchema,
@@ -286,7 +279,6 @@ class ClassService extends BaseDataService {
 		return subclass;
 	}
 
-	/** Get subclass features for a specific subclass up to a given level. */
 	getSubclassFeatures(className, subclassShortName, level, source = 'PHB') {
 		if (!this._data?.subclassFeature) return [];
 
@@ -300,7 +292,6 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/** Get fluff data for a class (descriptions and lore). */
 	getClassFluff(className, source = 'PHB') {
 		if (!this._data?.classFluff) return null;
 
@@ -311,13 +302,11 @@ class ClassService extends BaseDataService {
 		);
 	}
 
-	/** Get optional feature progression for a class. */
 	getOptionalFeatureProgression(className, source = 'PHB') {
 		const classData = this.getClass(className, source);
 		return classData?.optionalfeatureProgression || null;
 	}
 
-	/** Get count of optional features available at a specific level. */
 	getOptionalFeatureCountAtLevel(
 		className,
 		level,
@@ -327,18 +316,15 @@ class ClassService extends BaseDataService {
 		const progression = this.getOptionalFeatureProgression(className, source);
 		if (!progression) return 0;
 
-		// Find matching progression entry
 		const entry = progression.find((p) =>
 			p.featureType?.some((ft) => featureTypes.includes(ft)),
 		);
 		if (!entry) return 0;
 
-		// Handle array-based progression (indexed by level-1)
 		if (Array.isArray(entry.progression)) {
 			return entry.progression[level - 1] || 0;
 		}
 
-		// Handle object-based progression (level as key)
 		if (typeof entry.progression === 'object') {
 			return entry.progression[level.toString()] || 0;
 		}
@@ -346,11 +332,9 @@ class ClassService extends BaseDataService {
 		return 0;
 	}
 
-	/** Get the level at which a class gains its subclass. */
 	getSubclassLevel(classData) {
 		if (!classData?.classFeatures) return null;
 
-		// Find the first classFeature with gainSubclassFeature flag
 		for (const feature of classData.classFeatures) {
 			if (feature.gainSubclassFeature === true) {
 				// Parse level from classFeature string format: "Feature Name|ClassName||Level"
@@ -363,7 +347,6 @@ class ClassService extends BaseDataService {
 		return null;
 	}
 
-	/** Get count from a progression array or object at a specific level. */
 	getCountAtLevel(progression, level) {
 		if (Array.isArray(progression)) {
 			return progression[level - 1] || 0;
@@ -374,7 +357,6 @@ class ClassService extends BaseDataService {
 		return 0;
 	}
 
-	/** Map feature type code to readable feature type name. */
 	mapFeatureType(featureTypeCode) {
 		const typeMap = {
 			EI: 'invocation',
@@ -453,10 +435,6 @@ class ClassService extends BaseDataService {
 		return choices;
 	}
 
-	/**
-	 * Resolve options entries — handles refSubclassFeature refs and inline entries.
-	 * @private
-	 */
 	_resolveOptionsEntries(entries, parentFeature) {
 		const options = [];
 
@@ -475,7 +453,6 @@ class ClassService extends BaseDataService {
 					options.push(resolved);
 				}
 			} else if (opt.type === 'entries' && opt.name) {
-				// Inline named entry (e.g. The Third Eye options)
 				options.push({
 					value: opt.name,
 					label: opt.name,
@@ -488,11 +465,6 @@ class ClassService extends BaseDataService {
 		return options;
 	}
 
-	/**
-	 * Resolve a subclassFeature ref string into a named option.
-	 * Format: "FeatureName|ClassName|ClassSource|SubclassShortName|SubclassSource|Level|FeatureSource?"
-	 * @private
-	 */
 	_resolveSubclassFeatureRef(refString) {
 		const parts = refString.split('|');
 		if (parts.length < 4) return null;
@@ -505,7 +477,6 @@ class ClassService extends BaseDataService {
 		const levelStr = parts[5];
 		const featureSource = parts[6] || '';
 
-		// Look up the actual feature data
 		const level = parseInt(levelStr, 10) || 0;
 		const indexed = this._subclassFeatureIndex.get(`${className}|${subclassShortName}`) || [];
 		const features = indexed.filter(
@@ -529,11 +500,6 @@ class ClassService extends BaseDataService {
 		};
 	}
 
-	/**
-	 * Resolve a classFeature ref string into a named option.
-	 * Format: "FeatureName|ClassName|ClassSource|Level|FeatureSource?"
-	 * @private
-	 */
 	_resolveClassFeatureRef(refString) {
 		const parts = refString.split('|');
 		if (parts.length < 2) return null;
@@ -554,11 +520,6 @@ class ClassService extends BaseDataService {
 		};
 	}
 
-	/**
-	 * Convert a 5etools table entry into selectable options.
-	 * Each row becomes an option; columns beyond the first are stored as metadata.
-	 * @private
-	 */
 	_resolveTableOptions(tableEntry) {
 		if (!tableEntry.rows || !tableEntry.colLabels) return [];
 
@@ -606,9 +567,6 @@ class ClassService extends BaseDataService {
 		return allChoices;
 	}
 
-	/**
-	 * Get nested feature choices for a specific subclass at exactly one level.
-	 */
 	getSubclassFeatureChoicesAtLevel(className, subclassShortName, level, source = 'PHB') {
 		return this.getSubclassFeatureChoices(
 			className,
@@ -658,5 +616,4 @@ class ClassService extends BaseDataService {
 	}
 }
 
-// Create and export singleton instance
 export const classService = new ClassService();

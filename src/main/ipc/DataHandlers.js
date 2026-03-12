@@ -17,18 +17,15 @@ const USE_BUNDLED_DATA = process.env.FF_USE_BUNDLED_DATA === 'true';
 const BUNDLED_DATA_PATH = USE_BUNDLED_DATA
 	? path.resolve(__dirname, '..', '..', '..', 'src', 'data')
 	: null;
-/** Register all data-related IPC handlers. */
 export function registerDataHandlers(preferencesManager) {
 	MainLogger.debug('DataHandlers', 'Registering data handlers');
 
-	// Use configured data path when available; no default fallback
 	let currentDataPath = null;
 	const cacheRoot = path.join(
 		preferencesManager.app.getPath('userData'),
 		'cached-data',
 	);
 
-	// When using bundled data, bypass configured sources and use src/data
 	if (USE_BUNDLED_DATA) {
 		currentDataPath = BUNDLED_DATA_PATH;
 		MainLogger.debug(
@@ -139,8 +136,6 @@ export function registerDataHandlers(preferencesManager) {
 					};
 				}
 
-				// Preflight existing cache to ensure baseline files exist before attempting update
-				// If cache is incomplete, log it but proceed with download to fetch missing files
 				if (cacheExists) {
 					const preCheck = await validateLocalDataFolder(cachePath);
 					if (!preCheck.valid) {
@@ -244,13 +239,11 @@ export function registerDataHandlers(preferencesManager) {
 		}
 	};
 
-	// Initialize path from existing preferences
 	syncDataPathFromPreferences();
 
 	const isJsonFile = (fileName) => fileName.toLowerCase().endsWith('.json');
 
 	const resolveSafePath = (basePath, requested) => {
-		// Normalize separators and strip legacy prefixes
 		let normalized = requested;
 		if (
 			normalized.startsWith('src/data/') ||
@@ -260,7 +253,6 @@ export function registerDataHandlers(preferencesManager) {
 		}
 
 		const candidate = path.resolve(basePath, normalized);
-		// Ensure the resolved path stays under the configured data root
 		if (!candidate.startsWith(path.resolve(basePath))) {
 			return null;
 		}
@@ -332,7 +324,6 @@ export function registerDataHandlers(preferencesManager) {
 				throw readError;
 			}
 
-			// Validate it looks like JSON before parsing
 			const trimmed = content.trim();
 			if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
 				MainLogger.error('DataHandlers', 'Content is not JSON:', {
@@ -359,7 +350,6 @@ export function registerDataHandlers(preferencesManager) {
 
 	ipcMain.handle(IPC_CHANNELS.DATA_FILE_EXISTS, async (_event, fileName) => {
 		try {
-			// Determine the data path (bundled or configured)
 			const dataPath = USE_BUNDLED_DATA ? BUNDLED_DATA_PATH : currentDataPath;
 			if (!dataPath) {
 				return false;
@@ -428,7 +418,6 @@ export function registerDataHandlers(preferencesManager) {
 			const { type, value } = source;
 
 			if (type === 'local') {
-				// Validate local folder
 				const result = await validateLocalDataFolder(value);
 				if (!result.valid) {
 					MainLogger.debug('DataHandlers', 'Missing files:', result.missing);
@@ -438,7 +427,6 @@ export function registerDataHandlers(preferencesManager) {
 					};
 				}
 
-				// Warn about missing indexed files if any were noted separately
 				if (result.missingIndexed && result.missingIndexed.length > 0) {
 					MainLogger.debug(
 						'DataHandlers',
@@ -447,7 +435,6 @@ export function registerDataHandlers(preferencesManager) {
 					);
 				}
 
-				// Save configuration and update active data path
 				preferencesManager.set('dataSourceType', 'local');
 				preferencesManager.set('dataSourceValue', value);
 				preferencesManager.set('dataSourceCachePath', null);
@@ -457,7 +444,6 @@ export function registerDataHandlers(preferencesManager) {
 				return { success: true };
 			}
 			if (type === 'url') {
-				// Show verification phase
 				sendDownloadProgress(event, 'verifying', {
 					total: 0,
 					completed: 0,
@@ -465,7 +451,6 @@ export function registerDataHandlers(preferencesManager) {
 					success: true,
 				});
 
-				// Validate URL format and accessibility
 				const urlValidation = await validateDataSourceURL(value);
 				if (!urlValidation.valid) {
 					sendDownloadProgress(event, 'error', {
@@ -478,7 +463,6 @@ export function registerDataHandlers(preferencesManager) {
 					return { success: false, error: urlValidation.error };
 				}
 
-				// Show manifest building phase
 				sendDownloadProgress(event, 'building-manifest', {
 					total: 0,
 					completed: 0,
@@ -486,7 +470,6 @@ export function registerDataHandlers(preferencesManager) {
 					success: true,
 				});
 
-				// Build manifest dynamically using remote indexes only (no bundled fallback)
 				const manifest = await buildDataManifest(value);
 				if (!manifest.length) {
 					sendDownloadProgress(event, 'error', {
@@ -503,7 +486,6 @@ export function registerDataHandlers(preferencesManager) {
 				}
 				const cachePath = getCachePathForUrl(value);
 
-				// Check if this is same URL as current config (incremental update)
 				MainLogger.debug('DataHandlers', 'Downloading remote data source', {
 					url: value,
 					cachePath,
@@ -533,7 +515,6 @@ export function registerDataHandlers(preferencesManager) {
 					},
 				);
 
-				// Download succeeded with what's available (some files may be missing upstream)
 				if (downloadResult.warning) {
 					MainLogger.debug(
 						'DataHandlers',
@@ -541,10 +522,8 @@ export function registerDataHandlers(preferencesManager) {
 						downloadResult,
 					);
 				}
-				// Sanity check cached folder has core required files
 				const cacheValidation = await validateLocalDataFolder(cachePath);
 				if (!cacheValidation.valid) {
-					// Cache is missing core files - fail
 					MainLogger.debug(
 						'DataHandlers',
 						'Missing files after download:',

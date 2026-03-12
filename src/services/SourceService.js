@@ -24,7 +24,6 @@ export class SourceService extends BaseDataService {
 			'MMPM', // Mordenkainen's Monsters of the Multiverse
 		]);
 
-		// Setup event handlers
 		this._setupEventListeners();
 	}
 
@@ -42,12 +41,10 @@ export class SourceService extends BaseDataService {
 			return;
 		}
 
-		// Update allowed sources from character and expand variants (e.g., PHB-2014, XPHB)
 		this.allowedSources = this._expandSourceVariants(
 			new Set(character.allowedSources || ['PHB']),
 		);
 
-		// Notify that allowed sources have changed
 		eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
 	}
 
@@ -61,14 +58,11 @@ export class SourceService extends BaseDataService {
 					// Filter and sort sources
 					const validSources = sources.book
 						.filter((source) => {
-							// Filter out banned sources (case insensitive)
 							if (this.isBannedSource(source.id)) {
 								return false;
 							}
 
-							// Then check if it has player options
 							const hasOptions = source.contents?.some((content) => {
-								// Check the section name
 								if (
 									[
 										'Races',
@@ -92,7 +86,7 @@ export class SourceService extends BaseDataService {
 									return true;
 								}
 
-								// Check headers if they exist
+
 								if (content.headers && Array.isArray(content.headers)) {
 									const hasPlayerHeader = content.headers.some((header) => {
 										// Handle both string and object headers
@@ -129,13 +123,13 @@ export class SourceService extends BaseDataService {
 							return hasOptions;
 						})
 						.sort((a, b) => {
-							// PHB and XPHB always first
+
 							if (a.id === 'PHB') return -1;
 							if (b.id === 'PHB') return 1;
 							if (a.id === 'XPHB') return -1;
 							if (b.id === 'XPHB') return 1;
 
-							// Then sort by group priority: core > setting > supplement
+
 							const groupPriority = { core: 0, setting: 1, supplement: 2 };
 							return groupPriority[a.group] - groupPriority[b.group];
 						});
@@ -243,10 +237,8 @@ export class SourceService extends BaseDataService {
 	resetAllowedSources() {
 		this.allowedSources = this._expandSourceVariants(new Set(['PHB']));
 
-		// Notify that allowed sources have changed
 		eventBus.emit('sources:allowed-changed', Array.from(this.allowedSources));
 
-		// Update character if available
 		if (this.characterHandler?.getCurrentCharacter()) {
 			this.characterHandler.getCurrentCharacter().allowedSources = new Set(
 				this.allowedSources,
@@ -255,12 +247,10 @@ export class SourceService extends BaseDataService {
 	}
 
 	formatSourceName(source) {
-		// First check if we have this source in our available sources
 		if (this.availableSources.has(source)) {
 			return this.availableSources.get(source).name;
 		}
 
-		// Fall back to known abbreviations
 		const sourceMap = {
 			PHB: "Player's Handbook",
 			XPHB: "Player's Handbook (2024)",
@@ -275,7 +265,6 @@ export class SourceService extends BaseDataService {
 			EGW: "Explorer's Guide to Wildemount",
 		};
 
-		// Return the mapped name or the original source code with better formatting
 		return sourceMap[source] || source.replace(/([A-Z])/g, ' $1').trim();
 	}
 

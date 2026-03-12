@@ -1,12 +1,9 @@
-// Processes text content, references, and formatting for D&D content.
-
 import { initializeTooltipListeners } from '../ui/rendering/TooltipManager.js';
 import { processString as renderStringWithTags } from './5eToolsRenderer.js';
 
 class TextProcessor {
 	static _DISPLAY_NAME_SELECTORS = [
 		'.text-content',
-		// Add other selectors here if needed, e.g., '.some-other-class'
 	];
 
 	static _TOOLTIP_SELECTORS = [
@@ -19,7 +16,6 @@ class TextProcessor {
 		'td',
 		'.card-text',
 		'.proficiency-note',
-		// Add other selectors here if needed
 	];
 
 	constructor() {
@@ -31,27 +27,23 @@ class TextProcessor {
 			processReferences: true,
 			processFormatting: true,
 			processDynamicContent: true,
-			resolveMode: 'tooltip', // Default resolve mode
+			resolveMode: 'tooltip',
 		};
 	}
 
 	async initialize() {
 		try {
-			// Initialize tooltip system
 			initializeTooltipListeners();
 
-			// Set up mutation observer to process dynamically added content
 			this._observer = new MutationObserver((mutations) => {
 				this._handleDOMChanges(mutations);
 			});
 
-			// Start observing the document body for dynamic content changes
 			this._observer.observe(document.body, {
 				childList: true,
 				subtree: true,
 			});
 
-			// Process initial page content
 			await this.processPageContent(document.body);
 		} catch (error) {
 			console.error(
@@ -107,7 +99,6 @@ class TextProcessor {
 
 	async processPageContent(container, options = {}, forceReprocess = false) {
 		try {
-			// Ensure container is an HTMLElement
 			if (!(container instanceof HTMLElement)) {
 				return;
 			}
@@ -191,7 +182,6 @@ class TextProcessor {
 					processingOptions,
 				);
 
-				// Only update innerHTML if it actually changed
 				if (processedText !== originalText) {
 					element.innerHTML = processedText;
 				}
@@ -230,7 +220,7 @@ class TextProcessor {
 			return processedText;
 		} catch (error) {
 			console.error('[TextProcessor]', 'Error processing string:', error);
-			return text || ''; // Return original text on error
+			return text || '';
 		}
 	}
 

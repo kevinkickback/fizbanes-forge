@@ -1,14 +1,10 @@
-/** Utility helpers for validating, fetching, and downloading 5e data folders. */
-
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import https from 'node:https';
 import path from 'node:path';
 import { MainLogger } from './Logger.js';
 
-// Core required files - validation fails if missing
 const CORE_REQUIRED_FILES = [
-	// Essential character creation files
 	'races.json',
 	'fluff-races.json',
 	'backgrounds.json',
@@ -30,18 +26,14 @@ const CORE_REQUIRED_FILES = [
 	'senses.json',
 	'deities.json',
 	'variantrules.json',
-	// Generated lookup files
 	'generated/gendata-spell-source-lookup.json',
-	// Index files for subdirectories
 	'class/index.json',
 	'class/fluff-index.json',
 	'spells/index.json',
 	'spells/fluff-index.json',
 ];
-// Core required folders
 const CORE_REQUIRED_FOLDERS = ['class', 'spells', 'generated'];
 
-// Index files that enumerate additional JSON assets
 const ENUMERATION_INDEX_FILES = [
 	'class/index.json',
 	'class/fluff-index.json',
@@ -55,15 +47,13 @@ function buildRawDataBaseUrl(url) {
 	let dataUrl;
 
 	if (urlObj.hostname.includes('github.com')) {
-		// Remove trailing /releases if present
+
 		let normalized = url.replace(/\/releases\/?$/, '').replace(/\/$/, '');
 		if (normalized.includes('/tree/')) {
-			// e.g. https://github.com/user/repo/tree/main or /tree/main/data
 			normalized = normalized
 				.replace(/github\.com/, 'raw.githubusercontent.com')
 				.replace(/\/tree\//, '/');
 		} else {
-			// e.g. https://github.com/user/repo
 			normalized = `${normalized.replace(/github\.com/, 'raw.githubusercontent.com')}/main`;
 		}
 		if (/\/data\/?$/.test(normalized)) {
@@ -120,12 +110,10 @@ async function buildLocalIndexManifest(rootDir) {
 
 // Minimal structure checks for key JSON files (mainly races/backgrounds).
 async function validateJsonStructure(data, fileName) {
-	// Basic check: ensure it's a valid object
 	if (typeof data !== 'object' || data === null) {
 		return { valid: false, error: 'File is not valid JSON' };
 	}
 
-	// For races.json, check for required structure
 	if (fileName === 'races.json') {
 		if (!data.race || !Array.isArray(data.race)) {
 			return {
@@ -138,7 +126,6 @@ async function validateJsonStructure(data, fileName) {
 		}
 	}
 
-	// For backgrounds.json, check for required structure
 	if (fileName === 'backgrounds.json') {
 		if (!data.background || !Array.isArray(data.background)) {
 			return {
@@ -166,7 +153,6 @@ export async function validateLocalDataFolder(folderPath) {
 
 		const missingCore = [];
 
-		// Check for CORE required files (exact expected locations)
 		for (const file of CORE_REQUIRED_FILES) {
 			const expectedPath = path.join(folderPath, file);
 			try {
@@ -179,7 +165,6 @@ export async function validateLocalDataFolder(folderPath) {
 			}
 		}
 
-		// Check for CORE required folders
 		for (const folder of CORE_REQUIRED_FOLDERS) {
 			const folderPath2 = path.join(folderPath, folder);
 			try {
@@ -214,7 +199,6 @@ export async function validateLocalDataFolder(folderPath) {
 			}
 		}
 
-		// Fail if required/indexed files missing
 		const missing = [...missingCore, ...missingFromIndex];
 		if (missing.length > 0) {
 			MainLogger.debug(
@@ -229,7 +213,6 @@ export async function validateLocalDataFolder(folderPath) {
 			return { valid: false, missing, missingIndexed: missingFromIndex };
 		}
 
-		// Validate JSON structure for races.json
 		const racesPath = path.join(folderPath, 'races.json');
 		try {
 			const racesContent = await fs.readFile(racesPath, 'utf8');
@@ -283,11 +266,6 @@ export async function validateLocalDataFolder(folderPath) {
 	}
 }
 
-/**
- * Quick existence check for the bundled src/data folder.
- * @param {string} defaultDataPath path to check
- * @returns {Promise<boolean>} true if races.json exists
- */
 export async function hasDefaultDataFolder(defaultDataPath) {
 	try {
 		const stats = await fs.stat(defaultDataPath);
@@ -295,7 +273,6 @@ export async function hasDefaultDataFolder(defaultDataPath) {
 			return false;
 		}
 
-		// Quick check - just see if races.json exists
 		const racesPath = path.join(defaultDataPath, 'races.json');
 		await fs.stat(racesPath);
 		MainLogger.debug('DataFolderManager', 'Default data folder is valid');
@@ -371,7 +348,6 @@ export async function fetchJsonFromUrl(urlString, timeout = 5000) {
 export async function buildDataManifest(remoteUrl) {
 	const manifestSet = new Set(CORE_REQUIRED_FILES);
 
-	// Expand manifest using remote index files (class/spells) to pick up newly added files
 	const baseUrl = buildRawDataBaseUrl(remoteUrl);
 	MainLogger.debug('DataFolderManager', 'Building manifest', {
 		remoteUrl,
@@ -493,13 +469,11 @@ export async function downloadDataFromUrl(
 	}, OVERALL_TIMEOUT_MS);
 
 	try {
-		// Check if target directory exists (incremental update case)
 		let targetExists = false;
 		try {
 			const stats = await fs.stat(targetDir);
 			targetExists = stats.isDirectory();
 		} catch {
-			// Directory doesn't exist - will create it
 		}
 
 		if (!targetExists) {
@@ -546,28 +520,22 @@ export async function downloadDataFromUrl(
 			let errorMessage;
 
 			try {
-				// Check if file already exists
 				let existingContent = null;
 				try {
 					existingContent = await fs.readFile(localPath, 'utf8');
 				} catch {
-					// File doesn't exist - will download
 				}
 
-				// Fetch remote file
 				const result = await fetchTextFromUrl(remoteUrl);
 				if (!result.success || result.data === undefined) {
 					errorMessage = result.error || 'Unknown error';
 					failed.push({ file: relPath, error: errorMessage });
 				} else {
-					// Compare content if file exists
 					if (existingContent !== null && existingContent === result.data) {
-						// File unchanged - skip write
 						skipped = true;
 						skippedCount += 1;
 						success = true;
 					} else {
-						// File is new or changed - write it
 						await fs.mkdir(localDir, { recursive: true });
 						await fs.writeFile(localPath, result.data, 'utf8');
 						success = true;
@@ -620,7 +588,6 @@ export async function downloadDataFromUrl(
 			});
 		}
 
-		// Check if any core required files failed
 		const criticalFailures = failed.filter((f) =>
 			CORE_REQUIRED_FILES.includes(f.file),
 		);
@@ -648,10 +615,8 @@ export async function downloadDataFromUrl(
 // Extend this list if hosting 5etools data on other services.
 const ALLOWED_DATA_SOURCE_DOMAINS = ['github.com', 'raw.githubusercontent.com'];
 
-/** Validate a remote data source URL by fetching and checking races.json. */
 export async function validateDataSourceURL(url) {
 	try {
-		// First validate URL format
 		const urlObj = new URL(url);
 		if (!['http:', 'https:'].includes(urlObj.protocol)) {
 			return { valid: false, error: 'URL must use HTTP or HTTPS protocol' };
@@ -661,13 +626,11 @@ export async function validateDataSourceURL(url) {
 			return { valid: false, error: `Data source must be hosted on: ${ALLOWED_DATA_SOURCE_DOMAINS.join(', ')}` };
 		}
 
-		// Always treat the input as a folder (repo root or data folder)
 		const baseUrl = buildRawDataBaseUrl(url);
 		const racesUrl = `${baseUrl}/races.json`;
 
 		MainLogger.debug('DataFolderManager', 'Testing URL:', { url, racesUrl });
 
-		// Try to fetch and validate the JSON
 		const result = await fetchJsonFromUrl(racesUrl);
 
 		if (!result.success) {
@@ -682,7 +645,6 @@ export async function validateDataSourceURL(url) {
 			};
 		}
 
-		// Validate JSON structure
 		const structureCheck = await validateJsonStructure(
 			result.data,
 			'races.json',

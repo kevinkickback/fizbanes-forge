@@ -9,18 +9,11 @@ import { IPC_CHANNELS } from './channels.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/** Absolute path to the bundled PDF templates directory. */
 const TEMPLATES_DIR = path.join(__dirname, '..', '..', 'ui', 'assets', 'pdf');
 
-/**
- * Resolve a template name (e.g. "2024_CharacterSheet") to its absolute path
- * inside the bundled assets directory. Prevents path traversal.
- */
 function resolveTemplatePath(templateName) {
     if (!templateName || typeof templateName !== 'string') return null;
-    // Strip any directory separators to prevent traversal
     const safe = path.basename(templateName);
-    // Ensure .pdf extension
     const filename = safe.endsWith('.pdf') ? safe : `${safe}.pdf`;
     const resolved = path.resolve(path.join(TEMPLATES_DIR, filename));
     if (!resolved.startsWith(path.resolve(TEMPLATES_DIR))) return null;
@@ -30,7 +23,6 @@ function resolveTemplatePath(templateName) {
 export function registerPdfHandlers(windowManager) {
     MainLogger.debug('PdfHandlers', 'Registering PDF handlers');
 
-    // List available bundled PDF templates
     ipcMain.handle(IPC_CHANNELS.PDF_LIST_TEMPLATES, async () => {
         try {
             const files = await fs.readdir(TEMPLATES_DIR);
@@ -49,7 +41,6 @@ export function registerPdfHandlers(windowManager) {
         }
     });
 
-    // Generate filled PDF bytes for preview (no save dialog)
     ipcMain.handle(IPC_CHANNELS.CHARACTER_PDF_PREVIEW, async (_event, characterData, templateName) => {
         try {
             MainLogger.debug('PdfHandlers', 'Generating PDF preview for character:', characterData?.name);
@@ -77,7 +68,6 @@ export function registerPdfHandlers(windowManager) {
         }
     });
 
-    // Generate filled PDF and save via native dialog
     ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT_PDF, async (_event, characterData, templateName) => {
         try {
             MainLogger.debug('PdfHandlers', 'Exporting PDF for character:', characterData?.name);

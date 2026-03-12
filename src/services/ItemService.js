@@ -6,8 +6,8 @@ import { BaseDataService } from './BaseDataService.js';
 class ItemService extends BaseDataService {
 	constructor() {
 		super({ loadEvent: EVENTS.ITEMS_LOADED, loggerScope: 'ItemService' });
-		this._itemLookupMap = null; // Map for O(1) item lookups
-		this._baseItemLookupMap = null; // Map for O(1) base item lookups
+		this._itemLookupMap = null;
+		this._baseItemLookupMap = null;
 	}
 
 	async initialize() {
@@ -84,7 +84,6 @@ class ItemService extends BaseDataService {
 			'Invalid item identifier',
 		);
 
-		// Try regular items first
 		const item = this.lookupByNameAndSource(
 			this._itemLookupMap,
 			validated.name,

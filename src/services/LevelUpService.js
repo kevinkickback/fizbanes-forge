@@ -28,7 +28,6 @@ class LevelUpService {
 		// No legacy character.class field to sync
 	}
 
-	/** Total level from progression.classes[]. */
 	getTotalLevel(character) {
 		if (
 			!character?.progression?.classes ||
@@ -55,25 +54,21 @@ class LevelUpService {
 			this.initializeProgression(char);
 		}
 
-		// Check if class already exists
 		let classEntry = char.progression.classes.find(
 			(c) => c.name === cls,
 		);
 
 		if (classEntry) {
 			classEntry.levels = lvl;
-			// Update source if provided and currently missing
 			if (src && !classEntry.source) {
 				classEntry.source = src;
 			}
-			// Sync spellcasting level with progression
 			if (char.spellcasting?.classes?.[cls]) {
 				char.spellcasting.classes[cls].level = lvl;
 			}
 			return classEntry;
 		}
 
-		// Create new class entry
 		classEntry = {
 			name: cls,
 			source: src,
@@ -85,7 +80,6 @@ class LevelUpService {
 
 		char.progression.classes.push(classEntry);
 
-		// Initialize spellcasting for this class if applicable
 		spellSelectionService.initializeSpellcastingForClass(
 			char,
 			cls,
@@ -141,7 +135,6 @@ class LevelUpService {
 		const asiLevels = new Set();
 		const features = classData.classFeatures;
 
-		// Parse classFeatures array looking for "Ability Score Improvement" features
 		for (const feature of features) {
 			let featureName = '';
 			let featureLevel = null;
@@ -163,7 +156,6 @@ class LevelUpService {
 				continue;
 			}
 
-			// Check if this is an ASI feature
 			if (
 				featureName.includes('Ability Score Improvement') &&
 				featureLevel !== null
@@ -172,12 +164,10 @@ class LevelUpService {
 			}
 		}
 
-		// If we found ASI levels in the JSON, return them sorted
 		if (asiLevels.size > 0) {
 			return Array.from(asiLevels).sort((a, b) => a - b);
 		}
 
-		// Fallback to standard ASI levels
 		return [...DEFAULT_ASI_LEVELS];
 	}
 
@@ -282,9 +272,7 @@ class LevelUpService {
 			return typeof raw === 'number' ? raw : 0;
 		};
 
-		// Handle OR requirements (e.g., Fighter: Str 13 OR Dex 13)
 		if (requirements.or && Array.isArray(requirements.or)) {
-			// Flatten all OR requirements into a single list of alternatives
 			for (const orGroup of requirements.or) {
 				for (const [abbr, minScore] of Object.entries(orGroup)) {
 					const fullName = this._mapAbilityAbbreviation(abbr);
@@ -297,7 +285,6 @@ class LevelUpService {
 			return false;
 		}
 
-		// Handle regular AND requirements
 		for (const [abbr, minScore] of Object.entries(requirements)) {
 			const fullName = this._mapAbilityAbbreviation(abbr);
 			const score = getScore(fullName);
@@ -340,7 +327,7 @@ class LevelUpService {
 					const reqs = classData.multiclassing.requirements;
 
 					if (reqs.or) {
-						// OR requirements: flatten and join with 'or'
+
 						const alternatives = [];
 						for (const group of reqs.or) {
 							for (const [abbr, score] of Object.entries(group)) {
@@ -349,7 +336,7 @@ class LevelUpService {
 						}
 						requirementText = alternatives.join(' or ');
 					} else {
-						// AND requirements
+
 						requirementText = Object.entries(reqs)
 							.map(([abbr, score]) => `${abbr.toUpperCase()} ${score}`)
 							.join(', ');
@@ -370,17 +357,16 @@ class LevelUpService {
 			!character.progression?.classes ||
 			character.progression.classes.length <= 1
 		) {
-			return {}; // Not multiclassing
+			return {};
 		}
 
 		let totalCasterLevel = 0;
 		const warlockLevels = [];
 
-		// Calculate combined caster level per D&D 5e rules
 		for (const classEntry of character.progression.classes) {
 			const classData = classService.getClass(classEntry.name);
 			if (!classData || !classData.casterProgression) {
-				continue; // Non-spellcaster
+				continue;
 			}
 
 			const levels = classEntry.levels || 0;

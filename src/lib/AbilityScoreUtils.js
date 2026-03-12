@@ -11,10 +11,6 @@ import {
     STANDARD_ARRAY,
 } from './GameRules.js';
 
-//=============================================================================
-// Helper Functions
-//=============================================================================
-
 const ABILITIES = ABILITY_ABBREVIATIONS;
 
 export { formatModifierNumber as formatModifier, POINT_BUY_BUDGET, STANDARD_ARRAY };
@@ -37,10 +33,6 @@ export function calculatePointBuyTotal(scores) {
     return total;
 }
 
-//=============================================================================
-// 5etools Race Ability Parsing Helpers
-//=============================================================================
-
 function normalizeAbilityNameHelper(abb) {
     const fullName = attAbvToFull(abb);
     return fullName ? fullName.toLowerCase() : abb;
@@ -50,10 +42,8 @@ export function getRaceAbilityData(race, subrace) {
     const fixed = [];
     const choices = [];
 
-    // Process race abilities
     if (race?.ability && Array.isArray(race.ability)) {
         for (const entry of race.ability) {
-            // Fixed bonuses
             for (const ability of ABILITIES) {
                 if (entry[ability] && !entry.choose) {
                     fixed.push({
@@ -64,7 +54,6 @@ export function getRaceAbilityData(race, subrace) {
                 }
             }
 
-            // Ability choices
             if (entry.choose) {
                 choices.push({
                     count: entry.choose.count || 1,
@@ -78,10 +67,8 @@ export function getRaceAbilityData(race, subrace) {
         }
     }
 
-    // Process subrace abilities
     if (subrace?.ability && Array.isArray(subrace.ability)) {
         for (const entry of subrace.ability) {
-            // Fixed bonuses
             for (const ability of ABILITIES) {
                 if (entry[ability] && !entry.choose) {
                     fixed.push({
@@ -92,7 +79,6 @@ export function getRaceAbilityData(race, subrace) {
                 }
             }
 
-            // Ability choices
             if (entry.choose) {
                 choices.push({
                     count: entry.choose.count || 1,
@@ -128,9 +114,7 @@ export function getAbilityData(abilityArray, options = {}) {
     const asTextParts = [];
     const asTextShortParts = [];
 
-    // Process each ability entry
     for (const abilityEntry of abilityArray) {
-        // Handle "choose" entries (e.g., Variant Human, Half-Elf)
         if (abilityEntry.choose) {
             const processed = processChoose(abilityEntry.choose);
             asCollection.push({ choose: processed.data });
@@ -139,7 +123,6 @@ export function getAbilityData(abilityArray, options = {}) {
             continue;
         }
 
-        // Handle fixed ability scores
         const fixed = processFixed(abilityEntry);
         if (fixed.data) {
             asCollection.push(fixed.data);
@@ -148,7 +131,7 @@ export function getAbilityData(abilityArray, options = {}) {
         }
     }
 
-    // Handle lineage special case (Tasha's Custom Lineage)
+    // Tasha's Custom Lineage fallback
     if (isCurrentLineage && asCollection.length === 0) {
         return {
             asText: 'Choose one ability score. That score increases by 2.',
@@ -157,7 +140,6 @@ export function getAbilityData(abilityArray, options = {}) {
         };
     }
 
-    // Combine parts
     const asText =
         asTextParts.length > 0 ? `${toSentenceCase(asTextParts.join(', '))}.` : '';
     const asTextShort = asTextShortParts.join(', ');
@@ -186,34 +168,28 @@ function processChoose(choose) {
         };
     }
 
-    // Handle standard choices
     const from = choose.from || ABILITIES;
 
-    // Build text description
     let text;
     let textShort;
 
     if (count === 1) {
-        // Choose one ability
         if (from.length === ABILITIES.length) {
             text = `increase one ability score of your choice by ${amount}`;
             textShort = `choose one +${amount}`;
         } else {
             const abilities = from.map(attAbvToFull).join(' or ');
             text = `increase your ${abilities} score by ${amount}`;
-            // Use full name format: "Strength or Dexterity +2"
             const fullNames = from.map(attAbvToFull).join(' or ');
             textShort = `${fullNames} +${amount}`;
         }
     } else {
-        // Choose multiple abilities
         if (from.length === ABILITIES.length) {
             text = `increase ${numberToWords(count)} ability ${count === 1 ? 'score' : 'scores'} of your choice by ${amount}`;
             textShort = `choose ${numberToWords(count)} +${amount}`;
         } else {
             const abilities = from.map(attAbvToFull).join(', ');
             text = `increase ${numberToWords(count)} of the following by ${amount}: ${abilities}`;
-            // Use full name format for choices
             const fullNames = from.map(attAbvToFull).join(', ');
             textShort = `choose ${numberToWords(count)} from ${fullNames} +${amount}`;
         }
@@ -236,7 +212,6 @@ function processFixed(abilityEntry) {
             const value = abilityEntry[ability];
             fixed[ability] = value;
             parts.push(`your ${attAbvToFull(ability)} score increases by ${value}`);
-            // Use full name format for display: "Strength +2"
             shortParts.push(`${attAbvToFull(ability)} +${value}`);
         }
     }
@@ -252,7 +227,6 @@ function processFixed(abilityEntry) {
     };
 }
 
-/** Get only the fixed ability improvements (no choices). */
 export function getFixedAbilities(abilityArray) {
     if (!abilityArray || !Array.isArray(abilityArray)) {
         return {};
@@ -261,10 +235,8 @@ export function getFixedAbilities(abilityArray) {
     const fixed = {};
 
     for (const entry of abilityArray) {
-        // Skip choose entries
         if (entry.choose) continue;
 
-        // Collect fixed scores
         for (const ability of ABILITIES) {
             if (entry[ability]) {
                 fixed[ability] = (fixed[ability] || 0) + entry[ability];
@@ -275,7 +247,6 @@ export function getFixedAbilities(abilityArray) {
     return fixed;
 }
 
-/** Get ability score choices for UI selection. */
 export function getAbilityChoices(abilityArray) {
     if (!abilityArray || !Array.isArray(abilityArray)) {
         return [];
@@ -298,23 +269,19 @@ export function getAbilityChoices(abilityArray) {
     return choices;
 }
 
-/** Validate ability score selections against race requirements. */
 export function validateAbilitySelections(abilityArray, selections) {
     const errors = [];
     const final = { ...getFixedAbilities(abilityArray) };
     const choices = getAbilityChoices(abilityArray);
 
-    // No choices to validate
     if (choices.length === 0) {
         return { valid: true, errors: [], final };
     }
 
-    // Validate each choice
     for (let i = 0; i < choices.length; i++) {
         const choice = choices[i];
         const selected = selections[`choice_${i}`] || [];
 
-        // Check count
         if (selected.length !== choice.count) {
             errors.push(
                 `Must select exactly ${choice.count} ${choice.count === 1 ? 'ability' : 'abilities'} for choice ${i + 1}`,
@@ -322,7 +289,6 @@ export function validateAbilitySelections(abilityArray, selections) {
             continue;
         }
 
-        // Check valid abilities
         const invalid = selected.filter(
             (ability) => !choice.from.includes(ability),
         );
@@ -331,14 +297,12 @@ export function validateAbilitySelections(abilityArray, selections) {
             continue;
         }
 
-        // Check duplicates within this choice
         const unique = new Set(selected);
         if (unique.size !== selected.length) {
             errors.push(`Cannot select the same ability twice in choice ${i + 1}`);
             continue;
         }
 
-        // Apply selections
         for (const ability of selected) {
             if (choice.weighted) {
                 final[ability] =

@@ -1,6 +1,3 @@
-/**
- * Base application error class
- */
 export class AppError extends Error {
     constructor(message, details = {}) {
         super(message);
@@ -21,18 +18,12 @@ export class AppError extends Error {
     }
 }
 
-/**
- * Error for invalid input parameters
- */
 export class ValidationError extends AppError {
     constructor(message, details = {}) {
         super(message, details);
     }
 }
 
-/**
- * Error for data not found
- */
 export class NotFoundError extends AppError {
     constructor(resource, identifier, details = {}) {
         super(`${resource} not found: ${identifier}`, {
@@ -43,9 +34,6 @@ export class NotFoundError extends AppError {
     }
 }
 
-/**
- * Error for service initialization failures
- */
 export class ServiceError extends AppError {
     constructor(serviceName, message, details = {}) {
         super(`${serviceName}: ${message}`, {
@@ -55,27 +43,18 @@ export class ServiceError extends AppError {
     }
 }
 
-/**
- * Error for data loading/parsing failures
- */
 export class DataError extends AppError {
     constructor(message, details = {}) {
         super(message, details);
     }
 }
 
-/**
- * Error for invalid character state transitions
- */
 export class CharacterStateError extends AppError {
     constructor(message, details = {}) {
         super(message, details);
     }
 }
 
-/**
- * Error for serialization/deserialization failures
- */
 export class SerializationError extends AppError {
     constructor(message, details = {}) {
         super(message, details);

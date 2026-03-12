@@ -11,7 +11,6 @@ class SpellService extends BaseDataService {
 		this._spellClassLookup = null; // Lookup for spell-to-class associations
 	}
 
-	/** @returns {Promise<boolean>} True if initialization succeeded */
 	async initialize() {
 		await this.initWithLoader(
 			async () => {
@@ -78,7 +77,6 @@ class SpellService extends BaseDataService {
 		this._spellClassLookup = null;
 	}
 
-	/** @returns {Array<Object>} Array of spell objects */
 	getAllSpells() {
 		return this._data?.spell || [];
 	}
@@ -138,18 +136,15 @@ class SpellService extends BaseDataService {
 		const spellSource = spell.source.toLowerCase();
 		const spellName = spell.name.toLowerCase();
 
-		// Check if source exists in lookup
 		if (!this._spellClassLookup[spellSource]) {
 			return false;
 		}
 
-		// Check if spell exists in that source
 		const spellEntry = this._spellClassLookup[spellSource][spellName];
 		if (!spellEntry?.class) {
 			return false;
 		}
 
-		// Check if className appears in any of the class sources
 		for (const classSource of Object.keys(spellEntry.class)) {
 			if (spellEntry.class[classSource][className]) {
 				return true;

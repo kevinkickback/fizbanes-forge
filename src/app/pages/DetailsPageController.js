@@ -20,7 +20,6 @@ export class DetailsPageController extends BasePageController {
                 return;
             }
 
-            // Portrait Card - initialize selector
             const portraitEl = document.getElementById('characterPortrait');
             const portraitGrid = document.getElementById('detailsPortraitGrid');
             const portraitUpload = document.getElementById('detailsPortraitUpload');
@@ -199,7 +198,6 @@ export class DetailsPageController extends BasePageController {
 
         if (!allySelector || !allyImage || !allyInfo || !allyCustomNotes || !customAllyImageBtn || !customAllyImageInput) return;
 
-        // Restore custom image if present
         let customImageDataUrl = '';
         const character = AppState.getCurrentCharacter();
         if (character?.alliesAndOrganizations?.customImage) {
@@ -221,7 +219,6 @@ export class DetailsPageController extends BasePageController {
             allyInfo.classList.remove('u-hidden');
             allyCustomNotes.classList.add('u-hidden');
 
-            // Map of ally values to data (now using real images)
             const allyData = {
                 'harpers': {
                     image: 'assets/images/organizations/Harpers.png',
@@ -257,7 +254,6 @@ export class DetailsPageController extends BasePageController {
         allySelector.addEventListener('change', updateAllyDisplay);
         updateAllyDisplay();
 
-        // Upload button logic
         customAllyImageBtn.addEventListener('click', () => {
             customAllyImageInput.click();
         });
@@ -269,7 +265,6 @@ export class DetailsPageController extends BasePageController {
             reader.onload = (evt) => {
                 customImageDataUrl = evt.target.result;
                 allyImage.style.backgroundImage = `url('${customImageDataUrl}')`;
-                // Persist to character state
                 const character = AppState.getCurrentCharacter();
                 if (character?.alliesAndOrganizations) {
                     character.alliesAndOrganizations.customImage = customImageDataUrl;

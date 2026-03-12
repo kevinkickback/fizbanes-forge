@@ -1,6 +1,4 @@
 /**
- * Manages recording and retrieval of character class progression choices.
- *
  * Error strategy: LOG-and-continue. Failures are logged but never thrown,
  * because missing history should not block character operations.
  */
@@ -25,7 +23,6 @@ class ProgressionHistoryService {
 			character.progressionHistory[className] = {};
 		}
 
-		// Normalize level to string key
 		const levelKey = String(level);
 
 		character.progressionHistory[className][levelKey] = {
@@ -168,7 +165,6 @@ class ProgressionHistoryService {
 
 			if (modified) {
 				affectedLevels++;
-				// Update timestamp to reflect the modification
 				entry.timestamp = new Date().toISOString();
 			}
 		}

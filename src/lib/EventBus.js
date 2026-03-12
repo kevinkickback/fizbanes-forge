@@ -1,14 +1,11 @@
 import EventEmitter from 'eventemitter3';
 
 export const EVENTS = {
-	// Application lifecycle
 	APP_READY: 'app:ready',
 	APP_SHUTDOWN: 'app:shutdown',
 
-	// State changes
 	STATE_CHANGED: 'state:changed',
 
-	// Character events
 	CHARACTER_SELECTED: 'character:selected',
 	CHARACTER_CREATED: 'character:created',
 	CHARACTER_DELETED: 'character:deleted',
@@ -16,27 +13,21 @@ export const EVENTS = {
 	CHARACTER_SAVED: 'character:saved',
 	CHARACTER_LOADED: 'character:loaded',
 
-	// Navigation events
 	PAGE_CHANGED: 'page:changed',
 	PAGE_LOADED: 'page:loaded',
 
-	// Data events
 	DATA_LOADED: 'data:loaded',
 	DATA_INVALIDATED: 'data:invalidated',
 	DATA_ERROR: 'data:error',
 	DATA_FILE_LOADING: 'data:fileLoading',
 
-	// UI events
 	MODAL_OPENED: 'modal:opened',
 	MODAL_CLOSED: 'modal:closed',
 
-	// Error events
 	ERROR_OCCURRED: 'error:occurred',
 
-	// Ability score events
 	ABILITY_SCORES_CHANGED: 'abilityScores:changed',
 
-	// Proficiency events
 	PROFICIENCY_ADDED: 'proficiency:added',
 	PROFICIENCY_REMOVED_BY_SOURCE: 'proficiency:removedBySource',
 	PROFICIENCY_REFUNDED: 'proficiency:refunded',
@@ -45,10 +36,8 @@ export const EVENTS = {
 	PROFICIENCY_OPTIONAL_SELECTED: 'proficiency:optionalSelected',
 	PROFICIENCY_OPTIONAL_DESELECTED: 'proficiency:optionalDeselected',
 
-	// Feat events
 	FEATS_SELECTED: 'feats:selected',
 
-	// Character creation events
 	CLASS_SELECTED: 'class:selected',
 	SUBCLASS_SELECTED: 'subclass:selected',
 	RACE_SELECTED: 'race:selected',
@@ -57,11 +46,9 @@ export const EVENTS = {
 	NEW_CHARACTER_MODAL_OPENED: 'modal:newCharacterOpened',
 	NEW_CHARACTER_MODAL_CLOSED: 'modal:newCharacterClosed',
 
-	// Data loading events
 	SPELLS_LOADED: 'spells:loaded',
 	ITEMS_LOADED: 'items:loaded',
 
-	// Equipment/Inventory events
 	ITEM_ADDED: 'item:added',
 	ITEM_REMOVED: 'item:removed',
 	ITEM_EQUIPPED: 'item:equipped',
@@ -71,7 +58,6 @@ export const EVENTS = {
 	INVENTORY_UPDATED: 'inventory:updated',
 	ENCUMBRANCE_CHANGED: 'encumbrance:changed',
 
-	// Spell events
 	SPELL_ADDED: 'spell:added',
 	SPELL_REMOVED: 'spell:removed',
 	SPELL_PREPARED: 'spell:prepared',
@@ -80,7 +66,6 @@ export const EVENTS = {
 	SPELL_SLOTS_RESTORED: 'spell-slots:restored',
 	SPELLS_UPDATED: 'spells:updated',
 
-	// Level-up and progression events
 	CHARACTER_LEVEL_CHANGED: 'character:levelChanged',
 	CHARACTER_LEVELED_UP: 'character:leveledUp',
 	CHARACTER_LEVELED_DOWN: 'character:leveledDown',
@@ -92,15 +77,12 @@ export const EVENTS = {
 	PROGRESSION_CHOICES_REMOVED: 'progression:choicesRemoved',
 	PROGRESSION_HISTORY_CLEARED: 'progression:historyCleared',
 
-	// Settings events
 	SETTINGS_SAVE_PATH_CHANGED: 'settings:savePathChanged',
 	SETTINGS_SAVE_PATH_RESET: 'settings:savePathReset',
 
-	// Data source events
 	DATA_SOURCE_CHANGED: 'dataSource:changed',
 	SOURCES_ALLOWED_CHANGED: 'sources:allowed-changed',
 
-	// Service lifecycle
 	SERVICE_INITIALIZED: 'service:initialized',
 };
 
@@ -115,7 +97,6 @@ class EventBus extends EventEmitter {
 		this._maxHistorySize = 100;
 	}
 
-	// Maintain existing on() behavior with debug logging
 	on(event, handler) {
 		if (typeof handler !== 'function') {
 			console.error('[EventBus]', 'Handler must be a function', { event });
@@ -134,7 +115,6 @@ class EventBus extends EventEmitter {
 		return this;
 	}
 
-	// Maintain existing once() behavior with debug logging
 	once(event, handler) {
 		if (typeof handler !== 'function') {
 			console.error('[EventBus]', 'Handler must be a function', { event });
@@ -146,8 +126,7 @@ class EventBus extends EventEmitter {
 		return this;
 	}
 
-	// Maintain existing off() behavior with debug logging
-	// IMPORTANT: Require handler to prevent accidentally removing ALL listeners
+	// Require handler to prevent accidentally removing ALL listeners
 	off(event, handler) {
 		if (!handler) {
 			console.warn(
@@ -171,7 +150,6 @@ class EventBus extends EventEmitter {
 		return this;
 	}
 
-	// Maintain existing emit() behavior with debug logging and error handling
 	emit(event, ...args) {
 		const startTime = performance.now();
 
@@ -181,7 +159,6 @@ class EventBus extends EventEmitter {
 				argsCount: args.length,
 			});
 
-			// Record event in history
 			this._recordEvent(event, args);
 		}
 
@@ -203,13 +180,11 @@ class EventBus extends EventEmitter {
 		}
 	}
 
-	// Maintain existing clearEvent() method
 	clearEvent(event) {
 		this.removeAllListeners(event);
 		console.debug('[EventBus]', 'Event cleared', { event });
 	}
 
-	// Maintain existing clearAll() method
 	clearAll() {
 		this.removeAllListeners();
 		console.debug('[EventBus]', 'All events cleared');
@@ -226,7 +201,6 @@ class EventBus extends EventEmitter {
 
 		this._history.push(record);
 
-		// Keep history size manageable
 		if (this._history.length > this._maxHistorySize) {
 			this._history.shift();
 		}
@@ -276,7 +250,6 @@ class EventBus extends EventEmitter {
 		}
 	}
 
-	// Public debug API
 	getHistory(eventName = null) {
 		if (!eventName) return [...this._history];
 		return this._history.filter(record => record.event === eventName);

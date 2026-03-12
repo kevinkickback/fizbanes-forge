@@ -90,5 +90,4 @@ class OptionalFeatureService extends BaseDataService {
 	}
 }
 
-// Export singleton instance
 export const optionalFeatureService = new OptionalFeatureService();

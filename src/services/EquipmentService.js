@@ -127,21 +127,17 @@ class EquipmentService {
 
 		const item = char.inventory.items[itemIndex];
 
-		// If removing all quantity, delete the item entirely
 		if (qty >= item.quantity) {
-			// Unequip if needed
 			if (item.equipped) {
 				this.unequipItem(char, instanceId);
 			}
 
-			// Unatune if needed
 			if (item.attuned) {
 				this.unattuneItem(char, instanceId);
 			}
 
 			char.inventory.items.splice(itemIndex, 1);
 		} else {
-			// Reduce quantity
 			item.quantity -= qty;
 		}
 
@@ -438,7 +434,6 @@ class EquipmentService {
 	applyBackgroundEquipment(character, background, equipmentChoices) {
 		if (!character) return;
 
-		// Remove previously auto-added background items and tracked currency
 		this.removeItemsBySource(character, 'Background');
 
 		if (character.background?.addedCurrency) {
@@ -476,5 +471,4 @@ class EquipmentService {
 	}
 }
 
-// Export singleton
 export const equipmentService = new EquipmentService();

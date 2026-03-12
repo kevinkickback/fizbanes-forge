@@ -282,33 +282,26 @@ export function getSchoolName(code) {
 }
 
 export function getSpeedString(ent) {
-	// Handle simple number
 	if (typeof ent === 'number') {
 		return `${ent} ft.`;
 	}
 
-	// Handle object with speed property
 	const speed = ent?.speed;
 	if (!speed) return '—';
 
-	// Handle simple speed number
 	if (typeof speed === 'number') {
 		return `${speed} ft.`;
 	}
 
-	// Handle complex speed object
 	if (typeof speed === 'object') {
 		const stack = [];
 		const unit = 'ft.';
 
-		// Process each speed mode
 		SPEED_MODES.filter((mode) => speed[mode] !== undefined).forEach((mode) => {
 			const modeSpeed = speed[mode];
 
-			// Skip if explicitly hidden
 			if (speed.hidden?.includes(mode)) return;
 
-			// Skip walk speed of 0 if requested
 			if (mode === 'walk' && modeSpeed === 0) return;
 
 			const speedName = mode === 'walk' ? '' : `${mode} `;
@@ -327,7 +320,6 @@ export function getSpeedString(ent) {
 			}
 		});
 
-		// Handle "choose" speeds
 		if (speed.choose && !speed.hidden?.includes('choose')) {
 			const fromModes = speed.choose.from
 				.sort()
@@ -501,7 +493,6 @@ export function ascSortLower(a, b) {
 	return ascSort(String(a).toLowerCase(), String(b).toLowerCase());
 }
 
-// Export additional constants for external use
 export {
 	DEFAULT_SOURCE,
 	SIZE_ABV_TO_FULL,
@@ -517,18 +508,12 @@ export async function renderEntriesToText(item) {
 	const { textProcessor } = await import('./TextProcessor.js');
 	const parts = [];
 
-	/**
-	 * Recursively process an entry and its children
-	 * @param {*} entry - Entry to process (string, object, or array)
-	 */
 	const processEntry = async (entry) => {
-		// Handle string entries
 		if (typeof entry === 'string') {
 			parts.push(await textProcessor.processString(entry));
 			return;
 		}
 
-		// Handle array entries
 		if (Array.isArray(entry)) {
 			for (const subEntry of entry) {
 				await processEntry(subEntry);
@@ -536,7 +521,6 @@ export async function renderEntriesToText(item) {
 			return;
 		}
 
-		// Handle object entries
 		if (typeof entry === 'object' && entry !== null) {
 			// Skip reference entries (they don't contain display text)
 			if (
@@ -552,14 +536,12 @@ export async function renderEntriesToText(item) {
 				return;
 			}
 
-			// Process nested entries recursively
 			if (Array.isArray(entry.entries)) {
 				for (const subEntry of entry.entries) {
 					await processEntry(subEntry);
 				}
 			}
 
-			// Process items in lists
 			if (Array.isArray(entry.items)) {
 				for (const item of entry.items) {
 					await processEntry(item);
@@ -568,7 +550,6 @@ export async function renderEntriesToText(item) {
 		}
 	};
 
-	// Process the main entries
 	if (Array.isArray(item.entries)) {
 		for (const entry of item.entries) {
 			await processEntry(entry);

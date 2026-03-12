@@ -18,7 +18,6 @@ class BackgroundService extends BaseDataService {
 		return this.initWithLoader(
 			async () => {
 				const data = await DataLoader.loadBackgrounds();
-				// Normalize all backgrounds from legacy to 5etools format before caching
 				if (data?.background) {
 					return {
 						...data,
@@ -79,12 +78,10 @@ class BackgroundService extends BaseDataService {
 	}
 
 	_normalizeBackgroundStructure(background) {
-		// If already normalized or no proficiencies, return as-is
 		if (background.proficiencies && !background.skillProficiencies) {
 			return background;
 		}
 
-		// Create normalized proficiencies structure
 		const normalized = { ...background };
 
 		if (

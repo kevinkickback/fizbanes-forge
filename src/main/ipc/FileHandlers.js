@@ -27,7 +27,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 			: null;
 	};
 
-	// Select folder
 	ipcMain.handle(IPC_CHANNELS.FILE_SELECT_FOLDER, async () => {
 		try {
 			const result = await dialog.showOpenDialog(windowManager.mainWindow, {
@@ -45,7 +44,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Read JSON file
 	ipcMain.handle(IPC_CHANNELS.FILE_READ_JSON, async (_event, filePath) => {
 		try {
 			const safePath = resolveUnderAllowedRoots(filePath);
@@ -64,7 +62,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Write JSON file
 	ipcMain.handle(
 		IPC_CHANNELS.FILE_WRITE_JSON,
 		async (_event, filePath, data) => {
@@ -85,7 +82,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		},
 	);
 
-	// Check if file exists
 	ipcMain.handle(IPC_CHANNELS.FILE_EXISTS, async (_event, filePath) => {
 		try {
 			const safePath = resolveUnderAllowedRoots(filePath);
@@ -100,7 +96,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Open file with default application
 	ipcMain.handle(IPC_CHANNELS.FILE_OPEN, async (_event, filePath) => {
 		try {
 			const safePath = resolveUnderAllowedRoots(filePath);
@@ -118,10 +113,8 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Open URL in default browser
 	ipcMain.handle(IPC_CHANNELS.FILE_OPEN_EXTERNAL, async (_event, url) => {
 		try {
-			// Only allow http/https URLs for security
 			if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
 				return { success: false, error: 'Invalid URL' };
 			}
@@ -133,7 +126,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// List portrait image files from a directory
 	ipcMain.handle(IPC_CHANNELS.PORTRAITS_LIST, async (_event, dirPath) => {
 		try {
 			if (!dirPath || typeof dirPath !== 'string') {
@@ -163,7 +155,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Save portrait image from data URL or buffer to portraits directory
 	ipcMain.handle(
 		IPC_CHANNELS.PORTRAITS_SAVE,
 		async (_event, portraitsDir, imageData, fileName) => {
@@ -184,16 +175,13 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 					};
 				}
 
-				// Ensure the portraits directory exists
 				await fs.mkdir(safeDir, { recursive: true });
 
-				// Determine file extension from fileName or default to .png
 				let extension = path.extname(fileName).toLowerCase();
 				if (!extension) {
 					extension = '.png';
 				}
 
-				// Sanitize filename - remove path separators and keep only alphanumeric, dash, underscore
 				const baseName = path
 					.basename(fileName, extension)
 					.replace(/[^a-z0-9_-]/gi, '_');
@@ -206,7 +194,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 					};
 				}
 
-				// Handle data URL format (from FileReader.readAsDataURL)
 				let buffer;
 				if (typeof imageData === 'string' && imageData.startsWith('data:')) {
 					const base64Data = imageData.split(',')[1];
@@ -218,7 +205,6 @@ export function registerFileHandlers(preferencesManager, windowManager) {
 					}
 					buffer = Buffer.from(base64Data, 'base64');
 				} else if (typeof imageData === 'string') {
-					// Assume it's base64
 					buffer = Buffer.from(imageData, 'base64');
 				} else if (Buffer.isBuffer(imageData)) {
 					buffer = imageData;

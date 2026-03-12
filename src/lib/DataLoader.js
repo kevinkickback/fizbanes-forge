@@ -15,7 +15,6 @@ function _addToCache(url, data) {
 		state.cache.delete(url);
 	}
 
-	// Evict least recently used if cache is full
 	if (state.cache.size >= MAX_CACHE_SIZE) {
 		const lruUrl = state.cache.keys().next().value;
 		state.cache.delete(lruUrl);
@@ -34,14 +33,12 @@ function _updateCacheAccess(url) {
 async function loadJSON(url) {
 	const start = performance.now();
 
-	// Check in-memory cache first
 	if (state.cache.has(url)) {
 		_updateCacheAccess(url);
 		console.debug('[DataLoader]', `Cache hit for ${url}, duration: ${(performance.now() - start).toFixed(2)}ms`);
 		return state.cache.get(url);
 	}
 
-	// Check if already loading
 	if (state.loading[url]) return state.loading[url];
 
 	state.loading[url] = (async () => {
@@ -51,7 +48,6 @@ async function loadJSON(url) {
 
 			eventBus.emit(EVENTS.DATA_FILE_LOADING, { url });
 
-			// Check if running in Electron with data API available
 			if (
 				typeof window !== 'undefined' &&
 				window.data &&
@@ -142,7 +138,6 @@ function clearCache() {
 	console.debug('[DataLoader]', 'Cache cleared');
 }
 
-// Auto-clear cache when data is invalidated by external sources
 eventBus.on(EVENTS.DATA_INVALIDATED, clearCache);
 
 function resetAll() {

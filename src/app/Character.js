@@ -500,15 +500,10 @@ export class Character {
 		return this.getClassEntry(className) !== null;
 	}
 
-	/**
-	 * Calculate feat availability based on ASI choices and race
-	 * @returns {Object} { used, max, remaining, reasons, blockedReason }
-	 */
 	getFeatAvailability() {
 		const reasons = [];
 		let maxFeats = 0;
 
-		// Count ASI opportunities (available feat slots from level-ups)
 		const _totalLevel = this.getTotalLevel();
 		if (this.progression?.classes) {
 			for (const classEntry of this.progression.classes) {
@@ -517,7 +512,6 @@ export class Character {
 
 				const asiLevels = CLASS_ASI_LEVELS[className] || DEFAULT_ASI_LEVELS;
 
-				// Count ASI opportunities for this class
 				const asiCount = asiLevels.filter((level) => level <= classLevel).length;
 				maxFeats += asiCount;
 
@@ -529,14 +523,12 @@ export class Character {
 			}
 		}
 
-		// Check for Variant Human feat
 		const raceName = this.race?.name?.toLowerCase() || '';
 		if (raceName.includes('variant') && raceName.includes('human')) {
 			maxFeats += 1;
 			reasons.push('Variant Human');
 		}
 
-		// Count currently selected feats
 		const usedFeats = this.feats?.length || 0;
 		const remaining = Math.max(0, maxFeats - usedFeats);
 

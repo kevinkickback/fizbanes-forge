@@ -1,7 +1,5 @@
-/** Schema helpers for creating and validating character data using Zod. */
 import { z } from 'zod';
 
-// Character validation schema - validates structure without providing defaults  
 const characterValidationSchema = z.object({
     id: z.string().nullable(),
     name: z.string().min(1, 'Character name is required'),
@@ -102,7 +100,6 @@ export const CharacterSchema = {
             playerName: '',
             portrait: '',
 
-            // Ability scores
             abilityScores: {
                 strength: 10,
                 dexterity: 10,
@@ -112,7 +109,6 @@ export const CharacterSchema = {
                 charisma: 10,
             },
 
-            // Ability bonuses (tracked by source)
             abilityBonuses: {
                 strength: [],
                 dexterity: [],
@@ -122,10 +118,8 @@ export const CharacterSchema = {
                 charisma: [],
             },
 
-            // Pending ability score choices
             pendingAbilityChoices: [],
 
-            // Character details
             // Note: class info stored in progression.classes[], no legacy class field
             race: {
                 name: '',
@@ -143,7 +137,6 @@ export const CharacterSchema = {
                 burrow: 0,
             },
 
-            // Physical characteristics
             height: '',
             weight: '',
             gender: '',
@@ -165,14 +158,12 @@ export const CharacterSchema = {
                 customNotes: '',
             },
 
-            // Features
             features: {
                 darkvision: 0,
                 resistances: [],
                 traits: {},
             },
 
-            // Feats
             feats: [],
             featSources: {},
 
@@ -187,7 +178,6 @@ export const CharacterSchema = {
                 savingThrows: [],
             },
 
-            // Proficiency sources (tracking where proficiencies came from)
             proficiencySources: {
                 armor: {},
                 weapons: {},
@@ -197,7 +187,6 @@ export const CharacterSchema = {
                 savingThrows: {},
             },
 
-            // Optional proficiencies (choices during character creation)
             optionalProficiencies: {
                 armor: { allowed: 0, selected: [] },
                 weapons: { allowed: 0, selected: [] },
@@ -228,20 +217,16 @@ export const CharacterSchema = {
                 },
             },
 
-            // Pending choices (general)
             pendingChoices: {},
 
-            // Instrument choices (for musical instruments)
             instrumentChoices: [],
 
-            // Variant rules configuration
             variantRules: {
                 feats: true,
                 abilityScoreMethod: 'custom',
             },
 
-            // Sources
-            allowedSources: [], // Array of source book codes
+            allowedSources: [],
 
             // Equipment (legacy)
             equipment: [],
@@ -249,14 +234,12 @@ export const CharacterSchema = {
             // Spells (legacy)
             spells: [],
 
-            // Hit points
             hitPoints: {
                 current: 0,
                 max: 0,
                 temp: 0,
             },
 
-            // Inventory system
             inventory: {
                 items: [],
                 equipped: [],
@@ -268,7 +251,6 @@ export const CharacterSchema = {
                 },
             },
 
-            // Spellcasting system
             spellcasting: {
                 classes: {},
                 multiclass: {
@@ -281,17 +263,14 @@ export const CharacterSchema = {
                 },
             },
 
-            // Progression system (per-class tracking)
             progression: {
                 classes: [],
                 experiencePoints: 0,
                 levelUps: [],
             },
 
-            // Progression history (user choices at each level: spells, feats, invocations, etc.)
             progressionHistory: {},
 
-            // Metadata
             createdAt: new Date().toISOString(),
             lastModified: new Date().toISOString(),
         };
@@ -341,10 +320,6 @@ export const CharacterSchema = {
         }
     },
 
-    /**
-     * Gets the Zod schema for external use
-     * @returns {z.ZodObject} The character validation schema
-     */
     getSchema() {
         return characterValidationSchema;
     },

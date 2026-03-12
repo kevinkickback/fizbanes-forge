@@ -12,7 +12,6 @@ import { classService } from '../services/ClassService.js';
 export function checkPrerequisite(prereq, character, options = {}) {
     if (!character) return { met: false, reason: 'No character' };
 
-    // Level requirement
     if (prereq.level !== undefined) {
         let charLevel = character.getTotalLevel();
         if (options.className) {
@@ -41,7 +40,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Ability score requirement
     if (Array.isArray(prereq.ability)) {
         const abilityScores = character.abilityScores || {};
         const meetsAbility = prereq.ability.some((abilityReq) => {
@@ -58,7 +56,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Race requirement
     if (!options.ignoreRacePrereq && Array.isArray(prereq.race)) {
         const characterRace = character.race?.name?.toLowerCase() || '';
         const meetsRace = prereq.race.some((raceReq) => {
@@ -70,7 +67,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Class requirement
     if (Array.isArray(prereq.class)) {
         const primaryClass = character.getPrimaryClass();
         const characterClass = primaryClass?.name?.toLowerCase() || '';
@@ -83,7 +79,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Spellcasting requirement
     if (prereq.spellcasting === true) {
         const classes = character.progression?.classes || [];
         const hasSpellcasting = classes.some((cls) => {
@@ -95,7 +90,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Spell known requirement
     if (prereq.spell) {
         const requiredSpells = Array.isArray(prereq.spell) ? prereq.spell : [prereq.spell];
         const missing = requiredSpells.filter((spellRef) => {
@@ -115,7 +109,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Pact requirement
     if (prereq.pact) {
         const hasPact = character.features?.some((f) =>
             f.name?.toLowerCase().includes(prereq.pact.toLowerCase()),
@@ -125,7 +118,6 @@ export function checkPrerequisite(prereq, character, options = {}) {
         }
     }
 
-    // Patron requirement
     if (prereq.patron) {
         const hasPatron = character.features?.some((f) =>
             f.name?.toLowerCase().includes(prereq.patron.toLowerCase()),

@@ -1,4 +1,3 @@
-/** Simple logger adapter for main process (honors FF_DEBUG). */
 import util from 'node:util';
 
 function isDebug() {

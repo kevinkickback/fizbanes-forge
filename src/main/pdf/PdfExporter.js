@@ -10,7 +10,6 @@ import { buildFieldMap } from './FieldMapping.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/** Root directory for renderer assets (src/ui/). */
 const RENDERER_ROOT = path.join(__dirname, '..', '..', 'ui');
 
 // Fields that are calculated/read-only in the MPMB template and need
@@ -33,7 +32,6 @@ export async function generateFilledPdf(characterData, templatePath) {
 
     const { textFields, checkboxFields } = buildFieldMap(characterData, templatePath);
 
-    // Fill text fields
     for (const [fieldName, value] of Object.entries(textFields)) {
         try {
             const field = form.getTextField(fieldName);
@@ -55,7 +53,6 @@ export async function generateFilledPdf(characterData, templatePath) {
         }
     }
 
-    // Fill checkbox fields
     for (const [fieldName, checked] of Object.entries(checkboxFields)) {
         try {
             const field = form.getCheckBox(fieldName);
@@ -69,7 +66,6 @@ export async function generateFilledPdf(characterData, templatePath) {
         }
     }
 
-    // Embed portrait image if available
     if (characterData.portrait) {
         try {
             await embedPortrait(pdfDoc, form, characterData.portrait);
@@ -87,8 +83,6 @@ export async function generateFilledPdf(characterData, templatePath) {
     // which renders as truncated "emp" text.
     clearAttackModDropdowns(form);
 
-    // Strip calculation formulas from all fields and make calculated
-    // fields (AC, Proficiency Bonus) editable for the exported PDF.
     stripCalculationActions(form);
     makeCalculatedFieldsEditable(form);
 
@@ -105,8 +99,6 @@ export async function generateFilledPdf(characterData, templatePath) {
     return filledBytes;
 }
 
-// ── Field Visibility ──────────────────────────────────────────────────────────
-
 // Layout / visual buttons that should be preserved (portraits, logos,
 // icons, decorative elements). Everything else is MPMB interactive chrome.
 const MPMB_BUTTON_KEEP_PATTERNS = [
@@ -117,13 +109,8 @@ const MPMB_BUTTON_KEEP_PATTERNS = [
     /^Weight /i,
 ];
 
-/** Ammunition tracker checkboxes and icon buttons to hide. */
 const AMMO_CHECKBOX_PATTERN = /^Ammo(Left|Right)\.(Top|Base|Bullet|Icon)\./;
 
-/**
- * Zero the widget rectangle and remove appearance streams for a field,
- * making it invisible without flattening.
- */
 function hideFieldWidgets(field) {
     for (const widget of field.acroField.getWidgets()) {
         widget.setRectangle({ x: 0, y: 0, width: 0, height: 0 });
@@ -131,10 +118,6 @@ function hideFieldWidgets(field) {
     }
 }
 
-/**
- * Hide MPMB interactive buttons and ammunition tracker checkboxes.
- * Layout buttons (Portrait, Image.*, logos) and ammo Name/Amount fields are kept.
- */
 function hideUnwantedFields(form) {
     let hidden = 0;
     for (const field of form.getFields()) {
@@ -155,7 +138,6 @@ function hideUnwantedFields(form) {
     MainLogger.debug('PdfExporter', `Hidden ${hidden} interactive/ammo fields`);
 }
 
-// ── Form Cleanup ──────────────────────────────────────────────────────────────
 
 /**
  * Remove the /Off appearance state that pdf-lib's updateFieldAppearances()
@@ -227,17 +209,7 @@ function makeCalculatedFieldsEditable(form) {
     }
 }
 
-// ── Portrait Embedding ────────────────────────────────────────────────────────
-
-/**
- * Embed a portrait image into the PDF form's image button field.
- *
- * @param {PDFDocument} pdfDoc
- * @param {Object} form - PDF form object
- * @param {string} portraitPath - Path to the portrait image file
- */
 async function embedPortrait(pdfDoc, form, portraitPath) {
-    // Resolve renderer-relative paths (e.g. 'assets/images/...') from src/ui/
     const resolvedPath = path.isAbsolute(portraitPath)
         ? portraitPath
         : path.join(RENDERER_ROOT, portraitPath);
@@ -263,7 +235,6 @@ async function embedPortrait(pdfDoc, form, portraitPath) {
     } else if (isJpeg) {
         image = await pdfDoc.embedJpg(imageBytes);
     } else if (isWebP) {
-        // Convert WebP to PNG via Electron's nativeImage
         const ni = nativeImage.createFromBuffer(Buffer.from(imageBytes));
         if (ni.isEmpty()) {
             MainLogger.warn('PdfExporter', `Failed to decode WebP portrait: ${portraitPath}`);
@@ -276,7 +247,6 @@ async function embedPortrait(pdfDoc, form, portraitPath) {
         return;
     }
 
-    // Try common image field names
     const imageFieldNames = ['CHARACTER IMAGE', 'CharacterImage', 'Portrait'];
     for (const fieldName of imageFieldNames) {
         try {

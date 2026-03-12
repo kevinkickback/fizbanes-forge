@@ -1,6 +1,4 @@
 /**
- * Validates character completeness and detects missing choices using 5etools data.
- *
  * Error strategy: LOG-and-continue. Validation issues are collected and returned
  * as arrays, never thrown, because partial validation results are still useful.
  */
@@ -14,7 +12,6 @@ class CharacterValidationService {
 		this.loggerScope = 'CharacterValidationService';
 	}
 
-	/** Validate character completeness and return detailed report of missing choices. */
 	validateCharacter(character) {
 		const report = {
 			isValid: true,
@@ -38,12 +35,10 @@ class CharacterValidationService {
 			return report;
 		}
 
-		// Validate each class
 		for (const classEntry of character.progression.classes) {
 			this._validateClassProgression(character, classEntry, report);
 		}
 
-		// Check if any missing items were found
 		report.isValid = Object.values(report.missing).every(
 			(arr) => arr.length === 0,
 		);
@@ -138,7 +133,6 @@ class CharacterValidationService {
 			messages: [],
 		};
 
-		// Count subclass choices
 		if (report.missing.subclasses.length > 0) {
 			summary.byCategory.subclasses = report.missing.subclasses.length;
 			summary.total += report.missing.subclasses.length;
@@ -147,7 +141,6 @@ class CharacterValidationService {
 			);
 		}
 
-		// Count ASI/Feat choices
 		if (report.missing.asis.length > 0) {
 			const totalASIs = report.missing.asis.reduce(
 				(sum, a) => sum + (a.expectedCount || 0),
@@ -160,7 +153,6 @@ class CharacterValidationService {
 			);
 		}
 
-		// Count spell choices
 		if (report.missing.spells.length > 0) {
 			const totalSpells = report.missing.spells.reduce(
 				(sum, s) => sum + (s.missing || 0),
@@ -173,7 +165,6 @@ class CharacterValidationService {
 			);
 		}
 
-		// Count class feature choices
 		const featureTypes = [
 			'invocations',
 			'metamagic',
@@ -198,7 +189,6 @@ class CharacterValidationService {
 			);
 		}
 
-		// Add other choices
 		if (report.missing.other.length > 0) {
 			summary.byCategory.other = report.missing.other.length;
 			summary.total += report.missing.other.length;
@@ -218,7 +208,6 @@ class CharacterValidationService {
 			asi: null,
 		};
 
-		// Filter subclass choices
 		const subclassChoice = report.missing.subclasses.find(
 			(s) => s.class === className,
 		);
@@ -226,13 +215,11 @@ class CharacterValidationService {
 			classChoices.subclass = subclassChoice;
 		}
 
-		// Filter ASI choices
 		const asiChoice = report.missing.asis.find((a) => a.class === className);
 		if (asiChoice) {
 			classChoices.asi = asiChoice;
 		}
 
-		// Filter spell choices
 		const spellChoice = report.missing.spells.find(
 			(s) => s.class === className,
 		);
@@ -240,7 +227,6 @@ class CharacterValidationService {
 			classChoices.spells = spellChoice;
 		}
 
-		// Collect all feature choices for this class
 		const featureTypes = [
 			'invocations',
 			'metamagic',
@@ -257,5 +243,4 @@ class CharacterValidationService {
 	}
 }
 
-// Export singleton instance
 export const characterValidationService = new CharacterValidationService();

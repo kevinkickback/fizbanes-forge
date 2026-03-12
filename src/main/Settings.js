@@ -1,5 +1,3 @@
-/** Preference storage/validation for the main process using electron-store. */
-
 import Store from 'electron-store';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,7 +6,6 @@ import { MainLogger } from './Logger.js';
 let store;
 let defaults;
 
-// Schema for electron-store validation
 const schema = {
 	characterSavePath: {
 		type: 'string',
@@ -58,7 +55,6 @@ const schema = {
 	},
 };
 
-/** Initialize preferences module with Electron app instance. */
 export function initPreferences(app) {
 	defaults = {
 		characterSavePath: path.join(
@@ -82,7 +78,7 @@ export function initPreferences(app) {
 			name: 'preferences',
 			defaults,
 			schema,
-			clearInvalidConfig: true, // Reset invalid values to defaults
+			clearInvalidConfig: true,
 		});
 
 		MainLogger.debug('PreferencesManager', 'electron-store initialized', {
@@ -154,7 +150,6 @@ export function clearPreferences() {
 
 export function getCharacterSavePath() {
 	const savePath = getPreference('characterSavePath');
-	// Ensure directory exists
 	if (!fs.existsSync(savePath)) {
 		fs.mkdirSync(savePath, { recursive: true });
 	}

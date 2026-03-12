@@ -135,7 +135,6 @@ function deriveFromSimpleVersion(version, raceName, source) {
 class RaceService extends BaseDataService {
 	constructor() {
 		super({ loggerScope: 'RaceService' });
-		/** @type {Map<string, {race: Object, subraces: Array, baseSubrace: Object|null}>} */
 		this._raceIndex = null;
 	}
 

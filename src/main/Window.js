@@ -1,12 +1,9 @@
-/** BrowserWindow lifecycle helper: create, persist bounds, and expose window ops. */
-
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { MainLogger } from './Logger.js';
 
 let mainWindow = null;
 
-/** Create the main application window. */
 export function createMainWindow({
 	preferencesManager,
 	rendererPath,
@@ -16,10 +13,8 @@ export function createMainWindow({
 }) {
 	MainLogger.debug('WindowManager', 'Creating main window');
 
-	// Get saved window bounds
 	const bounds = preferencesManager.getWindowBounds();
 
-	// Create window with saved bounds
 	mainWindow = new BrowserWindow({
 		width: bounds.width,
 		height: bounds.height,
@@ -27,7 +22,7 @@ export function createMainWindow({
 		y: bounds.y,
 		minWidth: 1240,
 		minHeight: 860,
-		autoHideMenuBar: true, // Hide default Electron menu bar
+		autoHideMenuBar: true,
 		webPreferences: {
 			preload: preloadPath,
 			contextIsolation: true,
@@ -35,37 +30,31 @@ export function createMainWindow({
 			sandbox: true,
 			devTools: !app.isPackaged && (debugMode || enableDevTools),
 		},
-		show: false, // Don't show until ready
+		show: false,
 	});
 
-	// Open DevTools in debug mode or when explicitly enabled (before loading)
 	if (!app.isPackaged && (debugMode || enableDevTools)) {
 		MainLogger.debug('WindowManager', 'Opening DevTools');
 		mainWindow.webContents.openDevTools({ mode: 'detach' });
 	}
 
-	// Load the app
 	mainWindow.loadFile(path.join(rendererPath, 'index.html'));
 
-	// Show window when ready
 	mainWindow.once('ready-to-show', () => {
 		MainLogger.debug('WindowManager', 'Window ready to show');
 		mainWindow.show();
 	});
 
-	// Block navigation away from the app (e.g. injected <a> tags)
 	mainWindow.webContents.on('will-navigate', (event) => {
 		MainLogger.warn('WindowManager', 'Blocked navigation attempt');
 		event.preventDefault();
 	});
 
-	// Block new window creation (e.g. target="_blank" links)
 	mainWindow.webContents.setWindowOpenHandler(() => {
 		MainLogger.warn('WindowManager', 'Blocked new window attempt');
 		return { action: 'deny' };
 	});
 
-	// Setup window event handlers
 	setupWindowEvents(preferencesManager);
 
 	MainLogger.debug('WindowManager', 'Main window created');
@@ -74,13 +63,11 @@ export function createMainWindow({
 
 function setupWindowEvents(preferencesManager) {
 	if (!mainWindow) return;
-	// Save window bounds on close
 	mainWindow.on('close', () => {
 		const bounds = mainWindow.getBounds();
 		preferencesManager.setWindowBounds(bounds);
 	});
 
-	// Handle window closed
 	mainWindow.on('closed', () => {
 		mainWindow = null;
 	});

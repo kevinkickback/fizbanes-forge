@@ -9,7 +9,6 @@ import { CharacterSchema } from '../../lib/CharacterSchema.js';
 import { MAX_CHARACTER_SIZE, MAX_PORTRAIT_SIZE } from '../../lib/GameRules.js';
 import { CharacterImportService } from '../../services/CharacterImportService.js';
 
-// Validate that a character ID is safe for use as a filename.
 // Allows UUIDs, alphanumeric strings, hyphens, and underscores only.
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
@@ -97,10 +96,8 @@ export async function extractEmbeddedPortrait(character, savePath) {
 
 	try {
 		await fs.access(targetPath);
-		// File already exists — just update the portrait path
 		character.portrait = targetPath;
 	} catch {
-		// File does not exist — extract it
 		try {
 			await fs.mkdir(portraitsDir, { recursive: true });
 
@@ -123,19 +120,16 @@ export async function extractEmbeddedPortrait(character, savePath) {
 export function registerCharacterHandlers(preferencesManager, windowManager) {
 	MainLogger.debug('CharacterHandlers', 'Registering character handlers');
 
-	// Save character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_SAVE, async (_event, characterData) => {
 		try {
 			if (typeof characterData === 'string' && Buffer.byteLength(characterData) > MAX_CHARACTER_SIZE) {
 				return { success: false, error: 'Character data exceeds maximum size limit' };
 			}
 
-			// Handle both serialized string and object
 			const character =
 				typeof characterData === 'string'
 					? JSON.parse(characterData)
 					: characterData;
-			// Validate before saving
 			const validation = CharacterSchema.validate(character);
 			if (!validation.valid) {
 				return {
@@ -154,7 +148,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 			const savePath = preferencesManager.getCharacterSavePath();
 			await embedPortraitData(character);
-			// Save using the character ID as filename (simple, predictable)
 			const id = character.id || uuidv4();
 			const filePath = resolveCharacterPath(savePath, id);
 			if (!filePath) {
@@ -163,16 +156,13 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			const tempPath = `${filePath}.tmp`;
 
 			try {
-				// Write to temp file first for atomic safety (process crash during write won't corrupt file)
+				// Atomic write: temp file then rename to prevent corruption on crash
 				await fs.writeFile(tempPath, JSON.stringify(character, null, 2));
-				// Atomic rename: replaces existing file or creates new one
 				await fs.rename(tempPath, filePath);
 			} catch (writeError) {
-				// Clean up temp file if it exists
 				try {
 					await fs.unlink(tempPath);
 				} catch {
-					// Temp file may not exist; ignore
 				}
 				throw writeError;
 			}
@@ -185,7 +175,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Load a single character by ID
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_LOAD, async (_event, id) => {
 		try {
 			const savePath = preferencesManager.getCharacterSavePath();
@@ -215,7 +204,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Load all characters
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_LIST, async () => {
 		try {
 			const savePath = preferencesManager.getCharacterSavePath();
@@ -259,7 +247,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Delete character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_DELETE, async (_event, id) => {
 		try {
 			MainLogger.debug('CharacterHandlers', 'Deleting character:', id);
@@ -280,7 +267,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Export character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_EXPORT, async (_event, id) => {
 		try {
 			MainLogger.debug('CharacterHandlers', 'Exporting character:', id);
@@ -320,7 +306,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Import character
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_IMPORT, async (_event, userChoice) => {
 		try {
 			MainLogger.debug('CharacterHandlers', 'Importing character');
@@ -332,7 +317,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			let character = userChoice?.character;
 			const action = userChoice?.action;
 
-			// If no file selected yet, show dialog
 			if (!sourceFilePath) {
 				const parentWindow =
 					typeof windowManager.getMainWindow === 'function'
@@ -351,19 +335,16 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 
 				sourceFilePath = result.filePaths[0];
 
-				// Validate file size before reading content
 				const stats = await fs.stat(sourceFilePath);
 				if (stats.size > MAX_CHARACTER_SIZE) {
 					return { success: false, error: `File exceeds maximum size of ${MAX_CHARACTER_SIZE / (1024 * 1024)}MB` };
 				}
 
-				// Use service to read, validate, and check for conflicts
 				const importResult =
 					await importService.importCharacter(sourceFilePath);
 
 				if (!importResult.success) {
 					if (importResult.step === 'conflict') {
-						// Return conflict info for user resolution
 						return {
 							success: false,
 							duplicateId: true,
@@ -376,15 +357,12 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 							message: `A character with ID "${importResult.character.id}" already exists. What would you like to do?`,
 						};
 					}
-					// Other errors (read, validate)
 					return { success: false, error: importResult.error };
 				}
 
-				// Success, character is ready
 				character = importResult.character;
 			}
 
-			// Handle user's choice for duplicate ID (keepBoth, overwrite, cancel)
 			if (action) {
 				const resolution = importService.processConflictResolution(
 					character,
@@ -411,7 +389,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 				}
 			}
 
-			// Write character atomically
 			const id = character.id;
 			const targetFilePath = resolveCharacterPath(savePath, id);
 			if (!targetFilePath) {
@@ -420,16 +397,12 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 			const tempPath = `${targetFilePath}.tmp`;
 
 			try {
-				// Write to temp file first for atomic safety
 				await fs.writeFile(tempPath, JSON.stringify(character, null, 2));
-				// Atomic rename: replaces existing file or creates new one
 				await fs.rename(tempPath, targetFilePath);
 			} catch (writeError) {
-				// Clean up temp file if it exists
 				try {
 					await fs.unlink(tempPath);
 				} catch {
-					// Temp file may not exist; ignore
 				}
 				throw writeError;
 			}
@@ -443,7 +416,6 @@ export function registerCharacterHandlers(preferencesManager, windowManager) {
 		}
 	});
 
-	// Generate UUID
 	ipcMain.handle(IPC_CHANNELS.CHARACTER_GENERATE_UUID, () => {
 		return { success: true, data: uuidv4() };
 	});

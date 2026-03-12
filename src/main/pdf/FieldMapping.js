@@ -9,8 +9,6 @@ import {
 } from '../../lib/5eToolsParser.js';
 import { MainLogger } from '../Logger.js';
 
-// ── Shared Constants ──────────────────────────────────────────────────────────
-
 const ABILITIES = ABILITY_NAMES.map(n => n.toLowerCase());
 
 const SKILL_ABILITY_MAP = {
@@ -33,8 +31,6 @@ const SKILL_ABILITY_MAP = {
     'Stealth': 'dexterity',
     'Survival': 'wisdom',
 };
-
-// ── 2014 MPMB Character Sheet Field Maps ──────────────────────────────────────
 
 const MPMB_SKILL_FIELD_MAP = {
     'Acrobatics': { modifier: 'Acr', proficiency: 'Acr Prof' },
@@ -66,9 +62,6 @@ const MPMB_SAVE_FIELD_MAP = {
     charisma: { modifier: 'Cha ST Mod', proficiency: 'Cha ST Prof' },
 };
 
-// ── 2024 WotC Character Sheet Field Maps ──────────────────────────────────────
-// Generic Text_N / Checkbox_N fields mapped via positional analysis.
-
 const WOTC_2024_SKILL_FIELD_MAP = {
     'Acrobatics': { modifier: 'Text_31', proficiency: 'Checkbox_31' },
     'Animal Handling': { modifier: 'Text_32', proficiency: 'Checkbox_19' },
@@ -99,8 +92,6 @@ const WOTC_2024_SAVE_FIELD_MAP = {
     charisma: { modifier: 'Text_50', proficiency: 'Checkbox_13' },
 };
 
-// ── Template Detection ─────────────────────────────────────────────────────────
-
 function detectTemplate(templatePath) {
     if (!templatePath) return '2014';
     const filename = path.basename(templatePath).toLowerCase();
@@ -108,30 +99,14 @@ function detectTemplate(templatePath) {
     return '2014';
 }
 
-/**
- * Calculate the ability modifier for a given score.
- * @param {number} score - The ability score
- * @returns {number} The modifier
- */
 export function calcModifier(score) {
     return getAbilityModNumber(score);
 }
 
-/**
- * Format a modifier with a leading sign (e.g. "+2", "-1", "+0").
- * @param {number} mod
- * @returns {string}
- */
 export function formatModifier(mod) {
     return formatModifierNumber(mod);
 }
 
-/**
- * Compute the total ability score from base + bonuses.
- * @param {Object} characterData - Serialized character JSON
- * @param {string} ability - Ability name (lowercase)
- * @returns {number}
- */
 export function getFinalAbilityScore(characterData, ability) {
     const base = characterData.abilityScores?.[ability] || 0;
     const bonuses = characterData.abilityBonuses?.[ability] || [];
@@ -139,32 +114,17 @@ export function getFinalAbilityScore(characterData, ability) {
     return base + totalBonus;
 }
 
-/**
- * Calculate proficiency bonus from total character level.
- * @param {Object} characterData
- * @returns {number}
- */
 export function getProficiencyBonus(characterData) {
     const totalLevel = getTotalLevel(characterData);
     return levelToProficiencyBonus(totalLevel);
 }
 
-/**
- * Calculate total character level from progression classes.
- * @param {Object} characterData
- * @returns {number}
- */
 export function getTotalLevel(characterData) {
     const classes = characterData.progression?.classes;
     if (!Array.isArray(classes) || classes.length === 0) return 1;
     return classes.reduce((sum, c) => sum + (c.levels || 0), 0) || 1;
 }
 
-/**
- * Format class/level string (e.g. "Fighter 5 / Wizard 3").
- * @param {Object} characterData
- * @returns {string}
- */
 export function formatClassLevel(characterData) {
     const classes = characterData.progression?.classes;
     if (!Array.isArray(classes) || classes.length === 0) return '';
@@ -215,10 +175,6 @@ function formatAllProficiencies(characterData) {
     return sections.join('\n');
 }
 
-/**
- * Flatten a 5etools entry (or array of entries) to plain text.
- * Handles nested {type:'entries', entries:[...]} structures.
- */
 function flattenEntries(entry) {
     if (!entry) return '';
     if (typeof entry === 'string') return entry;
@@ -294,8 +250,6 @@ function formatAlliesOrganizations(characterData) {
     return { name: displayName, left: allies.customNotes || '', right: '' };
 }
 
-// ── Hit Die Defaults ──────────────────────────────────────────────────────────
-
 const CLASS_HIT_DICE = {
     barbarian: 12, bard: 8, cleric: 8, druid: 8, fighter: 10,
     monk: 8, paladin: 10, ranger: 10, rogue: 8,
@@ -332,16 +286,12 @@ function computeFallbackMaxHP(characterData, conMod) {
     return Math.max(hp, 1);
 }
 
-// ── Skill Proficiency Collection ──────────────────────────────────────────────
-
 function collectAllSkillProficiencies(characterData) {
     const skills = new Set();
 
-    // Main proficiency list
     const mainSkills = characterData.proficiencies?.skills || [];
     for (const s of mainSkills) skills.add(s.toLowerCase());
 
-    // Optional proficiency selections (class/race/background skill choices)
     const optSkills = characterData.optionalProficiencies?.skills;
     if (optSkills) {
         for (const s of optSkills.selected || []) skills.add(s.toLowerCase());
@@ -352,8 +302,6 @@ function collectAllSkillProficiencies(characterData) {
 
     return skills;
 }
-
-// ── Spellcasting DC ───────────────────────────────────────────────────────────
 
 const SPELL_DC_ABILITY_DROPDOWN = {
     strength: '    STRENGTH',
@@ -390,8 +338,6 @@ function computeSpellDCs(characterData, modifiers, profBonus) {
     }
     return dcs;
 }
-
-// ── Armor Class Computation ──────────────────────────────────────────────────
 
 /**
  * Compute effective AC from equipped inventory items and DEX modifier.
@@ -432,8 +378,6 @@ function computeArmorClass(items, dexModifier) {
     return ac;
 }
 
-// ── Shared Value Computation ──────────────────────────────────────────────────
-
 function computeCharacterValues(characterData) {
     const scores = {};
     const modifiers = {};
@@ -473,13 +417,11 @@ function computeCharacterValues(characterData) {
     const perceptionProf = allSkillProfs.has('perception');
     const passivePerception = 10 + modifiers.wisdom + (perceptionProf ? profBonus : 0);
 
-    // Compute max HP fallback when saved value is 0
     let hpMax = characterData.hitPoints?.max ?? 0;
     if (hpMax === 0) {
         hpMax = computeFallbackMaxHP(characterData, modifiers.constitution);
     }
 
-    // Compute spell save DCs from spellcasting classes
     const spellDCs = computeSpellDCs(characterData, modifiers, profBonus);
 
     const armorClass = computeArmorClass(
@@ -502,13 +444,10 @@ function computeCharacterValues(characterData) {
     };
 }
 
-// ── 2014 MPMB Template Builder ────────────────────────────────────────────────
-
 function buildFieldMap2014(characterData, values) {
     const textFields = {};
     const checkboxFields = {};
 
-    // --- Identity ---
     textFields['PC Name'] = characterData.name || '';
     textFields['Player Name'] = characterData.playerName || '';
     textFields['Class and Levels'] = values.classLevel;
@@ -517,46 +456,37 @@ function buildFieldMap2014(characterData, values) {
     textFields.Background = values.background;
     textFields['Total Experience'] = characterData.experience || '';
 
-    // --- Ability Scores & Modifiers ---
     for (const ability of ABILITIES) {
         const abbr = getAbilityAbbrDisplay(ability);
         textFields[abbr] = String(values.scores[ability]);
         textFields[`${abbr} Mod`] = formatModifier(values.modifiers[ability]);
     }
 
-    // --- Proficiency Bonus ---
     textFields['Proficiency Bonus'] = formatModifier(values.profBonus);
 
-    // --- Saving Throws ---
     for (const ability of ABILITIES) {
         const save = MPMB_SAVE_FIELD_MAP[ability];
         textFields[save.modifier] = formatModifier(values.saveValues[ability].mod);
         checkboxFields[save.proficiency] = values.saveValues[ability].proficient;
     }
 
-    // --- Skills ---
     for (const [skillName, mapping] of Object.entries(MPMB_SKILL_FIELD_MAP)) {
         const skill = values.skillValues[skillName];
         textFields[mapping.modifier] = formatModifier(skill.mod);
         checkboxFields[mapping.proficiency] = skill.proficient;
     }
 
-    // --- Passive Perception ---
     textFields['Passive Perception'] = String(values.passivePerception);
 
-    // --- Combat ---
     textFields['Initiative bonus'] = formatModifier(values.modifiers.dexterity);
     textFields.Speed = characterData.speed?.walk ? `${characterData.speed.walk} ft` : '30 ft';
 
-    // --- Armor Class ---
     textFields.AC = String(values.armorClass);
 
-    // --- Hit Points ---
     textFields['HP Max'] = values.hpMax ? String(values.hpMax) : '';
     textFields['HP Current'] = String(characterData.hitPoints?.current ?? '');
     textFields['HP Temp'] = String(characterData.hitPoints?.temp ?? '');
 
-    // --- Hit Dice ---
     textFields['HD1 Level'] = String(values.totalLevel);
     const classes = characterData.progression?.classes;
     if (Array.isArray(classes) && classes.length > 0) {
@@ -571,7 +501,6 @@ function buildFieldMap2014(characterData, values) {
         }
     }
 
-    // --- Character Details (page 1 / shared) ---
     textFields.Sex = characterData.gender || '';
     textFields.Height = characterData.height || '';
     textFields.Weight = characterData.weight || '';
@@ -580,7 +509,6 @@ function buildFieldMap2014(characterData, values) {
     textFields['Class Features'] = values.classFeatures;
     textFields.MoreProficiencies = values.proficiencies;
 
-    // --- Page 2: Personality, racial traits, background feature ---
     textFields['Racial Traits'] = values.racialTraits;
     textFields['Personality Trait'] = characterData.personalityTraits || '';
     textFields.Ideal = characterData.ideals || '';
@@ -588,7 +516,6 @@ function buildFieldMap2014(characterData, values) {
     textFields.Flaw = characterData.flaws || '';
     textFields['Background Feature Description'] = characterData.backgroundFeature || '';
 
-    // --- Page 2: Equipment rows ---
     const inventoryItems = characterData.inventory?.items || [];
     for (let i = 0; i < Math.min(inventoryItems.length, 54); i++) {
         const item = inventoryItems[i];
@@ -602,7 +529,6 @@ function buildFieldMap2014(characterData, values) {
         }
     }
 
-    // --- Page 2: Currency ---
     const currency = characterData.inventory?.currency || characterData.currency;
     if (currency) {
         textFields['Copper Pieces'] = currency.cp ? String(currency.cp) : '';
@@ -612,7 +538,6 @@ function buildFieldMap2014(characterData, values) {
         textFields['Platinum Pieces'] = currency.pp ? String(currency.pp) : '';
     }
 
-    // --- Spell Save DC ---
     if (values.spellDCs.length > 0) {
         const dc1 = values.spellDCs[0];
         textFields['Spell save DC 1'] = String(dc1.dc);
@@ -624,13 +549,11 @@ function buildFieldMap2014(characterData, values) {
         textFields['Spell DC 2 Mod'] = dc2.dropdownValue;
     }
 
-    // --- Resistances ---
     const resistances = characterData.features?.resistances || [];
     for (let i = 0; i < Math.min(resistances.length, 6); i++) {
         textFields[`Resistance Damage Type ${i + 1}`] = resistances[i];
     }
 
-    // --- Page 3: Feats ---
     const feats = characterData.feats || [];
     for (let i = 0; i < Math.min(feats.length, 4); i++) {
         const feat = feats[i];
@@ -639,7 +562,6 @@ function buildFieldMap2014(characterData, values) {
         textFields[`Feat Note ${i + 1}`] = name;
     }
 
-    // --- Page 4: Appearance & details ---
     textFields.Alignment = characterData.alignment || '';
     textFields['Hair colour'] = characterData.hairColor || '';
     textFields['Eyes colour'] = characterData.eyeColor || '';
@@ -653,7 +575,6 @@ function buildFieldMap2014(characterData, values) {
     textFields['Background_Organisation.Right'] = values.allies.right;
     textFields.Background_Enemies = characterData.enemies || '';
 
-    // --- Armor Proficiency Checkboxes ---
     const armorProfs = characterData.proficiencies?.armor || [];
     const armorLower = armorProfs.map(a => a.toLowerCase());
     checkboxFields['Proficiency Armor Light'] = armorLower.some(a => a.includes('light'));
@@ -661,7 +582,6 @@ function buildFieldMap2014(characterData, values) {
     checkboxFields['Proficiency Armor Heavy'] = armorLower.some(a => a.includes('heavy'));
     checkboxFields['Proficiency Shields'] = armorLower.some(a => a.includes('shield'));
 
-    // --- Weapon Proficiency Checkboxes ---
     const weaponProfs = characterData.proficiencies?.weapons || [];
     const weaponLower = weaponProfs.map(w => w.toLowerCase());
     checkboxFields['Proficiency Weapon Simple'] = weaponLower.some(w => w.includes('simple'));
@@ -679,28 +599,22 @@ function buildFieldMap2014(characterData, values) {
     return { textFields, checkboxFields };
 }
 
-// ── 2024 WotC Template Builder ────────────────────────────────────────────────
-
 function buildFieldMap2024(characterData, values) {
     const textFields = {};
     const checkboxFields = {};
 
-    // --- Identity (header) ---
     textFields.Text_1 = characterData.name || '';
     textFields.Text_2 = values.classLevel;
     textFields.Text_3 = values.race;
     textFields.Text_4 = values.background;
     textFields.Text_5 = characterData.playerName || '';
 
-    // --- Ability Scores ---
-    // Left column: STR, DEX, CON
     textFields.Text_22 = String(values.scores.strength);
     textFields.Text_25 = formatModifier(values.modifiers.strength);
     textFields.Text_23 = String(values.scores.dexterity);
     textFields.Text_26 = formatModifier(values.modifiers.dexterity);
     textFields.Text_24 = String(values.scores.constitution);
     textFields.Text_27 = formatModifier(values.modifiers.constitution);
-    // Right column: INT, WIS, CHA
     textFields.Text_15 = String(values.scores.intelligence);
     textFields.Text_30 = formatModifier(values.modifiers.intelligence);
     textFields.Text_20 = String(values.scores.wisdom);
@@ -708,30 +622,26 @@ function buildFieldMap2024(characterData, values) {
     textFields.Text_21 = String(values.scores.charisma);
     textFields.Text_29 = formatModifier(values.modifiers.charisma);
 
-    // --- Combat Stats (header right) ---
-    textFields.Text_14 = String(values.armorClass);  // AC
+    textFields.Text_14 = String(values.armorClass);
     textFields.Text_7 = formatModifier(values.profBonus);
-    textFields.Text_8 = formatModifier(values.modifiers.dexterity);  // Initiative
+    textFields.Text_8 = formatModifier(values.modifiers.dexterity);
     textFields.Text_9 = characterData.speed?.walk ? `${characterData.speed.walk} ft` : '30 ft';
     textFields.Text_10 = values.hpMax ? String(values.hpMax) : '';
     textFields.Text_11 = String(characterData.hitPoints?.current ?? '');
     textFields.Text_12 = String(characterData.hitPoints?.temp ?? '');
 
-    // --- Saving Throws ---
     for (const ability of ABILITIES) {
         const save = WOTC_2024_SAVE_FIELD_MAP[ability];
         textFields[save.modifier] = formatModifier(values.saveValues[ability].mod);
         checkboxFields[save.proficiency] = values.saveValues[ability].proficient;
     }
 
-    // --- Skills ---
     for (const [skillName, mapping] of Object.entries(WOTC_2024_SKILL_FIELD_MAP)) {
         const skill = values.skillValues[skillName];
         textFields[mapping.modifier] = formatModifier(skill.mod);
         checkboxFields[mapping.proficiency] = skill.proficient;
     }
 
-    // --- Large text areas (page 1 bottom) ---
     textFields.Text_55 = values.proficiencies;
     // 2024 has a single Features & Traits area — combine racial + class
     const allFeatures = [values.racialTraits, values.classFeatures].filter(Boolean).join('\n\n');
@@ -742,8 +652,6 @@ function buildFieldMap2024(characterData, values) {
     MainLogger.debug('FieldMapping', `Built 2024 WotC field map: ${Object.keys(textFields).length} text, ${Object.keys(checkboxFields).length} checkbox`);
     return { textFields, checkboxFields };
 }
-
-// ── Public API ────────────────────────────────────────────────────────────────
 
 /**
  * Build a flat dictionary mapping PDF field names to their values.

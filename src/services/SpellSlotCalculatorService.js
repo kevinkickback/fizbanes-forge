@@ -7,7 +7,6 @@ class SpellSlotCalculatorService {
             return {};
         }
 
-        // Try data-driven approach from class JSON first
         const dataSlots = this._getSpellSlotsFromClassData(classData, level);
         if (dataSlots) return dataSlots;
 
@@ -15,7 +14,6 @@ class SpellSlotCalculatorService {
         const progression = classData.casterProgression;
         let casterLevel = level;
 
-        // Calculate effective caster level based on progression type
         if (progression === '1/2') {
             casterLevel = Math.floor(level / 2);
         } else if (progression === '1/3') {
@@ -25,7 +23,6 @@ class SpellSlotCalculatorService {
             return this._getPactMagicSlots(level);
         }
 
-        // Use standard spell slot table for full/half/third casters
         return this.getStandardSpellSlots(casterLevel);
     }
 

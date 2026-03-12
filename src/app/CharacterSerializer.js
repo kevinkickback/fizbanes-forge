@@ -1,19 +1,11 @@
-// Character serialization and deserialization utilities
-
 import { Character } from './Character.js';
 
-/**
- * Convert a Map to a plain object, handling Set values
- * @param {Map} map - The map to convert
- * @returns {Object} Plain object representation
- */
 function mapToObject(map) {
 	if (!map || typeof map !== 'object') return {};
 
 	try {
 		return Object.fromEntries(
 			Array.from(map.entries()).map(([key, value]) => {
-				// Convert Set values to arrays
 				if (value instanceof Set) {
 					return [key, Array.from(value)];
 				}
@@ -26,11 +18,6 @@ function mapToObject(map) {
 	}
 }
 
-/**
- * Safely convert various types to arrays
- * @param {*} arr - Value to convert
- * @returns {Array} Array representation
- */
 function safeArray(arr) {
 	if (!arr) return [];
 	if (Array.isArray(arr)) return [...arr];
@@ -38,12 +25,6 @@ function safeArray(arr) {
 	return [];
 }
 
-/**
- * Serialize complex proficiency structure (skills, languages, tools)
- * @param {Object} optionalProficiencies - The character's optional proficiencies
- * @param {string} type - Proficiency type (skills, languages, tools)
- * @returns {Object} Serialized proficiency data
- */
 function serializeComplexProficiency(optionalProficiencies, type) {
 	if (!optionalProficiencies || !optionalProficiencies[type]) {
 		return {
@@ -70,7 +51,6 @@ function serializeComplexProficiency(optionalProficiencies, type) {
 				selected: safeArray(optionalProficiencies[type][source].selected),
 			};
 		} else {
-			// Default empty structure
 			result[source] = { allowed: 0, options: [], selected: [] };
 		}
 	}
@@ -78,11 +58,6 @@ function serializeComplexProficiency(optionalProficiencies, type) {
 	return result;
 }
 
-/**
- * Serialize a Character instance to a plain JSON-serializable object
- * @param {Character} character - The character to serialize
- * @returns {Object} Plain object ready for JSON.stringify
- */
 export function serialize(character) {
 	if (!character) return null;
 
@@ -357,11 +332,6 @@ function _serializeProgression(character) {
 	};
 }
 
-/**
- * Deserialize plain object data into a Character instance
- * @param {Object} data - Plain object from JSON.parse
- * @returns {Character} Character instance
- */
 export function deserialize(data) {
 	if (!data) return null;
 	return new Character(data);

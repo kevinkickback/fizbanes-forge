@@ -18,7 +18,6 @@ class FeatService extends BaseDataService {
 	async initialize() {
 		return this.initWithLoader(() => DataLoader.loadFeats(), {
 			onLoaded: (data) => {
-				// Build lookup map for O(1) access by name (case-insensitive)
 				this._featMap = new Map();
 				if (data?.feat && Array.isArray(data.feat)) {
 					for (const feat of data.feat) {

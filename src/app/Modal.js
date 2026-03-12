@@ -73,7 +73,6 @@ export class Modal {
 		}
 	}
 
-	/** Shows a confirmation dialog. Returns true if confirmed. */
 	async showConfirmationModal(options) {
 		try {
 			const {
@@ -118,7 +117,6 @@ export class Modal {
 		}
 	}
 
-	/** Shows modal for handling duplicate character ID during import. Returns 'overwrite', 'keepBoth', or 'cancel'. */
 	async showDuplicateIdModal(options) {
 		try {
 			const { characterName, characterId, createdAt, lastModified } = options;
